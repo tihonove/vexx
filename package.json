@@ -1,0 +1,20 @@
+{
+  "name": "vscode-tui",
+  "version": "0.0.1",
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "start": "tsx src/index.tsx",
+    "build": "tsup",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "tsx": "^4.19",
+    "typescript": "^5.8",
+    "vitest": "^3.0"
+  }
+}
