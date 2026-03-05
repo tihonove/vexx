@@ -6,14 +6,14 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "tsx src/index.tsx",
+    "start": "node src/main.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@types/node": "^25.3.3",
     "tsup": "^8.5.1",
-    "tsx": "^4.19",
     "typescript": "^5.8",
     "vitest": "^3.0"
   }

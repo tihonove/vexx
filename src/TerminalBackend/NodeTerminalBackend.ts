@@ -1,0 +1,96 @@
+import type { ITerminalBackend } from "./ITerminalBackend.ts";
+import type { KeyEvent } from "./KeyEvent.ts";
+import { parseInput } from "./parseInput.ts";
+
+/**
+ * Real terminal backend: reads from process.stdin, writes to process.stdout.
+ * Handles alternate screen, raw mode, cursor visibility, signal cleanup.
+ */
+export class NodeTerminalBackend implements ITerminalBackend {
+    private inputCallbacks: ((event: KeyEvent) => void)[] = [];
+    private stdin: NodeJS.ReadStream;
+    private stdout: NodeJS.WriteStream;
+    private onDataHandler: ((chunk: string) => void) | null = null;
+    private cleanupHandlers: (() => void)[] = [];
+
+    constructor(
+        stdin: NodeJS.ReadStream = process.stdin,
+        stdout: NodeJS.WriteStream = process.stdout,
+    ) {
+        this.stdin = stdin;
+        this.stdout = stdout;
+    }
+
+    onInput(callback: (event: KeyEvent) => void): void {
+        this.inputCallbacks.push(callback);
+    }
+
+    setCellAt(x: number, y: number, char: string): void {
+        // ANSI cursor positioning: \x1b[row;colH (1-based)
+        this.stdout.write(`\x1b[${y + 1};${x + 1}H${char}`);
+    }
+
+    getSize(): { cols: number; rows: number } {
+        return {
+            cols: this.stdout.columns ?? 80,
+            rows: this.stdout.rows ?? 24,
+        };
+    }
+
+    setup(): void {
+        // Switch to alternate screen buffer
+        this.stdout.write("\x1b[?1049h");
+        // Hide cursor
+        this.stdout.write("\x1b[?25l");
+
+        // Raw mode for character-by-character input
+        this.stdin.setRawMode(true);
+        this.stdin.setEncoding("utf8");
+        this.stdin.resume();
+
+        // Listen for input
+        this.onDataHandler = (chunk: string) => {
+            const events = parseInput(chunk);
+            for (const event of events) {
+                for (const cb of this.inputCallbacks) {
+                    cb(event);
+                }
+            }
+        };
+        this.stdin.on("data", this.onDataHandler);
+
+        // Cleanup on exit/SIGINT
+        const onExit = () => this.teardown();
+        const onSigint = () => {
+            this.teardown();
+            process.exit(0);
+        };
+
+        process.on("exit", onExit);
+        process.on("SIGINT", onSigint);
+
+        this.cleanupHandlers.push(() => {
+            process.removeListener("exit", onExit);
+            process.removeListener("SIGINT", onSigint);
+        });
+    }
+
+    teardown(): void {
+        // Restore cursor
+        this.stdout.write("\x1b[?25h");
+        // Restore normal screen buffer
+        this.stdout.write("\x1b[?1049l");
+
+        // Remove stdin listener
+        if (this.onDataHandler) {
+            this.stdin.removeListener("data", this.onDataHandler);
+            this.onDataHandler = null;
+        }
+
+        // Remove process listeners
+        for (const cleanup of this.cleanupHandlers) {
+            cleanup();
+        }
+        this.cleanupHandlers = [];
+    }
+}

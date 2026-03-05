@@ -1,5 +1,11 @@
 {
     "chat.tools.terminal.autoApprove": {
-        "npm install": true
-    }
+        "npm install": true,
+        "npx vitest": true
+    },
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.patterns": {
+        "*.ts": "${capture}.test.ts"
+    },
+    "jestrunner.enableTestExplorer": true
 }
