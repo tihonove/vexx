@@ -10,13 +10,18 @@ export class RenderContext {
   }
 }
 
-class LayoutData {
+class LayoutStyle {
+
+}
+
+class LayoutState {
 
 }
 
 export class TUIElement {
   public dirty: boolean = false;
-  public layoutData?: LayoutData;
+  public layoutStyle?: LayoutStyle;
+  public layoutState?: LayoutState;
   public size: Size = new Size(80, 24);
   public contentSize: Size = new Size(80, 24);
   private eventListeners: { [event: string]: ((event: any) => void)[]; } = {};
