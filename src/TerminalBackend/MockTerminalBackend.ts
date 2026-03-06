@@ -14,6 +14,7 @@ import { serializeKey } from "./serializeKey.ts";
  */
 export class MockTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyEvent) => void)[] = [];
+    private resizeCallbacks: ((size: { cols: number; rows: number }) => void)[] = [];
     private cells: (string | null)[][];
 
     public cols: number;
@@ -31,6 +32,10 @@ export class MockTerminalBackend implements ITerminalBackend {
 
     onInput(callback: (event: KeyEvent) => void): void {
         this.inputCallbacks.push(callback);
+    }
+
+    onResize(callback: (size: { cols: number; rows: number }) => void): void {
+        this.resizeCallbacks.push(callback);
     }
 
     setCellAt(x: number, y: number, char: string): void {
@@ -113,5 +118,19 @@ export class MockTerminalBackend implements ITerminalBackend {
     /** Clear the screen grid back to empty */
     clearScreen(): void {
         this.cells = this.createEmptyGrid();
+    }
+
+    /**
+     * Simulate a terminal resize.
+     * Updates dimensions, recreates the grid, and notifies all resize callbacks.
+     */
+    resize(cols: number, rows: number): void {
+        this.cols = cols;
+        this.rows = rows;
+        this.cells = this.createEmptyGrid();
+        const size = { cols, rows };
+        for (const cb of this.resizeCallbacks) {
+            cb(size);
+        }
     }
 }

@@ -11,6 +11,9 @@ export interface ITerminalBackend {
     /** Subscribe to parsed keyboard input */
     onInput(callback: (event: KeyEvent) => void): void;
 
+    /** Subscribe to terminal resize events */
+    onResize(callback: (size: { cols: number; rows: number }) => void): void;
+
     /** Set a character at given screen coordinates (0-based) */
     setCellAt(x: number, y: number, char: string): void;
 

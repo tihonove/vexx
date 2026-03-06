@@ -7,6 +7,7 @@
   },
   "scripts": {
     "start": "node src/main.ts",
+    "demo:box": "node src/demos/boxDemo.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest"

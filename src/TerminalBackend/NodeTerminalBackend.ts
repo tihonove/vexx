@@ -8,21 +8,49 @@ import { parseInput } from "./parseInput.ts";
  */
 export class NodeTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyEvent) => void)[] = [];
+    private resizeCallbacks: ((size: { cols: number; rows: number }) => void)[] = [];
     private stdin: NodeJS.ReadStream;
     private stdout: NodeJS.WriteStream;
     private onDataHandler: ((chunk: string) => void) | null = null;
+    private onResizeHandler: (() => void) | null = null;
+    private resizeThrottleTimer: ReturnType<typeof setTimeout> | null = null;
+    private resizeThrottleMs: number;
+    private lastEmittedSize: { cols: number; rows: number } | null = null;
+    private resizePending: boolean = false;
     private cleanupHandlers: (() => void)[] = [];
 
     constructor(
         stdin: NodeJS.ReadStream = process.stdin,
         stdout: NodeJS.WriteStream = process.stdout,
+        options?: { resizeThrottleMs?: number },
     ) {
         this.stdin = stdin;
         this.stdout = stdout;
+        this.resizeThrottleMs = options?.resizeThrottleMs ?? 100;
     }
 
     onInput(callback: (event: KeyEvent) => void): void {
         this.inputCallbacks.push(callback);
+    }
+
+    onResize(callback: (size: { cols: number; rows: number }) => void): void {
+        this.resizeCallbacks.push(callback);
+    }
+
+    /** Emit resize only if dimensions actually changed */
+    private emitResize(): void {
+        const size = this.getSize();
+        if (
+            this.lastEmittedSize !== null &&
+            this.lastEmittedSize.cols === size.cols &&
+            this.lastEmittedSize.rows === size.rows
+        ) {
+            return;
+        }
+        this.lastEmittedSize = size;
+        for (const cb of this.resizeCallbacks) {
+            cb(size);
+        }
     }
 
     setCellAt(x: number, y: number, char: string): void {
@@ -59,6 +87,24 @@ export class NodeTerminalBackend implements ITerminalBackend {
         };
         this.stdin.on("data", this.onDataHandler);
 
+        // Listen for terminal resize (throttled + deduplicated)
+        this.onResizeHandler = () => {
+            if (this.resizeThrottleTimer !== null) {
+                // Already throttling — just mark that a new resize arrived
+                this.resizePending = true;
+                return;
+            }
+            this.emitResize();
+            this.resizeThrottleTimer = setTimeout(() => {
+                this.resizeThrottleTimer = null;
+                if (this.resizePending) {
+                    this.resizePending = false;
+                    this.emitResize();
+                }
+            }, this.resizeThrottleMs);
+        };
+        this.stdout.on("resize", this.onResizeHandler);
+
         // Cleanup on exit/SIGINT
         const onExit = () => this.teardown();
         const onSigint = () => {
@@ -85,6 +131,17 @@ export class NodeTerminalBackend implements ITerminalBackend {
         if (this.onDataHandler) {
             this.stdin.removeListener("data", this.onDataHandler);
             this.onDataHandler = null;
+        }
+
+        // Cancel pending throttle and remove resize listener
+        if (this.resizeThrottleTimer !== null) {
+            clearTimeout(this.resizeThrottleTimer);
+            this.resizeThrottleTimer = null;
+        }
+        this.resizePending = false;
+        if (this.onResizeHandler) {
+            this.stdout.removeListener("resize", this.onResizeHandler);
+            this.onResizeHandler = null;
         }
 
         // Remove process listeners

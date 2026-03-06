@@ -4,6 +4,7 @@ export class BoxElement extends TUIElement {
     public render(context: RenderContext): void {
         const w = this.size.width;
         const h = this.size.height;
+        const { dx: ox, dy: oy } = context.offset;
 
         for (let y = 0; y < h; y++) {
             for (let x = 0; x < w; x++) {
@@ -24,7 +25,7 @@ export class BoxElement extends TUIElement {
                     char = " ";
                 }
 
-                context.canvas.setCell(x, y, { char });
+                context.canvas.setCell(ox + x, oy + y, { char });
             }
         }
     }

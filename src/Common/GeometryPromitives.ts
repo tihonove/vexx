@@ -27,3 +27,29 @@ export class Size {
     this.height = height;
   }
 }
+
+export class Rect {
+  public readonly origin: Point;
+  public readonly size: Size;
+
+  constructor(origin: Point, size: Size) {
+    this.origin = origin;
+    this.size = size;
+  }
+
+  public get x(): number {
+    return this.origin.x;
+  }
+
+  public get y(): number {
+    return this.origin.y;
+  }
+
+  public get width(): number {
+    return this.size.width;
+  }
+
+  public get height(): number {
+    return this.size.height;
+  }
+}

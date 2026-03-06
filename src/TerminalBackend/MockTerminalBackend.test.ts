@@ -107,4 +107,41 @@ describe("MockTerminalBackend", () => {
         expect(() => backend.setCellAt(5, 0, "X")).not.toThrow();
         expect(() => backend.setCellAt(0, 3, "X")).not.toThrow();
     });
+
+    // ─── Resize ───
+
+    it("resize updates dimensions and notifies callbacks", () => {
+        const backend = new MockTerminalBackend(10, 5);
+        const handler = vi.fn();
+        backend.onResize(handler);
+
+        backend.resize(20, 10);
+
+        expect(backend.getSize()).toEqual({ cols: 20, rows: 10 });
+        expect(handler).toHaveBeenCalledOnce();
+        expect(handler).toHaveBeenCalledWith({ cols: 20, rows: 10 });
+    });
+
+    it("resize clears the screen grid", () => {
+        const backend = new MockTerminalBackend(5, 3);
+        backend.setCellAt(0, 0, "X");
+
+        backend.resize(8, 4);
+
+        expect(backend.getTextAt(0, 0, 1)).toBe(" ");
+        expect(backend.getSize()).toEqual({ cols: 8, rows: 4 });
+    });
+
+    it("resize supports multiple listeners", () => {
+        const backend = new MockTerminalBackend(10, 5);
+        const h1 = vi.fn();
+        const h2 = vi.fn();
+        backend.onResize(h1);
+        backend.onResize(h2);
+
+        backend.resize(30, 15);
+
+        expect(h1).toHaveBeenCalledOnce();
+        expect(h2).toHaveBeenCalledOnce();
+    });
 });
