@@ -5,11 +5,11 @@ import { serializeKey } from "./serializeKey.ts";
 
 /**
  * In-memory terminal backend for testing.
- * 
+ *
  * Provides two ways to simulate input:
  * - `sendKey('a')`, `sendKey('Ctrl+C')` — human-readable DSL
  * - `sendRaw('\x1b[A')` — raw escape sequences for edge cases
- * 
+ *
  * Stores screen state in a 2D grid for assertions via getTextAt() / screenToString().
  */
 export class MockTerminalBackend implements ITerminalBackend {
@@ -20,7 +20,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     public cols: number;
     public rows: number;
 
-    constructor(cols: number = 80, rows: number = 24) {
+    constructor(cols = 80, rows = 24) {
         this.cols = cols;
         this.rows = rows;
         this.cells = this.createEmptyGrid();
@@ -91,9 +91,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     getTextAt(x: number, y: number, length: number): string {
         let result = "";
         for (let i = 0; i < length; i++) {
-            const cell = (y >= 0 && y < this.rows && x + i >= 0 && x + i < this.cols)
-                ? this.cells[y][x + i]
-                : null;
+            const cell = y >= 0 && y < this.rows && x + i >= 0 && x + i < this.cols ? this.cells[y][x + i] : null;
             result += cell ?? " ";
         }
         return result;

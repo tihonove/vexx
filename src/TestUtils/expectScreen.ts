@@ -13,10 +13,7 @@ import type { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend
  *     +----+
  *   `
  */
-export function screen(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-): string {
+export function screen(strings: TemplateStringsArray, ...values: unknown[]): string {
     // Reconstruct the full string from template parts
     let raw = strings[0];
     for (let i = 0; i < values.length; i++) {
@@ -34,12 +31,7 @@ export function screen(
 
     // Find minimum indentation (ignore empty lines)
     const nonEmptyLines = lines.filter((l) => l.trim().length > 0);
-    const minIndent =
-        nonEmptyLines.length > 0
-            ? Math.min(
-                  ...nonEmptyLines.map((l) => l.match(/^(\s*)/)![1].length),
-              )
-            : 0;
+    const minIndent = nonEmptyLines.length > 0 ? Math.min(...nonEmptyLines.map((l) => /^(\s*)/.exec(l)![1].length)) : 0;
 
     // Strip common indent and trailing whitespace per line
     lines = lines.map((l) => l.slice(minIndent).trimEnd());
@@ -53,7 +45,7 @@ export function screen(
  * can be compared to `screen` tagged template output.
  */
 function normalizeScreen(raw: string): string {
-    let lines = raw.split("\n").map((l) => l.trimEnd());
+    const lines = raw.split("\n").map((l) => l.trimEnd());
     // Remove trailing empty lines
     while (lines.length > 0 && lines[lines.length - 1] === "") {
         lines.pop();
@@ -71,10 +63,7 @@ function normalizeScreen(raw: string): string {
  *     +----+
  *   `);
  */
-export function expectScreen(
-    backend: MockTerminalBackend,
-    expected: string,
-): void {
+export function expectScreen(backend: MockTerminalBackend, expected: string): void {
     const actual = normalizeScreen(backend.screenToString());
     expect(actual).toBe(expected);
 }

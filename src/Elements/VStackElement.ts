@@ -23,7 +23,7 @@ export class VStackElement extends TUIElement {
         this.children.push({ element: child, style });
     }
 
-    public getChildren(): ReadonlyArray<TUIElement> {
+    public getChildren(): readonly TUIElement[] {
         return this.children.map((c) => c.element);
     }
 

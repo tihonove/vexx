@@ -4,7 +4,7 @@
  *   sendKey('a')      → 'a'
  *   sendKey('Ctrl+C') → '\x03'
  *   sendKey('Enter')  → '\r'
- * 
+ *
  * TODO: extend with arrow keys, F-keys, CSI sequences, Kitty protocol
  */
 
@@ -23,7 +23,7 @@ export function serializeKey(name: string): string {
     }
 
     // Ctrl+<Letter> pattern
-    const ctrlMatch = name.match(/^Ctrl\+([A-Z])$/i);
+    const ctrlMatch = /^Ctrl\+([A-Z])$/i.exec(name);
     if (ctrlMatch) {
         const letter = ctrlMatch[1].toUpperCase();
         const code = letter.charCodeAt(0) - 0x40; // 'A' -> 0x01, 'C' -> 0x03

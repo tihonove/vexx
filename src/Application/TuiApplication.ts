@@ -5,55 +5,55 @@ import type { KeyEvent } from "../TerminalBackend/KeyEvent.ts";
 import { TerminalScreen } from "./TerminalScreen.ts";
 
 export class TuiApplication {
-  root: TUIElement | null = null;
-  screen: TerminalScreen;
-  private backend: ITerminalBackend;
+    root: TUIElement | null = null;
+    screen: TerminalScreen;
+    private backend: ITerminalBackend;
 
-  constructor(backend: ITerminalBackend) {
-    this.backend = backend;
-    const { cols, rows } = backend.getSize();
-    this.screen = new TerminalScreen(cols, rows);
-  }
-
-  private renderFrame(): void {
-    if (this.root) {
-      this.screen.clear();
-      this.root.size = new Size(this.screen.width, this.screen.height);
-      this.root.performLayout();
-      this.root.render(new RenderContext(this.screen));
-      this.screen.flush(this.backend);
+    constructor(backend: ITerminalBackend) {
+        this.backend = backend;
+        const { cols, rows } = backend.getSize();
+        this.screen = new TerminalScreen(cols, rows);
     }
-  }
 
-  private handleInput(event: KeyEvent): void {
-    if (this.root) {
-      this.root.emit(event);
-      this.renderFrame();
+    private renderFrame(): void {
+        if (this.root) {
+            this.screen.clear();
+            this.root.size = new Size(this.screen.width, this.screen.height);
+            this.root.performLayout();
+            this.root.render(new RenderContext(this.screen));
+            this.screen.flush(this.backend);
+        }
     }
-  }
 
-  private handleResize(cols: number, rows: number): void {
-    this.screen = new TerminalScreen(cols, rows);
-    this.renderFrame();
-  }
+    private handleInput(event: KeyEvent): void {
+        if (this.root) {
+            this.root.emit(event);
+            this.renderFrame();
+        }
+    }
 
-  public run(): void {
-    this.backend.setup();
+    private handleResize(cols: number, rows: number): void {
+        this.screen = new TerminalScreen(cols, rows);
+        this.renderFrame();
+    }
 
-    this.backend.onInput((event) => {
-      // Ctrl+C — exit
-      if (event.key === "Ctrl+C") {
-        this.backend.teardown();
-        process.exit(0);
-      }
-      this.handleInput(event);
-    });
+    public run(): void {
+        this.backend.setup();
 
-    this.backend.onResize(({ cols, rows }) => {
-      this.handleResize(cols, rows);
-    });
+        this.backend.onInput((event) => {
+            // Ctrl+C — exit
+            if (event.key === "Ctrl+C") {
+                this.backend.teardown();
+                process.exit(0);
+            }
+            this.handleInput(event);
+        });
 
-    // Initial render
-    this.renderFrame();
-  }
+        this.backend.onResize(({ cols, rows }) => {
+            this.handleResize(cols, rows);
+        });
+
+        // Initial render
+        this.renderFrame();
+    }
 }

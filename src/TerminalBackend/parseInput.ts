@@ -2,9 +2,9 @@ import type { KeyEvent } from "./KeyEvent.ts";
 
 /**
  * Parse raw terminal input into KeyEvent[].
- * 
+ *
  * Pure function, no side effects — easy to test and extend.
- * 
+ *
  * Currently handles:
  * - Printable ASCII characters
  * - Ctrl+letter (0x01–0x1a except 0x09/0x0d/0x1b)
@@ -12,7 +12,7 @@ import type { KeyEvent } from "./KeyEvent.ts";
  * - Tab (0x09)
  * - Backspace (0x7f)
  * - Escape (0x1b when standalone)
- * 
+ *
  * TODO: Arrow keys, F-keys, CSI sequences, Kitty protocol
  */
 export function parseInput(data: string): KeyEvent[] {

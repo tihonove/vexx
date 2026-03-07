@@ -53,9 +53,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
         app.run();
 
         // No input yet — backend screen should be all spaces (null cells)
-        expect(backend.screenToString()).toBe(
-            Array(5).fill(" ".repeat(20)).join("\n")
-        );
+        expect(backend.screenToString()).toBe(Array(5).fill(" ".repeat(20)).join("\n"));
     });
 
     it("uses custom terminal size from backend", () => {

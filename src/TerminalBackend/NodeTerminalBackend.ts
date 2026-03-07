@@ -16,7 +16,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private resizeThrottleTimer: ReturnType<typeof setTimeout> | null = null;
     private resizeThrottleMs: number;
     private lastEmittedSize: { cols: number; rows: number } | null = null;
-    private resizePending: boolean = false;
+    private resizePending = false;
     private cleanupHandlers: (() => void)[] = [];
 
     constructor(
@@ -106,7 +106,9 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout.on("resize", this.onResizeHandler);
 
         // Cleanup on exit/SIGINT
-        const onExit = () => this.teardown();
+        const onExit = () => {
+            this.teardown();
+        };
         const onSigint = () => {
             this.teardown();
             process.exit(0);

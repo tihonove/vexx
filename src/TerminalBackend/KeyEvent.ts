@@ -1,6 +1,6 @@
 /**
  * Represents a parsed keyboard event.
- * 
+ *
  * `key` — human-readable name: 'a', 'Enter', 'ArrowUp', 'Ctrl+C', 'Escape', etc.
  * `raw` — original bytes/escape sequence as received from stdin.
  */

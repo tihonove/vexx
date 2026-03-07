@@ -25,11 +25,7 @@ describe("TerminalScreen", () => {
 
         screen.flush(backend);
 
-        expect(backend.screenToString()).toBe(
-            "Hi   \n" +
-            "     \n" +
-            "     "
-        );
+        expect(backend.screenToString()).toBe("Hi   \n" + "     \n" + "     ");
     });
 
     it("clear resets all cells so next flush writes spaces", () => {

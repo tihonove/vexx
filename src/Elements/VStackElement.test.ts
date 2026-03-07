@@ -9,7 +9,10 @@ import { BoxElement } from "./BoxElement.ts";
 import { RenderContext } from "./TUIElement.ts";
 import { VStackElement } from "./VStackElement.ts";
 
-function createVStack(width: number, height: number): { vstack: VStackElement; backend: MockTerminalBackend; termScreen: TerminalScreen } {
+function createVStack(
+    width: number,
+    height: number,
+): { vstack: VStackElement; backend: MockTerminalBackend; termScreen: TerminalScreen } {
     const backend = new MockTerminalBackend(width, height);
     const termScreen = new TerminalScreen(width, height);
     const vstack = new VStackElement();
@@ -17,7 +20,11 @@ function createVStack(width: number, height: number): { vstack: VStackElement; b
     return { vstack, backend, termScreen };
 }
 
-function renderVStack(vstack: VStackElement, termScreen: TerminalScreen, backend: MockTerminalBackend): MockTerminalBackend {
+function renderVStack(
+    vstack: VStackElement,
+    termScreen: TerminalScreen,
+    backend: MockTerminalBackend,
+): MockTerminalBackend {
     vstack.render(new RenderContext(termScreen));
     termScreen.flush(backend);
     return backend;

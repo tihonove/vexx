@@ -2,7 +2,7 @@ import type { KeyEvent } from "./KeyEvent.ts";
 
 /**
  * Unified abstraction over terminal I/O.
- * 
+ *
  * Two implementations:
  * - `NodeTerminalBackend` — real process.stdin/stdout
  * - `MockTerminalBackend` — in-memory for tests

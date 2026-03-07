@@ -50,8 +50,12 @@ describe("MockTerminalBackend", () => {
 
     it("setup and teardown are no-ops (do not throw)", () => {
         const backend = new MockTerminalBackend();
-        expect(() => backend.setup()).not.toThrow();
-        expect(() => backend.teardown()).not.toThrow();
+        expect(() => {
+            backend.setup();
+        }).not.toThrow();
+        expect(() => {
+            backend.teardown();
+        }).not.toThrow();
     });
 
     // ─── setCellAt / getTextAt / screenToString ───
@@ -85,11 +89,7 @@ describe("MockTerminalBackend", () => {
         backend.setCellAt(0, 0, "A");
         backend.setCellAt(4, 2, "Z");
 
-        expect(backend.screenToString()).toBe(
-            "A    \n" +
-            "     \n" +
-            "    Z"
-        );
+        expect(backend.screenToString()).toBe("A    \n" + "     \n" + "    Z");
     });
 
     it("clearScreen resets the grid", () => {
@@ -102,10 +102,18 @@ describe("MockTerminalBackend", () => {
 
     it("setCellAt ignores out-of-bounds coordinates", () => {
         const backend = new MockTerminalBackend(5, 3);
-        expect(() => backend.setCellAt(-1, 0, "X")).not.toThrow();
-        expect(() => backend.setCellAt(0, -1, "X")).not.toThrow();
-        expect(() => backend.setCellAt(5, 0, "X")).not.toThrow();
-        expect(() => backend.setCellAt(0, 3, "X")).not.toThrow();
+        expect(() => {
+            backend.setCellAt(-1, 0, "X");
+        }).not.toThrow();
+        expect(() => {
+            backend.setCellAt(0, -1, "X");
+        }).not.toThrow();
+        expect(() => {
+            backend.setCellAt(5, 0, "X");
+        }).not.toThrow();
+        expect(() => {
+            backend.setCellAt(0, 3, "X");
+        }).not.toThrow();
     });
 
     // ─── Resize ───
