@@ -19,7 +19,6 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
         backend.sendKey("h");
         backend.sendKey("i");
 
-        // The BodyElement renders title starting at (10, 10)
         expect(backend.getTextAt(0, 0, 2)).toBe("hi");
     });
 
@@ -39,7 +38,6 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
         backend.sendKey("C");
 
         const screenText = backend.screenToString();
-        // Row 10 should contain "ABC" starting at column 10
         const lines = screenText.split("\n");
         expect(lines[0].slice(0, 3)).toBe("ABC");
     });
@@ -62,5 +60,40 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
 
         expect(app.screen.width).toBe(120);
         expect(app.screen.height).toBe(40);
+    });
+
+    it("handles arrow key events through the element", () => {
+        const backend = new MockTerminalBackend(80, 24);
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const receivedKeys: string[] = [];
+        body.addEventListener("keypress", (event) => {
+            receivedKeys.push(event.key);
+        });
+        app.root = body;
+        app.run();
+
+        backend.sendKey("ArrowUp");
+        backend.sendKey("ArrowDown");
+
+        expect(receivedKeys).toEqual(["ArrowUp", "ArrowDown"]);
+    });
+
+    it("receives modifier flags on events", () => {
+        const backend = new MockTerminalBackend(80, 24);
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        let lastCtrl = false;
+        body.addEventListener("keypress", (event) => {
+            lastCtrl = event.ctrlKey;
+        });
+        app.root = body;
+        app.run();
+
+        backend.sendKey("Ctrl+A");
+
+        expect(lastCtrl).toBe(true);
     });
 });

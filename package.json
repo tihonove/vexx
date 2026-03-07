@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node src/main.ts",
     "demo:box": "node src/demos/boxDemo.ts",
+    "demo:events": "node src/demos/eventLogDemo.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",

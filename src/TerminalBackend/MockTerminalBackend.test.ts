@@ -1,28 +1,50 @@
 import { describe, it, expect, vi } from "vitest";
 import { MockTerminalBackend } from "./MockTerminalBackend.ts";
-import type { KeyEvent } from "./KeyEvent.ts";
+import type { KeyPressEvent } from "./KeyEvent.ts";
 
 describe("MockTerminalBackend", () => {
     it("calls onInput callback when sendKey is used", () => {
         const backend = new MockTerminalBackend();
-        const handler = vi.fn<(event: KeyEvent) => void>();
+        const handler = vi.fn<(event: KeyPressEvent) => void>();
         backend.onInput(handler);
 
         backend.sendKey("a");
 
         expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith({ key: "a", raw: "a" });
+        expect(handler).toHaveBeenCalledWith(
+            expect.objectContaining({ type: "keypress", key: "a", raw: "a", ctrlKey: false }),
+        );
     });
 
     it("calls onInput callback when sendRaw is used", () => {
         const backend = new MockTerminalBackend();
-        const handler = vi.fn<(event: KeyEvent) => void>();
+        const handler = vi.fn<(event: KeyPressEvent) => void>();
         backend.onInput(handler);
 
         backend.sendRaw("\x03");
 
         expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith({ key: "Ctrl+C", raw: "\x03" });
+        expect(handler).toHaveBeenCalledWith(expect.objectContaining({ type: "keypress", key: "c", ctrlKey: true }));
+    });
+
+    it("sends arrow keys via sendRaw", () => {
+        const backend = new MockTerminalBackend();
+        const handler = vi.fn<(event: KeyPressEvent) => void>();
+        backend.onInput(handler);
+
+        backend.sendRaw("\x1b[A");
+
+        expect(handler).toHaveBeenCalledWith(expect.objectContaining({ key: "ArrowUp", ctrlKey: false }));
+    });
+
+    it("sends arrow keys via sendKey DSL", () => {
+        const backend = new MockTerminalBackend();
+        const handler = vi.fn<(event: KeyPressEvent) => void>();
+        backend.onInput(handler);
+
+        backend.sendKey("ArrowUp");
+
+        expect(handler).toHaveBeenCalledWith(expect.objectContaining({ key: "ArrowUp" }));
     });
 
     it("returns configured size", () => {

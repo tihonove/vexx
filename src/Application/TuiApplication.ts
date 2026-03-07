@@ -1,7 +1,7 @@
 import { Size } from "../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
 import type { ITerminalBackend } from "../TerminalBackend/ITerminalBackend.ts";
-import type { KeyEvent } from "../TerminalBackend/KeyEvent.ts";
+import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 import { TerminalScreen } from "./TerminalScreen.ts";
 
 export class TuiApplication {
@@ -25,7 +25,7 @@ export class TuiApplication {
         }
     }
 
-    private handleInput(event: KeyEvent): void {
+    private handleInput(event: KeyPressEvent): void {
         if (this.root) {
             this.root.emit(event);
             this.renderFrame();
@@ -42,7 +42,7 @@ export class TuiApplication {
 
         this.backend.onInput((event) => {
             // Ctrl+C — exit
-            if (event.key === "Ctrl+C") {
+            if (event.ctrlKey && event.key === "c") {
                 this.backend.teardown();
                 process.exit(0);
             }

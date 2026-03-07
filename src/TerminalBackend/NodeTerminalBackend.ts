@@ -1,5 +1,5 @@
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
-import type { KeyEvent } from "./KeyEvent.ts";
+import type { KeyPressEvent } from "./KeyEvent.ts";
 import { parseInput } from "./parseInput.ts";
 
 /**
@@ -7,7 +7,7 @@ import { parseInput } from "./parseInput.ts";
  * Handles alternate screen, raw mode, cursor visibility, signal cleanup.
  */
 export class NodeTerminalBackend implements ITerminalBackend {
-    private inputCallbacks: ((event: KeyEvent) => void)[] = [];
+    private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
     private resizeCallbacks: ((size: { cols: number; rows: number }) => void)[] = [];
     private stdin: NodeJS.ReadStream;
     private stdout: NodeJS.WriteStream;
@@ -29,7 +29,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.resizeThrottleMs = options?.resizeThrottleMs ?? 100;
     }
 
-    onInput(callback: (event: KeyEvent) => void): void {
+    onInput(callback: (event: KeyPressEvent) => void): void {
         this.inputCallbacks.push(callback);
     }
 

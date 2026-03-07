@@ -1,5 +1,5 @@
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
-import type { KeyEvent } from "./KeyEvent.ts";
+import type { KeyPressEvent } from "./KeyEvent.ts";
 import { parseInput } from "./parseInput.ts";
 import { serializeKey } from "./serializeKey.ts";
 
@@ -13,7 +13,7 @@ import { serializeKey } from "./serializeKey.ts";
  * Stores screen state in a 2D grid for assertions via getTextAt() / screenToString().
  */
 export class MockTerminalBackend implements ITerminalBackend {
-    private inputCallbacks: ((event: KeyEvent) => void)[] = [];
+    private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
     private resizeCallbacks: ((size: { cols: number; rows: number }) => void)[] = [];
     private cells: (string | null)[][];
 
@@ -27,10 +27,13 @@ export class MockTerminalBackend implements ITerminalBackend {
     }
 
     private createEmptyGrid(): (string | null)[][] {
-        return new Array(this.rows).fill(null).map(() => new Array(this.cols).fill(null));
+        const value: string | null = null;
+        return new Array<(string | null)[]>(this.rows)
+            .fill([])
+            .map(() => new Array<string | null>(this.cols).fill(value));
     }
 
-    onInput(callback: (event: KeyEvent) => void): void {
+    onInput(callback: (event: KeyPressEvent) => void): void {
         this.inputCallbacks.push(callback);
     }
 
@@ -48,11 +51,13 @@ export class MockTerminalBackend implements ITerminalBackend {
         return { cols: this.cols, rows: this.rows };
     }
 
-    /** No-op for mock */
-    setup(): void {}
+    setup(): void {
+        // No-op for mock
+    }
 
-    /** No-op for mock */
-    teardown(): void {}
+    teardown(): void {
+        // No-op for mock
+    }
 
     // ─── Test helpers ───
 

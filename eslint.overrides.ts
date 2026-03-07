@@ -17,11 +17,12 @@
  *   ];
  */
 
-import type { TSESLint } from "typescript-eslint";
+import type { TSESLint } from "@typescript-eslint/utils";
 
 const overrides: TSESLint.FlatConfig.ConfigArray = [
     {
         rules: {
+            "@typescript-eslint/no-unused-vars": "off",
             // Сюда добавляй переопределения
         },
     },

@@ -1,6 +1,6 @@
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { Offset, Size } from "../Common/GeometryPromitives.ts";
-import type { KeyEvent } from "../TerminalBackend/KeyEvent.ts";
+import type { KeyPressEvent, TUIEvent } from "../TerminalBackend/KeyEvent.ts";
 
 export class RenderContext {
     readonly canvas: TerminalScreen;
@@ -20,21 +20,25 @@ export class TUIElement {
     public dirty = false;
     public size: Size = new Size(80, 24);
     public contentSize: Size = new Size(80, 24);
-    private eventListeners: Record<string, ((event: any) => void)[]> = {};
+    private eventListeners: { keypress: ((event: KeyPressEvent) => void)[] } = { keypress: [] };
 
-    public emit(event: KeyEvent): void {
-        if (this.eventListeners.keypress) {
-            for (const listener of this.eventListeners.keypress) {
-                listener(event);
-            }
+    public emit(event: TUIEvent): void {
+        const listeners = this.eventListeners[event.type];
+        for (const listener of listeners) {
+            listener(event);
         }
     }
 
-    public addEventListener(event: "keypress", handler: (event: KeyEvent) => void): void {
-        if (!this.eventListeners[event]) {
-            this.eventListeners[event] = [];
-        }
+    public addEventListener(event: "keypress", handler: (event: KeyPressEvent) => void): void {
         this.eventListeners[event].push(handler);
+    }
+
+    public removeEventListener(event: "keypress", handler: (event: KeyPressEvent) => void): void {
+        const listeners = this.eventListeners[event];
+        const index = listeners.indexOf(handler);
+        if (index !== -1) {
+            listeners.splice(index, 1);
+        }
     }
 
     public performLayout(): void {

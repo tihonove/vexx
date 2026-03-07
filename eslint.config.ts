@@ -20,7 +20,9 @@ export default tseslint.config(
     {
         languageOptions: {
             parserOptions: {
-                projectService: true,
+                projectService: {
+                    allowDefaultProject: ["eslint.config.ts", "eslint.overrides.ts"],
+                },
                 tsconfigRootDir: import.meta.dirname,
             },
         },

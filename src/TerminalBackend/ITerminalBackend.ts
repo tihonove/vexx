@@ -1,4 +1,4 @@
-import type { KeyEvent } from "./KeyEvent.ts";
+import type { KeyPressEvent } from "./KeyEvent.ts";
 
 /**
  * Unified abstraction over terminal I/O.
@@ -9,7 +9,7 @@ import type { KeyEvent } from "./KeyEvent.ts";
  */
 export interface ITerminalBackend {
     /** Subscribe to parsed keyboard input */
-    onInput(callback: (event: KeyEvent) => void): void;
+    onInput(callback: (event: KeyPressEvent) => void): void;
 
     /** Subscribe to terminal resize events */
     onResize(callback: (size: { cols: number; rows: number }) => void): void;
