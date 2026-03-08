@@ -4,8 +4,17 @@
  * Usage: node src/demos/eventLogDemo.ts
  * Press keys to see their parsed representation. Ctrl+C to exit.
  *
- * Great for testing what the parser produces for various key combinations,
- * arrow keys, F-keys, modifiers, and Kitty protocol sequences.
+ * Enables Kitty Keyboard Protocol for full modifier support (Shift, Alt, Meta,
+ * not just Ctrl). Without Kitty, the terminal only sends legacy control codes
+ * where most modifier info is lost.
+ *
+ * Kitty protocol flags used (push mode):
+ *   1 = Disambiguate escape codes
+ *   2 = Report event types (press/repeat/release)
+ *   8 = Report all keys as escape codes
+ * Total: 11 = 1 | 2 | 8
+ *
+ * See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
  */
 
 import { parseInput } from "../TerminalBackend/parseInput.ts";
@@ -14,11 +23,25 @@ import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 const stdin = process.stdin;
 const stdout = process.stdout;
 
+// ── Enable Kitty Keyboard Protocol ──
+// Push keyboard mode with flags: disambiguate(1) + event types(2) + all keys as escapes(8)
+const KITTY_ENABLE = "\x1b[>11u";
+const KITTY_DISABLE = "\x1b[<u";
+
 stdin.setRawMode(true);
 stdin.setEncoding("utf8");
 stdin.resume();
 
-stdout.write("🎹 Event Log Demo — press any key to see its parsed event. Ctrl+C to exit.\n\n");
+stdout.write(KITTY_ENABLE);
+
+function cleanup(): void {
+    stdout.write(KITTY_DISABLE);
+    stdin.setRawMode(false);
+}
+
+process.on("exit", cleanup);
+
+stdout.write("🎹 Event Log Demo (Kitty protocol enabled) — press any key. Ctrl+C to exit.\n\n");
 
 stdin.on("data", (chunk: string) => {
     const events: KeyPressEvent[] = parseInput(chunk);
@@ -27,7 +50,7 @@ stdin.on("data", (chunk: string) => {
         // Exit on Ctrl+C
         if (event.ctrlKey && event.key === "c") {
             stdout.write("\n👋 Bye!\n");
-            stdin.setRawMode(false);
+            cleanup();
             process.exit(0);
         }
 
