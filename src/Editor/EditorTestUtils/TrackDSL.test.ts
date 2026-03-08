@@ -261,4 +261,117 @@ describe("TrackDSL", () => {
         `,
         );
     });
+
+    // ─── Folding Track ──────────────────────────────────────
+
+    it("parses expanded folding region with v/|/^", () => {
+        const state = parseDSL(editorState`
+            text: function foo() {
+            folding: v
+            text:   console.log(1);
+            folding: |
+            text: }
+            folding: ^
+        `);
+        expect(state.foldedRegions).toHaveLength(1);
+        expect(state.foldedRegions[0]).toEqual({
+            startLine: 0,
+            endLine: 2,
+            isCollapsed: false,
+        });
+    });
+
+    it("parses collapsed folding region with >/|/^", () => {
+        const state = parseDSL(editorState`
+            text: function foo() {
+            folding: >
+            text:   console.log(1);
+            folding: |
+            text: }
+            folding: ^
+        `);
+        expect(state.foldedRegions).toHaveLength(1);
+        expect(state.foldedRegions[0]).toEqual({
+            startLine: 0,
+            endLine: 2,
+            isCollapsed: true,
+        });
+    });
+
+    it("parses multiple folding regions", () => {
+        const state = parseDSL(editorState`
+            text: a
+            folding: v
+            text: b
+            folding: ^
+            text: c
+            folding: >
+            text: d
+            folding: ^
+        `);
+        expect(state.foldedRegions).toHaveLength(2);
+        expect(state.foldedRegions[0]).toEqual({ startLine: 0, endLine: 1, isCollapsed: false });
+        expect(state.foldedRegions[1]).toEqual({ startLine: 2, endLine: 3, isCollapsed: true });
+    });
+
+    it("roundtrips folding track with expanded region", () => {
+        const dsl = editorState`
+            text: a
+            cursor: █
+            folding: v
+            text: b
+            folding: |
+            text: c
+            folding: ^
+        `;
+        const state = parseDSL(dsl);
+        const rendered = renderToDSL(state);
+        expect(rendered).toBe(dsl);
+    });
+
+    it("roundtrips folding track with collapsed region", () => {
+        const dsl = editorState`
+            text: a
+            cursor: █
+            folding: >
+            text: b
+            folding: |
+            text: c
+            folding: ^
+        `;
+        const state = parseDSL(dsl);
+        const rendered = renderToDSL(state);
+        expect(rendered).toBe(dsl);
+    });
+
+    it("renders state with no folding regions (no folding track)", () => {
+        const dsl = editorState`
+            text: hello
+            cursor: █
+        `;
+        const state = parseDSL(dsl);
+        const rendered = renderToDSL(state);
+        expect(rendered).toBe(dsl); // no folding: lines
+    });
+
+    it("parses nested folding regions", () => {
+        const state = parseDSL(editorState`
+            text: outer start
+            folding: v
+            text:   inner start
+            folding: v
+            text:     body
+            folding: |
+            text:   inner end
+            folding: ^
+            text: outer end
+            folding: ^
+        `);
+        expect(state.foldedRegions).toHaveLength(2);
+        // Stack-based parsing: inner closes first, outer closes second
+        // Sorted by startLine, inner (1-3) comes first, outer (0-4) comes second
+        const sorted = [...state.foldedRegions].sort((a, b) => a.startLine - b.startLine);
+        expect(sorted[0]).toEqual({ startLine: 0, endLine: 4, isCollapsed: false });
+        expect(sorted[1]).toEqual({ startLine: 1, endLine: 3, isCollapsed: false });
+    });
 });

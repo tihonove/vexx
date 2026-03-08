@@ -1,26 +1,127 @@
-import type { ITextDocument } from "./ITextDocument.ts";
-import type { ISelection } from "./ISelection.ts";
-import type { IPosition } from "./IPosition.ts";
-import type { ITextEdit } from "./ITextEdit.ts";
-import { createPosition, comparePositions } from "./IPosition.ts";
-import { createCursorSelection, selectionToRange } from "./ISelection.ts";
-import { createTextEdit } from "./ITextEdit.ts";
+import { comparePositions } from "./IPosition.ts";
 import { createRange } from "./IRange.ts";
+import type { IFoldingRegion } from "./IFoldingRegion.ts";
+import type { ISelection } from "./ISelection.ts";
+import { createCursorSelection, selectionToRange } from "./ISelection.ts";
+import type { ITextDocument } from "./ITextDocument.ts";
+import type { ITextEdit } from "./ITextEdit.ts";
+import { createTextEdit } from "./ITextEdit.ts";
+import type { ILineTokens } from "./ILineTokens.ts";
 
 /**
  * Represents the view state for one editor pane.
  * Multiple EditorViewStates can reference the same ITextDocument (split view).
+ *
+ * Acts as a "lens" (projection) through which the renderer sees the TextDocument:
+ * logical lines may differ from visual lines due to code folding.
  */
 export class EditorViewState {
     public scrollLeft = 0;
     public scrollTop = 0;
     public selections: ISelection[];
+    public readonly document: ITextDocument;
+    public foldedRegions: IFoldingRegion[] = [];
 
-    constructor(
-        public readonly document: ITextDocument,
-        selections?: ISelection[],
-    ) {
+    constructor(document: ITextDocument, selections?: ISelection[]) {
+        this.document = document;
         this.selections = selections && selections.length > 0 ? selections : [createCursorSelection(0, 0)];
+    }
+
+    // ─── Folding API ────────────────────────────────────────
+
+    /**
+     * Replaces the entire folding regions array.
+     * Useful for external folding providers.
+     */
+    setFoldingRegions(regions: IFoldingRegion[]): void {
+        this.foldedRegions = regions;
+    }
+
+    /**
+     * Toggles the collapsed state of the folding region whose startLine matches the given line.
+     * No-op if no region starts at that line.
+     */
+    toggleFold(line: number): void {
+        for (const region of this.foldedRegions) {
+            if (region.startLine === line) {
+                region.isCollapsed = !region.isCollapsed;
+                return;
+            }
+        }
+    }
+
+    /**
+     * Collapses all folding regions.
+     */
+    foldAll(): void {
+        for (const region of this.foldedRegions) {
+            region.isCollapsed = true;
+        }
+    }
+
+    /**
+     * Expands all folding regions.
+     */
+    unfoldAll(): void {
+        for (const region of this.foldedRegions) {
+            region.isCollapsed = false;
+        }
+    }
+
+    // ─── View API (projection for renderer) ─────────────────
+
+    /**
+     * Returns the number of visible lines (accounting for collapsed regions).
+     */
+    getViewLineCount(): number {
+        return this.buildVisibleLines().length;
+    }
+
+    /**
+     * Returns the text content of a visual line.
+     * The visualLineNumber is 0-based index into the visible lines array.
+     */
+    getViewLine(visualLineNumber: number): string {
+        const logicalLine = this.visualToLogicalLine(visualLineNumber);
+        if (logicalLine < 0 || logicalLine >= this.document.lineCount) {
+            return "";
+        }
+        return this.document.getLineContent(logicalLine);
+    }
+
+    /**
+     * Returns tokens for a visual line.
+     */
+    getViewLineTokens(visualLineNumber: number): ILineTokens | undefined {
+        const logicalLine = this.visualToLogicalLine(visualLineNumber);
+        if (logicalLine < 0 || logicalLine >= this.document.lineCount) {
+            return undefined;
+        }
+        return this.document.getLineTokens(logicalLine);
+    }
+
+    // ─── Line Mapping ───────────────────────────────────────
+
+    /**
+     * Translates a logical (document) line number to a visual (screen) line number.
+     * Returns -1 if the line is hidden inside a collapsed region.
+     */
+    logicalToVisualLine(logicalLine: number): number {
+        const visible = this.buildVisibleLines();
+        const idx = visible.indexOf(logicalLine);
+        return idx;
+    }
+
+    /**
+     * Translates a visual (screen) line number to a logical (document) line number.
+     * Returns -1 if the visual line is out of range.
+     */
+    visualToLogicalLine(visualLine: number): number {
+        const visible = this.buildVisibleLines();
+        if (visualLine < 0 || visualLine >= visible.length) {
+            return -1;
+        }
+        return visible[visualLine];
     }
 
     /**
@@ -30,6 +131,7 @@ export class EditorViewState {
     type(text: string): void {
         const edits = this.buildEditsFromSelections(text);
         this.document.applyEdits(edits);
+        this.adjustFoldingRegionsForEdits(edits);
         this.selections = this.computeSelectionsAfterEdits(edits);
     }
 
@@ -64,8 +166,81 @@ export class EditorViewState {
 
         if (edits.length > 0) {
             this.document.applyEdits(edits);
+            this.adjustFoldingRegionsForEdits(edits);
             this.selections = this.computeSelectionsAfterEdits(edits);
         }
+    }
+
+    /**
+     * Moves each cursor one character to the left.
+     * At the start of a line, wraps to the end of the previous visible line.
+     */
+    moveCursorLeft(): void {
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            if (pos.character > 0) {
+                return createCursorSelection(pos.line, pos.character - 1);
+            } else if (pos.line > 0) {
+                const prevVisible = this.previousVisibleLine(pos.line);
+                if (prevVisible >= 0) {
+                    const prevLineLen = this.document.getLineLength(prevVisible);
+                    return createCursorSelection(prevVisible, prevLineLen);
+                }
+            }
+            return sel;
+        });
+    }
+
+    /**
+     * Moves each cursor one character to the right.
+     * At the end of a line, wraps to the start of the next visible line.
+     */
+    moveCursorRight(): void {
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            const lineLen = this.document.getLineLength(pos.line);
+            if (pos.character < lineLen) {
+                return createCursorSelection(pos.line, pos.character + 1);
+            } else {
+                const nextVisible = this.nextVisibleLine(pos.line);
+                if (nextVisible >= 0) {
+                    return createCursorSelection(nextVisible, 0);
+                }
+            }
+            return sel;
+        });
+    }
+
+    /**
+     * Moves each cursor one visual line up.
+     * Skips over collapsed folding regions.
+     */
+    moveCursorUp(): void {
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            const prevVisible = this.previousVisibleLine(pos.line);
+            if (prevVisible >= 0) {
+                const targetLineLen = this.document.getLineLength(prevVisible);
+                return createCursorSelection(prevVisible, Math.min(pos.character, targetLineLen));
+            }
+            return sel;
+        });
+    }
+
+    /**
+     * Moves each cursor one visual line down.
+     * Skips over collapsed folding regions.
+     */
+    moveCursorDown(): void {
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            const nextVisible = this.nextVisibleLine(pos.line);
+            if (nextVisible >= 0) {
+                const targetLineLen = this.document.getLineLength(nextVisible);
+                return createCursorSelection(nextVisible, Math.min(pos.character, targetLineLen));
+            }
+            return sel;
+        });
     }
 
     /**
@@ -92,11 +267,159 @@ export class EditorViewState {
 
         if (edits.length > 0) {
             this.document.applyEdits(edits);
+            this.adjustFoldingRegionsForEdits(edits);
             this.selections = this.computeSelectionsAfterEdits(edits);
         }
     }
 
+    // ─── Auto-expand ────────────────────────────────────────
+
+    /**
+     * Ensures a logical line is visible by expanding any collapsed region that hides it.
+     * A line is hidden if it falls in the range (startLine+1 .. endLine) of a collapsed region.
+     */
+    ensureLineVisible(logicalLine: number): void {
+        for (const region of this.foldedRegions) {
+            if (region.isCollapsed && logicalLine > region.startLine && logicalLine <= region.endLine) {
+                region.isCollapsed = false;
+            }
+        }
+    }
+
     // ─── Private ────────────────────────────────────────────
+
+    /**
+     * Builds an array of logical line indices that are currently visible.
+     * A line is hidden if it falls in range (startLine+1 .. endLine) of a collapsed region.
+     */
+    private buildVisibleLines(): number[] {
+        // Collect all hidden line ranges from collapsed regions
+        const hiddenRanges: { from: number; to: number }[] = [];
+        for (const region of this.foldedRegions) {
+            if (region.isCollapsed) {
+                hiddenRanges.push({ from: region.startLine + 1, to: region.endLine });
+            }
+        }
+
+        // Sort by start line for efficient processing
+        hiddenRanges.sort((a, b) => a.from - b.from);
+
+        const visible: number[] = [];
+        const hiddenIdx = 0;
+
+        for (let line = 0; line < this.document.lineCount; line++) {
+            let isHidden = false;
+            // Check against all hidden ranges
+            for (let h = hiddenIdx; h < hiddenRanges.length; h++) {
+                const range = hiddenRanges[h];
+                if (line < range.from) {
+                    break; // past all relevant ranges
+                }
+                if (line >= range.from && line <= range.to) {
+                    isHidden = true;
+                    break;
+                }
+            }
+            if (!isHidden) {
+                visible.push(line);
+            }
+        }
+
+        return visible;
+    }
+
+    /**
+     * Returns the previous visible logical line before the given logical line, or -1.
+     */
+    private previousVisibleLine(logicalLine: number): number {
+        const visible = this.buildVisibleLines();
+        const currentIdx = visible.indexOf(logicalLine);
+        if (currentIdx > 0) {
+            return visible[currentIdx - 1];
+        }
+        // If current line is not in visible list (hidden), find the last visible line before it
+        if (currentIdx === -1) {
+            for (let i = visible.length - 1; i >= 0; i--) {
+                if (visible[i] < logicalLine) {
+                    return visible[i];
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Returns the next visible logical line after the given logical line, or -1.
+     */
+    private nextVisibleLine(logicalLine: number): number {
+        const visible = this.buildVisibleLines();
+        const currentIdx = visible.indexOf(logicalLine);
+        if (currentIdx >= 0 && currentIdx < visible.length - 1) {
+            return visible[currentIdx + 1];
+        }
+        // If current line is not in visible list (hidden), find the first visible line after it
+        if (currentIdx === -1) {
+            for (const vLine of visible) {
+                if (vLine > logicalLine) {
+                    return vLine;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Adjusts folding region boundaries after document edits.
+     * Processes edits in reverse document order to avoid cascading adjustments.
+     */
+    private adjustFoldingRegionsForEdits(edits: readonly ITextEdit[]): void {
+        // Sort edits in reverse document order (bottom-to-top)
+        const sorted = [...edits].sort((a, b) => comparePositions(b.range.start, a.range.start));
+
+        for (const edit of sorted) {
+            const editStartLine = edit.range.start.line;
+            const editEndLine = edit.range.end.line;
+            const insertedLineCount = edit.text.split("\n").length;
+            const deletedLineCount = editEndLine - editStartLine;
+            const lineDelta = insertedLineCount - 1 - deletedLineCount;
+
+            this.foldedRegions = this.foldedRegions.filter((region) => {
+                // Edit completely after the region → no change
+                if (editStartLine > region.endLine) {
+                    return true;
+                }
+
+                // Edit completely before the region → shift both boundaries
+                if (editEndLine < region.startLine) {
+                    region.startLine += lineDelta;
+                    region.endLine += lineDelta;
+                    return true;
+                }
+
+                // Edit starts before region starts and ends inside/after region → remove
+                if (editStartLine <= region.startLine && editEndLine >= region.startLine) {
+                    return false;
+                }
+
+                // Edit is completely inside the region → adjust endLine
+                if (editStartLine > region.startLine && editEndLine <= region.endLine) {
+                    region.endLine += lineDelta;
+                    return region.endLine > region.startLine; // remove if region became empty
+                }
+
+                // Edit starts inside region and extends beyond → remove
+                if (
+                    editStartLine > region.startLine &&
+                    editStartLine <= region.endLine &&
+                    editEndLine > region.endLine
+                ) {
+                    return false;
+                }
+
+                return true;
+            });
+        }
+    }
 
     /**
      * Returns selections sorted by position in document order.

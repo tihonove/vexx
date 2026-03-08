@@ -17,6 +17,13 @@ export interface ITerminalBackend {
     /** Set a character at given screen coordinates (0-based) */
     setCellAt(x: number, y: number, char: string): void;
 
+    showCursor(): void;
+
+    hideCursor(): void;
+
+    /** Move the hardware terminal cursor to the given screen coordinates (0-based) */
+    setCursorPosition(x: number, y: number): void;
+
     /** Current terminal dimensions */
     getSize(): { cols: number; rows: number };
 

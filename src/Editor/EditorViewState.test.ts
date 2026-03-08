@@ -182,4 +182,106 @@ describe("EditorViewState", () => {
         // Deletes 'X' at index 1 (left of cursor@2) and 'X' at index 3 (left of cursor@4)
         expect(doc.getText()).toBe("ab");
     });
+
+    // ─── moveCursorLeft ─────────────────────────────────────
+
+    it("moves cursor left within a line", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.moveCursorLeft();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 2 });
+    });
+
+    it("wraps cursor left to end of previous line", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(1, 0)]);
+        state.moveCursorLeft();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 5 });
+    });
+
+    it("does not move cursor left past document start", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+        state.moveCursorLeft();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+    });
+
+    // ─── moveCursorRight ────────────────────────────────────
+
+    it("moves cursor right within a line", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 2)]);
+        state.moveCursorRight();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 3 });
+    });
+
+    it("wraps cursor right to start of next line", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 5)]);
+        state.moveCursorRight();
+        expect(state.selections[0].active).toEqual({ line: 1, character: 0 });
+    });
+
+    it("does not move cursor right past document end", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 5)]);
+        state.moveCursorRight();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 5 });
+    });
+
+    // ─── moveCursorUp ───────────────────────────────────────
+
+    it("moves cursor up one line", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(1, 3)]);
+        state.moveCursorUp();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 3 });
+    });
+
+    it("clamps character when moving up to shorter line", () => {
+        const doc = new TextDocument("hi\nhello");
+        const state = new EditorViewState(doc, [createCursorSelection(1, 4)]);
+        state.moveCursorUp();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 2 });
+    });
+
+    it("does not move cursor up past first line", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.moveCursorUp();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 3 });
+    });
+
+    // ─── moveCursorDown ─────────────────────────────────────
+
+    it("moves cursor down one line", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.moveCursorDown();
+        expect(state.selections[0].active).toEqual({ line: 1, character: 3 });
+    });
+
+    it("clamps character when moving down to shorter line", () => {
+        const doc = new TextDocument("hello\nhi");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 4)]);
+        state.moveCursorDown();
+        expect(state.selections[0].active).toEqual({ line: 1, character: 2 });
+    });
+
+    it("does not move cursor down past last line", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(1, 3)]);
+        state.moveCursorDown();
+        expect(state.selections[0].active).toEqual({ line: 1, character: 3 });
+    });
+
+    // ─── Multi-cursor movement ──────────────────────────────
+
+    it("moves multiple cursors left independently", () => {
+        const doc = new TextDocument("abcdef");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 2), createCursorSelection(0, 5)]);
+        state.moveCursorLeft();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 1 });
+        expect(state.selections[1].active).toEqual({ line: 0, character: 4 });
+    });
 });

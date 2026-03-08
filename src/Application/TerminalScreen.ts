@@ -1,18 +1,25 @@
 import type { ITerminalBackend } from "../TerminalBackend/ITerminalBackend.ts";
 
 interface Cell {
-    char: string;
+    char?: string;
 }
 
 export class TerminalScreen {
-    private cells: Cell[][] = [];
+    private cells: (null | Cell)[][] = [];
     public width = 80;
     public height = 24;
+    public cursorX = 0;
+    public cursorY = 0;
 
     constructor(width = 80, height = 24) {
         this.width = width;
         this.height = height;
-        this.cells = new Array(height).fill(null).map(() => new Array(width).fill(null));
+        this.cells = new Array<Cell[][]>(height).fill([]).map(() => new Array<Cell>(width).fill({}));
+    }
+
+    public setCursorPosition(x: number, y: number): void {
+        this.cursorX = x;
+        this.cursorY = y;
     }
 
     public setCell(x: number, y: number, cell: Partial<Cell>): void {
@@ -28,21 +35,23 @@ export class TerminalScreen {
      * how to handle it (ANSI escape for real terminal, grid store for mock).
      */
     public flush(backend: ITerminalBackend): void {
+        backend.hideCursor();
         for (let y = 0; y < this.cells.length; y++) {
             const row = this.cells[y];
-            if (!row) continue;
             for (let x = 0; x < row.length; x++) {
                 const cell = row[x];
-                const ch = cell ? cell.char : " ";
+                const ch = cell?.char ?? " ";
                 backend.setCellAt(x, y, ch);
             }
         }
+        backend.showCursor();
+        backend.setCursorPosition(this.cursorX, this.cursorY);
     }
 
     /**
      * Clear all cells back to empty state.
      */
     public clear(): void {
-        this.cells = new Array(this.height).fill(null).map(() => new Array(this.width).fill(null));
+        this.cells = new Array<Cell[][]>(this.height).fill([]).map(() => new Array<Cell>(this.width).fill({}));
     }
 }

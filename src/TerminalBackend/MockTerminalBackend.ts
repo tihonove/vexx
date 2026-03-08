@@ -26,6 +26,14 @@ export class MockTerminalBackend implements ITerminalBackend {
         this.cells = this.createEmptyGrid();
     }
 
+    showCursor(): void {
+        // Mock: cursor visibility state tracked locally
+    }
+
+    hideCursor(): void {
+        // Mock: cursor visibility state tracked locally
+    }
+
     private createEmptyGrid(): (string | null)[][] {
         const value: string | null = null;
         return new Array<(string | null)[]>(this.rows)
@@ -41,10 +49,18 @@ export class MockTerminalBackend implements ITerminalBackend {
         this.resizeCallbacks.push(callback);
     }
 
+    public cursorX = 0;
+    public cursorY = 0;
+
     setCellAt(x: number, y: number, char: string): void {
         if (y >= 0 && y < this.rows && x >= 0 && x < this.cols) {
             this.cells[y][x] = char;
         }
+    }
+
+    setCursorPosition(x: number, y: number): void {
+        this.cursorX = x;
+        this.cursorY = y;
     }
 
     getSize(): { cols: number; rows: number } {

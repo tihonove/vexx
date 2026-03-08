@@ -58,6 +58,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout.write(`\x1b[${y + 1};${x + 1}H${char}`);
     }
 
+    setCursorPosition(x: number, y: number): void {
+        this.stdout.write(`\x1b[${y + 1};${x + 1}H`);
+    }
+
     getSize(): { cols: number; rows: number } {
         return {
             cols: this.stdout.columns ?? 80,
@@ -65,11 +69,19 @@ export class NodeTerminalBackend implements ITerminalBackend {
         };
     }
 
+    showCursor(): void {
+        this.stdout.write("\x1b[?25h");
+    }
+
+    hideCursor(): void {
+        this.stdout.write("\x1b[?25l");
+    }
+    
     setup(): void {
         // Switch to alternate screen buffer
         this.stdout.write("\x1b[?1049h");
-        // Hide cursor
-        this.stdout.write("\x1b[?25l");
+        // Show cursor (will be positioned by the focused element)
+        this.showCursor();
 
         // Raw mode for character-by-character input
         this.stdin.setRawMode(true);

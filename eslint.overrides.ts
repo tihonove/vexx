@@ -23,7 +23,8 @@ const overrides: TSESLint.FlatConfig.ConfigArray = [
     {
         rules: {
             "@typescript-eslint/no-unused-vars": "off",
-            // Сюда добавляй переопределения
+            // Запрещаем parameter properties — они не поддерживаются в strip-only режиме Node.js
+            "@typescript-eslint/parameter-properties": "error",
         },
     },
 ];

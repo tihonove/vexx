@@ -2,6 +2,8 @@ import { TextDocument } from "../TextDocument.ts";
 import { EditorViewState } from "../EditorViewState.ts";
 import type { ISelection } from "../ISelection.ts";
 import type { ILineTokens } from "../ILineTokens.ts";
+import type { IFoldingRegion } from "../IFoldingRegion.ts";
+import { createFoldingRegion } from "../IFoldingRegion.ts";
 import { createCursorSelection, createSelection, selectionToRange, isSelectionCollapsed } from "../ISelection.ts";
 import { createLineTokens, createToken } from "../ILineTokens.ts";
 import { comparePositions } from "../IPosition.ts";
@@ -16,6 +18,13 @@ const TRACK_PREFIX_TEXT = "text:";
 const TRACK_PREFIX_CURSOR = "cursor:";
 const TRACK_PREFIX_SELECT = "select:";
 const TRACK_PREFIX_TOKENS = "tokens:";
+const TRACK_PREFIX_FOLDING = "folding:";
+
+// Folding track symbols
+const FOLD_EXPANDED_START = "v";
+const FOLD_COLLAPSED_START = ">";
+const FOLD_BODY = "|";
+const FOLD_END = "^";
 
 // ─── Tagged Template ────────────────────────────────────────
 
@@ -34,10 +43,11 @@ export function editorState(strings: TemplateStringsArray, ...values: unknown[])
  * Parses a multi-track DSL string into an EditorViewState.
  *
  * Tracks:
- *   text:   — document text lines
- *   cursor: — cursor positions (█ character)
- *   select: — selection ranges (░ character)
- *   tokens: — token type masks (single chars, e.g. 'k' for keyword)
+ *   text:    — document text lines
+ *   cursor:  — cursor positions (█ character)
+ *   select:  — selection ranges (░ character)
+ *   tokens:  — token type masks (single chars, e.g. 'k' for keyword)
+ *   folding: — folding regions (v=expanded start, >=collapsed start, |=body, ^=end)
  */
 export function parseDSL(dsl: string): EditorViewState {
     const cleaned = dedentAndTrim(dsl);
@@ -47,6 +57,7 @@ export function parseDSL(dsl: string): EditorViewState {
     const cursorTrackByLine = new Map<number, string>();
     const selectTrackByLine = new Map<number, string>();
     const tokensTrackByLine = new Map<number, string>();
+    const foldingTrackByLine = new Map<number, string>();
 
     let currentDocLine = -1;
 
@@ -65,6 +76,9 @@ export function parseDSL(dsl: string): EditorViewState {
         } else if (rawLine.startsWith(TRACK_PREFIX_TOKENS)) {
             const content = rawLine.substring(TRACK_PREFIX_TOKENS.length);
             tokensTrackByLine.set(currentDocLine, content.startsWith(" ") ? content.substring(1) : content);
+        } else if (rawLine.startsWith(TRACK_PREFIX_FOLDING)) {
+            const content = rawLine.substring(TRACK_PREFIX_FOLDING.length);
+            foldingTrackByLine.set(currentDocLine, content.startsWith(" ") ? content.substring(1) : content);
         }
     }
 
@@ -104,7 +118,14 @@ export function parseDSL(dsl: string): EditorViewState {
     // Sort selections by position
     selections.sort((a, b) => comparePositions(a.active, b.active));
 
-    return new EditorViewState(doc, selections.length > 0 ? selections : undefined);
+    // Parse folding regions
+    const foldingRegions = parseFoldingTracks(foldingTrackByLine);
+
+    const state = new EditorViewState(doc, selections.length > 0 ? selections : undefined);
+    if (foldingRegions.length > 0) {
+        state.setFoldingRegions(foldingRegions);
+    }
+    return state;
 }
 
 // ─── renderToDSL ────────────────────────────────────────────
@@ -137,6 +158,12 @@ export function renderToDSL(state: EditorViewState): string {
         if (tokens && tokens.tokens.length > 0) {
             const tokensTrack = renderTokensTrack(tokens, textContent.length);
             lines.push(`${TRACK_PREFIX_TOKENS} ${tokensTrack}`);
+        }
+
+        // Render folding track
+        const foldingChar = renderFoldingChar(state.foldedRegions, lineIdx);
+        if (foldingChar !== null) {
+            lines.push(`${TRACK_PREFIX_FOLDING} ${foldingChar}`);
         }
     }
 
@@ -320,6 +347,70 @@ function renderTokensTrack(tokens: ILineTokens, lineLength: number): string {
     }
 
     return trimTrailingSpaces(chars.join(""));
+}
+
+// ─── Private: Folding Helpers ───────────────────────────────
+
+/**
+ * Parses folding track lines into an array of IFoldingRegion.
+ * Symbols: 'v' = expanded start, '>' = collapsed start, '|' = body, '^' = end.
+ * The first non-space character of the folding track determines the role of the line.
+ */
+function parseFoldingTracks(foldingTrackByLine: Map<number, string>): IFoldingRegion[] {
+    const regions: IFoldingRegion[] = [];
+
+    // Collect starts: lines with 'v' or '>'
+    const starts: Array<{ line: number; collapsed: boolean }> = [];
+    for (const [lineIdx, track] of foldingTrackByLine) {
+        const ch = track.trim().charAt(0);
+        if (ch === FOLD_EXPANDED_START) {
+            starts.push({ line: lineIdx, collapsed: false });
+        } else if (ch === FOLD_COLLAPSED_START) {
+            starts.push({ line: lineIdx, collapsed: true });
+        }
+    }
+
+    // Sort starts by line number
+    starts.sort((a, b) => a.line - b.line);
+
+    // For each start, find matching '^' end
+    // Use a stack for nested regions
+    const stack: Array<{ line: number; collapsed: boolean }> = [];
+    const sortedLines = [...foldingTrackByLine.entries()].sort(([a], [b]) => a - b);
+
+    for (const [lineIdx, track] of sortedLines) {
+        const ch = track.trim().charAt(0);
+        if (ch === FOLD_EXPANDED_START || ch === FOLD_COLLAPSED_START) {
+            stack.push({ line: lineIdx, collapsed: ch === FOLD_COLLAPSED_START });
+        } else if (ch === FOLD_END) {
+            if (stack.length > 0) {
+                const start = stack.pop()!;
+                regions.push(createFoldingRegion(start.line, lineIdx, start.collapsed));
+            }
+        }
+    }
+
+    // Sort regions by startLine
+    regions.sort((a, b) => a.startLine - b.startLine);
+    return regions;
+}
+
+/**
+ * Renders the folding character for a given document line, or null if no folding.
+ */
+function renderFoldingChar(foldedRegions: readonly IFoldingRegion[], lineIdx: number): string | null {
+    for (const region of foldedRegions) {
+        if (region.startLine === lineIdx) {
+            return region.isCollapsed ? FOLD_COLLAPSED_START : FOLD_EXPANDED_START;
+        }
+        if (region.endLine === lineIdx) {
+            return FOLD_END;
+        }
+        if (lineIdx > region.startLine && lineIdx < region.endLine) {
+            return FOLD_BODY;
+        }
+    }
+    return null;
 }
 
 // ─── Private: String Utilities ──────────────────────────────
