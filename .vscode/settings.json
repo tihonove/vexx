@@ -8,5 +8,8 @@
     "explorer.fileNesting.patterns": {
         "*.ts": "${capture}.test.ts"
     },
-    "jestrunner.enableTestExplorer": true
+    "jestrunner.enableTestExplorer": true,
+    "editor.rulers": [
+        120
+    ]
 }
