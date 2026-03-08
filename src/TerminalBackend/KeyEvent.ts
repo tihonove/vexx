@@ -10,7 +10,13 @@
  */
 
 export interface KeyPressEvent {
-    readonly type: "keypress";
+    /**
+     * Event type, following DOM KeyboardEvent naming:
+     * - "keypress" — default for standard key events (legacy / no event type info)
+     * - "keydown"  — key press or repeat (Kitty event type 1 or 2)
+     * - "keyup"    — key release (Kitty event type 3)
+     */
+    readonly type: "keypress" | "keydown" | "keyup";
 
     /**
      * Key value, following the DOM KeyboardEvent.key naming convention.
@@ -18,6 +24,7 @@ export interface KeyPressEvent {
      * For printable characters: the character itself ("a", "A", "1", "!")
      * For Ctrl+letter: just the lowercase letter ("c", not "Ctrl+C")
      * For special keys: DOM name ("Enter", "ArrowUp", "F1", "Escape", etc.)
+     * For modifier keys: "Shift", "Control", "Alt", "Meta" (Kitty protocol)
      */
     readonly key: string;
 
@@ -25,6 +32,7 @@ export interface KeyPressEvent {
      * Physical key code, following the DOM KeyboardEvent.code naming convention.
      *
      * "KeyA", "Digit1", "Space", "Enter", "ArrowUp", "F1", etc.
+     * For modifier keys: "ShiftLeft", "ControlLeft", "AltLeft", "MetaLeft", etc.
      */
     readonly code: string;
 
@@ -44,10 +52,10 @@ export type TUIEvent = KeyPressEvent;
 export function createKeyPressEvent(
     key: string,
     raw: string,
-    overrides?: Partial<Omit<KeyPressEvent, "type">>,
+    overrides?: Partial<KeyPressEvent>,
 ): KeyPressEvent {
     return {
-        type: "keypress",
+        type: overrides?.type ?? "keydown",
         key,
         code: overrides?.code ?? inferCode(key),
         ctrlKey: overrides?.ctrlKey ?? false,

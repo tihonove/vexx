@@ -16,11 +16,17 @@ export class RenderContext {
     }
 }
 
+export type KeyboardEventType = "keypress" | "keydown" | "keyup";
+
 export class TUIElement {
     public dirty = false;
     public size: Size = new Size(80, 24);
     public contentSize: Size = new Size(80, 24);
-    private eventListeners: { keypress: ((event: KeyPressEvent) => void)[] } = { keypress: [] };
+    private eventListeners: Record<KeyboardEventType, ((event: KeyPressEvent) => void)[]> = {
+        keypress: [],
+        keydown: [],
+        keyup: [],
+    };
 
     public emit(event: TUIEvent): void {
         const listeners = this.eventListeners[event.type];
@@ -29,11 +35,11 @@ export class TUIElement {
         }
     }
 
-    public addEventListener(event: "keypress", handler: (event: KeyPressEvent) => void): void {
+    public addEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
         this.eventListeners[event].push(handler);
     }
 
-    public removeEventListener(event: "keypress", handler: (event: KeyPressEvent) => void): void {
+    public removeEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
         const listeners = this.eventListeners[event];
         const index = listeners.indexOf(handler);
         if (index !== -1) {

@@ -17,25 +17,35 @@
  * See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
  */
 
-import { parseInput } from "../TerminalBackend/parseInput.ts";
+import { KeyInputParser } from "../TerminalBackend/KeyInputParser.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 
 const stdin = process.stdin;
 const stdout = process.stdout;
 
-// ── Enable Kitty Keyboard Protocol ──
-// Push keyboard mode with flags: disambiguate(1) + event types(2) + all keys as escapes(8)
+// ── Kitty Keyboard Protocol + TMUX passthrough ──
 const KITTY_ENABLE = "\x1b[>11u";
 const KITTY_DISABLE = "\x1b[<u";
+
+const isTmux = process.env["TMUX"] != null && process.env["TMUX"] !== "";
+
+function wrapForTmux(sequence: string): string {
+    const escaped = sequence.replace(/\x1b/g, "\x1b\x1b");
+    return `\x1bPtmux;${escaped}\x1b\\`;
+}
+
+function writePassthrough(sequence: string): void {
+    stdout.write(isTmux ? wrapForTmux(sequence) : sequence);
+}
 
 stdin.setRawMode(true);
 stdin.setEncoding("utf8");
 stdin.resume();
 
-stdout.write(KITTY_ENABLE);
+writePassthrough(KITTY_ENABLE);
 
 function cleanup(): void {
-    stdout.write(KITTY_DISABLE);
+    writePassthrough(KITTY_DISABLE);
     stdin.setRawMode(false);
 }
 
@@ -43,8 +53,10 @@ process.on("exit", cleanup);
 
 stdout.write("🎹 Event Log Demo (Kitty protocol enabled) — press any key. Ctrl+C to exit.\n\n");
 
+const parser = new KeyInputParser();
+
 stdin.on("data", (chunk: string) => {
-    const events: KeyPressEvent[] = parseInput(chunk);
+    const events: KeyPressEvent[] = parser.parse(chunk);
 
     for (const event of events) {
         // Exit on Ctrl+C

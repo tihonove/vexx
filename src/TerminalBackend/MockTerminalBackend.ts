@@ -1,6 +1,6 @@
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
-import { parseInput } from "./parseInput.ts";
+import { KeyInputParser } from "./KeyInputParser.ts";
 import { serializeKey } from "./serializeKey.ts";
 
 /**
@@ -19,6 +19,7 @@ export class MockTerminalBackend implements ITerminalBackend {
 
     public cols: number;
     public rows: number;
+    private readonly inputParser = new KeyInputParser();
 
     constructor(cols = 80, rows = 24) {
         this.cols = cols;
@@ -32,6 +33,14 @@ export class MockTerminalBackend implements ITerminalBackend {
 
     hideCursor(): void {
         // Mock: cursor visibility state tracked locally
+    }
+
+    beginSynchronizedOutput(): void {
+        // Mock: no-op
+    }
+
+    endSynchronizedOutput(): void {
+        // Mock: no-op
     }
 
     private createEmptyGrid(): (string | null)[][] {
@@ -83,7 +92,7 @@ export class MockTerminalBackend implements ITerminalBackend {
      */
     sendKey(name: string): void {
         const raw = serializeKey(name);
-        const events = parseInput(raw);
+        const events = this.inputParser.parse(raw);
         for (const event of events) {
             for (const cb of this.inputCallbacks) {
                 cb(event);
@@ -96,7 +105,7 @@ export class MockTerminalBackend implements ITerminalBackend {
      * Example: sendRaw('\x1b[A') for arrow up
      */
     sendRaw(data: string): void {
-        const events = parseInput(data);
+        const events = this.inputParser.parse(data);
         for (const event of events) {
             for (const cb of this.inputCallbacks) {
                 cb(event);

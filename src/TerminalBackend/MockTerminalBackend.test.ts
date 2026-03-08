@@ -10,8 +10,13 @@ describe("MockTerminalBackend", () => {
 
         backend.sendKey("a");
 
-        expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith(
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({ type: "keydown", key: "a", raw: "a", ctrlKey: false }),
+        );
+        expect(handler).toHaveBeenNthCalledWith(
+            2,
             expect.objectContaining({ type: "keypress", key: "a", raw: "a", ctrlKey: false }),
         );
     });
@@ -23,8 +28,15 @@ describe("MockTerminalBackend", () => {
 
         backend.sendRaw("\x03");
 
-        expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith(expect.objectContaining({ type: "keypress", key: "c", ctrlKey: true }));
+        expect(handler).toHaveBeenCalledTimes(2);
+        expect(handler).toHaveBeenNthCalledWith(
+            1,
+            expect.objectContaining({ type: "keydown", key: "c", ctrlKey: true }),
+        );
+        expect(handler).toHaveBeenNthCalledWith(
+            2,
+            expect.objectContaining({ type: "keypress", key: "c", ctrlKey: true }),
+        );
     });
 
     it("sends arrow keys via sendRaw", () => {
@@ -66,8 +78,8 @@ describe("MockTerminalBackend", () => {
 
         backend.sendKey("x");
 
-        expect(h1).toHaveBeenCalledOnce();
-        expect(h2).toHaveBeenCalledOnce();
+        expect(h1).toHaveBeenCalledTimes(2);
+        expect(h2).toHaveBeenCalledTimes(2);
     });
 
     it("setup and teardown are no-ops (do not throw)", () => {

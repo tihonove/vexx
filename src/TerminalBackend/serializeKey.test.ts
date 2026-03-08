@@ -175,7 +175,7 @@ describe("serializeKey", () => {
                 if (ctrlKey) expect(events[0].ctrlKey).toBe(true);
                 if (shiftKey) expect(events[0].shiftKey).toBe(true);
                 if (altKey) expect(events[0].altKey).toBe(true);
-                expect(events[0].type).toBe("keypress");
+                expect(events[0].type).toBe("keydown");
             });
         }
     });

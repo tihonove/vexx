@@ -24,6 +24,18 @@ export interface ITerminalBackend {
     /** Move the hardware terminal cursor to the given screen coordinates (0-based) */
     setCursorPosition(x: number, y: number): void;
 
+    /**
+     * Begin synchronized output (DEC private mode 2026).
+     * Terminal buffers all output until endSynchronizedOutput() and
+     * applies it atomically — eliminates flicker on full-screen redraws.
+     */
+    beginSynchronizedOutput(): void;
+
+    /**
+     * End synchronized output — terminal flushes the buffered frame.
+     */
+    endSynchronizedOutput(): void;
+
     /** Current terminal dimensions */
     getSize(): { cols: number; rows: number };
 

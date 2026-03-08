@@ -5,7 +5,7 @@ import type { KeyPressEvent } from "./KeyEvent.ts";
 /** Helper: create expected event with defaults */
 function kp(key: string, raw: string, overrides?: Partial<KeyPressEvent>): KeyPressEvent {
     return {
-        type: "keypress",
+        type: overrides?.type ?? "keydown",
         key,
         code: overrides?.code ?? key,
         ctrlKey: overrides?.ctrlKey ?? false,
@@ -290,10 +290,209 @@ describe("parseInput", () => {
         expect(events[0].key).toBe("Escape");
     });
 
-    it("all events have type 'keypress'", () => {
+    it("all default events have type 'keydown'", () => {
         const events = parseInput("abc\x03\x1b[A\x1b\x0d");
         for (const event of events) {
-            expect(event.type).toBe("keypress");
+            expect(event.type).toBe("keydown");
         }
+    });
+
+    // ─── Kitty event types (keydown/keyup via :eventtype) ───
+
+    it("parses CSI u with explicit press event type :1 as keydown", () => {
+        // CSI 97;1:1 u → 'a' press, no modifiers, event type 1 (press)
+        const events = parseInput("\x1b[97;1:1u");
+        expect(events).toEqual([kp("a", "\x1b[97;1:1u", { type: "keydown", code: "KeyA" })]);
+    });
+
+    it("parses CSI u with repeat event type :2 as keypress", () => {
+        // CSI 97;1:2 u → 'a' repeat, no modifiers, event type 2 (repeat → keypress)
+        const events = parseInput("\x1b[97;1:2u");
+        expect(events).toEqual([kp("a", "\x1b[97;1:2u", { type: "keypress", code: "KeyA" })]);
+    });
+
+    it("parses CSI u with release event type :3 as keyup", () => {
+        // CSI 97;1:3 u → 'a' release
+        const events = parseInput("\x1b[97;1:3u");
+        expect(events).toEqual([kp("a", "\x1b[97;1:3u", { type: "keyup", code: "KeyA" })]);
+    });
+
+    it("parses CSI letter with release event type :3 as keyup", () => {
+        // CSI 1;9:3 C → ArrowRight, Meta, release
+        const events = parseInput("\x1b[1;9:3C");
+        expect(events).toEqual([kp("ArrowRight", "\x1b[1;9:3C", { type: "keyup", metaKey: true })]);
+    });
+
+    it("parses CSI tilde with event type release as keyup", () => {
+        // CSI 3;5:3 ~ → Delete, Ctrl, release
+        const events = parseInput("\x1b[3;5:3~");
+        expect(events).toEqual([kp("Delete", "\x1b[3;5:3~", { type: "keyup", ctrlKey: true })]);
+    });
+
+    it("parses CSI u without event type as keydown (default)", () => {
+        // CSI 97;5 u → Ctrl+a, no event type → keydown
+        const events = parseInput("\x1b[97;5u");
+        expect(events).toEqual([kp("a", "\x1b[97;5u", { ctrlKey: true, code: "KeyA" })]);
+    });
+
+    // ─── Kitty functional key codepoints ───
+
+    it("parses LEFT_SUPER release (Cmd keyup) — CSI 57444;1:3 u", () => {
+        // This is the exact sequence from the user's Cmd+End scenario
+        const events = parseInput("\x1b[57444;1:3u");
+        expect(events).toEqual([
+            kp("Meta", "\x1b[57444;1:3u", { type: "keyup", code: "MetaLeft" }),
+        ]);
+    });
+
+    it("parses LEFT_SUPER press (Cmd keydown) — CSI 57444;9:1 u", () => {
+        // Cmd pressed → modifier 9 (1+Meta), event type 1 (press)
+        const events = parseInput("\x1b[57444;9:1u");
+        expect(events).toEqual([
+            kp("Meta", "\x1b[57444;9:1u", { type: "keydown", metaKey: true, code: "MetaLeft" }),
+        ]);
+    });
+
+    it("parses LEFT_SHIFT press — CSI 57441;2:1 u", () => {
+        const events = parseInput("\x1b[57441;2:1u");
+        expect(events).toEqual([
+            kp("Shift", "\x1b[57441;2:1u", { type: "keydown", shiftKey: true, code: "ShiftLeft" }),
+        ]);
+    });
+
+    it("parses LEFT_CONTROL release — CSI 57442;1:3 u", () => {
+        const events = parseInput("\x1b[57442;1:3u");
+        expect(events).toEqual([
+            kp("Control", "\x1b[57442;1:3u", { type: "keyup", code: "ControlLeft" }),
+        ]);
+    });
+
+    it("parses LEFT_ALT press — CSI 57443;3:1 u", () => {
+        const events = parseInput("\x1b[57443;3:1u");
+        expect(events).toEqual([
+            kp("Alt", "\x1b[57443;3:1u", { type: "keydown", altKey: true, code: "AltLeft" }),
+        ]);
+    });
+
+    it("parses RIGHT_SUPER release — CSI 57450;1:3 u", () => {
+        const events = parseInput("\x1b[57450;1:3u");
+        expect(events).toEqual([
+            kp("Meta", "\x1b[57450;1:3u", { type: "keyup", code: "MetaRight" }),
+        ]);
+    });
+
+    it("parses CapsLock via CSI u — CSI 57358 u", () => {
+        const events = parseInput("\x1b[57358u");
+        expect(events).toEqual([kp("CapsLock", "\x1b[57358u")]);
+    });
+
+    it("parses Enter via CSI u with event type — CSI 13;1:3 u (release) as keyup", () => {
+        const events = parseInput("\x1b[13;1:3u");
+        expect(events).toEqual([kp("Enter", "\x1b[13;1:3u", { type: "keyup" })]);
+    });
+
+    it("parses Tab via CSI u with modifiers — CSI 9;5:1 u (Ctrl+Tab press)", () => {
+        const events = parseInput("\x1b[9;5:1u");
+        expect(events).toEqual([kp("Tab", "\x1b[9;5:1u", { type: "keydown", ctrlKey: true })]);
+    });
+
+    it("parses Escape via CSI u — CSI 27;1:3 u (release) as keyup", () => {
+        const events = parseInput("\x1b[27;1:3u");
+        expect(events).toEqual([kp("Escape", "\x1b[27;1:3u", { type: "keyup" })]);
+    });
+
+    // ─── Kitty PUA characters via ESC prefix ───
+
+    it("parses ESC + PUA for LEFT_SUPER (Cmd keydown) — \\x1b + U+E064", () => {
+        // ESC + PUA is a Kitty protocol encoding, ESC is NOT an Alt modifier.
+        // It's a key press → keydown.
+        const leftSuper = String.fromCodePoint(57444); // U+E064
+        const events = parseInput("\x1b" + leftSuper);
+        expect(events).toEqual([
+            kp("Meta", "\x1b" + leftSuper, { type: "keydown", code: "MetaLeft" }),
+        ]);
+    });
+
+    it("parses standalone PUA character for LEFT_SHIFT as keydown", () => {
+        const leftShift = String.fromCodePoint(57441);
+        const events = parseInput(leftShift);
+        expect(events).toEqual([kp("Shift", leftShift, { type: "keydown", code: "ShiftLeft" })]);
+    });
+
+    // ─── Full Cmd+End scenario (3 events in one chunk) ───
+
+    it("parses full Cmd+Right sequence: modifier press + key release + modifier release", () => {
+        // Simulates what the terminal sends for Cmd+Right with Kitty protocol (flags 11)
+        const superDown = "\x1b" + String.fromCodePoint(57444); // ESC + LEFT_SUPER PUA
+        const arrowRelease = "\x1b[1;9:3C"; // ArrowRight Meta release
+        const superRelease = "\x1b[57444;1:3u"; // LEFT_SUPER release
+
+        const events = parseInput(superDown + arrowRelease + superRelease);
+        expect(events).toHaveLength(3);
+
+        // Event 1: LEFT_SUPER keydown (ESC + PUA)
+        expect(events[0]).toEqual(
+            kp("Meta", superDown, { type: "keydown", code: "MetaLeft" }),
+        );
+
+        // Event 2: ArrowRight + Meta, keyup (no synthesis in pure parseInput)
+        expect(events[1]).toEqual(
+            kp("ArrowRight", arrowRelease, { type: "keyup", metaKey: true }),
+        );
+
+        // Event 3: LEFT_SUPER release, keyup
+        expect(events[2]).toEqual(
+            kp("Meta", superRelease, { type: "keyup", code: "MetaLeft" }),
+        );
+    });
+
+    // ─── Codepoint sub-parameters (shifted:base) ───
+
+    it("parses CSI u with codepoint sub-parameters (shifted key)", () => {
+        // CSI 97:65;2 u → 'a' with shifted value 65 ('A'), Shift modifier
+        const events = parseInput("\x1b[97:65;2u");
+        expect(events).toEqual([kp("a", "\x1b[97:65;2u", { shiftKey: true, code: "KeyA" })]);
+    });
+
+    // ─── Key held down (repeat) ───
+
+    it("parses held ArrowDown (repeat) as keypress", () => {
+        // CSI 1;1:2 B → ArrowDown, no modifiers, repeat
+        const events = parseInput("\x1b[1;1:2B");
+        expect(events).toEqual([kp("ArrowDown", "\x1b[1;1:2B", { type: "keypress" })]);
+    });
+
+    it("parses held Ctrl+ArrowRight (repeat) as keypress with modifier", () => {
+        // CSI 1;5:2 C → ArrowRight, Ctrl, repeat
+        const events = parseInput("\x1b[1;5:2C");
+        expect(events).toEqual([kp("ArrowRight", "\x1b[1;5:2C", { type: "keypress", ctrlKey: true })]);
+    });
+
+    it("parses held Delete (repeat via tilde) as keypress", () => {
+        // CSI 3;1:2 ~ → Delete, no modifiers, repeat
+        const events = parseInput("\x1b[3;1:2~");
+        expect(events).toEqual([kp("Delete", "\x1b[3;1:2~", { type: "keypress" })]);
+    });
+
+    // ─── No synthesis in parseInput (it’s pure) ───
+
+    it("does not synthesize keypress — parseInput is a pure parser", () => {
+        // ArrowDown: legacy press (ESC[B) + release (ESC[1;1:3B)
+        const press = "\x1b[B";
+        const release = "\x1b[1;1:3B";
+        const events = parseInput(press + release);
+        expect(events).toEqual([
+            kp("ArrowDown", press),
+            kp("ArrowDown", release, { type: "keyup" }),
+        ]);
+    });
+
+    it("does not synthesize keypress for standalone keyup", () => {
+        // CSI 97;1:3 u (release only)
+        const release = "\x1b[97;1:3u";
+        const events = parseInput(release);
+        expect(events).toEqual([
+            kp("a", release, { type: "keyup", code: "KeyA" }),
+        ]);
     });
 });

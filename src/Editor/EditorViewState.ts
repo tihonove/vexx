@@ -2,7 +2,7 @@ import { comparePositions } from "./IPosition.ts";
 import { createRange } from "./IRange.ts";
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
 import type { ISelection } from "./ISelection.ts";
-import { createCursorSelection, selectionToRange } from "./ISelection.ts";
+import { createCursorSelection, createSelection, selectionToRange, getIdealColumn } from "./ISelection.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
 import { createTextEdit } from "./ITextEdit.ts";
@@ -171,76 +171,128 @@ export class EditorViewState {
         }
     }
 
+    // ─── Cursor Navigation ───────────────────────────────────
+
     /**
      * Moves each cursor one character to the left.
      * At the start of a line, wraps to the end of the previous visible line.
+     * Updates idealColumn to the new activeColumn.
      */
-    moveCursorLeft(): void {
+    cursorLeft(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
+            let newLine = pos.line;
+            let newChar = pos.character;
+
             if (pos.character > 0) {
-                return createCursorSelection(pos.line, pos.character - 1);
+                newChar = pos.character - 1;
             } else if (pos.line > 0) {
                 const prevVisible = this.previousVisibleLine(pos.line);
                 if (prevVisible >= 0) {
-                    const prevLineLen = this.document.getLineLength(prevVisible);
-                    return createCursorSelection(prevVisible, prevLineLen);
+                    newLine = prevVisible;
+                    newChar = this.document.getLineLength(prevVisible);
+                } else {
+                    return sel;
                 }
+            } else {
+                return sel;
             }
-            return sel;
+
+            return this.buildSelection(sel, newLine, newChar, newChar, inSelectionMode);
         });
+        this.normalizeSelections();
     }
 
     /**
      * Moves each cursor one character to the right.
      * At the end of a line, wraps to the start of the next visible line.
+     * Updates idealColumn to the new activeColumn.
      */
-    moveCursorRight(): void {
+    cursorRight(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             const lineLen = this.document.getLineLength(pos.line);
+            let newLine = pos.line;
+            let newChar = pos.character;
+
             if (pos.character < lineLen) {
-                return createCursorSelection(pos.line, pos.character + 1);
+                newChar = pos.character + 1;
             } else {
                 const nextVisible = this.nextVisibleLine(pos.line);
                 if (nextVisible >= 0) {
-                    return createCursorSelection(nextVisible, 0);
+                    newLine = nextVisible;
+                    newChar = 0;
+                } else {
+                    return sel;
                 }
             }
-            return sel;
+
+            return this.buildSelection(sel, newLine, newChar, newChar, inSelectionMode);
         });
+        this.normalizeSelections();
     }
 
     /**
      * Moves each cursor one visual line up.
      * Skips over collapsed folding regions.
+     * Does NOT change idealColumn — vertical navigation preserves it.
      */
-    moveCursorUp(): void {
+    cursorUp(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             const prevVisible = this.previousVisibleLine(pos.line);
             if (prevVisible >= 0) {
+                const ideal = getIdealColumn(sel);
                 const targetLineLen = this.document.getLineLength(prevVisible);
-                return createCursorSelection(prevVisible, Math.min(pos.character, targetLineLen));
+                const newChar = Math.min(ideal, targetLineLen);
+                return this.buildSelection(sel, prevVisible, newChar, ideal, inSelectionMode);
             }
             return sel;
         });
+        this.normalizeSelections();
     }
 
     /**
      * Moves each cursor one visual line down.
      * Skips over collapsed folding regions.
+     * Does NOT change idealColumn — vertical navigation preserves it.
      */
-    moveCursorDown(): void {
+    cursorDown(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             const nextVisible = this.nextVisibleLine(pos.line);
             if (nextVisible >= 0) {
+                const ideal = getIdealColumn(sel);
                 const targetLineLen = this.document.getLineLength(nextVisible);
-                return createCursorSelection(nextVisible, Math.min(pos.character, targetLineLen));
+                const newChar = Math.min(ideal, targetLineLen);
+                return this.buildSelection(sel, nextVisible, newChar, ideal, inSelectionMode);
             }
             return sel;
         });
+        this.normalizeSelections();
+    }
+
+    /**
+     * Moves each cursor to the beginning of its line.
+     * Sets idealColumn to 0 so subsequent Up/Down stay at column 0.
+     */
+    cursorHome(inSelectionMode = false): void {
+        this.selections = this.selections.map((sel) => {
+            return this.buildSelection(sel, sel.active.line, 0, 0, inSelectionMode);
+        });
+        this.normalizeSelections();
+    }
+
+    /**
+     * Moves each cursor to the end of its line.
+     * Sets idealColumn to MAX_SAFE_INTEGER so subsequent Up/Down "stick" to the right edge.
+     */
+    cursorEnd(inSelectionMode = false): void {
+        this.selections = this.selections.map((sel) => {
+            const lineLen = this.document.getLineLength(sel.active.line);
+            return this.buildSelection(sel, sel.active.line, lineLen, Number.MAX_SAFE_INTEGER, inSelectionMode);
+        });
+        this.normalizeSelections();
     }
 
     /**
@@ -499,5 +551,41 @@ export class EditorViewState {
         }
 
         return newSelections.length > 0 ? newSelections : [createCursorSelection(0, 0)];
+    }
+
+    /**
+     * Constructs a new selection after a cursor movement.
+     * If inSelectionMode is false, anchor collapses to the new active position.
+     * If true, the original anchor is preserved.
+     */
+    private buildSelection(
+        original: ISelection,
+        newLine: number,
+        newChar: number,
+        idealColumn: number,
+        inSelectionMode: boolean,
+    ): ISelection {
+        if (inSelectionMode) {
+            return createSelection(
+                original.anchor.line,
+                original.anchor.character,
+                newLine,
+                newChar,
+                idealColumn,
+            );
+        }
+        return createCursorSelection(newLine, newChar, idealColumn);
+    }
+
+    /**
+     * Sorts selections by their start position in document order.
+     * Does not merge overlapping selections (kept simple for now).
+     */
+    private normalizeSelections(): void {
+        this.selections.sort((a, b) => {
+            const rangeA = selectionToRange(a);
+            const rangeB = selectionToRange(b);
+            return comparePositions(rangeA.start, rangeB.start);
+        });
     }
 }

@@ -128,7 +128,7 @@ describe("EditorViewState.Folding — basic mapping", () => {
 // ─── Folding: Cursor Navigation ────────────────────────────
 
 describe("EditorViewState.Folding — cursor navigation", () => {
-    it("moveCursorDown skips collapsed region", () => {
+    it("cursorDown skips collapsed region", () => {
         const state = parseDSL(editorState`
             text: header
             folding: >
@@ -139,7 +139,7 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             folding: ^
             text: footer
         `);
-        state.moveCursorDown();
+        state.cursorDown();
         expectEditorState(state, editorState`
             text: header
             folding: >
@@ -152,7 +152,7 @@ describe("EditorViewState.Folding — cursor navigation", () => {
         `);
     });
 
-    it("moveCursorUp skips collapsed region", () => {
+    it("cursorUp skips collapsed region", () => {
         const state = parseDSL(editorState`
             text: header
             folding: >
@@ -163,7 +163,7 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             text: footer
             cursor: █
         `);
-        state.moveCursorUp();
+        state.cursorUp();
         expectEditorState(state, editorState`
             text: header
             cursor: █
@@ -176,7 +176,7 @@ describe("EditorViewState.Folding — cursor navigation", () => {
         `);
     });
 
-    it("moveCursorDown does nothing at last visible line", () => {
+    it("cursorDown does nothing at last visible line", () => {
         const state = parseDSL(editorState`
             text: a
             folding: >
@@ -186,11 +186,11 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             cursor: █
         `);
         // cursor at line 2, which is the last visible line
-        state.moveCursorDown();
+        state.cursorDown();
         expect(state.selections[0].active.line).toBe(2);
     });
 
-    it("moveCursorUp does nothing at first line", () => {
+    it("cursorUp does nothing at first line", () => {
         const state = parseDSL(editorState`
             text: a
             folding: >
@@ -199,11 +199,11 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             folding: ^
             text: c
         `);
-        state.moveCursorUp();
+        state.cursorUp();
         expect(state.selections[0].active.line).toBe(0);
     });
 
-    it("moveCursorRight wraps to next visible line, skipping collapsed", () => {
+    it("cursorRight wraps to next visible line, skipping collapsed", () => {
         const state = parseDSL(editorState`
             text: ab
             folding: >
@@ -213,13 +213,13 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             text: ef
         `);
         // cursor at line 0, char 2 (end of line)
-        state.moveCursorRight();
+        state.cursorRight();
         // Should wrap to line 2 (next visible), char 0
         expect(state.selections[0].active.line).toBe(2);
         expect(state.selections[0].active.character).toBe(0);
     });
 
-    it("moveCursorLeft wraps to previous visible line, skipping collapsed", () => {
+    it("cursorLeft wraps to previous visible line, skipping collapsed", () => {
         const state = parseDSL(editorState`
             text: ab
             folding: >
@@ -229,13 +229,13 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             cursor: █
         `);
         // cursor at line 2, char 0
-        state.moveCursorLeft();
+        state.cursorLeft();
         // Should wrap to line 0 (previous visible), char 2 (end of "ab")
         expect(state.selections[0].active.line).toBe(0);
         expect(state.selections[0].active.character).toBe(2);
     });
 
-    it("moveCursorDown clamps character to target line length", () => {
+    it("cursorDown clamps character to target line length", () => {
         const state = parseDSL(editorState`
             text: longline
             folding: >
@@ -245,7 +245,7 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             text: xy
         `);
         // cursor at line 0, char 5. Target (line 2) has length 2
-        state.moveCursorDown();
+        state.cursorDown();
         expect(state.selections[0].active.line).toBe(2);
         expect(state.selections[0].active.character).toBe(2);
     });
@@ -428,7 +428,146 @@ describe("EditorViewState.Folding — edit tracking", () => {
 // ─── Construction ───────────────────────────────────────────
 
 describe("EditorViewState.CursorManagement", () => {
-    it("placeholder", () => {
-        // Future cursor management tests
+    // ─── idealColumn: vertical navigation preserves column memory ────
+
+    it("cursorDown through short line preserves idealColumn", () => {
+        // Lines: "abcdef" (6), "hi" (2), "xyzwv" (5)
+        const doc = new TextDocument("abcdef\nhi\nxyzwv");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 5)]);
+        // idealColumn defaults to 5
+        state.cursorDown(); // line 1 len=2 → char=2, idealColumn still 5
+        expect(state.selections[0].active).toEqual({ line: 1, character: 2 });
+        state.cursorDown(); // line 2 len=5 → char=5, idealColumn still 5
+        expect(state.selections[0].active).toEqual({ line: 2, character: 5 });
+    });
+
+    it("cursorUp through short line preserves idealColumn", () => {
+        const doc = new TextDocument("xyzwv\nhi\nabcdef");
+        const state = new EditorViewState(doc, [createCursorSelection(2, 5)]);
+        state.cursorUp(); // line 1 len=2 → char=2, idealColumn still 5
+        expect(state.selections[0].active).toEqual({ line: 1, character: 2 });
+        state.cursorUp(); // line 0 len=5 → char=5, idealColumn still 5
+        expect(state.selections[0].active).toEqual({ line: 0, character: 5 });
+    });
+
+    // ─── cursorEnd sets ideal to MAX_SAFE_INTEGER ("sticky right edge") ────
+
+    it("cursorEnd then cursorDown sticks to right edge", () => {
+        const doc = new TextDocument("short\nlonger line\nhi");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+        state.cursorEnd();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 5 });
+
+        state.cursorDown(); // "longer line" len=11 → char=11
+        expect(state.selections[0].active).toEqual({ line: 1, character: 11 });
+
+        state.cursorDown(); // "hi" len=2 → char=2
+        expect(state.selections[0].active).toEqual({ line: 2, character: 2 });
+    });
+
+    // ─── cursorHome sets ideal to 0 ────
+
+    it("cursorHome sets activeColumn and idealColumn to 0", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.cursorHome();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+
+        state.cursorDown(); // idealColumn=0, so char stays 0
+        expect(state.selections[0].active).toEqual({ line: 1, character: 0 });
+    });
+
+    // ─── cursorLeft / cursorRight reset idealColumn ────
+
+    it("cursorLeft resets idealColumn", () => {
+        const doc = new TextDocument("abcdef\nhi\nabcdef");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 5)]);
+        state.cursorDown(); // now at (1, 2), idealColumn=5
+        state.cursorLeft(); // now at (1, 1), idealColumn=1
+        state.cursorDown(); // idealColumn=1 → (2, 1)
+        expect(state.selections[0].active).toEqual({ line: 2, character: 1 });
+    });
+
+    it("cursorRight resets idealColumn", () => {
+        const doc = new TextDocument("abcdef\nhi\nabcdef");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 5)]);
+        state.cursorDown(); // now at (1, 2), idealColumn=5
+        state.cursorRight(); // wraps to (2, 0), idealColumn=0
+        state.cursorDown(); // no more lines, stays at (2, 0)
+        expect(state.selections[0].active).toEqual({ line: 2, character: 0 });
+    });
+
+    // ─── Selection mode: cursorRight(true) creates selection ────
+
+    it("cursorRight with inSelectionMode creates selection", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 2)]);
+        state.cursorRight(true);
+        expect(state.selections[0].active).toEqual({ line: 0, character: 3 });
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 2 });
+    });
+
+    it("cursorLeft with inSelectionMode creates selection", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.cursorLeft(true);
+        expect(state.selections[0].active).toEqual({ line: 0, character: 2 });
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 3 });
+    });
+
+    it("cursorDown with inSelectionMode extends selection downward", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 2)]);
+        state.cursorDown(true);
+        expect(state.selections[0].active).toEqual({ line: 1, character: 2 });
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 2 });
+    });
+
+    it("cursorUp with inSelectionMode extends selection upward", () => {
+        const doc = new TextDocument("hello\nworld");
+        const state = new EditorViewState(doc, [createCursorSelection(1, 3)]);
+        state.cursorUp(true);
+        expect(state.selections[0].active).toEqual({ line: 0, character: 3 });
+        expect(state.selections[0].anchor).toEqual({ line: 1, character: 3 });
+    });
+
+    // ─── Selection mode: collapse when inSelectionMode=false ────
+
+    it("cursorRight without selection mode collapses existing selection", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createSelection(0, 1, 0, 4)]);
+        state.cursorRight(); // active was 4, now 5; anchor collapses to 5
+        expect(state.selections[0].active).toEqual({ line: 0, character: 5 });
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 5 });
+    });
+
+    // ─── cursorHome / cursorEnd with selection mode ────
+
+    it("cursorEnd with inSelectionMode selects to end of line", () => {
+        const doc = new TextDocument("hello world");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.cursorEnd(true);
+        expect(state.selections[0].active).toEqual({ line: 0, character: 11 });
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 3 });
+    });
+
+    it("cursorHome with inSelectionMode selects to start of line", () => {
+        const doc = new TextDocument("hello world");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 5)]);
+        state.cursorHome(true);
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 5 });
+    });
+
+    // ─── normalizeSelections sorts multi-cursors ────
+
+    it("normalizeSelections sorts cursors by document order", () => {
+        const doc = new TextDocument("aaa\nbbb\nccc");
+        // Provide cursors in reverse order
+        const state = new EditorViewState(doc, [createCursorSelection(2, 0), createCursorSelection(0, 0)]);
+        state.cursorRight(); // triggers normalizeSelections
+        // After sort, line 0 cursor should be first
+        expect(state.selections[0].active.line).toBe(0);
+        expect(state.selections[1].active.line).toBe(2);
     });
 });

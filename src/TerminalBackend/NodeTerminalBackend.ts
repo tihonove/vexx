@@ -1,10 +1,44 @@
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
-import { parseInput } from "./parseInput.ts";
+import { KeyInputParser } from "./KeyInputParser.ts";
+
+/**
+ * Kitty Keyboard Protocol escape sequences.
+ *
+ * Flags (push mode): disambiguate(1) + event types(2) + all keys as escapes(8) = 11
+ * See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
+ */
+const KITTY_ENABLE = "\x1b[>11u";
+const KITTY_DISABLE = "\x1b[<u";
+
+/**
+ * Wrap an escape sequence for TMUX DCS passthrough.
+ *
+ * TMUX не понимает произвольные escape-последовательности и глотает их.
+ * Чтобы передать их терминалу напрямую, нужно обернуть в DCS passthrough:
+ *   \x1bPtmux;\x1b<sequence>\x1b\\
+ *
+ * Внутри passthrough каждый ESC (\x1b) в оригинальной последовательности
+ * удваивается (\x1b → \x1b\x1b).
+ *
+ * See: https://github.com/tmux/tmux/wiki/FAQ#what-is-the-passthrough-escape-sequence-and-how-do-i-use-it
+ */
+function wrapForTmux(sequence: string): string {
+    const escaped = sequence.replace(/\x1b/g, "\x1b\x1b");
+    return `\x1bPtmux;${escaped}\x1b\\`;
+}
+
+/**
+ * Detect whether we are running inside a TMUX session.
+ */
+function isInsideTmux(): boolean {
+    return process.env["TMUX"] != null && process.env["TMUX"] !== "";
+}
 
 /**
  * Real terminal backend: reads from process.stdin, writes to process.stdout.
  * Handles alternate screen, raw mode, cursor visibility, signal cleanup.
+ * Enables Kitty Keyboard Protocol with TMUX passthrough support.
  */
 export class NodeTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
@@ -18,6 +52,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private lastEmittedSize: { cols: number; rows: number } | null = null;
     private resizePending = false;
     private cleanupHandlers: (() => void)[] = [];
+    private readonly isTmux: boolean;
+    private readonly inputParser = new KeyInputParser();
 
     constructor(
         stdin: NodeJS.ReadStream = process.stdin,
@@ -27,6 +63,14 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdin = stdin;
         this.stdout = stdout;
         this.resizeThrottleMs = options?.resizeThrottleMs ?? 100;
+        this.isTmux = isInsideTmux();
+    }
+
+    /**
+     * Write a raw escape sequence to stdout, wrapping in TMUX passthrough if needed.
+     */
+    private writePassthrough(sequence: string): void {
+        this.stdout.write(this.isTmux ? wrapForTmux(sequence) : sequence);
     }
 
     onInput(callback: (event: KeyPressEvent) => void): void {
@@ -55,17 +99,17 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
     setCellAt(x: number, y: number, char: string): void {
         // ANSI cursor positioning: \x1b[row;colH (1-based)
-        this.stdout.write(`\x1b[${y + 1};${x + 1}H${char}`);
+        this.stdout.write(`\x1b[${(y + 1).toString()};${(x + 1).toString()}H${char}`);
     }
 
     setCursorPosition(x: number, y: number): void {
-        this.stdout.write(`\x1b[${y + 1};${x + 1}H`);
+        this.stdout.write(`\x1b[${(y + 1).toString()};${(x + 1).toString()}H`);
     }
 
     getSize(): { cols: number; rows: number } {
         return {
-            cols: this.stdout.columns ?? 80,
-            rows: this.stdout.rows ?? 24,
+            cols: this.stdout.columns,
+            rows: this.stdout.rows,
         };
     }
 
@@ -76,12 +120,22 @@ export class NodeTerminalBackend implements ITerminalBackend {
     hideCursor(): void {
         this.stdout.write("\x1b[?25l");
     }
-    
+
+    beginSynchronizedOutput(): void {
+        this.stdout.write("\x1b[?2026h");
+    }
+
+    endSynchronizedOutput(): void {
+        this.stdout.write("\x1b[?2026l");
+    }
+
     setup(): void {
         // Switch to alternate screen buffer
         this.stdout.write("\x1b[?1049h");
         // Show cursor (will be positioned by the focused element)
         this.showCursor();
+        // Enable Kitty Keyboard Protocol (with TMUX passthrough if needed)
+        this.writePassthrough(KITTY_ENABLE);
 
         // Raw mode for character-by-character input
         this.stdin.setRawMode(true);
@@ -90,7 +144,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
         // Listen for input
         this.onDataHandler = (chunk: string) => {
-            const events = parseInput(chunk);
+            const events = this.inputParser.parse(chunk);
             for (const event of events) {
                 for (const cb of this.inputCallbacks) {
                     cb(event);
@@ -136,6 +190,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
     }
 
     teardown(): void {
+        // Disable Kitty Keyboard Protocol (with TMUX passthrough if needed)
+        this.writePassthrough(KITTY_DISABLE);
         // Restore cursor
         this.stdout.write("\x1b[?25h");
         // Restore normal screen buffer

@@ -76,26 +76,44 @@ export class EditorElement extends TUIElement {
         }
 
         if (event.key === "ArrowLeft") {
-            this.viewState.moveCursorLeft();
+            if (event.metaKey) {
+                this.viewState.cursorHome(event.shiftKey);
+            } else {
+                this.viewState.cursorLeft(event.shiftKey);
+            }
             return;
         }
 
         if (event.key === "ArrowRight") {
-            this.viewState.moveCursorRight();
+            if (event.metaKey) {
+                this.viewState.cursorEnd(event.shiftKey);
+            } else {
+                this.viewState.cursorRight(event.shiftKey);
+            }
             return;
         }
 
         if (event.key === "ArrowUp") {
-            this.viewState.moveCursorUp();
+            this.viewState.cursorUp(event.shiftKey);
             return;
         }
 
         if (event.key === "ArrowDown") {
-            this.viewState.moveCursorDown();
+            this.viewState.cursorDown(event.shiftKey);
             return;
         }
 
-        // Printable character: single char, no ctrl/alt/meta modifiers
+        if (event.key === "Home") {
+            this.viewState.cursorHome(event.shiftKey);
+            return;
+        }
+
+        if (event.key === "End") {
+            this.viewState.cursorEnd(event.shiftKey);
+            return;
+        }
+
+        // Printable character:     single char, no ctrl/alt/meta modifiers
         if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
             this.viewState.type(event.key);
             return;
