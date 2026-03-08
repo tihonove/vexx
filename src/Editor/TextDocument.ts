@@ -1,9 +1,7 @@
+import type { ILineTokens } from "./ILineTokens.ts";
+import { comparePositions } from "./IPosition.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
-import type { ILineTokens } from "./ILineTokens.ts";
-import type { IToken } from "./ILineTokens.ts";
-import { createLineTokens, createToken } from "./ILineTokens.ts";
-import { comparePositions } from "./IPosition.ts";
 
 /**
  * Simple array-backed implementation of ITextDocument.

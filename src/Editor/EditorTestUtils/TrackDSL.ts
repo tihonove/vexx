@@ -8,6 +8,7 @@ import { createCursorSelection, createSelection, selectionToRange, isSelectionCo
 import { createLineTokens, createToken } from "../ILineTokens.ts";
 import { comparePositions } from "../IPosition.ts";
 import { expect } from "vitest";
+import { reject } from "../../Common/TypingUtils.ts";
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -360,7 +361,7 @@ function parseFoldingTracks(foldingTrackByLine: Map<number, string>): IFoldingRe
     const regions: IFoldingRegion[] = [];
 
     // Collect starts: lines with 'v' or '>'
-    const starts: Array<{ line: number; collapsed: boolean }> = [];
+    const starts: { line: number; collapsed: boolean }[] = [];
     for (const [lineIdx, track] of foldingTrackByLine) {
         const ch = track.trim().charAt(0);
         if (ch === FOLD_EXPANDED_START) {
@@ -375,7 +376,7 @@ function parseFoldingTracks(foldingTrackByLine: Map<number, string>): IFoldingRe
 
     // For each start, find matching '^' end
     // Use a stack for nested regions
-    const stack: Array<{ line: number; collapsed: boolean }> = [];
+    const stack: { line: number; collapsed: boolean }[] = [];
     const sortedLines = [...foldingTrackByLine.entries()].sort(([a], [b]) => a - b);
 
     for (const [lineIdx, track] of sortedLines) {
@@ -384,7 +385,7 @@ function parseFoldingTracks(foldingTrackByLine: Map<number, string>): IFoldingRe
             stack.push({ line: lineIdx, collapsed: ch === FOLD_COLLAPSED_START });
         } else if (ch === FOLD_END) {
             if (stack.length > 0) {
-                const start = stack.pop()!;
+                const start = stack.pop() ?? reject();
                 regions.push(createFoldingRegion(start.line, lineIdx, start.collapsed));
             }
         }

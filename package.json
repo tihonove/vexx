@@ -19,6 +19,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.3.3",
+    "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
@@ -27,6 +28,6 @@
     "tsup": "^8.5.1",
     "typescript": "^5.8",
     "typescript-eslint": "^8.56.1",
-    "vitest": "^3.0"
+    "vitest": "^4.0.18"
   }
 }
