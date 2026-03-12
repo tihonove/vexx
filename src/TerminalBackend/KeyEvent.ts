@@ -9,6 +9,8 @@
  * Discriminated union `TUIEvent` is extensible for future event types (click, focus, etc.)
  */
 
+import { inferCode } from "./TokenParsing/tokenize.ts";
+
 export interface KeyPressEvent {
     /**
      * Event type, following DOM KeyboardEvent naming:
@@ -49,11 +51,7 @@ export interface KeyPressEvent {
 export type TUIEvent = KeyPressEvent;
 
 /** Helper to create a KeyPressEvent with sensible defaults */
-export function createKeyPressEvent(
-    key: string,
-    raw: string,
-    overrides?: Partial<KeyPressEvent>,
-): KeyPressEvent {
+export function createKeyPressEvent(key: string, raw: string, overrides?: Partial<KeyPressEvent>): KeyPressEvent {
     return {
         type: overrides?.type ?? "keydown",
         key,
@@ -66,32 +64,5 @@ export function createKeyPressEvent(
     };
 }
 
-/**
- * Infer a DOM-style `code` from a key value.
- * Best-effort for traditional terminal mode (no physical key info available).
- */
-export function inferCode(key: string): string {
-    if (key.length === 1) {
-        const upper = key.toUpperCase();
-        if (upper >= "A" && upper <= "Z") return `Key${upper}`;
-        if (key >= "0" && key <= "9") return `Digit${key}`;
-        if (key === " ") return "Space";
-
-        const punctuation: Record<string, string> = {
-            "-": "Minus",
-            "=": "Equal",
-            "[": "BracketLeft",
-            "]": "BracketRight",
-            "\\": "Backslash",
-            ";": "Semicolon",
-            "'": "Quote",
-            ",": "Comma",
-            ".": "Period",
-            "/": "Slash",
-            "`": "Backquote",
-        };
-        return punctuation[key] ?? key;
-    }
-    // Named keys: code matches key ("Enter", "ArrowUp", "F1", etc.)
-    return key;
-}
+// inferCode re-exported from TokenParsing layer
+export { inferCode } from "./TokenParsing/tokenize.ts";

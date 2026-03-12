@@ -566,13 +566,7 @@ export class EditorViewState {
         inSelectionMode: boolean,
     ): ISelection {
         if (inSelectionMode) {
-            return createSelection(
-                original.anchor.line,
-                original.anchor.character,
-                newLine,
-                newChar,
-                idealColumn,
-            );
+            return createSelection(original.anchor.line, original.anchor.character, newLine, newChar, idealColumn);
         }
         return createCursorSelection(newLine, newChar, idealColumn);
     }

@@ -10,6 +10,7 @@
     "demo:box": "node src/demos/boxDemo.ts",
     "demo:editor": "node src/demos/editorDemo.ts",
     "demo:events": "node src/demos/eventLogDemo.ts",
+    "demo:raw-events": "node src/demos/tokenizeDemo.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
