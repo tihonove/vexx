@@ -11,6 +11,7 @@
     "demo:editor": "node src/demos/editorDemo.ts",
     "demo:events": "node src/demos/eventLogDemo.ts",
     "demo:raw-events": "node src/demos/tokenizeDemo.ts",
+    "demo:renderer": "node src/demos/rendererDemo.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",
