@@ -3,36 +3,50 @@ import { parseInput } from "./parseInput.ts";
 
 /**
  * Set of key values representing modifier keys.
- * keyup for these does NOT get a synthesized keypress.
+ * These follow the browser model: keydown/keyup only, no keypress synthesized.
  */
 const modifierKeyValues = new Set([
-    "Shift", "Control", "Alt", "Meta", "Hyper", "Super",
-    "AltGraph", "ISO_Level5_Shift", "CapsLock", "NumLock", "ScrollLock",
+    "Shift",
+    "Control",
+    "Alt",
+    "Meta",
+    "Hyper",
+    "Super",
+    "AltGraph",
+    "ISO_Level5_Shift",
+    "CapsLock",
+    "NumLock",
+    "ScrollLock",
 ]);
 
 /**
- * Stateful keyboard input parser that wraps the pure `parseInput` function.
+ * Stateful keyboard input parser — browser-like KeyboardEvent model.
  *
- * Produces DOM-style event sequences: keydown → keypress → keyup.
+ * Normalizes both legacy terminal input and Kitty protocol into a uniform
+ * event sequence matching the DOM KeyboardEvent spec:
  *
- * - For every keydown of a non-modifier key, synthesizes a keypress after it.
- * - Tracks pressed keys across stdin chunks.
- * - On macOS with Kitty protocol, some combos (e.g. Cmd+Arrow) only send a
- *   release event without a press. Detects orphaned keyup and synthesizes
- *   keydown + keypress before them.
+ * Normal keys:
+ *   keydown → keypress  (legacy: no keyup since protocol doesn't send it)
+ *   keydown → keypress → keyup  (Kitty: full lifecycle)
+ *   keydown → keypress → keypress(repeat) → ... → keyup  (Kitty hold)
+ *
+ * Modifier-only keys (Shift, Ctrl, Alt, Meta):
+ *   keydown → keyup  (no keypress — same as browser)
+ *
+ * Orphaned keyup (macOS Cmd+Arrow — release without prior press):
+ *   synthesizes keydown + keypress before the keyup
  *
  * Usage:
  *   const parser = new KeyInputParser();
  *   stdin.on("data", (chunk) => {
  *       const events = parser.parse(chunk);
- *       // events: keydown → keypress → ... → keyup
  *   });
  */
 export class KeyInputParser {
     private readonly pressedKeys = new Set<string>();
 
     /**
-     * Parse a chunk of raw terminal input, returning DOM-style event sequence.
+     * Parse a chunk of raw terminal input into browser-like keyboard events.
      */
     parse(data: string): KeyPressEvent[] {
         const rawEvents = parseInput(data);
@@ -44,14 +58,16 @@ export class KeyInputParser {
                 result.push(event);
                 // Synthesize keypress after keydown for non-modifier keys
                 if (!modifierKeyValues.has(event.key)) {
-                    result.push(createKeyPressEvent(event.key, event.raw, {
-                        type: "keypress",
-                        code: event.code,
-                        ctrlKey: event.ctrlKey,
-                        shiftKey: event.shiftKey,
-                        altKey: event.altKey,
-                        metaKey: event.metaKey,
-                    }));
+                    result.push(
+                        createKeyPressEvent(event.key, event.raw, {
+                            type: "keypress",
+                            code: event.code,
+                            ctrlKey: event.ctrlKey,
+                            shiftKey: event.shiftKey,
+                            altKey: event.altKey,
+                            metaKey: event.metaKey,
+                        }),
+                    );
                 }
             } else if (event.type === "keypress") {
                 // Repeat event from Kitty — pass through as-is (already keypress)
