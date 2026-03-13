@@ -1,5 +1,5 @@
 import type { KeyPressEvent } from "./KeyEvent.ts";
-import { tokenize } from "./TokenParsing/tokenize.ts";
+import { tokenize } from "../RawTokenParsing/tokenize.ts";
 import { convertTokenToKeyPressEvent } from "./convertToken.ts";
 
 /**

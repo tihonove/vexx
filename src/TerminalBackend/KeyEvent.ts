@@ -9,7 +9,7 @@
  * Discriminated union `TUIEvent` is extensible for future event types (click, focus, etc.)
  */
 
-import { inferCode } from "./TokenParsing/tokenize.ts";
+import { inferCode } from "../RawTokenParsing/tokenize.ts";
 
 export interface KeyPressEvent {
     /**
@@ -65,4 +65,4 @@ export function createKeyPressEvent(key: string, raw: string, overrides?: Partia
 }
 
 // inferCode re-exported from TokenParsing layer
-export { inferCode } from "./TokenParsing/tokenize.ts";
+export { inferCode } from "../RawTokenParsing/tokenize.ts";

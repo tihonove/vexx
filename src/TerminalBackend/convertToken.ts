@@ -1,5 +1,5 @@
 import { createKeyPressEvent, type KeyPressEvent } from "./KeyEvent.ts";
-import type { RawTerminalToken } from "./TokenParsing/RawTerminalToken.ts";
+import type { RawTerminalToken } from "../RawTokenParsing/RawTerminalToken.ts";
 
 /**
  * Map Kitty event type number to TUI event type string.
