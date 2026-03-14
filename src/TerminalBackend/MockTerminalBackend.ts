@@ -1,5 +1,6 @@
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
+import type { Grid } from "../Rendering/Grid.ts";
 import { KeyInputParser } from "./KeyInputParser.ts";
 import { serializeKey } from "./serializeKey.ts";
 
@@ -27,22 +28,6 @@ export class MockTerminalBackend implements ITerminalBackend {
         this.cells = this.createEmptyGrid();
     }
 
-    showCursor(): void {
-        // Mock: cursor visibility state tracked locally
-    }
-
-    hideCursor(): void {
-        // Mock: cursor visibility state tracked locally
-    }
-
-    beginSynchronizedOutput(): void {
-        // Mock: no-op
-    }
-
-    endSynchronizedOutput(): void {
-        // Mock: no-op
-    }
-
     private createEmptyGrid(): (string | null)[][] {
         const value: string | null = null;
         return new Array<(string | null)[]>(this.rows)
@@ -61,15 +46,14 @@ export class MockTerminalBackend implements ITerminalBackend {
     public cursorX = 0;
     public cursorY = 0;
 
-    setCellAt(x: number, y: number, char: string): void {
-        if (y >= 0 && y < this.rows && x >= 0 && x < this.cols) {
-            this.cells[y][x] = char;
+    renderFrame(grid: Grid, cursorX: number, cursorY: number): void {
+        for (let y = 0; y < grid.height && y < this.rows; y++) {
+            for (let x = 0; x < grid.width && x < this.cols; x++) {
+                this.cells[y][x] = grid.getCell(x, y).char;
+            }
         }
-    }
-
-    setCursorPosition(x: number, y: number): void {
-        this.cursorX = x;
-        this.cursorY = y;
+        this.cursorX = cursorX;
+        this.cursorY = cursorY;
     }
 
     getSize(): { cols: number; rows: number } {
@@ -85,6 +69,13 @@ export class MockTerminalBackend implements ITerminalBackend {
     }
 
     // ─── Test helpers ───
+
+    /** Set a character directly in the screen grid (test helper, not part of ITerminalBackend) */
+    setCellAt(x: number, y: number, char: string): void {
+        if (y >= 0 && y < this.rows && x >= 0 && x < this.cols) {
+            this.cells[y][x] = char;
+        }
+    }
 
     /**
      * Simulate a key press using human-readable name.

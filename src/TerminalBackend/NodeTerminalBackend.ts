@@ -1,6 +1,8 @@
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
 import { KeyInputParser } from "./KeyInputParser.ts";
+import { Grid } from "../Rendering/Grid.ts";
+import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
 
 /**
  * Kitty Keyboard Protocol escape sequences.
@@ -32,7 +34,7 @@ function wrapForTmux(sequence: string): string {
  * Detect whether we are running inside a TMUX session.
  */
 function isInsideTmux(): boolean {
-    return process.env["TMUX"] != null && process.env["TMUX"] !== "";
+    return process.env.TMUX != null && process.env.TMUX !== "";
 }
 
 /**
@@ -54,8 +56,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private cleanupHandlers: (() => void)[] = [];
     private readonly isTmux: boolean;
     private readonly inputParser = new KeyInputParser();
+    private readonly renderer: TerminalRenderer;
+    private prevGrid: Grid | null = null;
 
-    constructor(
+    public constructor(
         stdin: NodeJS.ReadStream = process.stdin,
         stdout: NodeJS.WriteStream = process.stdout,
         options?: { resizeThrottleMs?: number },
@@ -64,6 +68,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout = stdout;
         this.resizeThrottleMs = options?.resizeThrottleMs ?? 100;
         this.isTmux = isInsideTmux();
+        this.renderer = new TerminalRenderer(stdout);
     }
 
     /**
@@ -73,11 +78,11 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout.write(this.isTmux ? wrapForTmux(sequence) : sequence);
     }
 
-    onInput(callback: (event: KeyPressEvent) => void): void {
+    public onInput(callback: (event: KeyPressEvent) => void): void {
         this.inputCallbacks.push(callback);
     }
 
-    onResize(callback: (size: { cols: number; rows: number }) => void): void {
+    public onResize(callback: (size: { cols: number; rows: number }) => void): void {
         this.resizeCallbacks.push(callback);
     }
 
@@ -97,43 +102,30 @@ export class NodeTerminalBackend implements ITerminalBackend {
         }
     }
 
-    setCellAt(x: number, y: number, char: string): void {
-        // ANSI cursor positioning: \x1b[row;colH (1-based)
-        this.stdout.write(`\x1b[${(y + 1).toString()};${(x + 1).toString()}H${char}`);
+    public renderFrame(grid: Grid, cursorX: number, cursorY: number): void {
+        if (this.prevGrid?.width !== grid.width || this.prevGrid.height !== grid.height) {
+            this.prevGrid = new Grid(grid.width, grid.height);
+        }
+        this.stdout.write("\x1b[?2026h"); // begin synchronized output
+        this.stdout.write("\x1b[?25l"); // hide cursor
+        this.renderer.render(grid, this.prevGrid);
+        this.stdout.write(`\x1b[${(cursorY + 1).toString()};${(cursorX + 1).toString()}H`); // position cursor
+        this.stdout.write("\x1b[?25h"); // show cursor
+        this.stdout.write("\x1b[?2026l"); // end synchronized output
     }
 
-    setCursorPosition(x: number, y: number): void {
-        this.stdout.write(`\x1b[${(y + 1).toString()};${(x + 1).toString()}H`);
-    }
-
-    getSize(): { cols: number; rows: number } {
+    public getSize(): { cols: number; rows: number } {
         return {
             cols: this.stdout.columns,
             rows: this.stdout.rows,
         };
     }
 
-    showCursor(): void {
-        this.stdout.write("\x1b[?25h");
-    }
-
-    hideCursor(): void {
-        this.stdout.write("\x1b[?25l");
-    }
-
-    beginSynchronizedOutput(): void {
-        this.stdout.write("\x1b[?2026h");
-    }
-
-    endSynchronizedOutput(): void {
-        this.stdout.write("\x1b[?2026l");
-    }
-
-    setup(): void {
+    public setup(): void {
         // Switch to alternate screen buffer
         this.stdout.write("\x1b[?1049h");
         // Show cursor (will be positioned by the focused element)
-        this.showCursor();
+        this.stdout.write("\x1b[?25h");
         // Enable Kitty Keyboard Protocol (with TMUX passthrough if needed)
         this.writePassthrough(KITTY_ENABLE);
 
@@ -189,7 +181,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
         });
     }
 
-    teardown(): void {
+    public teardown(): void {
         // Disable Kitty Keyboard Protocol (with TMUX passthrough if needed)
         this.writePassthrough(KITTY_DISABLE);
         // Restore cursor
