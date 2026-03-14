@@ -38,7 +38,7 @@ export class TerminalScreen {
     public cursorX = 0;
     public cursorY = 0;
 
-    constructor(width = 80, height = 24) {
+    public constructor(width = 80, height = 24) {
         this.width = width;
         this.height = height;
         this.cells = new Array<Cell[][]>(height).fill([]).map(() => new Array<Cell>(width).fill({}));

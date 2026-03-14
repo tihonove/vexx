@@ -3,21 +3,19 @@ import { StyleFlags } from "./StyleFlags.ts";
 
 /**
  * A single terminal cell. Mutable for performance — avoids allocations on every frame.
- *
- * Fields:
- *  - `char`  — the displayed character (single grapheme)
- *  - `fg`    — foreground color as packed 24-bit RGB, or DEFAULT_COLOR
- *  - `bg`    — background color as packed 24-bit RGB, or DEFAULT_COLOR
- *  - `style` — bitmask of StyleFlags
  */
 export class Cell {
-    char: string;
-    fg: number;
-    bg: number;
-    style: number;
+    /** The displayed character (single grapheme) */
+    public char: string;
+    /** Foreground color as packed 24-bit RGB, or DEFAULT_COLOR */
+    public fg: number;
+    /** Background color as packed 24-bit RGB, or DEFAULT_COLOR */
+    public bg: number;
+    /** Bitmask of StyleFlags */
+    public style: number;
 
-    constructor(
-        char: string = " ",
+    public constructor(
+        char = " ",
         fg: number = DEFAULT_COLOR,
         bg: number = DEFAULT_COLOR,
         style: number = StyleFlags.None,
@@ -28,15 +26,15 @@ export class Cell {
         this.style = style;
     }
 
-    static empty(): Cell {
+    public static empty(): Cell {
         return new Cell();
     }
 
-    equals(other: Cell): boolean {
+    public equals(other: Cell): boolean {
         return this.char === other.char && this.fg === other.fg && this.bg === other.bg && this.style === other.style;
     }
 
-    copyFrom(other: Cell): void {
+    public copyFrom(other: Cell): void {
         this.char = other.char;
         this.fg = other.fg;
         this.bg = other.bg;

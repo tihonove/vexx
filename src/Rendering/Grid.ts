@@ -9,11 +9,11 @@ import { StyleFlags } from "./StyleFlags.ts";
  * `getCell` returns a direct reference — mutate it freely, no copies are made.
  */
 export class Grid {
-    readonly width: number;
-    readonly height: number;
-    readonly cells: Cell[];
+    public readonly width: number;
+    public readonly height: number;
+    public readonly cells: Cell[];
 
-    constructor(width: number, height: number) {
+    public constructor(width: number, height: number) {
         this.width = width;
         this.height = height;
         const total = width * height;
@@ -23,11 +23,18 @@ export class Grid {
         }
     }
 
-    getCell(x: number, y: number): Cell {
+    public getCell(x: number, y: number): Cell {
         return this.cells[y * this.width + x];
     }
 
-    setCell(x: number, y: number, char: string, fg: number = DEFAULT_COLOR, bg: number = DEFAULT_COLOR, style: number = StyleFlags.None): void {
+    public setCell(
+        x: number,
+        y: number,
+        char: string,
+        fg: number = DEFAULT_COLOR,
+        bg: number = DEFAULT_COLOR,
+        style: number = StyleFlags.None,
+    ): void {
         const cell = this.cells[y * this.width + x];
         cell.char = char;
         cell.fg = fg;
@@ -35,7 +42,12 @@ export class Grid {
         cell.style = style;
     }
 
-    fill(char: string = " ", fg: number = DEFAULT_COLOR, bg: number = DEFAULT_COLOR, style: number = StyleFlags.None): void {
+    public fill(
+        char = " ",
+        fg: number = DEFAULT_COLOR,
+        bg: number = DEFAULT_COLOR,
+        style: number = StyleFlags.None,
+    ): void {
         for (let i = 0, len = this.cells.length; i < len; i++) {
             const cell = this.cells[i];
             cell.char = char;

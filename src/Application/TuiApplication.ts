@@ -5,11 +5,12 @@ import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 import { TerminalScreen } from "./TerminalScreen.ts";
 
 export class TuiApplication {
-    root: TUIElement | null = null;
-    screen: TerminalScreen;
     private backend: ITerminalBackend;
 
-    constructor(backend: ITerminalBackend) {
+    public root: TUIElement | null = null;
+    public screen: TerminalScreen;
+
+    public constructor(backend: ITerminalBackend) {
         this.backend = backend;
         const { cols, rows } = backend.getSize();
         this.screen = new TerminalScreen(cols, rows);
