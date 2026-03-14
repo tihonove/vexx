@@ -3,6 +3,7 @@ import type { KeyPressEvent } from "./KeyEvent.ts";
 import { KeyInputParser } from "./KeyInputParser.ts";
 import { Grid } from "../Rendering/Grid.ts";
 import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 /**
  * Kitty Keyboard Protocol escape sequences.
@@ -44,14 +45,14 @@ function isInsideTmux(): boolean {
  */
 export class NodeTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
-    private resizeCallbacks: ((size: { cols: number; rows: number }) => void)[] = [];
+    private resizeCallbacks: ((size: Size) => void)[] = [];
     private stdin: NodeJS.ReadStream;
     private stdout: NodeJS.WriteStream;
     private onDataHandler: ((chunk: string) => void) | null = null;
     private onResizeHandler: (() => void) | null = null;
     private resizeThrottleTimer: ReturnType<typeof setTimeout> | null = null;
     private resizeThrottleMs: number;
-    private lastEmittedSize: { cols: number; rows: number } | null = null;
+    private lastEmittedSize: Size | null = null;
     private resizePending = false;
     private cleanupHandlers: (() => void)[] = [];
     private readonly isTmux: boolean;
@@ -82,7 +83,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.inputCallbacks.push(callback);
     }
 
-    public onResize(callback: (size: { cols: number; rows: number }) => void): void {
+    public onResize(callback: (size: Size) => void): void {
         this.resizeCallbacks.push(callback);
     }
 
@@ -91,8 +92,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
         const size = this.getSize();
         if (
             this.lastEmittedSize !== null &&
-            this.lastEmittedSize.cols === size.cols &&
-            this.lastEmittedSize.rows === size.rows
+            this.lastEmittedSize.width === size.width &&
+            this.lastEmittedSize.height === size.height
         ) {
             return;
         }
@@ -102,23 +103,20 @@ export class NodeTerminalBackend implements ITerminalBackend {
         }
     }
 
-    public renderFrame(grid: Grid, cursorX: number, cursorY: number): void {
+    public renderFrame(grid: Grid, cursorPosition: Point): void {
         if (this.prevGrid?.width !== grid.width || this.prevGrid.height !== grid.height) {
-            this.prevGrid = new Grid(grid.width, grid.height);
+            this.prevGrid = new Grid(grid.size);
         }
         this.stdout.write("\x1b[?2026h"); // begin synchronized output
         this.stdout.write("\x1b[?25l"); // hide cursor
         this.renderer.render(grid, this.prevGrid);
-        this.stdout.write(`\x1b[${(cursorY + 1).toString()};${(cursorX + 1).toString()}H`); // position cursor
+        this.stdout.write(`\x1b[${(cursorPosition.y + 1).toString()};${(cursorPosition.x + 1).toString()}H`); // position cursor
         this.stdout.write("\x1b[?25h"); // show cursor
         this.stdout.write("\x1b[?2026l"); // end synchronized output
     }
 
-    public getSize(): { cols: number; rows: number } {
-        return {
-            cols: this.stdout.columns,
-            rows: this.stdout.rows,
-        };
+    public getSize(): Size {
+        return new Size(this.stdout.columns, this.stdout.rows);
     }
 
     public setup(): void {

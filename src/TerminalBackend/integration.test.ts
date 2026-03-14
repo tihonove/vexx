@@ -2,10 +2,11 @@ import { describe, it, expect } from "vitest";
 import { BodyElement } from "../Elements/BodyElement.ts";
 import { TuiApplication } from "../Application/TuiApplication.ts";
 import { MockTerminalBackend } from "./MockTerminalBackend.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 describe("TuiApplication integration with MockTerminalBackend", () => {
     it("types characters and renders them on screen", () => {
-        const backend = new MockTerminalBackend(80, 24);
+        const backend = new MockTerminalBackend(new Size(80, 24));
         const app = new TuiApplication(backend);
 
         const body = new BodyElement();
@@ -19,11 +20,11 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
         backend.sendKey("h");
         backend.sendKey("i");
 
-        expect(backend.getTextAt(0, 0, 2)).toBe("hi");
+        expect(backend.getTextAt(new Point(0, 0), 2)).toBe("hi");
     });
 
     it("screenToString contains typed text", () => {
-        const backend = new MockTerminalBackend(80, 24);
+        const backend = new MockTerminalBackend(new Size(80, 24));
         const app = new TuiApplication(backend);
 
         const body = new BodyElement();
@@ -43,7 +44,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
     });
 
     it("screen is clean before any input", () => {
-        const backend = new MockTerminalBackend(20, 5);
+        const backend = new MockTerminalBackend(new Size(20, 5));
         const app = new TuiApplication(backend);
 
         const body = new BodyElement();
@@ -55,7 +56,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
     });
 
     it("uses custom terminal size from backend", () => {
-        const backend = new MockTerminalBackend(120, 40);
+        const backend = new MockTerminalBackend(new Size(120, 40));
         const app = new TuiApplication(backend);
 
         expect(app.screen.width).toBe(120);
@@ -63,7 +64,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
     });
 
     it("handles arrow key events through the element", () => {
-        const backend = new MockTerminalBackend(80, 24);
+        const backend = new MockTerminalBackend(new Size(80, 24));
         const app = new TuiApplication(backend);
 
         const body = new BodyElement();
@@ -81,7 +82,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
     });
 
     it("receives modifier flags on events", () => {
-        const backend = new MockTerminalBackend(80, 24);
+        const backend = new MockTerminalBackend(new Size(80, 24));
         const app = new TuiApplication(backend);
 
         const body = new BodyElement();

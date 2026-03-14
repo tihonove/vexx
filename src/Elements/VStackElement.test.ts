@@ -13,8 +13,9 @@ function createVStack(
     width: number,
     height: number,
 ): { vstack: VStackElement; backend: MockTerminalBackend; termScreen: TerminalScreen } {
-    const backend = new MockTerminalBackend(width, height);
-    const termScreen = new TerminalScreen(width, height);
+    const size = new Size(width, height);
+    const backend = new MockTerminalBackend(size);
+    const termScreen = new TerminalScreen(size);
     const vstack = new VStackElement();
     vstack.size = new Size(width, height);
     return { vstack, backend, termScreen };

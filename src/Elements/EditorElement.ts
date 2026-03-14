@@ -3,6 +3,7 @@ import { EditorViewState } from "../Editor/EditorViewState.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 import { isSelectionCollapsed, selectionToRange } from "../Editor/ISelection.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
+import { Point } from "../Common/GeometryPromitives.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);
 
@@ -37,9 +38,9 @@ export class EditorElement extends TUIElement {
             const viewLine = scrollTop + screenY;
             if (viewLine >= viewLineCount) {
                 // Past end of document — draw tilde like vim
-                canvas.setCell(ox, oy + screenY, { char: "~" });
+                canvas.setCell(new Point(ox, oy + screenY), { char: "~" });
                 for (let x = 1; x < visibleCols; x++) {
-                    canvas.setCell(ox + x, oy + screenY, { char: " " });
+                    canvas.setCell(new Point(ox + x, oy + screenY), { char: " " });
                 }
                 continue;
             }
@@ -48,7 +49,7 @@ export class EditorElement extends TUIElement {
             for (let screenX = 0; screenX < visibleCols; screenX++) {
                 const docChar = scrollLeft + screenX;
                 const char = docChar < lineContent.length ? lineContent[docChar] : " ";
-                canvas.setCell(ox + screenX, oy + screenY, { char });
+                canvas.setCell(new Point(ox + screenX, oy + screenY), { char });
             }
         }
 
@@ -73,7 +74,7 @@ export class EditorElement extends TUIElement {
                 const screenXEnd = Math.min(visibleCols, selEndChar - scrollLeft);
 
                 for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
-                    canvas.setCell(ox + screenX, oy + screenY, { bg: SELECTION_BG });
+                    canvas.setCell(new Point(ox + screenX, oy + screenY), { bg: SELECTION_BG });
                 }
             }
         }
@@ -85,7 +86,7 @@ export class EditorElement extends TUIElement {
         const cursorScreenY = cursorVisualLine - scrollTop;
 
         if (cursorScreenX >= 0 && cursorScreenX < visibleCols && cursorScreenY >= 0 && cursorScreenY < visibleLines) {
-            canvas.setCursorPosition(ox + cursorScreenX, oy + cursorScreenY);
+            canvas.setCursorPosition(new Point(ox + cursorScreenX, oy + cursorScreenY));
         }
     }
 

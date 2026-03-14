@@ -1,4 +1,5 @@
 import { RenderContext, TUIElement } from "./TUIElement.ts";
+import { Point } from "../Common/GeometryPromitives.ts";
 
 export class BoxElement extends TUIElement {
     public render(context: RenderContext): void {
@@ -25,7 +26,7 @@ export class BoxElement extends TUIElement {
                     char = " ";
                 }
 
-                context.canvas.setCell(ox + x, oy + y, { char });
+                context.canvas.setCell(new Point(ox + x, oy + y), { char });
             }
         }
     }

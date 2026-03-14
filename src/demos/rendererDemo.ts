@@ -10,13 +10,14 @@ import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
 import { reject } from "../Common/TypingUtils.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 const cols = process.stdout.columns;
 const rows = process.stdout.rows;
 
 const renderer = new TerminalRenderer();
-const currentGrid = new Grid(cols, rows);
-const previousGrid = new Grid(cols, rows);
+const currentGrid = new Grid(new Size(cols, rows));
+const previousGrid = new Grid(new Size(cols, rows));
 
 // ── Cleanup on Ctrl+C / signals ──────────────────────────────────
 
@@ -54,7 +55,7 @@ function drawBlock(
             const px = x0 + dx;
             const py = y0 + dy;
             if (px < grid.width && py < grid.height) {
-                grid.setCell(px, py, char, fg, bg, style);
+                grid.setCell(new Point(px, py), char, fg, bg, style);
             }
         }
     }
@@ -64,7 +65,7 @@ function drawText(grid: Grid, x0: number, y0: number, text: string, fg: number, 
     for (let i = 0; i < text.length; i++) {
         const px = x0 + i;
         if (px < grid.width && y0 < grid.height) {
-            grid.setCell(px, y0, text[i], fg, bg, style);
+            grid.setCell(new Point(px, y0), text[i], fg, bg, style);
         }
     }
 }
@@ -128,7 +129,7 @@ function drawFrame0(grid: Grid): void {
         const r = Math.round(255 * (1 - t));
         const g = Math.round(255 * t);
         const b = Math.round(128 + 127 * Math.sin(t * Math.PI));
-        grid.setCell(2 + i, row, "█", packRgb(r, g, b), DARK, StyleFlags.None);
+        grid.setCell(new Point(2 + i, row), "█", packRgb(r, g, b), DARK, StyleFlags.None);
     }
     row += 1;
 
@@ -138,7 +139,7 @@ function drawFrame0(grid: Grid): void {
         const r = Math.round(255 * t);
         const g = Math.round(50 + 100 * Math.sin(t * Math.PI * 2));
         const b = Math.round(255 * (1 - t));
-        grid.setCell(2 + i, row, " ", WHITE, packRgb(r, g, b), StyleFlags.None);
+        grid.setCell(new Point(2 + i, row), " ", WHITE, packRgb(r, g, b), StyleFlags.None);
     }
     row += 2;
 
@@ -165,7 +166,7 @@ function drawAnimatedFrame(grid: Grid): void {
         const r = Math.round(128 + 127 * Math.sin(t * Math.PI * 2 + tick * 0.1));
         const g = Math.round(128 + 127 * Math.sin(t * Math.PI * 2 + tick * 0.1 + 2));
         const b = Math.round(128 + 127 * Math.sin(t * Math.PI * 2 + tick * 0.1 + 4));
-        grid.setCell(2 + i, animRow + 1, "▓", packRgb(r, g, b), DARK, StyleFlags.None);
+        grid.setCell(new Point(2 + i, animRow + 1), "▓", packRgb(r, g, b), DARK, StyleFlags.None);
     }
 
     tick++;

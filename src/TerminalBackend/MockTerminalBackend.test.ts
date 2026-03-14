@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { MockTerminalBackend } from "./MockTerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 describe("MockTerminalBackend", () => {
     it("calls onInput callback when sendKey is used", () => {
@@ -60,13 +61,13 @@ describe("MockTerminalBackend", () => {
     });
 
     it("returns configured size", () => {
-        const backend = new MockTerminalBackend(120, 40);
-        expect(backend.getSize()).toEqual({ cols: 120, rows: 40 });
+        const backend = new MockTerminalBackend(new Size(120, 40));
+        expect(backend.getSize()).toEqual(new Size(120, 40));
     });
 
     it("defaults to 80x24", () => {
         const backend = new MockTerminalBackend();
-        expect(backend.getSize()).toEqual({ cols: 80, rows: 24 });
+        expect(backend.getSize()).toEqual(new Size(80, 24));
     });
 
     it("supports multiple input listeners", () => {
@@ -95,93 +96,93 @@ describe("MockTerminalBackend", () => {
     // ─── setCellAt / getTextAt / screenToString ───
 
     it("setCellAt stores a character in the grid", () => {
-        const backend = new MockTerminalBackend(10, 5);
-        backend.setCellAt(3, 2, "X");
+        const backend = new MockTerminalBackend(new Size(10, 5));
+        backend.setCellAt(new Point(3, 2), "X");
 
-        expect(backend.getTextAt(3, 2, 1)).toBe("X");
+        expect(backend.getTextAt(new Point(3, 2), 1)).toBe("X");
     });
 
     it("getTextAt reads a range of characters", () => {
-        const backend = new MockTerminalBackend(20, 5);
-        backend.setCellAt(0, 0, "H");
-        backend.setCellAt(1, 0, "i");
-        backend.setCellAt(2, 0, "!");
+        const backend = new MockTerminalBackend(new Size(20, 5));
+        backend.setCellAt(new Point(0, 0), "H");
+        backend.setCellAt(new Point(1, 0), "i");
+        backend.setCellAt(new Point(2, 0), "!");
 
-        expect(backend.getTextAt(0, 0, 3)).toBe("Hi!");
+        expect(backend.getTextAt(new Point(0, 0), 3)).toBe("Hi!");
     });
 
     it("getTextAt returns spaces for empty cells", () => {
-        const backend = new MockTerminalBackend(10, 5);
-        backend.setCellAt(0, 0, "A");
-        backend.setCellAt(2, 0, "B");
+        const backend = new MockTerminalBackend(new Size(10, 5));
+        backend.setCellAt(new Point(0, 0), "A");
+        backend.setCellAt(new Point(2, 0), "B");
 
-        expect(backend.getTextAt(0, 0, 3)).toBe("A B");
+        expect(backend.getTextAt(new Point(0, 0), 3)).toBe("A B");
     });
 
     it("screenToString renders the full grid", () => {
-        const backend = new MockTerminalBackend(5, 3);
-        backend.setCellAt(0, 0, "A");
-        backend.setCellAt(4, 2, "Z");
+        const backend = new MockTerminalBackend(new Size(5, 3));
+        backend.setCellAt(new Point(0, 0), "A");
+        backend.setCellAt(new Point(4, 2), "Z");
 
         expect(backend.screenToString()).toBe("A    \n" + "     \n" + "    Z");
     });
 
     it("clearScreen resets the grid", () => {
-        const backend = new MockTerminalBackend(5, 3);
-        backend.setCellAt(2, 1, "Q");
+        const backend = new MockTerminalBackend(new Size(5, 3));
+        backend.setCellAt(new Point(2, 1), "Q");
         backend.clearScreen();
 
-        expect(backend.getTextAt(2, 1, 1)).toBe(" ");
+        expect(backend.getTextAt(new Point(2, 1), 1)).toBe(" ");
     });
 
     it("setCellAt ignores out-of-bounds coordinates", () => {
-        const backend = new MockTerminalBackend(5, 3);
+        const backend = new MockTerminalBackend(new Size(5, 3));
         expect(() => {
-            backend.setCellAt(-1, 0, "X");
+            backend.setCellAt(new Point(-1, 0), "X");
         }).not.toThrow();
         expect(() => {
-            backend.setCellAt(0, -1, "X");
+            backend.setCellAt(new Point(0, -1), "X");
         }).not.toThrow();
         expect(() => {
-            backend.setCellAt(5, 0, "X");
+            backend.setCellAt(new Point(5, 0), "X");
         }).not.toThrow();
         expect(() => {
-            backend.setCellAt(0, 3, "X");
+            backend.setCellAt(new Point(0, 3), "X");
         }).not.toThrow();
     });
 
     // ─── Resize ───
 
     it("resize updates dimensions and notifies callbacks", () => {
-        const backend = new MockTerminalBackend(10, 5);
+        const backend = new MockTerminalBackend(new Size(10, 5));
         const handler = vi.fn();
         backend.onResize(handler);
 
-        backend.resize(20, 10);
+        backend.resize(new Size(20, 10));
 
-        expect(backend.getSize()).toEqual({ cols: 20, rows: 10 });
+        expect(backend.getSize()).toEqual(new Size(20, 10));
         expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith({ cols: 20, rows: 10 });
+        expect(handler).toHaveBeenCalledWith(new Size(20, 10));
     });
 
     it("resize clears the screen grid", () => {
-        const backend = new MockTerminalBackend(5, 3);
-        backend.setCellAt(0, 0, "X");
+        const backend = new MockTerminalBackend(new Size(5, 3));
+        backend.setCellAt(new Point(0, 0), "X");
 
-        backend.resize(8, 4);
+        backend.resize(new Size(8, 4));
 
-        expect(backend.getTextAt(0, 0, 1)).toBe(" ");
-        expect(backend.getSize()).toEqual({ cols: 8, rows: 4 });
+        expect(backend.getTextAt(new Point(0, 0), 1)).toBe(" ");
+        expect(backend.getSize()).toEqual(new Size(8, 4));
     });
 
     it("resize supports multiple listeners", () => {
-        const backend = new MockTerminalBackend(10, 5);
+        const backend = new MockTerminalBackend(new Size(10, 5));
         const h1 = vi.fn();
         const h2 = vi.fn();
         backend.onResize(h1);
         backend.onResize(h2);
 
-        backend.resize(30, 15);
+        backend.resize(new Size(30, 15));
 
         expect(h1).toHaveBeenCalledOnce();
         expect(h2).toHaveBeenCalledOnce();

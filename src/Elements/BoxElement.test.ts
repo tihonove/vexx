@@ -9,8 +9,9 @@ import { BoxElement } from "./BoxElement.ts";
 import { RenderContext } from "./TUIElement.ts";
 
 function renderBox(width: number, height: number): MockTerminalBackend {
-    const backend = new MockTerminalBackend(width, height);
-    const termScreen = new TerminalScreen(width, height);
+    const size = new Size(width, height);
+    const backend = new MockTerminalBackend(size);
+    const termScreen = new TerminalScreen(size);
     const box = new BoxElement();
     box.size = new Size(width, height);
     box.render(new RenderContext(termScreen));

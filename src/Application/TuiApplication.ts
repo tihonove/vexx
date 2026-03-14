@@ -12,14 +12,13 @@ export class TuiApplication {
 
     public constructor(backend: ITerminalBackend) {
         this.backend = backend;
-        const { cols, rows } = backend.getSize();
-        this.screen = new TerminalScreen(cols, rows);
+        this.screen = new TerminalScreen(backend.getSize());
     }
 
     private renderFrame(): void {
         if (this.root) {
             this.screen.clear();
-            this.root.size = new Size(this.screen.width, this.screen.height);
+            this.root.size = this.screen.size;
             this.root.performLayout();
             this.root.render(new RenderContext(this.screen));
             this.screen.flush(this.backend);
@@ -33,8 +32,8 @@ export class TuiApplication {
         }
     }
 
-    private handleResize(cols: number, rows: number): void {
-        this.screen = new TerminalScreen(cols, rows);
+    private handleResize(size: Size): void {
+        this.screen = new TerminalScreen(size);
         this.renderFrame();
     }
 
@@ -50,8 +49,8 @@ export class TuiApplication {
             this.handleInput(event);
         });
 
-        this.backend.onResize(({ cols, rows }) => {
-            this.handleResize(cols, rows);
+        this.backend.onResize((size) => {
+            this.handleResize(size);
         });
 
         // Initial render

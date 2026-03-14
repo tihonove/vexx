@@ -3,10 +3,11 @@ import { TuiApplication } from "./TuiApplication.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { BoxElement } from "../Elements/BoxElement.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
+import { Size } from "../Common/GeometryPromitives.ts";
 
 describe("TuiApplication", () => {
     it("renders root element on run()", () => {
-        const backend = new MockTerminalBackend(6, 3);
+        const backend = new MockTerminalBackend(new Size(6, 3));
         const app = new TuiApplication(backend);
 
         const box = new BoxElement();
@@ -24,7 +25,7 @@ describe("TuiApplication", () => {
     });
 
     it("sets root size to match terminal dimensions", () => {
-        const backend = new MockTerminalBackend(10, 5);
+        const backend = new MockTerminalBackend(new Size(10, 5));
         const app = new TuiApplication(backend);
 
         const box = new BoxElement();
@@ -36,7 +37,7 @@ describe("TuiApplication", () => {
     });
 
     it("re-renders with new size on terminal resize", () => {
-        const backend = new MockTerminalBackend(6, 3);
+        const backend = new MockTerminalBackend(new Size(6, 3));
         const app = new TuiApplication(backend);
 
         const box = new BoxElement();
@@ -54,7 +55,7 @@ describe("TuiApplication", () => {
         );
 
         // Simulate resize
-        backend.resize(8, 4);
+        backend.resize(new Size(8, 4));
 
         expectScreen(
             backend,
@@ -71,7 +72,7 @@ describe("TuiApplication", () => {
     });
 
     it("updates screen dimensions on resize", () => {
-        const backend = new MockTerminalBackend(10, 5);
+        const backend = new MockTerminalBackend(new Size(10, 5));
         const app = new TuiApplication(backend);
         app.root = new BoxElement();
         app.run();
@@ -79,7 +80,7 @@ describe("TuiApplication", () => {
         expect(app.screen.width).toBe(10);
         expect(app.screen.height).toBe(5);
 
-        backend.resize(20, 10);
+        backend.resize(new Size(20, 10));
 
         expect(app.screen.width).toBe(20);
         expect(app.screen.height).toBe(10);

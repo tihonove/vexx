@@ -38,7 +38,6 @@ describe("EditorViewState.Folding — basic mapping", () => {
     });
 
     it("getViewLine skips collapsed lines", () => {
-    it("getViewLine skips collapsed lines", () => {
         const state = parseDSL(editorState`
             text: header
             folding: >

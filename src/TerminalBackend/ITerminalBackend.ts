@@ -1,5 +1,6 @@
 import type { KeyPressEvent } from "./KeyEvent.ts";
 import type { Grid } from "../Rendering/Grid.ts";
+import type { Point, Size } from "../Common/GeometryPromitives.ts";
 
 /**
  * Unified abstraction over terminal I/O.
@@ -13,16 +14,16 @@ export interface ITerminalBackend {
     onInput(callback: (event: KeyPressEvent) => void): void;
 
     /** Subscribe to terminal resize events */
-    onResize(callback: (size: { cols: number; rows: number }) => void): void;
+    onResize(callback: (size: Size) => void): void;
 
     /**
      * Render a frame: receive the current grid and cursor position.
      * The backend decides how to output it (ANSI diffing, simple copy, etc.).
      */
-    renderFrame(grid: Grid, cursorX: number, cursorY: number): void;
+    renderFrame(grid: Grid, cursorPosition: Point): void;
 
     /** Current terminal dimensions */
-    getSize(): { cols: number; rows: number };
+    getSize(): Size;
 
     /** Initialize terminal: alternate screen, raw mode, hide cursor, etc. */
     setup(): void;

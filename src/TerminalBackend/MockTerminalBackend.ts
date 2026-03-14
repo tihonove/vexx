@@ -3,6 +3,7 @@ import type { KeyPressEvent } from "./KeyEvent.ts";
 import type { Grid } from "../Rendering/Grid.ts";
 import { KeyInputParser } from "./KeyInputParser.ts";
 import { serializeKey } from "./serializeKey.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 /**
  * In-memory terminal backend for testing.
@@ -15,49 +16,45 @@ import { serializeKey } from "./serializeKey.ts";
  */
 export class MockTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
-    private resizeCallbacks: ((size: { cols: number; rows: number }) => void)[] = [];
+    private resizeCallbacks: ((size: Size) => void)[] = [];
     private cells: (string | null)[][];
 
-    public cols: number;
-    public rows: number;
+    public size: Size;
     private readonly inputParser = new KeyInputParser();
 
-    public constructor(cols = 80, rows = 24) {
-        this.cols = cols;
-        this.rows = rows;
+    public constructor(size: Size = new Size(80, 24)) {
+        this.size = size;
         this.cells = this.createEmptyGrid();
     }
 
     private createEmptyGrid(): (string | null)[][] {
         const value: string | null = null;
-        return new Array<(string | null)[]>(this.rows)
+        return new Array<(string | null)[]>(this.size.height)
             .fill([])
-            .map(() => new Array<string | null>(this.cols).fill(value));
+            .map(() => new Array<string | null>(this.size.width).fill(value));
     }
 
     public onInput(callback: (event: KeyPressEvent) => void): void {
         this.inputCallbacks.push(callback);
     }
 
-    public onResize(callback: (size: { cols: number; rows: number }) => void): void {
+    public onResize(callback: (size: Size) => void): void {
         this.resizeCallbacks.push(callback);
     }
 
-    public cursorX = 0;
-    public cursorY = 0;
+    public cursorPosition: Point = new Point(0, 0);
 
-    public renderFrame(grid: Grid, cursorX: number, cursorY: number): void {
-        for (let y = 0; y < grid.height && y < this.rows; y++) {
-            for (let x = 0; x < grid.width && x < this.cols; x++) {
-                this.cells[y][x] = grid.getCell(x, y).char;
+    public renderFrame(grid: Grid, cursorPosition: Point): void {
+        for (let y = 0; y < grid.height && y < this.size.height; y++) {
+            for (let x = 0; x < grid.width && x < this.size.width; x++) {
+                this.cells[y][x] = grid.getCell(new Point(x, y)).char;
             }
         }
-        this.cursorX = cursorX;
-        this.cursorY = cursorY;
+        this.cursorPosition = cursorPosition;
     }
 
-    public getSize(): { cols: number; rows: number } {
-        return { cols: this.cols, rows: this.rows };
+    public getSize(): Size {
+        return this.size;
     }
 
     public setup(): void {
@@ -71,9 +68,9 @@ export class MockTerminalBackend implements ITerminalBackend {
     // ─── Test helpers ───
 
     /** Set a character directly in the screen grid (test helper, not part of ITerminalBackend) */
-    public setCellAt(x: number, y: number, char: string): void {
-        if (y >= 0 && y < this.rows && x >= 0 && x < this.cols) {
-            this.cells[y][x] = char;
+    public setCellAt(position: Point, char: string): void {
+        if (position.y >= 0 && position.y < this.size.height && position.x >= 0 && position.x < this.size.width) {
+            this.cells[position.y][position.x] = char;
         }
     }
 
@@ -109,10 +106,10 @@ export class MockTerminalBackend implements ITerminalBackend {
     /**
      * Read a horizontal run of characters from the screen grid.
      */
-    public getTextAt(x: number, y: number, length: number): string {
+    public getTextAt(position: Point, length: number): string {
         let result = "";
         for (let i = 0; i < length; i++) {
-            const cell = y >= 0 && y < this.rows && x + i >= 0 && x + i < this.cols ? this.cells[y][x + i] : null;
+            const cell = position.y >= 0 && position.y < this.size.height && position.x + i >= 0 && position.x + i < this.size.width ? this.cells[position.y][position.x + i] : null;
             result += cell ?? " ";
         }
         return result;
@@ -124,9 +121,9 @@ export class MockTerminalBackend implements ITerminalBackend {
      */
     public screenToString(): string {
         const lines: string[] = [];
-        for (let y = 0; y < this.rows; y++) {
+        for (let y = 0; y < this.size.height; y++) {
             let line = "";
-            for (let x = 0; x < this.cols; x++) {
+            for (let x = 0; x < this.size.width; x++) {
                 line += this.cells[y][x] ?? " ";
             }
             lines.push(line);
@@ -143,11 +140,9 @@ export class MockTerminalBackend implements ITerminalBackend {
      * Simulate a terminal resize.
      * Updates dimensions, recreates the grid, and notifies all resize callbacks.
      */
-    public resize(cols: number, rows: number): void {
-        this.cols = cols;
-        this.rows = rows;
+    public resize(size: Size): void {
+        this.size = size;
         this.cells = this.createEmptyGrid();
-        const size = { cols, rows };
         for (const cb of this.resizeCallbacks) {
             cb(size);
         }
