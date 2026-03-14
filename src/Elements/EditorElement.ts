@@ -1,6 +1,10 @@
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
+import { isSelectionCollapsed, selectionToRange } from "../Editor/ISelection.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
+
+const SELECTION_BG = packRgb(38, 79, 120);
 
 /**
  * TUI element that renders a text editor backed by EditorViewState.
@@ -10,7 +14,7 @@ import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 export class EditorElement extends TUIElement {
     public readonly viewState: EditorViewState;
 
-    constructor(viewState: EditorViewState) {
+    public constructor(viewState: EditorViewState) {
         super();
         this.viewState = viewState;
 
@@ -45,6 +49,32 @@ export class EditorElement extends TUIElement {
                 const docChar = scrollLeft + screenX;
                 const char = docChar < lineContent.length ? lineContent[docChar] : " ";
                 canvas.setCell(ox + screenX, oy + screenY, { char });
+            }
+        }
+
+        // Highlight selections
+        for (const sel of this.viewState.selections) {
+            if (isSelectionCollapsed(sel)) continue;
+            const range = selectionToRange(sel);
+
+            for (let screenY = 0; screenY < visibleLines; screenY++) {
+                const viewLine = scrollTop + screenY;
+                if (viewLine >= viewLineCount) break;
+
+                const logLine = this.viewState.visualToLogicalLine(viewLine);
+                if (logLine < range.start.line || logLine > range.end.line) continue;
+
+                const lineContent = this.viewState.getViewLine(viewLine);
+                const selStartChar = logLine === range.start.line ? range.start.character : 0;
+                // When selection spans past this line, highlight one extra cell for EOL
+                const selEndChar = logLine === range.end.line ? range.end.character : lineContent.length + 1;
+
+                const screenXStart = Math.max(0, selStartChar - scrollLeft);
+                const screenXEnd = Math.min(visibleCols, selEndChar - scrollLeft);
+
+                for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
+                    canvas.setCell(ox + screenX, oy + screenY, { bg: SELECTION_BG });
+                }
             }
         }
 

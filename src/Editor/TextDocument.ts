@@ -11,37 +11,37 @@ export class TextDocument implements ITextDocument {
     private lines: string[];
     private tokensByLine = new Map<number, ILineTokens>();
 
-    constructor(text: string) {
+    public constructor(text: string) {
         this.lines = text.split("\n");
     }
 
-    get lineCount(): number {
+    public get lineCount(): number {
         return this.lines.length;
     }
 
-    getLineContent(lineIndex: number): string {
+    public getLineContent(lineIndex: number): string {
         this.assertValidLineIndex(lineIndex);
         return this.lines[lineIndex];
     }
 
-    getLineLength(lineIndex: number): number {
+    public getLineLength(lineIndex: number): number {
         this.assertValidLineIndex(lineIndex);
         return this.lines[lineIndex].length;
     }
 
-    getText(): string {
+    public getText(): string {
         return this.lines.join("\n");
     }
 
-    getLineTokens(lineIndex: number): ILineTokens | undefined {
+    public getLineTokens(lineIndex: number): ILineTokens | undefined {
         return this.tokensByLine.get(lineIndex);
     }
 
-    setLineTokens(lineIndex: number, tokens: ILineTokens): void {
+    public setLineTokens(lineIndex: number, tokens: ILineTokens): void {
         this.tokensByLine.set(lineIndex, tokens);
     }
 
-    applyEdits(edits: readonly ITextEdit[]): void {
+    public applyEdits(edits: readonly ITextEdit[]): void {
         if (edits.length === 0) {
             return;
         }

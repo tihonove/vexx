@@ -23,7 +23,7 @@ const stdout = process.stdout;
 const KITTY_ENABLE = "\x1b[>11u";
 const KITTY_DISABLE = "\x1b[<u";
 
-const isTmux = process.env["TMUX"] != null && process.env["TMUX"] !== "";
+const isTmux = process.env.TMUX != null && process.env.TMUX !== "";
 
 function wrapForTmux(sequence: string): string {
     const escaped = sequence.replace(/\x1b/g, "\x1b\x1b");
@@ -55,10 +55,14 @@ const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
 
 function colorType(type: string): string {
     switch (type) {
-        case "keydown": return cyan(type);
-        case "keypress": return green(type);
-        case "keyup": return gray(type);
-        default: return type;
+        case "keydown":
+            return cyan(type);
+        case "keypress":
+            return green(type);
+        case "keyup":
+            return gray(type);
+        default:
+            return type;
     }
 }
 

@@ -1,6 +1,7 @@
 import { DEFAULT_COLOR, unpackR, unpackG, unpackB } from "./ColorUtils.ts";
 import { StyleFlags } from "./StyleFlags.ts";
 import type { Grid } from "./Grid.ts";
+import { reject } from "../Common/TypingUtils.ts";
 
 /** Minimal writable interface so we can inject a test double instead of real stdout. */
 export interface WritableOutput {
@@ -68,8 +69,8 @@ export class TerminalRenderer {
             const rowOffset = y * width;
             for (let x = 0; x < width; x++) {
                 const idx = rowOffset + x;
-                const cur = curCells[idx];
-                const prev = prevCells[idx];
+                const cur = curCells[idx] ?? reject();
+                const prev = prevCells[idx] ?? reject();
 
                 if (cur.equals(prev)) continue;
 
@@ -88,8 +89,8 @@ export class TerminalRenderer {
                 if (needStyle !== activeStyle) {
                     // Style changed — cheapest strategy: full reset + re-apply everything.
                     buf += "\x1b[0m";
-                    activeFg = DEFAULT_COLOR;
-                    activeBg = DEFAULT_COLOR;
+                    // activeFg = DEFAULT_COLOR;
+                    // activeBg = DEFAULT_COLOR;
                     activeStyle = StyleFlags.None;
 
                     if (needStyle !== StyleFlags.None) {

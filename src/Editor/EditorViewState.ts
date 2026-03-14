@@ -22,7 +22,7 @@ export class EditorViewState {
     public readonly document: ITextDocument;
     public foldedRegions: IFoldingRegion[] = [];
 
-    constructor(document: ITextDocument, selections?: ISelection[]) {
+    public constructor(document: ITextDocument, selections?: ISelection[]) {
         this.document = document;
         this.selections = selections && selections.length > 0 ? selections : [createCursorSelection(0, 0)];
     }
@@ -33,7 +33,7 @@ export class EditorViewState {
      * Replaces the entire folding regions array.
      * Useful for external folding providers.
      */
-    setFoldingRegions(regions: IFoldingRegion[]): void {
+    public setFoldingRegions(regions: IFoldingRegion[]): void {
         this.foldedRegions = regions;
     }
 
@@ -41,7 +41,7 @@ export class EditorViewState {
      * Toggles the collapsed state of the folding region whose startLine matches the given line.
      * No-op if no region starts at that line.
      */
-    toggleFold(line: number): void {
+    public toggleFold(line: number): void {
         for (const region of this.foldedRegions) {
             if (region.startLine === line) {
                 region.isCollapsed = !region.isCollapsed;
@@ -53,7 +53,7 @@ export class EditorViewState {
     /**
      * Collapses all folding regions.
      */
-    foldAll(): void {
+    public foldAll(): void {
         for (const region of this.foldedRegions) {
             region.isCollapsed = true;
         }
@@ -62,7 +62,7 @@ export class EditorViewState {
     /**
      * Expands all folding regions.
      */
-    unfoldAll(): void {
+    public unfoldAll(): void {
         for (const region of this.foldedRegions) {
             region.isCollapsed = false;
         }
@@ -73,7 +73,7 @@ export class EditorViewState {
     /**
      * Returns the number of visible lines (accounting for collapsed regions).
      */
-    getViewLineCount(): number {
+    public getViewLineCount(): number {
         return this.buildVisibleLines().length;
     }
 
@@ -81,7 +81,7 @@ export class EditorViewState {
      * Returns the text content of a visual line.
      * The visualLineNumber is 0-based index into the visible lines array.
      */
-    getViewLine(visualLineNumber: number): string {
+    public getViewLine(visualLineNumber: number): string {
         const logicalLine = this.visualToLogicalLine(visualLineNumber);
         if (logicalLine < 0 || logicalLine >= this.document.lineCount) {
             return "";
@@ -92,7 +92,7 @@ export class EditorViewState {
     /**
      * Returns tokens for a visual line.
      */
-    getViewLineTokens(visualLineNumber: number): ILineTokens | undefined {
+    public getViewLineTokens(visualLineNumber: number): ILineTokens | undefined {
         const logicalLine = this.visualToLogicalLine(visualLineNumber);
         if (logicalLine < 0 || logicalLine >= this.document.lineCount) {
             return undefined;
@@ -106,7 +106,7 @@ export class EditorViewState {
      * Translates a logical (document) line number to a visual (screen) line number.
      * Returns -1 if the line is hidden inside a collapsed region.
      */
-    logicalToVisualLine(logicalLine: number): number {
+    public logicalToVisualLine(logicalLine: number): number {
         const visible = this.buildVisibleLines();
         const idx = visible.indexOf(logicalLine);
         return idx;
@@ -116,7 +116,7 @@ export class EditorViewState {
      * Translates a visual (screen) line number to a logical (document) line number.
      * Returns -1 if the visual line is out of range.
      */
-    visualToLogicalLine(visualLine: number): number {
+    public visualToLogicalLine(visualLine: number): number {
         const visible = this.buildVisibleLines();
         if (visualLine < 0 || visualLine >= visible.length) {
             return -1;
@@ -128,7 +128,7 @@ export class EditorViewState {
      * Types text at every cursor/selection.
      * If a selection is non-collapsed, the selected text is replaced.
      */
-    type(text: string): void {
+    public type(text: string): void {
         const edits = this.buildEditsFromSelections(text);
         this.document.applyEdits(edits);
         this.adjustFoldingRegionsForEdits(edits);
@@ -138,14 +138,14 @@ export class EditorViewState {
     /**
      * Inserts a newline at every cursor.
      */
-    insertNewLine(): void {
+    public insertNewLine(): void {
         this.type("\n");
     }
 
     /**
      * Deletes one character to the left of each cursor, or deletes the selection.
      */
-    deleteLeft(): void {
+    public deleteLeft(): void {
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -178,11 +178,11 @@ export class EditorViewState {
      * At the start of a line, wraps to the end of the previous visible line.
      * Updates idealColumn to the new activeColumn.
      */
-    cursorLeft(inSelectionMode = false): void {
+    public cursorLeft(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             let newLine = pos.line;
-            let newChar = pos.character;
+            let newChar;
 
             if (pos.character > 0) {
                 newChar = pos.character - 1;
@@ -208,12 +208,12 @@ export class EditorViewState {
      * At the end of a line, wraps to the start of the next visible line.
      * Updates idealColumn to the new activeColumn.
      */
-    cursorRight(inSelectionMode = false): void {
+    public cursorRight(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             const lineLen = this.document.getLineLength(pos.line);
             let newLine = pos.line;
-            let newChar = pos.character;
+            let newChar;
 
             if (pos.character < lineLen) {
                 newChar = pos.character + 1;
@@ -237,7 +237,7 @@ export class EditorViewState {
      * Skips over collapsed folding regions.
      * Does NOT change idealColumn — vertical navigation preserves it.
      */
-    cursorUp(inSelectionMode = false): void {
+    public cursorUp(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             const prevVisible = this.previousVisibleLine(pos.line);
@@ -257,7 +257,7 @@ export class EditorViewState {
      * Skips over collapsed folding regions.
      * Does NOT change idealColumn — vertical navigation preserves it.
      */
-    cursorDown(inSelectionMode = false): void {
+    public cursorDown(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             const nextVisible = this.nextVisibleLine(pos.line);
@@ -276,7 +276,7 @@ export class EditorViewState {
      * Moves each cursor to the beginning of its line.
      * Sets idealColumn to 0 so subsequent Up/Down stay at column 0.
      */
-    cursorHome(inSelectionMode = false): void {
+    public cursorHome(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             return this.buildSelection(sel, sel.active.line, 0, 0, inSelectionMode);
         });
@@ -287,7 +287,7 @@ export class EditorViewState {
      * Moves each cursor to the end of its line.
      * Sets idealColumn to MAX_SAFE_INTEGER so subsequent Up/Down "stick" to the right edge.
      */
-    cursorEnd(inSelectionMode = false): void {
+    public cursorEnd(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
             const lineLen = this.document.getLineLength(sel.active.line);
             return this.buildSelection(sel, sel.active.line, lineLen, Number.MAX_SAFE_INTEGER, inSelectionMode);
@@ -298,7 +298,7 @@ export class EditorViewState {
     /**
      * Deletes one character to the right of each cursor, or deletes the selection.
      */
-    deleteRight(): void {
+    public deleteRight(): void {
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -330,7 +330,7 @@ export class EditorViewState {
      * Ensures a logical line is visible by expanding any collapsed region that hides it.
      * A line is hidden if it falls in the range (startLine+1 .. endLine) of a collapsed region.
      */
-    ensureLineVisible(logicalLine: number): void {
+    public ensureLineVisible(logicalLine: number): void {
         for (const region of this.foldedRegions) {
             if (region.isCollapsed && logicalLine > region.startLine && logicalLine <= region.endLine) {
                 region.isCollapsed = false;

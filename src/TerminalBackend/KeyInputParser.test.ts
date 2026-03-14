@@ -23,10 +23,7 @@ describe("KeyInputParser — browser-like event model", () => {
         it("printable char → keydown + keypress", () => {
             const parser = new KeyInputParser();
             const events = parser.parse("a");
-            expect(events).toEqual([
-                ev("a", "a", { code: "KeyA" }),
-                ev("a", "a", { type: "keypress", code: "KeyA" }),
-            ]);
+            expect(events).toEqual([ev("a", "a", { code: "KeyA" }), ev("a", "a", { type: "keypress", code: "KeyA" })]);
         });
 
         it("multiple chars → keydown + keypress per char", () => {
@@ -42,10 +39,7 @@ describe("KeyInputParser — browser-like event model", () => {
         it("escape sequence → keydown + keypress", () => {
             const parser = new KeyInputParser();
             const events = parser.parse("\x1b[B");
-            expect(events).toEqual([
-                ev("ArrowDown", "\x1b[B"),
-                ev("ArrowDown", "\x1b[B", { type: "keypress" }),
-            ]);
+            expect(events).toEqual([ev("ArrowDown", "\x1b[B"), ev("ArrowDown", "\x1b[B", { type: "keypress" })]);
         });
 
         it("Ctrl+C → keydown + keypress with ctrlKey", () => {
@@ -60,10 +54,7 @@ describe("KeyInputParser — browser-like event model", () => {
         it("Enter → keydown + keypress", () => {
             const parser = new KeyInputParser();
             const events = parser.parse("\x0d");
-            expect(events).toEqual([
-                ev("Enter", "\x0d"),
-                ev("Enter", "\x0d", { type: "keypress" }),
-            ]);
+            expect(events).toEqual([ev("Enter", "\x0d"), ev("Enter", "\x0d", { type: "keypress" })]);
         });
 
         it("Ctrl+ArrowUp → keydown + keypress with ctrlKey", () => {
@@ -101,9 +92,7 @@ describe("KeyInputParser — browser-like event model", () => {
             const parser = new KeyInputParser();
             parser.parse("\x1b[97;1:1u"); // keydown
             const events = parser.parse("\x1b[97;1:3u");
-            expect(events).toEqual([
-                ev("a", "\x1b[97;1:3u", { type: "keyup", code: "KeyA" }),
-            ]);
+            expect(events).toEqual([ev("a", "\x1b[97;1:3u", { type: "keyup", code: "KeyA" })]);
         });
 
         it("press + release in one chunk → keydown + keypress + keyup", () => {
@@ -128,14 +117,10 @@ describe("KeyInputParser — browser-like event model", () => {
             ]);
 
             const e2 = parser.parse("\x1b[97;1:2u"); // repeat
-            expect(e2).toEqual([
-                ev("a", "\x1b[97;1:2u", { type: "keypress", code: "KeyA" }),
-            ]);
+            expect(e2).toEqual([ev("a", "\x1b[97;1:2u", { type: "keypress", code: "KeyA" })]);
 
             const e3 = parser.parse("\x1b[97;1:3u"); // release
-            expect(e3).toEqual([
-                ev("a", "\x1b[97;1:3u", { type: "keyup", code: "KeyA" }),
-            ]);
+            expect(e3).toEqual([ev("a", "\x1b[97;1:3u", { type: "keyup", code: "KeyA" })]);
         });
 
         it("multiple repeats produce multiple keypress events", () => {
@@ -162,35 +147,27 @@ describe("KeyInputParser — browser-like event model", () => {
             const parser = new KeyInputParser();
             const leftShift = "\x1b[57441;1:1u";
             const events = parser.parse(leftShift);
-            expect(events).toEqual([
-                ev("Shift", leftShift, { type: "keydown", code: "ShiftLeft" }),
-            ]);
+            expect(events).toEqual([ev("Shift", leftShift, { type: "keydown", code: "ShiftLeft" })]);
         });
 
         it("Shift keyup → only keyup, no keypress", () => {
             const parser = new KeyInputParser();
             parser.parse("\x1b[57441;1:1u"); // keydown
             const events = parser.parse("\x1b[57441;1:3u");
-            expect(events).toEqual([
-                ev("Shift", "\x1b[57441;1:3u", { type: "keyup", code: "ShiftLeft" }),
-            ]);
+            expect(events).toEqual([ev("Shift", "\x1b[57441;1:3u", { type: "keyup", code: "ShiftLeft" })]);
         });
 
         it("Meta keydown (PUA) → only keydown, no keypress", () => {
             const parser = new KeyInputParser();
             const leftSuper = String.fromCodePoint(57444);
             const events = parser.parse("\x1b" + leftSuper);
-            expect(events).toEqual([
-                ev("Meta", "\x1b" + leftSuper, { type: "keydown", code: "MetaLeft" }),
-            ]);
+            expect(events).toEqual([ev("Meta", "\x1b" + leftSuper, { type: "keydown", code: "MetaLeft" })]);
         });
 
         it("orphaned modifier keyup → only keyup, no synthesis", () => {
             const parser = new KeyInputParser();
             const events = parser.parse("\x1b[57441;1:3u");
-            expect(events).toEqual([
-                ev("Shift", "\x1b[57441;1:3u", { type: "keyup", code: "ShiftLeft" }),
-            ]);
+            expect(events).toEqual([ev("Shift", "\x1b[57441;1:3u", { type: "keyup", code: "ShiftLeft" })]);
         });
 
         it("double Shift tap → two keydown + two keyup (for double-tap detection)", () => {
@@ -217,9 +194,7 @@ describe("KeyInputParser — browser-like event model", () => {
             // Meta keydown (modifier only)
             const leftSuper = String.fromCodePoint(57444);
             const e1 = parser.parse("\x1b" + leftSuper);
-            expect(e1).toEqual([
-                ev("Meta", "\x1b" + leftSuper, { type: "keydown", code: "MetaLeft" }),
-            ]);
+            expect(e1).toEqual([ev("Meta", "\x1b" + leftSuper, { type: "keydown", code: "MetaLeft" })]);
 
             // ArrowRight release (orphaned — never got a press) + Meta release
             const arrowRelease = "\x1b[1;9:3C";

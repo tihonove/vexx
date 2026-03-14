@@ -3,10 +3,10 @@ import { Offset, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent, TUIEvent } from "../TerminalBackend/KeyEvent.ts";
 
 export class RenderContext {
-    readonly canvas: TerminalScreen;
-    readonly offset: Offset;
+    public readonly canvas: TerminalScreen;
+    public readonly offset: Offset;
 
-    constructor(canvas: TerminalScreen, offset: Offset = new Offset(0, 0)) {
+    public constructor(canvas: TerminalScreen, offset: Offset = new Offset(0, 0)) {
         this.canvas = canvas;
         this.offset = offset;
     }

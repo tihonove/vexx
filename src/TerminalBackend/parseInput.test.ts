@@ -340,17 +340,13 @@ describe("parseInput", () => {
     it("parses LEFT_SUPER release (Cmd keyup) — CSI 57444;1:3 u", () => {
         // This is the exact sequence from the user's Cmd+End scenario
         const events = parseInput("\x1b[57444;1:3u");
-        expect(events).toEqual([
-            kp("Meta", "\x1b[57444;1:3u", { type: "keyup", code: "MetaLeft" }),
-        ]);
+        expect(events).toEqual([kp("Meta", "\x1b[57444;1:3u", { type: "keyup", code: "MetaLeft" })]);
     });
 
     it("parses LEFT_SUPER press (Cmd keydown) — CSI 57444;9:1 u", () => {
         // Cmd pressed → modifier 9 (1+Meta), event type 1 (press)
         const events = parseInput("\x1b[57444;9:1u");
-        expect(events).toEqual([
-            kp("Meta", "\x1b[57444;9:1u", { type: "keydown", metaKey: true, code: "MetaLeft" }),
-        ]);
+        expect(events).toEqual([kp("Meta", "\x1b[57444;9:1u", { type: "keydown", metaKey: true, code: "MetaLeft" })]);
     });
 
     it("parses LEFT_SHIFT press — CSI 57441;2:1 u", () => {
@@ -362,23 +358,17 @@ describe("parseInput", () => {
 
     it("parses LEFT_CONTROL release — CSI 57442;1:3 u", () => {
         const events = parseInput("\x1b[57442;1:3u");
-        expect(events).toEqual([
-            kp("Control", "\x1b[57442;1:3u", { type: "keyup", code: "ControlLeft" }),
-        ]);
+        expect(events).toEqual([kp("Control", "\x1b[57442;1:3u", { type: "keyup", code: "ControlLeft" })]);
     });
 
     it("parses LEFT_ALT press — CSI 57443;3:1 u", () => {
         const events = parseInput("\x1b[57443;3:1u");
-        expect(events).toEqual([
-            kp("Alt", "\x1b[57443;3:1u", { type: "keydown", altKey: true, code: "AltLeft" }),
-        ]);
+        expect(events).toEqual([kp("Alt", "\x1b[57443;3:1u", { type: "keydown", altKey: true, code: "AltLeft" })]);
     });
 
     it("parses RIGHT_SUPER release — CSI 57450;1:3 u", () => {
         const events = parseInput("\x1b[57450;1:3u");
-        expect(events).toEqual([
-            kp("Meta", "\x1b[57450;1:3u", { type: "keyup", code: "MetaRight" }),
-        ]);
+        expect(events).toEqual([kp("Meta", "\x1b[57450;1:3u", { type: "keyup", code: "MetaRight" })]);
     });
 
     it("parses CapsLock via CSI u — CSI 57358 u", () => {
@@ -408,9 +398,7 @@ describe("parseInput", () => {
         // It's a key press → keydown.
         const leftSuper = String.fromCodePoint(57444); // U+E064
         const events = parseInput("\x1b" + leftSuper);
-        expect(events).toEqual([
-            kp("Meta", "\x1b" + leftSuper, { type: "keydown", code: "MetaLeft" }),
-        ]);
+        expect(events).toEqual([kp("Meta", "\x1b" + leftSuper, { type: "keydown", code: "MetaLeft" })]);
     });
 
     it("parses standalone PUA character for LEFT_SHIFT as keydown", () => {
@@ -431,19 +419,13 @@ describe("parseInput", () => {
         expect(events).toHaveLength(3);
 
         // Event 1: LEFT_SUPER keydown (ESC + PUA)
-        expect(events[0]).toEqual(
-            kp("Meta", superDown, { type: "keydown", code: "MetaLeft" }),
-        );
+        expect(events[0]).toEqual(kp("Meta", superDown, { type: "keydown", code: "MetaLeft" }));
 
         // Event 2: ArrowRight + Meta, keyup (no synthesis in pure parseInput)
-        expect(events[1]).toEqual(
-            kp("ArrowRight", arrowRelease, { type: "keyup", metaKey: true }),
-        );
+        expect(events[1]).toEqual(kp("ArrowRight", arrowRelease, { type: "keyup", metaKey: true }));
 
         // Event 3: LEFT_SUPER release, keyup
-        expect(events[2]).toEqual(
-            kp("Meta", superRelease, { type: "keyup", code: "MetaLeft" }),
-        );
+        expect(events[2]).toEqual(kp("Meta", superRelease, { type: "keyup", code: "MetaLeft" }));
     });
 
     // ─── Codepoint sub-parameters (shifted:base) ───
@@ -481,18 +463,13 @@ describe("parseInput", () => {
         const press = "\x1b[B";
         const release = "\x1b[1;1:3B";
         const events = parseInput(press + release);
-        expect(events).toEqual([
-            kp("ArrowDown", press),
-            kp("ArrowDown", release, { type: "keyup" }),
-        ]);
+        expect(events).toEqual([kp("ArrowDown", press), kp("ArrowDown", release, { type: "keyup" })]);
     });
 
     it("does not synthesize keypress for standalone keyup", () => {
         // CSI 97;1:3 u (release only)
         const release = "\x1b[97;1:3u";
         const events = parseInput(release);
-        expect(events).toEqual([
-            kp("a", release, { type: "keyup", code: "KeyA" }),
-        ]);
+        expect(events).toEqual([kp("a", release, { type: "keyup", code: "KeyA" })]);
     });
 });

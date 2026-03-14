@@ -38,6 +38,7 @@ describe("EditorViewState.Folding — basic mapping", () => {
     });
 
     it("getViewLine skips collapsed lines", () => {
+    it("getViewLine skips collapsed lines", () => {
         const state = parseDSL(editorState`
             text: header
             folding: >
@@ -140,7 +141,9 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             text: footer
         `);
         state.cursorDown();
-        expectEditorState(state, editorState`
+        expectEditorState(
+            state,
+            editorState`
             text: header
             folding: >
             text:   body1
@@ -149,7 +152,8 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             folding: ^
             text: footer
             cursor: █
-        `);
+        `,
+        );
     });
 
     it("cursorUp skips collapsed region", () => {
@@ -164,7 +168,9 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             cursor: █
         `);
         state.cursorUp();
-        expectEditorState(state, editorState`
+        expectEditorState(
+            state,
+            editorState`
             text: header
             cursor: █
             folding: >
@@ -173,7 +179,8 @@ describe("EditorViewState.Folding — cursor navigation", () => {
             text:   body2
             folding: ^
             text: footer
-        `);
+        `,
+        );
     });
 
     it("cursorDown does nothing at last visible line", () => {

@@ -27,7 +27,7 @@ const stdout = process.stdout;
 const KITTY_ENABLE = "\x1b[>11u";
 const KITTY_DISABLE = "\x1b[<u";
 
-const isTmux = process.env["TMUX"] != null && process.env["TMUX"] !== "";
+const isTmux = process.env.TMUX != null && process.env.TMUX !== "";
 
 function wrapForTmux(sequence: string): string {
     const escaped = sequence.replace(/\x1b/g, "\x1b\x1b");

@@ -358,7 +358,7 @@ function parseCodepointParam(paramStr: string): {
     baseLayoutKey: number | undefined;
 } {
     const parts = paramStr.split(":");
-    const codepoint = parts[0] === "" ? 0 : parseInt(parts[0], 10) || 0;
+    const codepoint = parts[0] === undefined || parts[0] === "" ? 0 : parseInt(parts[0], 10) || 0;
     const shiftedKey = parts[1] !== undefined && parts[1] !== "" ? parseInt(parts[1], 10) || undefined : undefined;
     const baseLayoutKey = parts[2] !== undefined && parts[2] !== "" ? parseInt(parts[2], 10) || undefined : undefined;
     return { codepoint, shiftedKey, baseLayoutKey };

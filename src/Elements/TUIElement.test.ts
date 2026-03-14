@@ -2,9 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import { TUIElement } from "./TUIElement.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 
-function makeKeyEvent(
-    overrides: Partial<KeyPressEvent> & { type: KeyPressEvent["type"] },
-): KeyPressEvent {
+function makeKeyEvent(overrides: Partial<KeyPressEvent> & { type: KeyPressEvent["type"] }): KeyPressEvent {
     return {
         key: "a",
         code: "KeyA",

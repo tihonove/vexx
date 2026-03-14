@@ -9,9 +9,10 @@ import { Grid } from "../Rendering/Grid.ts";
 import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
+import { reject } from "../Common/TypingUtils.ts";
 
-const cols = process.stdout.columns ?? 80;
-const rows = process.stdout.rows ?? 24;
+const cols = process.stdout.columns;
+const rows = process.stdout.rows;
 
 const renderer = new TerminalRenderer();
 const currentGrid = new Grid(cols, rows);
@@ -59,15 +60,7 @@ function drawBlock(
     }
 }
 
-function drawText(
-    grid: Grid,
-    x0: number,
-    y0: number,
-    text: string,
-    fg: number,
-    bg: number,
-    style: number,
-): void {
+function drawText(grid: Grid, x0: number, y0: number, text: string, fg: number, bg: number, style: number): void {
     for (let i = 0; i < text.length; i++) {
         const px = x0 + i;
         if (px < grid.width && y0 < grid.height) {
@@ -103,7 +96,7 @@ function drawFrame0(grid: Grid): void {
     row += 2;
 
     // Color blocks with labels
-    const blocks: Array<{ label: string; fg: number; bg: number; style: number }> = [
+    const blocks: { label: string; fg: number; bg: number; style: number }[] = [
         { label: "  Bold  ", fg: WHITE, bg: RED, style: StyleFlags.Bold },
         { label: " Italic ", fg: WHITE, bg: GREEN, style: StyleFlags.Italic },
         { label: "Underline", fg: WHITE, bg: BLUE, style: StyleFlags.Underline },
@@ -115,7 +108,7 @@ function drawFrame0(grid: Grid): void {
     ];
 
     for (let i = 0; i < blocks.length; i++) {
-        const block = blocks[i];
+        const block = blocks[i] ?? reject();
         const x = 2 + (i % 4) * (bw + 1);
         const y = row + Math.floor(i / 4) * (bh + 1);
 
@@ -161,7 +154,7 @@ function drawAnimatedFrame(grid: Grid): void {
     const animRow = Math.min(rows - 2, 18);
     const animWidth = Math.min(cols - 4, 40);
     const spinChars = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏";
-    const spinChar = spinChars[tick % spinChars.length];
+    const spinChar = spinChars[tick % spinChars.length] ?? reject();
 
     drawText(grid, 2, animRow, `Frame: ${tick.toString().padStart(4, " ")}  ${spinChar} `, CYAN, DARK, StyleFlags.Bold);
 

@@ -25,6 +25,7 @@ function createCapture(): { output: string; writer: { write(data: string): void 
  * Replace raw ESC (\x1b) with readable «ESC» for snapshot readability.
  */
 function humanize(raw: string): string {
+    // eslint-disable-next-line no-control-regex
     return raw.replace(/\x1b/g, "ESC");
 }
 
@@ -196,9 +197,7 @@ describe("TerminalRenderer", () => {
             renderer.render(current, previous);
             const h = humanize(cap.output);
 
-            expect(h).toMatchInlineSnapshot(
-                `"ESC[1;1HESC[0mESC[38;2;255;255;0mESC[48;2;0;0;128mXESC[0m"`,
-            );
+            expect(h).toMatchInlineSnapshot(`"ESC[1;1HESC[0mESC[38;2;255;255;0mESC[48;2;0;0;128mXESC[0m"`);
         });
     });
 
@@ -274,9 +273,7 @@ describe("TerminalRenderer", () => {
             renderer.render(current, previous);
             const h = humanize(cap.output);
 
-            expect(h).toMatchInlineSnapshot(
-                `"ESC[1;1HESC[0mESC[48;2;0;0;255mBESC[49mDESC[0m"`,
-            );
+            expect(h).toMatchInlineSnapshot(`"ESC[1;1HESC[0mESC[48;2;0;0;255mBESC[49mDESC[0m"`);
         });
     });
 
@@ -368,9 +365,7 @@ describe("TerminalRenderer", () => {
             current.setCell(0, 0, "X", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Bold | StyleFlags.Italic);
 
             renderer.render(current, previous);
-            expect(humanize(cap.output)).toMatchInlineSnapshot(
-                `"ESC[1;1HESC[0mESC[1mESC[3mXESC[0m"`,
-            );
+            expect(humanize(cap.output)).toMatchInlineSnapshot(`"ESC[1;1HESC[0mESC[1mESC[3mXESC[0m"`);
         });
     });
 
