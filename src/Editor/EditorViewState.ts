@@ -18,6 +18,8 @@ import type { ILineTokens } from "./ILineTokens.ts";
 export class EditorViewState {
     public scrollLeft = 0;
     public scrollTop = 0;
+    public viewportWidth = 80;
+    public viewportHeight = 24;
     public selections: ISelection[];
     public readonly document: ITextDocument;
     public foldedRegions: IFoldingRegion[] = [];
@@ -133,6 +135,7 @@ export class EditorViewState {
         this.document.applyEdits(edits);
         this.adjustFoldingRegionsForEdits(edits);
         this.selections = this.computeSelectionsAfterEdits(edits);
+        this.ensureCursorVisible();
     }
 
     /**
@@ -168,6 +171,7 @@ export class EditorViewState {
             this.document.applyEdits(edits);
             this.adjustFoldingRegionsForEdits(edits);
             this.selections = this.computeSelectionsAfterEdits(edits);
+            this.ensureCursorVisible();
         }
     }
 
@@ -201,6 +205,7 @@ export class EditorViewState {
             return this.buildSelection(sel, newLine, newChar, newChar, inSelectionMode);
         });
         this.normalizeSelections();
+        this.ensureCursorVisible();
     }
 
     /**
@@ -230,6 +235,7 @@ export class EditorViewState {
             return this.buildSelection(sel, newLine, newChar, newChar, inSelectionMode);
         });
         this.normalizeSelections();
+        this.ensureCursorVisible();
     }
 
     /**
@@ -250,6 +256,7 @@ export class EditorViewState {
             return sel;
         });
         this.normalizeSelections();
+        this.ensureCursorVisible();
     }
 
     /**
@@ -270,6 +277,7 @@ export class EditorViewState {
             return sel;
         });
         this.normalizeSelections();
+        this.ensureCursorVisible();
     }
 
     /**
@@ -281,6 +289,7 @@ export class EditorViewState {
             return this.buildSelection(sel, sel.active.line, 0, 0, inSelectionMode);
         });
         this.normalizeSelections();
+        this.ensureCursorVisible();
     }
 
     /**
@@ -293,6 +302,7 @@ export class EditorViewState {
             return this.buildSelection(sel, sel.active.line, lineLen, Number.MAX_SAFE_INTEGER, inSelectionMode);
         });
         this.normalizeSelections();
+        this.ensureCursorVisible();
     }
 
     /**
@@ -321,6 +331,7 @@ export class EditorViewState {
             this.document.applyEdits(edits);
             this.adjustFoldingRegionsForEdits(edits);
             this.selections = this.computeSelectionsAfterEdits(edits);
+            this.ensureCursorVisible();
         }
     }
 
@@ -339,6 +350,28 @@ export class EditorViewState {
     }
 
     // ─── Private ────────────────────────────────────────────
+
+    private ensureCursorVisible(): void {
+        if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
+        if (this.selections.length === 0) return;
+
+        const primary = this.selections[0];
+        const visualLine = this.logicalToVisualLine(primary.active.line);
+        if (visualLine < 0) return;
+
+        if (visualLine < this.scrollTop) {
+            this.scrollTop = visualLine;
+        } else if (visualLine >= this.scrollTop + this.viewportHeight) {
+            this.scrollTop = visualLine - this.viewportHeight + 1;
+        }
+
+        const col = primary.active.character;
+        if (col < this.scrollLeft) {
+            this.scrollLeft = col;
+        } else if (col >= this.scrollLeft + this.viewportWidth) {
+            this.scrollLeft = col - this.viewportWidth + 1;
+        }
+    }
 
     /**
      * Builds an array of logical line indices that are currently visible.

@@ -27,6 +27,8 @@ export class EditorElement extends TUIElement {
     public render(context: RenderContext): void {
         const { canvas, offset } = context;
         const { dx: ox, dy: oy } = offset;
+        this.viewState.viewportWidth = this.size.width;
+        this.viewState.viewportHeight = this.size.height;
         const scrollTop = this.viewState.scrollTop;
         const scrollLeft = this.viewState.scrollLeft;
         const visibleLines = this.size.height;

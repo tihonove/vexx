@@ -577,3 +577,100 @@ describe("EditorViewState.CursorManagement", () => {
         expect(state.selections[1].active.line).toBe(2);
     });
 });
+
+// ─── Scroll: ensureCursorVisible ────────────────────────────
+
+describe("EditorViewState.Scroll — ensureCursorVisible", () => {
+    function makeLines(count: number): string {
+        return Array.from({ length: count }, (_, i) => `line ${i}`).join("\n");
+    }
+
+    it("scrollTop increases when cursor moves below viewport", () => {
+        const doc = new TextDocument(makeLines(10));
+        const state = new EditorViewState(doc);
+        state.viewportHeight = 5;
+        state.viewportWidth = 80;
+        // Cursor starts at line 0, scrollTop = 0
+        for (let i = 0; i < 5; i++) state.cursorDown();
+        // Cursor is now on visual line 5 — beyond viewport (0..4)
+        expect(state.scrollTop).toBe(1);
+    });
+
+    it("scrollTop decreases when cursor moves above viewport", () => {
+        const doc = new TextDocument(makeLines(10));
+        const state = new EditorViewState(doc, [createCursorSelection(7, 0)]);
+        state.viewportHeight = 5;
+        state.viewportWidth = 80;
+        state.scrollTop = 5;
+        for (let i = 0; i < 3; i++) state.cursorUp();
+        // Cursor is on line 4, scrollTop was 5 → should scroll up
+        expect(state.scrollTop).toBe(4);
+    });
+
+    it("scrollRight when cursorEnd on long line", () => {
+        const doc = new TextDocument("a".repeat(100));
+        const state = new EditorViewState(doc);
+        state.viewportWidth = 20;
+        state.viewportHeight = 5;
+        state.cursorEnd();
+        // Cursor at character 100, viewportWidth 20 → scrollLeft = 100 - 20 + 1 = 81
+        expect(state.scrollLeft).toBe(81);
+    });
+
+    it("scrollLeft resets when cursorHome", () => {
+        const doc = new TextDocument("a".repeat(100));
+        const state = new EditorViewState(doc, [createCursorSelection(0, 50)]);
+        state.viewportWidth = 20;
+        state.viewportHeight = 5;
+        state.scrollLeft = 40;
+        state.cursorHome();
+        expect(state.scrollLeft).toBe(0);
+    });
+
+    it("scrollTop adjusts with collapsed folding regions", () => {
+        const doc = new TextDocument(makeLines(20));
+        const state = new EditorViewState(doc);
+        state.viewportHeight = 5;
+        state.viewportWidth = 80;
+        // Collapse lines 2..5 (hide lines 3,4,5 → 3 visual lines removed)
+        state.setFoldingRegions([createFoldingRegion(2, 5, true)]);
+        // Move cursor down 5 times
+        // Visual lines: 0,1,2(collapsed shows line2 header),6,7,8,9,...
+        for (let i = 0; i < 5; i++) state.cursorDown();
+        // Cursor should have jumped over collapsed region
+        expect(state.selections[0].active.line).toBeGreaterThanOrEqual(6);
+        expect(state.scrollTop).toBeGreaterThanOrEqual(1);
+    });
+
+    it("type triggers scroll when inserting newline at bottom of viewport", () => {
+        const doc = new TextDocument(makeLines(5));
+        const state = new EditorViewState(doc, [createCursorSelection(4, 6)]);
+        state.viewportHeight = 5;
+        state.viewportWidth = 80;
+        // Cursor on last visible line. Insert newline pushes cursor below viewport
+        state.type("\n");
+        expect(state.scrollTop).toBe(1);
+    });
+
+    it("deleteLeft on first visible line can scroll up", () => {
+        const doc = new TextDocument(makeLines(10));
+        const state = new EditorViewState(doc, [createCursorSelection(5, 0)]);
+        state.viewportHeight = 5;
+        state.viewportWidth = 80;
+        state.scrollTop = 5;
+        // Backspace at beginning of line 5 → merges with line 4 → cursor on line 4
+        state.deleteLeft();
+        expect(state.selections[0].active.line).toBe(4);
+        expect(state.scrollTop).toBe(4);
+    });
+
+    it("scroll does not change when cursor is already visible", () => {
+        const doc = new TextDocument(makeLines(10));
+        const state = new EditorViewState(doc, [createCursorSelection(2, 3)]);
+        state.viewportHeight = 5;
+        state.viewportWidth = 80;
+        state.cursorRight();
+        expect(state.scrollTop).toBe(0);
+        expect(state.scrollLeft).toBe(0);
+    });
+});
