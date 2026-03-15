@@ -46,8 +46,6 @@ export class VStackElement extends TUIElement {
     }
 
     public render(context: RenderContext): void {
-        this.performLayout();
-
         for (const child of this.children) {
             if (!child.state) continue;
             const { origin } = child.state.rect;
