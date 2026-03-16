@@ -1,6 +1,7 @@
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
 import type { Grid } from "../Rendering/Grid.ts";
+import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
 import { KeyInputParser } from "./KeyInputParser.ts";
 import { serializeKey } from "./serializeKey.ts";
 import { Point, Size } from "../Common/GeometryPromitives.ts";
@@ -18,6 +19,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private cells: (string | null)[][];
+    private bgs: number[][];
 
     public size: Size;
     private readonly inputParser = new KeyInputParser();
@@ -25,6 +27,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     public constructor(size: Size = new Size(80, 24)) {
         this.size = size;
         this.cells = this.createEmptyGrid();
+        this.bgs = this.createBgGrid();
     }
 
     private createEmptyGrid(): (string | null)[][] {
@@ -32,6 +35,12 @@ export class MockTerminalBackend implements ITerminalBackend {
         return new Array<(string | null)[]>(this.size.height)
             .fill([])
             .map(() => new Array<string | null>(this.size.width).fill(value));
+    }
+
+    private createBgGrid(): number[][] {
+        return new Array<number[]>(this.size.height)
+            .fill([])
+            .map(() => new Array<number>(this.size.width).fill(DEFAULT_COLOR));
     }
 
     public onInput(callback: (event: KeyPressEvent) => void): void {
@@ -47,7 +56,9 @@ export class MockTerminalBackend implements ITerminalBackend {
     public renderFrame(grid: Grid, cursorPosition: Point): void {
         for (let y = 0; y < grid.height && y < this.size.height; y++) {
             for (let x = 0; x < grid.width && x < this.size.width; x++) {
-                this.cells[y][x] = grid.getCellAt(x, y).char;
+                const cell = grid.getCellAt(x, y);
+                this.cells[y][x] = cell.char;
+                this.bgs[y][x] = cell.bg;
             }
         }
         this.cursorPosition = cursorPosition;
@@ -134,15 +145,24 @@ export class MockTerminalBackend implements ITerminalBackend {
     /** Clear the screen grid back to empty */
     public clearScreen(): void {
         this.cells = this.createEmptyGrid();
+        this.bgs = this.createBgGrid();
     }
 
     /**
      * Simulate a terminal resize.
      * Updates dimensions, recreates the grid, and notifies all resize callbacks.
      */
+    public getBgAt(position: Point): number {
+        if (position.y >= 0 && position.y < this.size.height && position.x >= 0 && position.x < this.size.width) {
+            return this.bgs[position.y][position.x];
+        }
+        return DEFAULT_COLOR;
+    }
+
     public resize(size: Size): void {
         this.size = size;
         this.cells = this.createEmptyGrid();
+        this.bgs = this.createBgGrid();
         for (const cb of this.resizeCallbacks) {
             cb(size);
         }

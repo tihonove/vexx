@@ -17,6 +17,7 @@ export class TuiApplication {
 
     private renderFrame(): void {
         if (this.root) {
+            this.screen.clear();
             this.root.performLayout(BoxConstraints.tight(this.screen.size));
             this.root.render(new RenderContext(this.screen));
             this.screen.flush(this.backend);

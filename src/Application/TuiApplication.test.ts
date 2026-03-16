@@ -2,8 +2,12 @@ import { describe, it, expect } from "vitest";
 import { TuiApplication } from "./TuiApplication.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { BoxElement } from "../Elements/BoxElement.ts";
+import { EditorElement } from "../Elements/EditorElement.ts";
+import { EditorViewState } from "../Editor/EditorViewState.ts";
+import { TextDocument } from "../Editor/TextDocument.ts";
+import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 describe("TuiApplication", () => {
     it("renders root element on run()", () => {
@@ -84,5 +88,38 @@ describe("TuiApplication", () => {
 
         expect(app.screen.width).toBe(20);
         expect(app.screen.height).toBe(10);
+    });
+
+    it("clears stale selection background between frames", () => {
+        const backend = new MockTerminalBackend(new Size(10, 3));
+        const app = new TuiApplication(backend);
+
+        const doc = new TextDocument("hello");
+        const viewState = new EditorViewState(doc);
+        const editor = new EditorElement(viewState);
+        app.root = editor;
+        app.run();
+
+        // Select "ello" via Shift+ArrowLeft × 4 from end
+        // First move cursor to end of "hello"
+        backend.sendKey("End");
+        // Select backwards
+        backend.sendKey("Shift+ArrowLeft");
+        backend.sendKey("Shift+ArrowLeft");
+        backend.sendKey("Shift+ArrowLeft");
+        backend.sendKey("Shift+ArrowLeft");
+
+        // Characters 1..4 ("ello") should have selection bg
+        for (let x = 1; x <= 4; x++) {
+            expect(backend.getBgAt(new Point(x, 0))).not.toBe(DEFAULT_COLOR);
+        }
+
+        // Deselect by pressing ArrowRight (collapses selection)
+        backend.sendKey("ArrowRight");
+
+        // Now ALL cells on the first line should have DEFAULT_COLOR bg
+        for (let x = 0; x < 5; x++) {
+            expect(backend.getBgAt(new Point(x, 0))).toBe(DEFAULT_COLOR);
+        }
     });
 });
