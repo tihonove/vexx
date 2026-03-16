@@ -12,6 +12,7 @@
     "demo:events": "node src/demos/eventLogDemo.ts",
     "demo:raw-events": "node src/demos/tokenizeDemo.ts",
     "demo:renderer": "node src/demos/rendererDemo.ts",
+    "demo:scroll": "node src/demos/scrollDemo.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",

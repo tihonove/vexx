@@ -72,6 +72,9 @@ export class TerminalRenderer {
                 const cur = curCells[idx] ?? reject();
                 const prev = prevCells[idx] ?? reject();
 
+                // Skip bottom-right corner: writing here triggers hardware scroll.
+                if (x === width - 1 && y === height - 1) continue;
+
                 if (cur.equals(prev)) continue;
 
                 // ── Cursor positioning ──────────────────────────
@@ -125,8 +128,16 @@ export class TerminalRenderer {
                 buf += cur.char;
 
                 // Update cursor tracking (character auto-advances).
-                cursorX = x + 1;
-                cursorY = y;
+                if (x === width - 1) {
+                    // Right margin: terminal behaviour is unpredictable after
+                    // writing the last column (may or may not auto-wrap).
+                    // Invalidate cursor so the next cell gets an absolute CUP.
+                    cursorX = -1;
+                    cursorY = -1;
+                } else {
+                    cursorX = x + 1;
+                    cursorY = y;
+                }
 
                 // Update previous-frame buffer so the next render sees no diff.
                 prev.copyFrom(cur);
