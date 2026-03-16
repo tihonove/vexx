@@ -2,7 +2,9 @@
     "chat.tools.terminal.autoApprove": {
         "npm install": true,
         "npx vitest": true,
-        "npx eslint": true
+        "npx eslint": true,
+        "git commit": true,
+        "git push": true
     },
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.patterns": {
