@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "./.github/hooks/scripts/eslint-fix.sh",
+        "timeoutSec": 30
+      }
+    ]
+  }
+}
