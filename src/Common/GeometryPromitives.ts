@@ -28,6 +28,35 @@ export class Size {
     }
 }
 
+export class BoxConstraints {
+    public readonly minWidth: number;
+    public readonly maxWidth: number;
+    public readonly minHeight: number;
+    public readonly maxHeight: number;
+
+    public constructor(minWidth: number, maxWidth: number, minHeight: number, maxHeight: number) {
+        this.minWidth = minWidth;
+        this.maxWidth = maxWidth;
+        this.minHeight = minHeight;
+        this.maxHeight = maxHeight;
+    }
+
+    public static tight(size: Size): BoxConstraints {
+        return new BoxConstraints(size.width, size.width, size.height, size.height);
+    }
+
+    public static loose(size: Size): BoxConstraints {
+        return new BoxConstraints(0, size.width, 0, size.height);
+    }
+
+    public constrain(size: Size): Size {
+        return new Size(
+            Math.min(this.maxWidth, Math.max(this.minWidth, size.width)),
+            Math.min(this.maxHeight, Math.max(this.minHeight, size.height)),
+        );
+    }
+}
+
 export class Rect {
     public readonly origin: Point;
     public readonly size: Size;

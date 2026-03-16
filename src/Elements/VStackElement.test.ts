@@ -1,7 +1,7 @@
 import { describe, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
@@ -17,7 +17,6 @@ function createVStack(
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);
     const vstack = new VStackElement();
-    vstack.size = new Size(width, height);
     return { vstack, backend, termScreen };
 }
 
@@ -26,6 +25,7 @@ function renderVStack(
     termScreen: TerminalScreen,
     backend: MockTerminalBackend,
 ): MockTerminalBackend {
+    vstack.performLayout(BoxConstraints.tight(termScreen.size));
     vstack.render(new RenderContext(termScreen));
     termScreen.flush(backend);
     return backend;

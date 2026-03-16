@@ -1,4 +1,4 @@
-import { Offset, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
 import type { TUIEvent } from "../TerminalBackend/KeyEvent.ts";
 import type { IScrollable } from "./IScrollable.ts";
 import { renderScrollBar } from "./ScrollBarRenderer.ts";
@@ -16,9 +16,9 @@ export class ScrollContainerElement extends TUIElement {
         return this.child;
     }
 
-    public performLayout(): void {
-        this.child.size = new Size(this.size.width - 1, this.size.height);
-        this.child.performLayout();
+    public performLayout(constraints: BoxConstraints): void {
+        this.size = new Size(constraints.maxWidth, constraints.maxHeight);
+        this.child.performLayout(BoxConstraints.tight(new Size(this.size.width - 1, this.size.height)));
     }
 
     public render(context: RenderContext): void {

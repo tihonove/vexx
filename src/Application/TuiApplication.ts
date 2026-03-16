@@ -1,4 +1,4 @@
-import { Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
 import type { ITerminalBackend } from "../TerminalBackend/ITerminalBackend.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
@@ -17,9 +17,7 @@ export class TuiApplication {
 
     private renderFrame(): void {
         if (this.root) {
-            this.screen.clear();
-            this.root.size = this.screen.size;
-            this.root.performLayout();
+            this.root.performLayout(BoxConstraints.tight(this.screen.size));
             this.root.render(new RenderContext(this.screen));
             this.screen.flush(this.backend);
         }

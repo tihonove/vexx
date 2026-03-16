@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
@@ -24,7 +24,6 @@ function createScrollContainer(
     const termScreen = new TerminalScreen(size);
     const child = new TextBlockElement(contentLineCount);
     const container = new ScrollContainerElement(child);
-    container.size = size;
     return { container, child, backend, termScreen };
 }
 
@@ -33,7 +32,7 @@ function renderContainer(
     termScreen: TerminalScreen,
     backend: MockTerminalBackend,
 ): MockTerminalBackend {
-    container.performLayout();
+    container.performLayout(BoxConstraints.tight(termScreen.size));
     container.render(new RenderContext(termScreen));
     termScreen.flush(backend);
     return backend;
@@ -42,7 +41,7 @@ function renderContainer(
 describe("ScrollContainerElement", () => {
     it("allocates child width as container width minus 1", () => {
         const { container, child } = createScrollContainer(12, 5, 20);
-        container.performLayout();
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
         expect(child.size.width).toBe(11);
         expect(child.size.height).toBe(5);
     });
@@ -151,7 +150,7 @@ describe("ScrollContainerElement", () => {
 
     it("forwards events to child", () => {
         const { container, child } = createScrollContainer(12, 5, 50);
-        container.performLayout();
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
 
         expect(child.scrollTop).toBe(0);
 

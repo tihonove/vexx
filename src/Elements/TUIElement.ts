@@ -1,5 +1,5 @@
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
-import { Offset, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent, TUIEvent } from "../TerminalBackend/KeyEvent.ts";
 
 export class RenderContext {
@@ -21,7 +21,8 @@ export type KeyboardEventType = "keypress" | "keydown" | "keyup";
 export class TUIElement {
     public dirty = false;
     public size: Size = new Size(80, 24);
-    public contentSize: Size = new Size(80, 24);
+    public layoutStyle: unknown = undefined;
+    public layoutState: unknown = undefined;
     private eventListeners: Record<KeyboardEventType, ((event: KeyPressEvent) => void)[]> = {
         keypress: [],
         keydown: [],
@@ -47,9 +48,8 @@ export class TUIElement {
         }
     }
 
-    public performLayout(): void {
-        // Base implementation does nothing.
-        // Container subclasses (VStackElement, etc.) override this.
+    public performLayout(constraints: BoxConstraints): void {
+        this.size = constraints.constrain(this.size);
     }
 
     public render(_context: RenderContext): void {

@@ -1,7 +1,7 @@
 import { describe, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
@@ -13,7 +13,7 @@ function renderBox(width: number, height: number): MockTerminalBackend {
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);
     const box = new BoxElement();
-    box.size = new Size(width, height);
+    box.performLayout(BoxConstraints.tight(size));
     box.render(new RenderContext(termScreen));
     termScreen.flush(backend);
     return backend;
