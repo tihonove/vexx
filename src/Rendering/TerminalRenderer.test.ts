@@ -163,8 +163,8 @@ describe("TerminalRenderer", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
 
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "R", packRgb(255, 0, 0));
 
             renderer.render(current, previous);
@@ -177,8 +177,8 @@ describe("TerminalRenderer", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
 
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), " ", DEFAULT_COLOR, packRgb(0, 128, 255));
 
             renderer.render(current, previous);
@@ -191,8 +191,8 @@ describe("TerminalRenderer", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
 
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "X", packRgb(255, 255, 0), packRgb(0, 0, 128));
 
             renderer.render(current, previous);
@@ -210,8 +210,8 @@ describe("TerminalRenderer", () => {
             const renderer = new TerminalRenderer(cap.writer);
 
             const red = packRgb(255, 0, 0);
-            const current = new Grid(new Size(3, 1));
-            const previous = new Grid(new Size(3, 1));
+            const current = new Grid(new Size(3, 2));
+            const previous = new Grid(new Size(3, 2));
             current.setCell(new Point(0, 0), "A", red);
             current.setCell(new Point(1, 0), "B", red);
             current.setCell(new Point(2, 0), "C", red);
@@ -229,8 +229,8 @@ describe("TerminalRenderer", () => {
 
             const red = packRgb(255, 0, 0);
             const green = packRgb(0, 255, 0);
-            const current = new Grid(new Size(3, 1));
-            const previous = new Grid(new Size(3, 1));
+            const current = new Grid(new Size(3, 2));
+            const previous = new Grid(new Size(3, 2));
             current.setCell(new Point(0, 0), "R", red);
             current.setCell(new Point(1, 0), "G", green);
             current.setCell(new Point(2, 0), "R", red);
@@ -249,8 +249,8 @@ describe("TerminalRenderer", () => {
             const renderer = new TerminalRenderer(cap.writer);
 
             const red = packRgb(255, 0, 0);
-            const current = new Grid(new Size(2, 1));
-            const previous = new Grid(new Size(2, 1));
+            const current = new Grid(new Size(2, 2));
+            const previous = new Grid(new Size(2, 2));
             current.setCell(new Point(0, 0), "R", red);
             current.setCell(new Point(1, 0), "D"); // DEFAULT_COLOR fg
 
@@ -266,8 +266,8 @@ describe("TerminalRenderer", () => {
             const renderer = new TerminalRenderer(cap.writer);
 
             const blue = packRgb(0, 0, 255);
-            const current = new Grid(new Size(2, 1));
-            const previous = new Grid(new Size(2, 1));
+            const current = new Grid(new Size(2, 2));
+            const previous = new Grid(new Size(2, 2));
             current.setCell(new Point(0, 0), "B", DEFAULT_COLOR, blue);
             current.setCell(new Point(1, 0), "D"); // DEFAULT_COLOR bg
 
@@ -284,8 +284,8 @@ describe("TerminalRenderer", () => {
         it("Bold → SGR 1", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "B", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Bold);
 
             renderer.render(current, previous);
@@ -295,8 +295,8 @@ describe("TerminalRenderer", () => {
         it("Dim → SGR 2", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "D", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Dim);
 
             renderer.render(current, previous);
@@ -306,8 +306,8 @@ describe("TerminalRenderer", () => {
         it("Italic → SGR 3", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "I", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Italic);
 
             renderer.render(current, previous);
@@ -317,8 +317,8 @@ describe("TerminalRenderer", () => {
         it("Underline → SGR 4", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "U", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Underline);
 
             renderer.render(current, previous);
@@ -328,8 +328,8 @@ describe("TerminalRenderer", () => {
         it("Undercurl → SGR 4:3", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "~", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Undercurl);
 
             renderer.render(current, previous);
@@ -339,8 +339,8 @@ describe("TerminalRenderer", () => {
         it("Inverse → SGR 7", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "V", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Inverse);
 
             renderer.render(current, previous);
@@ -350,8 +350,8 @@ describe("TerminalRenderer", () => {
         it("Strikethrough → SGR 9", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "S", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Strikethrough);
 
             renderer.render(current, previous);
@@ -361,8 +361,8 @@ describe("TerminalRenderer", () => {
         it("combined Bold + Italic → SGR 1 then SGR 3", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "X", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.Bold | StyleFlags.Italic);
 
             renderer.render(current, previous);
@@ -378,8 +378,8 @@ describe("TerminalRenderer", () => {
             const renderer = new TerminalRenderer(cap.writer);
 
             const white = packRgb(255, 255, 255);
-            const current = new Grid(new Size(2, 1));
-            const previous = new Grid(new Size(2, 1));
+            const current = new Grid(new Size(2, 2));
+            const previous = new Grid(new Size(2, 2));
             current.setCell(new Point(0, 0), "B", white, DEFAULT_COLOR, StyleFlags.Bold);
             current.setCell(new Point(1, 0), "I", white, DEFAULT_COLOR, StyleFlags.Italic);
 
@@ -405,8 +405,8 @@ describe("TerminalRenderer", () => {
             const blue = packRgb(0, 0, 255);
             const green = packRgb(0, 200, 0);
 
-            const current = new Grid(new Size(4, 2));
-            const previous = new Grid(new Size(4, 2));
+            const current = new Grid(new Size(4, 3));
+            const previous = new Grid(new Size(4, 3));
 
             // Row 0: "Hi" in red bold, then "!!" in green
             current.setCell(new Point(0, 0), "H", red, DEFAULT_COLOR, StyleFlags.Bold);
@@ -435,8 +435,8 @@ describe("TerminalRenderer", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
 
-            const current = new Grid(new Size(2, 1));
-            const previous = new Grid(new Size(2, 1));
+            const current = new Grid(new Size(2, 2));
+            const previous = new Grid(new Size(2, 2));
             current.setCell(new Point(0, 0), "A", packRgb(1, 2, 3));
             current.setCell(new Point(1, 0), "B", packRgb(4, 5, 6));
 
@@ -457,8 +457,8 @@ describe("TerminalRenderer", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
 
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "X", packRgb(255, 0, 0));
 
             renderer.render(current, previous);
@@ -469,8 +469,8 @@ describe("TerminalRenderer", () => {
             const cap = createCapture();
             const renderer = new TerminalRenderer(cap.writer);
 
-            const current = new Grid(new Size(1, 1));
-            const previous = new Grid(new Size(1, 1));
+            const current = new Grid(new Size(1, 2));
+            const previous = new Grid(new Size(1, 2));
             current.setCell(new Point(0, 0), "X");
 
             renderer.render(current, previous);
@@ -485,6 +485,54 @@ describe("TerminalRenderer", () => {
             // But wait, we DID emit a reset at the start, so the output ends with "X", not ESC[0m.
             // Actually the initial sentinel triggers the reset path too... let me just snapshot it.
             expect(h).toMatchInlineSnapshot(`"ESC[1;1HESC[0mX"`);
+        });
+    });
+
+    // ── Right-edge fixes ─────────────────────────────────────────
+
+    describe("right-edge rendering fixes", () => {
+        it("skips bottom-right corner cell to prevent hardware scroll", () => {
+            const cap = createCapture();
+            const renderer = new TerminalRenderer(cap.writer);
+
+            const current = new Grid(new Size(3, 2));
+            const previous = new Grid(new Size(3, 2));
+
+            // Change a normal cell and the bottom-right corner
+            current.setCell(new Point(0, 0), "A");
+            current.setCell(new Point(2, 1), "Z"); // bottom-right corner
+
+            renderer.render(current, previous);
+            const h = humanize(cap.output);
+
+            // "A" should be rendered, but "Z" at (2,1) must NOT appear
+            expect(h).toContain("A");
+            expect(h).not.toContain("Z");
+
+            // previousGrid must NOT be updated for the skipped corner cell
+            expect(previous.getCell(new Point(2, 1)).char).toBe(" ");
+        });
+
+        it("invalidates cursor after writing to rightmost column", () => {
+            const cap = createCapture();
+            const renderer = new TerminalRenderer(cap.writer);
+
+            // 3 columns, 2 rows
+            const current = new Grid(new Size(3, 2));
+            const previous = new Grid(new Size(3, 2));
+
+            // Change last column of row 0 and first column of row 1
+            current.setCell(new Point(2, 0), "R");
+            current.setCell(new Point(0, 1), "L");
+
+            renderer.render(current, previous);
+            const h = humanize(cap.output);
+
+            // After "R" at col 2 (rightmost), cursor state is invalidated.
+            // So "L" at (0,1) MUST get an explicit CUP sequence even though
+            // a naive auto-advance might place the cursor there.
+            // Expect: CUP(1,3) + reset + "R" + CUP(2,1) + "L"
+            expect(h).toMatchInlineSnapshot(`"ESC[1;3HESC[0mRESC[2;1HL"`);
         });
     });
 });
