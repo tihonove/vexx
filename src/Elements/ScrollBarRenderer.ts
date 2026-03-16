@@ -2,19 +2,14 @@ import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { RenderContext } from "./TUIElement.ts";
 
-// ▁▂▃▄▅▆▇█ — lower block elements (1/8 to 8/8 filled from bottom)
-const LOWER_BLOCKS = [" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"];
-
-const TRACK_CHAR = "░";
-
-const THUMB_FG = packRgb(120, 120, 120);
-const THUMB_BG = packRgb(60, 60, 60);
-const TRACK_FG = packRgb(60, 60, 60);
-const TRACK_BG = packRgb(30, 30, 30);
+const THUMB_COLOR = packRgb(100, 100, 100);
+const TRACK_COLOR = packRgb(50, 50, 50);
 
 export interface ScrollBarMetrics {
-    thumbStartEighths: number;
-    thumbSizeEighths: number;
+    /** Thumb start position in half-cell units (0 = top of track). */
+    thumbStartHalves: number;
+    /** Thumb size in half-cell units (minimum 2 = 1 full cell). */
+    thumbSizeHalves: number;
 }
 
 export function computeScrollBarMetrics(
@@ -23,41 +18,49 @@ export function computeScrollBarMetrics(
     scrollTop: number,
     viewportHeight: number,
 ): ScrollBarMetrics {
-    const trackEighths = trackHeight * 8;
+    const trackHalves = trackHeight * 2;
 
     if (contentHeight <= viewportHeight) {
-        return { thumbStartEighths: 0, thumbSizeEighths: trackEighths };
+        return { thumbStartHalves: 0, thumbSizeHalves: trackHalves };
     }
 
-    const thumbSizeEighths = Math.max(8, Math.round((viewportHeight / contentHeight) * trackEighths));
+    const thumbSizeHalves = Math.max(2, Math.round((viewportHeight / contentHeight) * trackHalves));
     const maxScroll = contentHeight - viewportHeight;
     const scrollFraction = Math.min(1, Math.max(0, scrollTop / maxScroll));
-    const thumbStartEighths = Math.round(scrollFraction * (trackEighths - thumbSizeEighths));
+    const thumbStartHalves = Math.round(scrollFraction * (trackHalves - thumbSizeHalves));
 
-    return { thumbStartEighths, thumbSizeEighths };
+    return { thumbStartHalves, thumbSizeHalves };
 }
 
+/**
+ * For each cell row, determine the character to display.
+ *
+ * Each cell covers 2 halves: top half and bottom half.
+ * - Both halves inside thumb → "█"
+ * - Only top half inside thumb → "▀"
+ * - Only bottom half inside thumb → "▄"
+ * - Neither half inside thumb → " "
+ */
 export function getScrollBarCellChars(trackHeight: number, metrics: ScrollBarMetrics): string[] {
-    const { thumbStartEighths, thumbSizeEighths } = metrics;
-    const thumbEndEighths = thumbStartEighths + thumbSizeEighths;
+    const { thumbStartHalves, thumbSizeHalves } = metrics;
+    const thumbEndHalves = thumbStartHalves + thumbSizeHalves;
     const result: string[] = [];
 
     for (let row = 0; row < trackHeight; row++) {
-        const cellTopEighths = row * 8;
-        const cellBottomEighths = cellTopEighths + 8;
+        const topHalf = row * 2;
+        const bottomHalf = topHalf + 1;
 
-        if (cellBottomEighths <= thumbStartEighths || cellTopEighths >= thumbEndEighths) {
-            result.push(TRACK_CHAR);
-        } else if (cellTopEighths >= thumbStartEighths && cellBottomEighths <= thumbEndEighths) {
-            result.push(LOWER_BLOCKS[8]);
-        } else if (cellTopEighths < thumbStartEighths) {
-            // Thumb starts partway through this cell
-            const filledFromBottom = cellBottomEighths - thumbStartEighths;
-            result.push(LOWER_BLOCKS[filledFromBottom]);
+        const topInThumb = topHalf >= thumbStartHalves && topHalf < thumbEndHalves;
+        const bottomInThumb = bottomHalf >= thumbStartHalves && bottomHalf < thumbEndHalves;
+
+        if (topInThumb && bottomInThumb) {
+            result.push("█");
+        } else if (topInThumb) {
+            result.push("▀");
+        } else if (bottomInThumb) {
+            result.push("▄");
         } else {
-            // Thumb ends partway through this cell — bottom part is track
-            const trackFromBottom = cellBottomEighths - thumbEndEighths;
-            result.push(LOWER_BLOCKS[trackFromBottom]);
+            result.push("░");
         }
     }
 
@@ -74,34 +77,13 @@ export function renderScrollBar(
 ): void {
     const metrics = computeScrollBarMetrics(trackHeight, contentHeight, scrollTop, viewportHeight);
     const chars = getScrollBarCellChars(trackHeight, metrics);
-    const { thumbStartEighths, thumbSizeEighths } = metrics;
-    const thumbEndEighths = thumbStartEighths + thumbSizeEighths;
     const { dx: ox, dy: oy } = context.offset;
 
     for (let row = 0; row < trackHeight; row++) {
-        const cellTopEighths = row * 8;
-        const cellBottomEighths = cellTopEighths + 8;
         const char = chars[row];
-
-        let fg: number;
-        let bg: number;
-
-        if (cellBottomEighths <= thumbStartEighths || cellTopEighths >= thumbEndEighths) {
-            fg = TRACK_FG;
-            bg = TRACK_BG;
-        } else if (cellTopEighths >= thumbStartEighths && cellBottomEighths <= thumbEndEighths) {
-            fg = THUMB_FG;
-            bg = THUMB_FG;
-        } else if (cellTopEighths < thumbStartEighths) {
-            // Thumb starts partway — lower block filled from bottom = thumb color, top = track
-            fg = THUMB_FG;
-            bg = TRACK_BG;
-        } else {
-            // Thumb ends partway — lower block filled from bottom = track color on top of thumb
-            fg = TRACK_BG;
-            bg = THUMB_FG;
-        }
-
-        context.canvas.setCell(new Point(ox + x, oy + row), { char, fg, bg });
+        // fg-only rendering: thumb uses THUMB_COLOR, track uses TRACK_COLOR.
+        // Background is always DEFAULT — no custom bg, no bleed.
+        const fg = char === "░" ? TRACK_COLOR : THUMB_COLOR;
+        context.canvas.setCell(new Point(ox + x, oy + row), { char, fg });
     }
 }

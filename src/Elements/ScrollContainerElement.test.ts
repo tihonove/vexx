@@ -117,31 +117,36 @@ describe("ScrollContainerElement", () => {
         child.scrollTop = 45; // scroll to ~50%
         renderContainer(container, termScreen, backend);
 
-        // With 10 track height, 100 content, viewport 10:
-        // thumbSize = max(8, round(10/100 * 80)) = 8 eighths = 1 cell
+        // With halves: 10 track height = 20 halves
+        // thumbSize = max(2, round(10/100 * 20)) = 2 halves = 1 cell
         // maxScroll = 90, scrollFraction = 45/90 = 0.5
-        // thumbStart = round(0.5 * (80 - 8)) = 36 eighths → cell 4 starts at 32, so at 4/8 into cell 4
+        // thumbStart = round(0.5 * (20 - 2)) = 9 halves
+        // thumb at halves 9-10, i.e. bottom of cell 4 + top of cell 5
         const lines = backend.screenToString().split("\n");
+        const lastCol = lines.map((l) => l[11]);
+        // Track cells before and after thumb
+        expect(lastCol[0]).toBe("░");
+        expect(lastCol[9]).toBe("░");
         // Thumb should be around row 4-5
-        expect(lines[0]).toContain("░");
-        expect(lines[9]).toContain("░");
+        expect(lastCol[4]).toBe("▄"); // bottom half
+        expect(lastCol[5]).toBe("▀"); // top half
     });
 
-    it("renders sub-character blocks for non-aligned thumb positions", () => {
-        // 5 track height, 50 content, viewport 5
-        // thumbSize = max(8, round(5/50 * 40)) = 8 eighths
+    it("renders half-block characters for non-aligned thumb positions", () => {
+        // 5 track height, 50 content, viewport 5 → 10 halves
+        // thumbSize = max(2, round(5/50 * 10)) = 2 halves
         // scrollTop = 5: scrollFraction = 5/45 ≈ 0.111
-        // thumbStart = round(0.111 * (40 - 8)) = round(3.55) = 4 eighths
-        // → row 0: thumb starts at 4 within cell (bottom 4/8 = ▄)
-        // → row 1: thumb ends at 12, cell 1 = 8..16, 12-8=4 → ▄
+        // thumbStart = round(0.111 * (10 - 2)) = round(0.888) = 1 half
+        // → row 0: top half out, bottom half in → ▄
+        // → row 1: top half in (half 2), bottom half out (half 3 >= 3) → ▀
         const { container, child, backend, termScreen } = createScrollContainer(12, 5, 50);
         child.scrollTop = 5;
         renderContainer(container, termScreen, backend);
 
         const lines = backend.screenToString().split("\n");
         const lastCol = lines.map((l) => l[11]);
-        // Should contain partial block elements
-        expect(lastCol.some((c) => "▁▂▃▄▅▆▇".includes(c))).toBe(true);
+        // Should contain half-block elements
+        expect(lastCol.some((c) => "▀▄".includes(c))).toBe(true);
     });
 
     it("forwards events to child", () => {
