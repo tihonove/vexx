@@ -14,32 +14,33 @@ describe("Grid", () => {
 
         it("allocates width × height cells", () => {
             const grid = new Grid(new Size(4, 3));
-            expect(grid.cells).toHaveLength(12);
+            expect(grid.cellCount).toBe(12);
         });
 
         it("initializes all cells as empty spaces", () => {
             const grid = new Grid(new Size(3, 2));
-            for (const cell of grid.cells) {
-                expect(cell.char).toBe(" ");
-                expect(cell.fg).toBe(DEFAULT_COLOR);
-                expect(cell.bg).toBe(DEFAULT_COLOR);
-                expect(cell.style).toBe(StyleFlags.None);
+            for (let y = 0; y < grid.height; y++) {
+                for (let x = 0; x < grid.width; x++) {
+                    const cell = grid.getCellAt(x, y);
+                    expect(cell.char).toBe(" ");
+                    expect(cell.fg).toBe(DEFAULT_COLOR);
+                    expect(cell.bg).toBe(DEFAULT_COLOR);
+                    expect(cell.style).toBe(StyleFlags.None);
+                }
             }
         });
     });
 
     describe("getCell", () => {
-        it("returns the cell at (x, y) from the flat array", () => {
+        it("returns the cell at (x, y)", () => {
             const grid = new Grid(new Size(5, 3));
-            // Manually mutate cell at flat index for (2, 1): index = 1*5 + 2 = 7
-            grid.cells[7].char = "X";
+            grid.setCell(new Point(2, 1), "X");
             expect(grid.getCell(new Point(2, 1)).char).toBe("X");
         });
 
-        it("returns a direct reference — mutations propagate", () => {
+        it("reflects mutations via setCell", () => {
             const grid = new Grid(new Size(3, 3));
-            const cell = grid.getCell(new Point(1, 2));
-            cell.char = "!";
+            grid.setCell(new Point(1, 2), "!");
             expect(grid.getCell(new Point(1, 2)).char).toBe("!");
         });
     });
@@ -76,11 +77,14 @@ describe("Grid", () => {
             const green = packRgb(0, 255, 0);
             grid.fill(".", green, DEFAULT_COLOR, StyleFlags.Dim);
 
-            for (const cell of grid.cells) {
-                expect(cell.char).toBe(".");
-                expect(cell.fg).toBe(green);
-                expect(cell.bg).toBe(DEFAULT_COLOR);
-                expect(cell.style).toBe(StyleFlags.Dim);
+            for (let y = 0; y < grid.height; y++) {
+                for (let x = 0; x < grid.width; x++) {
+                    const cell = grid.getCellAt(x, y);
+                    expect(cell.char).toBe(".");
+                    expect(cell.fg).toBe(green);
+                    expect(cell.bg).toBe(DEFAULT_COLOR);
+                    expect(cell.style).toBe(StyleFlags.Dim);
+                }
             }
         });
 

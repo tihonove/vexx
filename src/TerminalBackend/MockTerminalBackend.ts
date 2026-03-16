@@ -47,7 +47,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     public renderFrame(grid: Grid, cursorPosition: Point): void {
         for (let y = 0; y < grid.height && y < this.size.height; y++) {
             for (let x = 0; x < grid.width && x < this.size.width; x++) {
-                this.cells[y][x] = grid.getCell(new Point(x, y)).char;
+                this.cells[y][x] = grid.getCellAt(x, y).char;
             }
         }
         this.cursorPosition = cursorPosition;

@@ -1,7 +1,6 @@
 import { DEFAULT_COLOR, unpackR, unpackG, unpackB } from "./ColorUtils.ts";
 import { StyleFlags } from "./StyleFlags.ts";
 import type { Grid } from "./Grid.ts";
-import { reject } from "../Common/TypingUtils.ts";
 
 /** Minimal writable interface so we can inject a test double instead of real stdout. */
 export interface WritableOutput {
@@ -52,8 +51,6 @@ export class TerminalRenderer {
     public render(currentGrid: Grid, previousGrid: Grid): void {
         const width = currentGrid.width;
         const height = currentGrid.height;
-        const curCells = currentGrid.cells;
-        const prevCells = previousGrid.cells;
 
         let buf = "";
 
@@ -66,16 +63,13 @@ export class TerminalRenderer {
         let cursorY = -1;
 
         for (let y = 0; y < height; y++) {
-            const rowOffset = y * width;
             for (let x = 0; x < width; x++) {
-                const idx = rowOffset + x;
-                const cur = curCells[idx] ?? reject();
-                const prev = prevCells[idx] ?? reject();
-
                 // Skip bottom-right corner: writing here triggers hardware scroll.
                 if (x === width - 1 && y === height - 1) continue;
 
-                if (cur.equals(prev)) continue;
+                if (currentGrid.cellEqualsAt(x, y, previousGrid)) continue;
+
+                const cur = currentGrid.getCellAt(x, y);
 
                 // ── Cursor positioning ──────────────────────────
                 // If the cursor is already at (x, y) we can skip the CUP sequence.
@@ -140,7 +134,7 @@ export class TerminalRenderer {
                 }
 
                 // Update previous-frame buffer so the next render sees no diff.
-                prev.copyFrom(cur);
+                previousGrid.copyCellFrom(x, y, currentGrid);
             }
         }
 

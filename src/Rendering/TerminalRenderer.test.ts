@@ -58,9 +58,7 @@ describe("TerminalRenderer", () => {
             const a = new Grid(new Size(3, 2));
             const b = new Grid(new Size(3, 2));
             // Make both grids identical by syncing previous to current
-            for (let i = 0; i < a.cells.length; i++) {
-                b.cells[i].copyFrom(a.cells[i]);
-            }
+            b.copyAllCellsFrom(a);
             renderer.render(a, b);
             expect(cap.output).toBe("");
         });

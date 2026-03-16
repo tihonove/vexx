@@ -1,15 +1,9 @@
 import type { ITerminalBackend } from "../TerminalBackend/ITerminalBackend.ts";
 import { Grid } from "../Rendering/Grid.ts";
+import type { CellPatch } from "../Rendering/Grid.ts";
 import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
 import { Point, Size } from "../Common/GeometryPromitives.ts";
-
-export interface CellData {
-    char?: string;
-    fg?: number;
-    bg?: number;
-    style?: number;
-}
 
 export class TerminalScreen {
     private grid: Grid;
@@ -32,12 +26,8 @@ export class TerminalScreen {
         this.cursorPosition = position;
     }
 
-    public setCell(position: Point, cell: CellData): void {
-        const target = this.grid.getCell(position);
-        if (cell.char !== undefined) target.char = cell.char;
-        if (cell.fg !== undefined) target.fg = cell.fg;
-        if (cell.bg !== undefined) target.bg = cell.bg;
-        if (cell.style !== undefined) target.style = cell.style;
+    public setCell(position: Point, cell: CellPatch): void {
+        this.grid.updateCell(position, cell);
     }
 
     public flush(backend: ITerminalBackend): void {
