@@ -1,5 +1,7 @@
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
+import { UndoManager } from "../Editor/UndoManager.ts";
+import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 import { isSelectionCollapsed, selectionToRange } from "../Editor/ISelection.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
@@ -14,10 +16,12 @@ const SELECTION_BG = packRgb(38, 79, 120);
  */
 export class EditorElement extends TUIElement {
     public readonly viewState: EditorViewState;
+    public readonly undoManager: UndoManager;
 
     public constructor(viewState: EditorViewState) {
         super();
         this.viewState = viewState;
+        this.undoManager = new UndoManager(viewState.document, viewState);
 
         this.addEventListener("keypress", (event) => {
             this.handleKeyPress(event);
@@ -93,18 +97,28 @@ export class EditorElement extends TUIElement {
     }
 
     private handleKeyPress(event: KeyPressEvent): void {
+        if (event.key === "z" && event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey) {
+            this.undoManager.redo();
+            return;
+        }
+
+        if (event.key === "z" && event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+            this.undoManager.undo();
+            return;
+        }
+
         if (event.key === "Enter") {
-            this.viewState.insertNewLine();
+            this.pushUndo(this.viewState.type("\n"));
             return;
         }
 
         if (event.key === "Backspace") {
-            this.viewState.deleteLeft();
+            this.pushUndo(this.viewState.deleteLeft());
             return;
         }
 
         if (event.key === "Delete") {
-            this.viewState.deleteRight();
+            this.pushUndo(this.viewState.deleteRight());
             return;
         }
 
@@ -148,8 +162,14 @@ export class EditorElement extends TUIElement {
 
         // Printable character:     single char, no ctrl/alt/meta modifiers
         if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
-            this.viewState.type(event.key);
+            this.pushUndo(this.viewState.type(event.key));
             return;
+        }
+    }
+
+    private pushUndo(element: IUndoElement | undefined): void {
+        if (element) {
+            this.undoManager.pushUndoElement(element);
         }
     }
 }

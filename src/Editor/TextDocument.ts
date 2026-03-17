@@ -1,7 +1,10 @@
 import type { ILineTokens } from "./ILineTokens.ts";
 import { comparePositions } from "./IPosition.ts";
-import type { ITextDocument } from "./ITextDocument.ts";
+import type { IRange } from "./IRange.ts";
+import { createRange } from "./IRange.ts";
+import type { IApplyEditsResult, ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
+import { createTextEdit } from "./ITextEdit.ts";
 
 /**
  * Simple array-backed implementation of ITextDocument.
@@ -10,9 +13,14 @@ import type { ITextEdit } from "./ITextEdit.ts";
 export class TextDocument implements ITextDocument {
     private lines: string[];
     private tokensByLine = new Map<number, ILineTokens>();
+    private _versionId = 0;
 
     public constructor(text: string) {
         this.lines = text.split("\n");
+    }
+
+    public get versionId(): number {
+        return this._versionId;
     }
 
     public get lineCount(): number {
@@ -33,6 +41,20 @@ export class TextDocument implements ITextDocument {
         return this.lines.join("\n");
     }
 
+    public getTextInRange(range: IRange): string {
+        const { start, end } = range;
+        if (start.line === end.line) {
+            return this.lines[start.line].substring(start.character, end.character);
+        }
+        const result: string[] = [];
+        result.push(this.lines[start.line].substring(start.character));
+        for (let i = start.line + 1; i < end.line; i++) {
+            result.push(this.lines[i]);
+        }
+        result.push(this.lines[end.line].substring(0, end.character));
+        return result.join("\n");
+    }
+
     public getLineTokens(lineIndex: number): ILineTokens | undefined {
         return this.tokensByLine.get(lineIndex);
     }
@@ -41,21 +63,97 @@ export class TextDocument implements ITextDocument {
         this.tokensByLine.set(lineIndex, tokens);
     }
 
-    public applyEdits(edits: readonly ITextEdit[]): void {
+    public applyEdits(edits: readonly ITextEdit[]): IApplyEditsResult {
         if (edits.length === 0) {
-            return;
+            return { appliedVersion: this._versionId, inverseEdits: [] };
         }
 
-        // Sort edits in reverse document order so that earlier edits don't invalidate later positions
-        const sorted = [...edits].sort((a, b) => {
+        this._versionId++;
+
+        // Sort edits in document order (ascending) to collect old texts
+        const docOrder = [...edits].sort((a, b) => {
+            const cmp = comparePositions(a.range.start, b.range.start);
+            if (cmp !== 0) return cmp;
+            return comparePositions(a.range.end, b.range.end);
+        });
+
+        // Collect old texts BEFORE applying any edits
+        const oldTexts = docOrder.map((edit) => this.getTextInRange(edit.range));
+
+        // Sort edits in reverse document order for safe application
+        const reversed = [...edits].sort((a, b) => {
             const cmp = comparePositions(b.range.start, a.range.start);
             if (cmp !== 0) return cmp;
             return comparePositions(b.range.end, a.range.end);
         });
 
-        for (const edit of sorted) {
+        for (const edit of reversed) {
             this.applySingleEdit(edit);
         }
+
+        // Compute inverse edits in new-document coordinates
+        const inverseEdits = this.computeInverseEdits(docOrder, oldTexts);
+
+        return { appliedVersion: this._versionId, inverseEdits };
+    }
+
+    private computeInverseEdits(editsInDocOrder: readonly ITextEdit[], oldTexts: string[]): ITextEdit[] {
+        const inverse: ITextEdit[] = [];
+        let accLineDelta = 0;
+        let accCharDelta = 0;
+        let lastEditLine = -1;
+
+        for (let i = 0; i < editsInDocOrder.length; i++) {
+            const edit = editsInDocOrder[i];
+            const oldText = oldTexts[i];
+
+            // Compute the new start position (where this edit landed in the new document)
+            const newStartLine = edit.range.start.line + accLineDelta;
+            const newStartChar =
+                edit.range.start.line === lastEditLine
+                    ? edit.range.start.character + accCharDelta
+                    : edit.range.start.character;
+
+            // Compute the new end position based on the inserted text dimensions
+            const insertedLines = edit.text.split("\n");
+            const insertedLineCount = insertedLines.length;
+            let newEndLine: number;
+            let newEndChar: number;
+
+            if (insertedLineCount === 1) {
+                newEndLine = newStartLine;
+                newEndChar = newStartChar + insertedLines[0].length;
+            } else {
+                newEndLine = newStartLine + insertedLineCount - 1;
+                newEndChar = insertedLines[insertedLineCount - 1].length;
+            }
+
+            // The inverse edit replaces the inserted text range with the old text
+            inverse.push(
+                createTextEdit(createRange(newStartLine, newStartChar, newEndLine, newEndChar), oldText),
+            );
+
+            // Update accumulated deltas
+            const deletedLines = edit.range.end.line - edit.range.start.line;
+            const lineDelta = insertedLineCount - 1 - deletedLines;
+            accLineDelta += lineDelta;
+
+            if (insertedLineCount === 1 && deletedLines === 0) {
+                const charDelta =
+                    insertedLines[0].length - (edit.range.end.character - edit.range.start.character);
+                if (edit.range.start.line === lastEditLine) {
+                    accCharDelta += charDelta;
+                } else {
+                    accCharDelta = charDelta;
+                }
+                lastEditLine = edit.range.start.line;
+            } else {
+                accCharDelta = 0;
+                lastEditLine = -1;
+            }
+        }
+
+        return inverse;
     }
 
     // ─── Private ────────────────────────────────────────────

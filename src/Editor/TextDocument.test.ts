@@ -215,4 +215,104 @@ describe("TextDocument", () => {
         // Line 0 is untouched — tokens should remain
         expect(doc.getLineTokens(0)).toEqual(tokensAaa);
     });
+
+    // ─── Version ID ─────────────────────────────────────────
+
+    it("starts with versionId 0", () => {
+        const doc = new TextDocument("hello");
+        expect(doc.versionId).toBe(0);
+    });
+
+    it("increments versionId on each applyEdits call", () => {
+        const doc = new TextDocument("hello");
+        doc.applyEdits([createInsertEdit(0, 5, " world")]);
+        expect(doc.versionId).toBe(1);
+        doc.applyEdits([createInsertEdit(0, 11, "!")]);
+        expect(doc.versionId).toBe(2);
+    });
+
+    it("does not increment versionId for empty edits", () => {
+        const doc = new TextDocument("hello");
+        doc.applyEdits([]);
+        expect(doc.versionId).toBe(0);
+    });
+
+    // ─── getTextInRange ─────────────────────────────────────
+
+    it("getTextInRange returns text within a single line", () => {
+        const doc = new TextDocument("hello world");
+        expect(doc.getTextInRange(createRange(0, 0, 0, 5))).toBe("hello");
+        expect(doc.getTextInRange(createRange(0, 6, 0, 11))).toBe("world");
+    });
+
+    it("getTextInRange returns text spanning multiple lines", () => {
+        const doc = new TextDocument("aaa\nbbb\nccc");
+        expect(doc.getTextInRange(createRange(0, 1, 2, 2))).toBe("aa\nbbb\ncc");
+    });
+
+    it("getTextInRange returns empty string for collapsed range", () => {
+        const doc = new TextDocument("hello");
+        expect(doc.getTextInRange(createRange(0, 3, 0, 3))).toBe("");
+    });
+
+    // ─── Inverse Edits ──────────────────────────────────────
+
+    it("returns inverse edits that undo a single-line insertion", () => {
+        const doc = new TextDocument("hello");
+        const { inverseEdits } = doc.applyEdits([createInsertEdit(0, 5, " world")]);
+        expect(doc.getText()).toBe("hello world");
+        doc.applyEdits(inverseEdits);
+        expect(doc.getText()).toBe("hello");
+    });
+
+    it("returns inverse edits that undo a single-line deletion", () => {
+        const doc = new TextDocument("hello world");
+        const { inverseEdits } = doc.applyEdits([createDeleteEdit(0, 5, 0, 11)]);
+        expect(doc.getText()).toBe("hello");
+        doc.applyEdits(inverseEdits);
+        expect(doc.getText()).toBe("hello world");
+    });
+
+    it("returns inverse edits that undo a replacement", () => {
+        const doc = new TextDocument("hello world");
+        const { inverseEdits } = doc.applyEdits([createTextEdit(createRange(0, 0, 0, 5), "goodbye")]);
+        expect(doc.getText()).toBe("goodbye world");
+        doc.applyEdits(inverseEdits);
+        expect(doc.getText()).toBe("hello world");
+    });
+
+    it("returns inverse edits that undo a multi-line insertion", () => {
+        const doc = new TextDocument("ac");
+        const { inverseEdits } = doc.applyEdits([createInsertEdit(0, 1, "\nbb\n")]);
+        expect(doc.getText()).toBe("a\nbb\nc");
+        doc.applyEdits(inverseEdits);
+        expect(doc.getText()).toBe("ac");
+    });
+
+    it("returns inverse edits that undo a multi-line deletion", () => {
+        const doc = new TextDocument("aaa\nbbb\nccc");
+        const { inverseEdits } = doc.applyEdits([createDeleteEdit(0, 1, 2, 1)]);
+        expect(doc.getText()).toBe("acc");
+        doc.applyEdits(inverseEdits);
+        expect(doc.getText()).toBe("aaa\nbbb\nccc");
+    });
+
+    it("returns inverse edits for multiple simultaneous edits", () => {
+        const doc = new TextDocument("abcdef");
+        const original = doc.getText();
+        const { inverseEdits } = doc.applyEdits([
+            createInsertEdit(0, 3, "X"),
+            createInsertEdit(0, 0, "Y"),
+        ]);
+        expect(doc.getText()).toBe("YabcXdef");
+        doc.applyEdits(inverseEdits);
+        expect(doc.getText()).toBe(original);
+    });
+
+    it("returns appliedVersion matching doc.versionId", () => {
+        const doc = new TextDocument("hello");
+        const { appliedVersion } = doc.applyEdits([createInsertEdit(0, 0, "X")]);
+        expect(appliedVersion).toBe(doc.versionId);
+        expect(appliedVersion).toBe(1);
+    });
 });

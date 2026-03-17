@@ -7,6 +7,7 @@ import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
 import { createTextEdit } from "./ITextEdit.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
+import type { IUndoElement } from "./IUndoElement.ts";
 
 /**
  * Represents the view state for one editor pane.
@@ -130,12 +131,23 @@ export class EditorViewState {
      * Types text at every cursor/selection.
      * If a selection is non-collapsed, the selected text is replaced.
      */
-    public type(text: string): void {
+    public type(text: string): IUndoElement {
+        const beforeSelections = this.cloneSelections();
+        const versionBefore = this.document.versionId;
         const edits = this.buildEditsFromSelections(text);
-        this.document.applyEdits(edits);
+        const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
         this.adjustFoldingRegionsForEdits(edits);
         this.selections = this.computeSelectionsAfterEdits(edits);
         this.ensureCursorVisible();
+        return {
+            label: "type",
+            versionBefore,
+            versionAfter: appliedVersion,
+            forwardEdits: edits,
+            backwardEdits: inverseEdits,
+            beforeSelections,
+            afterSelections: this.cloneSelections(),
+        };
     }
 
     /**
@@ -148,7 +160,7 @@ export class EditorViewState {
     /**
      * Deletes one character to the left of each cursor, or deletes the selection.
      */
-    public deleteLeft(): void {
+    public deleteLeft(): IUndoElement | undefined {
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -168,11 +180,24 @@ export class EditorViewState {
         }
 
         if (edits.length > 0) {
-            this.document.applyEdits(edits);
+            const beforeSelections = this.cloneSelections();
+            const versionBefore = this.document.versionId;
+            const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
             this.adjustFoldingRegionsForEdits(edits);
             this.selections = this.computeSelectionsAfterEdits(edits);
             this.ensureCursorVisible();
+            return {
+                label: "deleteLeft",
+                versionBefore,
+                versionAfter: appliedVersion,
+                forwardEdits: edits,
+                backwardEdits: inverseEdits,
+                beforeSelections,
+                afterSelections: this.cloneSelections(),
+            };
         }
+
+        return undefined;
     }
 
     // ─── Cursor Navigation ───────────────────────────────────
@@ -308,7 +333,7 @@ export class EditorViewState {
     /**
      * Deletes one character to the right of each cursor, or deletes the selection.
      */
-    public deleteRight(): void {
+    public deleteRight(): IUndoElement | undefined {
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -328,11 +353,24 @@ export class EditorViewState {
         }
 
         if (edits.length > 0) {
-            this.document.applyEdits(edits);
+            const beforeSelections = this.cloneSelections();
+            const versionBefore = this.document.versionId;
+            const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
             this.adjustFoldingRegionsForEdits(edits);
             this.selections = this.computeSelectionsAfterEdits(edits);
             this.ensureCursorVisible();
+            return {
+                label: "deleteRight",
+                versionBefore,
+                versionAfter: appliedVersion,
+                forwardEdits: edits,
+                backwardEdits: inverseEdits,
+                beforeSelections,
+                afterSelections: this.cloneSelections(),
+            };
         }
+
+        return undefined;
     }
 
     // ─── Auto-expand ────────────────────────────────────────
@@ -347,6 +385,14 @@ export class EditorViewState {
                 region.isCollapsed = false;
             }
         }
+    }
+
+    /**
+     * Restores selections from a saved snapshot (used by UndoManager).
+     */
+    public restoreSelections(selections: readonly ISelection[]): void {
+        this.selections = [...selections];
+        this.ensureCursorVisible();
     }
 
     // ─── Private ────────────────────────────────────────────
@@ -614,5 +660,9 @@ export class EditorViewState {
             const rangeB = selectionToRange(b);
             return comparePositions(rangeA.start, rangeB.start);
         });
+    }
+
+    private cloneSelections(): ISelection[] {
+        return this.selections.map((s) => ({ ...s, anchor: { ...s.anchor }, active: { ...s.active } }));
     }
 }
