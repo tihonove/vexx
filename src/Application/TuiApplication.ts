@@ -1,4 +1,4 @@
-import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
 import type { ITerminalBackend } from "../TerminalBackend/ITerminalBackend.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
@@ -18,7 +18,15 @@ export class TuiApplication {
     private renderFrame(): void {
         if (this.root) {
             this.screen.clear();
-            this.root.performLayout(BoxConstraints.tight(this.screen.size));
+
+            // Set root global position to (0, 0) — top-left of screen
+            this.root.globalPosition = new Point(0, 0);
+
+            // Perform layout with tight constraints based on screen size
+            const constraints = BoxConstraints.tight(this.screen.size);
+            this.root.performLayout(constraints);
+
+            // Render
             this.root.render(new RenderContext(this.screen));
             this.screen.flush(this.backend);
         }
@@ -33,6 +41,10 @@ export class TuiApplication {
 
     private handleResize(size: Size): void {
         this.screen = new TerminalScreen(size);
+        // Mark root as dirty so next render recalculates layout
+        if (this.root) {
+            this.root.markDirty();
+        }
         this.renderFrame();
     }
 

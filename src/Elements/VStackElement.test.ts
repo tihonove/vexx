@@ -1,7 +1,7 @@
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
-import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
@@ -202,5 +202,66 @@ describe("VStackElement", () => {
                 +--------+
             `,
         );
+    });
+
+    it("sets localPosition for each child", () => {
+        const { vstack } = createVStack(10, 6);
+
+        const box1 = new BoxElement();
+        const box2 = new BoxElement();
+        vstack.addChild(box1, { width: "fill", height: 3 });
+        vstack.addChild(box2, { width: "fill", height: 3 });
+
+        vstack.performLayout(BoxConstraints.tight(new Size(10, 6)));
+
+        // First child at y=0
+        expect(box1.localPosition).toEqual(new Offset(0, 0));
+        // Second child at y=3
+        expect(box2.localPosition).toEqual(new Offset(0, 3));
+    });
+
+    it("sets globalPosition for each child based on parent globalPosition", () => {
+        const { vstack } = createVStack(10, 6);
+
+        const box1 = new BoxElement();
+        const box2 = new BoxElement();
+        vstack.addChild(box1, { width: "fill", height: 3 });
+        vstack.addChild(box2, { width: "fill", height: 3 });
+
+        // Set parent global position to (5, 10)
+        vstack.globalPosition = new Point(5, 10);
+        vstack.performLayout(BoxConstraints.tight(new Size(10, 6)));
+
+        // First child should be at (5, 10)
+        expect(box1.globalPosition).toEqual(new Point(5, 10));
+        // Second child should be at (5, 13)
+        expect(box2.globalPosition).toEqual(new Point(5, 13));
+    });
+
+    it("child markDirty propagates to parent", () => {
+        const { vstack } = createVStack(10, 6);
+
+        const box = new BoxElement();
+        vstack.addChild(box, { width: "fill", height: 3 });
+
+        vstack.performLayout(BoxConstraints.tight(new Size(10, 6)));
+        expect(vstack.isLayoutDirty).toBe(false);
+
+        box.markDirty();
+
+        expect(vstack.isLayoutDirty).toBe(true);
+    });
+
+    it("child inherits vstack as parent after addChild", () => {
+        const { vstack } = createVStack(10, 6);
+        const box = new BoxElement();
+
+        vstack.addChild(box, { width: "fill", height: 3 });
+
+        // Verify by checking that child's markDirty affects vstack
+        vstack.performLayout(BoxConstraints.tight(new Size(10, 6)));
+        box.markDirty();
+
+        expect(vstack.isLayoutDirty).toBe(true);
     });
 });

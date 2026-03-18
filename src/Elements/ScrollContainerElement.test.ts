@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
-import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
@@ -165,5 +165,56 @@ describe("ScrollContainerElement", () => {
         });
 
         expect(child.scrollTop).toBe(1);
+    });
+
+    it("sets child localPosition to (0, 0)", () => {
+        const { container, child } = createScrollContainer(12, 5, 50);
+
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
+
+        expect(child.localPosition).toEqual(new Offset(0, 0));
+    });
+
+    it("sets child globalPosition based on container globalPosition", () => {
+        const { container, child } = createScrollContainer(12, 5, 50);
+
+        // Set container global position to (10, 20)
+        container.globalPosition = new Point(10, 20);
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
+
+        // Child should be at (10, 20)
+        expect(child.globalPosition).toEqual(new Point(10, 20));
+    });
+
+    it("child markDirty propagates to container", () => {
+        const { container, child } = createScrollContainer(12, 5, 50);
+
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
+        expect(container.isLayoutDirty).toBe(false);
+
+        child.markDirty();
+
+        expect(container.isLayoutDirty).toBe(true);
+    });
+
+    it("child inherits container as parent after construction", () => {
+        const { container, child } = createScrollContainer(12, 5, 50);
+
+        // Verify by checking that child's markDirty affects container
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
+        child.markDirty();
+
+        expect(container.isLayoutDirty).toBe(true);
+    });
+
+    it("allocates child width as container width minus 1 while updating coordinates", () => {
+        const { container, child } = createScrollContainer(12, 5, 50);
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
+
+        // Child should have width=11 (12-1 for scrollbar) and height=5
+        expect(child.size.width).toBe(11);
+        expect(child.size.height).toBe(5);
+        // And should have proper coordinates
+        expect(child.localPosition).toEqual(new Offset(0, 0));
     });
 });
