@@ -14,7 +14,7 @@ export class TUIElement {
     public dirty = false;
     public size: Size = new Size(80, 24);
     public contentSize: Size = new Size(80, 24);
-    private eventListeners: Record<string, ((event: KeyPressEvent) => void)[]> = {};
+    private eventListeners: Partial<Record<string, ((event: KeyPressEvent) => void)[]>> = {};
 
     public emit(event: TUIEvent): void {
         const listeners = this.eventListeners[event.type] ?? [];
@@ -24,9 +24,7 @@ export class TUIElement {
     }
 
     public addEventListener(event: "keypress", handler: (event: KeyPressEvent) => void): void {
-        if (!this.eventListeners[event]) {
-            this.eventListeners[event] = [];
-        }
+        this.eventListeners[event] ??= [];
         this.eventListeners[event].push(handler);
     }
 }
