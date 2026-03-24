@@ -582,7 +582,7 @@ describe("EditorViewState.CursorManagement", () => {
 
 describe("EditorViewState.Scroll — ensureCursorVisible", () => {
     function makeLines(count: number): string {
-        return Array.from({ length: count }, (_, i) => `line ${i}`).join("\n");
+        return Array.from({ length: count }, (_, i) => `line ${i.toString()}`).join("\n");
     }
 
     it("scrollTop increases when cursor moves below viewport", () => {

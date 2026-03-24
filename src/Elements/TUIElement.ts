@@ -30,6 +30,7 @@ export class TUIElement {
     public globalPosition: Point = new Point(0, 0);
     public isLayoutDirty = true;
     protected _parent: TUIElement | null = null;
+    protected root: TUIElement | null = null;
 
     private eventListeners: Record<KeyboardEventType, ((event: KeyPressEvent) => void)[]> = {
         keypress: [],
@@ -88,11 +89,31 @@ export class TUIElement {
     }
 
     /**
-     * Sets parent reference for dirty propagation.
+     * Sets parent reference for dirty propagation and root reference propagation.
      * Called by parent elements when adding children.
      */
     public setParent(parent: TUIElement | null): void {
         this._parent = parent;
+        // Propagate root from parent to child
+        if (parent) {
+            this.root = parent.root;
+        } else {
+            this.root = null;
+        }
+    }
+
+    /**
+     * Returns the root element of the hierarchy.
+     */
+    public getRoot(): TUIElement | null {
+        return this.root;
+    }
+
+    /**
+     * Sets this element as the root (used for testing and by BodyElement).
+     */
+    public setAsRoot(): void {
+        this.root = this;
     }
 
     /**

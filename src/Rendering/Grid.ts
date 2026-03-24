@@ -24,9 +24,15 @@ export class Grid {
     public readonly size: Size;
     private readonly cells: Cell[];
 
-    public get width(): number { return this.size.width; }
-    public get height(): number { return this.size.height; }
-    public get cellCount(): number { return this.cells.length; }
+    public get width(): number {
+        return this.size.width;
+    }
+    public get height(): number {
+        return this.size.height;
+    }
+    public get cellCount(): number {
+        return this.cells.length;
+    }
 
     public constructor(size: Size) {
         this.size = size;

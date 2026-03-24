@@ -30,7 +30,9 @@ function renderLayer(
 
 describe("ContextMenuLayer", () => {
     it("renders nothing when no items", () => {
-        const backend = renderLayer(10, 3, () => {});
+        const backend = renderLayer(10, 3, () => {
+            // noop
+        });
         const screenStr = backend.screenToString();
         // All spaces
         expect(screenStr.includes("+")).toBe(false);

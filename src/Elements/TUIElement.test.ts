@@ -259,7 +259,7 @@ describe("TUIElement coordinate system", () => {
         element.performLayout(BoxConstraints.tight(new Size(10, 5)));
         const spy = vi.spyOn(element, "performLayout");
 
-        const cached = element["getCachedSize"]();
+        const cached = element.getCachedSize();
 
         expect(spy).not.toHaveBeenCalled();
         expect(cached).toEqual(new Size(10, 5));
@@ -301,5 +301,73 @@ describe("TUIElement coordinate system", () => {
 
         expect(size).toEqual(new Size(80, 24)); // default
         expect(element.isLayoutDirty).toBe(false);
+    });
+});
+
+describe("TUIElement root reference propagation", () => {
+    it("setParent propagates root from parent to child", () => {
+        const parent = new TUIElement();
+        const child = new TUIElement();
+
+        parent.setAsRoot();
+
+        child.setParent(parent);
+
+        expect(child.getRoot()).toBe(parent);
+    });
+
+    it("setParent(null) clears root reference", () => {
+        const parent = new TUIElement();
+        const child = new TUIElement();
+
+        parent.setAsRoot();
+        child.setParent(parent);
+        expect(child.getRoot()).toBe(parent);
+
+        child.setParent(null);
+        expect(child.getRoot()).toBeNull();
+    });
+
+    it("nested children all get root reference from grandparent", () => {
+        const root = new TUIElement();
+        const parent = new TUIElement();
+        const child = new TUIElement();
+
+        root.setAsRoot();
+        parent.setParent(root);
+        child.setParent(parent);
+
+        expect(root.getRoot()).toBe(root);
+        expect(parent.getRoot()).toBe(root);
+        expect(child.getRoot()).toBe(root);
+    });
+
+    it("multiple children of same parent all get same root", () => {
+        const root = new TUIElement();
+        const child1 = new TUIElement();
+        const child2 = new TUIElement();
+
+        root.setAsRoot();
+        child1.setParent(root);
+        child2.setParent(root);
+
+        expect(child1.getRoot()).toBe(root);
+        expect(child2.getRoot()).toBe(root);
+        expect(child1.getRoot()).toBe(child2.getRoot());
+    });
+
+    it("changing parent updates root reference", () => {
+        const root1 = new TUIElement();
+        const root2 = new TUIElement();
+        const child = new TUIElement();
+
+        root1.setAsRoot();
+        root2.setAsRoot();
+
+        child.setParent(root1);
+        expect(child.getRoot()).toBe(root1);
+
+        child.setParent(root2);
+        expect(child.getRoot()).toBe(root2);
     });
 });

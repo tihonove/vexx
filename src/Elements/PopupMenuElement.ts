@@ -38,9 +38,7 @@ export class PopupMenuElement extends TUIElement {
     public constructor(entries: MenuEntry[]) {
         super();
         this.entries = entries;
-        this.selectableIndices = entries
-            .map((e, i) => (isSeparator(e) ? -1 : i))
-            .filter((i) => i >= 0);
+        this.selectableIndices = entries.map((e, i) => (isSeparator(e) ? -1 : i)).filter((i) => i >= 0);
         this.selectedIndex = this.selectableIndices.length > 0 ? this.selectableIndices[0] : -1;
 
         this.addEventListener("keydown", (event) => {

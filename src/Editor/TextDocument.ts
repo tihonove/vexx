@@ -129,9 +129,7 @@ export class TextDocument implements ITextDocument {
             }
 
             // The inverse edit replaces the inserted text range with the old text
-            inverse.push(
-                createTextEdit(createRange(newStartLine, newStartChar, newEndLine, newEndChar), oldText),
-            );
+            inverse.push(createTextEdit(createRange(newStartLine, newStartChar, newEndLine, newEndChar), oldText));
 
             // Update accumulated deltas
             const deletedLines = edit.range.end.line - edit.range.start.line;
@@ -139,8 +137,7 @@ export class TextDocument implements ITextDocument {
             accLineDelta += lineDelta;
 
             if (insertedLineCount === 1 && deletedLines === 0) {
-                const charDelta =
-                    insertedLines[0].length - (edit.range.end.character - edit.range.start.character);
+                const charDelta = insertedLines[0].length - (edit.range.end.character - edit.range.start.character);
                 if (edit.range.start.line === lastEditLine) {
                     accCharDelta += charDelta;
                 } else {

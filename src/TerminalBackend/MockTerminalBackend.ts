@@ -120,7 +120,13 @@ export class MockTerminalBackend implements ITerminalBackend {
     public getTextAt(position: Point, length: number): string {
         let result = "";
         for (let i = 0; i < length; i++) {
-            const cell = position.y >= 0 && position.y < this.size.height && position.x + i >= 0 && position.x + i < this.size.width ? this.cells[position.y][position.x + i] : null;
+            const cell =
+                position.y >= 0 &&
+                position.y < this.size.height &&
+                position.x + i >= 0 &&
+                position.x + i < this.size.width
+                    ? this.cells[position.y][position.x + i]
+                    : null;
             result += cell ?? " ";
         }
         return result;

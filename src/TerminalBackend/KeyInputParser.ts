@@ -48,7 +48,7 @@ export class KeyInputParser {
     /**
      * Parse a chunk of raw terminal input into browser-like keyboard events.
      */
-    parse(data: string): KeyPressEvent[] {
+    public parse(data: string): KeyPressEvent[] {
         const rawEvents = parseInput(data);
         const result: KeyPressEvent[] = [];
 
@@ -73,6 +73,7 @@ export class KeyInputParser {
                 // Repeat event from Kitty — pass through as-is (already keypress)
                 this.pressedKeys.add(event.key);
                 result.push(event);
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             } else if (event.type === "keyup") {
                 if (!modifierKeyValues.has(event.key) && !this.pressedKeys.has(event.key)) {
                     // Orphaned keyup — synthesize keydown + keypress before it

@@ -117,17 +117,17 @@ export function serializeKey(name: string): string {
             return `\x1b[${letter}`;
         }
         const mod = encodeModifier(ctrl, shift, alt, meta);
-        return `\x1b[1;${mod}${letter}`;
+        return `\x1b[1;${mod.toString()}${letter}`;
     }
 
     // CSI tilde keys (Insert, Delete, PageUp, PageDown, F5–F12)
     if (remaining in csiTildeKeys) {
         const num = csiTildeKeys[remaining];
         if (!hasModifiers) {
-            return `\x1b[${num}~`;
+            return `\x1b[${num.toString()}~`;
         }
         const mod = encodeModifier(ctrl, shift, alt, meta);
-        return `\x1b[${num};${mod}~`;
+        return `\x1b[${num.toString()};${mod.toString()}~`;
     }
 
     // Single printable character (no modifiers)

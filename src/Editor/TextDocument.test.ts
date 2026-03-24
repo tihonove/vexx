@@ -300,10 +300,7 @@ describe("TextDocument", () => {
     it("returns inverse edits for multiple simultaneous edits", () => {
         const doc = new TextDocument("abcdef");
         const original = doc.getText();
-        const { inverseEdits } = doc.applyEdits([
-            createInsertEdit(0, 3, "X"),
-            createInsertEdit(0, 0, "Y"),
-        ]);
+        const { inverseEdits } = doc.applyEdits([createInsertEdit(0, 3, "X"), createInsertEdit(0, 0, "Y")]);
         expect(doc.getText()).toBe("YabcXdef");
         doc.applyEdits(inverseEdits);
         expect(doc.getText()).toBe(original);

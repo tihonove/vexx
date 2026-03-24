@@ -10,6 +10,9 @@ export class BodyElement extends TUIElement {
 
     public constructor() {
         super();
+        // BodyElement is the root, so mark it as such
+        this.setAsRoot();
+
         this.contextMenuLayer = new ContextMenuLayer();
         this.contextMenuLayer.setParent(this);
     }
