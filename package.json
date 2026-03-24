@@ -13,6 +13,7 @@
     "demo:raw-events": "node src/demos/tokenizeDemo.ts",
     "demo:renderer": "node src/demos/rendererDemo.ts",
     "demo:scroll": "node src/demos/scrollDemo.ts",
+    "demo:menu-bar": "node src/demos/menuBarDemo.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",

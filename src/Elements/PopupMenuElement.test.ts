@@ -6,7 +6,8 @@ import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { createKeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
-import { PopupMenuElement, MenuEntry } from "./PopupMenuElement.ts";
+import type { MenuEntry } from "./PopupMenuElement.ts";
+import { PopupMenuElement } from "./PopupMenuElement.ts";
 import { RenderContext } from "./TUIElement.ts";
 
 function renderMenu(entries: MenuEntry[], width?: number, height?: number): MockTerminalBackend {

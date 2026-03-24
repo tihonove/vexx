@@ -2,7 +2,8 @@ import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitive
 import { DEFAULT_COLOR, packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
 import type { KeyPressEvent, TUIEvent } from "../TerminalBackend/KeyEvent.ts";
-import { MenuEntry, PopupMenuElement } from "./PopupMenuElement.ts";
+import type { MenuEntry } from "./PopupMenuElement.ts";
+import { PopupMenuElement } from "./PopupMenuElement.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 export interface MenuBarItem {
