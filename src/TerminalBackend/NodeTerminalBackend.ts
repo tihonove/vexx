@@ -104,7 +104,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
     }
 
     public renderFrame(grid: Grid, cursorPosition: Point): void {
-        const sizeChanged = this.prevGrid?.width !== grid.width || this.prevGrid.height !== grid.height;
+        this.prevGrid ??= new Grid(grid.size);
+        const sizeChanged = this.prevGrid.width !== grid.width || this.prevGrid.height !== grid.height;
         if (sizeChanged) {
             this.prevGrid = new Grid(grid.size);
         }

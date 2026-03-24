@@ -259,6 +259,7 @@ describe("TUIElement coordinate system", () => {
         element.performLayout(BoxConstraints.tight(new Size(10, 5)));
         const spy = vi.spyOn(element, "performLayout");
 
+        // @ts-expect-error - getCachedSize is protected, but we want to test it directly
         const cached = element.getCachedSize();
 
         expect(spy).not.toHaveBeenCalled();

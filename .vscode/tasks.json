@@ -9,6 +9,15 @@
 			],
 			"label": "npm: lint",
 			"detail": "eslint src/"
+		},
+		{
+			"type": "npm",
+			"script": "typecheck",
+			"problemMatcher": [
+				"$tsc"
+			],
+			"label": "npm: typecheck",
+			"detail": "tsc --noEmit"
 		}
 	]
 }
