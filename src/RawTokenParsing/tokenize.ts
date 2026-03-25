@@ -1,4 +1,5 @@
-import type { RawTerminalToken, CsiUToken, CsiLetterToken, CsiTildeToken } from "./RawTerminalToken.ts";
+import type { RawTerminalToken, CsiUToken, CsiLetterToken, CsiTildeToken, MouseToken } from "./RawTerminalToken.ts";
+import type { MouseButton, MouseAction } from "./RawTerminalToken.ts";
 
 /**
  * Tokenize raw terminal input into protocol-specific RawTerminalToken[].
@@ -399,7 +400,7 @@ export function inferCode(key: string): string {
 // ─── CSI parser ───
 
 interface CSITokenResult {
-    token: CsiUToken | CsiLetterToken | CsiTildeToken;
+    token: CsiUToken | CsiLetterToken | CsiTildeToken | MouseToken;
     nextIndex: number;
 }
 
@@ -476,6 +477,57 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
         return { token, nextIndex };
     }
 
+    // ── SGR mouse: CSI < Cb ; Cx ; Cy M/m ──
+    if (params.startsWith("<") && (finalByte === "M" || finalByte === "m")) {
+        const sgrParams = params.substring(1); // strip leading '<'
+        const parts = sgrParams.split(";");
+        if (parts.length === 3) {
+            const cb = parseInt(parts[0], 10) || 0;
+            const cx = parseInt(parts[1], 10) || 1;
+            const cy = parseInt(parts[2], 10) || 1;
+            const isRelease = finalByte === "m";
+            const mouseResult = decodeMouseButton(cb, isRelease);
+            const token: MouseToken = {
+                kind: "mouse",
+                button: mouseResult.button,
+                action: mouseResult.action,
+                x: cx,
+                y: cy,
+                shiftKey: (cb & 4) !== 0,
+                altKey: (cb & 8) !== 0,
+                ctrlKey: (cb & 16) !== 0,
+                raw,
+            };
+            return { token, nextIndex };
+        }
+    }
+
+    // ── Legacy mouse: CSI M <3 raw bytes> ──
+    if (finalByte === "M" && params === "") {
+        // Need 3 more bytes after the final 'M'
+        if (nextIndex + 2 < data.length) {
+            const cb = data.charCodeAt(nextIndex) - 32;
+            const cx = data.charCodeAt(nextIndex + 1) - 32;
+            const cy = data.charCodeAt(nextIndex + 2) - 32;
+            const legacyNextIndex = nextIndex + 3;
+            const legacyRaw = data.slice(start, legacyNextIndex);
+            const isRelease = (cb & 3) === 3;
+            const mouseResult = decodeMouseButton(cb, isRelease);
+            const token: MouseToken = {
+                kind: "mouse",
+                button: mouseResult.button,
+                action: mouseResult.action,
+                x: cx,
+                y: cy,
+                shiftKey: (cb & 4) !== 0,
+                altKey: (cb & 8) !== 0,
+                ctrlKey: (cb & 16) !== 0,
+                raw: legacyRaw,
+            };
+            return { token, nextIndex: legacyNextIndex };
+        }
+    }
+
     // ── Cursor / navigation / F1–F4: CSI <1;mod[:eventtype]>? <letter> ──
     const keyName = csiKeyMap[finalByte];
     if (keyName) {
@@ -494,4 +546,45 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
 
     // Unknown CSI sequence
     return null;
+}
+
+// ─── Mouse button decoding ───
+
+/**
+ * Decode xterm mouse button byte into button name and action.
+ *
+ * Button byte encoding:
+ * - Bits 0-1: button number (0=left, 1=middle, 2=right, 3=release in legacy mode)
+ * - Bit 2: Shift
+ * - Bit 3: Alt (Meta)
+ * - Bit 4: Ctrl
+ * - Bit 5: Motion flag (drag / mouse move)
+ * - Bits 6-7: 0=normal buttons, 1=scroll (64), 2=extra buttons (128)
+ *
+ * Scroll: 64+0=up, 64+1=down, 64+2=left, 64+3=right
+ * Extra buttons: 128+0=button 8 (back), 128+1=button 9 (forward), etc.
+ */
+function decodeMouseButton(
+    cb: number,
+    isRelease: boolean,
+): { button: MouseButton; action: MouseAction } {
+    const lowBits = cb & 3;
+    const isMotion = (cb & 32) !== 0;
+    const isScroll = (cb & 64) !== 0;
+
+    if (isScroll) {
+        const scrollActions: MouseAction[] = ["scroll-up", "scroll-down", "scroll-left", "scroll-right"];
+        return { button: "none", action: scrollActions[lowBits] ?? "scroll-up" };
+    }
+
+    const buttons: MouseButton[] = ["left", "middle", "right"];
+    const button: MouseButton = buttons[lowBits] ?? "none";
+
+    if (isRelease) {
+        return { button: lowBits === 3 ? "none" : button, action: "release" };
+    }
+    if (isMotion) {
+        return { button: lowBits === 3 ? "none" : button, action: "move" };
+    }
+    return { button, action: "press" };
 }

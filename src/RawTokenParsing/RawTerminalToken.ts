@@ -110,6 +110,32 @@ export interface UnknownByteToken {
     readonly raw: string;
 }
 
+// ─── Mouse tokens ───
+
+export type MouseButton = "left" | "middle" | "right" | "none";
+export type MouseAction =
+    | "press"
+    | "release"
+    | "move"
+    | "scroll-up"
+    | "scroll-down"
+    | "scroll-left"
+    | "scroll-right";
+
+export interface MouseToken {
+    readonly kind: "mouse";
+    readonly button: MouseButton;
+    readonly action: MouseAction;
+    /** 1-based column */
+    readonly x: number;
+    /** 1-based row */
+    readonly y: number;
+    readonly shiftKey: boolean;
+    readonly altKey: boolean;
+    readonly ctrlKey: boolean;
+    readonly raw: string;
+}
+
 export type RawTerminalToken =
     | CsiUToken
     | PuaToken
@@ -123,4 +149,5 @@ export type RawTerminalToken =
     | CharToken
     | SpecialKeyToken
     | CtrlCharToken
-    | UnknownByteToken;
+    | UnknownByteToken
+    | MouseToken;
