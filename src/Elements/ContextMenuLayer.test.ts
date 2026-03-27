@@ -106,10 +106,10 @@ describe("ContextMenuLayer", () => {
         const keys2: string[] = [];
 
         const box1 = new BoxElement();
-        box1.addEventListener("keydown", (e) => keys1.push(e.key));
+        box1.addLegacyEventListener("keydown", (e) => keys1.push(e.key));
 
         const box2 = new BoxElement();
-        box2.addEventListener("keydown", (e) => keys2.push(e.key));
+        box2.addLegacyEventListener("keydown", (e) => keys2.push(e.key));
 
         layer.addItem(box1, new Point(0, 0), true);
         layer.addItem(box2, new Point(0, 0), false);

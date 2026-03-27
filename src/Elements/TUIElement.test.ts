@@ -2,6 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { TUIElement } from "./TUIElement.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIEventBase, EventPhase } from "../Events/TUIEventBase.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { FocusManager } from "../Events/FocusManager.ts";
 
 function makeKeyEvent(overrides: Partial<KeyPressEvent> & { type: KeyPressEvent["type"] }): KeyPressEvent {
     return {
@@ -16,11 +19,11 @@ function makeKeyEvent(overrides: Partial<KeyPressEvent> & { type: KeyPressEvent[
     };
 }
 
-describe("TUIElement event system", () => {
+describe("TUIElement legacy event system", () => {
     it("calls keypress listeners on keypress event", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addEventListener("keypress", handler);
+        element.addLegacyEventListener("keypress", handler);
 
         const event = makeKeyEvent({ type: "keypress" });
         element.emit(event);
@@ -32,7 +35,7 @@ describe("TUIElement event system", () => {
     it("calls keydown listeners on keydown event", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addEventListener("keydown", handler);
+        element.addLegacyEventListener("keydown", handler);
 
         const event = makeKeyEvent({ type: "keydown" });
         element.emit(event);
@@ -44,7 +47,7 @@ describe("TUIElement event system", () => {
     it("calls keyup listeners on keyup event", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addEventListener("keyup", handler);
+        element.addLegacyEventListener("keyup", handler);
 
         const event = makeKeyEvent({ type: "keyup" });
         element.emit(event);
@@ -56,7 +59,7 @@ describe("TUIElement event system", () => {
     it("does not call keypress listeners on keydown event", () => {
         const element = new TUIElement();
         const keypressHandler = vi.fn();
-        element.addEventListener("keypress", keypressHandler);
+        element.addLegacyEventListener("keypress", keypressHandler);
 
         element.emit(makeKeyEvent({ type: "keydown" }));
 
@@ -76,8 +79,8 @@ describe("TUIElement event system", () => {
         const element = new TUIElement();
         const handler1 = vi.fn();
         const handler2 = vi.fn();
-        element.addEventListener("keydown", handler1);
-        element.addEventListener("keydown", handler2);
+        element.addLegacyEventListener("keydown", handler1);
+        element.addLegacyEventListener("keydown", handler2);
 
         element.emit(makeKeyEvent({ type: "keydown" }));
 
@@ -85,37 +88,37 @@ describe("TUIElement event system", () => {
         expect(handler2).toHaveBeenCalledOnce();
     });
 
-    it("removes a specific listener with removeEventListener", () => {
+    it("removes a specific listener with removeLegacyEventListener", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addEventListener("keydown", handler);
-        element.removeEventListener("keydown", handler);
+        element.addLegacyEventListener("keydown", handler);
+        element.removeLegacyEventListener("keydown", handler);
 
         element.emit(makeKeyEvent({ type: "keydown" }));
 
         expect(handler).not.toHaveBeenCalled();
     });
 
-    it("removeEventListener does not affect other listeners", () => {
+    it("removeLegacyEventListener does not affect other listeners", () => {
         const element = new TUIElement();
         const handler1 = vi.fn();
         const handler2 = vi.fn();
-        element.addEventListener("keypress", handler1);
-        element.addEventListener("keypress", handler2);
+        element.addLegacyEventListener("keypress", handler1);
+        element.addLegacyEventListener("keypress", handler2);
 
-        element.removeEventListener("keypress", handler1);
+        element.removeLegacyEventListener("keypress", handler1);
         element.emit(makeKeyEvent({ type: "keypress" }));
 
         expect(handler1).not.toHaveBeenCalled();
         expect(handler2).toHaveBeenCalledOnce();
     });
 
-    it("removeEventListener is no-op for unregistered handler", () => {
+    it("removeLegacyEventListener is no-op for unregistered handler", () => {
         const element = new TUIElement();
         const handler = vi.fn();
 
         expect(() => {
-            element.removeEventListener("keyup", handler);
+            element.removeLegacyEventListener("keyup", handler);
         }).not.toThrow();
     });
 });
@@ -370,5 +373,383 @@ describe("TUIElement root reference propagation", () => {
 
         child.setParent(root2);
         expect(child.getRoot()).toBe(root2);
+    });
+});
+
+// ─── Helper: container element with explicit children ───
+
+class ContainerElement extends TUIElement {
+    private _children: TUIElement[] = [];
+
+    addChild(child: TUIElement): void {
+        child.setParent(this);
+        this._children.push(child);
+    }
+
+    public override getChildren(): readonly TUIElement[] {
+        return this._children;
+    }
+}
+
+function buildTree(): { root: ContainerElement; parent: ContainerElement; child: TUIElement } {
+    const root = new ContainerElement();
+    root.setAsRoot();
+    const parent = new ContainerElement();
+    root.addChild(parent);
+    const child = new TUIElement();
+    parent.addChild(child);
+    return { root, parent, child };
+}
+
+// ─── New event system tests ───
+
+describe("TUIElement.getChildren", () => {
+    it("returns empty array by default", () => {
+        const el = new TUIElement();
+        expect(el.getChildren()).toEqual([]);
+    });
+
+    it("ContainerElement returns added children", () => {
+        const container = new ContainerElement();
+        const child1 = new TUIElement();
+        const child2 = new TUIElement();
+        container.addChild(child1);
+        container.addChild(child2);
+        expect(container.getChildren()).toEqual([child1, child2]);
+    });
+});
+
+describe("TUIElement.getAncestorPath", () => {
+    it("returns single element for orphaned element", () => {
+        const el = new TUIElement();
+        expect(el.getAncestorPath()).toEqual([el]);
+    });
+
+    it("returns path from root to target", () => {
+        const { root, parent, child } = buildTree();
+        expect(child.getAncestorPath()).toEqual([root, parent, child]);
+    });
+
+    it("returns [root] for root element itself", () => {
+        const { root } = buildTree();
+        expect(root.getAncestorPath()).toEqual([root]);
+    });
+});
+
+describe("TUIElement.getDepthFirstFocusableOrder", () => {
+    it("returns empty when no elements are focusable", () => {
+        const { root } = buildTree();
+        expect(root.getDepthFirstFocusableOrder()).toEqual([]);
+    });
+
+    it("returns focusable elements in depth-first order", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        const a = new TUIElement();
+        a.tabIndex = 0;
+        const b = new TUIElement();
+        b.tabIndex = 0;
+        const c = new TUIElement();
+        // c.tabIndex = -1 (default, not focusable)
+        root.addChild(a);
+        root.addChild(b);
+        root.addChild(c);
+        expect(root.getDepthFirstFocusableOrder()).toEqual([a, b]);
+    });
+
+    it("traverses nested containers depth-first", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        const containerA = new ContainerElement();
+        root.addChild(containerA);
+        const a1 = new TUIElement();
+        a1.tabIndex = 0;
+        containerA.addChild(a1);
+        const a2 = new TUIElement();
+        a2.tabIndex = 0;
+        containerA.addChild(a2);
+
+        const containerB = new ContainerElement();
+        root.addChild(containerB);
+        const b1 = new TUIElement();
+        b1.tabIndex = 0;
+        containerB.addChild(b1);
+
+        expect(root.getDepthFirstFocusableOrder()).toEqual([a1, a2, b1]);
+    });
+});
+
+describe("TUIElement.addEventListener (new event system)", () => {
+    it("registers and fires bubble listener", () => {
+        const el = new TUIElement();
+        const handler = vi.fn();
+        el.addEventListener("keydown", handler);
+
+        const event = new TUIKeyboardEvent("keydown", { key: "a" });
+        el.dispatchEvent(event);
+
+        expect(handler).toHaveBeenCalledOnce();
+        expect(handler).toHaveBeenCalledWith(event);
+    });
+
+    it("registers and fires capture listener", () => {
+        const el = new TUIElement();
+        const handler = vi.fn();
+        el.addEventListener("keydown", handler, { capture: true });
+
+        const event = new TUIKeyboardEvent("keydown", { key: "a" });
+        el.dispatchEvent(event);
+
+        expect(handler).toHaveBeenCalledOnce();
+    });
+
+    it("removeEventListener removes specific listener", () => {
+        const el = new TUIElement();
+        const handler = vi.fn();
+        el.addEventListener("keydown", handler);
+        el.removeEventListener("keydown", handler);
+
+        el.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+        expect(handler).not.toHaveBeenCalled();
+    });
+
+    it("removeEventListener distinguishes capture vs bubble", () => {
+        const el = new TUIElement();
+        const handler = vi.fn();
+        el.addEventListener("keydown", handler, { capture: true });
+        // Removing bubble version should NOT remove capture version
+        el.removeEventListener("keydown", handler, { capture: false });
+
+        el.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+        expect(handler).toHaveBeenCalledOnce();
+    });
+});
+
+describe("TUIElement.dispatchEvent — propagation phases", () => {
+    it("dispatches in capture → target → bubble order", () => {
+        const { root, parent, child } = buildTree();
+        const log: string[] = [];
+
+        root.addEventListener("keydown", () => log.push("root-capture"), { capture: true });
+        root.addEventListener("keydown", () => log.push("root-bubble"));
+        parent.addEventListener("keydown", () => log.push("parent-capture"), { capture: true });
+        parent.addEventListener("keydown", () => log.push("parent-bubble"));
+        child.addEventListener("keydown", () => log.push("child-target"));
+
+        child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(log).toEqual([
+            "root-capture",
+            "parent-capture",
+            "child-target",
+            "parent-bubble",
+            "root-bubble",
+        ]);
+    });
+
+    it("sets target and currentTarget correctly", () => {
+        const { root, child } = buildTree();
+        const targets: { target: TUIElement | null; currentTarget: TUIElement | null }[] = [];
+
+        root.addEventListener("keydown", (e) => {
+            targets.push({ target: e.target, currentTarget: e.currentTarget });
+        }, { capture: true });
+        child.addEventListener("keydown", (e) => {
+            targets.push({ target: e.target, currentTarget: e.currentTarget });
+        });
+
+        child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(targets[0].target).toBe(child);
+        expect(targets[0].currentTarget).toBe(root);
+        expect(targets[1].target).toBe(child);
+        expect(targets[1].currentTarget).toBe(child);
+    });
+
+    it("sets eventPhase correctly during dispatch", () => {
+        const { root, parent, child } = buildTree();
+        const phases: number[] = [];
+
+        root.addEventListener("keydown", (e) => phases.push(e.eventPhase), { capture: true });
+        parent.addEventListener("keydown", (e) => phases.push(e.eventPhase), { capture: true });
+        child.addEventListener("keydown", (e) => phases.push(e.eventPhase));
+        parent.addEventListener("keydown", (e) => phases.push(e.eventPhase));
+        root.addEventListener("keydown", (e) => phases.push(e.eventPhase));
+
+        child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(phases).toEqual([
+            EventPhase.CAPTURING,
+            EventPhase.CAPTURING,
+            EventPhase.AT_TARGET,
+            EventPhase.BUBBLING,
+            EventPhase.BUBBLING,
+        ]);
+    });
+
+    it("stopPropagation during capture prevents target and bubble", () => {
+        const { root, parent, child } = buildTree();
+        const log: string[] = [];
+
+        root.addEventListener("keydown", (e) => {
+            log.push("root-capture");
+            e.stopPropagation();
+        }, { capture: true });
+        parent.addEventListener("keydown", () => log.push("parent-capture"), { capture: true });
+        child.addEventListener("keydown", () => log.push("child-target"));
+        root.addEventListener("keydown", () => log.push("root-bubble"));
+
+        child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(log).toEqual(["root-capture"]);
+    });
+
+    it("stopPropagation during bubble prevents further bubbling", () => {
+        const { root, parent, child } = buildTree();
+        const log: string[] = [];
+
+        child.addEventListener("keydown", () => log.push("child-target"));
+        parent.addEventListener("keydown", (e) => {
+            log.push("parent-bubble");
+            e.stopPropagation();
+        });
+        root.addEventListener("keydown", () => log.push("root-bubble"));
+
+        child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(log).toEqual(["child-target", "parent-bubble"]);
+    });
+
+    it("stopImmediatePropagation prevents other listeners on same element", () => {
+        const el = new TUIElement();
+        const log: string[] = [];
+
+        el.addEventListener("keydown", (e) => {
+            log.push("first");
+            e.stopImmediatePropagation();
+        });
+        el.addEventListener("keydown", () => log.push("second"));
+
+        el.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(log).toEqual(["first"]);
+    });
+
+    it("non-bubbling event does not bubble", () => {
+        const { root, child } = buildTree();
+        const log: string[] = [];
+
+        root.addEventListener("keydown", () => log.push("root-capture"), { capture: true });
+        child.addEventListener("keydown", () => log.push("child-target"));
+        root.addEventListener("keydown", () => log.push("root-bubble"));
+
+        // Create a non-bubbling event
+        const event = new TUIEventBase("keydown", false);
+        child.dispatchEvent(event);
+
+        expect(log).toEqual(["root-capture", "child-target"]);
+    });
+
+    it("returns true when preventDefault not called", () => {
+        const el = new TUIElement();
+        const result = el.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+        expect(result).toBe(true);
+    });
+
+    it("returns false when preventDefault called", () => {
+        const el = new TUIElement();
+        el.addEventListener("keydown", (e) => e.preventDefault());
+        const result = el.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+        expect(result).toBe(false);
+    });
+
+    it("at target phase fires both capture and bubble listeners", () => {
+        const el = new TUIElement();
+        const log: string[] = [];
+
+        el.addEventListener("keydown", () => log.push("capture"), { capture: true });
+        el.addEventListener("keydown", () => log.push("bubble"));
+
+        el.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(log).toEqual(["capture", "bubble"]);
+    });
+
+    it("resets eventPhase to NONE after dispatch", () => {
+        const el = new TUIElement();
+        const event = new TUIKeyboardEvent("keydown", { key: "a" });
+        el.dispatchEvent(event);
+        expect(event.eventPhase).toBe(EventPhase.NONE);
+        expect(event.currentTarget).toBeNull();
+    });
+});
+
+describe("TUIElement focus convenience", () => {
+    it("isFocused returns false when no focusManager", () => {
+        const el = new TUIElement();
+        expect(el.isFocused).toBe(false);
+    });
+
+    it("isFocused returns true when element is activeElement", () => {
+        const root = new TUIElement();
+        root.setAsRoot();
+        const fm = new FocusManager(root);
+        root.focusManager = fm;
+
+        const child = new TUIElement();
+        child.tabIndex = 0;
+        child.setParent(root);
+        fm.setFocus(child);
+
+        expect(child.isFocused).toBe(true);
+    });
+
+    it("focus() sets this as active element", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        const fm = new FocusManager(root);
+        root.focusManager = fm;
+
+        const child = new TUIElement();
+        child.tabIndex = 0;
+        root.addChild(child);
+
+        child.focus();
+        expect(fm.activeElement).toBe(child);
+    });
+
+    it("blur() removes this from active element", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        const fm = new FocusManager(root);
+        root.focusManager = fm;
+
+        const child = new TUIElement();
+        child.tabIndex = 0;
+        root.addChild(child);
+
+        child.focus();
+        expect(fm.activeElement).toBe(child);
+
+        child.blur();
+        expect(fm.activeElement).toBeNull();
+    });
+
+    it("blur() is no-op if element is not focused", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        const fm = new FocusManager(root);
+        root.focusManager = fm;
+
+        const child1 = new TUIElement();
+        child1.tabIndex = 0;
+        root.addChild(child1);
+        const child2 = new TUIElement();
+        child2.tabIndex = 0;
+        root.addChild(child2);
+
+        child1.focus();
+        child2.blur(); // child2 is not focused, should not affect anything
+        expect(fm.activeElement).toBe(child1);
     });
 });

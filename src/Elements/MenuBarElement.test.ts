@@ -272,7 +272,7 @@ describe("MenuBarElement", () => {
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             const keys: string[] = [];
-            content.addEventListener("keydown", (e) => keys.push(e.key));
+            content.addLegacyEventListener("keydown", (e) => keys.push(e.key));
             menuBar.setContent(content);
 
             menuBar.emit(createKeyPressEvent("a", "a"));
@@ -286,7 +286,7 @@ describe("MenuBarElement", () => {
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             const keys: string[] = [];
-            content.addEventListener("keydown", (e) => keys.push(e.key));
+            content.addLegacyEventListener("keydown", (e) => keys.push(e.key));
             menuBar.setContent(content);
 
             menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));

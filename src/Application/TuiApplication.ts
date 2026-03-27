@@ -2,6 +2,8 @@ import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitive
 import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
 import type { ITerminalBackend } from "../TerminalBackend/ITerminalBackend.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { FocusManager } from "../Events/FocusManager.ts";
 import { TerminalScreen } from "./TerminalScreen.ts";
 
 export class TuiApplication {
@@ -9,6 +11,7 @@ export class TuiApplication {
 
     public root: TUIElement | null = null;
     public screen: TerminalScreen;
+    public focusManager: FocusManager | null = null;
 
     public constructor(backend: ITerminalBackend) {
         this.backend = backend;
@@ -34,7 +37,29 @@ export class TuiApplication {
 
     private handleInput(event: KeyPressEvent): void {
         if (this.root) {
+            // Legacy emit path — existing elements still rely on it
             this.root.emit(event);
+
+            // New dispatchEvent path — dispatch to focused element (or root)
+            const tuiEvent = new TUIKeyboardEvent(event.type, {
+                key: event.key,
+                code: event.code,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey,
+                raw: event.raw,
+            });
+
+            const target = this.focusManager?.activeElement ?? this.root;
+            const notPrevented = target.dispatchEvent(tuiEvent);
+
+            // Tab focus cycling (default behavior if not prevented, only on keydown)
+            if (notPrevented && event.key === "Tab" && event.type === "keydown" && this.focusManager) {
+                const direction = event.shiftKey ? "backward" : "forward";
+                this.focusManager.cycleFocus(direction);
+            }
+
             this.renderFrame();
         }
     }
@@ -49,6 +74,12 @@ export class TuiApplication {
     }
 
     public run(): void {
+        // Set up focus manager on root
+        if (this.root) {
+            this.focusManager = new FocusManager(this.root);
+            this.root.focusManager = this.focusManager;
+        }
+
         this.backend.setup();
 
         this.backend.onInput((event) => {

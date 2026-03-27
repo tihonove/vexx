@@ -22,6 +22,13 @@ export class BodyElement extends TUIElement {
         this.content.setParent(this);
     }
 
+    public override getChildren(): readonly TUIElement[] {
+        const children: TUIElement[] = [];
+        if (this.content) children.push(this.content);
+        children.push(this.contextMenuLayer);
+        return children;
+    }
+
     public performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
 

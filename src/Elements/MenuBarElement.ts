@@ -41,6 +41,13 @@ export class MenuBarElement extends TUIElement {
         this.content.setParent(this);
     }
 
+    public override getChildren(): readonly TUIElement[] {
+        const children: TUIElement[] = [];
+        if (this.content) children.push(this.content);
+        if (this.activeMenu) children.push(this.activeMenu);
+        return children;
+    }
+
     public performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
 

@@ -41,7 +41,7 @@ export class PopupMenuElement extends TUIElement {
         this.selectableIndices = entries.map((e, i) => (isSeparator(e) ? -1 : i)).filter((i) => i >= 0);
         this.selectedIndex = this.selectableIndices.length > 0 ? this.selectableIndices[0] : -1;
 
-        this.addEventListener("keydown", (event) => {
+        this.addLegacyEventListener("keydown", (event) => {
             if (event.key === "ArrowUp") {
                 this.moveSelection(-1);
             } else if (event.key === "ArrowDown") {

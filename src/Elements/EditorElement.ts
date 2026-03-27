@@ -23,7 +23,7 @@ export class EditorElement extends TUIElement {
         this.viewState = viewState;
         this.undoManager = new UndoManager(viewState.document, viewState);
 
-        this.addEventListener("keypress", (event) => {
+        this.addLegacyEventListener("keypress", (event) => {
             this.handleKeyPress(event);
         });
     }

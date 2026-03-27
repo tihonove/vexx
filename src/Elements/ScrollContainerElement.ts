@@ -17,6 +17,10 @@ export class ScrollContainerElement extends TUIElement {
         return this.child;
     }
 
+    public override getChildren(): readonly TUIElement[] {
+        return [this.child];
+    }
+
     public performLayout(constraints: BoxConstraints): Size {
         // First, call parent implementation to set _size and mark as clean
         const containerSize = super.performLayout(constraints);

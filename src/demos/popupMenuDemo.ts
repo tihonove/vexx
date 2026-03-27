@@ -30,7 +30,7 @@ menu.onClose = () => {
     body.contextMenuLayer.setVisible(menu, false);
 };
 
-body.addEventListener("keydown", (event) => {
+body.addLegacyEventListener("keydown", (event) => {
     if (event.key === "m" && !body.contextMenuLayer.hasVisibleItems()) {
         body.contextMenuLayer.setVisible(menu, true);
     }

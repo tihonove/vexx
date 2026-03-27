@@ -1,6 +1,8 @@
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent, TUIEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIEventBase, EventPhase } from "../Events/TUIEventBase.ts";
+import type { FocusManager } from "../Events/FocusManager.ts";
 
 export class RenderContext {
     public readonly canvas: TerminalScreen;
@@ -18,12 +20,24 @@ export class RenderContext {
 
 export type KeyboardEventType = "keypress" | "keydown" | "keyup";
 
+export interface AddEventListenerOptions {
+    capture?: boolean;
+}
+
+interface ListenerEntry {
+    handler: (event: TUIEventBase) => void;
+    capture: boolean;
+}
+
 export class TUIElement {
     private _size: Size = new Size(80, 24);
 
     public dirty = false;
     public layoutStyle: unknown = undefined;
     public layoutState: unknown = undefined;
+
+    // Focus support
+    public tabIndex = -1;
 
     // Coordinate system
     public localPosition: Offset = new Offset(0, 0);
@@ -32,11 +46,18 @@ export class TUIElement {
     protected _parent: TUIElement | null = null;
     protected root: TUIElement | null = null;
 
-    private eventListeners: Record<KeyboardEventType, ((event: KeyPressEvent) => void)[]> = {
+    // Focus manager — set only on root element
+    public focusManager: FocusManager | null = null;
+
+    // Legacy listener storage (for backward compat with emit())
+    private legacyListeners: Record<KeyboardEventType, ((event: KeyPressEvent) => void)[]> = {
         keypress: [],
         keydown: [],
         keyup: [],
     };
+
+    // New event listener storage — supports any event type + capture flag
+    private _listeners: Map<string, ListenerEntry[]> = new Map();
 
     /**
      * Lazy evaluation: if isDirty, performs layout with default constraints.
@@ -58,22 +79,170 @@ export class TUIElement {
         return this._size;
     }
 
+    public get isFocused(): boolean {
+        const fm = this.root?.focusManager ?? null;
+        return fm !== null && fm.activeElement === this;
+    }
+
+    public getParent(): TUIElement | null {
+        return this._parent;
+    }
+
+    public getChildren(): readonly TUIElement[] {
+        return [];
+    }
+
+    /**
+     * Builds the path from root to this element (inclusive on both ends).
+     */
+    public getAncestorPath(): TUIElement[] {
+        const path: TUIElement[] = [];
+        let current: TUIElement | null = this;
+        while (current !== null) {
+            path.push(current);
+            current = current._parent;
+        }
+        path.reverse();
+        return path;
+    }
+
+    /**
+     * Returns focusable descendants (tabIndex >= 0) in depth-first order.
+     */
+    public getDepthFirstFocusableOrder(): TUIElement[] {
+        const result: TUIElement[] = [];
+        const visit = (el: TUIElement) => {
+            if (el.tabIndex >= 0) {
+                result.push(el);
+            }
+            for (const child of el.getChildren()) {
+                visit(child);
+            }
+        };
+        visit(this);
+        return result;
+    }
+
+    // ─── Legacy event API (flat dispatch, no propagation) ───
+
     public emit(event: TUIEvent): void {
-        const listeners = this.eventListeners[event.type];
+        const listeners = this.legacyListeners[event.type];
         for (const listener of listeners) {
             listener(event);
         }
     }
 
-    public addEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
-        this.eventListeners[event].push(handler);
+    public addLegacyEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
+        this.legacyListeners[event].push(handler);
     }
 
-    public removeEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
-        const listeners = this.eventListeners[event];
+    public removeLegacyEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
+        const listeners = this.legacyListeners[event];
         const index = listeners.indexOf(handler);
         if (index !== -1) {
             listeners.splice(index, 1);
+        }
+    }
+
+    // ─── New event API (capture/bubble propagation) ───
+
+    public addEventListener(type: string, handler: (event: TUIEventBase) => void, options?: AddEventListenerOptions): void {
+        const capture = options?.capture ?? false;
+        let entries = this._listeners.get(type);
+        if (!entries) {
+            entries = [];
+            this._listeners.set(type, entries);
+        }
+        entries.push({ handler, capture });
+    }
+
+    public removeEventListener(type: string, handler: (event: TUIEventBase) => void, options?: AddEventListenerOptions): void {
+        const capture = options?.capture ?? false;
+        const entries = this._listeners.get(type);
+        if (!entries) return;
+        const index = entries.findIndex((e) => e.handler === handler && e.capture === capture);
+        if (index !== -1) {
+            entries.splice(index, 1);
+        }
+    }
+
+    /**
+     * Dispatches event with capture → target → bubble phases (DOM-like).
+     * Returns true if preventDefault() was NOT called.
+     */
+    public dispatchEvent(event: TUIEventBase): boolean {
+        event.target = this;
+
+        // Build path from root → ... → parent (excluding target)
+        const path: TUIElement[] = [];
+        let current: TUIElement | null = this._parent;
+        while (current !== null) {
+            path.push(current);
+            current = current._parent;
+        }
+        path.reverse(); // root first
+
+        // Capture phase
+        event.eventPhase = EventPhase.CAPTURING;
+        for (const el of path) {
+            event.currentTarget = el;
+            this._invokeListeners(el, event, true);
+            if (event.propagationStopped) break;
+        }
+
+        // Target phase
+        if (!event.propagationStopped) {
+            event.eventPhase = EventPhase.AT_TARGET;
+            event.currentTarget = this;
+            this._invokeListeners(this, event, null); // both capture and bubble listeners
+        }
+
+        // Bubble phase
+        if (!event.propagationStopped && event.bubbles) {
+            event.eventPhase = EventPhase.BUBBLING;
+            for (let i = path.length - 1; i >= 0; i--) {
+                event.currentTarget = path[i];
+                this._invokeListeners(path[i], event, false);
+                if (event.propagationStopped) break;
+            }
+        }
+
+        event.eventPhase = EventPhase.NONE;
+        event.currentTarget = null;
+
+        return !event.defaultPrevented;
+    }
+
+    /**
+     * Invoke listeners on an element for the given event.
+     * captureFilter: true = only capture, false = only bubble, null = both (target phase)
+     */
+    private _invokeListeners(el: TUIElement, event: TUIEventBase, captureFilter: boolean | null): void {
+        const entries = el._listeners.get(event.type);
+        if (!entries) return;
+        // Snapshot to avoid mutation during iteration
+        const snapshot = entries.slice();
+        for (const entry of snapshot) {
+            if (captureFilter === null || entry.capture === captureFilter) {
+                entry.handler(event);
+                if (event.immediatePropagationStopped) break;
+            }
+        }
+    }
+
+    // ─── Focus convenience ───
+
+    public focus(): void {
+        const fm = this.root?.focusManager ?? null;
+        if (fm) {
+            fm.setFocus(this);
+        }
+    }
+
+    public blur(): void {
+        const fm = this.root?.focusManager ?? null;
+        if (fm && fm.activeElement === this) {
+            fm.setFocus(null);
         }
     }
 
@@ -94,11 +263,14 @@ export class TUIElement {
      */
     public setParent(parent: TUIElement | null): void {
         this._parent = parent;
-        // Propagate root from parent to child
-        if (parent) {
-            this.root = parent.root;
-        } else {
-            this.root = null;
+        const newRoot = parent ? parent.root : null;
+        this.propagateRoot(newRoot);
+    }
+
+    private propagateRoot(newRoot: TUIElement | null): void {
+        this.root = newRoot;
+        for (const child of this.getChildren()) {
+            child.propagateRoot(newRoot);
         }
     }
 
@@ -118,8 +290,6 @@ export class TUIElement {
 
     /**
      * Performs layout and returns the calculated size.
-     * Does NOT set this.size anymore — caller must handle the returned value.
-     * Caller should set this._size from outside (TuiApplication or parent element).
      */
     public performLayout(constraints: BoxConstraints): Size {
         const resultSize = constraints.constrain(this._size);

@@ -95,6 +95,11 @@ export function serializeKey(name: string): string {
         return simpleSpecialKeys[remaining];
     }
 
+    // Shift+Tab → CSI Z (reverse tab / backtab)
+    if (shift && !ctrl && !alt && !meta && remaining === "Tab") {
+        return "\x1b[Z";
+    }
+
     // Ctrl+letter → control character (0x01–0x1a)
     if (ctrl && !shift && !alt && !meta && remaining.length === 1 && /[a-zA-Z]/.test(remaining)) {
         const code = remaining.toUpperCase().charCodeAt(0) - 0x40;

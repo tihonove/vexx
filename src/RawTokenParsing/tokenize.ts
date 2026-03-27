@@ -267,6 +267,7 @@ export const csiKeyMap: Partial<Record<string, string>> = {
     Q: "F2",
     R: "F3",
     S: "F4",
+    Z: "Tab", // CSI Z = Shift+Tab (backtab)
 };
 
 /** CSI number~ → key name (navigation, F5–F12) */
@@ -533,6 +534,10 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
     if (keyName) {
         const { mod, eventType } = parseModifierParam(paramStrings.length >= 2 ? (paramStrings[1] ?? "") : "");
         const mods = decodeModifiers(mod);
+        // CSI Z (backtab) implies shiftKey when no explicit modifier
+        if (finalByte === "Z" && !mods.shiftKey) {
+            mods.shiftKey = true;
+        }
         const token: CsiLetterToken = {
             kind: "csi-letter",
             finalByte,

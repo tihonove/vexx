@@ -53,6 +53,10 @@ export class ContextMenuLayer extends TUIElement {
         return this.items;
     }
 
+    public override getChildren(): readonly TUIElement[] {
+        return this.items.map((item) => item.element);
+    }
+
     public performLayout(constraints: BoxConstraints): Size {
         const layerSize = super.performLayout(constraints);
 
