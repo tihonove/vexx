@@ -1,6 +1,6 @@
 import type { IPosition } from "./IPosition.ts";
+import { comparePositions, createPosition, positionsEqual } from "./IPosition.ts";
 import type { IRange } from "./IRange.ts";
-import { createPosition, comparePositions, positionsEqual } from "./IPosition.ts";
 
 /**
  * Represents a selection in a text document.

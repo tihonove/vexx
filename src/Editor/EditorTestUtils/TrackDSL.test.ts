@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { parseDSL, renderToDSL, editorState, expectEditorState } from "./TrackDSL.ts";
-import { createCursorSelection, createSelection } from "../ISelection.ts";
+import { describe, expect, it } from "vitest";
+
 import { createLineTokens, createToken } from "../ILineTokens.ts";
+import { createCursorSelection, createSelection } from "../ISelection.ts";
+
+import { editorState, expectEditorState, parseDSL, renderToDSL } from "./TrackDSL.ts";
 
 // ─── Roundtrip ──────────────────────────────────────────────
 

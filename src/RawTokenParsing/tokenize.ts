@@ -1,5 +1,5 @@
-import type { RawTerminalToken, CsiUToken, CsiLetterToken, CsiTildeToken, MouseToken } from "./RawTerminalToken.ts";
-import type { MouseButton, MouseAction } from "./RawTerminalToken.ts";
+import type { CsiLetterToken, CsiTildeToken, CsiUToken, MouseToken, RawTerminalToken } from "./RawTerminalToken.ts";
+import type { MouseAction, MouseButton } from "./RawTerminalToken.ts";
 
 /**
  * Tokenize raw terminal input into protocol-specific RawTerminalToken[].
@@ -569,10 +569,7 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
  * Scroll: 64+0=up, 64+1=down, 64+2=left, 64+3=right
  * Extra buttons: 128+0=button 8 (back), 128+1=button 9 (forward), etc.
  */
-function decodeMouseButton(
-    cb: number,
-    isRelease: boolean,
-): { button: MouseButton; action: MouseAction } {
+function decodeMouseButton(cb: number, isRelease: boolean): { button: MouseButton; action: MouseAction } {
     const lowBits = cb & 3;
     const isMotion = (cb & 32) !== 0;
     const isScroll = (cb & 64) !== 0;

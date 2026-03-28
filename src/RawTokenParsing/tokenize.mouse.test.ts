@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { tokenize } from "./tokenize.ts";
+import { describe, expect, it } from "vitest";
+
 import type { MouseToken } from "./RawTerminalToken.ts";
+import { tokenize } from "./tokenize.ts";
 
 function mouseToken(tokens: ReturnType<typeof tokenize>): MouseToken {
     expect(tokens).toHaveLength(1);

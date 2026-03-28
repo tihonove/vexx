@@ -1,9 +1,9 @@
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import { TUIEventBase, EventPhase } from "../Events/TUIEventBase.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
-import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import type { FocusManager } from "../Events/FocusManager.ts";
+import { EventPhase, TUIEventBase } from "../Events/TUIEventBase.ts";
+import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 
 export class RenderContext {
     public readonly canvas: TerminalScreen;

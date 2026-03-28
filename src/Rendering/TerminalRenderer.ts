@@ -1,6 +1,6 @@
-import { DEFAULT_COLOR, unpackR, unpackG, unpackB } from "./ColorUtils.ts";
-import { StyleFlags } from "./StyleFlags.ts";
+import { DEFAULT_COLOR, unpackB, unpackG, unpackR } from "./ColorUtils.ts";
 import type { Grid } from "./Grid.ts";
+import { StyleFlags } from "./StyleFlags.ts";
 
 /** Minimal writable interface so we can inject a test double instead of real stdout. */
 export interface WritableOutput {

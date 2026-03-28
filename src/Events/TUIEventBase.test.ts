@@ -1,5 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { TUIEventBase, EventPhase } from "./TUIEventBase.ts";
+import { describe, expect, it } from "vitest";
+
+import { EventPhase, TUIEventBase } from "./TUIEventBase.ts";
 
 describe("TUIEventBase", () => {
     it("stores type and bubbles", () => {

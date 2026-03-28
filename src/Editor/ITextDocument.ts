@@ -1,6 +1,6 @@
-import type { ITextEdit } from "./ITextEdit.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
 import type { IRange } from "./IRange.ts";
+import type { ITextEdit } from "./ITextEdit.ts";
 
 export interface IApplyEditsResult {
     readonly appliedVersion: number;

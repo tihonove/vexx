@@ -1,9 +1,10 @@
+import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Grid } from "../Rendering/Grid.ts";
+import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
+
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
 import { KeyInputParser } from "./KeyInputParser.ts";
-import { Grid } from "../Rendering/Grid.ts";
-import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
-import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 /**
  * Kitty Keyboard Protocol escape sequences.

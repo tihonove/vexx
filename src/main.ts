@@ -1,5 +1,5 @@
-import { BodyElement } from "./Elements/BodyElement.ts";
 import { TuiApplication } from "./Application/TuiApplication.ts";
+import { BodyElement } from "./Elements/BodyElement.ts";
 import { NodeTerminalBackend } from "./TerminalBackend/NodeTerminalBackend.ts";
 
 const backend = new NodeTerminalBackend();

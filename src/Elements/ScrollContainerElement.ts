@@ -1,4 +1,5 @@
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
+
 import type { IScrollable } from "./IScrollable.ts";
 import { renderScrollBar } from "./ScrollBarRenderer.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";
@@ -52,5 +53,4 @@ export class ScrollContainerElement extends TUIElement {
             this.size.height,
         );
     }
-
 }

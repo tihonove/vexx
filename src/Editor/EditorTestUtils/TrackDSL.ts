@@ -1,14 +1,15 @@
-import { TextDocument } from "../TextDocument.ts";
+import { expect } from "vitest";
+
+import { reject } from "../../Common/TypingUtils.ts";
 import { EditorViewState } from "../EditorViewState.ts";
-import type { ISelection } from "../ISelection.ts";
-import type { ILineTokens } from "../ILineTokens.ts";
 import type { IFoldingRegion } from "../IFoldingRegion.ts";
 import { createFoldingRegion } from "../IFoldingRegion.ts";
-import { createCursorSelection, createSelection, selectionToRange, isSelectionCollapsed } from "../ISelection.ts";
+import type { ILineTokens } from "../ILineTokens.ts";
 import { createLineTokens, createToken } from "../ILineTokens.ts";
 import { comparePositions } from "../IPosition.ts";
-import { expect } from "vitest";
-import { reject } from "../../Common/TypingUtils.ts";
+import type { ISelection } from "../ISelection.ts";
+import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "../ISelection.ts";
+import { TextDocument } from "../TextDocument.ts";
 
 // ─── Constants ──────────────────────────────────────────────
 

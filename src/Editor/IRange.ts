@@ -1,5 +1,5 @@
 import type { IPosition } from "./IPosition.ts";
-import { createPosition, comparePositions } from "./IPosition.ts";
+import { comparePositions, createPosition } from "./IPosition.ts";
 
 /**
  * Represents a range in a text document. start <= end (invariant).

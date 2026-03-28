@@ -1,7 +1,7 @@
 import { TuiApplication } from "../Application/TuiApplication.ts";
-import { EditorElement } from "../Elements/EditorElement.ts";
-import { TextDocument } from "../Editor/TextDocument.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
+import { TextDocument } from "../Editor/TextDocument.ts";
+import { EditorElement } from "../Elements/EditorElement.ts";
 import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
 
 const sampleText = `Hello, World!

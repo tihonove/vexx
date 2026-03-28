@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
+
 import { FocusManager } from "../Events/FocusManager.ts";
+
 import { TUIElement } from "./TUIElement.ts";
 
 class ContainerElement extends TUIElement {

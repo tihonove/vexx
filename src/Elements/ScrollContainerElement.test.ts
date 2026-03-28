@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import { ScrollContainerElement } from "./ScrollContainerElement.ts";

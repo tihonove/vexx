@@ -1,8 +1,8 @@
+import type { EditorViewState } from "./EditorViewState.ts";
+import type { ISelection } from "./ISelection.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
-import type { ISelection } from "./ISelection.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
-import type { EditorViewState } from "./EditorViewState.ts";
 
 interface MutableUndoElement {
     label: string;

@@ -113,14 +113,7 @@ export interface UnknownByteToken {
 // ─── Mouse tokens ───
 
 export type MouseButton = "left" | "middle" | "right" | "none";
-export type MouseAction =
-    | "press"
-    | "release"
-    | "move"
-    | "scroll-up"
-    | "scroll-down"
-    | "scroll-left"
-    | "scroll-right";
+export type MouseAction = "press" | "release" | "move" | "scroll-up" | "scroll-down" | "scroll-left" | "scroll-right";
 
 export interface MouseToken {
     readonly kind: "mouse";

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { Grid } from "./Grid.ts";
-import { DEFAULT_COLOR, packRgb } from "./ColorUtils.ts";
-import { StyleFlags } from "./StyleFlags.ts";
+
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+
+import { DEFAULT_COLOR, packRgb } from "./ColorUtils.ts";
+import { Grid } from "./Grid.ts";
+import { StyleFlags } from "./StyleFlags.ts";
 
 describe("Grid", () => {
     describe("constructor", () => {

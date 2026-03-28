@@ -1,13 +1,15 @@
-import { describe, it, expect } from "vitest";
-import { TuiApplication } from "./TuiApplication.ts";
-import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
-import { BoxElement } from "../Elements/BoxElement.ts";
-import { EditorElement } from "../Elements/EditorElement.ts";
+import { describe, expect, it } from "vitest";
+
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
+import { BoxElement } from "../Elements/BoxElement.ts";
+import { EditorElement } from "../Elements/EditorElement.ts";
 import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
+import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+
+import { TuiApplication } from "./TuiApplication.ts";
 
 describe("TuiApplication", () => {
     it("renders root element on run()", () => {

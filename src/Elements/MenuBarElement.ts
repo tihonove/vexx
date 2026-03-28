@@ -1,7 +1,8 @@
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { DEFAULT_COLOR, packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";

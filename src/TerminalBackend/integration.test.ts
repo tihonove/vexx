@@ -1,8 +1,10 @@
-import { describe, it, expect } from "vitest";
-import { BodyElement } from "../Elements/BodyElement.ts";
+import { describe, expect, it } from "vitest";
+
 import { TuiApplication } from "../Application/TuiApplication.ts";
-import { MockTerminalBackend } from "./MockTerminalBackend.ts";
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { BodyElement } from "../Elements/BodyElement.ts";
+
+import { MockTerminalBackend } from "./MockTerminalBackend.ts";
 
 describe("TuiApplication integration with MockTerminalBackend", () => {
     it("types characters and renders them on screen", () => {

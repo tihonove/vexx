@@ -1,10 +1,10 @@
 import { TuiApplication } from "../Application/TuiApplication.ts";
-import { BodyElement } from "../Elements/BodyElement.ts";
-import { VStackElement } from "../Elements/VStackElement.ts";
-import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
-import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
+import { BodyElement } from "../Elements/BodyElement.ts";
+import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
+import { VStackElement } from "../Elements/VStackElement.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
+import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
 
 const FOCUSED_BG = packRgb(0, 120, 215);
 const DEFAULT_BG = packRgb(50, 50, 50);

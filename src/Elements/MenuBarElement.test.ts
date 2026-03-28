@@ -1,16 +1,20 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
-import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import type { MenuBarItem } from "./MenuBarElement.ts";
 import { MenuBarElement } from "./MenuBarElement.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
-function renderMenuBar(items: MenuBarItem[], width = 30, height = 10): { backend: MockTerminalBackend; menuBar: MenuBarElement } {
+function renderMenuBar(
+    items: MenuBarItem[],
+    width = 30,
+    height = 10,
+): { backend: MockTerminalBackend; menuBar: MenuBarElement } {
     const menuBar = new MenuBarElement(items);
     const size = new Size(width, height);
     const backend = new MockTerminalBackend(size);
@@ -61,10 +65,14 @@ describe("MenuBarElement", () => {
         });
 
         it("renders items at correct horizontal positions", () => {
-            const { backend } = renderMenuBar([
-                { label: "AB", entries: [] },
-                { label: "CD", entries: [] },
-            ], 20, 3);
+            const { backend } = renderMenuBar(
+                [
+                    { label: "AB", entries: [] },
+                    { label: "CD", entries: [] },
+                ],
+                20,
+                3,
+            );
             const firstLine = backend.getTextAt(new Point(0, 0), 20);
             // " AB " starts at 0, width=4; " CD " starts at 4
             expect(firstLine.slice(0, 4)).toBe(" AB ");
@@ -177,9 +185,7 @@ describe("MenuBarElement", () => {
 
     describe("dropdown interaction", () => {
         it("renders dropdown menu when active", () => {
-            const items: MenuBarItem[] = [
-                { label: "File", entries: [{ label: "New" }, { label: "Open" }] },
-            ];
+            const items: MenuBarItem[] = [{ label: "File", entries: [{ label: "New" }, { label: "Open" }] }];
             const menuBar = new MenuBarElement(items);
             const size = new Size(20, 8);
             const backend = new MockTerminalBackend(size);
@@ -239,9 +245,7 @@ describe("MenuBarElement", () => {
         });
 
         it("Escape in dropdown closes the menu bar item", () => {
-            const items: MenuBarItem[] = [
-                { label: "File", entries: [{ label: "New" }] },
-            ];
+            const items: MenuBarItem[] = [{ label: "File", entries: [{ label: "New" }] }];
             const menuBar = new MenuBarElement(items);
             menuBar.globalPosition = new Point(0, 0);
             menuBar.performLayout(BoxConstraints.tight(new Size(20, 10)));
@@ -266,9 +270,7 @@ describe("MenuBarElement", () => {
 
     describe("event routing", () => {
         it("routes events to content when no menu is open", () => {
-            const items: MenuBarItem[] = [
-                { label: "File", entries: [{ label: "New" }] },
-            ];
+            const items: MenuBarItem[] = [{ label: "File", entries: [{ label: "New" }] }];
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             const keys: string[] = [];
@@ -280,9 +282,7 @@ describe("MenuBarElement", () => {
         });
 
         it("does not route non-mnemonic events to content when menu is open", () => {
-            const items: MenuBarItem[] = [
-                { label: "File", entries: [{ label: "New" }] },
-            ];
+            const items: MenuBarItem[] = [{ label: "File", entries: [{ label: "New" }] }];
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             const keys: string[] = [];
@@ -301,9 +301,7 @@ describe("MenuBarElement", () => {
 
     describe("layout", () => {
         it("positions content below the menu bar row", () => {
-            const items: MenuBarItem[] = [
-                { label: "File", entries: [] },
-            ];
+            const items: MenuBarItem[] = [{ label: "File", entries: [] }];
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             menuBar.setContent(content);
@@ -316,9 +314,7 @@ describe("MenuBarElement", () => {
         });
 
         it("gives content full width and height minus 1", () => {
-            const items: MenuBarItem[] = [
-                { label: "File", entries: [] },
-            ];
+            const items: MenuBarItem[] = [{ label: "File", entries: [] }];
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             menuBar.setContent(content);

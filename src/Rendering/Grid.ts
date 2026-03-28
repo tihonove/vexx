@@ -1,7 +1,8 @@
+import { Point, Size } from "../Common/GeometryPromitives.ts";
+
 import { Cell } from "./Cell.ts";
 import { DEFAULT_COLOR } from "./ColorUtils.ts";
 import { StyleFlags } from "./StyleFlags.ts";
-import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 export interface ReadonlyCellData {
     readonly char: string;

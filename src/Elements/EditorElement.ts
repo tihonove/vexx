@@ -5,6 +5,7 @@ import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { UndoManager } from "../Editor/UndoManager.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
+
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);

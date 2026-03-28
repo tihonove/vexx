@@ -1,10 +1,11 @@
+import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
+import type { Grid } from "../Rendering/Grid.ts";
+
 import type { ITerminalBackend } from "./ITerminalBackend.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
-import type { Grid } from "../Rendering/Grid.ts";
-import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
 import { KeyInputParser } from "./KeyInputParser.ts";
 import { serializeKey } from "./serializeKey.ts";
-import { Point, Size } from "../Common/GeometryPromitives.ts";
 
 /**
  * In-memory terminal backend for testing.

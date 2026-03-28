@@ -1,6 +1,7 @@
-import type { KeyPressEvent } from "./KeyEvent.ts";
 import { tokenize } from "../RawTokenParsing/tokenize.ts";
+
 import { convertTokenToKeyPressEvent } from "./convertToken.ts";
+import type { KeyPressEvent } from "./KeyEvent.ts";
 
 /**
  * Parse raw terminal input into KeyPressEvent[].

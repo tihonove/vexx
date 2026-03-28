@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { TextDocument } from "./TextDocument.ts";
-import { createRange } from "./IRange.ts";
-import { createTextEdit, createInsertEdit, createDeleteEdit } from "./ITextEdit.ts";
+import { describe, expect, it } from "vitest";
+
 import { createLineTokens, createToken } from "./ILineTokens.ts";
+import { createRange } from "./IRange.ts";
+import { createDeleteEdit, createInsertEdit, createTextEdit } from "./ITextEdit.ts";
+import { TextDocument } from "./TextDocument.ts";
 
 // ─── Construction ───────────────────────────────────────────
 

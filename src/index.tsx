@@ -1,6 +1,6 @@
-import type { KeyPressEvent, TUIEvent } from "./TerminalBackend/KeyEvent.ts";
 import { TerminalScreen } from "./Application/TerminalScreen.ts";
-import { Point, Offset, Size } from "./Common/GeometryPromitives.ts";
+import { Offset, Point, Size } from "./Common/GeometryPromitives.ts";
+import type { KeyPressEvent, TUIEvent } from "./TerminalBackend/KeyEvent.ts";
 
 class RenderContext {
     public readonly canvas: TerminalScreen;

@@ -1,13 +1,14 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
 import { TuiApplication } from "../Application/TuiApplication.ts";
-import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
-import { Size, Point } from "../Common/GeometryPromitives.ts";
-import { TUIElement, RenderContext } from "../Elements/TUIElement.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { BodyElement } from "../Elements/BodyElement.ts";
+import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
 import { VStackElement } from "../Elements/VStackElement.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
+import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 
 const FOCUSED_BG = packRgb(0, 120, 215);
 const DEFAULT_BG = packRgb(40, 40, 40);
@@ -182,11 +183,15 @@ describe("Focus integration: Tab cycling through TuiApplication", () => {
         const { backend, boxes, body } = setupApp(2);
 
         // Add capture listener on body that prevents Tab
-        body.addEventListener("keydown", (e) => {
-            if ((e as any).key === "Tab") {
-                e.preventDefault();
-            }
-        }, { capture: true });
+        body.addEventListener(
+            "keydown",
+            (e) => {
+                if ((e as any).key === "Tab") {
+                    e.preventDefault();
+                }
+            },
+            { capture: true },
+        );
 
         backend.sendKey("Tab");
         // Focus should NOT have changed because we prevented default

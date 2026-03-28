@@ -18,6 +18,7 @@
  */
 
 import type { TSESLint } from "@typescript-eslint/utils";
+import simpleImportSort from "eslint-plugin-simple-import-sort";
 
 const overrides: TSESLint.FlatConfig.ConfigArray = [
     {
@@ -33,12 +34,27 @@ const overrides: TSESLint.FlatConfig.ConfigArray = [
         },
     },
     {
+        plugins: {
+            "simple-import-sort": simpleImportSort,
+        },
         rules: {
             "@typescript-eslint/no-unused-vars": "off",
             // Запрещаем parameter properties — они не поддерживаются в strip-only режиме Node.js
             "@typescript-eslint/parameter-properties": "error",
             // Форсируем явный спецификатор видимости на всех членах класса
             "@typescript-eslint/explicit-member-accessibility": ["error", { accessibility: "explicit" }],
+            // Сортировка импортов по группам:
+            // 1. Node built-in модули (node:*)
+            // 2. Внешние пакеты (npm)
+            // 3. Относительные импорты, поднимающиеся вверх (../)
+            // 4. Локальные импорты (./)
+            "simple-import-sort/imports": [
+                "error",
+                {
+                    groups: [["^node:"], ["^[^.]"], ["^\\.\\."], ["^\\./"]]
+                },
+            ],
+            "simple-import-sort/exports": "warn",
         },
     },
 ];

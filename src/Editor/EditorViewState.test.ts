@@ -1,7 +1,8 @@
-import { describe, it, expect } from "vitest";
-import { TextDocument } from "./TextDocument.ts";
+import { describe, expect, it } from "vitest";
+
 import { EditorViewState } from "./EditorViewState.ts";
 import { createCursorSelection, createSelection } from "./ISelection.ts";
+import { TextDocument } from "./TextDocument.ts";
 
 // ─── Construction ───────────────────────────────────────────
 

@@ -1,7 +1,9 @@
-import { describe, it, expect, vi } from "vitest";
-import { MockTerminalBackend } from "./MockTerminalBackend.ts";
-import type { KeyPressEvent } from "./KeyEvent.ts";
+import { describe, expect, it, vi } from "vitest";
+
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+
+import type { KeyPressEvent } from "./KeyEvent.ts";
+import { MockTerminalBackend } from "./MockTerminalBackend.ts";
 
 describe("MockTerminalBackend", () => {
     it("calls onInput callback when sendKey is used", () => {

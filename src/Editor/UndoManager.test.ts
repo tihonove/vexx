@@ -1,8 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { TextDocument } from "./TextDocument.ts";
+import { describe, expect, it } from "vitest";
+
 import { EditorViewState } from "./EditorViewState.ts";
-import { UndoManager } from "./UndoManager.ts";
 import { createCursorSelection } from "./ISelection.ts";
+import { TextDocument } from "./TextDocument.ts";
+import { UndoManager } from "./UndoManager.ts";
 
 function setup(text: string) {
     const doc = new TextDocument(text);

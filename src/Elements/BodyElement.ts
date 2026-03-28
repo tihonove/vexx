@@ -1,6 +1,7 @@
-import { RenderContext, TUIElement } from "./TUIElement.ts";
-import { ContextMenuLayer } from "./ContextMenuLayer.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
+
+import { ContextMenuLayer } from "./ContextMenuLayer.ts";
+import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 export class BodyElement extends TUIElement {
     public title = "";
@@ -59,5 +60,4 @@ export class BodyElement extends TUIElement {
         // Context menu layer — rendered on top
         this.contextMenuLayer.render(context);
     }
-
 }

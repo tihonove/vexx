@@ -1,13 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
-import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
-import { ContextMenuLayer } from "./ContextMenuLayer.ts";
 import { BoxElement } from "./BoxElement.ts";
+import { ContextMenuLayer } from "./ContextMenuLayer.ts";
 import { RenderContext } from "./TUIElement.ts";
 
 function renderLayer(

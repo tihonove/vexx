@@ -1,8 +1,10 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
 import { TUIElement } from "../Elements/TUIElement.ts";
+
 import { FocusManager } from "./FocusManager.ts";
-import { TUIFocusEvent } from "./TUIFocusEvent.ts";
 import type { TUIEventBase } from "./TUIEventBase.ts";
+import { TUIFocusEvent } from "./TUIFocusEvent.ts";
 
 class ContainerElement extends TUIElement {
     private _children: TUIElement[] = [];

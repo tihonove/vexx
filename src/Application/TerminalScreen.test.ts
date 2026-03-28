@@ -1,7 +1,9 @@
-import { describe, it, expect } from "vitest";
-import { TerminalScreen } from "./TerminalScreen.ts";
-import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
+import { describe, expect, it } from "vitest";
+
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
+
+import { TerminalScreen } from "./TerminalScreen.ts";
 
 describe("TerminalScreen", () => {
     it("flush writes cells to backend", () => {

@@ -1,5 +1,6 @@
-import { RenderContext, TUIElement } from "./TUIElement.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
+
+import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 export class BoxElement extends TUIElement {
     public render(context: RenderContext): void {

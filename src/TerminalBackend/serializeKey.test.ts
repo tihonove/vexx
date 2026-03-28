@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { serializeKey } from "./serializeKey.ts";
+import { describe, expect, it } from "vitest";
+
 import { parseInput } from "./parseInput.ts";
+import { serializeKey } from "./serializeKey.ts";
 
 describe("serializeKey", () => {
     // ─── Basic keys ───

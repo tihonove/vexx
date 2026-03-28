@@ -1,4 +1,5 @@
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
+
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 export interface ContextMenuLayerItem {
@@ -85,5 +86,4 @@ export class ContextMenuLayer extends TUIElement {
             item.element.render(context.withOffset(childOffset));
         }
     }
-
 }

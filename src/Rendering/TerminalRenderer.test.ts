@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { TerminalRenderer } from "./TerminalRenderer.ts";
-import { Grid } from "./Grid.ts";
-import { packRgb, DEFAULT_COLOR } from "./ColorUtils.ts";
-import { StyleFlags } from "./StyleFlags.ts";
+
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+
+import { DEFAULT_COLOR, packRgb } from "./ColorUtils.ts";
+import { Grid } from "./Grid.ts";
+import { StyleFlags } from "./StyleFlags.ts";
+import { TerminalRenderer } from "./TerminalRenderer.ts";
 
 /**
  * Captures all output written by TerminalRenderer into a string.

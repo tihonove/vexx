@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
@@ -7,8 +7,8 @@ import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import { BodyElement } from "./BodyElement.ts";
 import { BoxElement } from "./BoxElement.ts";
-import { VStackElement } from "./VStackElement.ts";
 import { RenderContext } from "./TUIElement.ts";
+import { VStackElement } from "./VStackElement.ts";
 
 describe("BodyElement root reference", () => {
     it("BodyElement initializes root pointing to itself", () => {

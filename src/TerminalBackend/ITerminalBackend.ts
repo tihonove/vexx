@@ -1,6 +1,7 @@
-import type { KeyPressEvent } from "./KeyEvent.ts";
-import type { Grid } from "../Rendering/Grid.ts";
 import type { Point, Size } from "../Common/GeometryPromitives.ts";
+import type { Grid } from "../Rendering/Grid.ts";
+
+import type { KeyPressEvent } from "./KeyEvent.ts";
 
 /**
  * Unified abstraction over terminal I/O.

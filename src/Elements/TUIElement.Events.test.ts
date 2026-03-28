@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+
 import { EventPhase, TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+
 import { TUIElement } from "./TUIElement.ts";
 
 class ContainerElement extends TUIElement {

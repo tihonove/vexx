@@ -1,4 +1,5 @@
 import type { TUIElement } from "../Elements/TUIElement.ts";
+
 import { TUIEventBase } from "./TUIEventBase.ts";
 
 export class TUIFocusEvent extends TUIEventBase {

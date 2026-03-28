@@ -5,12 +5,12 @@
  * Press Ctrl+C to exit.
  */
 
-import { Grid } from "../Rendering/Grid.ts";
-import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
-import { StyleFlags } from "../Rendering/StyleFlags.ts";
-import { reject } from "../Common/TypingUtils.ts";
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { reject } from "../Common/TypingUtils.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
+import { Grid } from "../Rendering/Grid.ts";
+import { StyleFlags } from "../Rendering/StyleFlags.ts";
+import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
 
 const cols = process.stdout.columns;
 const rows = process.stdout.rows;

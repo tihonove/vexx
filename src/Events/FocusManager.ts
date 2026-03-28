@@ -1,4 +1,5 @@
 import type { TUIElement } from "../Elements/TUIElement.ts";
+
 import { TUIFocusEvent } from "./TUIFocusEvent.ts";
 
 export class FocusManager {
@@ -38,7 +39,8 @@ export class FocusManager {
         if (direction === "forward") {
             nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % focusable.length;
         } else {
-            nextIndex = currentIndex === -1 ? focusable.length - 1 : (currentIndex - 1 + focusable.length) % focusable.length;
+            nextIndex =
+                currentIndex === -1 ? focusable.length - 1 : (currentIndex - 1 + focusable.length) % focusable.length;
         }
 
         this.setFocus(focusable[nextIndex]);

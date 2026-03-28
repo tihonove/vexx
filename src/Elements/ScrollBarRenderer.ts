@@ -1,5 +1,6 @@
 import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
+
 import type { RenderContext } from "./TUIElement.ts";
 
 const THUMB_COLOR = packRgb(100, 100, 100);

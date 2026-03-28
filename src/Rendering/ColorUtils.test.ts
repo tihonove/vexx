@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_COLOR, packRgb, unpackR, unpackG, unpackB } from "./ColorUtils.ts";
+
+import { DEFAULT_COLOR, packRgb, unpackB, unpackG, unpackR } from "./ColorUtils.ts";
 
 describe("ColorUtils", () => {
     describe("packRgb / unpack round-trip", () => {

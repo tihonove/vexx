@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { tokenize } from "./tokenize.ts";
+import { describe, expect, it } from "vitest";
+
 import type { RawTerminalToken } from "./RawTerminalToken.ts";
+import { tokenize } from "./tokenize.ts";
 
 describe("tokenize", () => {
     // ─── CharToken ───

@@ -1,9 +1,10 @@
-import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../Elements/TUIElement.ts";
+import { FocusManager } from "../Events/FocusManager.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { ITerminalBackend } from "../TerminalBackend/ITerminalBackend.ts";
 import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
-import { FocusManager } from "../Events/FocusManager.ts";
+
 import { TerminalScreen } from "./TerminalScreen.ts";
 
 export class TuiApplication {

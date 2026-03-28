@@ -1,6 +1,7 @@
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import { StyleFlags } from "../Rendering/StyleFlags.ts";
 import { DEFAULT_COLOR, packRgb } from "../Rendering/ColorUtils.ts";
+import { StyleFlags } from "../Rendering/StyleFlags.ts";
+
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 export interface MenuItemEntry {

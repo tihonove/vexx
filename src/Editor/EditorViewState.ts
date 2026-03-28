@@ -1,12 +1,12 @@
+import type { IFoldingRegion } from "./IFoldingRegion.ts";
+import type { ILineTokens } from "./ILineTokens.ts";
 import { comparePositions } from "./IPosition.ts";
 import { createRange } from "./IRange.ts";
-import type { IFoldingRegion } from "./IFoldingRegion.ts";
 import type { ISelection } from "./ISelection.ts";
-import { createCursorSelection, createSelection, selectionToRange, getIdealColumn } from "./ISelection.ts";
+import { createCursorSelection, createSelection, getIdealColumn, selectionToRange } from "./ISelection.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
 import { createTextEdit } from "./ITextEdit.ts";
-import type { ILineTokens } from "./ILineTokens.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
 
 /**

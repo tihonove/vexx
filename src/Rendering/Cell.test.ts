@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+
 import { Cell } from "./Cell.ts";
 import { DEFAULT_COLOR, packRgb } from "./ColorUtils.ts";
 import { StyleFlags } from "./StyleFlags.ts";

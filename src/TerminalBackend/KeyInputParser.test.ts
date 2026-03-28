@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
-import { KeyInputParser } from "./KeyInputParser.ts";
+import { describe, expect, it } from "vitest";
+
 import type { KeyPressEvent } from "./KeyEvent.ts";
+import { KeyInputParser } from "./KeyInputParser.ts";
 
 /** Helper: create expected event with defaults (default type is keydown) */
 function ev(key: string, raw: string, overrides?: Partial<KeyPressEvent>): KeyPressEvent {

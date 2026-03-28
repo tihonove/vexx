@@ -1,5 +1,5 @@
-import type { ITextEdit } from "./ITextEdit.ts";
 import type { ISelection } from "./ISelection.ts";
+import type { ITextEdit } from "./ITextEdit.ts";
 
 export interface IUndoElement {
     readonly label: string;

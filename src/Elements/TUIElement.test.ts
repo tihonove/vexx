@@ -1,9 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
-import { TUIElement } from "./TUIElement.ts";
+import { describe, expect, it, vi } from "vitest";
+
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import { TUIEventBase, EventPhase } from "../Events/TUIEventBase.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { FocusManager } from "../Events/FocusManager.ts";
+import { EventPhase, TUIEventBase } from "../Events/TUIEventBase.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+
+import { TUIElement } from "./TUIElement.ts";
 
 describe("TUIElement coordinate system", () => {
     it("initializes with default coordinates", () => {
@@ -263,7 +265,7 @@ describe("TUIElement root reference propagation", () => {
 class ContainerElement extends TUIElement {
     private _children: TUIElement[] = [];
 
-    addChild(child: TUIElement): void {
+    public addChild(child: TUIElement): void {
         child.setParent(this);
         this._children.push(child);
     }
