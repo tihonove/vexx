@@ -1,0 +1,37 @@
+name: Build SEA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: vexx-linux-x64
+            binary: dist/vexx
+          - os: macos-latest
+            artifact: vexx-macos-arm64
+            binary: dist/vexx
+          - os: windows-latest
+            artifact: vexx-windows-x64
+            binary: dist/vexx.exe
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "25"
+
+      - run: npm install
+
+      - run: npm run build:sea
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.binary }}

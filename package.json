@@ -17,6 +17,7 @@
     "demo:mouse": "node src/demos/mouseDemo.ts",
     "demo:focus": "node src/demos/focusDemo.ts",
     "build": "tsup",
+    "build:sea": "node scripts/build-sea.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
