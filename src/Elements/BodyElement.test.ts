@@ -7,6 +7,7 @@ import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import { BodyElement } from "./BodyElement.ts";
 import { BoxElement } from "./BoxElement.ts";
+import { MenuBarElement } from "./MenuBarElement.ts";
 import { RenderContext } from "./TUIElement.ts";
 import { VStackElement } from "./VStackElement.ts";
 
@@ -68,5 +69,70 @@ describe("BodyElement root reference", () => {
         expect(vstack1.getRoot()).toBe(body);
         expect(vstack2.getRoot()).toBe(body);
         expect(leaf.getRoot()).toBe(body);
+    });
+});
+
+describe("BodyElement menuBar integration", () => {
+    function layoutBody(body: BodyElement, width = 40, height = 20): void {
+        body.globalPosition = new Point(0, 0);
+        body.performLayout(BoxConstraints.tight(new Size(width, height)));
+    }
+
+    it("menuBar receives root reference from BodyElement", () => {
+        const body = new BodyElement();
+        const menuBar = new MenuBarElement([{ label: "File", entries: [] }]);
+
+        body.setMenuBar(menuBar);
+
+        expect(menuBar.getRoot()).toBe(body);
+    });
+
+    it("content positioned at y=1 when menuBar is set", () => {
+        const body = new BodyElement();
+        const menuBar = new MenuBarElement([{ label: "File", entries: [] }]);
+        const content = new BoxElement();
+
+        body.setMenuBar(menuBar);
+        body.setContent(content);
+        layoutBody(body);
+
+        expect(content.localPosition.dy).toBe(1);
+        expect(content.globalPosition.y).toBe(1);
+    });
+
+    it("content height reduced by 1 when menuBar is set", () => {
+        const body = new BodyElement();
+        const menuBar = new MenuBarElement([{ label: "File", entries: [] }]);
+        const content = new BoxElement();
+
+        body.setMenuBar(menuBar);
+        body.setContent(content);
+        layoutBody(body, 40, 20);
+
+        expect(content.size.width).toBe(40);
+        expect(content.size.height).toBe(19);
+    });
+
+    it("content at y=0 and full height without menuBar", () => {
+        const body = new BodyElement();
+        const content = new BoxElement();
+
+        body.setContent(content);
+        layoutBody(body, 40, 20);
+
+        expect(content.localPosition.dy).toBe(0);
+        expect(content.globalPosition.y).toBe(0);
+        expect(content.size.height).toBe(20);
+    });
+
+    it("menuBar receives full body size for layout", () => {
+        const body = new BodyElement();
+        const menuBar = new MenuBarElement([{ label: "File", entries: [] }]);
+
+        body.setMenuBar(menuBar);
+        layoutBody(body, 40, 20);
+
+        expect(menuBar.size.width).toBe(40);
+        expect(menuBar.size.height).toBe(20);
     });
 });

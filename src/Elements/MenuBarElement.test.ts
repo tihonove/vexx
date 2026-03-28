@@ -8,7 +8,7 @@ import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import type { MenuBarItem } from "./MenuBarElement.ts";
 import { MenuBarElement } from "./MenuBarElement.ts";
-import { RenderContext, TUIElement } from "./TUIElement.ts";
+import { RenderContext } from "./TUIElement.ts";
 
 function renderMenuBar(
     items: MenuBarItem[],
@@ -268,62 +268,4 @@ describe("MenuBarElement", () => {
         });
     });
 
-    describe("event routing", () => {
-        it("routes events to content when no menu is open", () => {
-            const items: MenuBarItem[] = [{ label: "File", entries: [{ label: "New" }] }];
-            const menuBar = new MenuBarElement(items);
-            const content = new TUIElement();
-            const keys: string[] = [];
-            content.addEventListener("keydown", (e) => keys.push(e.key));
-            menuBar.setContent(content);
-
-            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
-            expect(keys).toEqual(["a"]);
-        });
-
-        it("does not route non-mnemonic events to content when menu is open", () => {
-            const items: MenuBarItem[] = [{ label: "File", entries: [{ label: "New" }] }];
-            const menuBar = new MenuBarElement(items);
-            const content = new TUIElement();
-            const keys: string[] = [];
-            content.addEventListener("keydown", (e) => keys.push(e.key));
-            menuBar.setContent(content);
-
-            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
-            expect(menuBar.activeIndex).toBe(0);
-
-            keys.length = 0;
-            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "x" }));
-            // "x" should go to the popup menu, not content
-            expect(keys).toEqual([]);
-        });
-    });
-
-    describe("layout", () => {
-        it("positions content below the menu bar row", () => {
-            const items: MenuBarItem[] = [{ label: "File", entries: [] }];
-            const menuBar = new MenuBarElement(items);
-            const content = new TUIElement();
-            menuBar.setContent(content);
-
-            menuBar.globalPosition = new Point(0, 0);
-            menuBar.performLayout(BoxConstraints.tight(new Size(40, 20)));
-
-            expect(content.localPosition.dy).toBe(1);
-            expect(content.globalPosition.y).toBe(1);
-        });
-
-        it("gives content full width and height minus 1", () => {
-            const items: MenuBarItem[] = [{ label: "File", entries: [] }];
-            const menuBar = new MenuBarElement(items);
-            const content = new TUIElement();
-            menuBar.setContent(content);
-
-            menuBar.globalPosition = new Point(0, 0);
-            menuBar.performLayout(BoxConstraints.tight(new Size(40, 20)));
-
-            expect(content.size.width).toBe(40);
-            expect(content.size.height).toBe(19);
-        });
-    });
 });

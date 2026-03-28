@@ -19,7 +19,7 @@ interface MenuBarLayoutItem {
 }
 
 const MENU_BAR_FG = DEFAULT_COLOR;
-const MENU_BAR_BG = packRgb(210, 210, 210);
+const MENU_BAR_BG = packRgb(64, 64, 64);
 const ACTIVE_MENU_FG = packRgb(255, 255, 255);
 const ACTIVE_MENU_BG = packRgb(0, 90, 180);
 
@@ -27,7 +27,6 @@ export class MenuBarElement extends TUIElement {
     public readonly items: readonly MenuBarItem[];
     public activeIndex = -1;
 
-    private content: TUIElement | null = null;
     private activeMenu: PopupMenuElement | null = null;
     private layoutItems: MenuBarLayoutItem[] = [];
 
@@ -44,18 +43,6 @@ export class MenuBarElement extends TUIElement {
             }
 
             if (this.activeIndex < 0) {
-                this.content?.dispatchEvent(
-                    new TUIKeyboardEvent("keydown", {
-                        key: event.key,
-                        code: event.code,
-                        ctrlKey: event.ctrlKey,
-                        shiftKey: event.shiftKey,
-                        altKey: event.altKey,
-                        metaKey: event.metaKey,
-                        raw: event.raw,
-                        bubbles: false,
-                    }),
-                );
                 return;
             }
 
@@ -105,43 +92,17 @@ export class MenuBarElement extends TUIElement {
                 );
                 return;
             }
-
-            this.content?.dispatchEvent(
-                new TUIKeyboardEvent("keydown", {
-                    key: event.key,
-                    code: event.code,
-                    ctrlKey: event.ctrlKey,
-                    shiftKey: event.shiftKey,
-                    altKey: event.altKey,
-                    metaKey: event.metaKey,
-                    raw: event.raw,
-                    bubbles: false,
-                }),
-            );
         });
-    }
-
-    public setContent(element: TUIElement): void {
-        this.content = element;
-        this.content.setParent(this);
     }
 
     public override getChildren(): readonly TUIElement[] {
         const children: TUIElement[] = [];
-        if (this.content) children.push(this.content);
         if (this.activeMenu) children.push(this.activeMenu);
         return children;
     }
 
     public performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
-
-        if (this.content) {
-            const contentSize = new Size(containerSize.width, Math.max(0, containerSize.height - 1));
-            this.content.localPosition = new Offset(0, 1);
-            this.content.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y + 1);
-            this.content.performLayout(BoxConstraints.tight(contentSize));
-        }
 
         if (this.activeMenu && this.activeIndex >= 0) {
             const menuPosition = this.getMenuPosition(this.activeIndex);
@@ -170,10 +131,6 @@ export class MenuBarElement extends TUIElement {
 
         for (let index = 0; index < this.items.length; index++) {
             this.renderItem(context, index);
-        }
-
-        if (this.content) {
-            this.content.render(context.withOffset(this.content.localPosition));
         }
 
         if (this.activeMenu) {

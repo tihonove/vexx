@@ -1,4 +1,5 @@
 import { TuiApplication } from "../Application/TuiApplication.ts";
+import { BodyElement } from "../Elements/BodyElement.ts";
 import { BoxElement } from "../Elements/BoxElement.ts";
 import type { MenuBarItem } from "../Elements/MenuBarElement.ts";
 import { MenuBarElement } from "../Elements/MenuBarElement.ts";
@@ -48,14 +49,14 @@ const menuItems: MenuBarItem[] = [
     },
 ];
 
+const body = new BodyElement();
 const menuBar = new MenuBarElement(menuItems);
 const content = new BoxElement();
-menuBar.setContent(content);
+
+body.setMenuBar(menuBar);
+body.setContent(content);
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);
-app.root = menuBar;
+app.root = body;
 app.run();
-
-// Open "File" menu on start (simulate Alt+F)
-process.stdin.push("\x1bf");
