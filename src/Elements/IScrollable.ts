@@ -1,8 +1,8 @@
 import type { TUIElement } from "./TUIElement.ts";
 
 export interface IScrollable {
-    contentHeight: number;
-    scrollTop: number;
+    readonly contentHeight: number;
+    readonly scrollTop: number;
 }
 
 export function isScrollable(element: TUIElement): element is TUIElement & IScrollable {

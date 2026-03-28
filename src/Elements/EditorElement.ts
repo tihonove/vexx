@@ -6,6 +6,7 @@ import { UndoManager } from "../Editor/UndoManager.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 
+import type { IScrollable } from "./IScrollable.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);
@@ -15,9 +16,17 @@ const SELECTION_BG = packRgb(38, 79, 120);
  * Handles keyboard input (printable chars, Enter, Backspace, Delete)
  * and draws the document content with a hardware cursor.
  */
-export class EditorElement extends TUIElement {
+export class EditorElement extends TUIElement implements IScrollable {
     public readonly viewState: EditorViewState;
     public readonly undoManager: UndoManager;
+
+    public get contentHeight(): number {
+        return this.viewState.getViewLineCount();
+    }
+
+    public get scrollTop(): number {
+        return this.viewState.scrollTop;
+    }
 
     public constructor(viewState: EditorViewState) {
         super();
