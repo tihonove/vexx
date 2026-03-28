@@ -8,7 +8,7 @@ import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 import { TerminalScreen } from "./TerminalScreen.ts";
 
 export class TuiApplication {
-    private backend: ITerminalBackend;
+    public backend: ITerminalBackend;
 
     public root: TUIElement | null = null;
     public screen: TerminalScreen;

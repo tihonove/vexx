@@ -1,4 +1,5 @@
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
+import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { DEFAULT_COLOR, packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
@@ -29,70 +30,113 @@ export class MenuBarElement extends TUIElement {
 
     private activeMenu: PopupMenuElement | null = null;
     private layoutItems: MenuBarLayoutItem[] = [];
+    private previousFocusedElement: TUIElement | null = null;
+    private parentMnemonicHandler: ((event: TUIKeyboardEvent) => void) | null = null;
 
     public constructor(items: MenuBarItem[]) {
         super();
+        this.tabIndex = 0;
         this.items = items;
         this.rebuildLayoutItems();
 
-        this.addEventListener("keydown", (event) => {
-            const mnemonicMatch = this.findMnemonicMatch(event);
-            if (mnemonicMatch >= 0) {
-                this.openMenu(mnemonicMatch);
-                return;
+        this.addEventListener("focus", (event: TUIFocusEvent) => {
+            this.previousFocusedElement = event.relatedTarget;
+            if (this.activeIndex < 0) {
+                this.activeIndex = 0;
             }
+            this.markDirty();
+        });
 
+        this.addEventListener("blur", () => {
+            this.deactivate();
+            this.previousFocusedElement = null;
+        });
+
+        this.addEventListener("keydown", (event) => {
             if (this.activeIndex < 0) {
                 return;
             }
 
+            if (event.key === "Escape") {
+                if (this.activeMenu) {
+                    this.closePopup();
+                } else {
+                    const prev = this.previousFocusedElement;
+                    this.deactivate();
+                    if (prev) {
+                        prev.focus();
+                    } else {
+                        this.blur();
+                    }
+                }
+                return;
+            }
+
             if (event.key === "ArrowLeft") {
-                this.openMenu(this.wrapIndex(this.activeIndex - 1));
+                const next = this.wrapIndex(this.activeIndex - 1);
+                if (this.activeMenu) {
+                    this.openMenu(next);
+                } else {
+                    this.activeIndex = next;
+                    this.markDirty();
+                }
                 return;
             }
 
             if (event.key === "ArrowRight") {
-                this.openMenu(this.wrapIndex(this.activeIndex + 1));
+                const next = this.wrapIndex(this.activeIndex + 1);
+                if (this.activeMenu) {
+                    this.openMenu(next);
+                } else {
+                    this.activeIndex = next;
+                    this.markDirty();
+                }
                 return;
             }
 
-            if (event.key === "Escape") {
-                this.closeMenu();
+            if (event.key === "ArrowDown" || event.key === "Enter") {
+                if (this.activeMenu) {
+                    this.forwardToPopup(event);
+                } else {
+                    this.openMenu(this.activeIndex);
+                }
                 return;
             }
 
-            if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Enter") {
-                this.activeMenu?.dispatchEvent(
-                    new TUIKeyboardEvent("keydown", {
-                        key: event.key,
-                        code: event.code,
-                        ctrlKey: event.ctrlKey,
-                        shiftKey: event.shiftKey,
-                        altKey: event.altKey,
-                        metaKey: event.metaKey,
-                        raw: event.raw,
-                        bubbles: false,
-                    }),
-                );
+            if (event.key === "ArrowUp") {
+                if (this.activeMenu) {
+                    this.forwardToPopup(event);
+                }
                 return;
             }
 
             if (this.activeMenu) {
-                this.activeMenu.dispatchEvent(
-                    new TUIKeyboardEvent("keydown", {
-                        key: event.key,
-                        code: event.code,
-                        ctrlKey: event.ctrlKey,
-                        shiftKey: event.shiftKey,
-                        altKey: event.altKey,
-                        metaKey: event.metaKey,
-                        raw: event.raw,
-                        bubbles: false,
-                    }),
-                );
+                this.forwardToPopup(event);
                 return;
             }
         });
+    }
+
+    public override setParent(parent: TUIElement | null): void {
+        if (this._parent && this.parentMnemonicHandler) {
+            this._parent.removeEventListener("keydown", this.parentMnemonicHandler);
+        }
+
+        super.setParent(parent);
+
+        if (parent) {
+            this.parentMnemonicHandler = (event: TUIKeyboardEvent) => {
+                const match = this.findMnemonicMatch(event);
+                if (match >= 0) {
+                    this.focus();
+                    this.openMenu(match);
+                    event.preventDefault();
+                }
+            };
+            parent.addEventListener("keydown", this.parentMnemonicHandler);
+        } else {
+            this.parentMnemonicHandler = null;
+        }
     }
 
     public override getChildren(): readonly TUIElement[] {
@@ -141,7 +185,7 @@ export class MenuBarElement extends TUIElement {
     private renderItem(context: RenderContext, index: number): void {
         const item = this.items[index];
         const layoutItem = this.layoutItems[index];
-        const isActive = index === this.activeIndex;
+        const isActive = index === this.activeIndex && this.isFocused;
         const fg = isActive ? ACTIVE_MENU_FG : MENU_BAR_FG;
         const bg = isActive ? ACTIVE_MENU_BG : MENU_BAR_BG;
         const { dx: ox, dy: oy } = context.offset;
@@ -175,6 +219,8 @@ export class MenuBarElement extends TUIElement {
             return;
         }
 
+        this.closePopup();
+
         const wrappedEntries = this.items[index].entries.map((entry) => {
             if (entry.type === "separator") {
                 return entry;
@@ -185,7 +231,8 @@ export class MenuBarElement extends TUIElement {
                 ...entry,
                 onSelect: () => {
                     originalOnSelect?.();
-                    this.closeMenu();
+                    this.deactivate();
+                    this.blur();
                 },
             };
         });
@@ -194,18 +241,38 @@ export class MenuBarElement extends TUIElement {
         this.activeMenu = new PopupMenuElement(wrappedEntries);
         this.activeMenu.setParent(this);
         this.activeMenu.onClose = () => {
-            this.closeMenu();
+            this.closePopup();
         };
         this.markDirty();
     }
 
-    private closeMenu(): void {
+    private closePopup(): void {
         if (this.activeMenu) {
             this.activeMenu.setParent(null);
         }
         this.activeMenu = null;
+        this.markDirty();
+    }
+
+    private deactivate(): void {
+        this.closePopup();
         this.activeIndex = -1;
         this.markDirty();
+    }
+
+    private forwardToPopup(event: TUIKeyboardEvent): void {
+        this.activeMenu?.dispatchEvent(
+            new TUIKeyboardEvent("keydown", {
+                key: event.key,
+                code: event.code,
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey,
+                raw: event.raw,
+                bubbles: false,
+            }),
+        );
     }
 
     private wrapIndex(index: number): number {

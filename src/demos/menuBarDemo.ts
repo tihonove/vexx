@@ -1,9 +1,11 @@
 import { TuiApplication } from "../Application/TuiApplication.ts";
 import { BodyElement } from "../Elements/BodyElement.ts";
-import { BoxElement } from "../Elements/BoxElement.ts";
 import type { MenuBarItem } from "../Elements/MenuBarElement.ts";
 import { MenuBarElement } from "../Elements/MenuBarElement.ts";
+import { VStackElement } from "../Elements/VStackElement.ts";
 import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
+
+import { FocusableBox } from "./FocusableBox.ts";
 
 const menuItems: MenuBarItem[] = [
     {
@@ -51,10 +53,15 @@ const menuItems: MenuBarItem[] = [
 
 const body = new BodyElement();
 const menuBar = new MenuBarElement(menuItems);
-const content = new BoxElement();
+const stack = new VStackElement();
+
+const labels = ["Inbox", "Drafts", "Sent", "Trash", "Settings"];
+for (const label of labels) {
+    stack.addChild(new FocusableBox(label), { width: "fill", height: 3 });
+}
 
 body.setMenuBar(menuBar);
-body.setContent(content);
+body.setContent(stack);
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);
