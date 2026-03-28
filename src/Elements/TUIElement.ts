@@ -1,7 +1,8 @@
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import type { KeyPressEvent, TUIEvent } from "../TerminalBackend/KeyEvent.ts";
 import { TUIEventBase, EventPhase } from "../Events/TUIEventBase.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import type { FocusManager } from "../Events/FocusManager.ts";
 
 export class RenderContext {
@@ -18,14 +19,20 @@ export class RenderContext {
     }
 }
 
-export type KeyboardEventType = "keypress" | "keydown" | "keyup";
-
 export interface AddEventListenerOptions {
     capture?: boolean;
 }
 
+export interface TUIElementEventMap {
+    keydown: TUIKeyboardEvent;
+    keyup: TUIKeyboardEvent;
+    keypress: TUIKeyboardEvent;
+    focus: TUIFocusEvent;
+    blur: TUIFocusEvent;
+}
+
 interface ListenerEntry {
-    handler: (event: TUIEventBase) => void;
+    handler: (event: any) => void;
     capture: boolean;
 }
 
@@ -49,15 +56,8 @@ export class TUIElement {
     // Focus manager — set only on root element
     public focusManager: FocusManager | null = null;
 
-    // Legacy listener storage (for backward compat with emit())
-    private legacyListeners: Record<KeyboardEventType, ((event: KeyPressEvent) => void)[]> = {
-        keypress: [],
-        keydown: [],
-        keyup: [],
-    };
-
-    // New event listener storage — supports any event type + capture flag
-    private _listeners: Map<string, ListenerEntry[]> = new Map();
+    // Event listener storage — supports any event type + capture flag
+    private _listeners = new Map<string, ListenerEntry[]>();
 
     /**
      * Lazy evaluation: if isDirty, performs layout with default constraints.
@@ -123,30 +123,19 @@ export class TUIElement {
         return result;
     }
 
-    // ─── Legacy event API (flat dispatch, no propagation) ───
+    // ─── Event API (capture/bubble propagation) ───
 
-    public emit(event: TUIEvent): void {
-        const listeners = this.legacyListeners[event.type];
-        for (const listener of listeners) {
-            listener(event);
-        }
-    }
-
-    public addLegacyEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
-        this.legacyListeners[event].push(handler);
-    }
-
-    public removeLegacyEventListener(event: KeyboardEventType, handler: (event: KeyPressEvent) => void): void {
-        const listeners = this.legacyListeners[event];
-        const index = listeners.indexOf(handler);
-        if (index !== -1) {
-            listeners.splice(index, 1);
-        }
-    }
-
-    // ─── New event API (capture/bubble propagation) ───
-
-    public addEventListener(type: string, handler: (event: TUIEventBase) => void, options?: AddEventListenerOptions): void {
+    public addEventListener<K extends keyof TUIElementEventMap>(
+        type: K,
+        handler: (event: TUIElementEventMap[K]) => void,
+        options?: AddEventListenerOptions,
+    ): void;
+    public addEventListener(
+        type: string,
+        handler: (event: TUIEventBase) => void,
+        options?: AddEventListenerOptions,
+    ): void;
+    public addEventListener(type: string, handler: (event: any) => void, options?: AddEventListenerOptions): void {
         const capture = options?.capture ?? false;
         let entries = this._listeners.get(type);
         if (!entries) {
@@ -156,7 +145,17 @@ export class TUIElement {
         entries.push({ handler, capture });
     }
 
-    public removeEventListener(type: string, handler: (event: TUIEventBase) => void, options?: AddEventListenerOptions): void {
+    public removeEventListener<K extends keyof TUIElementEventMap>(
+        type: K,
+        handler: (event: TUIElementEventMap[K]) => void,
+        options?: AddEventListenerOptions,
+    ): void;
+    public removeEventListener(
+        type: string,
+        handler: (event: TUIEventBase) => void,
+        options?: AddEventListenerOptions,
+    ): void;
+    public removeEventListener(type: string, handler: (event: any) => void, options?: AddEventListenerOptions): void {
         const capture = options?.capture ?? false;
         const entries = this._listeners.get(type);
         if (!entries) return;
@@ -241,7 +240,7 @@ export class TUIElement {
 
     public blur(): void {
         const fm = this.root?.focusManager ?? null;
-        if (fm && fm.activeElement === this) {
+        if (fm?.activeElement === this) {
             fm.setFocus(null);
         }
     }

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
-import { createKeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import { ScrollContainerElement } from "./ScrollContainerElement.ts";
@@ -149,13 +149,13 @@ describe("ScrollContainerElement", () => {
         expect(lastCol.some((c) => "▀▄".includes(c))).toBe(true);
     });
 
-    it("forwards events to child", () => {
+    it("forwards events to child via dispatchEvent", () => {
         const { container, child } = createScrollContainer(12, 5, 50);
         container.performLayout(BoxConstraints.tight(new Size(12, 5)));
 
         expect(child.scrollTop).toBe(0);
 
-        container.emit(createKeyPressEvent("ArrowDown", "", { type: "keypress" }));
+        child.dispatchEvent(new TUIKeyboardEvent("keypress", { key: "ArrowDown" }));
 
         expect(child.scrollTop).toBe(1);
     });

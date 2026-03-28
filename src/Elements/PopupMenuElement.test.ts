@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
-import { createKeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import type { MenuEntry } from "./PopupMenuElement.ts";
@@ -130,35 +130,35 @@ describe("PopupMenuElement", () => {
 
         it("moves selection down on ArrowDown", () => {
             const menu = new PopupMenuElement([{ label: "Cut" }, { label: "Copy" }, { label: "Paste" }]);
-            menu.emit(createKeyPressEvent("ArrowDown", ""));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
             expect(menu.selectedIndex).toBe(1);
         });
 
         it("moves selection up on ArrowUp", () => {
             const menu = new PopupMenuElement([{ label: "Cut" }, { label: "Copy" }, { label: "Paste" }]);
-            menu.emit(createKeyPressEvent("ArrowDown", ""));
-            menu.emit(createKeyPressEvent("ArrowDown", ""));
-            menu.emit(createKeyPressEvent("ArrowUp", ""));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowUp" }));
             expect(menu.selectedIndex).toBe(1);
         });
 
         it("wraps selection from bottom to top", () => {
             const menu = new PopupMenuElement([{ label: "Cut" }, { label: "Copy" }]);
-            menu.emit(createKeyPressEvent("ArrowDown", ""));
-            menu.emit(createKeyPressEvent("ArrowDown", "")); // wraps
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" })); // wraps
             expect(menu.selectedIndex).toBe(0);
         });
 
         it("wraps selection from top to bottom", () => {
             const menu = new PopupMenuElement([{ label: "Cut" }, { label: "Copy" }]);
-            menu.emit(createKeyPressEvent("ArrowUp", "")); // wraps
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowUp" })); // wraps
             expect(menu.selectedIndex).toBe(1);
         });
 
         it("skips separators during navigation", () => {
             const menu = new PopupMenuElement([{ label: "Cut" }, { type: "separator" }, { label: "Paste" }]);
             expect(menu.selectedIndex).toBe(0);
-            menu.emit(createKeyPressEvent("ArrowDown", ""));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
             expect(menu.selectedIndex).toBe(2); // skipped separator at index 1
         });
 
@@ -172,7 +172,7 @@ describe("PopupMenuElement", () => {
                     },
                 },
             ]);
-            menu.emit(createKeyPressEvent("Enter", ""));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
             expect(selected).toBe(true);
         });
 
@@ -182,7 +182,7 @@ describe("PopupMenuElement", () => {
             menu.onClose = () => {
                 closed = true;
             };
-            menu.emit(createKeyPressEvent("Escape", ""));
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
             expect(closed).toBe(true);
         });
     });

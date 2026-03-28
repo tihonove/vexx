@@ -6,7 +6,7 @@ const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);
 
 const body = new BodyElement();
-body.addLegacyEventListener("keypress", (event) => {
+body.addEventListener("keypress", (event) => {
     body.title += event.key;
 });
 

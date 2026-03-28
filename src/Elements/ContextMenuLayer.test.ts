@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
-import { createKeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import { ContextMenuLayer } from "./ContextMenuLayer.ts";
@@ -100,24 +100,24 @@ describe("ContextMenuLayer", () => {
         expect(layer.hasVisibleItems()).toBe(true);
     });
 
-    it("emits events to visible items only", () => {
+    it("dispatches events to visible item elements directly", () => {
         const layer = new ContextMenuLayer();
         const keys1: string[] = [];
         const keys2: string[] = [];
 
         const box1 = new BoxElement();
-        box1.addLegacyEventListener("keydown", (e) => keys1.push(e.key));
+        box1.addEventListener("keydown", (e) => keys1.push(e.key));
 
         const box2 = new BoxElement();
-        box2.addLegacyEventListener("keydown", (e) => keys2.push(e.key));
+        box2.addEventListener("keydown", (e) => keys2.push(e.key));
 
         layer.addItem(box1, new Point(0, 0), true);
         layer.addItem(box2, new Point(0, 0), false);
 
-        layer.emit(createKeyPressEvent("a", "a"));
+        box1.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
 
         expect(keys1).toEqual(["a"]);
-        expect(keys2).toEqual([]); // invisible — no events
+        expect(keys2).toEqual([]); // invisible — not dispatched to
     });
 
     it("removes item", () => {

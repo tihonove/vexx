@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import { TerminalScreen } from "../Application/TerminalScreen.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
-import { createKeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import type { MenuBarItem } from "./MenuBarElement.ts";
@@ -77,14 +77,14 @@ describe("MenuBarElement", () => {
             const { menuBar } = renderMenuBar(simpleItems());
             expect(menuBar.activeIndex).toBe(-1);
 
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
         });
 
         it("opens correct menu by mnemonic", () => {
             const { menuBar } = renderMenuBar(simpleItems());
 
-            menuBar.emit(createKeyPressEvent("e", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "e", altKey: true }));
             expect(menuBar.activeIndex).toBe(1);
         });
 
@@ -95,59 +95,59 @@ describe("MenuBarElement", () => {
             ];
             const { menuBar } = renderMenuBar(items);
 
-            menuBar.emit(createKeyPressEvent("x", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "x", altKey: true }));
             expect(menuBar.activeIndex).toBe(1);
         });
 
         it("mnemonic match is case-insensitive", () => {
             const { menuBar } = renderMenuBar(simpleItems());
 
-            menuBar.emit(createKeyPressEvent("F", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "F", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
         });
 
         it("ArrowRight moves to next menu", () => {
             const { menuBar } = renderMenuBar(simpleItems());
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
 
-            menuBar.emit(createKeyPressEvent("ArrowRight", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowRight" }));
             expect(menuBar.activeIndex).toBe(1);
         });
 
         it("ArrowLeft moves to previous menu", () => {
             const { menuBar } = renderMenuBar(simpleItems());
-            menuBar.emit(createKeyPressEvent("e", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "e", altKey: true }));
             expect(menuBar.activeIndex).toBe(1);
 
-            menuBar.emit(createKeyPressEvent("ArrowLeft", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowLeft" }));
             expect(menuBar.activeIndex).toBe(0);
         });
 
         it("ArrowRight wraps from last to first", () => {
             const { menuBar } = renderMenuBar(simpleItems());
-            menuBar.emit(createKeyPressEvent("v", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "v", altKey: true }));
             expect(menuBar.activeIndex).toBe(2);
 
-            menuBar.emit(createKeyPressEvent("ArrowRight", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowRight" }));
             expect(menuBar.activeIndex).toBe(0);
         });
 
         it("ArrowLeft wraps from first to last", () => {
             const { menuBar } = renderMenuBar(simpleItems());
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
 
-            menuBar.emit(createKeyPressEvent("ArrowLeft", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowLeft" }));
             expect(menuBar.activeIndex).toBe(2);
         });
 
         it("Escape closes menu", () => {
             const { menuBar } = renderMenuBar(simpleItems());
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
 
-            menuBar.emit(createKeyPressEvent("Escape", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
             expect(menuBar.activeIndex).toBe(-1);
         });
 
@@ -155,22 +155,22 @@ describe("MenuBarElement", () => {
             const { menuBar } = renderMenuBar(simpleItems());
             expect(menuBar.activeIndex).toBe(-1);
 
-            menuBar.emit(createKeyPressEvent("ArrowRight", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowRight" }));
             expect(menuBar.activeIndex).toBe(-1);
 
-            menuBar.emit(createKeyPressEvent("ArrowLeft", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowLeft" }));
             expect(menuBar.activeIndex).toBe(-1);
         });
 
         it("does not match mnemonic without Alt", () => {
             const { menuBar } = renderMenuBar(simpleItems());
-            menuBar.emit(createKeyPressEvent("f", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f" }));
             expect(menuBar.activeIndex).toBe(-1);
         });
 
         it("does not match mnemonic with Ctrl+Alt", () => {
             const { menuBar } = renderMenuBar(simpleItems());
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true, ctrlKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true, ctrlKey: true }));
             expect(menuBar.activeIndex).toBe(-1);
         });
     });
@@ -186,7 +186,7 @@ describe("MenuBarElement", () => {
             const termScreen = new TerminalScreen(size);
 
             menuBar.globalPosition = new Point(0, 0);
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
 
             menuBar.performLayout(BoxConstraints.tight(size));
             menuBar.render(new RenderContext(termScreen));
@@ -212,9 +212,9 @@ describe("MenuBarElement", () => {
             menuBar.globalPosition = new Point(0, 0);
             menuBar.performLayout(BoxConstraints.tight(new Size(20, 10)));
 
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             // ArrowDown moves selection in the popup
-            menuBar.emit(createKeyPressEvent("ArrowDown", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
             // Selection should have moved (popup starts at index 0, ArrowDown goes to 1)
             // We can't inspect the popup directly but the event doesn't crash
             expect(menuBar.activeIndex).toBe(0); // menu bar stays on File
@@ -229,10 +229,10 @@ describe("MenuBarElement", () => {
             menuBar.globalPosition = new Point(0, 0);
             menuBar.performLayout(BoxConstraints.tight(new Size(20, 10)));
 
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
 
-            menuBar.emit(createKeyPressEvent("Enter", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
 
             expect(onNew).toHaveBeenCalledOnce();
             expect(menuBar.activeIndex).toBe(-1); // menu closed after selection
@@ -246,20 +246,20 @@ describe("MenuBarElement", () => {
             menuBar.globalPosition = new Point(0, 0);
             menuBar.performLayout(BoxConstraints.tight(new Size(20, 10)));
 
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
 
-            menuBar.emit(createKeyPressEvent("Escape", ""));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
             expect(menuBar.activeIndex).toBe(-1);
         });
 
         it("switching menu with mnemonic while another is open", () => {
             const { menuBar } = renderMenuBar(simpleItems());
 
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
 
-            menuBar.emit(createKeyPressEvent("e", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "e", altKey: true }));
             expect(menuBar.activeIndex).toBe(1);
         });
     });
@@ -272,10 +272,10 @@ describe("MenuBarElement", () => {
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             const keys: string[] = [];
-            content.addLegacyEventListener("keydown", (e) => keys.push(e.key));
+            content.addEventListener("keydown", (e) => keys.push(e.key));
             menuBar.setContent(content);
 
-            menuBar.emit(createKeyPressEvent("a", "a"));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
             expect(keys).toEqual(["a"]);
         });
 
@@ -286,14 +286,14 @@ describe("MenuBarElement", () => {
             const menuBar = new MenuBarElement(items);
             const content = new TUIElement();
             const keys: string[] = [];
-            content.addLegacyEventListener("keydown", (e) => keys.push(e.key));
+            content.addEventListener("keydown", (e) => keys.push(e.key));
             menuBar.setContent(content);
 
-            menuBar.emit(createKeyPressEvent("f", "", { altKey: true }));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "f", altKey: true }));
             expect(menuBar.activeIndex).toBe(0);
 
             keys.length = 0;
-            menuBar.emit(createKeyPressEvent("x", "x"));
+            menuBar.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "x" }));
             // "x" should go to the popup menu, not content
             expect(keys).toEqual([]);
         });

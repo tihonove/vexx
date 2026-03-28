@@ -1,9 +1,11 @@
-export const enum EventPhase {
-    NONE = 0,
-    CAPTURING = 1,
-    AT_TARGET = 2,
-    BUBBLING = 3,
-}
+export const EventPhase = {
+    NONE: 0,
+    CAPTURING: 1,
+    AT_TARGET: 2,
+    BUBBLING: 3,
+} as const;
+
+export type EventPhase = (typeof EventPhase)[keyof typeof EventPhase];
 
 export class TUIEventBase {
     public readonly type: string;

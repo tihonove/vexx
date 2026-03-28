@@ -1,7 +1,7 @@
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR, packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
-import type { KeyPressEvent, TUIEvent } from "../TerminalBackend/KeyEvent.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";
@@ -34,6 +34,90 @@ export class MenuBarElement extends TUIElement {
         super();
         this.items = items;
         this.rebuildLayoutItems();
+
+        this.addEventListener("keydown", (event) => {
+            const mnemonicMatch = this.findMnemonicMatch(event);
+            if (mnemonicMatch >= 0) {
+                this.openMenu(mnemonicMatch);
+                return;
+            }
+
+            if (this.activeIndex < 0) {
+                this.content?.dispatchEvent(
+                    new TUIKeyboardEvent("keydown", {
+                        key: event.key,
+                        code: event.code,
+                        ctrlKey: event.ctrlKey,
+                        shiftKey: event.shiftKey,
+                        altKey: event.altKey,
+                        metaKey: event.metaKey,
+                        raw: event.raw,
+                        bubbles: false,
+                    }),
+                );
+                return;
+            }
+
+            if (event.key === "ArrowLeft") {
+                this.openMenu(this.wrapIndex(this.activeIndex - 1));
+                return;
+            }
+
+            if (event.key === "ArrowRight") {
+                this.openMenu(this.wrapIndex(this.activeIndex + 1));
+                return;
+            }
+
+            if (event.key === "Escape") {
+                this.closeMenu();
+                return;
+            }
+
+            if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Enter") {
+                this.activeMenu?.dispatchEvent(
+                    new TUIKeyboardEvent("keydown", {
+                        key: event.key,
+                        code: event.code,
+                        ctrlKey: event.ctrlKey,
+                        shiftKey: event.shiftKey,
+                        altKey: event.altKey,
+                        metaKey: event.metaKey,
+                        raw: event.raw,
+                        bubbles: false,
+                    }),
+                );
+                return;
+            }
+
+            if (this.activeMenu) {
+                this.activeMenu.dispatchEvent(
+                    new TUIKeyboardEvent("keydown", {
+                        key: event.key,
+                        code: event.code,
+                        ctrlKey: event.ctrlKey,
+                        shiftKey: event.shiftKey,
+                        altKey: event.altKey,
+                        metaKey: event.metaKey,
+                        raw: event.raw,
+                        bubbles: false,
+                    }),
+                );
+                return;
+            }
+
+            this.content?.dispatchEvent(
+                new TUIKeyboardEvent("keydown", {
+                    key: event.key,
+                    code: event.code,
+                    ctrlKey: event.ctrlKey,
+                    shiftKey: event.shiftKey,
+                    altKey: event.altKey,
+                    metaKey: event.metaKey,
+                    raw: event.raw,
+                    bubbles: false,
+                }),
+            );
+        });
     }
 
     public setContent(element: TUIElement): void {
@@ -94,55 +178,6 @@ export class MenuBarElement extends TUIElement {
         if (this.activeMenu) {
             this.activeMenu.render(context.withOffset(this.activeMenu.localPosition));
         }
-    }
-
-    public override emit(event: TUIEvent): void {
-        super.emit(event);
-
-        if (event.type === "keydown" && this.handleKeyDown(event)) {
-            return;
-        }
-
-        if (this.activeMenu) {
-            this.activeMenu.emit(event);
-            return;
-        }
-
-        this.content?.emit(event);
-    }
-
-    private handleKeyDown(event: KeyPressEvent): boolean {
-        const mnemonicMatch = this.findMnemonicMatch(event);
-        if (mnemonicMatch >= 0) {
-            this.openMenu(mnemonicMatch);
-            return true;
-        }
-
-        if (this.activeIndex < 0) {
-            return false;
-        }
-
-        if (event.key === "ArrowLeft") {
-            this.openMenu(this.wrapIndex(this.activeIndex - 1));
-            return true;
-        }
-
-        if (event.key === "ArrowRight") {
-            this.openMenu(this.wrapIndex(this.activeIndex + 1));
-            return true;
-        }
-
-        if (event.key === "Escape") {
-            this.closeMenu();
-            return true;
-        }
-
-        if (event.key === "ArrowUp" || event.key === "ArrowDown" || event.key === "Enter") {
-            this.activeMenu?.emit(event);
-            return true;
-        }
-
-        return false;
     }
 
     private renderItem(context: RenderContext, index: number): void {
@@ -231,7 +266,7 @@ export class MenuBarElement extends TUIElement {
         return index;
     }
 
-    private findMnemonicMatch(event: KeyPressEvent): number {
+    private findMnemonicMatch(event: TUIKeyboardEvent): number {
         if (!event.altKey || event.ctrlKey || event.metaKey || event.key.length !== 1) {
             return -1;
         }

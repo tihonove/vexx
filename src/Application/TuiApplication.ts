@@ -37,10 +37,7 @@ export class TuiApplication {
 
     private handleInput(event: KeyPressEvent): void {
         if (this.root) {
-            // Legacy emit path — existing elements still rely on it
-            this.root.emit(event);
-
-            // New dispatchEvent path — dispatch to focused element (or root)
+            // Dispatch to focused element (or root) with capture/bubble
             const tuiEvent = new TUIKeyboardEvent(event.type, {
                 key: event.key,
                 code: event.code,

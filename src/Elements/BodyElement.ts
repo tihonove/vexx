@@ -1,7 +1,6 @@
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 import { ContextMenuLayer } from "./ContextMenuLayer.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import type { TUIEvent } from "../TerminalBackend/KeyEvent.ts";
 
 export class BodyElement extends TUIElement {
     public title = "";
@@ -61,15 +60,4 @@ export class BodyElement extends TUIElement {
         this.contextMenuLayer.render(context);
     }
 
-    public override emit(event: TUIEvent): void {
-        // Own listeners first (e.g. keypress on body.title)
-        super.emit(event);
-
-        // If overlay has visible items, route keyboard events there exclusively
-        if (this.contextMenuLayer.hasVisibleItems()) {
-            this.contextMenuLayer.emit(event);
-        } else if (this.content) {
-            this.content.emit(event);
-        }
-    }
 }

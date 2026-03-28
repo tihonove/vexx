@@ -15,7 +15,7 @@ export class TextBlockElement extends TUIElement implements IScrollable {
             this.lines.push(`Line ${String(i + 1).padStart(3, "0")}`);
         }
 
-        this.addLegacyEventListener("keypress", (event) => {
+        this.addEventListener("keypress", (event) => {
             if (event.key === "ArrowDown") {
                 this.scrollDown();
             } else if (event.key === "ArrowUp") {

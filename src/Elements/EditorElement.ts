@@ -1,11 +1,11 @@
-import { RenderContext, TUIElement } from "./TUIElement.ts";
-import { EditorViewState } from "../Editor/EditorViewState.ts";
-import { UndoManager } from "../Editor/UndoManager.ts";
-import type { IUndoElement } from "../Editor/IUndoElement.ts";
-import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
-import { isSelectionCollapsed, selectionToRange } from "../Editor/ISelection.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
+import { EditorViewState } from "../Editor/EditorViewState.ts";
+import { isSelectionCollapsed, selectionToRange } from "../Editor/ISelection.ts";
+import type { IUndoElement } from "../Editor/IUndoElement.ts";
+import { UndoManager } from "../Editor/UndoManager.ts";
+import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
+import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);
 
@@ -23,7 +23,7 @@ export class EditorElement extends TUIElement {
         this.viewState = viewState;
         this.undoManager = new UndoManager(viewState.document, viewState);
 
-        this.addLegacyEventListener("keypress", (event) => {
+        this.addEventListener("keypress", (event) => {
             this.handleKeyPress(event);
         });
     }
@@ -96,7 +96,7 @@ export class EditorElement extends TUIElement {
         }
     }
 
-    private handleKeyPress(event: KeyPressEvent): void {
+    private handleKeyPress(event: TUIKeyboardEvent): void {
         if (event.key === "z" && event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey) {
             this.undoManager.redo();
             return;

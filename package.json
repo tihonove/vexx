@@ -15,6 +15,7 @@
     "demo:scroll": "node src/demos/scrollDemo.ts",
     "demo:menu-bar": "node src/demos/menuBarDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
+    "demo:focus": "node src/demos/focusDemo.ts",
     "build": "tsup",
     "test": "vitest run",
     "test:watch": "vitest",

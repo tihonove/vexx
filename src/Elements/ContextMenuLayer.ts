@@ -1,5 +1,4 @@
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import type { TUIEvent } from "../TerminalBackend/KeyEvent.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
 export interface ContextMenuLayerItem {
@@ -87,12 +86,4 @@ export class ContextMenuLayer extends TUIElement {
         }
     }
 
-    public override emit(event: TUIEvent): void {
-        super.emit(event);
-        for (const item of this.items) {
-            if (item.visible) {
-                item.element.emit(event);
-            }
-        }
-    }
 }

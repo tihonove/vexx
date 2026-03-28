@@ -1,67 +1,56 @@
 import { describe, it, expect, vi } from "vitest";
 import { TUIElement } from "./TUIElement.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
 import { TUIEventBase, EventPhase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { FocusManager } from "../Events/FocusManager.ts";
 
-function makeKeyEvent(overrides: Partial<KeyPressEvent> & { type: KeyPressEvent["type"] }): KeyPressEvent {
-    return {
-        key: "a",
-        code: "KeyA",
-        ctrlKey: false,
-        shiftKey: false,
-        altKey: false,
-        metaKey: false,
-        raw: "a",
-        ...overrides,
-    };
-}
-
-describe("TUIElement legacy event system", () => {
+describe("TUIElement event system", () => {
     it("calls keypress listeners on keypress event", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addLegacyEventListener("keypress", handler);
+        element.addEventListener("keypress", handler);
 
-        const event = makeKeyEvent({ type: "keypress" });
-        element.emit(event);
+        const event = new TUIKeyboardEvent("keypress", { key: "a", code: "KeyA" });
+        element.dispatchEvent(event);
 
         expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith(event);
+        expect(handler.mock.calls[0][0].key).toBe("a");
+        expect(handler.mock.calls[0][0].type).toBe("keypress");
     });
 
     it("calls keydown listeners on keydown event", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addLegacyEventListener("keydown", handler);
+        element.addEventListener("keydown", handler);
 
-        const event = makeKeyEvent({ type: "keydown" });
-        element.emit(event);
+        const event = new TUIKeyboardEvent("keydown", { key: "a", code: "KeyA" });
+        element.dispatchEvent(event);
 
         expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith(event);
+        expect(handler.mock.calls[0][0].key).toBe("a");
+        expect(handler.mock.calls[0][0].type).toBe("keydown");
     });
 
     it("calls keyup listeners on keyup event", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addLegacyEventListener("keyup", handler);
+        element.addEventListener("keyup", handler);
 
-        const event = makeKeyEvent({ type: "keyup" });
-        element.emit(event);
+        const event = new TUIKeyboardEvent("keyup", { key: "a", code: "KeyA" });
+        element.dispatchEvent(event);
 
         expect(handler).toHaveBeenCalledOnce();
-        expect(handler).toHaveBeenCalledWith(event);
+        expect(handler.mock.calls[0][0].key).toBe("a");
+        expect(handler.mock.calls[0][0].type).toBe("keyup");
     });
 
     it("does not call keypress listeners on keydown event", () => {
         const element = new TUIElement();
         const keypressHandler = vi.fn();
-        element.addLegacyEventListener("keypress", keypressHandler);
+        element.addEventListener("keypress", keypressHandler);
 
-        element.emit(makeKeyEvent({ type: "keydown" }));
+        element.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
 
         expect(keypressHandler).not.toHaveBeenCalled();
     });
@@ -69,9 +58,9 @@ describe("TUIElement legacy event system", () => {
     it("does not crash when emitting event with no listeners", () => {
         const element = new TUIElement();
         expect(() => {
-            element.emit(makeKeyEvent({ type: "keypress" }));
-            element.emit(makeKeyEvent({ type: "keydown" }));
-            element.emit(makeKeyEvent({ type: "keyup" }));
+            element.dispatchEvent(new TUIKeyboardEvent("keypress", { key: "a" }));
+            element.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+            element.dispatchEvent(new TUIKeyboardEvent("keyup", { key: "a" }));
         }).not.toThrow();
     });
 
@@ -79,46 +68,46 @@ describe("TUIElement legacy event system", () => {
         const element = new TUIElement();
         const handler1 = vi.fn();
         const handler2 = vi.fn();
-        element.addLegacyEventListener("keydown", handler1);
-        element.addLegacyEventListener("keydown", handler2);
+        element.addEventListener("keydown", handler1);
+        element.addEventListener("keydown", handler2);
 
-        element.emit(makeKeyEvent({ type: "keydown" }));
+        element.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
 
         expect(handler1).toHaveBeenCalledOnce();
         expect(handler2).toHaveBeenCalledOnce();
     });
 
-    it("removes a specific listener with removeLegacyEventListener", () => {
+    it("removes a specific listener with removeEventListener", () => {
         const element = new TUIElement();
         const handler = vi.fn();
-        element.addLegacyEventListener("keydown", handler);
-        element.removeLegacyEventListener("keydown", handler);
+        element.addEventListener("keydown", handler);
+        element.removeEventListener("keydown", handler);
 
-        element.emit(makeKeyEvent({ type: "keydown" }));
+        element.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
 
         expect(handler).not.toHaveBeenCalled();
     });
 
-    it("removeLegacyEventListener does not affect other listeners", () => {
+    it("removeEventListener does not affect other listeners", () => {
         const element = new TUIElement();
         const handler1 = vi.fn();
         const handler2 = vi.fn();
-        element.addLegacyEventListener("keypress", handler1);
-        element.addLegacyEventListener("keypress", handler2);
+        element.addEventListener("keypress", handler1);
+        element.addEventListener("keypress", handler2);
 
-        element.removeLegacyEventListener("keypress", handler1);
-        element.emit(makeKeyEvent({ type: "keypress" }));
+        element.removeEventListener("keypress", handler1);
+        element.dispatchEvent(new TUIKeyboardEvent("keypress", { key: "a" }));
 
         expect(handler1).not.toHaveBeenCalled();
         expect(handler2).toHaveBeenCalledOnce();
     });
 
-    it("removeLegacyEventListener is no-op for unregistered handler", () => {
+    it("removeEventListener is no-op for unregistered handler", () => {
         const element = new TUIElement();
         const handler = vi.fn();
 
         expect(() => {
-            element.removeLegacyEventListener("keyup", handler);
+            element.removeEventListener("keyup", handler);
         }).not.toThrow();
     });
 });

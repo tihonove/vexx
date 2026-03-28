@@ -8,6 +8,7 @@ export interface TUIKeyboardEventInit {
     altKey?: boolean;
     metaKey?: boolean;
     raw?: string;
+    bubbles?: boolean;
 }
 
 export class TUIKeyboardEvent extends TUIEventBase {
@@ -20,7 +21,7 @@ export class TUIKeyboardEvent extends TUIEventBase {
     public readonly raw: string;
 
     public constructor(type: "keypress" | "keydown" | "keyup", init: TUIKeyboardEventInit) {
-        super(type, true);
+        super(type, init.bubbles ?? true);
         this.key = init.key;
         this.code = init.code ?? "";
         this.ctrlKey = init.ctrlKey ?? false;

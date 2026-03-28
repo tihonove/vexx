@@ -10,7 +10,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
         const app = new TuiApplication(backend);
 
         const body = new BodyElement();
-        body.addLegacyEventListener("keypress", (event) => {
+        body.addEventListener("keypress", (event) => {
             body.title += event.key;
         });
         app.root = body;
@@ -28,7 +28,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
         const app = new TuiApplication(backend);
 
         const body = new BodyElement();
-        body.addLegacyEventListener("keypress", (event) => {
+        body.addEventListener("keypress", (event) => {
             body.title += event.key;
         });
         app.root = body;
@@ -69,7 +69,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
 
         const body = new BodyElement();
         const receivedKeys: string[] = [];
-        body.addLegacyEventListener("keypress", (event) => {
+        body.addEventListener("keypress", (event) => {
             receivedKeys.push(event.key);
         });
         app.root = body;
@@ -87,7 +87,7 @@ describe("TuiApplication integration with MockTerminalBackend", () => {
 
         const body = new BodyElement();
         let lastCtrl = false;
-        body.addLegacyEventListener("keypress", (event) => {
+        body.addEventListener("keypress", (event) => {
             lastCtrl = event.ctrlKey;
         });
         app.root = body;
