@@ -14,7 +14,7 @@
 ## Каталоги src/
 
 ### Common/
-Базовые типы и утилиты, не зависящие ни от чего: `Point`, `Size`, `Offset`, `BoxConstraints`, `Rect`, `IDisposable`, `Disposable`.
+Базовые типы и утилиты, не зависящие ни от чего: `Point`, `Size`, `Offset`, `BoxConstraints`, `Rect`, `IDisposable`, `Disposable`, DI-контейнер (`Token`, `Container`, см. [docs/DI.md](DI.md)).
 
 ### Input/
 Пайплайн парсинга терминального ввода: сырые байты stdin → токены → `KeyPressEvent`. Включает токенизатор stdin, отслеживание мыши, stateful парсер клавиатурных событий (keydown/keypress/keyup в browser-like стиле) и обратную сериализацию для тестов.
@@ -42,6 +42,8 @@ TUI-фреймворк — дерево элементов с layout, событ
 - **dispose()** — cleanup ресурсов (LIFO через `Disposable.register()`)
 
 Родительский контроллер создаёт дочерние, вставляет их `view` в своё дерево, вызывает `mount()` и `activate()`. Текущие контроллеры: `AppController` (корневой, меню, шорткаты), `EditorController` (текстовый редактор).
+
+Зависимости контроллеров объявляются через `static dependencies` и резолвятся DI-контейнером из `Common/DiContainer.ts` при старте приложения. Подробности — [docs/DI.md](DI.md).
 
 ### demos/
 Демо-приложения для ручного тестирования отдельных компонентов.
