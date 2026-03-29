@@ -18,6 +18,7 @@ export interface ITextDocument {
     getLineContent(lineIndex: number): string;
     getLineLength(lineIndex: number): number;
     getText(): string;
+    setText(text: string): void;
     getTextInRange(range: IRange): string;
 
     applyEdits(edits: readonly ITextEdit[]): IApplyEditsResult;

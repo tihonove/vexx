@@ -4,16 +4,17 @@
 
 Проект организован в виде стека слоёв. Каждый слой зависит только от нижележащих.
 
-1. **App** (пока в main.ts) — контроллеры и бизнес-логика
-2. **Editor** — модель текстового редактора + мост к TUIDom
-3. **TUIDom** — TUI-фреймворк (аналог браузерного DOM): дерево элементов, события, виджеты
-4. **Input**, **Rendering**, **Backend** — платформенный слой: парсинг ввода, отрисовка, терминальный I/O
-5. **Common** — общие примитивы и утилиты
+1. **App** (main.ts) — точка входа, bootstrap
+2. **Controllers** — контроллеры с lifecycle (constructor → mount → activate → dispose), оркестрация UI и бизнес-логики
+3. **Editor** — модель текстового редактора + мост к TUIDom
+4. **TUIDom** — TUI-фреймворк (аналог браузерного DOM): дерево элементов, события, виджеты
+5. **Input**, **Rendering**, **Backend** — платформенный слой: парсинг ввода, отрисовка, терминальный I/O
+6. **Common** — общие примитивы и утилиты
 
 ## Каталоги src/
 
 ### Common/
-Базовые типы и утилиты, не зависящие ни от чего: `Point`, `Size`, `Offset`, `BoxConstraints`, `Rect`.
+Базовые типы и утилиты, не зависящие ни от чего: `Point`, `Size`, `Offset`, `BoxConstraints`, `Rect`, `IDisposable`, `Disposable`.
 
 ### Input/
 Пайплайн парсинга терминального ввода: сырые байты stdin → токены → `KeyPressEvent`. Включает токенизатор stdin, отслеживание мыши, stateful парсер клавиатурных событий (keydown/keypress/keyup в browser-like стиле) и обратную сериализацию для тестов.
@@ -33,6 +34,15 @@ TUI-фреймворк — дерево элементов с layout, событ
 ### Editor/
 Модель текстового редактора и виджет-мост к TUIDom. Хранение текста (пока массив строк, в планах Piece Table), состояние вида (scroll, selections, folding, курсор), undo/redo стек, TUI-виджет редактора и набор интерфейсов. Содержит подкаталог с тестовыми утилитами (TrackDSL).
 
+### Controllers/
+Контроллеры приложения с чётким жизненным циклом. Каждый контроллер реализует `IController` (extends `IDisposable`):
+- **constructor** (sync) — создаёт UI-скелет (`view`), все поля non-null
+- **mount()** — подписка на события, wiring после вставки view в DOM-дерево
+- **activate()** (async) — загрузка данных, инициализация внешних сервисов
+- **dispose()** — cleanup ресурсов (LIFO через `Disposable.register()`)
+
+Родительский контроллер создаёт дочерние, вставляет их `view` в своё дерево, вызывает `mount()` и `activate()`. Текущие контроллеры: `AppController` (корневой, меню, шорткаты), `EditorController` (текстовый редактор).
+
 ### demos/
 Демо-приложения для ручного тестирования отдельных компонентов.
 
@@ -42,7 +52,7 @@ TUI-фреймворк — дерево элементов с layout, событ
 ## Правила зависимостей
 
 ```
-App → Editor → TUIDom → { Input, Rendering, Backend } → Common
+App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → Common
 ```
 
 - **Common** не импортирует ничего из проекта
@@ -51,4 +61,5 @@ App → Editor → TUIDom → { Input, Rendering, Backend } → Common
 - **TUIDom** зависит от Rendering, Common (через TerminalScreen)
 - **TUIDom/Events** используют тип TUIElement — это внутренняя зависимость TUIDom
 - **Editor** зависит от TUIDom, Rendering (ColorUtils), Common
+- **Controllers** зависит от Editor, TUIDom, Common
 - **App** (main.ts) зависит от всех слоёв

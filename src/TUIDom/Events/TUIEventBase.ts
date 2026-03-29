@@ -1,3 +1,5 @@
+import type { TUIElement } from "../TUIElement.ts";
+
 export const EventPhase = {
     NONE: 0,
     CAPTURING: 1,
@@ -11,8 +13,8 @@ export class TUIEventBase {
     public readonly type: string;
     public readonly bubbles: boolean;
 
-    public target: import("../TUIElement.ts").TUIElement | null = null;
-    public currentTarget: import("../TUIElement.ts").TUIElement | null = null;
+    public target: TUIElement | null = null;
+    public currentTarget: TUIElement | null = null;
     public eventPhase: EventPhase = EventPhase.NONE;
 
     private _propagationStopped = false;

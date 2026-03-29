@@ -41,6 +41,12 @@ export class TextDocument implements ITextDocument {
         return this.lines.join("\n");
     }
 
+    public setText(text: string): void {
+        this._versionId++;
+        this.lines = text.split("\n");
+        this.tokensByLine.clear();
+    }
+
     public getTextInRange(range: IRange): string {
         const { start, end } = range;
         if (start.line === end.line) {

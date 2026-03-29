@@ -55,6 +55,14 @@ const overrides: TSESLint.FlatConfig.ConfigArray = [
                 },
             ],
             "simple-import-sort/exports": "warn",
+            // Запрещаем inline import() в аннотациях типов — используй import type вместо этого
+            "no-restricted-syntax": [
+                "error",
+                {
+                    selector: "TSImportType",
+                    message: "Не используй inline import() для типов. Добавь `import type { ... }` в начало файла.",
+                },
+            ],
         },
     },
 ];
