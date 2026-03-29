@@ -27,13 +27,6 @@ const fileContent = fs.existsSync(resolvedPath) ? fs.readFileSync(resolvedPath, 
 const document = new TextDocument(fileContent);
 const viewState = new EditorViewState(document);
 
-// ── View ────────────────────────────────────────────────────
-
-const body = new BodyElement();
-const editor = new EditorElement(viewState);
-editor.tabIndex = 0;
-const scrollContainer = new ScrollContainerElement(editor);
-
 // ── Controller: связывает UI и бизнес-логику  ───────────────
 
 class EditorController {
@@ -45,23 +38,25 @@ class EditorController {
     private filePath: string;
     private scrollContainer: ScrollContainerElement;
 
-    public constructor(
-        app: TuiApplication,
-        body: BodyElement,
-        editor: EditorElement,
-        scrollContainer: ScrollContainerElement,
-        doc: TextDocument,
-        filePath: string,
-    ) {
+    public constructor(app: TuiApplication, doc: TextDocument, filePath: string) {
         this.app = app;
-        this.view = body;
-        this.editor = editor;
-        this.scrollContainer = scrollContainer;
+
+        this.view = new BodyElement();
+        this.editor = new EditorElement(viewState);
+        this.editor.tabIndex = 0;
+        this.scrollContainer = new ScrollContainerElement(this.editor);
+        this.app.root = this.view;
+        this.view.setContent(this.scrollContainer);
+
         this.doc = doc;
         this.filePath = filePath;
 
         this.setupMenu();
         this.setupKeyboardShortcuts();
+    }
+
+    public focusEditor(): void {
+        this.editor.focus();
     }
 
     private setupMenu(): void {
@@ -91,7 +86,6 @@ class EditorController {
 
         const menuBar = new MenuBarElement(menuItems);
         this.view.setMenuBar(menuBar);
-        this.view.setContent(this.scrollContainer);
     }
 
     private setupKeyboardShortcuts(): void {
@@ -123,11 +117,7 @@ class EditorController {
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);
-app.root = body;
-
-new EditorController(app, body, editor, scrollContainer, document, resolvedPath);
+const appController = new EditorController(app, document, resolvedPath);
 
 app.run();
-
-// Сфокусировать редактор после старта
-editor.focus();
+appController.focusEditor();
