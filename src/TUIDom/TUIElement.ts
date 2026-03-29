@@ -54,6 +54,9 @@ export class TUIElement {
     protected _parent: TUIElement | null = null;
     protected root: TUIElement | null = null;
 
+    // Callback invoked when markDirty reaches the root — used by TuiApplication to schedule a render
+    private requestRenderCallback: (() => void) | null = null;
+
     // Focus manager — set only on root element
     public focusManager: FocusManager | null = null;
 
@@ -249,11 +252,17 @@ export class TUIElement {
     /**
      * Marks this element and ancestors as dirty.
      * Call this when layout-affecting properties change.
+     *
+     * When propagation reaches the root (no parent), fires the
+     * requestRenderCallback so TuiApplication can schedule a deferred render.
+     * Batching is handled by TuiApplication.scheduleRender().
      */
     public markDirty(): void {
         this.isLayoutDirty = true;
         if (this._parent) {
             this._parent.markDirty();
+        } else if (this.requestRenderCallback) {
+            this.requestRenderCallback();
         }
     }
 
@@ -286,6 +295,14 @@ export class TUIElement {
      */
     public setAsRoot(): void {
         this.root = this;
+    }
+
+    /**
+     * Sets a callback to be invoked when markDirty() reaches the root element.
+     * Used by TuiApplication to schedule async re-renders.
+     */
+    public setRequestRenderCallback(callback: (() => void) | null): void {
+        this.requestRenderCallback = callback;
     }
 
     /**

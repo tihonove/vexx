@@ -13,6 +13,7 @@ export class TuiApplication {
     public root: TUIElement | null = null;
     public screen: TerminalScreen;
     public focusManager: FocusManager | null = null;
+    private renderScheduled = false;
 
     public constructor(backend: ITerminalBackend) {
         this.backend = backend;
@@ -34,6 +35,23 @@ export class TuiApplication {
             this.root.render(new RenderContext(this.screen));
             this.screen.flush(this.backend);
         }
+    }
+
+    /**
+     * Schedules a deferred render via setImmediate.
+     * Batches multiple markDirty() calls into a single frame.
+     * Skips rendering if layout is already clean (e.g. a synchronous
+     * renderFrame from handleInput already ran).
+     */
+    public scheduleRender(): void {
+        if (this.renderScheduled) return;
+        this.renderScheduled = true;
+        setImmediate(() => {
+            this.renderScheduled = false;
+            if (this.root?.isLayoutDirty) {
+                this.renderFrame();
+            }
+        });
     }
 
     private handleInput(event: KeyPressEvent): void {
@@ -76,6 +94,7 @@ export class TuiApplication {
         if (this.root) {
             this.focusManager = new FocusManager(this.root);
             this.root.focusManager = this.focusManager;
+            this.root.setRequestRenderCallback(() => this.scheduleRender());
         }
 
         this.backend.setup();
