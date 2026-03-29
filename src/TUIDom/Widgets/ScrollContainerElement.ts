@@ -17,6 +17,12 @@ export class ScrollContainerElement extends TUIElement {
         return this.child;
     }
 
+    public setChild(child: TUIElement & IScrollable): void {
+        this.child = child;
+        this.child.setParent(this);
+        this.markDirty();
+    }
+
     public override getChildren(): readonly TUIElement[] {
         return [this.child];
     }

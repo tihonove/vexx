@@ -29,7 +29,11 @@ export class EditorController extends Disposable implements IController {
     public openFile(filePath: string): void {
         this.filePath = filePath;
         const content = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : "";
-        this.doc.setText(content);
+        this.doc = new TextDocument(content);
+        this.viewState = new EditorViewState(this.doc);
+        this.editor = new EditorElement(this.viewState);
+        this.editor.tabIndex = 0;
+        this.view.setChild(this.editor);
     }
 
     public save(): void {
