@@ -1,8 +1,8 @@
-import { TuiApplication } from "../Application/TuiApplication.ts";
+import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
+import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
-import { EditorElement } from "../Elements/EditorElement.ts";
-import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
+import { TuiApplication } from "../TUIDom/TuiApplication.ts";
 
 const sampleText = `Hello, World!
 Welcome to vexx — a TUI text editor.

@@ -1,9 +1,9 @@
-import { TuiApplication } from "../Application/TuiApplication.ts";
+import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
-import { BodyElement } from "../Elements/BodyElement.ts";
-import { BoxElement } from "../Elements/BoxElement.ts";
-import { PopupMenuElement } from "../Elements/PopupMenuElement.ts";
-import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
+import { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
+import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);

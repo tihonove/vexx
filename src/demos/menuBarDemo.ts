@@ -1,9 +1,9 @@
-import { TuiApplication } from "../Application/TuiApplication.ts";
-import { BodyElement } from "../Elements/BodyElement.ts";
-import type { MenuBarItem } from "../Elements/MenuBarElement.ts";
-import { MenuBarElement } from "../Elements/MenuBarElement.ts";
-import { VStackElement } from "../Elements/VStackElement.ts";
-import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
+import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
+import { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
+import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
+import { VStackElement } from "../TUIDom/Widgets/VStackElement.ts";
 
 import { FocusableBox } from "./FocusableBox.ts";
 

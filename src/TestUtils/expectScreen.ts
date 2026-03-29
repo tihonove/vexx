@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 
-import type { MockTerminalBackend } from "../TerminalBackend/MockTerminalBackend.ts";
+import type { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
 
 /**
  * Tagged template literal that strips leading/trailing blank lines

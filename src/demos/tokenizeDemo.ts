@@ -13,7 +13,7 @@
  * Total: 11 = 1 | 2 | 8
  */
 
-import { tokenize } from "../RawTokenParsing/tokenize.ts";
+import { tokenize } from "../Input/tokenize.ts";
 
 const stdin = process.stdin;
 const stdout = process.stdout;

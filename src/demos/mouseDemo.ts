@@ -12,8 +12,8 @@
  * See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
  */
 
-import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../RawTokenParsing/mouseTracking.ts";
-import { tokenize } from "../RawTokenParsing/tokenize.ts";
+import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../Input/mouseTracking.ts";
+import { tokenize } from "../Input/tokenize.ts";
 
 const stdin = process.stdin;
 const stdout = process.stdout;

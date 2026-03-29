@@ -1,15 +1,15 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { TuiApplication } from "./Application/TuiApplication.ts";
+import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
+import { EditorElement } from "./Editor/EditorElement.ts";
 import { EditorViewState } from "./Editor/EditorViewState.ts";
 import { TextDocument } from "./Editor/TextDocument.ts";
-import { BodyElement } from "./Elements/BodyElement.ts";
-import { EditorElement } from "./Elements/EditorElement.ts";
-import type { MenuBarItem } from "./Elements/MenuBarElement.ts";
-import { MenuBarElement } from "./Elements/MenuBarElement.ts";
-import { ScrollContainerElement } from "./Elements/ScrollContainerElement.ts";
-import { NodeTerminalBackend } from "./TerminalBackend/NodeTerminalBackend.ts";
+import { TuiApplication } from "./TUIDom/TuiApplication.ts";
+import { BodyElement } from "./TUIDom/Widgets/BodyElement.ts";
+import type { MenuBarItem } from "./TUIDom/Widgets/MenuBarElement.ts";
+import { MenuBarElement } from "./TUIDom/Widgets/MenuBarElement.ts";
+import { ScrollContainerElement } from "./TUIDom/Widgets/ScrollContainerElement.ts";
 
 // ── CLI: обязательный аргумент — путь к файлу ──────────────
 

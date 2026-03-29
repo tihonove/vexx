@@ -1,6 +1,6 @@
-import { TuiApplication } from "../Application/TuiApplication.ts";
-import { BoxElement } from "../Elements/BoxElement.ts";
-import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
+import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
+import { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);

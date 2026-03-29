@@ -13,8 +13,8 @@
  *   Hold/repeat: keydown → keypress → keypress → ... → keyup
  */
 
-import type { KeyPressEvent } from "../TerminalBackend/KeyEvent.ts";
-import { KeyInputParser } from "../TerminalBackend/KeyInputParser.ts";
+import type { KeyPressEvent } from "../Input/KeyEvent.ts";
+import { KeyInputParser } from "../Input/KeyInputParser.ts";
 
 const stdin = process.stdin;
 const stdout = process.stdout;

@@ -1,7 +1,7 @@
-import { TuiApplication } from "../Application/TuiApplication.ts";
-import { ScrollContainerElement } from "../Elements/ScrollContainerElement.ts";
-import { TextBlockElement } from "../Elements/TextBlockElement.ts";
-import { NodeTerminalBackend } from "../TerminalBackend/NodeTerminalBackend.ts";
+import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
+import { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import { ScrollContainerElement } from "../TUIDom/Widgets/ScrollContainerElement.ts";
+import { TextBlockElement } from "../TUIDom/Widgets/TextBlockElement.ts";
 
 const textBlock = new TextBlockElement(100);
 const scrollContainer = new ScrollContainerElement(textBlock);
