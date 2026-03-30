@@ -101,6 +101,7 @@ export class TUIElement {
      */
     public getAncestorPath(): TUIElement[] {
         const path: TUIElement[] = [];
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
         let current: TUIElement | null = this;
         while (current !== null) {
             path.push(current);

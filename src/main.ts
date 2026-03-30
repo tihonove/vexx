@@ -1,7 +1,10 @@
 import * as path from "node:path";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
-import { AppController } from "./Controllers/AppController.ts";
+import { Container } from "./Common/DiContainer.ts";
+import { AppController, AppControllerDIToken } from "./Controllers/AppController.ts";
+import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
+import { EditorController, EditorControllerDIToken } from "./Controllers/EditorController.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
 // ── CLI: обязательный аргумент — путь к файлу ──────────────
@@ -13,18 +16,20 @@ if (!filePath) {
 }
 
 const resolvedPath = path.resolve(filePath);
-
-// ── Bootstrap ───────────────────────────────────────────────
-
 const backend = new NodeTerminalBackend();
-const app = new TuiApplication(backend);
 
-const appController = new AppController(app);
+// ── Bootstrap через DI-контейнер ────────────────────────────
+const container = new Container()
+    .bind(TuiApplicationDIToken, () => new TuiApplication(backend))
+    .bind(EditorControllerDIToken, EditorController)
+    .bind(AppControllerDIToken, AppController);
+
+const app = container.get(TuiApplicationDIToken);
+const appController = container.get(AppControllerDIToken);
+
 app.root = appController.view;
 appController.mount();
-
 app.run();
-
 await appController.activate();
 appController.openFile(resolvedPath);
 appController.focusEditor();

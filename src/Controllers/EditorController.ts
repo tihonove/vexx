@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 
+import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
@@ -8,7 +9,11 @@ import { ScrollContainerElement } from "../TUIDom/Widgets/ScrollContainerElement
 
 import type { IController } from "./IController.ts";
 
+export const EditorControllerDIToken = token<EditorController>("EditorController");
+
 export class EditorController extends Disposable implements IController {
+    public static dependencies = [] as const;
+
     public readonly view: ScrollContainerElement;
 
     private doc: TextDocument;

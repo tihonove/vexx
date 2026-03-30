@@ -1,28 +1,31 @@
+import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import { TuiApplicationDIToken } from "../TUIDom/TuiApplication.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 
+import { EditorControllerDIToken } from "./EditorController.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
 
+export const AppControllerDIToken = token<AppController>("AppController");
+
 export class AppController extends Disposable implements IController {
+    public static dependencies = [TuiApplicationDIToken, EditorControllerDIToken] as const;
     public readonly view: BodyElement;
 
     private app: TuiApplication;
     private editorController: EditorController;
 
-    public constructor(app: TuiApplication) {
+    public constructor(app: TuiApplication, editorController: EditorController) {
         super();
         this.app = app;
-
+        this.editorController = this.register(editorController);
         this.view = new BodyElement();
-
-        this.editorController = this.register(new EditorController());
         this.view.setContent(this.editorController.view);
-
         this.setupMenu();
     }
 

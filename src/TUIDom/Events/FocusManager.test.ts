@@ -9,7 +9,7 @@ import { TUIFocusEvent } from "./TUIFocusEvent.ts";
 class ContainerElement extends TUIElement {
     private _children: TUIElement[] = [];
 
-    addChild(child: TUIElement): void {
+    public addChild(child: TUIElement): void {
         child.setParent(this);
         this._children.push(child);
     }
