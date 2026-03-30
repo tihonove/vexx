@@ -1,10 +1,13 @@
 import * as path from "node:path";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
+import type { ServiceAccessor } from "./Common/DiContainer.ts";
 import { Container } from "./Common/DiContainer.ts";
 import { AppController, AppControllerDIToken } from "./Controllers/AppController.ts";
-import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRegistry.ts";
+import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { EditorController, EditorControllerDIToken } from "./Controllers/EditorController.ts";
+import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
 // ── CLI: обязательный аргумент — путь к файлу ──────────────
@@ -22,6 +25,9 @@ const application = new TuiApplication(backend);
 // ── Bootstrap через DI-контейнер ────────────────────────────
 const container = new Container()
     .bind(TuiApplicationDIToken, () => application)
+    .bind(CommandRegistryDIToken, () => new CommandRegistry())
+    .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
+    .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
     .bind(EditorControllerDIToken, EditorController)
     .bind(AppControllerDIToken, AppController);
 

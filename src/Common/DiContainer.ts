@@ -20,12 +20,16 @@ export interface Injectable<T, Deps extends readonly Token<unknown>[]> {
     new (...args: Resolve<Deps>): T;
 }
 
+export interface ServiceAccessor {
+    get<T>(token: Token<T>): T;
+}
+
 interface InjectableClass {
     readonly dependencies: readonly Token<unknown>[];
     new (...args: unknown[]): unknown;
 }
 
-export class Container {
+export class Container implements ServiceAccessor {
     private factories = new Map<Token<unknown>, () => unknown>();
     private cache = new Map<Token<unknown>, unknown>();
     private resolving = new Set<Token<unknown>>();

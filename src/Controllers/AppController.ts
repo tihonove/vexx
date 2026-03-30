@@ -1,31 +1,57 @@
+import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
-import type { TuiApplication } from "../TUIDom/TuiApplication.ts";
-import { TuiApplicationDIToken } from "./CoreTokens.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 
+import { quitAction } from "./Actions/AppActions.ts";
+import { fileSaveAction } from "./Actions/FileActions.ts";
+import { registerAction } from "./CommandAction.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { ServiceAccessorDIToken } from "./CoreTokens.ts";
 import { EditorControllerDIToken } from "./EditorController.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
+import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
+import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
+const builtinActions = [fileSaveAction, quitAction];
+
 export class AppController extends Disposable implements IController {
-    public static dependencies = [TuiApplicationDIToken, EditorControllerDIToken] as const;
+    public static dependencies = [
+        EditorControllerDIToken,
+        CommandRegistryDIToken,
+        KeybindingRegistryDIToken,
+        ServiceAccessorDIToken,
+    ] as const;
     public readonly view: BodyElement;
 
-    private app: TuiApplication;
     private editorController: EditorController;
+    private commands: CommandRegistry;
+    private keybindings: KeybindingRegistry;
 
-    public constructor(app: TuiApplication, editorController: EditorController) {
+    public constructor(
+        editorController: EditorController,
+        commands: CommandRegistry,
+        keybindings: KeybindingRegistry,
+        accessor: ServiceAccessor,
+    ) {
         super();
-        this.app = app;
         this.editorController = this.register(editorController);
+        this.commands = commands;
+        this.keybindings = keybindings;
         this.view = new BodyElement();
         this.view.setContent(this.editorController.view);
+
+        for (const action of builtinActions) {
+            this.register(registerAction(commands, keybindings, accessor, action));
+        }
+
         this.setupMenu();
     }
 
@@ -47,15 +73,10 @@ export class AppController extends Disposable implements IController {
     }
 
     private handleKeyDown = (event: TUIKeyboardEvent): void => {
-        if (event.ctrlKey && event.key === "s") {
+        const commandId = this.keybindings.resolve(event);
+        if (commandId && this.commands.has(commandId)) {
             event.preventDefault();
-            this.save();
-            return;
-        }
-        if (event.ctrlKey && event.key === "q") {
-            event.preventDefault();
-            this.exit();
-            return;
+            this.commands.execute(commandId);
         }
     };
 
@@ -69,7 +90,7 @@ export class AppController extends Disposable implements IController {
                         label: "Save",
                         shortcut: "Ctrl+S",
                         onSelect: () => {
-                            this.save();
+                            this.commands.execute("workbench.action.files.save");
                         },
                     },
                     { type: "separator" },
@@ -77,7 +98,7 @@ export class AppController extends Disposable implements IController {
                         label: "Exit",
                         shortcut: "Ctrl+Q",
                         onSelect: () => {
-                            this.exit();
+                            this.commands.execute("workbench.action.quit");
                         },
                     },
                 ],
@@ -86,14 +107,5 @@ export class AppController extends Disposable implements IController {
 
         const menuBar = new MenuBarElement(menuItems);
         this.view.setMenuBar(menuBar);
-    }
-
-    private save(): void {
-        this.editorController.save();
-    }
-
-    private exit(): void {
-        this.app.backend.teardown();
-        process.exit(0);
     }
 }
