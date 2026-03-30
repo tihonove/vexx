@@ -17,10 +17,11 @@ if (!filePath) {
 
 const resolvedPath = path.resolve(filePath);
 const backend = new NodeTerminalBackend();
+const application = new TuiApplication(backend);
 
 // ── Bootstrap через DI-контейнер ────────────────────────────
 const container = new Container()
-    .bind(TuiApplicationDIToken, () => new TuiApplication(backend))
+    .bind(TuiApplicationDIToken, () => application)
     .bind(EditorControllerDIToken, EditorController)
     .bind(AppControllerDIToken, AppController);
 

@@ -65,3 +65,9 @@ App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → 
 - **Editor** зависит от TUIDom, Rendering (ColorUtils), Common
 - **Controllers** зависит от Editor, TUIDom, Common
 - **App** (main.ts) зависит от всех слоёв
+
+### DI-контейнер: границы использования
+
+Примитивы DI (`Token`, `Container`, `token()`) реализованы в `Common/DiContainer.ts`, но **объявлять конкретные DI-токены и импортировать `Container`** можно **только на уровнях Controllers и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны зависеть от DI-контейнера.
+
+Все DI-токены именуются по конвенции `*DIToken` (например `EditorControllerDIToken`, `TuiApplicationDIToken`). Подробности — [docs/DI.md](DI.md).

@@ -11,14 +11,30 @@
 - `Injectable<T, Deps>` — тип класса со `static dependencies`
 - `Container` — контейнер с lazy singleton resolution
 
+## Именование токенов
+
+Все DI-токены именуются по конвенции `{ServiceName}DIToken`:
+
+- `EditorControllerDIToken` — токен для `EditorController`
+- `TuiApplicationDIToken` — токен для `TuiApplication`
+- `AppControllerDIToken` — токен для `AppController`
+
+Не используем префикс `I` (как `IEditorCtrl`) — только суффикс `DIToken`.
+
+## Где объявлять токены
+
+DI-токены и зависимости (`static dependencies`) объявляются **только на уровнях Controllers и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны импортировать `Container`, `token()` или `Token` и не должны объявлять DI-токены.
+
+`Common/DiContainer.ts` реализует механизм DI, но конкретные токены в Common/ не объявляются.
+
 ## Объявление токенов
 
-Токены объявляются рядом с интерфейсом или реализацией сервиса:
+Токены объявляются рядом с реализацией сервиса в Controllers/:
 
 ```typescript
 import { token } from "../Common/DiContainer.ts";
 
-export const IEditorCtrl = token<EditorController>("EditorCtrl");
+export const EditorControllerDIToken = token<EditorController>("EditorController");
 ```
 
 ## Объявление зависимостей в классе
@@ -27,10 +43,11 @@ export const IEditorCtrl = token<EditorController>("EditorCtrl");
 Компилятор проверяет, что типы токенов совпадают с типами параметров:
 
 ```typescript
-import { IApp } from "./tokens.ts";
+import { TuiApplicationDIToken } from "./CoreTokens.ts";
+import { EditorControllerDIToken } from "./EditorController.ts";
 
 export class AppController extends Disposable {
-    static dependencies = [IApp, IEditorCtrl] as const;
+    static dependencies = [TuiApplicationDIToken, EditorControllerDIToken] as const;
 
     constructor(app: TuiApplication, editorCtrl: EditorController) {
         super();
@@ -59,12 +76,11 @@ export class EditorController extends Disposable {
 import { Container } from "./Common/DiContainer.ts";
 
 const container = new Container()
-    .bind(IBackend,    () => new NodeTerminalBackend()) // фабрика для leaf-сервисов
-    .bind(IApp,        TuiApplication)                  // класс — deps из static dependencies
-    .bind(IEditorCtrl, EditorController)
-    .bind(IAppCtrl,    AppController);
+    .bind(TuiApplicationDIToken, () => application)          // фабрика для leaf-сервисов
+    .bind(EditorControllerDIToken, EditorController)         // класс — deps из static dependencies
+    .bind(AppControllerDIToken, AppController);
 
-const appCtrl = container.get(IAppCtrl);
+const appCtrl = container.get(AppControllerDIToken);
 ```
 
 Два варианта `.bind()`:

@@ -2,7 +2,7 @@ import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TuiApplication } from "../TUIDom/TuiApplication.ts";
-import { TuiApplicationDIToken } from "../TUIDom/TuiApplication.ts";
+import { TuiApplicationDIToken } from "./CoreTokens.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";

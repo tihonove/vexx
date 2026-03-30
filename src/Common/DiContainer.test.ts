@@ -14,11 +14,11 @@ class Database {
     public readonly tag = "db";
 }
 
-const ILogger = token<Logger>("Logger");
-const IDatabase = token<Database>("Database");
+const LoggerDIToken = token<Logger>("Logger");
+const DatabaseDIToken = token<Database>("Database");
 
 class UserService {
-    public static dependencies = [ILogger, IDatabase] as const;
+    public static dependencies = [LoggerDIToken, DatabaseDIToken] as const;
 
     public readonly logger: Logger;
     public readonly db: Database;
@@ -29,25 +29,25 @@ class UserService {
     }
 }
 
-const IUserService = token<UserService>("UserService");
+const UserServiceDIToken = token<UserService>("UserService");
 
 // ── Tests ───────────────────────────────────────────────────
 
 describe("DiContainer", () => {
     describe("factory binding", () => {
         it("resolves a value from factory function", () => {
-            const IValue = token<number>("Value");
-            const container = new Container().bind(IValue, () => 42);
+            const ValueDIToken = token<number>("Value");
+            const container = new Container().bind(ValueDIToken, () => 42);
 
-            expect(container.get(IValue)).toBe(42);
+            expect(container.get(ValueDIToken)).toBe(42);
         });
     });
 
     describe("class binding with static dependencies", () => {
         it("resolves class with no dependencies", () => {
-            const container = new Container().bind(ILogger, Logger);
+            const container = new Container().bind(LoggerDIToken, Logger);
 
-            const logger = container.get(ILogger);
+            const logger = container.get(LoggerDIToken);
 
             expect(logger).toBeInstanceOf(Logger);
             expect(logger.tag).toBe("logger");
@@ -55,11 +55,11 @@ describe("DiContainer", () => {
 
         it("resolves class with dependencies", () => {
             const container = new Container()
-                .bind(ILogger, Logger)
-                .bind(IDatabase, Database)
-                .bind(IUserService, UserService);
+                .bind(LoggerDIToken, Logger)
+                .bind(DatabaseDIToken, Database)
+                .bind(UserServiceDIToken, UserService);
 
-            const svc = container.get(IUserService);
+            const svc = container.get(UserServiceDIToken);
 
             expect(svc).toBeInstanceOf(UserService);
             expect(svc.logger).toBeInstanceOf(Logger);
@@ -67,43 +67,43 @@ describe("DiContainer", () => {
         });
 
         it("resolves dependency chain A → B → C", () => {
-            const IC = token<C>("C");
-            const IB = token<B>("B");
-            const IA = token<A>("A");
+            const CDIToken = token<C>("C");
+            const BDIToken = token<B>("B");
+            const ADIToken = token<A>("A");
 
             class C {
                 public static dependencies = [] as const;
                 public readonly tag = "c";
             }
             class B {
-                public static dependencies = [IC] as const;
+                public static dependencies = [CDIToken] as const;
                 public readonly c: C;
                 public constructor(c: C) {
                     this.c = c;
                 }
             }
             class A {
-                public static dependencies = [IB] as const;
+                public static dependencies = [BDIToken] as const;
                 public readonly b: B;
                 public constructor(b: B) {
                     this.b = b;
                 }
             }
 
-            const container = new Container().bind(IC, C).bind(IB, B).bind(IA, A);
+            const container = new Container().bind(CDIToken, C).bind(BDIToken, B).bind(ADIToken, A);
 
-            const a = container.get(IA);
+            const a = container.get(ADIToken);
 
             expect(a.b.c.tag).toBe("c");
         });
 
         it("bind order does not matter (lazy resolution)", () => {
             const container = new Container()
-                .bind(IUserService, UserService)
-                .bind(IDatabase, Database)
-                .bind(ILogger, Logger);
+                .bind(UserServiceDIToken, UserService)
+                .bind(DatabaseDIToken, Database)
+                .bind(LoggerDIToken, Logger);
 
-            const svc = container.get(IUserService);
+            const svc = container.get(UserServiceDIToken);
 
             expect(svc.logger).toBeInstanceOf(Logger);
             expect(svc.db).toBeInstanceOf(Database);
@@ -112,22 +112,22 @@ describe("DiContainer", () => {
 
     describe("singleton behavior", () => {
         it("returns the same instance on repeated get()", () => {
-            const container = new Container().bind(ILogger, Logger);
+            const container = new Container().bind(LoggerDIToken, Logger);
 
-            const a = container.get(ILogger);
-            const b = container.get(ILogger);
+            const a = container.get(LoggerDIToken);
+            const b = container.get(LoggerDIToken);
 
             expect(a).toBe(b);
         });
 
         it("dependencies are shared singletons", () => {
             const container = new Container()
-                .bind(ILogger, Logger)
-                .bind(IDatabase, Database)
-                .bind(IUserService, UserService);
+                .bind(LoggerDIToken, Logger)
+                .bind(DatabaseDIToken, Database)
+                .bind(UserServiceDIToken, UserService);
 
-            const svc = container.get(IUserService);
-            const logger = container.get(ILogger);
+            const svc = container.get(UserServiceDIToken);
+            const logger = container.get(LoggerDIToken);
 
             expect(svc.logger).toBe(logger);
         });
@@ -136,20 +136,20 @@ describe("DiContainer", () => {
     describe("error handling", () => {
         it("throws on missing binding", () => {
             const container = new Container();
-            const IMissing = token<string>("Missing");
+            const MissingDIToken = token<string>("Missing");
 
-            expect(() => container.get(IMissing)).toThrowError('No binding for "Missing"');
+            expect(() => container.get(MissingDIToken)).toThrowError('No binding for "Missing"');
         });
 
         it("throws on circular dependency", () => {
-            const IX = token<unknown>("X");
-            const IY = token<unknown>("Y");
+            const XDIToken = token<unknown>("X");
+            const YDIToken = token<unknown>("Y");
 
             const container: Container = new Container()
-                .bind(IX, (): unknown => container.get(IY))
-                .bind(IY, (): unknown => container.get(IX));
+                .bind(XDIToken, (): unknown => container.get(YDIToken))
+                .bind(YDIToken, (): unknown => container.get(XDIToken));
 
-            expect(() => container.get(IX)).toThrowError(/Circular dependency detected.*X.*Y/);
+            expect(() => container.get(XDIToken)).toThrowError(/Circular dependency detected.*X.*Y/);
         });
     });
 
