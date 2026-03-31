@@ -3,6 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
 import { KeybindingRegistry, parseKeybinding } from "./KeybindingRegistry.ts";
 
+function kb(spec: string) {
+    return parseKeybinding(spec);
+}
+
 function makeEvent(overrides: Partial<KeyboardEventLike> & { key: string }): KeyboardEventLike {
     return {
         ctrlKey: false,
@@ -100,7 +104,7 @@ describe("parseKeybinding", () => {
 describe("KeybindingRegistry", () => {
     it("resolves a matching keybinding", () => {
         const registry = new KeybindingRegistry();
-        registry.register("ctrl+s", "workbench.action.files.save");
+        registry.register(kb("ctrl+s"), "workbench.action.files.save");
 
         const result = registry.resolve(makeEvent({ key: "s", ctrlKey: true }));
 
@@ -109,7 +113,7 @@ describe("KeybindingRegistry", () => {
 
     it("returns undefined when no match", () => {
         const registry = new KeybindingRegistry();
-        registry.register("ctrl+s", "workbench.action.files.save");
+        registry.register(kb("ctrl+s"), "workbench.action.files.save");
 
         const result = registry.resolve(makeEvent({ key: "q", ctrlKey: true }));
 
@@ -118,7 +122,7 @@ describe("KeybindingRegistry", () => {
 
     it("does not match when modifiers differ", () => {
         const registry = new KeybindingRegistry();
-        registry.register("ctrl+s", "save");
+        registry.register(kb("ctrl+s"), "save");
 
         expect(registry.resolve(makeEvent({ key: "s" }))).toBeUndefined();
         expect(registry.resolve(makeEvent({ key: "s", ctrlKey: true, shiftKey: true }))).toBeUndefined();
@@ -126,8 +130,8 @@ describe("KeybindingRegistry", () => {
 
     it("last registered wins on conflict", () => {
         const registry = new KeybindingRegistry();
-        registry.register("ctrl+s", "first");
-        registry.register("ctrl+s", "second");
+        registry.register(kb("ctrl+s"), "first");
+        registry.register(kb("ctrl+s"), "second");
 
         const result = registry.resolve(makeEvent({ key: "s", ctrlKey: true }));
 
@@ -136,7 +140,7 @@ describe("KeybindingRegistry", () => {
 
     it("matches key case-insensitively", () => {
         const registry = new KeybindingRegistry();
-        registry.register("ctrl+s", "save");
+        registry.register(kb("ctrl+s"), "save");
 
         const result = registry.resolve(makeEvent({ key: "S", ctrlKey: true }));
 
@@ -145,7 +149,7 @@ describe("KeybindingRegistry", () => {
 
     it("resolves special keys", () => {
         const registry = new KeybindingRegistry();
-        registry.register("ctrl+enter", "exec");
+        registry.register(kb("ctrl+enter"), "exec");
 
         const result = registry.resolve(makeEvent({ key: "Enter", ctrlKey: true }));
 
@@ -154,7 +158,7 @@ describe("KeybindingRegistry", () => {
 
     it("unregisters via returned disposable", () => {
         const registry = new KeybindingRegistry();
-        const disposable = registry.register("ctrl+s", "save");
+        const disposable = registry.register(kb("ctrl+s"), "save");
 
         disposable.dispose();
 
@@ -163,8 +167,8 @@ describe("KeybindingRegistry", () => {
 
     it("dispose() clears all bindings", () => {
         const registry = new KeybindingRegistry();
-        registry.register("ctrl+s", "save");
-        registry.register("ctrl+q", "quit");
+        registry.register(kb("ctrl+s"), "save");
+        registry.register(kb("ctrl+q"), "quit");
 
         registry.dispose();
 

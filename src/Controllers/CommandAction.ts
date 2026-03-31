@@ -2,12 +2,12 @@ import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
 
 import type { CommandRegistry } from "./CommandRegistry.ts";
-import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
+import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
 
 export interface CommandAction {
     readonly id: string;
     readonly title: string;
-    readonly keybinding?: string;
+    readonly keybinding?: Keybinding;
     run(accessor: ServiceAccessor, ...args: unknown[]): unknown;
 }
 

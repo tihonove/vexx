@@ -5,7 +5,7 @@ import { Container, token } from "../Common/DiContainer.ts";
 import type { CommandAction } from "./CommandAction.ts";
 import { registerAction } from "./CommandAction.ts";
 import { CommandRegistry } from "./CommandRegistry.ts";
-import { KeybindingRegistry } from "./KeybindingRegistry.ts";
+import { KeybindingRegistry, parseKeybinding } from "./KeybindingRegistry.ts";
 
 describe("registerAction", () => {
     it("registers command handler in CommandRegistry", () => {
@@ -64,7 +64,7 @@ describe("registerAction", () => {
         const action: CommandAction = {
             id: "test.action",
             title: "Test Action",
-            keybinding: "ctrl+s",
+            keybinding: parseKeybinding("ctrl+s"),
             run: vi.fn(),
         };
 
@@ -109,7 +109,7 @@ describe("registerAction", () => {
         const action: CommandAction = {
             id: "test.action",
             title: "Test Action",
-            keybinding: "ctrl+s",
+            keybinding: parseKeybinding("ctrl+s"),
             run: vi.fn(),
         };
 

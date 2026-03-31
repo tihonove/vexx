@@ -11,7 +11,7 @@ export interface KeyboardEventLike {
     readonly metaKey: boolean;
 }
 
-export interface ParsedKeybinding {
+export interface Keybinding {
     key: string;
     ctrlKey: boolean;
     shiftKey: boolean;
@@ -20,7 +20,7 @@ export interface ParsedKeybinding {
 }
 
 interface KeybindingEntry {
-    binding: ParsedKeybinding;
+    binding: Keybinding;
     commandId: string;
 }
 
@@ -56,7 +56,7 @@ const specialKeyMap: Record<string, string> = {
 
 const modifierNames = new Set(["ctrl", "shift", "alt", "meta"]);
 
-export function parseKeybinding(spec: string): ParsedKeybinding {
+export function parseKeybinding(spec: string): Keybinding {
     const parts = spec.toLowerCase().split("+");
     let ctrlKey = false;
     let shiftKey = false;
@@ -77,7 +77,7 @@ export function parseKeybinding(spec: string): ParsedKeybinding {
     return { key, ctrlKey, shiftKey, altKey, metaKey };
 }
 
-function matchesBinding(event: KeyboardEventLike, binding: ParsedKeybinding): boolean {
+function matchesBinding(event: KeyboardEventLike, binding: Keybinding): boolean {
     return (
         event.key.toLowerCase() === binding.key.toLowerCase() &&
         event.ctrlKey === binding.ctrlKey &&
@@ -90,9 +90,9 @@ function matchesBinding(event: KeyboardEventLike, binding: ParsedKeybinding): bo
 export class KeybindingRegistry implements IDisposable {
     private entries: KeybindingEntry[] = [];
 
-    public register(spec: string, commandId: string): IDisposable {
+    public register(binding: Keybinding, commandId: string): IDisposable {
         const entry: KeybindingEntry = {
-            binding: parseKeybinding(spec),
+            binding,
             commandId,
         };
         this.entries.push(entry);
