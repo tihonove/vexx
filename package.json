@@ -16,6 +16,7 @@
     "demo:menu-bar": "node src/demos/menuBarDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
     "demo:focus": "node src/demos/focusDemo.ts",
+    "demo:layout": "node src/demos/layoutDemo.ts",
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",
     "test": "vitest run",
