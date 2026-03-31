@@ -6,6 +6,26 @@
 
 ---
 
+## Визуальный ориентир
+
+### NVChad — референс для UI/UX
+Проект: https://github.com/NvChad/NvChad
+
+NVChad — конфигурация Neovim с красивым UI, быстрым рендерингом и продуманной визуальной частью. Ориентируемся на него в плане:
+- **Внешний вид**: цветовые темы (base46), statusline, tabufline, общая эстетика
+- **Иконки**: nvim-web-devicons — файловые иконки, иконки типов файлов в дереве и табах
+- **Рендеринг UI-элементов**: telescope (fuzzy finder с превью), nvim-tree (файловое дерево), cheatsheets
+- **Цветовые схемы**: onedark и другие темы из base46 как отправная точка для палитры
+
+Ключевые плагины NVChad для вдохновения:
+- [base46](https://github.com/NvChad/base46) — темы и подсветка
+- [NvChad UI](https://github.com/NvChad/ui) — statusline, tabufline, theme switcher
+- [nvim-web-devicons](https://github.com/kyazdani42/nvim-web-devicons) — иконки файлов
+- [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) — поиск файлов с превью
+- [nvim-tree.lua](https://github.com/kyazdani42/nvim-tree.lua) — файловое дерево
+
+---
+
 ## Команды и кейбиндинги
 
 ### [ ] #1 Рефакторинг Keybinding — типизированный билдер
