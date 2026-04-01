@@ -3,11 +3,13 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { ContextMenuLayer } from "./ContextMenuLayer.ts";
 import type { MenuBarElement } from "./MenuBarElement.ts";
+import type { StatusBarElement } from "./StatusBarElement.ts";
 
 export class BodyElement extends TUIElement {
     public title = "";
     public content: TUIElement | null = null;
     public menuBar: MenuBarElement | null = null;
+    public statusBar: StatusBarElement | null = null;
     public readonly contextMenuLayer: ContextMenuLayer;
 
     public constructor() {
@@ -29,10 +31,16 @@ export class BodyElement extends TUIElement {
         this.menuBar.setParent(this);
     }
 
+    public setStatusBar(statusBar: StatusBarElement): void {
+        this.statusBar = statusBar;
+        this.statusBar.setParent(this);
+    }
+
     public override getChildren(): readonly TUIElement[] {
         const children: TUIElement[] = [];
         if (this.menuBar) children.push(this.menuBar);
         if (this.content) children.push(this.content);
+        if (this.statusBar) children.push(this.statusBar);
         children.push(this.contextMenuLayer);
         return children;
     }
@@ -40,6 +48,7 @@ export class BodyElement extends TUIElement {
     public performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
         const menuBarHeight = this.menuBar ? 1 : 0;
+        const statusBarHeight = this.statusBar ? 1 : 0;
 
         if (this.menuBar) {
             this.menuBar.localPosition = new Offset(0, 0);
@@ -48,10 +57,18 @@ export class BodyElement extends TUIElement {
         }
 
         if (this.content) {
-            const contentSize = new Size(containerSize.width, Math.max(0, containerSize.height - menuBarHeight));
+            const contentHeight = Math.max(0, containerSize.height - menuBarHeight - statusBarHeight);
+            const contentSize = new Size(containerSize.width, contentHeight);
             this.content.localPosition = new Offset(0, menuBarHeight);
             this.content.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y + menuBarHeight);
             this.content.performLayout(BoxConstraints.tight(contentSize));
+        }
+
+        if (this.statusBar) {
+            const statusBarY = containerSize.height - statusBarHeight;
+            this.statusBar.localPosition = new Offset(0, statusBarY);
+            this.statusBar.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y + statusBarY);
+            this.statusBar.performLayout(BoxConstraints.tight(new Size(containerSize.width, statusBarHeight)));
         }
 
         this.contextMenuLayer.localPosition = new Offset(0, 0);
@@ -71,6 +88,12 @@ export class BodyElement extends TUIElement {
         if (this.content) {
             const contentOffset = new Offset(this.content.localPosition.dx, this.content.localPosition.dy);
             this.content.render(context.withOffset(contentOffset));
+        }
+
+        // Status bar
+        if (this.statusBar) {
+            const statusBarOffset = new Offset(this.statusBar.localPosition.dx, this.statusBar.localPosition.dy);
+            this.statusBar.render(context.withOffset(statusBarOffset));
         }
 
         // Menu bar — rendered after content so popup overlays content

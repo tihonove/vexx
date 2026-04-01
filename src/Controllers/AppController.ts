@@ -17,6 +17,8 @@ import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
+import { StatusBarControllerDIToken } from "./StatusBarController.ts";
+import { StatusBarController } from "./StatusBarController.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
@@ -28,10 +30,12 @@ export class AppController extends Disposable implements IController {
         CommandRegistryDIToken,
         KeybindingRegistryDIToken,
         ServiceAccessorDIToken,
+        StatusBarControllerDIToken,
     ] as const;
     public readonly view: BodyElement;
 
     private editorController: EditorController;
+    private statusBarController: StatusBarController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
 
@@ -40,13 +44,16 @@ export class AppController extends Disposable implements IController {
         commands: CommandRegistry,
         keybindings: KeybindingRegistry,
         accessor: ServiceAccessor,
+        statusBarController: StatusBarController,
     ) {
         super();
         this.editorController = this.register(editorController);
+        this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
         this.view = new BodyElement();
         this.view.setContent(this.editorController.view);
+        this.view.setStatusBar(this.statusBarController.view);
 
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
@@ -57,15 +64,19 @@ export class AppController extends Disposable implements IController {
 
     public mount(): void {
         this.view.addEventListener("keydown", this.handleKeyDown);
+        this.view.addEventListener("keypress", this.handleKeyPress);
         this.editorController.mount();
+        this.statusBarController.mount();
     }
 
     public async activate(): Promise<void> {
         await this.editorController.activate();
+        await this.statusBarController.activate();
     }
 
     public openFile(filePath: string): void {
         this.editorController.openFile(filePath);
+        this.statusBarController.update();
     }
 
     public focusEditor(): void {
@@ -78,6 +89,10 @@ export class AppController extends Disposable implements IController {
             event.preventDefault();
             this.commands.execute(commandId);
         }
+    };
+
+    private handleKeyPress = (): void => {
+        this.statusBarController.update();
     };
 
     private setupMenu(): void {

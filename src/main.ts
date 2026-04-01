@@ -8,6 +8,7 @@ import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRe
 import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { EditorController, EditorControllerDIToken } from "./Controllers/EditorController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
+import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
 // ── CLI: обязательный аргумент — путь к файлу ──────────────
@@ -29,6 +30,7 @@ const container = new Container()
     .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
     .bind(EditorControllerDIToken, EditorController)
+    .bind(StatusBarControllerDIToken, StatusBarController)
     .bind(AppControllerDIToken, AppController);
 
 const app = container.get(TuiApplicationDIToken);

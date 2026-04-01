@@ -9,6 +9,7 @@ import { RenderContext } from "../TUIElement.ts";
 import { BodyElement } from "./BodyElement.ts";
 import { BoxElement } from "./BoxElement.ts";
 import { MenuBarElement } from "./MenuBarElement.ts";
+import { StatusBarElement } from "./StatusBarElement.ts";
 import { VStackElement } from "./VStackElement.ts";
 
 describe("BodyElement root reference", () => {
@@ -134,5 +135,82 @@ describe("BodyElement menuBar integration", () => {
 
         expect(menuBar.size.width).toBe(40);
         expect(menuBar.size.height).toBe(20);
+    });
+});
+
+describe("BodyElement statusBar integration", () => {
+    function layoutBody(body: BodyElement, width = 40, height = 20): void {
+        body.globalPosition = new Point(0, 0);
+        body.performLayout(BoxConstraints.tight(new Size(width, height)));
+    }
+
+    it("statusBar receives root reference from BodyElement", () => {
+        const body = new BodyElement();
+        const statusBar = new StatusBarElement();
+
+        body.setStatusBar(statusBar);
+
+        expect(statusBar.getRoot()).toBe(body);
+    });
+
+    it("statusBar positioned at bottom row", () => {
+        const body = new BodyElement();
+        const statusBar = new StatusBarElement();
+
+        body.setStatusBar(statusBar);
+        layoutBody(body, 40, 20);
+
+        expect(statusBar.localPosition.dy).toBe(19);
+        expect(statusBar.globalPosition.y).toBe(19);
+    });
+
+    it("content height reduced by 1 when statusBar is set", () => {
+        const body = new BodyElement();
+        const statusBar = new StatusBarElement();
+        const content = new BoxElement();
+
+        body.setStatusBar(statusBar);
+        body.setContent(content);
+        layoutBody(body, 40, 20);
+
+        expect(content.size.width).toBe(40);
+        expect(content.size.height).toBe(19);
+    });
+
+    it("content height reduced by 2 with both menuBar and statusBar", () => {
+        const body = new BodyElement();
+        const menuBar = new MenuBarElement([{ label: "File", entries: [] }]);
+        const statusBar = new StatusBarElement();
+        const content = new BoxElement();
+
+        body.setMenuBar(menuBar);
+        body.setStatusBar(statusBar);
+        body.setContent(content);
+        layoutBody(body, 40, 20);
+
+        expect(content.localPosition.dy).toBe(1);
+        expect(content.size.height).toBe(18);
+        expect(statusBar.localPosition.dy).toBe(19);
+    });
+
+    it("statusBar included in getChildren", () => {
+        const body = new BodyElement();
+        const statusBar = new StatusBarElement();
+
+        body.setStatusBar(statusBar);
+
+        const children = body.getChildren();
+        expect(children).toContain(statusBar);
+    });
+
+    it("statusBar has full width", () => {
+        const body = new BodyElement();
+        const statusBar = new StatusBarElement();
+
+        body.setStatusBar(statusBar);
+        layoutBody(body, 40, 20);
+
+        expect(statusBar.size.width).toBe(40);
+        expect(statusBar.size.height).toBe(1);
     });
 });
