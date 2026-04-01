@@ -5,6 +5,7 @@ import type { FocusManager } from "./Events/FocusManager.ts";
 import { EventPhase, TUIEventBase } from "./Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "./Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
+import { querySelector, querySelectorAll } from "./TUISelector.ts";
 
 export class RenderContext {
     public readonly canvas: TerminalScreen;
@@ -43,6 +44,10 @@ export class TUIElement {
     public dirty = false;
     public layoutStyle: unknown = undefined;
     public layoutState: unknown = undefined;
+
+    // Identity
+    public id: string | undefined = undefined;
+    public role: string | undefined = undefined;
 
     // Focus support
     public tabIndex = -1;
@@ -319,5 +324,15 @@ export class TUIElement {
     public render(_context: RenderContext): void {
         // Base implementation does nothing.
         // Subclasses override to draw themselves.
+    }
+
+    // ─── Query API (querySelector / querySelectorAll) ───
+
+    public querySelector(selector: string): TUIElement | null {
+        return querySelector(this, selector);
+    }
+
+    public querySelectorAll(selector: string): TUIElement[] {
+        return querySelectorAll(this, selector);
     }
 }

@@ -362,3 +362,27 @@ describe("TUIElement.getDepthFirstFocusableOrder", () => {
         expect(root.getDepthFirstFocusableOrder()).toEqual([a1, a2, b1]);
     });
 });
+
+describe("TUIElement.id and role", () => {
+    it("id defaults to undefined", () => {
+        const el = new TUIElement();
+        expect(el.id).toBeUndefined();
+    });
+
+    it("id can be set and read", () => {
+        const el = new TUIElement();
+        el.id = "main-editor";
+        expect(el.id).toBe("main-editor");
+    });
+
+    it("role defaults to undefined", () => {
+        const el = new TUIElement();
+        expect(el.role).toBeUndefined();
+    });
+
+    it("role can be set and read", () => {
+        const el = new TUIElement();
+        el.role = "menubar";
+        expect(el.role).toBe("menubar");
+    });
+});
