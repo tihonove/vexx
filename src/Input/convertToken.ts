@@ -1,5 +1,5 @@
 import { createKeyPressEvent, type KeyPressEvent } from "./KeyEvent.ts";
-import type { RawTerminalToken } from "./RawTerminalToken.ts";
+import type { RawKeyToken } from "./RawTerminalToken.ts";
 
 /**
  * Map Kitty event type number to TUI event type string.
@@ -19,7 +19,7 @@ function kittyEventType(eventType: number): "keypress" | "keydown" | "keyup" {
     }
 }
 
-export function convertTokenToKeyPressEvent(token: RawTerminalToken): KeyPressEvent {
+export function convertTokenToKeyPressEvent(token: RawKeyToken): KeyPressEvent {
     switch (token.kind) {
         case "csi-u":
             return createKeyPressEvent(token.key, token.raw, {
@@ -88,5 +88,10 @@ export function convertTokenToKeyPressEvent(token: RawTerminalToken): KeyPressEv
 
         case "unknown-byte":
             return createKeyPressEvent(`<0x${token.byte.toString(16).padStart(2, "0")}>`, token.raw);
+
+        default: {
+            const exhaustive: never = token;
+            throw new Error(`Unhandled token kind: ${(exhaustive as { kind: string }).kind}`);
+        }
     }
 }

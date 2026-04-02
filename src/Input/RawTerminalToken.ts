@@ -144,3 +144,18 @@ export type RawTerminalToken =
     | CtrlCharToken
     | UnknownByteToken
     | MouseToken;
+
+export type RawKeyToken =
+    | CsiUToken
+    | PuaToken
+    | CsiLetterToken
+    | CsiTildeToken
+    | Ss3Token
+    | EscCharToken
+    | EscControlToken
+    | EscSpecialToken
+    | StandaloneEscToken
+    | CharToken
+    | SpecialKeyToken
+    | CtrlCharToken
+    | UnknownByteToken;
