@@ -34,7 +34,7 @@ export interface TUIElementEventMap {
 }
 
 interface ListenerEntry {
-    handler: (event: any) => void;
+    handler: (event: TUIEventBase) => void;
     capture: boolean;
 }
 
@@ -145,7 +145,11 @@ export class TUIElement {
         handler: (event: TUIEventBase) => void,
         options?: AddEventListenerOptions,
     ): void;
-    public addEventListener(type: string, handler: (event: any) => void, options?: AddEventListenerOptions): void {
+    public addEventListener(
+        type: string,
+        handler: (event: TUIEventBase) => void,
+        options?: AddEventListenerOptions,
+    ): void {
         const capture = options?.capture ?? false;
         let entries = this._listeners.get(type);
         if (!entries) {
@@ -165,7 +169,11 @@ export class TUIElement {
         handler: (event: TUIEventBase) => void,
         options?: AddEventListenerOptions,
     ): void;
-    public removeEventListener(type: string, handler: (event: any) => void, options?: AddEventListenerOptions): void {
+    public removeEventListener(
+        type: string,
+        handler: (event: TUIEventBase) => void,
+        options?: AddEventListenerOptions,
+    ): void {
         const capture = options?.capture ?? false;
         const entries = this._listeners.get(type);
         if (!entries) return;
@@ -212,6 +220,7 @@ export class TUIElement {
             for (let i = path.length - 1; i >= 0; i--) {
                 event.currentTarget = path[i];
                 this._invokeListeners(path[i], event, false);
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- side effect from handler
                 if (event.propagationStopped) break;
             }
         }

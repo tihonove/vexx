@@ -5,6 +5,7 @@ import { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -105,7 +106,7 @@ describe("AppController integration", () => {
         const { testApp, controller } = createTestAppController();
         controller.openFile("/tmp/test-app-statusbar.txt");
 
-        const statusBar = testApp.querySelector("StatusBarElement") as any;
+        const statusBar = testApp.querySelector("StatusBarElement") as StatusBarElement;
         const items = statusBar.getItems();
         expect(items).toContainEqual({ text: "test-app-statusbar.txt" });
     });
@@ -117,7 +118,7 @@ describe("AppController integration", () => {
 
         testApp.sendKey("x");
 
-        const statusBar = testApp.querySelector("StatusBarElement") as any;
+        const statusBar = testApp.querySelector("StatusBarElement") as StatusBarElement;
         const items = statusBar.getItems();
         expect(items).toContainEqual({ text: "test-app-modified.txt" });
         expect(items).toContainEqual({ text: "[Modified]" });

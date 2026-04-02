@@ -57,7 +57,9 @@ describe("CommandRegistry", () => {
 
     it("unregisters command via returned disposable", () => {
         const registry = new CommandRegistry();
-        const disposable = registry.register("test.command", () => {});
+        const disposable = registry.register("test.command", () => {
+            /* noop */
+        });
 
         disposable.dispose();
 

@@ -102,15 +102,7 @@ function drawVLine(grid: Grid, x: number, y: number, h: number, char: string, fg
     }
 }
 
-function drawBox(
-    grid: Grid,
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    fg: number,
-    bg: number,
-): void {
+function drawBox(grid: Grid, x: number, y: number, w: number, h: number, fg: number, bg: number): void {
     if (w < 2 || h < 2) return;
     grid.setCell(new Point(x, y), "┌", fg, bg);
     grid.setCell(new Point(x + w - 1, y), "┐", fg, bg);
@@ -122,9 +114,7 @@ function drawBox(
     drawVLine(grid, x + w - 1, y + 1, h - 2, "│", fg, bg);
 }
 
-function drawRoundedBox(
-    grid: Grid, x: number, y: number, w: number, h: number, fg: number, bg: number,
-): void {
+function drawRoundedBox(grid: Grid, x: number, y: number, w: number, h: number, fg: number, bg: number): void {
     if (w < 2 || h < 2) return;
     grid.setCell(new Point(x, y), "╭", fg, bg);
     grid.setCell(new Point(x + w - 1, y), "╮", fg, bg);
@@ -509,9 +499,9 @@ function renderEditor(grid: Grid, x: number, y: number, w: number, h: number): v
         let cx = x + gutterW;
         const lineBg = isActive ? theme.selectionBg : theme.editorBg;
         for (const token of tokens) {
-            for (let j = 0; j < token.text.length; j++) {
+            for (const ch of token.text) {
                 if (cx - x < w - 1) {
-                    grid.setCell(new Point(cx, y + i), token.text[j], token.fg, lineBg, StyleFlags.None);
+                    grid.setCell(new Point(cx, y + i), ch, token.fg, lineBg, StyleFlags.None);
                     cx++;
                 }
             }
@@ -711,9 +701,15 @@ function renderVariant5(grid: Grid, cols: number, rows: number, focus: string): 
         drawText(grid, 1, menuH + 1 + i, trimmed, fg, theme.sidebarBg, style);
     }
     renderBorderScrollBar(
-        grid, sideW - 1, menuH + 1, contentH - 2,
-        fileTreeLines.length, 0, sideInnerH,
-        sideColor, theme.sidebarBg,
+        grid,
+        sideW - 1,
+        menuH + 1,
+        contentH - 2,
+        fileTreeLines.length,
+        0,
+        sideInnerH,
+        sideColor,
+        theme.sidebarBg,
     );
 
     // === EDITOR (rounded box with tab wrapping into frame) ===
@@ -738,7 +734,8 @@ function renderVariant5(grid: Grid, cols: number, rows: number, focus: string): 
             tabCx += label.length;
         }
     }
-    const activeTab = tabLayouts.find(t => t.active)!;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- active tab always exists in layout
+    const activeTab = tabLayouts.find((t) => t.active)!;
     const bumpL = activeTab.x;
     const bumpR = activeTab.x + activeTab.w - 1;
 
@@ -804,9 +801,9 @@ function renderVariant5(grid: Grid, cols: number, rows: number, focus: string): 
         let cx = edX + gutterW;
         const lineBg = isActive ? theme.selectionBg : theme.editorBg;
         for (const token of tokens) {
-            for (let j = 0; j < token.text.length; j++) {
+            for (const ch of token.text) {
                 if (cx - edX < edInnerW) {
-                    grid.setCell(new Point(cx, edY + i), token.text[j], token.fg, lineBg, StyleFlags.None);
+                    grid.setCell(new Point(cx, edY + i), ch, token.fg, lineBg, StyleFlags.None);
                     cx++;
                 }
             }
@@ -814,11 +811,7 @@ function renderVariant5(grid: Grid, cols: number, rows: number, focus: string): 
     }
 
     // Scrollbar on the right border of editor
-    renderBorderScrollBar(
-        grid, cols - 1, edY, edInnerH,
-        80, 0, edInnerH,
-        editorColor, theme.editorBg,
-    );
+    renderBorderScrollBar(grid, cols - 1, edY, edInnerH, 80, 0, edInnerH, editorColor, theme.editorBg);
 
     renderStatusBar(grid, 0, rows - statusH, cols);
     renderVariantLabel(grid, cols, 5, focus);

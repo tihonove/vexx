@@ -14,14 +14,14 @@ function parseSingleSelector(part: string): ParsedSelector {
     let remaining = part;
 
     // Extract #id
-    const idMatch = remaining.match(/#([a-zA-Z0-9_-]+)/);
+    const idMatch = /#([a-zA-Z0-9_-]+)/.exec(remaining);
     if (idMatch) {
         id = idMatch[1];
         remaining = remaining.replace(idMatch[0], "");
     }
 
     // Extract @role
-    const roleMatch = remaining.match(/@([a-zA-Z0-9_-]+)/);
+    const roleMatch = /@([a-zA-Z0-9_-]+)/.exec(remaining);
     if (roleMatch) {
         role = roleMatch[1];
         remaining = remaining.replace(roleMatch[0], "");

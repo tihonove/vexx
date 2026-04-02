@@ -19,6 +19,7 @@ export class TestApp {
     }
 
     public get root(): TUIElement {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root is always set in constructor
         return this.app.root!;
     }
 
@@ -42,6 +43,7 @@ export class TestApp {
         // Force a synchronous render (app.run already did the initial one,
         // and handleInput renders after each key, but this is useful
         // if the test mutates state without going through input).
-        this.app["renderFrame"]();
+        // @ts-expect-error Just for testing purposes, we want to bypass the normal async render scheduling
+        this.app.renderFrame();
     }
 }

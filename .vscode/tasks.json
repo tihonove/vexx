@@ -1,23 +1,25 @@
 {
-	"version": "2.0.0",
-	"tasks": [
-		{
-			"type": "npm",
-			"script": "lint",
-			"problemMatcher": [
-				"$eslint-compact"
-			],
-			"label": "npm: lint",
-			"detail": "eslint src/"
-		},
-		{
-			"type": "npm",
-			"script": "typecheck",
-			"problemMatcher": [
-				"$tsc"
-			],
-			"label": "npm: typecheck",
-			"detail": "tsc --noEmit"
-		}
-	]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "npm lint",
+            "type": "npm",
+            "script": "lint",
+            "problemMatcher": ["$eslint-compact"],
+            "detail": "eslint src/"
+        },{
+            "label": "npm lint:fix",
+            "type": "npm",
+            "script": "lint:fix",
+            "problemMatcher": ["$eslint-compact"],
+            "detail": "eslint src/ --fix"
+        },
+        {
+            "label": "npm typecheck",
+            "type": "npm",
+            "script": "typecheck",
+            "problemMatcher": ["$tsc"],
+            "detail": "tsc --noEmit"
+        }
+    ]
 }

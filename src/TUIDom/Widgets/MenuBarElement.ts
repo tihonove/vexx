@@ -298,12 +298,14 @@ export class MenuBarElement extends TUIElement {
 
         const normalizedKey = event.key.toLowerCase();
         return this.items.findIndex((item) => {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             const mnemonic = (item.mnemonic ?? item.label[0] ?? "").toLowerCase();
             return mnemonic === normalizedKey;
         });
     }
 
     private getMnemonicIndex(item: MenuBarItem): number {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         const mnemonic = (item.mnemonic ?? item.label[0] ?? "").toLowerCase();
         return item.label.toLowerCase().indexOf(mnemonic);
     }

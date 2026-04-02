@@ -94,7 +94,9 @@ export class TuiApplication {
         if (this.root) {
             this.focusManager = new FocusManager(this.root);
             this.root.focusManager = this.focusManager;
-            this.root.setRequestRenderCallback(() => this.scheduleRender());
+            this.root.setRequestRenderCallback(() => {
+                this.scheduleRender();
+            });
         }
 
         this.backend.setup();

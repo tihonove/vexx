@@ -4,7 +4,8 @@
         "npx vitest": true,
         "npx eslint": true,
         "git commit": true,
-        "git push": true
+        "git push": true,
+        "npx tsc": true
     },
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.patterns": {

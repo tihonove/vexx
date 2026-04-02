@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
+import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
 
@@ -38,7 +39,7 @@ describe("TestApp", () => {
         const testApp = TestApp.create(root, new Size(20, 5));
         child.focus();
 
-        const handler = vi.fn();
+        const handler = vi.fn<(event: TUIKeyboardEvent) => void>();
         child.addEventListener("keydown", handler);
         testApp.sendKey("a");
 

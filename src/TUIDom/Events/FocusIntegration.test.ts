@@ -184,7 +184,7 @@ describe("Focus integration: Tab cycling through TuiApplication", () => {
         body.addEventListener(
             "keydown",
             (e) => {
-                if ((e as any).key === "Tab") {
+                if (e.key === "Tab") {
                     e.preventDefault();
                 }
             },
@@ -202,13 +202,13 @@ describe("Focus integration: Tab cycling through TuiApplication", () => {
         const log: string[] = [];
 
         boxes[0].addEventListener("keydown", (e) => {
-            if ((e as any).key !== "Tab") {
-                log.push("box0-" + (e as any).key);
+            if (e.key !== "Tab") {
+                log.push("box0-" + e.key);
             }
         });
         boxes[1].addEventListener("keydown", (e) => {
-            if ((e as any).key !== "Tab") {
-                log.push("box1-" + (e as any).key);
+            if (e.key !== "Tab") {
+                log.push("box1-" + e.key);
             }
         });
 

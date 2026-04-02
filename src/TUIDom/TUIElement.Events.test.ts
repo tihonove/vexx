@@ -30,7 +30,7 @@ function buildTree(): { root: ContainerElement; parent: ContainerElement; child:
 describe("TUIElement event system", () => {
     it("calls keypress listeners on keypress event", () => {
         const element = new TUIElement();
-        const handler = vi.fn();
+        const handler = vi.fn<(event: TUIKeyboardEvent) => void>();
         element.addEventListener("keypress", handler);
 
         const event = new TUIKeyboardEvent("keypress", { key: "a", code: "KeyA" });
@@ -43,7 +43,7 @@ describe("TUIElement event system", () => {
 
     it("calls keydown listeners on keydown event", () => {
         const element = new TUIElement();
-        const handler = vi.fn();
+        const handler = vi.fn<(event: TUIKeyboardEvent) => void>();
         element.addEventListener("keydown", handler);
 
         const event = new TUIKeyboardEvent("keydown", { key: "a", code: "KeyA" });
@@ -56,7 +56,7 @@ describe("TUIElement event system", () => {
 
     it("calls keyup listeners on keyup event", () => {
         const element = new TUIElement();
-        const handler = vi.fn();
+        const handler = vi.fn<(event: TUIKeyboardEvent) => void>();
         element.addEventListener("keyup", handler);
 
         const event = new TUIKeyboardEvent("keyup", { key: "a", code: "KeyA" });

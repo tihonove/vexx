@@ -3,8 +3,8 @@ import { Disposable } from "../Common/Disposable.ts";
 import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
-import { EditorControllerDIToken } from "./EditorController.ts";
 import type { EditorController } from "./EditorController.ts";
+import { EditorControllerDIToken } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
 
 export const StatusBarControllerDIToken = token<StatusBarController>("StatusBarController");
