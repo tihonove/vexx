@@ -6,7 +6,7 @@ import { Disposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
-import { ScrollContainerElement } from "../TUIDom/Widgets/ScrollContainerElement.ts";
+import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
 import type { IController } from "./IController.ts";
 
@@ -15,7 +15,7 @@ export const EditorControllerDIToken = token<EditorController>("EditorController
 export class EditorController extends Disposable implements IController {
     public static dependencies = [] as const;
 
-    public readonly view: ScrollContainerElement;
+    public readonly view: ScrollBarDecorator;
 
     private doc: TextDocument;
     private viewState: EditorViewState;
@@ -38,7 +38,7 @@ export class EditorController extends Disposable implements IController {
         this.viewState = new EditorViewState(this.doc);
         this.editor = new EditorElement(this.viewState);
         this.editor.tabIndex = 0;
-        this.view = new ScrollContainerElement(this.editor);
+        this.view = new ScrollBarDecorator(this.editor);
     }
 
     public openFile(filePath: string): void {

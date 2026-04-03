@@ -1,4 +1,4 @@
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../../Rendering/StyleFlags.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
@@ -92,7 +92,6 @@ export class PopupMenuElement extends TUIElement {
     public render(context: RenderContext): void {
         const w = this.layoutSize.width;
         const h = this.layoutSize.height;
-        const { dx: ox, dy: oy } = context.offset;
 
         // Compute column layout
         let hasIcon = false;
@@ -109,73 +108,73 @@ export class PopupMenuElement extends TUIElement {
         const innerWidth = w - 2; // minus borders
 
         // Top border: ┌───┐
-        this.drawCell(context, ox, oy, "┌", BORDER_FG, MENU_BG);
+        this.drawCell(context, 0, 0, "┌", BORDER_FG, MENU_BG);
         for (let x = 1; x < w - 1; x++) {
-            this.drawCell(context, ox + x, oy, "─", BORDER_FG, MENU_BG);
+            this.drawCell(context, x, 0, "─", BORDER_FG, MENU_BG);
         }
-        this.drawCell(context, ox + w - 1, oy, "┐", BORDER_FG, MENU_BG);
+        this.drawCell(context, w - 1, 0, "┐", BORDER_FG, MENU_BG);
 
         // Entries
         for (let i = 0; i < this.entries.length; i++) {
-            const rowY = oy + 1 + i;
+            const rowY = 1 + i;
             const entry = this.entries[i];
 
             if (isSeparator(entry)) {
                 // ├───┤
-                this.drawCell(context, ox, rowY, "├", BORDER_FG, MENU_BG);
+                this.drawCell(context, 0, rowY, "├", BORDER_FG, MENU_BG);
                 for (let x = 1; x < w - 1; x++) {
-                    this.drawCell(context, ox + x, rowY, "─", BORDER_FG, MENU_BG);
+                    this.drawCell(context, x, rowY, "─", BORDER_FG, MENU_BG);
                 }
-                this.drawCell(context, ox + w - 1, rowY, "┤", BORDER_FG, MENU_BG);
+                this.drawCell(context, w - 1, rowY, "┤", BORDER_FG, MENU_BG);
             } else {
                 const isSelected = i === this.selectedIndex;
                 const fg = isSelected ? HIGHLIGHT_FG : MENU_FG;
                 const bg = isSelected ? HIGHLIGHT_BG : MENU_BG;
 
-                this.drawCell(context, ox, rowY, "│", BORDER_FG, MENU_BG);
+                this.drawCell(context, 0, rowY, "│", BORDER_FG, MENU_BG);
 
                 // Fill inner area with bg
                 for (let x = 0; x < innerWidth; x++) {
-                    this.drawCell(context, ox + 1 + x, rowY, " ", fg, bg);
+                    this.drawCell(context, 1 + x, rowY, " ", fg, bg);
                 }
 
                 // Icon
                 let col = hasIcon ? 1 : 2; // after border; with icon it replaces the pad space
                 if (hasIcon) {
                     const iconChar = entry.icon ?? " ";
-                    this.drawCell(context, ox + col, rowY, iconChar, fg, bg);
+                    this.drawCell(context, col, rowY, iconChar, fg, bg);
                     col += iconCols;
                 }
 
                 // Label
                 for (let c = 0; c < entry.label.length; c++) {
-                    this.drawCell(context, ox + col + c, rowY, entry.label[c], fg, bg);
+                    this.drawCell(context, col + c, rowY, entry.label[c], fg, bg);
                 }
 
                 // Shortcut (right-aligned, ending right before the border)
                 if (entry.shortcut && maxShortcutWidth > 0) {
-                    const shortcutStart = ox + w - 1 - entry.shortcut.length;
+                    const shortcutStart = w - 1 - entry.shortcut.length;
                     const sFg = isSelected ? HIGHLIGHT_FG : SHORTCUT_FG;
                     for (let c = 0; c < entry.shortcut.length; c++) {
                         this.drawCell(context, shortcutStart + c, rowY, entry.shortcut[c], sFg, bg);
                     }
                 }
 
-                this.drawCell(context, ox + w - 1, rowY, "│", BORDER_FG, MENU_BG);
+                this.drawCell(context, w - 1, rowY, "│", BORDER_FG, MENU_BG);
             }
         }
 
         // Bottom border: └───┘
-        const bottomY = oy + h - 1;
-        this.drawCell(context, ox, bottomY, "└", BORDER_FG, MENU_BG);
+        const bottomY = h - 1;
+        this.drawCell(context, 0, bottomY, "└", BORDER_FG, MENU_BG);
         for (let x = 1; x < w - 1; x++) {
-            this.drawCell(context, ox + x, bottomY, "─", BORDER_FG, MENU_BG);
+            this.drawCell(context, x, bottomY, "─", BORDER_FG, MENU_BG);
         }
-        this.drawCell(context, ox + w - 1, bottomY, "┘", BORDER_FG, MENU_BG);
+        this.drawCell(context, w - 1, bottomY, "┘", BORDER_FG, MENU_BG);
     }
 
     private drawCell(context: RenderContext, x: number, y: number, char: string, fg: number, bg: number): void {
-        context.canvas.setCell(new Point(x, y), { char, fg, bg });
+        context.setCell(x, y, { char, fg, bg });
     }
 
     private moveSelection(direction: number): void {

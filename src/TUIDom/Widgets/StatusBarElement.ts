@@ -1,4 +1,4 @@
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
@@ -27,14 +27,13 @@ export class StatusBarElement extends TUIElement {
     }
 
     public override render(context: RenderContext): void {
-        const { dx: ox, dy: oy } = context.offset;
         const width = this.layoutSize.width;
 
         const text = this.items.map((item) => item.text).join("  ");
 
         for (let x = 0; x < width; x++) {
             const char = x < text.length ? text[x] : " ";
-            context.canvas.setCell(new Point(ox + x, oy), {
+            context.setCell(x, 0, {
                 char,
                 fg: STATUS_BAR_FG,
                 bg: STATUS_BAR_BG,

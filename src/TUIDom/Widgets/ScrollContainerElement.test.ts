@@ -7,7 +7,8 @@ import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext } from "../TUIElement.ts";
 
-import { ScrollContainerElement } from "./ScrollContainerElement.ts";
+import { ScrollBarDecorator } from "./ScrollContainerElement.ts";
+import { ScrollViewport } from "./ScrollViewport.ts";
 import { TextBlockElement } from "./TextBlockElement.ts";
 
 function createScrollContainer(
@@ -15,7 +16,7 @@ function createScrollContainer(
     screenHeight: number,
     contentLineCount: number,
 ): {
-    container: ScrollContainerElement;
+    container: ScrollBarDecorator;
     child: TextBlockElement;
     backend: MockTerminalBackend;
     termScreen: TerminalScreen;
@@ -24,12 +25,13 @@ function createScrollContainer(
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);
     const child = new TextBlockElement(contentLineCount);
-    const container = new ScrollContainerElement(child);
+    const viewport = new ScrollViewport(child);
+    const container = new ScrollBarDecorator(viewport);
     return { container, child, backend, termScreen };
 }
 
 function renderContainer(
-    container: ScrollContainerElement,
+    container: ScrollBarDecorator,
     termScreen: TerminalScreen,
     backend: MockTerminalBackend,
 ): MockTerminalBackend {
@@ -39,7 +41,7 @@ function renderContainer(
     return backend;
 }
 
-describe("ScrollContainerElement", () => {
+describe("ScrollBarDecorator", () => {
     it("allocates child width as container width minus 1", () => {
         const { container, child } = createScrollContainer(12, 5, 20);
         container.performLayout(BoxConstraints.tight(new Size(12, 5)));

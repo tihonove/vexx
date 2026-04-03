@@ -1,16 +1,30 @@
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { IScrollable } from "./IScrollable.ts";
 import { renderScrollBar } from "./ScrollBarRenderer.ts";
 
-export class ScrollContainerElement extends TUIElement {
+/**
+ * Draws a scrollbar alongside a scrollable child.
+ *
+ * The child is rendered as-is — it must handle its own content rendering.
+ * For simple widgets that draw full content in local coordinates, wrap
+ * them in a ScrollViewport before passing to ScrollBarDecorator:
+ *
+ *   new ScrollBarDecorator(new ScrollViewport(textBlock))
+ *
+ * For self-scrolling widgets (e.g. EditorElement) that already manage
+ * their own scroll offset, pass them directly:
+ *
+ *   new ScrollBarDecorator(editorElement)
+ */
+export class ScrollBarDecorator extends TUIElement {
     private child: TUIElement & IScrollable;
 
     public constructor(child: TUIElement & IScrollable) {
         super();
         this.child = child;
-        this.child.setParent(this); // Set parent for dirty propagation
+        this.child.setParent(this);
     }
 
     public getChild(): TUIElement & IScrollable {
@@ -28,27 +42,21 @@ export class ScrollContainerElement extends TUIElement {
     }
 
     public performLayout(constraints: BoxConstraints): Size {
-        // First, call parent implementation to set allocatedSize and mark as clean
         const containerSize = super.performLayout(constraints);
 
-        // Set child local position (no offset for scroll container)
         this.child.localPosition = new Offset(0, 0);
-        // Set child global position
-        this.child.globalPosition = new Point(
-            this.globalPosition.x + this.child.localPosition.dx,
-            this.globalPosition.y + this.child.localPosition.dy,
-        );
+        this.child.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
 
-        // Perform child layout (with scrollbar width subtracted)
+        // Child gets container width minus scrollbar column
         this.child.performLayout(BoxConstraints.tight(new Size(containerSize.width - 1, containerSize.height)));
 
         return containerSize;
     }
 
     public render(context: RenderContext): void {
-        // Render child with its local offset
         const childOffset = new Offset(this.child.localPosition.dx, this.child.localPosition.dy);
-        this.child.render(context.withOffset(childOffset));
+        const childClip = new Rect(this.child.globalPosition, this.child.layoutSize);
+        this.child.render(context.withOffset(childOffset).withClip(childClip));
 
         renderScrollBar(
             context,
@@ -60,3 +68,6 @@ export class ScrollContainerElement extends TUIElement {
         );
     }
 }
+
+/** @deprecated Use ScrollBarDecorator instead */
+export const ScrollContainerElement = ScrollBarDecorator;

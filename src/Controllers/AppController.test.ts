@@ -49,7 +49,7 @@ describe("AppController integration", () => {
         const { testApp } = createTestAppController();
 
         expect(testApp.querySelector("MenuBarElement")).not.toBeNull();
-        expect(testApp.querySelector("ScrollContainerElement")).not.toBeNull();
+        expect(testApp.querySelector("ScrollBarDecorator")).not.toBeNull();
     });
 
     it("focuses editor via focusEditor()", () => {

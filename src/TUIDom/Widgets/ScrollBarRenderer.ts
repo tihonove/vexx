@@ -1,4 +1,3 @@
-import { Point } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { RenderContext } from "../TUIElement.ts";
 
@@ -77,13 +76,12 @@ export function renderScrollBar(
 ): void {
     const metrics = computeScrollBarMetrics(trackHeight, contentHeight, scrollTop, viewportHeight);
     const chars = getScrollBarCellChars(trackHeight, metrics);
-    const { dx: ox, dy: oy } = context.offset;
 
     for (let row = 0; row < trackHeight; row++) {
         const char = chars[row];
         // fg-only rendering: thumb uses THUMB_COLOR, track uses TRACK_COLOR.
         // Background is always DEFAULT — no custom bg, no bleed.
         const fg = char === "░" ? TRACK_COLOR : THUMB_COLOR;
-        context.canvas.setCell(new Point(ox + x, oy + row), { char, fg });
+        context.setCell(x, row, { char, fg });
     }
 }

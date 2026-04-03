@@ -91,12 +91,7 @@ export class Rect {
     }
 
     public containsPoint(point: Point): boolean {
-        return (
-            point.x >= this.x &&
-            point.x < this.right &&
-            point.y >= this.y &&
-            point.y < this.bottom
-        );
+        return point.x >= this.x && point.x < this.right && point.y >= this.y && point.y < this.bottom;
     }
 
     public intersect(other: Rect): Rect {

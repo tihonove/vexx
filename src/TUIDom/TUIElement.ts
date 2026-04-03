@@ -1,4 +1,5 @@
-import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../Common/GeometryPromitives.ts";
+import type { CellPatch } from "../Rendering/Grid.ts";
 import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
 
 import type { FocusManager } from "./Events/FocusManager.ts";
@@ -7,17 +8,44 @@ import type { TUIFocusEvent } from "./Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
 import { querySelector, querySelectorAll } from "./TUISelector.ts";
 
+const MAX_COORD = 100_000;
+const INFINITE_CLIP = new Rect(new Point(0, 0), new Size(MAX_COORD, MAX_COORD));
+
 export class RenderContext {
     public readonly canvas: TerminalScreen;
     public readonly offset: Offset;
+    public readonly clipRect: Rect;
 
-    public constructor(canvas: TerminalScreen, offset: Offset = new Offset(0, 0)) {
+    public constructor(canvas: TerminalScreen, offset: Offset = new Offset(0, 0), clipRect: Rect = INFINITE_CLIP) {
         this.canvas = canvas;
         this.offset = offset;
+        this.clipRect = clipRect;
     }
 
     public withOffset(extra: Offset): RenderContext {
-        return new RenderContext(this.canvas, new Offset(this.offset.dx + extra.dx, this.offset.dy + extra.dy));
+        return new RenderContext(
+            this.canvas,
+            new Offset(this.offset.dx + extra.dx, this.offset.dy + extra.dy),
+            this.clipRect,
+        );
+    }
+
+    public withClip(rect: Rect): RenderContext {
+        return new RenderContext(this.canvas, this.offset, this.clipRect.intersect(rect));
+    }
+
+    public setCell(x: number, y: number, cell: CellPatch): void {
+        const screenX = x + this.offset.dx;
+        const screenY = y + this.offset.dy;
+        if (!this.clipRect.containsPoint(new Point(screenX, screenY))) return;
+        this.canvas.setCell(new Point(screenX, screenY), cell);
+    }
+
+    public setCursorPosition(x: number, y: number): void {
+        const screenX = x + this.offset.dx;
+        const screenY = y + this.offset.dy;
+        if (!this.clipRect.containsPoint(new Point(screenX, screenY))) return;
+        this.canvas.setCursorPosition(new Point(screenX, screenY));
     }
 }
 

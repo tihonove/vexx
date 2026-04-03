@@ -1,4 +1,4 @@
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { ContextMenuLayer } from "./ContextMenuLayer.ts";
@@ -81,19 +81,21 @@ export class BodyElement extends TUIElement {
     public render(context: RenderContext) {
         // Title (legacy behaviour)
         for (let y = 0; y < this.title.length; y++) {
-            context.canvas.setCell(new Point(0 + y, 0), { char: this.title[y] });
+            context.setCell(y, 0, { char: this.title[y] });
         }
 
         // Content layer
         if (this.content) {
             const contentOffset = new Offset(this.content.localPosition.dx, this.content.localPosition.dy);
-            this.content.render(context.withOffset(contentOffset));
+            const contentClip = new Rect(this.content.globalPosition, this.content.layoutSize);
+            this.content.render(context.withOffset(contentOffset).withClip(contentClip));
         }
 
         // Status bar
         if (this.statusBar) {
             const statusBarOffset = new Offset(this.statusBar.localPosition.dx, this.statusBar.localPosition.dy);
-            this.statusBar.render(context.withOffset(statusBarOffset));
+            const statusBarClip = new Rect(this.statusBar.globalPosition, this.statusBar.layoutSize);
+            this.statusBar.render(context.withOffset(statusBarOffset).withClip(statusBarClip));
         }
 
         // Menu bar — rendered after content so popup overlays content

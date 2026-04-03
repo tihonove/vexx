@@ -1,4 +1,3 @@
-import { Point } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { IScrollable } from "./IScrollable.ts";
@@ -35,17 +34,14 @@ export class TextBlockElement extends TUIElement implements IScrollable {
     }
 
     public render(context: RenderContext): void {
-        const { dx: ox, dy: oy } = context.offset;
-        const visibleLines = this.layoutSize.height;
-        const visibleCols = this.layoutSize.width;
+        const width = this.layoutSize.width;
 
-        for (let screenY = 0; screenY < visibleLines; screenY++) {
-            const lineIndex = this.scrollTop + screenY;
-            const lineContent = lineIndex < this.lines.length ? this.lines[lineIndex] : "";
+        for (let y = 0; y < this.contentHeight; y++) {
+            const lineContent = y < this.lines.length ? this.lines[y] : "";
 
-            for (let screenX = 0; screenX < visibleCols; screenX++) {
-                const char = screenX < lineContent.length ? lineContent[screenX] : " ";
-                context.canvas.setCell(new Point(ox + screenX, oy + screenY), { char });
+            for (let x = 0; x < width; x++) {
+                const char = x < lineContent.length ? lineContent[x] : " ";
+                context.setCell(x, y, { char });
             }
         }
     }

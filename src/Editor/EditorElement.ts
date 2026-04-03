@@ -1,4 +1,3 @@
-import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
@@ -39,8 +38,6 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 
     public render(context: RenderContext): void {
-        const { canvas, offset } = context;
-        const { dx: ox, dy: oy } = offset;
         this.viewState.viewportWidth = this.layoutSize.width;
         this.viewState.viewportHeight = this.layoutSize.height;
         const scrollTop = this.viewState.scrollTop;
@@ -54,9 +51,9 @@ export class EditorElement extends TUIElement implements IScrollable {
             const viewLine = scrollTop + screenY;
             if (viewLine >= viewLineCount) {
                 // Past end of document — draw tilde like vim
-                canvas.setCell(new Point(ox, oy + screenY), { char: "~" });
+                context.setCell(0, screenY, { char: "~" });
                 for (let x = 1; x < visibleCols; x++) {
-                    canvas.setCell(new Point(ox + x, oy + screenY), { char: " " });
+                    context.setCell(x, screenY, { char: " " });
                 }
                 continue;
             }
@@ -65,7 +62,7 @@ export class EditorElement extends TUIElement implements IScrollable {
             for (let screenX = 0; screenX < visibleCols; screenX++) {
                 const docChar = scrollLeft + screenX;
                 const char = docChar < lineContent.length ? lineContent[docChar] : " ";
-                canvas.setCell(new Point(ox + screenX, oy + screenY), { char });
+                context.setCell(screenX, screenY, { char });
             }
         }
 
@@ -90,7 +87,7 @@ export class EditorElement extends TUIElement implements IScrollable {
                 const screenXEnd = Math.min(visibleCols, selEndChar - scrollLeft);
 
                 for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
-                    canvas.setCell(new Point(ox + screenX, oy + screenY), { bg: SELECTION_BG });
+                    context.setCell(screenX, screenY, { bg: SELECTION_BG });
                 }
             }
         }
@@ -102,7 +99,7 @@ export class EditorElement extends TUIElement implements IScrollable {
         const cursorScreenY = cursorVisualLine - scrollTop;
 
         if (cursorScreenX >= 0 && cursorScreenX < visibleCols && cursorScreenY >= 0 && cursorScreenY < visibleLines) {
-            canvas.setCursorPosition(new Point(ox + cursorScreenX, oy + cursorScreenY));
+            context.setCursorPosition(cursorScreenX, cursorScreenY);
         }
     }
 

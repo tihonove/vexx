@@ -1,4 +1,3 @@
-import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 
@@ -30,7 +29,6 @@ export class FocusableBox extends TUIElement {
     public render(context: RenderContext): void {
         const w = this.layoutSize.width;
         const h = this.layoutSize.height;
-        const { dx: ox, dy: oy } = context.offset;
 
         for (let y = 0; y < h; y++) {
             for (let x = 0; x < w; x++) {
@@ -50,7 +48,7 @@ export class FocusableBox extends TUIElement {
                     char = " ";
                 }
 
-                context.canvas.setCell(new Point(ox + x, oy + y), {
+                context.setCell(x, y, {
                     char,
                     bg: this.bg,
                     fg: this.fg,

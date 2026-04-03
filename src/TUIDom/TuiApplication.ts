@@ -1,5 +1,5 @@
 import type { ITerminalBackend } from "../Backend/ITerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
 
@@ -32,7 +32,8 @@ export class TuiApplication {
             this.root.performLayout(constraints);
 
             // Render
-            this.root.render(new RenderContext(this.screen));
+            const screenClip = new Rect(new Point(0, 0), this.screen.size);
+            this.root.render(new RenderContext(this.screen, new Offset(0, 0), screenClip));
             this.screen.flush(this.backend);
         }
     }

@@ -167,10 +167,9 @@ export class MenuBarElement extends TUIElement {
 
     public render(context: RenderContext): void {
         const width = this.layoutSize.width;
-        const { dx: ox, dy: oy } = context.offset;
 
         for (let x = 0; x < width; x++) {
-            context.canvas.setCell(new Point(ox + x, oy), { char: " ", fg: MENU_BAR_FG, bg: MENU_BAR_BG });
+            context.setCell(x, 0, { char: " ", fg: MENU_BAR_FG, bg: MENU_BAR_BG });
         }
 
         for (let index = 0; index < this.items.length; index++) {
@@ -188,14 +187,13 @@ export class MenuBarElement extends TUIElement {
         const isActive = index === this.activeIndex && this.isFocused;
         const fg = isActive ? ACTIVE_MENU_FG : MENU_BAR_FG;
         const bg = isActive ? ACTIVE_MENU_BG : MENU_BAR_BG;
-        const { dx: ox, dy: oy } = context.offset;
         const display = ` ${item.label} `;
         const mnemonicIndex = this.getMnemonicIndex(item);
 
         for (let offset = 0; offset < display.length; offset++) {
             const displayIndex = offset - 1;
             const style = displayIndex === mnemonicIndex ? StyleFlags.Underline : StyleFlags.None;
-            context.canvas.setCell(new Point(ox + layoutItem.startX + offset, oy), {
+            context.setCell(layoutItem.startX + offset, 0, {
                 char: display[offset],
                 fg,
                 bg,

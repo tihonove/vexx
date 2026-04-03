@@ -61,7 +61,8 @@ export class VStackElement extends TUIElement {
         for (const child of this.children) {
             // Use localPosition from coordinate system instead of layoutState
             const childOffset = new Offset(child.localPosition.dx, child.localPosition.dy);
-            child.render(context.withOffset(childOffset));
+            const childClip = new Rect(child.globalPosition, child.layoutSize);
+            child.render(context.withOffset(childOffset).withClip(childClip));
         }
     }
 }
