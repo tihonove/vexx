@@ -4,7 +4,6 @@ import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import { ScrollBarDecorator } from "./ScrollContainerElement.ts";
@@ -18,6 +17,7 @@ function createScrollContainer(
     contentLineCount: number,
 ): {
     container: ScrollBarDecorator;
+    viewport: ScrollViewport;
     child: TextBlockElement;
     backend: MockTerminalBackend;
     termScreen: TerminalScreen;
@@ -28,7 +28,7 @@ function createScrollContainer(
     const child = new TextBlockElement(contentLineCount);
     const viewport = new ScrollViewport(child);
     const container = new ScrollBarDecorator(viewport);
-    return { container, child, backend, termScreen };
+    return { container, viewport, child, backend, termScreen };
 }
 
 function renderContainer(
@@ -74,8 +74,8 @@ describe("ScrollBarDecorator", () => {
     });
 
     it("renders scrollbar at bottom when fully scrolled", () => {
-        const { container, child, backend, termScreen } = createScrollContainer(12, 5, 50);
-        child.scrollTop = 45; // scroll to bottom (50 - 5 = 45)
+        const { container, viewport, backend, termScreen } = createScrollContainer(12, 5, 50);
+        viewport.scrollTop = 45; // scroll to bottom (50 - 5 = 45)
         renderContainer(container, termScreen, backend);
 
         expectScreen(
@@ -121,8 +121,8 @@ describe("ScrollBarDecorator", () => {
     });
 
     it("shows thumb in middle when scrolled halfway", () => {
-        const { container, child, backend, termScreen } = createScrollContainer(12, 10, 100);
-        child.scrollTop = 45; // scroll to ~50%
+        const { container, viewport, backend, termScreen } = createScrollContainer(12, 10, 100);
+        viewport.scrollTop = 45; // scroll to ~50%
         renderContainer(container, termScreen, backend);
 
         // With halves: 10 track height = 20 halves
@@ -147,25 +147,14 @@ describe("ScrollBarDecorator", () => {
         // thumbStart = round(0.111 * (10 - 2)) = round(0.888) = 1 half
         // → row 0: top half out, bottom half in → ▄
         // → row 1: top half in (half 2), bottom half out (half 3 >= 3) → ▀
-        const { container, child, backend, termScreen } = createScrollContainer(12, 5, 50);
-        child.scrollTop = 5;
+        const { container, viewport, backend, termScreen } = createScrollContainer(12, 5, 50);
+        viewport.scrollTop = 5;
         renderContainer(container, termScreen, backend);
 
         const lines = backend.screenToString().split("\n");
         const lastCol = lines.map((l) => l[11]);
         // Should contain half-block elements
         expect(lastCol.some((c) => "▀▄".includes(c))).toBe(true);
-    });
-
-    it("forwards events to child via dispatchEvent", () => {
-        const { container, child } = createScrollContainer(12, 5, 50);
-        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
-
-        expect(child.scrollTop).toBe(0);
-
-        child.dispatchEvent(new TUIKeyboardEvent("keypress", { key: "ArrowDown" }));
-
-        expect(child.scrollTop).toBe(1);
     });
 
     it("sets child localPosition to (0, 0)", () => {

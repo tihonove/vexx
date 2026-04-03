@@ -6,18 +6,16 @@ import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import type { IScrollable } from "./IScrollable.ts";
+import type { IContentSized } from "./IScrollable.ts";
 import { ScrollViewport } from "./ScrollViewport.ts";
 
 /**
  * A simple widget that always draws ALL its lines in local coordinates,
  * without any scroll awareness. Used to test ScrollViewport clipping.
  */
-class FullContentWidget extends TUIElement implements IScrollable {
+class FullContentWidget extends TUIElement implements IContentSized {
     public contentHeight: number;
     public contentWidth: number;
-    public scrollTop = 0;
-    public scrollLeft = 0;
     private lines: string[];
 
     public constructor(lineCount: number) {
@@ -88,8 +86,7 @@ describe("ScrollViewport", () => {
     });
 
     it("clips content beyond viewport height", () => {
-        const { viewport, child, backend, termScreen } = createViewport(10, 3, 20);
-        child.scrollTop = 0;
+        const { viewport, backend, termScreen } = createViewport(10, 3, 20);
         renderViewport(viewport, termScreen, backend);
 
         // Only 3 lines should be visible, lines 4+ should be clipped
@@ -102,8 +99,8 @@ describe("ScrollViewport", () => {
     });
 
     it("shifts content by scrollTop", () => {
-        const { viewport, child, backend, termScreen } = createViewport(10, 3, 20);
-        child.scrollTop = 5;
+        const { viewport, backend, termScreen } = createViewport(10, 3, 20);
+        viewport.scrollTop = 5;
         renderViewport(viewport, termScreen, backend);
 
         expectScreen(
@@ -117,8 +114,8 @@ describe("ScrollViewport", () => {
     });
 
     it("shows last lines when scrolled to bottom", () => {
-        const { viewport, child, backend, termScreen } = createViewport(10, 3, 10);
-        child.scrollTop = 7; // 10 - 3 = 7
+        const { viewport, backend, termScreen } = createViewport(10, 3, 10);
+        viewport.scrollTop = 7; // 10 - 3 = 7
         renderViewport(viewport, termScreen, backend);
 
         expectScreen(
@@ -150,9 +147,9 @@ describe("ScrollViewport", () => {
         expect(viewport.contentHeight).toBe(42);
     });
 
-    it("delegates scrollTop from child", () => {
-        const { viewport, child } = createViewport(10, 5, 20);
-        child.scrollTop = 7;
+    it("stores scrollTop directly", () => {
+        const { viewport } = createViewport(10, 5, 20);
+        viewport.scrollTop = 7;
         expect(viewport.scrollTop).toBe(7);
     });
 
@@ -168,8 +165,8 @@ describe("ScrollViewport", () => {
         const backend = new MockTerminalBackend(size);
         const termScreen = new TerminalScreen(size);
         const child = new FullContentWidget(10);
-        child.scrollTop = 2;
         const viewport = new ScrollViewport(child);
+        viewport.scrollTop = 2;
 
         viewport.globalPosition = new Point(5, 1);
         viewport.performLayout(BoxConstraints.tight(new Size(10, 3)));
@@ -190,16 +187,16 @@ describe("ScrollViewport", () => {
         expect(viewport.contentWidth).toBe(child.contentWidth);
     });
 
-    it("delegates scrollLeft from child", () => {
-        const { viewport, child } = createViewport(10, 5, 20);
-        child.scrollLeft = 3;
+    it("stores scrollLeft directly", () => {
+        const { viewport } = createViewport(10, 5, 20);
+        viewport.scrollLeft = 3;
         expect(viewport.scrollLeft).toBe(3);
     });
 
     it("shifts content horizontally by scrollLeft", () => {
-        const { viewport, child, backend, termScreen } = createViewport(5, 3, 20);
+        const { viewport, backend, termScreen } = createViewport(5, 3, 20);
         // "Line 001" has 8 chars, scroll right by 3 → show "e 00"
-        child.scrollLeft = 3;
+        viewport.scrollLeft = 3;
         renderViewport(viewport, termScreen, backend);
 
         const lines = backend.screenToString().split("\n");
@@ -209,14 +206,44 @@ describe("ScrollViewport", () => {
     });
 
     it("shifts content both horizontally and vertically", () => {
-        const { viewport, child, backend, termScreen } = createViewport(5, 3, 20);
-        child.scrollLeft = 3;
-        child.scrollTop = 5;
+        const { viewport, backend, termScreen } = createViewport(5, 3, 20);
+        viewport.scrollLeft = 3;
+        viewport.scrollTop = 5;
         renderViewport(viewport, termScreen, backend);
 
         const lines = backend.screenToString().split("\n");
         expect(lines[0].trimEnd()).toBe("e 006");
         expect(lines[1].trimEnd()).toBe("e 007");
         expect(lines[2].trimEnd()).toBe("e 008");
+    });
+
+    it("scrollTo clamps to valid range", () => {
+        const { viewport } = createViewport(10, 3, 20);
+        viewport.globalPosition = new Point(0, 0);
+        viewport.performLayout(BoxConstraints.tight(new Size(10, 3)));
+
+        viewport.scrollTo(0, 100);
+        expect(viewport.scrollTop).toBe(17); // 20 - 3
+
+        viewport.scrollTo(0, -5);
+        expect(viewport.scrollTop).toBe(0);
+
+        viewport.scrollTo(100, 0);
+        expect(viewport.scrollLeft).toBe(0); // contentWidth=8, viewportWidth=10 → max=0
+    });
+
+    it("scrollBy adjusts relative to current position", () => {
+        const { viewport } = createViewport(10, 3, 20);
+        viewport.globalPosition = new Point(0, 0);
+        viewport.performLayout(BoxConstraints.tight(new Size(10, 3)));
+
+        viewport.scrollBy(0, 5);
+        expect(viewport.scrollTop).toBe(5);
+
+        viewport.scrollBy(0, 3);
+        expect(viewport.scrollTop).toBe(8);
+
+        viewport.scrollBy(0, -2);
+        expect(viewport.scrollTop).toBe(6);
     });
 });

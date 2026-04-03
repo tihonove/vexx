@@ -5,7 +5,16 @@ import { ScrollViewport } from "../TUIDom/Widgets/ScrollViewport.ts";
 import { TextBlockElement } from "../TUIDom/Widgets/TextBlockElement.ts";
 
 const textBlock = new TextBlockElement(100);
-const scrollContainer = new ScrollBarDecorator(new ScrollViewport(textBlock));
+const scrollViewport = new ScrollViewport(textBlock);
+const scrollContainer = new ScrollBarDecorator(scrollViewport);
+
+scrollViewport.addEventListener("keypress", (event) => {
+    if (event.key === "ArrowDown") {
+        scrollViewport.scrollBy(0, 1);
+    } else if (event.key === "ArrowUp") {
+        scrollViewport.scrollBy(0, -1);
+    }
+});
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);

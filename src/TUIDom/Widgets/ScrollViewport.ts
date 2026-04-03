@@ -1,21 +1,24 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import type { IScrollable } from "./IScrollable.ts";
+import type { IContentSized, IScrollable } from "./IScrollable.ts";
 
 /**
- * Scroll engine: wraps a scrollable child, applies scroll offset and clips
- * rendering to the viewport bounds. The child draws full content in local
- * coordinates; ScrollViewport shifts by -scrollTop and clips so only the
- * visible region produces cells on screen.
+ * Scroll engine: wraps any content-sized child, owns the scroll state, and
+ * clips rendering to the viewport bounds. The child draws full content in
+ * local coordinates; ScrollViewport shifts by -scrollTop/-scrollLeft and
+ * clips so only the visible region produces cells on screen.
  *
- * Implements IScrollable by delegating to the wrapped child, so it can be
- * nested inside ScrollBarDecorator or any other consumer of IScrollable.
+ * The child only needs to report contentHeight/contentWidth (IContentSized).
+ * ScrollViewport itself implements IScrollable, so it can be nested inside
+ * ScrollBarDecorator or any other consumer of IScrollable.
  */
 export class ScrollViewport extends TUIElement implements IScrollable {
-    private child: TUIElement & IScrollable;
+    private child: TUIElement & IContentSized;
+    public scrollTop = 0;
+    public scrollLeft = 0;
 
-    public constructor(child: TUIElement & IScrollable) {
+    public constructor(child: TUIElement & IContentSized) {
         super();
         this.child = child;
         this.child.setParent(this);
@@ -29,15 +32,18 @@ export class ScrollViewport extends TUIElement implements IScrollable {
         return this.child.contentWidth;
     }
 
-    public get scrollTop(): number {
-        return this.child.scrollTop;
+    public scrollBy(dx: number, dy: number): void {
+        this.scrollTo(this.scrollLeft + dx, this.scrollTop + dy);
     }
 
-    public get scrollLeft(): number {
-        return this.child.scrollLeft;
+    public scrollTo(left: number, top: number): void {
+        const maxScrollTop = Math.max(0, this.contentHeight - this.layoutSize.height);
+        const maxScrollLeft = Math.max(0, this.contentWidth - this.layoutSize.width);
+        this.scrollTop = Math.max(0, Math.min(maxScrollTop, top));
+        this.scrollLeft = Math.max(0, Math.min(maxScrollLeft, left));
     }
 
-    public getChild(): TUIElement & IScrollable {
+    public getChild(): TUIElement & IContentSized {
         return this.child;
     }
 
@@ -58,7 +64,7 @@ export class ScrollViewport extends TUIElement implements IScrollable {
     }
 
     public override render(context: RenderContext): void {
-        const scrollOffset = new Offset(-this.child.scrollLeft, -this.child.scrollTop);
+        const scrollOffset = new Offset(-this.scrollLeft, -this.scrollTop);
         const viewportClip = new Rect(this.globalPosition, this.layoutSize);
         this.child.render(context.withOffset(scrollOffset).withClip(viewportClip));
     }
