@@ -110,8 +110,8 @@ describe("BodyElement menuBar integration", () => {
         body.setContent(content);
         layoutBody(body, 40, 20);
 
-        expect(content.size.width).toBe(40);
-        expect(content.size.height).toBe(19);
+        expect(content.layoutSize.width).toBe(40);
+        expect(content.layoutSize.height).toBe(19);
     });
 
     it("content at y=0 and full height without menuBar", () => {
@@ -123,7 +123,7 @@ describe("BodyElement menuBar integration", () => {
 
         expect(content.localPosition.dy).toBe(0);
         expect(content.globalPosition.y).toBe(0);
-        expect(content.size.height).toBe(20);
+        expect(content.layoutSize.height).toBe(20);
     });
 
     it("menuBar receives full body size for layout", () => {
@@ -133,8 +133,8 @@ describe("BodyElement menuBar integration", () => {
         body.setMenuBar(menuBar);
         layoutBody(body, 40, 20);
 
-        expect(menuBar.size.width).toBe(40);
-        expect(menuBar.size.height).toBe(20);
+        expect(menuBar.layoutSize.width).toBe(40);
+        expect(menuBar.layoutSize.height).toBe(20);
     });
 });
 
@@ -173,8 +173,8 @@ describe("BodyElement statusBar integration", () => {
         body.setContent(content);
         layoutBody(body, 40, 20);
 
-        expect(content.size.width).toBe(40);
-        expect(content.size.height).toBe(19);
+        expect(content.layoutSize.width).toBe(40);
+        expect(content.layoutSize.height).toBe(19);
     });
 
     it("content height reduced by 2 with both menuBar and statusBar", () => {
@@ -189,7 +189,7 @@ describe("BodyElement statusBar integration", () => {
         layoutBody(body, 40, 20);
 
         expect(content.localPosition.dy).toBe(1);
-        expect(content.size.height).toBe(18);
+        expect(content.layoutSize.height).toBe(18);
         expect(statusBar.localPosition.dy).toBe(19);
     });
 
@@ -210,7 +210,7 @@ describe("BodyElement statusBar integration", () => {
         body.setStatusBar(statusBar);
         layoutBody(body, 40, 20);
 
-        expect(statusBar.size.width).toBe(40);
-        expect(statusBar.size.height).toBe(1);
+        expect(statusBar.layoutSize.width).toBe(40);
+        expect(statusBar.layoutSize.height).toBe(1);
     });
 });

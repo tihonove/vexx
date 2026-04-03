@@ -38,8 +38,8 @@ describe("TuiApplication", () => {
         app.root = box;
         app.run();
 
-        expect(box.size.width).toBe(10);
-        expect(box.size.height).toBe(5);
+        expect(box.layoutSize.width).toBe(10);
+        expect(box.layoutSize.height).toBe(5);
     });
 
     it("re-renders with new size on terminal resize", () => {
@@ -73,8 +73,8 @@ describe("TuiApplication", () => {
             `,
         );
 
-        expect(box.size.width).toBe(8);
-        expect(box.size.height).toBe(4);
+        expect(box.layoutSize.width).toBe(8);
+        expect(box.layoutSize.height).toBe(4);
     });
 
     it("updates screen dimensions on resize", () => {

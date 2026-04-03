@@ -24,7 +24,7 @@ export class VStackElement extends TUIElement {
     }
 
     public performLayout(constraints: BoxConstraints): Size {
-        // First, call parent implementation to set _size and mark as clean
+        // First, call parent implementation to set allocatedSize and mark as clean
         const containerSize = super.performLayout(constraints);
         const containerWidth = containerSize.width;
         let currentY = 0;

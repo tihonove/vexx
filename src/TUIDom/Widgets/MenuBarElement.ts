@@ -166,7 +166,7 @@ export class MenuBarElement extends TUIElement {
     }
 
     public render(context: RenderContext): void {
-        const width = this.size.width;
+        const width = this.layoutSize.width;
         const { dx: ox, dy: oy } = context.offset;
 
         for (let x = 0; x < width; x++) {

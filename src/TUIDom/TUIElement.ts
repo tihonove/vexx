@@ -39,7 +39,7 @@ interface ListenerEntry {
 }
 
 export class TUIElement {
-    private _size: Size = new Size(80, 24);
+    private allocatedSize: Size = new Size(80, 24);
 
     public dirty = false;
     public layoutStyle: unknown = undefined;
@@ -69,23 +69,15 @@ export class TUIElement {
     private _listeners = new Map<string, ListenerEntry[]>();
 
     /**
-     * Lazy evaluation: if isDirty, performs layout with default constraints.
-     * Otherwise returns cached size.
+     * Allocated visible area on screen, set by parent container via performLayout().
+     * Lazy fallback: if layout is dirty, triggers performLayout with loose constraints.
      */
-    public get size(): Size {
+    public get layoutSize(): Size {
         if (this.isLayoutDirty) {
-            const constraints = BoxConstraints.loose(this._size);
+            const constraints = BoxConstraints.loose(this.allocatedSize);
             this.performLayout(constraints);
         }
-        return this._size;
-    }
-
-    /**
-     * Returns the cached size without triggering layout.
-     * Protected — use by subclasses in performLayout to avoid recursion.
-     */
-    protected getCachedSize(): Size {
-        return this._size;
+        return this.allocatedSize;
     }
 
     public get isFocused(): boolean {
@@ -321,11 +313,11 @@ export class TUIElement {
     }
 
     /**
-     * Performs layout and returns the calculated size.
+     * Performs layout: applies constraints to set the allocated visible area.
      */
     public performLayout(constraints: BoxConstraints): Size {
-        const resultSize = constraints.constrain(this._size);
-        this._size = resultSize;
+        const resultSize = constraints.constrain(this.allocatedSize);
+        this.allocatedSize = resultSize;
         this.isLayoutDirty = false;
         return resultSize;
     }

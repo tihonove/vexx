@@ -28,7 +28,7 @@ export class ScrollContainerElement extends TUIElement {
     }
 
     public performLayout(constraints: BoxConstraints): Size {
-        // First, call parent implementation to set _size and mark as clean
+        // First, call parent implementation to set allocatedSize and mark as clean
         const containerSize = super.performLayout(constraints);
 
         // Set child local position (no offset for scroll container)
@@ -52,11 +52,11 @@ export class ScrollContainerElement extends TUIElement {
 
         renderScrollBar(
             context,
-            this.size.width - 1,
-            this.size.height,
+            this.layoutSize.width - 1,
+            this.layoutSize.height,
             this.child.contentHeight,
             this.child.scrollTop,
-            this.size.height,
+            this.layoutSize.height,
         );
     }
 }

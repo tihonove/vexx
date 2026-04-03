@@ -26,7 +26,7 @@ export class TextBlockElement extends TUIElement implements IScrollable {
     }
 
     public scrollDown(): void {
-        const maxScroll = Math.max(0, this.contentHeight - this.size.height);
+        const maxScroll = Math.max(0, this.contentHeight - this.layoutSize.height);
         this.scrollTop = Math.min(maxScroll, this.scrollTop + 1);
     }
 
@@ -36,8 +36,8 @@ export class TextBlockElement extends TUIElement implements IScrollable {
 
     public render(context: RenderContext): void {
         const { dx: ox, dy: oy } = context.offset;
-        const visibleLines = this.size.height;
-        const visibleCols = this.size.width;
+        const visibleLines = this.layoutSize.height;
+        const visibleCols = this.layoutSize.width;
 
         for (let screenY = 0; screenY < visibleLines; screenY++) {
             const lineIndex = this.scrollTop + screenY;

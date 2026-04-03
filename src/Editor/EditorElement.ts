@@ -41,12 +41,12 @@ export class EditorElement extends TUIElement implements IScrollable {
     public render(context: RenderContext): void {
         const { canvas, offset } = context;
         const { dx: ox, dy: oy } = offset;
-        this.viewState.viewportWidth = this.size.width;
-        this.viewState.viewportHeight = this.size.height;
+        this.viewState.viewportWidth = this.layoutSize.width;
+        this.viewState.viewportHeight = this.layoutSize.height;
         const scrollTop = this.viewState.scrollTop;
         const scrollLeft = this.viewState.scrollLeft;
-        const visibleLines = this.size.height;
-        const visibleCols = this.size.width;
+        const visibleLines = this.layoutSize.height;
+        const visibleCols = this.layoutSize.width;
         const viewLineCount = this.viewState.getViewLineCount();
 
         // Draw visible lines (using view projection that accounts for folding)

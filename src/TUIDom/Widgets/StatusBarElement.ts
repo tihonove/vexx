@@ -28,7 +28,7 @@ export class StatusBarElement extends TUIElement {
 
     public override render(context: RenderContext): void {
         const { dx: ox, dy: oy } = context.offset;
-        const width = this.size.width;
+        const width = this.layoutSize.width;
 
         const text = this.items.map((item) => item.text).join("  ");
 

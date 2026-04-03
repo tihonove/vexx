@@ -43,8 +43,8 @@ describe("ScrollContainerElement", () => {
     it("allocates child width as container width minus 1", () => {
         const { container, child } = createScrollContainer(12, 5, 20);
         container.performLayout(BoxConstraints.tight(new Size(12, 5)));
-        expect(child.size.width).toBe(11);
-        expect(child.size.height).toBe(5);
+        expect(child.layoutSize.width).toBe(11);
+        expect(child.layoutSize.height).toBe(5);
     });
 
     it("renders content with scrollbar in last column at top", () => {
@@ -205,8 +205,8 @@ describe("ScrollContainerElement", () => {
         container.performLayout(BoxConstraints.tight(new Size(12, 5)));
 
         // Child should have width=11 (12-1 for scrollbar) and height=5
-        expect(child.size.width).toBe(11);
-        expect(child.size.height).toBe(5);
+        expect(child.layoutSize.width).toBe(11);
+        expect(child.layoutSize.height).toBe(5);
         // And should have proper coordinates
         expect(child.localPosition).toEqual(new Offset(0, 0));
     });

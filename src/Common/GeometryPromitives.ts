@@ -81,4 +81,35 @@ export class Rect {
     public get height(): number {
         return this.size.height;
     }
+
+    public get right(): number {
+        return this.origin.x + this.size.width;
+    }
+
+    public get bottom(): number {
+        return this.origin.y + this.size.height;
+    }
+
+    public containsPoint(point: Point): boolean {
+        return (
+            point.x >= this.x &&
+            point.x < this.right &&
+            point.y >= this.y &&
+            point.y < this.bottom
+        );
+    }
+
+    public intersect(other: Rect): Rect {
+        const x = Math.max(this.x, other.x);
+        const y = Math.max(this.y, other.y);
+        const right = Math.min(this.right, other.right);
+        const bottom = Math.min(this.bottom, other.bottom);
+        const width = Math.max(0, right - x);
+        const height = Math.max(0, bottom - y);
+        return new Rect(new Point(x, y), new Size(width, height));
+    }
+
+    public get isEmpty(): boolean {
+        return this.size.width <= 0 || this.size.height <= 0;
+    }
 }

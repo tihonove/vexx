@@ -38,7 +38,7 @@ describe("TUIElement coordinate system", () => {
         const spy = vi.spyOn(element, "performLayout");
 
         // First access should trigger performLayout
-        const size = element.size;
+        const size = element.layoutSize;
 
         expect(spy).toHaveBeenCalled();
         expect(size).toEqual(new Size(80, 24)); // default
@@ -49,7 +49,7 @@ describe("TUIElement coordinate system", () => {
         element.performLayout(BoxConstraints.tight(new Size(10, 5)));
         const spy = vi.spyOn(element, "performLayout");
 
-        const size = element.size;
+        const size = element.layoutSize;
 
         expect(spy).not.toHaveBeenCalled();
         expect(size).toEqual(new Size(10, 5));
@@ -141,18 +141,6 @@ describe("TUIElement coordinate system", () => {
         expect(element.globalPosition).toEqual(point);
     });
 
-    it("getCachedSize returns current size without triggering layout", () => {
-        const element = new TUIElement();
-        element.performLayout(BoxConstraints.tight(new Size(10, 5)));
-        const spy = vi.spyOn(element, "performLayout");
-
-        // @ts-expect-error - getCachedSize is protected, but we want to test it directly
-        const cached = element.getCachedSize();
-
-        expect(spy).not.toHaveBeenCalled();
-        expect(cached).toEqual(new Size(10, 5));
-    });
-
     it("child with null parent does not crash on markDirty", () => {
         const element = new TUIElement();
         element.setParent(null);
@@ -185,7 +173,7 @@ describe("TUIElement coordinate system", () => {
 
     it("lazy getter with loose constraints uses default size", () => {
         const element = new TUIElement();
-        const size = element.size; // Should not crash
+        const size = element.layoutSize; // Should not crash
 
         expect(size).toEqual(new Size(80, 24)); // default
         expect(element.isLayoutDirty).toBe(false);

@@ -3,8 +3,8 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export class BoxElement extends TUIElement {
     public render(context: RenderContext): void {
-        const w = this.size.width;
-        const h = this.size.height;
+        const w = this.layoutSize.width;
+        const h = this.layoutSize.height;
         const { dx: ox, dy: oy } = context.offset;
 
         for (let y = 0; y < h; y++) {
