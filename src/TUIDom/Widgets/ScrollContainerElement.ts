@@ -2,10 +2,12 @@ import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/Geometry
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { IScrollable } from "./IScrollable.ts";
-import { renderScrollBar } from "./ScrollBarRenderer.ts";
+import { renderHorizontalScrollBar, renderScrollBar } from "./ScrollBarRenderer.ts";
+
+export type ScrollBarPolicy = "auto" | "always" | "never";
 
 /**
- * Draws a scrollbar alongside a scrollable child.
+ * Draws scrollbars alongside a scrollable child.
  *
  * The child is rendered as-is — it must handle its own content rendering.
  * For simple widgets that draw full content in local coordinates, wrap
@@ -20,6 +22,8 @@ import { renderScrollBar } from "./ScrollBarRenderer.ts";
  */
 export class ScrollBarDecorator extends TUIElement {
     private child: TUIElement & IScrollable;
+    public verticalScrollBar: ScrollBarPolicy = "auto";
+    public horizontalScrollBar: ScrollBarPolicy = "auto";
 
     public constructor(child: TUIElement & IScrollable) {
         super();
@@ -47,25 +51,67 @@ export class ScrollBarDecorator extends TUIElement {
         this.child.localPosition = new Offset(0, 0);
         this.child.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
 
-        // Child gets container width minus scrollbar column
-        this.child.performLayout(BoxConstraints.tight(new Size(containerSize.width - 1, containerSize.height)));
+        const { showVertical, showHorizontal } = this.resolveScrollBarVisibility(containerSize);
+        const childWidth = containerSize.width - (showVertical ? 1 : 0);
+        const childHeight = containerSize.height - (showHorizontal ? 1 : 0);
+
+        this.child.performLayout(BoxConstraints.tight(new Size(childWidth, childHeight)));
 
         return containerSize;
     }
 
     public render(context: RenderContext): void {
+        const { showVertical, showHorizontal } = this.resolveScrollBarVisibility(this.layoutSize);
+
         const childOffset = new Offset(this.child.localPosition.dx, this.child.localPosition.dy);
         const childClip = new Rect(this.child.globalPosition, this.child.layoutSize);
         this.child.render(context.withOffset(childOffset).withClip(childClip));
 
-        renderScrollBar(
-            context,
-            this.layoutSize.width - 1,
-            this.layoutSize.height,
-            this.child.contentHeight,
-            this.child.scrollTop,
-            this.layoutSize.height,
+        const childWidth = this.child.layoutSize.width;
+        const childHeight = this.child.layoutSize.height;
+
+        if (showVertical) {
+            renderScrollBar(
+                context,
+                this.layoutSize.width - 1,
+                childHeight,
+                this.child.contentHeight,
+                this.child.scrollTop,
+                childHeight,
+            );
+        }
+
+        if (showHorizontal) {
+            renderHorizontalScrollBar(
+                context,
+                this.layoutSize.height - 1,
+                childWidth,
+                this.child.contentWidth,
+                this.child.scrollLeft,
+                childWidth,
+            );
+        }
+    }
+
+    private resolveScrollBarVisibility(containerSize: Size): { showVertical: boolean; showHorizontal: boolean } {
+        const showVertical = this.resolvePolicy(this.verticalScrollBar, this.child.contentHeight, containerSize.height);
+        const showHorizontal = this.resolvePolicy(
+            this.horizontalScrollBar,
+            this.child.contentWidth,
+            containerSize.width - (showVertical ? 1 : 0),
         );
+        return { showVertical, showHorizontal };
+    }
+
+    private resolvePolicy(policy: ScrollBarPolicy, contentSize: number, viewportSize: number): boolean {
+        switch (policy) {
+            case "always":
+                return true;
+            case "never":
+                return false;
+            case "auto":
+                return contentSize > viewportSize;
+        }
     }
 }
 

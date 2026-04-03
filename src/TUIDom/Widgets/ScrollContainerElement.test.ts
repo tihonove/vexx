@@ -8,6 +8,7 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import { ScrollBarDecorator } from "./ScrollContainerElement.ts";
+import { ScrollableElement, type ScrollViewportInfo } from "./ScrollableElement.ts";
 import { ScrollViewport } from "./ScrollViewport.ts";
 import { TextBlockElement } from "./TextBlockElement.ts";
 
@@ -42,10 +43,17 @@ function renderContainer(
 }
 
 describe("ScrollBarDecorator", () => {
-    it("allocates child width as container width minus 1", () => {
+    it("allocates child width as container width minus 1 when content overflows", () => {
         const { container, child } = createScrollContainer(12, 5, 20);
         container.performLayout(BoxConstraints.tight(new Size(12, 5)));
         expect(child.layoutSize.width).toBe(11);
+        expect(child.layoutSize.height).toBe(5);
+    });
+
+    it("allocates full width when content fits viewport", () => {
+        const { container, child } = createScrollContainer(12, 5, 3);
+        container.performLayout(BoxConstraints.tight(new Size(12, 5)));
+        expect(child.layoutSize.width).toBe(12);
         expect(child.layoutSize.height).toBe(5);
     });
 
@@ -82,34 +90,32 @@ describe("ScrollBarDecorator", () => {
         );
     });
 
-    it("fills entire scrollbar when content fits viewport", () => {
+    it("hides scrollbar when content fits viewport (auto)", () => {
         const { container, backend, termScreen } = createScrollContainer(12, 5, 5);
         renderContainer(container, termScreen, backend);
 
         expectScreen(
             backend,
             screen`
-                Line 001   █
-                Line 002   █
-                Line 003   █
-                Line 004   █
-                Line 005   █
+                Line 001
+                Line 002
+                Line 003
+                Line 004
+                Line 005
             `,
         );
     });
 
-    it("fills entire scrollbar when content smaller than viewport", () => {
+    it("hides scrollbar when content smaller than viewport (auto)", () => {
         const { container, backend, termScreen } = createScrollContainer(12, 5, 3);
         renderContainer(container, termScreen, backend);
 
         expectScreen(
             backend,
             screen`
-                Line 001   █
-                Line 002   █
-                Line 003   █
-                           █
-                           █
+                Line 001
+                Line 002
+                Line 003
             `,
         );
     });
@@ -211,5 +217,178 @@ describe("ScrollBarDecorator", () => {
         expect(child.layoutSize.height).toBe(5);
         // And should have proper coordinates
         expect(child.localPosition).toEqual(new Offset(0, 0));
+    });
+});
+
+class WideContentWidget extends ScrollableElement {
+    private gridWidth: number;
+    private gridHeight: number;
+
+    public constructor(gridWidth: number, gridHeight: number) {
+        super();
+        this.gridWidth = gridWidth;
+        this.gridHeight = gridHeight;
+    }
+
+    public get contentHeight(): number {
+        return this.gridHeight;
+    }
+
+    public get contentWidth(): number {
+        return this.gridWidth;
+    }
+
+    protected renderViewport(context: RenderContext, viewport: ScrollViewportInfo): void {
+        for (let screenY = 0; screenY < viewport.viewportHeight; screenY++) {
+            const contentY = viewport.scrollTop + screenY;
+            if (contentY >= this.gridHeight) break;
+
+            for (let screenX = 0; screenX < viewport.viewportWidth; screenX++) {
+                const contentX = viewport.scrollLeft + screenX;
+                if (contentX >= this.gridWidth) break;
+
+                context.setCell(screenX, screenY, { char: String((contentX + contentY) % 10) });
+            }
+        }
+    }
+}
+
+describe("ScrollBarDecorator vertical policy", () => {
+    it("always: shows scrollbar even when content fits", () => {
+        const size = new Size(12, 5);
+        const backend = new MockTerminalBackend(size);
+        const termScreen = new TerminalScreen(size);
+        const child = new TextBlockElement(3);
+        const viewport = new ScrollViewport(child);
+        const container = new ScrollBarDecorator(viewport);
+        container.verticalScrollBar = "always";
+
+        container.performLayout(BoxConstraints.tight(size));
+        container.render(new RenderContext(termScreen));
+        termScreen.flush(backend);
+
+        expectScreen(
+            backend,
+            screen`
+                Line 001   █
+                Line 002   █
+                Line 003   █
+                           █
+                           █
+            `,
+        );
+    });
+
+    it("never: hides scrollbar even when content overflows", () => {
+        const size = new Size(12, 5);
+        const backend = new MockTerminalBackend(size);
+        const termScreen = new TerminalScreen(size);
+        const child = new TextBlockElement(50);
+        const viewport = new ScrollViewport(child);
+        const container = new ScrollBarDecorator(viewport);
+        container.verticalScrollBar = "never";
+
+        container.performLayout(BoxConstraints.tight(size));
+        container.render(new RenderContext(termScreen));
+        termScreen.flush(backend);
+
+        // Child gets full width (12), no scrollbar column
+        expectScreen(
+            backend,
+            screen`
+                Line 001
+                Line 002
+                Line 003
+                Line 004
+                Line 005
+            `,
+        );
+    });
+
+    it("never: child gets full container width", () => {
+        const size = new Size(12, 5);
+        const child = new TextBlockElement(50);
+        const viewport = new ScrollViewport(child);
+        const container = new ScrollBarDecorator(viewport);
+        container.verticalScrollBar = "never";
+
+        container.performLayout(BoxConstraints.tight(size));
+
+        expect(child.layoutSize.width).toBe(12);
+    });
+});
+
+describe("ScrollBarDecorator horizontal scrollbar", () => {
+    it("shows horizontal scrollbar when content is wider than viewport", () => {
+        const size = new Size(10, 5);
+        const backend = new MockTerminalBackend(size);
+        const termScreen = new TerminalScreen(size);
+        const widget = new WideContentWidget(30, 3);
+        const container = new ScrollBarDecorator(widget);
+        container.verticalScrollBar = "never";
+
+        container.performLayout(BoxConstraints.tight(size));
+        container.render(new RenderContext(termScreen));
+        termScreen.flush(backend);
+
+        // Last row should be horizontal scrollbar
+        const lines = backend.screenToString().split("\n");
+        expect(lines.length).toBe(5);
+        // Content takes 4 rows (height - 1 for h-scrollbar), scrollbar on row 4
+        expect(lines[4]).toContain("▀");
+    });
+
+    it("hides horizontal scrollbar when content fits", () => {
+        const size = new Size(10, 5);
+        const backend = new MockTerminalBackend(size);
+        const termScreen = new TerminalScreen(size);
+        const widget = new WideContentWidget(5, 3);
+        const container = new ScrollBarDecorator(widget);
+        container.verticalScrollBar = "never";
+
+        container.performLayout(BoxConstraints.tight(size));
+        container.render(new RenderContext(termScreen));
+        termScreen.flush(backend);
+
+        // Child gets full height (5), no scrollbar row
+        expect(widget.layoutSize.height).toBe(5);
+    });
+
+    it("horizontal never: child gets full height", () => {
+        const size = new Size(10, 5);
+        const widget = new WideContentWidget(30, 3);
+        const container = new ScrollBarDecorator(widget);
+        container.verticalScrollBar = "never";
+        container.horizontalScrollBar = "never";
+
+        container.performLayout(BoxConstraints.tight(size));
+
+        expect(widget.layoutSize.height).toBe(5);
+        expect(widget.layoutSize.width).toBe(10);
+    });
+
+    it("horizontal always: shows scrollbar even when content fits", () => {
+        const size = new Size(10, 5);
+        const widget = new WideContentWidget(5, 3);
+        const container = new ScrollBarDecorator(widget);
+        container.verticalScrollBar = "never";
+        container.horizontalScrollBar = "always";
+
+        container.performLayout(BoxConstraints.tight(size));
+
+        expect(widget.layoutSize.height).toBe(4);
+    });
+
+    it("both scrollbars: child gets reduced size in both dimensions", () => {
+        const size = new Size(10, 5);
+        const widget = new WideContentWidget(30, 20);
+        const container = new ScrollBarDecorator(widget);
+
+        container.performLayout(BoxConstraints.tight(size));
+
+        // auto: both overflows → both scrollbars visible
+        // width - 1 for vertical scrollbar, height - 1 for horizontal scrollbar
+        expect(widget.layoutSize.width).toBe(9);
+        expect(widget.layoutSize.height).toBe(4);
     });
 });

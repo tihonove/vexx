@@ -25,8 +25,16 @@ export class ScrollViewport extends TUIElement implements IScrollable {
         return this.child.contentHeight;
     }
 
+    public get contentWidth(): number {
+        return this.child.contentWidth;
+    }
+
     public get scrollTop(): number {
         return this.child.scrollTop;
+    }
+
+    public get scrollLeft(): number {
+        return this.child.scrollLeft;
     }
 
     public getChild(): TUIElement & IScrollable {
@@ -50,7 +58,7 @@ export class ScrollViewport extends TUIElement implements IScrollable {
     }
 
     public override render(context: RenderContext): void {
-        const scrollOffset = new Offset(0, -this.child.scrollTop);
+        const scrollOffset = new Offset(-this.child.scrollLeft, -this.child.scrollTop);
         const viewportClip = new Rect(this.globalPosition, this.layoutSize);
         this.child.render(context.withOffset(scrollOffset).withClip(viewportClip));
     }

@@ -4,7 +4,9 @@ import type { IScrollable } from "./IScrollable.ts";
 
 export class TextBlockElement extends TUIElement implements IScrollable {
     public contentHeight: number;
+    public contentWidth: number;
     public scrollTop = 0;
+    public scrollLeft = 0;
     private lines: string[];
 
     public constructor(lineCount: number) {
@@ -14,6 +16,7 @@ export class TextBlockElement extends TUIElement implements IScrollable {
         for (let i = 0; i < lineCount; i++) {
             this.lines.push(`Line ${String(i + 1).padStart(3, "0")}`);
         }
+        this.contentWidth = this.lines.reduce((max, l) => Math.max(max, l.length), 0);
 
         this.addEventListener("keypress", (event) => {
             if (event.key === "ArrowDown") {

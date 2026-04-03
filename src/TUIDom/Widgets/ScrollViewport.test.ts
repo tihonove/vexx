@@ -15,7 +15,9 @@ import { ScrollViewport } from "./ScrollViewport.ts";
  */
 class FullContentWidget extends TUIElement implements IScrollable {
     public contentHeight: number;
+    public contentWidth: number;
     public scrollTop = 0;
+    public scrollLeft = 0;
     private lines: string[];
 
     public constructor(lineCount: number) {
@@ -25,13 +27,13 @@ class FullContentWidget extends TUIElement implements IScrollable {
         for (let i = 0; i < lineCount; i++) {
             this.lines.push(`Line ${String(i + 1).padStart(3, "0")}`);
         }
+        this.contentWidth = this.lines.reduce((max, l) => Math.max(max, l.length), 0);
     }
 
     public override render(context: RenderContext): void {
-        const width = this.layoutSize.width;
         for (let y = 0; y < this.contentHeight; y++) {
             const line = this.lines[y];
-            for (let x = 0; x < width; x++) {
+            for (let x = 0; x < this.contentWidth; x++) {
                 const char = x < line.length ? line[x] : " ";
                 context.setCell(x, y, { char });
             }
@@ -181,5 +183,40 @@ describe("ScrollViewport", () => {
         expect(lines[1].slice(5, 13).trimEnd()).toBe("Line 003");
         expect(lines[2].slice(5, 13).trimEnd()).toBe("Line 004");
         expect(lines[3].slice(5, 13).trimEnd()).toBe("Line 005");
+    });
+
+    it("delegates contentWidth from child", () => {
+        const { viewport, child } = createViewport(10, 5, 20);
+        expect(viewport.contentWidth).toBe(child.contentWidth);
+    });
+
+    it("delegates scrollLeft from child", () => {
+        const { viewport, child } = createViewport(10, 5, 20);
+        child.scrollLeft = 3;
+        expect(viewport.scrollLeft).toBe(3);
+    });
+
+    it("shifts content horizontally by scrollLeft", () => {
+        const { viewport, child, backend, termScreen } = createViewport(5, 3, 20);
+        // "Line 001" has 8 chars, scroll right by 3 → show "e 00"
+        child.scrollLeft = 3;
+        renderViewport(viewport, termScreen, backend);
+
+        const lines = backend.screenToString().split("\n");
+        expect(lines[0].trimEnd()).toBe("e 001");
+        expect(lines[1].trimEnd()).toBe("e 002");
+        expect(lines[2].trimEnd()).toBe("e 003");
+    });
+
+    it("shifts content both horizontally and vertically", () => {
+        const { viewport, child, backend, termScreen } = createViewport(5, 3, 20);
+        child.scrollLeft = 3;
+        child.scrollTop = 5;
+        renderViewport(viewport, termScreen, backend);
+
+        const lines = backend.screenToString().split("\n");
+        expect(lines[0].trimEnd()).toBe("e 006");
+        expect(lines[1].trimEnd()).toBe("e 007");
+        expect(lines[2].trimEnd()).toBe("e 008");
     });
 });

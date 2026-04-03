@@ -23,8 +23,21 @@ export class EditorElement extends TUIElement implements IScrollable {
         return this.viewState.getViewLineCount();
     }
 
+    public get contentWidth(): number {
+        const doc = this.viewState.document;
+        let max = 0;
+        for (let i = 0; i < doc.lineCount; i++) {
+            max = Math.max(max, doc.getLineLength(i));
+        }
+        return max;
+    }
+
     public get scrollTop(): number {
         return this.viewState.scrollTop;
+    }
+
+    public get scrollLeft(): number {
+        return this.viewState.scrollLeft;
     }
 
     public constructor(viewState: EditorViewState) {

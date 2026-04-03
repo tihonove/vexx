@@ -13,6 +13,7 @@
     "demo:raw-events": "node src/demos/tokenizeDemo.ts",
     "demo:renderer": "node src/demos/rendererDemo.ts",
     "demo:scroll": "node src/demos/scrollDemo.ts",
+    "demo:scrollable": "node src/demos/scrollableDemo.ts",
     "demo:menu-bar": "node src/demos/menuBarDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
     "demo:focus": "node src/demos/focusDemo.ts",

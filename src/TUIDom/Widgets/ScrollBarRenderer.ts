@@ -85,3 +85,30 @@ export function renderScrollBar(
         context.setCell(x, row, { char, fg });
     }
 }
+
+export function renderHorizontalScrollBar(
+    context: RenderContext,
+    y: number,
+    trackWidth: number,
+    contentWidth: number,
+    scrollLeft: number,
+    viewportWidth: number,
+): void {
+    if (contentWidth <= viewportWidth) {
+        for (let col = 0; col < trackWidth; col++) {
+            context.setCell(col, y, { char: "▀", fg: THUMB_COLOR });
+        }
+        return;
+    }
+
+    const thumbSize = Math.max(1, Math.round((viewportWidth / contentWidth) * trackWidth));
+    const maxScroll = contentWidth - viewportWidth;
+    const scrollFraction = Math.min(1, Math.max(0, scrollLeft / maxScroll));
+    const thumbStart = Math.round(scrollFraction * (trackWidth - thumbSize));
+    const thumbEnd = thumbStart + thumbSize;
+
+    for (let col = 0; col < trackWidth; col++) {
+        const inThumb = col >= thumbStart && col < thumbEnd;
+        context.setCell(col, y, { char: "▀", fg: inThumb ? THUMB_COLOR : TRACK_COLOR });
+    }
+}
