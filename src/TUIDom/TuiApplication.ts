@@ -7,12 +7,13 @@ import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
 import { FocusManager } from "./Events/FocusManager.ts";
 import { MouseEventDispatcher } from "./Events/MouseEventDispatcher.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
-import { RenderContext, TUIElement } from "./TUIElement.ts";
+import { RenderContext } from "./TUIElement.ts";
+import type { BodyElement } from "./Widgets/BodyElement.ts";
 
 export class TuiApplication {
     public backend: ITerminalBackend;
 
-    public root: TUIElement | null = null;
+    public root: BodyElement | null = null;
     public screen: TerminalScreen;
     public focusManager: FocusManager | null = null;
     public mouseDispatcher: MouseEventDispatcher = new MouseEventDispatcher();

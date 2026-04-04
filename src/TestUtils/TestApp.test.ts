@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Size } from "../Common/GeometryPromitives.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { TUIElement } from "../TUIDom/TUIElement.ts";
+import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
 
 import { TestApp } from "./TestApp.ts";
@@ -20,23 +21,27 @@ class ContainerElement extends TUIElement {
     }
 }
 
+function createBody(content: TUIElement): BodyElement {
+    const body = new BodyElement();
+    body.setContent(content);
+    return body;
+}
+
 describe("TestApp", () => {
     it("creates app with root element", () => {
-        const root = new ContainerElement();
-        root.setAsRoot();
-        const testApp = TestApp.create(root, new Size(20, 5));
+        const body = createBody(new ContainerElement());
+        const testApp = TestApp.create(body, new Size(20, 5));
 
-        expect(testApp.root).toBe(root);
+        expect(testApp.root).toBe(body);
     });
 
     it("sendKey delivers keyboard event to focused element", () => {
-        const root = new ContainerElement();
-        root.setAsRoot();
+        const container = new ContainerElement();
         const child = new TUIElement();
         child.tabIndex = 0;
-        root.addChild(child);
+        container.addChild(child);
 
-        const testApp = TestApp.create(root, new Size(20, 5));
+        const testApp = TestApp.create(createBody(container), new Size(20, 5));
         child.focus();
 
         const handler = vi.fn<(event: TUIKeyboardEvent) => void>();
@@ -48,46 +53,43 @@ describe("TestApp", () => {
     });
 
     it("querySelector delegates to root", () => {
-        const root = new ContainerElement();
-        root.setAsRoot();
+        const container = new ContainerElement();
         const box = new BoxElement();
         box.id = "main-box";
-        root.addChild(box);
+        container.addChild(box);
 
-        const testApp = TestApp.create(root, new Size(20, 5));
+        const testApp = TestApp.create(createBody(container), new Size(20, 5));
 
         expect(testApp.querySelector("#main-box")).toBe(box);
         expect(testApp.querySelector("BoxElement")).toBe(box);
     });
 
     it("querySelectorAll delegates to root", () => {
-        const root = new ContainerElement();
-        root.setAsRoot();
+        const container = new ContainerElement();
         const a = new TUIElement();
         a.role = "item";
         const b = new TUIElement();
         b.role = "item";
-        root.addChild(a);
-        root.addChild(b);
+        container.addChild(a);
+        container.addChild(b);
 
-        const testApp = TestApp.create(root, new Size(20, 5));
+        const testApp = TestApp.create(createBody(container), new Size(20, 5));
 
         expect(testApp.querySelectorAll("@item")).toEqual([a, b]);
     });
 
     it("focusedElement returns currently focused element", () => {
-        const root = new ContainerElement();
-        root.setAsRoot();
+        const container = new ContainerElement();
         const a = new TUIElement();
         a.tabIndex = 0;
         a.role = "first";
         const b = new TUIElement();
         b.tabIndex = 0;
         b.role = "second";
-        root.addChild(a);
-        root.addChild(b);
+        container.addChild(a);
+        container.addChild(b);
 
-        const testApp = TestApp.create(root, new Size(20, 5));
+        const testApp = TestApp.create(createBody(container), new Size(20, 5));
 
         expect(testApp.focusedElement).toBeNull();
 
@@ -99,18 +101,17 @@ describe("TestApp", () => {
     });
 
     it("Tab cycles focus between focusable elements", () => {
-        const root = new ContainerElement();
-        root.setAsRoot();
+        const container = new ContainerElement();
         const a = new TUIElement();
         a.tabIndex = 0;
         a.id = "first";
         const b = new TUIElement();
         b.tabIndex = 0;
         b.id = "second";
-        root.addChild(a);
-        root.addChild(b);
+        container.addChild(a);
+        container.addChild(b);
 
-        const testApp = TestApp.create(root, new Size(20, 5));
+        const testApp = TestApp.create(createBody(container), new Size(20, 5));
         a.focus();
 
         expect(testApp.focusedElement).toBe(a);

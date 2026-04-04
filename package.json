@@ -2,11 +2,15 @@
   "name": "vscode-tui",
   "version": "0.0.1",
   "type": "module",
+  "exports": {
+    "./jsx-runtime": "./src/TUIDom/JSX/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/TUIDom/JSX/jsx-runtime.ts"
+  },
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "node src/main.ts",
+    "start": "tsx src/main.ts",
     "demo:box": "node src/demos/boxDemo.ts",
     "demo:editor": "node src/demos/editorDemo.ts",
     "demo:events": "node src/demos/eventLogDemo.ts",
@@ -14,7 +18,7 @@
     "demo:renderer": "node src/demos/rendererDemo.ts",
     "demo:scroll": "node src/demos/scrollDemo.ts",
     "demo:scrollable": "node src/demos/scrollableDemo.ts",
-    "demo:menu-bar": "node src/demos/menuBarDemo.ts",
+    "demo:menu-bar": "tsx src/demos/menuBarDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
     "demo:focus": "node src/demos/focusDemo.ts",
     "demo:layout": "node src/demos/layoutDemo.ts",
@@ -28,7 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.3.3",
+    "@types/node": "^25.5.2",
     "@vitest/coverage-v8": "^4.0.18",
     "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
@@ -37,6 +41,7 @@
     "jiti": "^2.6.1",
     "prettier": "^3.8.1",
     "tsup": "^8.5.1",
+    "tsx": "^4.21.0",
     "typescript": "^5.8",
     "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.18"

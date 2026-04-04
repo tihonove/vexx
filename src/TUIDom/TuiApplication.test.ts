@@ -9,6 +9,7 @@ import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import { TuiApplication } from "./TuiApplication.ts";
+import { BodyElement } from "./Widgets/BodyElement.ts";
 import { BoxElement } from "./Widgets/BoxElement.ts";
 
 describe("TuiApplication", () => {
@@ -16,8 +17,10 @@ describe("TuiApplication", () => {
         const backend = new MockTerminalBackend(new Size(6, 3));
         const app = new TuiApplication(backend);
 
+        const body = new BodyElement();
         const box = new BoxElement();
-        app.root = box;
+        body.setContent(box);
+        app.root = body;
         app.run();
 
         expectScreen(
@@ -34,20 +37,24 @@ describe("TuiApplication", () => {
         const backend = new MockTerminalBackend(new Size(10, 5));
         const app = new TuiApplication(backend);
 
+        const body = new BodyElement();
         const box = new BoxElement();
-        app.root = box;
+        body.setContent(box);
+        app.root = body;
         app.run();
 
-        expect(box.layoutSize.width).toBe(10);
-        expect(box.layoutSize.height).toBe(5);
+        expect(body.layoutSize.width).toBe(10);
+        expect(body.layoutSize.height).toBe(5);
     });
 
     it("re-renders with new size on terminal resize", () => {
         const backend = new MockTerminalBackend(new Size(6, 3));
         const app = new TuiApplication(backend);
 
+        const body = new BodyElement();
         const box = new BoxElement();
-        app.root = box;
+        body.setContent(box);
+        app.root = body;
         app.run();
 
         // Verify initial render
@@ -73,14 +80,16 @@ describe("TuiApplication", () => {
             `,
         );
 
-        expect(box.layoutSize.width).toBe(8);
-        expect(box.layoutSize.height).toBe(4);
+        expect(body.layoutSize.width).toBe(8);
+        expect(body.layoutSize.height).toBe(4);
     });
 
     it("updates screen dimensions on resize", () => {
         const backend = new MockTerminalBackend(new Size(10, 5));
         const app = new TuiApplication(backend);
-        app.root = new BoxElement();
+        const body = new BodyElement();
+        body.setContent(new BoxElement());
+        app.root = body;
         app.run();
 
         expect(app.screen.width).toBe(10);
@@ -99,8 +108,13 @@ describe("TuiApplication", () => {
         const doc = new TextDocument("hello");
         const viewState = new EditorViewState(doc);
         const editor = new EditorElement(viewState);
-        app.root = editor;
+        const body = new BodyElement();
+        body.setContent(editor);
+        app.root = body;
         app.run();
+
+        editor.tabIndex = 0;
+        editor.focus();
 
         // Select "ello" via Shift+ArrowLeft × 4 from end
         // First move cursor to end of "hello"

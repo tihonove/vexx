@@ -13,7 +13,7 @@ export class TextLabelElement extends TUIElement {
     private text: string;
     private fg: number = DEFAULT_COLOR;
     private bg: number = DEFAULT_COLOR;
-    private charStyles: Map<number, StyledChar> = new Map();
+    private charStyles = new Map<number, StyledChar>();
 
     public constructor(text: string) {
         super();
@@ -81,3 +81,33 @@ export class TextLabelElement extends TUIElement {
         }
     }
 }
+
+// ─── TextLabel JSX Adapter ───
+
+export interface TextLabelProps {
+    text: string;
+    fg?: number;
+    bg?: number;
+    charStyles?: Map<number, StyledChar>;
+}
+
+function applyTextLabelProps(el: TextLabelElement, props: TextLabelProps): void {
+    el.setText(props.text);
+    el.setColors(props.fg ?? DEFAULT_COLOR, props.bg ?? DEFAULT_COLOR);
+    el.clearCharStyles();
+    if (props.charStyles) {
+        for (const [index, style] of props.charStyles) {
+            el.setCharStyle(index, style);
+        }
+    }
+}
+
+export function TextLabel(props: TextLabelProps): TextLabelElement {
+    const el = new TextLabelElement(props.text);
+    applyTextLabelProps(el, props);
+    return el;
+}
+
+TextLabel.update = (el: TUIElement, props: TextLabelProps): void => {
+    applyTextLabelProps(el as TextLabelElement, props);
+};

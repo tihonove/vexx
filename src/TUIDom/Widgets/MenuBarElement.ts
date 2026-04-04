@@ -4,8 +4,10 @@ import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import type { BodyElement } from "./BodyElement.ts";
+import type { ContextMenuLayer } from "./ContextMenuLayer.ts";
 import { HFlexElement, hflexFill, hflexFit } from "./HFlexElement.ts";
-import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.ts";
+import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
@@ -79,9 +81,7 @@ export class MenuBarElement extends TUIElement {
     }
 
     public override getChildren(): readonly TUIElement[] {
-        const children: TUIElement[] = [this.hflex];
-        if (this.activeMenu) children.push(this.activeMenu);
-        return children;
+        return [this.hflex];
     }
 
     public get isMenuOpen(): boolean {
@@ -111,29 +111,11 @@ export class MenuBarElement extends TUIElement {
         this.hflex.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
         this.hflex.performLayout(BoxConstraints.tight(new Size(containerSize.width, 1)));
 
-        if (this.activeMenu && this.activeIndex >= 0) {
-            const menuPosition = this.getMenuPosition(this.activeIndex);
-            const availableSize = new Size(
-                Math.max(0, containerSize.width - menuPosition.x),
-                Math.max(0, containerSize.height - menuPosition.y),
-            );
-            this.activeMenu.localPosition = new Offset(menuPosition.x, menuPosition.y);
-            this.activeMenu.globalPosition = new Point(
-                this.globalPosition.x + menuPosition.x,
-                this.globalPosition.y + menuPosition.y,
-            );
-            this.activeMenu.performLayout(BoxConstraints.loose(availableSize));
-        }
-
         return containerSize;
     }
 
     public render(context: RenderContext): void {
         this.hflex.render(context.withOffset(this.hflex.localPosition));
-
-        if (this.activeMenu) {
-            this.activeMenu.render(context.withOffset(this.activeMenu.localPosition));
-        }
     }
 
     protected override performDefaultAction(event: TUIEventBase): void {
@@ -244,16 +226,20 @@ export class MenuBarElement extends TUIElement {
         this.activeIndex = index;
         this.updateItemActiveStates();
         this.activeMenu = new PopupMenuElement(wrappedEntries);
-        this.activeMenu.setParent(this);
         this.activeMenu.onClose = () => {
             this.closePopup();
         };
+
+        const layer = this.getOverlayLayer();
+        const position = this.getMenuGlobalPosition(index);
+        layer.addItem(this.activeMenu, position, true);
         this.markDirty();
     }
 
     private closePopup(): void {
         if (this.activeMenu) {
-            this.activeMenu.setParent(null);
+            const layer = this.getOverlayLayer();
+            layer.removeItem(this.activeMenu);
         }
         this.activeMenu = null;
         this.markDirty();
@@ -310,8 +296,12 @@ export class MenuBarElement extends TUIElement {
         });
     }
 
-    private getMenuPosition(index: number): Point {
+    private getMenuGlobalPosition(index: number): Point {
         const el = this.itemElements[index];
-        return new Point(el.localPosition.dx, 1);
+        return new Point(this.globalPosition.x + el.localPosition.dx, this.globalPosition.y + 1);
+    }
+
+    private getOverlayLayer(): ContextMenuLayer {
+        return (this.getRoot() as BodyElement).contextMenuLayer;
     }
 }

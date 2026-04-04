@@ -2,23 +2,30 @@ import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TuiApplication } from "../TUIDom/TuiApplication.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
+import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 export class TestApp {
     public readonly backend: MockTerminalBackend;
     public readonly app: TuiApplication;
 
-    private constructor(backend: MockTerminalBackend, root: TUIElement) {
+    private constructor(backend: MockTerminalBackend, root: BodyElement) {
         this.backend = backend;
         this.app = new TuiApplication(backend);
         this.app.root = root;
         this.app.run();
     }
 
-    public static create(root: TUIElement, size: Size = new Size(80, 24)): TestApp {
+    public static create(root: BodyElement, size: Size = new Size(80, 24)): TestApp {
         return new TestApp(new MockTerminalBackend(size), root);
     }
 
-    public get root(): TUIElement {
+    public static createWithContent(content: TUIElement, size: Size = new Size(80, 24)): TestApp {
+        const body = new BodyElement();
+        body.setContent(content);
+        return new TestApp(new MockTerminalBackend(size), body);
+    }
+
+    public get root(): BodyElement {
         // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root is always set in constructor
         return this.app.root!;
     }

@@ -1,4 +1,6 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import type { JsxChild, JsxNode } from "../JSX/jsx-runtime.ts";
+import { normalizeChildren, reconcileChildren } from "../JSX/reconcile.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export type HFlexChildSize = { type: "fixed"; value: number } | { type: "fit" } | { type: "fill" };
@@ -33,6 +35,31 @@ export class HFlexElement extends TUIElement {
         child.layoutStyle = style;
         child.setParent(this);
         this.children.push(child);
+    }
+
+    public replaceChildren(newChildren: TUIElement[]): void {
+        const oldSet = new Set(this.children);
+        const newSet = new Set(newChildren);
+
+        for (const old of oldSet) {
+            if (!newSet.has(old)) {
+                old.setParent(null);
+            }
+        }
+
+        let fillCount = 0;
+        for (const child of newChildren) {
+            const style = child.layoutStyle as HFlexLayoutStyle | undefined;
+            if (style?.width.type === "fill") fillCount++;
+        }
+        if (fillCount > 1) {
+            throw new Error("HFlexElement supports at most one fill child");
+        }
+
+        this.children = newChildren;
+        for (const child of newChildren) {
+            child.setParent(this);
+        }
     }
 
     public override getChildren(): readonly TUIElement[] {
@@ -158,3 +185,26 @@ export class HFlexElement extends TUIElement {
         }
     }
 }
+
+// ─── HFlex JSX Adapter ───
+
+export interface HFlexProps {
+    children?: JsxChild | JsxChild[];
+}
+
+export function HFlex(props: HFlexProps): HFlexElement {
+    const el = new HFlexElement();
+    const nodes = normalizeChildren(props.children);
+    const children = reconcileChildren([], nodes);
+    for (const child of children) {
+        el.addChild(child, child.layoutStyle as HFlexLayoutStyle);
+    }
+    return el;
+}
+
+HFlex.update = (el: TUIElement, props: HFlexProps): void => {
+    const hflex = el as HFlexElement;
+    const nodes = normalizeChildren(props.children);
+    const newChildren = reconcileChildren(hflex.getChildren(), nodes);
+    hflex.replaceChildren(newChildren);
+};

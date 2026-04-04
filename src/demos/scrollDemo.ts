@@ -1,5 +1,6 @@
 import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
 import { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 import { ScrollViewport } from "../TUIDom/Widgets/ScrollViewport.ts";
 import { TextBlockElement } from "../TUIDom/Widgets/TextBlockElement.ts";
@@ -18,5 +19,7 @@ scrollViewport.addEventListener("keypress", (event) => {
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);
-app.root = scrollContainer;
+const body = new BodyElement();
+body.setContent(scrollContainer);
+app.root = body;
 app.run();

@@ -14,3 +14,5 @@ export const StyleFlags = {
     Strikethrough: 1 << 5, // 32
     Dim: 1 << 6, // 64
 } as const;
+
+export type StyleFlags = (typeof StyleFlags)[keyof typeof StyleFlags];

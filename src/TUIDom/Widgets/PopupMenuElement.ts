@@ -4,8 +4,8 @@ import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { PopupMenuItemElement, PopupMenuSeparatorElement } from "./PopupMenuItemElement.ts";
-import type { PopupMenuItemConfig } from "./PopupMenuItemElement.ts";
+import type { PopupMenuItemConfig } from "./PopupMenuItemElement.tsx";
+import { PopupMenuItemElement, PopupMenuSeparatorElement } from "./PopupMenuItemElement.tsx";
 import { VStackElement } from "./VStackElement.ts";
 
 export interface MenuItemEntry {

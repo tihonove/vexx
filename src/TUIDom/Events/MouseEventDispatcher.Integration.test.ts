@@ -5,6 +5,7 @@ import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts"
 import type { MouseToken } from "../../Input/RawTerminalToken.ts";
 import { TuiApplication } from "../TuiApplication.ts";
 import { TUIElement } from "../TUIElement.ts";
+import { BodyElement } from "../Widgets/BodyElement.ts";
 
 import type { TUIMouseEvent } from "./TUIMouseEvent.ts";
 
@@ -52,13 +53,15 @@ describe("MouseEventDispatcher integration with TuiApplication", () => {
         const backend = new MockTerminalBackend(new Size(80, 24));
         const app = new TuiApplication(backend);
 
+        const body = new BodyElement();
         const root = new ContainerElement();
         const child = new TUIElement();
         child.globalPosition = new Point(10, 5);
         child.performLayout(BoxConstraints.tight(new Size(20, 10)));
         root.addChild(child);
 
-        app.root = root;
+        body.setContent(root);
+        app.root = body;
         app.run();
 
         const clicks: TUIMouseEvent[] = [];
@@ -79,13 +82,15 @@ describe("MouseEventDispatcher integration with TuiApplication", () => {
         const backend = new MockTerminalBackend(new Size(80, 24));
         const app = new TuiApplication(backend);
 
+        const body = new BodyElement();
         const root = new ContainerElement();
         const child = new TUIElement();
         child.globalPosition = new Point(10, 5);
         child.performLayout(BoxConstraints.tight(new Size(20, 10)));
         root.addChild(child);
 
-        app.root = root;
+        body.setContent(root);
+        app.root = body;
         app.run();
 
         const enters: TUIMouseEvent[] = [];
@@ -102,8 +107,10 @@ describe("MouseEventDispatcher integration with TuiApplication", () => {
         const backend = new MockTerminalBackend(new Size(80, 24));
         const app = new TuiApplication(backend);
 
+        const body = new BodyElement();
         const root = new TUIElement();
-        app.root = root;
+        body.setContent(root);
+        app.root = body;
         app.run();
 
         const wheels: TUIMouseEvent[] = [];
