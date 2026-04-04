@@ -9,7 +9,8 @@
     },
     "explorer.fileNesting.enabled": true,
     "explorer.fileNesting.patterns": {
-        "*.ts": "${capture}.test.ts, ${capture}.*.test.ts"
+        "*.ts": "${capture}.test.ts, ${capture}.*.test.ts",
+        "*.tsx": "${capture}.test.ts, ${capture}.*.test.ts, ${capture}.test.tsx, ${capture}.*.test.tsx"
     },
     "jestrunner.enableTestExplorer": true,
     "editor.rulers": [

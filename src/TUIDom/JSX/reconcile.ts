@@ -1,3 +1,4 @@
+import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIElementEventMap } from "../TUIElement.ts";
 import { TUIElement } from "../TUIElement.ts";
 
@@ -14,7 +15,7 @@ export function getElementType(el: TUIElement): ComponentType | undefined {
 
 // ─── Event handler tracking ───
 
-const elementEventHandlers = new WeakMap<TUIElement, Map<string, (event: any) => void>>();
+const elementEventHandlers = new WeakMap<TUIElement, Map<string, (event: TUIEventBase) => void>>();
 
 /**
  * Event prop name prefix. Props like `onClick`, `onKeyDown` etc.
@@ -30,14 +31,14 @@ function eventNameFromProp(propName: string): string | null {
 }
 
 function reconcileEventHandlers(element: TUIElement, props: Record<string, unknown>): void {
-    let prevHandlers = elementEventHandlers.get(element);
+    const prevHandlers = elementEventHandlers.get(element);
 
     // Collect new event handlers from props
-    const newHandlers = new Map<string, (event: any) => void>();
+    const newHandlers = new Map<string, (event: TUIEventBase) => void>();
     for (const key of Object.keys(props)) {
         const eventName = eventNameFromProp(key);
         if (eventName !== null && typeof props[key] === "function") {
-            newHandlers.set(eventName, props[key] as (event: any) => void);
+            newHandlers.set(eventName, props[key] as (event: TUIEventBase) => void);
         }
     }
 
@@ -79,7 +80,7 @@ export function reconcile(existing: TUIElement | null, node: JsxNode): TUIElemen
         return node;
     }
 
-    const blueprint = node as Blueprint;
+    const blueprint = node;
     const { type, props, layout, ref } = blueprint;
 
     let element: TUIElement;
@@ -133,10 +134,7 @@ export function normalizeChildren(children: JsxChild | JsxChild[] | undefined): 
  * Reconcile a list of children by positional matching.
  * Returns a new array of TUIElement children.
  */
-export function reconcileChildren(
-    existing: readonly TUIElement[],
-    nodes: JsxNode[],
-): TUIElement[] {
+export function reconcileChildren(existing: readonly TUIElement[], nodes: JsxNode[]): TUIElement[] {
     const result: TUIElement[] = [];
     for (let i = 0; i < nodes.length; i++) {
         const existingChild = i < existing.length ? existing[i] : null;

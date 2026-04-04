@@ -10,9 +10,7 @@ import { PopupMenuItemElement } from "./PopupMenuItemElement.tsx";
 const simpleConfig: PopupMenuItemConfig = { hasIconColumn: false, hasShortcuts: false };
 
 function fireClickOn(el: TUIElement): void {
-    el.dispatchEvent(
-        new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }),
-    );
+    el.dispatchEvent(new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
 }
 
 function findDeepestChild(el: TUIElement): TUIElement {
@@ -53,7 +51,11 @@ describe("PopupMenuItemElement", () => {
             item.onSelect = handler;
 
             const event = new TUIMouseEvent("click", {
-                button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0,
+                button: "left",
+                screenX: 0,
+                screenY: 0,
+                localX: 0,
+                localY: 0,
             });
             event.preventDefault();
             item.dispatchEvent(event);

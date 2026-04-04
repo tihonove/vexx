@@ -9,7 +9,10 @@ import { BoxElement } from "./BoxElement.ts";
 import type { MenuBarItem } from "./MenuBarElement.ts";
 import { MenuBarElement } from "./MenuBarElement.ts";
 
-function createApp(width = 40, height = 10): {
+function createApp(
+    width = 40,
+    height = 10,
+): {
     backend: MockTerminalBackend;
     app: TuiApplication;
     body: BodyElement;

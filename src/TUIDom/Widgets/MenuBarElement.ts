@@ -54,8 +54,6 @@ export class MenuBarElement extends TUIElement {
         });
         this.hflex.addChild(new MenuBarFillerElement(), { width: hflexFill(), height: 1 });
         this.hflex.setParent(this);
-
-
     }
 
     public override setParent(parent: TUIElement | null): void {

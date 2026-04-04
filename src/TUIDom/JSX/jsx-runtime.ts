@@ -23,13 +23,14 @@ export type JsxChild = Blueprint | TUIElement | false | null | undefined;
 
 export type JsxNode = Blueprint | TUIElement;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ComponentType<P = any> {
     (props: P): TUIElement;
     update?: (el: TUIElement, props: P) => void;
 }
 
 export function isBlueprint(value: unknown): value is Blueprint {
-    return value !== null && typeof value === "object" && (value as any).$$typeof === BLUEPRINT_TYPE;
+    return value !== null && typeof value === "object" && (value as { $$typeof: unknown }).$$typeof === BLUEPRINT_TYPE;
 }
 
 // ─── JSX Factory ───
@@ -56,6 +57,7 @@ export function Fragment(_props: { children?: JsxChild[] }): never {
 
 // ─── JSX Namespace (TypeScript type-checking) ───
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace JSX {
     export type Element = Blueprint | TUIElement;
 
@@ -66,9 +68,11 @@ export namespace JSX {
     }
 
     export interface ElementChildrenAttribute {
+        // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         children: {};
     }
 
     // No intrinsic elements — we only use function components
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     export interface IntrinsicElements {}
 }

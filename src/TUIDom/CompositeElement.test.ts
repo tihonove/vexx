@@ -12,35 +12,35 @@ import { RenderContext, TUIElement } from "./TUIElement.ts";
 // ─── Test helpers ───
 
 class FakeLeaf extends TUIElement {
-    text: string;
-    rendered = false;
+    public text: string;
+    public rendered = false;
 
-    constructor(text: string) {
+    public constructor(text: string) {
         super();
         this.text = text;
     }
 
-    override getMinIntrinsicWidth(_height: number): number {
+    public override getMinIntrinsicWidth(_height: number): number {
         return this.text.length;
     }
 
-    override getMaxIntrinsicWidth(_height: number): number {
+    public override getMaxIntrinsicWidth(_height: number): number {
         return this.text.length;
     }
 
-    override getMinIntrinsicHeight(_width: number): number {
+    public override getMinIntrinsicHeight(_width: number): number {
         return 1;
     }
 
-    override getMaxIntrinsicHeight(_width: number): number {
+    public override getMaxIntrinsicHeight(_width: number): number {
         return 1;
     }
 
-    override performLayout(constraints: BoxConstraints): Size {
+    public override performLayout(constraints: BoxConstraints): Size {
         return super.performLayout(BoxConstraints.tight(new Size(this.text.length, 1)));
     }
 
-    override render(_context: RenderContext): void {
+    public override render(_context: RenderContext): void {
         this.rendered = true;
     }
 }
@@ -54,9 +54,9 @@ LeafComponent.update = (el: TUIElement, props: { text: string }): void => {
 };
 
 class TestComposite extends CompositeElement {
-    text = "hello";
+    public text = "hello";
 
-    describe(): JsxNode {
+    protected override describe(): JsxNode {
         return jsx(LeafComponent, { text: this.text });
     }
 }

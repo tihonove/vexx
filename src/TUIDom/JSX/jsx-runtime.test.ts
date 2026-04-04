@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { TUIElement } from "../TUIElement.ts";
 
@@ -37,7 +37,7 @@ describe("jsx-runtime", () => {
         });
 
         it("extracts ref from props", () => {
-            const ref = () => {};
+            const ref = vi.fn();
             const bp = jsx(DummyComponent, { text: "hello", ref });
 
             expect(bp.ref).toBe(ref);

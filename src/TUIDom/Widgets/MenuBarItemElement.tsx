@@ -1,11 +1,11 @@
 import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../../Rendering/StyleFlags.ts";
 import { CompositeElement } from "../CompositeElement.ts";
-import { TextLabel } from "./TextLabelElement.ts";
 import type { JsxNode } from "../JSX/jsx-runtime.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { StyledChar } from "./TextLabelElement.ts";
+import { TextLabel } from "./TextLabelElement.ts";
 
 const MENU_BAR_FG = DEFAULT_COLOR;
 const MENU_BAR_BG = packRgb(64, 64, 64);

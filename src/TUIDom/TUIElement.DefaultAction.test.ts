@@ -55,7 +55,9 @@ describe("TUIElement performDefaultAction", () => {
     it("does not call performDefaultAction when preventDefault is called by target listener", () => {
         const { child } = buildTree();
 
-        child.addEventListener("keydown", (e) => e.preventDefault());
+        child.addEventListener("keydown", (e) => {
+            e.preventDefault();
+        });
 
         child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
 
@@ -65,7 +67,13 @@ describe("TUIElement performDefaultAction", () => {
     it("does not call performDefaultAction when preventDefault is called by capture listener on ancestor", () => {
         const { root, child } = buildTree();
 
-        root.addEventListener("keydown", (e) => e.preventDefault(), { capture: true });
+        root.addEventListener(
+            "keydown",
+            (e) => {
+                e.preventDefault();
+            },
+            { capture: true },
+        );
 
         child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
 
@@ -75,7 +83,9 @@ describe("TUIElement performDefaultAction", () => {
     it("does not call performDefaultAction when preventDefault is called by bubble listener on ancestor", () => {
         const { parent, child } = buildTree();
 
-        parent.addEventListener("keydown", (e) => e.preventDefault());
+        parent.addEventListener("keydown", (e) => {
+            e.preventDefault();
+        });
 
         child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
 
@@ -85,7 +95,9 @@ describe("TUIElement performDefaultAction", () => {
     it("calls performDefaultAction even when stopPropagation is called (without preventDefault)", () => {
         const { child } = buildTree();
 
-        child.addEventListener("keydown", (e) => e.stopPropagation());
+        child.addEventListener("keydown", (e) => {
+            e.stopPropagation();
+        });
 
         child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
 
@@ -122,7 +134,9 @@ describe("TUIElement performDefaultAction", () => {
     it("dispatchEvent returns false when performDefaultAction calls preventDefault on the event", () => {
         const { child } = buildTree();
 
-        child.defaultActionSpy.mockImplementation((e) => e.preventDefault());
+        child.defaultActionSpy.mockImplementation((e) => {
+            e.preventDefault();
+        });
 
         const result = child.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
 

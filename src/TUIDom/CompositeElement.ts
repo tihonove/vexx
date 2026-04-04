@@ -27,7 +27,7 @@ export abstract class CompositeElement extends TUIElement {
      * Return a Blueprint or TUIElement describing this component's child tree.
      * Called by `rebuild()` during reconciliation.
      */
-    abstract describe(): JsxNode;
+    protected abstract describe(): JsxNode;
 
     /**
      * Reconcile the child tree: calls `describe()`, diffs against the current

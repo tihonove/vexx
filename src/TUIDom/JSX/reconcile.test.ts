@@ -117,7 +117,11 @@ describe("reconcile", () => {
     describe("event handler reconciliation", () => {
         function fireClick(el: TUIElement): void {
             const event = new TUIMouseEvent("click", {
-                button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0,
+                button: "left",
+                screenX: 0,
+                screenY: 0,
+                localX: 0,
+                localY: 0,
             });
             el.dispatchEvent(event);
         }
