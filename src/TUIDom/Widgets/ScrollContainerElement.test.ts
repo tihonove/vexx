@@ -6,8 +6,8 @@ import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
 
-import { ScrollBarDecorator } from "./ScrollContainerElement.ts";
 import { ScrollableElement, type ScrollViewportInfo } from "./ScrollableElement.ts";
+import { ScrollBarDecorator } from "./ScrollContainerElement.ts";
 import { ScrollViewport } from "./ScrollViewport.ts";
 import { TextBlockElement } from "./TextBlockElement.ts";
 

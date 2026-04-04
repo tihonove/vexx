@@ -302,7 +302,7 @@ describe("MouseEventDispatcher — mouseenter / mouseleave (basic)", () => {
         const parentEntersBubble: TUIMouseEvent[] = [];
         parent.addEventListener("mouseenter", (e) => {
             // In bubble phase, this should be from parent's own enter, not from child bubbling
-            parentEntersBubble.push(e as TUIMouseEvent);
+            parentEntersBubble.push(e);
         });
 
         const dispatcher = new MouseEventDispatcher();
@@ -499,7 +499,7 @@ describe("MouseEventDispatcher — mousemove", () => {
 
         const parentMoves: TUIMouseEvent[] = [];
         parent.addEventListener("mousemove", (e) => {
-            parentMoves.push(e as TUIMouseEvent);
+            parentMoves.push(e);
         });
 
         const dispatcher = new MouseEventDispatcher();
@@ -545,7 +545,7 @@ describe("MouseEventDispatcher — wheel", () => {
 
         const parentWheels: TUIMouseEvent[] = [];
         parent.addEventListener("wheel", (e) => {
-            parentWheels.push(e as TUIMouseEvent);
+            parentWheels.push(e);
         });
 
         const dispatcher = new MouseEventDispatcher();

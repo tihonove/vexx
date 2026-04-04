@@ -1,8 +1,8 @@
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
-import type { MouseToken } from "../Input/RawTerminalToken.ts";
 import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../Input/mouseTracking.ts";
+import type { MouseToken } from "../Input/RawTerminalToken.ts";
 import { Grid } from "../Rendering/Grid.ts";
 import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
 

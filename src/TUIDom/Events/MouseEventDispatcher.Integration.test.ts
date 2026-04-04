@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import type { MouseToken } from "../../Input/RawTerminalToken.ts";
-import { TUIElement } from "../TUIElement.ts";
 import { TuiApplication } from "../TuiApplication.ts";
+import { TUIElement } from "../TUIElement.ts";
 
 import type { TUIMouseEvent } from "./TUIMouseEvent.ts";
 
@@ -63,7 +63,7 @@ describe("MouseEventDispatcher integration with TuiApplication", () => {
 
         const clicks: TUIMouseEvent[] = [];
         child.addEventListener("click", (e) => {
-            clicks.push(e as TUIMouseEvent);
+            clicks.push(e);
         });
 
         // 1-based coords: (16, 9) → 0-based (15, 8), inside child at (10,5)+(20,10)
@@ -90,7 +90,7 @@ describe("MouseEventDispatcher integration with TuiApplication", () => {
 
         const enters: TUIMouseEvent[] = [];
         child.addEventListener("mouseenter", (e) => {
-            enters.push(e as TUIMouseEvent);
+            enters.push(e);
         });
 
         backend.simulateMouse(makeToken({ action: "move", x: 16, y: 9 }));
@@ -108,7 +108,7 @@ describe("MouseEventDispatcher integration with TuiApplication", () => {
 
         const wheels: TUIMouseEvent[] = [];
         root.addEventListener("wheel", (e) => {
-            wheels.push(e as TUIMouseEvent);
+            wheels.push(e);
         });
 
         backend.simulateMouse(makeToken({ action: "scroll-down", x: 1, y: 1 }));

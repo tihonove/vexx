@@ -1,3 +1,4 @@
+import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 
@@ -61,7 +62,7 @@ export class FocusableBox extends TUIElement {
         const text = this.isFocused ? `► ${this.label} ◄` : `  ${this.label}  `;
         const startX = Math.max(1, Math.floor((w - text.length) / 2));
         for (let i = 0; i < text.length && startX + i < w - 1; i++) {
-            context.canvas.setCell(new Point(ox + startX + i, oy + midY), {
+            context.setCell(startX + i, midY, {
                 char: text[i],
                 bg: this.bg,
                 fg: this.fg,

@@ -12,7 +12,7 @@ const HIGHLIGHT_BG = packRgb(60, 20, 20);
 export class WASDScrollableElement extends ScrollableElement {
     private gridWidth: number;
     private gridHeight: number;
-    private highlighted: Set<string> = new Set();
+    private highlighted = new Set<string>();
 
     public constructor(gridWidth: number, gridHeight: number) {
         super();
@@ -39,7 +39,7 @@ export class WASDScrollableElement extends ScrollableElement {
         this.addEventListener("click", (event) => {
             const contentX = event.localX + this.scrollLeft;
             const contentY = event.localY + this.scrollTop;
-            const key = `${contentX},${contentY}`;
+            const key = `${contentX.toString()},${contentY.toString()}`;
             if (this.highlighted.has(key)) {
                 this.highlighted.delete(key);
             } else {
@@ -73,10 +73,10 @@ export class WASDScrollableElement extends ScrollableElement {
                 if (contentX >= this.gridWidth) break;
 
                 const checkerboard = (Math.floor(contentX / 4) + Math.floor(contentY / 2)) % 2 === 0;
-                const isHighlighted = this.highlighted.has(`${contentX},${contentY}`);
+                const isHighlighted = this.highlighted.has(`${contentX.toString()},${contentY.toString()}`);
                 const bg = isHighlighted ? HIGHLIGHT_BG : checkerboard ? BG_EVEN : BG_ODD;
 
-                const label = `${contentX},${contentY}`;
+                const label = `${contentX.toString()},${contentY.toString()}`;
                 const cellInLabel = contentX % 4;
                 const isLabelRow = contentY % 2 === 0;
 
@@ -87,8 +87,8 @@ export class WASDScrollableElement extends ScrollableElement {
                     fg = isHighlighted
                         ? HIGHLIGHT_FG
                         : contentY % 10 === 0 || contentX % 20 === 0
-                            ? LABEL_FG
-                            : COORD_FG;
+                          ? LABEL_FG
+                          : COORD_FG;
                 } else if (isHighlighted) {
                     fg = HIGHLIGHT_FG;
                 }

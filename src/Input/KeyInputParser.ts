@@ -1,8 +1,8 @@
+import { convertTokenToKeyPressEvent } from "./convertToken.ts";
 import { createKeyPressEvent, type KeyPressEvent } from "./KeyEvent.ts";
 import { parseInput } from "./parseInput.ts";
 import type { MouseToken } from "./RawTerminalToken.ts";
 import { tokenize } from "./tokenize.ts";
-import { convertTokenToKeyPressEvent } from "./convertToken.ts";
 
 /**
  * Set of key values representing modifier keys.

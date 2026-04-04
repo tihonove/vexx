@@ -2,8 +2,8 @@ import { Point } from "../../Common/GeometryPromitives.ts";
 import type { MouseToken } from "../../Input/RawTerminalToken.ts";
 import type { TUIElement } from "../TUIElement.ts";
 
-import { TUIMouseEvent } from "./TUIMouseEvent.ts";
 import type { TUIMouseEventInit, TUIMouseEventType, WheelDirection } from "./TUIMouseEvent.ts";
+import { TUIMouseEvent } from "./TUIMouseEvent.ts";
 
 const DOUBLE_CLICK_THRESHOLD = 300;
 
@@ -48,24 +48,14 @@ export class MouseEventDispatcher {
         this.lastPosition = point;
     }
 
-    private handlePress(
-        target: TUIElement | null,
-        token: MouseToken,
-        screenX: number,
-        screenY: number,
-    ): void {
+    private handlePress(target: TUIElement | null, token: MouseToken, screenX: number, screenY: number): void {
         if (!target) return;
         this.pressedElement = target;
         this.pressedButton = token.button;
         this.dispatchOn(target, "mousedown", token, screenX, screenY);
     }
 
-    private handleRelease(
-        target: TUIElement | null,
-        token: MouseToken,
-        screenX: number,
-        screenY: number,
-    ): void {
+    private handleRelease(target: TUIElement | null, token: MouseToken, screenX: number, screenY: number): void {
         if (!target) return;
         this.dispatchOn(target, "mouseup", token, screenX, screenY);
 
@@ -87,12 +77,7 @@ export class MouseEventDispatcher {
         this.pressedButton = null;
     }
 
-    private handleMove(
-        target: TUIElement | null,
-        token: MouseToken,
-        screenX: number,
-        screenY: number,
-    ): void {
+    private handleMove(target: TUIElement | null, token: MouseToken, screenX: number, screenY: number): void {
         const oldHovered = this.hoveredElement;
         const newHovered = target;
 
@@ -106,12 +91,7 @@ export class MouseEventDispatcher {
         }
     }
 
-    private handleScroll(
-        target: TUIElement | null,
-        token: MouseToken,
-        screenX: number,
-        screenY: number,
-    ): void {
+    private handleScroll(target: TUIElement | null, token: MouseToken, screenX: number, screenY: number): void {
         if (!target) return;
 
         const directionMap: Record<string, WheelDirection> = {
@@ -183,12 +163,7 @@ export class MouseEventDispatcher {
         target.dispatchEvent(event);
     }
 
-    private buildInit(
-        target: TUIElement,
-        token: MouseToken,
-        screenX: number,
-        screenY: number,
-    ): TUIMouseEventInit {
+    private buildInit(target: TUIElement, token: MouseToken, screenX: number, screenY: number): TUIMouseEventInit {
         return {
             button: token.button,
             screenX,

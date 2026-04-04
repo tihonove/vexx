@@ -73,10 +73,7 @@ export class ScrollViewport extends TUIElement implements IScrollable {
         const bounds = new Rect(this.globalPosition, this.layoutSize);
         if (!bounds.containsPoint(point)) return null;
 
-        const scrolledPoint = new Point(
-            point.x + this.scrollLeft,
-            point.y + this.scrollTop,
-        );
+        const scrolledPoint = new Point(point.x + this.scrollLeft, point.y + this.scrollTop);
 
         // Bypass content's bounds check — its layoutSize equals viewport size,
         // but children can live far beyond that in content coordinates.

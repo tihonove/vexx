@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import type { MouseToken } from "../../Input/RawTerminalToken.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
@@ -465,6 +466,86 @@ describe("MenuBarElement", () => {
             expect(menuBar.activeIndex).toBe(0); // highlight stays
             expect(menuBar.getChildren().length).toBe(0); // popup closed
             expect(menuBar.isFocused).toBe(true);
+        });
+    });
+
+    describe("mouse interaction", () => {
+        // Helpers: Items layout for simpleItems() = " File " (0..5), " Edit " (6..11), " View " (12..17)
+        // MouseToken uses 1-based coords, so screen x=2 → token x=3
+
+        function mouseClick(backend: MockTerminalBackend, screenX: number, screenY: number): void {
+            const press: MouseToken = {
+                kind: "mouse",
+                button: "left",
+                action: "press",
+                x: screenX + 1,
+                y: screenY + 1,
+                shiftKey: false,
+                altKey: false,
+                ctrlKey: false,
+                raw: "",
+            };
+            const release: MouseToken = {
+                kind: "mouse",
+                button: "left",
+                action: "release",
+                x: screenX + 1,
+                y: screenY + 1,
+                shiftKey: false,
+                altKey: false,
+                ctrlKey: false,
+                raw: "",
+            };
+            backend.simulateMouse(press);
+            backend.simulateMouse(release);
+        }
+
+        it("click on first item opens its popup", () => {
+            const { backend, menuBar } = setupWithBody(simpleItems(), 0, 30, 10);
+
+            mouseClick(backend, 2, 0); // inside " File "
+            expect(menuBar.isFocused).toBe(true);
+            expect(menuBar.activeIndex).toBe(0);
+            expect(menuBar.getChildren().length).toBe(1);
+        });
+
+        it("click on second item opens its popup", () => {
+            const { backend, menuBar } = setupWithBody(simpleItems(), 0, 30, 10);
+
+            mouseClick(backend, 8, 0); // inside " Edit "
+            expect(menuBar.isFocused).toBe(true);
+            expect(menuBar.activeIndex).toBe(1);
+            expect(menuBar.getChildren().length).toBe(1);
+        });
+
+        it("clicking same item again closes popup", () => {
+            const { backend, menuBar } = setupWithBody(simpleItems(), 0, 30, 10);
+
+            mouseClick(backend, 2, 0); // open File
+            expect(menuBar.getChildren().length).toBe(1);
+
+            mouseClick(backend, 2, 0); // close File
+            expect(menuBar.getChildren().length).toBe(0);
+        });
+
+        it("clicking different item switches popup", () => {
+            const { backend, menuBar } = setupWithBody(simpleItems(), 0, 30, 10);
+
+            mouseClick(backend, 2, 0); // open File
+            expect(menuBar.activeIndex).toBe(0);
+            expect(menuBar.getChildren().length).toBe(1);
+
+            mouseClick(backend, 8, 0); // switch to Edit
+            expect(menuBar.activeIndex).toBe(1);
+            expect(menuBar.getChildren().length).toBe(1);
+        });
+
+        it("click outside menu items does not open popup", () => {
+            const { backend, menuBar } = setupWithBody(simpleItems(), 0, 30, 10);
+
+            mouseClick(backend, 25, 0); // past all items
+            expect(menuBar.activeIndex).toBe(-1);
+            expect(menuBar.getChildren().length).toBe(0);
         });
     });
 });

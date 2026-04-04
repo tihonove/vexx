@@ -1,4 +1,4 @@
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface ContextMenuLayerItem {
@@ -54,6 +54,19 @@ export class ContextMenuLayer extends TUIElement {
 
     public override getChildren(): readonly TUIElement[] {
         return this.items.map((item) => item.element);
+    }
+
+    public override elementFromPoint(point: Point): TUIElement | null {
+        for (let i = this.items.length - 1; i >= 0; i--) {
+            const item = this.items[i];
+            if (!item.visible) continue;
+            const bounds = new Rect(item.element.globalPosition, item.element.layoutSize);
+            if (bounds.containsPoint(point)) {
+                const hit = item.element.elementFromPoint(point);
+                if (hit) return hit;
+            }
+        }
+        return null;
     }
 
     public performLayout(constraints: BoxConstraints): Size {

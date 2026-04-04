@@ -59,11 +59,7 @@ function createGrid(
     return { widget, backend, termScreen };
 }
 
-function renderWidget(
-    widget: LargeGridWidget,
-    termScreen: TerminalScreen,
-    backend: MockTerminalBackend,
-): void {
+function renderWidget(widget: LargeGridWidget, termScreen: TerminalScreen, backend: MockTerminalBackend): void {
     widget.globalPosition = new Point(0, 0);
     widget.performLayout(BoxConstraints.tight(termScreen.size));
     const clipRect = new Rect(new Point(0, 0), termScreen.size);

@@ -1,4 +1,5 @@
 import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
+import { reject } from "../Common/TypingUtils.ts";
 import { TuiApplication } from "../TUIDom/TuiApplication.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
@@ -11,4 +12,4 @@ const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);
 app.root = container;
 app.run();
-app.focusManager!.setFocus(widget);
+(app.focusManager ?? reject()).setFocus(widget);

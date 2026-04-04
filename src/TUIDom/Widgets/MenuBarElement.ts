@@ -52,6 +52,18 @@ export class MenuBarElement extends TUIElement {
             this.previousFocusedElement = null;
         });
 
+        this.addEventListener("click", (event) => {
+            const clickedIndex = this.findItemAtX(event.localX);
+            if (clickedIndex < 0) return;
+
+            if (this.activeMenu && this.activeIndex === clickedIndex) {
+                this.closePopup();
+            } else {
+                this.focus();
+                this.openMenu(clickedIndex);
+            }
+        });
+
         this.addEventListener("keydown", (event) => {
             if (this.activeIndex < 0) {
                 return;
@@ -306,6 +318,16 @@ export class MenuBarElement extends TUIElement {
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         const mnemonic = (item.mnemonic ?? item.label[0] ?? "").toLowerCase();
         return item.label.toLowerCase().indexOf(mnemonic);
+    }
+
+    private findItemAtX(x: number): number {
+        for (let i = 0; i < this.layoutItems.length; i++) {
+            const item = this.layoutItems[i];
+            if (x >= item.startX && x < item.startX + item.width) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     private getMenuPosition(index: number): Point {
