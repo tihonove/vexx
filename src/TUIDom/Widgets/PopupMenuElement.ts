@@ -1,5 +1,7 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
+import type { TUIEventBase } from "../Events/TUIEventBase.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { PopupMenuItemElement, PopupMenuSeparatorElement } from "./PopupMenuItemElement.ts";
@@ -58,18 +60,6 @@ export class PopupMenuElement extends TUIElement {
 
         this.vstack.setParent(this);
         this.updateItemSelectedStates();
-
-        this.addEventListener("keydown", (event) => {
-            if (event.key === "ArrowUp") {
-                this.moveSelection(-1);
-            } else if (event.key === "ArrowDown") {
-                this.moveSelection(1);
-            } else if (event.key === "Enter") {
-                this.activateSelected();
-            } else if (event.key === "Escape") {
-                this.onClose?.();
-            }
-        });
     }
 
     public override getChildren(): readonly TUIElement[] {
@@ -166,6 +156,21 @@ export class PopupMenuElement extends TUIElement {
             }
         }
         return { hasIconColumn: hasIcon, hasShortcuts };
+    }
+
+    protected override performDefaultAction(event: TUIEventBase): void {
+        if (event.type === "keydown") {
+            const keyEvent = event as TUIKeyboardEvent;
+            if (keyEvent.key === "ArrowUp") {
+                this.moveSelection(-1);
+            } else if (keyEvent.key === "ArrowDown") {
+                this.moveSelection(1);
+            } else if (keyEvent.key === "Enter") {
+                this.activateSelected();
+            } else if (keyEvent.key === "Escape") {
+                this.onClose?.();
+            }
+        }
     }
 
     private updateItemSelectedStates(): void {

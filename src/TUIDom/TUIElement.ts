@@ -257,7 +257,23 @@ export class TUIElement {
         event.eventPhase = EventPhase.NONE;
         event.currentTarget = null;
 
+        // Default action — analogous to Web DOM default actions.
+        // Runs on the target element after all propagation phases.
+        // Cancelled by preventDefault() from any listener.
+        if (!event.defaultPrevented) {
+            this.performDefaultAction(event);
+        }
+
         return !event.defaultPrevented;
+    }
+
+    /**
+     * Override in subclasses to define built-in element behavior (like opening a menu on click).
+     * Called after all capture/target/bubble listeners. Skipped if preventDefault() was called.
+     * Analogous to Web DOM default actions (e.g. <a> navigation, <input> text entry).
+     */
+    protected performDefaultAction(_event: TUIEventBase): void {
+        // noop by default
     }
 
     /**

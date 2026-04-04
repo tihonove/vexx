@@ -28,8 +28,50 @@
 ### TUIDom/
 TUI-фреймворк — дерево элементов с layout, событиями, фокусом. Аналог браузерного DOM. Содержит базовый класс элемента, корневой event loop и два подкаталога. Система layout и позиционирования описана в [docs/LAYOUT.md](LAYOUT.md).
 
-- **Events** — система событий: capture/bubble фазы, клавиатурные и фокус-события, менеджер фокуса с tab-навигацией
+- **Events** — система событий: capture/bubble фазы, клавиатурные и фокус-события, менеджер фокуса с tab-навигацией, механизм default actions
 - **Widgets** — конкретные виджеты: корневой элемент, боксы с рамкой, вертикальный стек, текстовый блок с word-wrap, скролл-контейнер со скроллбаром, контекстные меню, выпадающие меню, полоса меню
+
+#### Default Actions
+
+Система default actions повторяет модель Web DOM. У каждого элемента есть встроенное поведение (default action), отделённое от клиентских event listeners.
+
+**Порядок обработки события:**
+```
+1. Capture phase   (root → target)
+2. Target phase
+3. Bubble phase    (target → root)
+4. Default action  — вызов performDefaultAction(event) на target-элементе
+```
+
+**Как работает:**
+- `TUIElement` определяет protected-метод `performDefaultAction(event)` (noop по умолчанию)
+- `dispatchEvent()` вызывает `performDefaultAction()` на target-элементе **после** всех фаз propagation
+- Если любой listener (на любой фазе) вызвал `preventDefault()`, default action **не выполняется**
+- `stopPropagation()` **не отменяет** default action — только `preventDefault()`
+
+**Как виджеты определяют default action:**
+```typescript
+class MyWidget extends TUIElement {
+    protected override performDefaultAction(event: TUIEventBase): void {
+        if (event.type === "keydown") {
+            // встроенное поведение виджета
+        }
+    }
+}
+```
+
+**Как клиенты отменяют default action:**
+```typescript
+widget.addEventListener("keydown", (event) => {
+    event.preventDefault(); // отменяет встроенное поведение
+});
+```
+
+**Что считать default action, а что нет:**
+- Default action — встроенное поведение элемента, которое клиент может захотеть отменить (открытие подменю по клику, навигация по пунктам клавишами)
+- НЕ default action — internal state management (сохранение `previousFocusedElement` при focus, деактивация при blur)
+
+**Ограничение:** `performDefaultAction` вызывается только на `event.target` (элемент, на котором произошло событие), а не на каждом элементе в цепочке propagation. Для событий, где target — дочерний элемент, а обработка нужна на родителе (например, click на пункт меню обрабатывает родительский MenuBarElement), используйте bubble listener с проверкой `event.defaultPrevented`.
 
 ### Editor/
 Модель текстового редактора и виджет-мост к TUIDom. Хранение текста (пока массив строк, в планах Piece Table), состояние вида (scroll, selections, folding, курсор), undo/redo стек, TUI-виджет редактора и набор интерфейсов. Содержит подкаталог с тестовыми утилитами (TrackDSL).

@@ -1,4 +1,5 @@
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
@@ -59,7 +60,8 @@ export class MenuBarElement extends TUIElement {
         });
 
         this.addEventListener("click", (event) => {
-            const clickedIndex = this.findItemAtX(event.localX);
+            if (event.defaultPrevented) return;
+            const clickedIndex = this.findItemByTarget(event.target);
             if (clickedIndex < 0) return;
 
             if (this.activeMenu && this.activeIndex === clickedIndex) {
@@ -70,71 +72,6 @@ export class MenuBarElement extends TUIElement {
             }
         });
 
-        this.addEventListener("keydown", (event) => {
-            if (this.activeIndex < 0) {
-                return;
-            }
-
-            if (event.key === "Escape") {
-                if (this.activeMenu) {
-                    this.closePopup();
-                } else {
-                    const prev = this.previousFocusedElement;
-                    this.deactivate();
-                    if (prev) {
-                        prev.focus();
-                    } else {
-                        this.blur();
-                    }
-                }
-                return;
-            }
-
-            if (event.key === "ArrowLeft") {
-                const next = this.wrapIndex(this.activeIndex - 1);
-                if (this.activeMenu) {
-                    this.openMenu(next);
-                } else {
-                    this.activeIndex = next;
-                    this.updateItemActiveStates();
-                    this.markDirty();
-                }
-                return;
-            }
-
-            if (event.key === "ArrowRight") {
-                const next = this.wrapIndex(this.activeIndex + 1);
-                if (this.activeMenu) {
-                    this.openMenu(next);
-                } else {
-                    this.activeIndex = next;
-                    this.updateItemActiveStates();
-                    this.markDirty();
-                }
-                return;
-            }
-
-            if (event.key === "ArrowDown" || event.key === "Enter") {
-                if (this.activeMenu) {
-                    this.forwardToPopup(event);
-                } else {
-                    this.openMenu(this.activeIndex);
-                }
-                return;
-            }
-
-            if (event.key === "ArrowUp") {
-                if (this.activeMenu) {
-                    this.forwardToPopup(event);
-                }
-                return;
-            }
-
-            if (this.activeMenu) {
-                this.forwardToPopup(event);
-                return;
-            }
-        });
     }
 
     public override setParent(parent: TUIElement | null): void {
@@ -185,18 +122,6 @@ export class MenuBarElement extends TUIElement {
         return 1;
     }
 
-    public override elementFromPoint(point: Point): TUIElement | null {
-        const bounds = new Rect(this.globalPosition, this.layoutSize);
-        if (!bounds.containsPoint(point)) return null;
-
-        if (this.activeMenu) {
-            const hit = this.activeMenu.elementFromPoint(point);
-            if (hit) return hit;
-        }
-
-        return this;
-    }
-
     public performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
 
@@ -226,6 +151,78 @@ export class MenuBarElement extends TUIElement {
 
         if (this.activeMenu) {
             this.activeMenu.render(context.withOffset(this.activeMenu.localPosition));
+        }
+    }
+
+    protected override performDefaultAction(event: TUIEventBase): void {
+        if (event.type === "keydown") {
+            this.handleKeydownDefault(event as TUIKeyboardEvent);
+        }
+    }
+
+    private handleKeydownDefault(event: TUIKeyboardEvent): void {
+        if (this.activeIndex < 0) {
+            return;
+        }
+
+        if (event.key === "Escape") {
+            if (this.activeMenu) {
+                this.closePopup();
+            } else {
+                const prev = this.previousFocusedElement;
+                this.deactivate();
+                if (prev) {
+                    prev.focus();
+                } else {
+                    this.blur();
+                }
+            }
+            return;
+        }
+
+        if (event.key === "ArrowLeft") {
+            const next = this.wrapIndex(this.activeIndex - 1);
+            if (this.activeMenu) {
+                this.openMenu(next);
+            } else {
+                this.activeIndex = next;
+                this.updateItemActiveStates();
+                this.markDirty();
+            }
+            return;
+        }
+
+        if (event.key === "ArrowRight") {
+            const next = this.wrapIndex(this.activeIndex + 1);
+            if (this.activeMenu) {
+                this.openMenu(next);
+            } else {
+                this.activeIndex = next;
+                this.updateItemActiveStates();
+                this.markDirty();
+            }
+            return;
+        }
+
+        if (event.key === "ArrowDown" || event.key === "Enter") {
+            if (this.activeMenu) {
+                this.forwardToPopup(event);
+            } else {
+                this.openMenu(this.activeIndex);
+            }
+            return;
+        }
+
+        if (event.key === "ArrowUp") {
+            if (this.activeMenu) {
+                this.forwardToPopup(event);
+            }
+            return;
+        }
+
+        if (this.activeMenu) {
+            this.forwardToPopup(event);
+            return;
         }
     }
 
@@ -321,20 +318,20 @@ export class MenuBarElement extends TUIElement {
         });
     }
 
-    private findItemAtX(x: number): number {
-        for (let i = 0; i < this.itemElements.length; i++) {
-            const el = this.itemElements[i];
-            const startX = el.localPosition.dx;
-            const width = el.layoutSize.width;
-            if (x >= startX && x < startX + width) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
     private getMenuPosition(index: number): Point {
         const el = this.itemElements[index];
         return new Point(el.localPosition.dx, 1);
+    }
+
+    private findItemByTarget(target: TUIElement | null): number {
+        if (!target) return -1;
+        // Walk up from target to find a matching MenuBarItemElement
+        let current: TUIElement | null = target;
+        while (current && current !== this) {
+            const index = this.itemElements.indexOf(current as MenuBarItemElement);
+            if (index >= 0) return index;
+            current = current.getParent();
+        }
+        return -1;
     }
 }
