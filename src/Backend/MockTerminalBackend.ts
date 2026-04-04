@@ -1,6 +1,7 @@
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
+import type { MouseToken } from "../Input/RawTerminalToken.ts";
 import { serializeKey } from "../Input/serializeKey.ts";
 import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
 import type { Grid } from "../Rendering/Grid.ts";
@@ -18,6 +19,7 @@ import type { ITerminalBackend } from "./ITerminalBackend.ts";
  */
 export class MockTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
+    private mouseCallbacks: ((event: MouseToken) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private cells: (string | null)[][];
     private bgs: number[][];
@@ -46,6 +48,10 @@ export class MockTerminalBackend implements ITerminalBackend {
 
     public onInput(callback: (event: KeyPressEvent) => void): void {
         this.inputCallbacks.push(callback);
+    }
+
+    public onMouse(callback: (event: MouseToken) => void): void {
+        this.mouseCallbacks.push(callback);
     }
 
     public onResize(callback: (size: Size) => void): void {
@@ -97,6 +103,15 @@ export class MockTerminalBackend implements ITerminalBackend {
             for (const cb of this.inputCallbacks) {
                 cb(event);
             }
+        }
+    }
+
+    /**
+     * Simulate a mouse event using a MouseToken object.
+     */
+    public simulateMouse(token: MouseToken): void {
+        for (const cb of this.mouseCallbacks) {
+            cb(token);
         }
     }
 

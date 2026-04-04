@@ -1,9 +1,11 @@
 import type { ITerminalBackend } from "../Backend/ITerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
+import type { MouseToken } from "../Input/RawTerminalToken.ts";
 import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
 
 import { FocusManager } from "./Events/FocusManager.ts";
+import { MouseEventDispatcher } from "./Events/MouseEventDispatcher.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "./TUIElement.ts";
 
@@ -13,6 +15,7 @@ export class TuiApplication {
     public root: TUIElement | null = null;
     public screen: TerminalScreen;
     public focusManager: FocusManager | null = null;
+    public mouseDispatcher: MouseEventDispatcher = new MouseEventDispatcher();
     private renderScheduled = false;
 
     public constructor(backend: ITerminalBackend) {
@@ -81,6 +84,13 @@ export class TuiApplication {
         }
     }
 
+    private handleMouse(token: MouseToken): void {
+        if (this.root) {
+            this.mouseDispatcher.handleMouseToken(token, this.root);
+            this.renderFrame();
+        }
+    }
+
     private handleResize(size: Size): void {
         this.screen = new TerminalScreen(size);
         // Mark root as dirty so next render recalculates layout
@@ -113,6 +123,10 @@ export class TuiApplication {
 
         this.backend.onResize((size) => {
             this.handleResize(size);
+        });
+
+        this.backend.onMouse((token) => {
+            this.handleMouse(token);
         });
 
         // Initial render

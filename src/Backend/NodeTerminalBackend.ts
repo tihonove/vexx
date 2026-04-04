@@ -1,6 +1,8 @@
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
+import type { MouseToken } from "../Input/RawTerminalToken.ts";
+import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../Input/mouseTracking.ts";
 import { Grid } from "../Rendering/Grid.ts";
 import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
 
@@ -47,6 +49,7 @@ function isInsideTmux(): boolean {
  */
 export class NodeTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
+    private mouseCallbacks: ((event: MouseToken) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private stdin: NodeJS.ReadStream;
     private stdout: NodeJS.WriteStream;
@@ -83,6 +86,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
     public onInput(callback: (event: KeyPressEvent) => void): void {
         this.inputCallbacks.push(callback);
+    }
+
+    public onMouse(callback: (event: MouseToken) => void): void {
+        this.mouseCallbacks.push(callback);
     }
 
     public onResize(callback: (size: Size) => void): void {
@@ -133,6 +140,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout.write("\x1b[?25h");
         // Enable Kitty Keyboard Protocol (with TMUX passthrough if needed)
         this.writePassthrough(KITTY_ENABLE);
+        // Enable mouse tracking (all-motion mode for hover/enter/leave)
+        this.writePassthrough(MOUSE_TRACKING_ALL_ENABLE);
 
         // Raw mode for character-by-character input
         this.stdin.setRawMode(true);
@@ -141,10 +150,15 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
         // Listen for input
         this.onDataHandler = (chunk: string) => {
-            const events = this.inputParser.parse(chunk);
-            for (const event of events) {
+            const result = this.inputParser.parseWithMouse(chunk);
+            for (const event of result.keys) {
                 for (const cb of this.inputCallbacks) {
                     cb(event);
+                }
+            }
+            for (const mouseToken of result.mouse) {
+                for (const cb of this.mouseCallbacks) {
+                    cb(mouseToken);
                 }
             }
         };
@@ -189,6 +203,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
     public teardown(): void {
         // Disable Kitty Keyboard Protocol (with TMUX passthrough if needed)
         this.writePassthrough(KITTY_DISABLE);
+        // Disable mouse tracking
+        this.writePassthrough(MOUSE_TRACKING_DISABLE);
         // Restore cursor
         this.stdout.write("\x1b[?25h");
         // Restore normal screen buffer

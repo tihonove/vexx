@@ -1,5 +1,6 @@
 import type { Point, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
+import type { MouseToken } from "../Input/RawTerminalToken.ts";
 import type { Grid } from "../Rendering/Grid.ts";
 
 /**
@@ -12,6 +13,9 @@ import type { Grid } from "../Rendering/Grid.ts";
 export interface ITerminalBackend {
     /** Subscribe to parsed keyboard input */
     onInput(callback: (event: KeyPressEvent) => void): void;
+
+    /** Subscribe to raw mouse events */
+    onMouse(callback: (event: MouseToken) => void): void;
 
     /** Subscribe to terminal resize events */
     onResize(callback: (size: Size) => void): void;

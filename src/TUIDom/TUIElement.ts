@@ -6,6 +6,7 @@ import type { FocusManager } from "./Events/FocusManager.ts";
 import { EventPhase, TUIEventBase } from "./Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "./Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
+import type { TUIMouseEvent } from "./Events/TUIMouseEvent.ts";
 import { querySelector, querySelectorAll } from "./TUISelector.ts";
 
 const MAX_COORD = 100_000;
@@ -59,6 +60,14 @@ export interface TUIElementEventMap {
     keypress: TUIKeyboardEvent;
     focus: TUIFocusEvent;
     blur: TUIFocusEvent;
+    mousedown: TUIMouseEvent;
+    mouseup: TUIMouseEvent;
+    mousemove: TUIMouseEvent;
+    click: TUIMouseEvent;
+    dblclick: TUIMouseEvent;
+    mouseenter: TUIMouseEvent;
+    mouseleave: TUIMouseEvent;
+    wheel: TUIMouseEvent;
 }
 
 interface ListenerEntry {
@@ -353,6 +362,21 @@ export class TUIElement {
     public render(_context: RenderContext): void {
         // Base implementation does nothing.
         // Subclasses override to draw themselves.
+    }
+
+    // ─── Hit-testing ───
+
+    public elementFromPoint(point: Point): TUIElement | null {
+        const bounds = new Rect(this.globalPosition, this.layoutSize);
+        if (!bounds.containsPoint(point)) return null;
+
+        const children = this.getChildren();
+        for (let i = children.length - 1; i >= 0; i--) {
+            const hit = children[i].elementFromPoint(point);
+            if (hit) return hit;
+        }
+
+        return this;
     }
 
     // ─── Query API (querySelector / querySelectorAll) ───

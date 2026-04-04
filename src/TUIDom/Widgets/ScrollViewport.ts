@@ -68,4 +68,24 @@ export class ScrollViewport extends TUIElement implements IScrollable {
         const viewportClip = new Rect(this.globalPosition, this.layoutSize);
         this.child.render(context.withOffset(scrollOffset).withClip(viewportClip));
     }
+
+    public override elementFromPoint(point: Point): TUIElement | null {
+        const bounds = new Rect(this.globalPosition, this.layoutSize);
+        if (!bounds.containsPoint(point)) return null;
+
+        const scrolledPoint = new Point(
+            point.x + this.scrollLeft,
+            point.y + this.scrollTop,
+        );
+
+        // Bypass content's bounds check — its layoutSize equals viewport size,
+        // but children can live far beyond that in content coordinates.
+        const children = this.child.getChildren();
+        for (let i = children.length - 1; i >= 0; i--) {
+            const hit = children[i].elementFromPoint(scrolledPoint);
+            if (hit) return hit;
+        }
+
+        return this.child;
+    }
 }

@@ -1,5 +1,8 @@
 import { createKeyPressEvent, type KeyPressEvent } from "./KeyEvent.ts";
 import { parseInput } from "./parseInput.ts";
+import type { MouseToken } from "./RawTerminalToken.ts";
+import { tokenize } from "./tokenize.ts";
+import { convertTokenToKeyPressEvent } from "./convertToken.ts";
 
 /**
  * Set of key values representing modifier keys.
@@ -50,13 +53,35 @@ export class KeyInputParser {
      */
     public parse(data: string): KeyPressEvent[] {
         const rawEvents = parseInput(data);
+        return this.processKeyEvents(rawEvents);
+    }
+
+    /**
+     * Parse raw terminal input, returning both keyboard events and mouse tokens.
+     */
+    public parseWithMouse(data: string): { keys: KeyPressEvent[]; mouse: MouseToken[] } {
+        const tokens = tokenize(data);
+        const mouseTokens: MouseToken[] = [];
+        const keyEvents: KeyPressEvent[] = [];
+
+        for (const token of tokens) {
+            if (token.kind === "mouse") {
+                mouseTokens.push(token);
+            } else {
+                keyEvents.push(convertTokenToKeyPressEvent(token));
+            }
+        }
+
+        return { keys: this.processKeyEvents(keyEvents), mouse: mouseTokens };
+    }
+
+    private processKeyEvents(rawEvents: KeyPressEvent[]): KeyPressEvent[] {
         const result: KeyPressEvent[] = [];
 
         for (const event of rawEvents) {
             if (event.type === "keydown") {
                 this.pressedKeys.add(event.key);
                 result.push(event);
-                // Synthesize keypress after keydown for non-modifier keys
                 if (!modifierKeyValues.has(event.key)) {
                     result.push(
                         createKeyPressEvent(event.key, event.raw, {
@@ -70,13 +95,11 @@ export class KeyInputParser {
                     );
                 }
             } else if (event.type === "keypress") {
-                // Repeat event from Kitty — pass through as-is (already keypress)
                 this.pressedKeys.add(event.key);
                 result.push(event);
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             } else if (event.type === "keyup") {
                 if (!modifierKeyValues.has(event.key) && !this.pressedKeys.has(event.key)) {
-                    // Orphaned keyup — synthesize keydown + keypress before it
                     const synth = {
                         type: "keypress" as const,
                         code: event.code,
