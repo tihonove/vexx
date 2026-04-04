@@ -23,6 +23,50 @@ export class VStackElement extends TUIElement {
         return this.children;
     }
 
+    public override getMinIntrinsicWidth(height: number): number {
+        let max = 0;
+        for (const child of this.children) {
+            const style = child.layoutStyle as VStackLayoutStyle;
+            if (style.width !== "fill") {
+                max = Math.max(max, style.width);
+            } else {
+                max = Math.max(max, child.getMinIntrinsicWidth(height));
+            }
+        }
+        return max;
+    }
+
+    public override getMaxIntrinsicWidth(height: number): number {
+        let max = 0;
+        for (const child of this.children) {
+            const style = child.layoutStyle as VStackLayoutStyle;
+            if (style.width !== "fill") {
+                max = Math.max(max, style.width);
+            } else {
+                max = Math.max(max, child.getMaxIntrinsicWidth(height));
+            }
+        }
+        return max;
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        let sum = 0;
+        for (const child of this.children) {
+            const style = child.layoutStyle as VStackLayoutStyle;
+            sum += style.height;
+        }
+        return sum;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        let sum = 0;
+        for (const child of this.children) {
+            const style = child.layoutStyle as VStackLayoutStyle;
+            sum += style.height;
+        }
+        return sum;
+    }
+
     public performLayout(constraints: BoxConstraints): Size {
         // First, call parent implementation to set allocatedSize and mark as clean
         const containerSize = super.performLayout(constraints);

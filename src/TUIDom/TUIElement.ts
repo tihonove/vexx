@@ -349,6 +349,24 @@ export class TUIElement {
         this.requestRenderCallback = callback;
     }
 
+    // ─── Intrinsic Size API ───
+
+    public getMinIntrinsicWidth(_height: number): number {
+        return 0;
+    }
+
+    public getMaxIntrinsicWidth(_height: number): number {
+        return 0;
+    }
+
+    public getMinIntrinsicHeight(_width: number): number {
+        return 0;
+    }
+
+    public getMaxIntrinsicHeight(_width: number): number {
+        return 0;
+    }
+
     /**
      * Performs layout: applies constraints to set the allocated visible area.
      */

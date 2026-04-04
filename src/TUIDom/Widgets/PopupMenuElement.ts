@@ -54,6 +54,22 @@ export class PopupMenuElement extends TUIElement {
         });
     }
 
+    public override getMinIntrinsicWidth(_height: number): number {
+        return this.getIntrinsicSize().width;
+    }
+
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.getIntrinsicSize().width;
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        return this.getIntrinsicSize().height;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return this.getIntrinsicSize().height;
+    }
+
     public getIntrinsicSize(): Size {
         let maxLabelWidth = 0;
         let maxShortcutWidth = 0;

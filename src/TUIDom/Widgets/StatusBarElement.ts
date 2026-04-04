@@ -21,6 +21,22 @@ export class StatusBarElement extends TUIElement {
         return this.items;
     }
 
+    public override getMinIntrinsicWidth(_height: number): number {
+        return this.items.map((item) => item.text).join("  ").length;
+    }
+
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.items.map((item) => item.text).join("  ").length;
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        return 1;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return 1;
+    }
+
     public override performLayout(constraints: BoxConstraints): Size {
         const size = new Size(constraints.maxWidth, 1);
         return super.performLayout(BoxConstraints.tight(size));

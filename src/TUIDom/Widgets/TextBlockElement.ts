@@ -17,6 +17,22 @@ export class TextBlockElement extends TUIElement implements IContentSized {
         this.contentWidth = this.lines.reduce((max, l) => Math.max(max, l.length), 0);
     }
 
+    public override getMinIntrinsicWidth(_height: number): number {
+        return this.contentWidth;
+    }
+
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.contentWidth;
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        return this.contentHeight;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return this.contentHeight;
+    }
+
     public render(context: RenderContext): void {
         const width = this.layoutSize.width;
 

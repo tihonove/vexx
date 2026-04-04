@@ -157,6 +157,22 @@ export class MenuBarElement extends TUIElement {
         return children;
     }
 
+    public override getMinIntrinsicWidth(_height: number): number {
+        return this.layoutItems.reduce((sum, item) => sum + item.width, 0);
+    }
+
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.layoutItems.reduce((sum, item) => sum + item.width, 0);
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        return 1;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return 1;
+    }
+
     public performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
 

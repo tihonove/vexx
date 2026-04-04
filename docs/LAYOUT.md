@@ -86,3 +86,40 @@ TuiApplication.renderFrame():
 ## Текущие ограничения
 
 - **Нет z-index**: порядок отрисовки и перекрытие определяет порядок детей в контейнере (последний ребёнок — поверх). `ContextMenuLayer` — всегда последний ребёнок `BodyElement`, что гарантирует overlay-поведение.
+
+## Intrinsic Size API
+
+Элементы умеют отвечать на вопрос «какой размер мне нужен?» **до** вызова `performLayout()`. Это чистые read-only методы без side-effects:
+
+- `getMinIntrinsicWidth(height)` — минимальная ширина, при которой элемент способен отрисоваться без потери контента
+- `getMaxIntrinsicWidth(height)` — максимальная ширина, которую элемент может полезно использовать (больше — пустое место)
+- `getMinIntrinsicHeight(width)` / `getMaxIntrinsicHeight(width)` — аналогично для высоты
+
+Базовая реализация в `TUIElement` возвращает 0 для всех четырёх. Элементы переопределяют по необходимости.
+
+Параметр `height`/`width` зарезервирован для виджетов с word-wrap (высота зависит от ширины). Сейчас большинство элементов его игнорируют.
+
+Intrinsic-методы используются контейнерами (HFlexElement, будущий VFlexElement) для режима **Fit** — «подстройся под контент ребёнка».
+
+## HFlexElement
+
+Горизонтальный flex-контейнер. Раскладывает детей в строку. Каждому ребёнку задаётся `HFlexLayoutStyle`:
+
+```
+width: Fixed(n) | Fit | Fill     — размер по главной оси (горизонтальной)
+height: number | "fill"          — размер по cross оси (вертикальной)
+```
+
+Режимы ширины:
+- **Fixed(n)** — ровно n символов
+- **Fit** — ширина по `getMaxIntrinsicWidth()` ребёнка
+- **Fill** — заполнить оставшееся после Fixed и Fit (максимум один Fill-ребёнок)
+
+Алгоритм `performLayout`:
+1. Суммировать ширины Fixed-детей
+2. Измерить Fit-детей через `getMaxIntrinsicWidth()`, суммировать
+3. `remaining = containerWidth - fixedSum - fitSum`
+4. Fill-ребёнок получает `remaining`
+5. Вызвать `child.performLayout(tight(width, height))` для всех
+
+Хелперы: `hflexFixed(n)`, `hflexFit()`, `hflexFill()`.

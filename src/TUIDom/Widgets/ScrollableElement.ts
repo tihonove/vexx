@@ -16,6 +16,22 @@ export abstract class ScrollableElement extends TUIElement implements IScrollabl
     public abstract get contentHeight(): number;
     public abstract get contentWidth(): number;
 
+    public override getMinIntrinsicWidth(_height: number): number {
+        return 0;
+    }
+
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.contentWidth;
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        return 0;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return this.contentHeight;
+    }
+
     public scrollBy(dx: number, dy: number): void {
         this.scrollTo(this.scrollLeft + dx, this.scrollTop + dy);
     }

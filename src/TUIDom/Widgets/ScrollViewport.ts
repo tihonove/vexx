@@ -32,6 +32,14 @@ export class ScrollViewport extends TUIElement implements IScrollable {
         return this.child.contentWidth;
     }
 
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.child.contentWidth;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return this.child.contentHeight;
+    }
+
     public scrollBy(dx: number, dy: number): void {
         this.scrollTo(this.scrollLeft + dx, this.scrollTop + dy);
     }

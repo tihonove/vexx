@@ -40,6 +40,22 @@ export class EditorElement extends TUIElement implements IScrollable {
         return this.viewState.scrollLeft;
     }
 
+    public override getMinIntrinsicWidth(_height: number): number {
+        return 1;
+    }
+
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.contentWidth;
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        return 1;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return this.contentHeight;
+    }
+
     public constructor(viewState: EditorViewState) {
         super();
         this.viewState = viewState;
