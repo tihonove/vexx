@@ -37,40 +37,22 @@ export class MenuBarElement extends TUIElement {
         this.items = items;
 
         this.hflex = new HFlexElement();
-        this.itemElements = items.map((item) => {
+        this.itemElements = items.map((item, index) => {
             const el = new MenuBarItemElement(item.label, item.mnemonic);
+            el.onActivate = () => {
+                if (this.activeMenu && this.activeIndex === index) {
+                    this.closePopup();
+                } else {
+                    this.focus();
+                    this.openMenu(index);
+                }
+            };
             this.hflex.addChild(el, { width: hflexFit(), height: 1 });
             return el;
         });
         this.hflex.addChild(new MenuBarFillerElement(), { width: hflexFill(), height: 1 });
         this.hflex.setParent(this);
 
-        this.addEventListener("focus", (event: TUIFocusEvent) => {
-            this.previousFocusedElement = event.relatedTarget;
-            if (this.activeIndex < 0) {
-                this.activeIndex = 0;
-            }
-            this.updateItemActiveStates();
-            this.markDirty();
-        });
-
-        this.addEventListener("blur", () => {
-            this.deactivate();
-            this.previousFocusedElement = null;
-        });
-
-        this.addEventListener("click", (event) => {
-            if (event.defaultPrevented) return;
-            const clickedIndex = this.findItemByTarget(event.target);
-            if (clickedIndex < 0) return;
-
-            if (this.activeMenu && this.activeIndex === clickedIndex) {
-                this.closePopup();
-            } else {
-                this.focus();
-                this.openMenu(clickedIndex);
-            }
-        });
 
     }
 
@@ -155,7 +137,17 @@ export class MenuBarElement extends TUIElement {
     }
 
     protected override performDefaultAction(event: TUIEventBase): void {
-        if (event.type === "keydown") {
+        if (event.type === "focus") {
+            this.previousFocusedElement = (event as TUIFocusEvent).relatedTarget;
+            if (this.activeIndex < 0) {
+                this.activeIndex = 0;
+            }
+            this.updateItemActiveStates();
+            this.markDirty();
+        } else if (event.type === "blur") {
+            this.deactivate();
+            this.previousFocusedElement = null;
+        } else if (event.type === "keydown") {
             this.handleKeydownDefault(event as TUIKeyboardEvent);
         }
     }
@@ -321,17 +313,5 @@ export class MenuBarElement extends TUIElement {
     private getMenuPosition(index: number): Point {
         const el = this.itemElements[index];
         return new Point(el.localPosition.dx, 1);
-    }
-
-    private findItemByTarget(target: TUIElement | null): number {
-        if (!target) return -1;
-        // Walk up from target to find a matching MenuBarItemElement
-        let current: TUIElement | null = target;
-        while (current && current !== this) {
-            const index = this.itemElements.indexOf(current as MenuBarItemElement);
-            if (index >= 0) return index;
-            current = current.getParent();
-        }
-        return -1;
     }
 }

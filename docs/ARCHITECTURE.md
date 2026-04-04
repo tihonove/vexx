@@ -71,7 +71,30 @@ widget.addEventListener("keydown", (event) => {
 - Default action — встроенное поведение элемента, которое клиент может захотеть отменить (открытие подменю по клику, навигация по пунктам клавишами)
 - НЕ default action — internal state management (сохранение `previousFocusedElement` при focus, деактивация при blur)
 
-**Ограничение:** `performDefaultAction` вызывается только на `event.target` (элемент, на котором произошло событие), а не на каждом элементе в цепочке propagation. Для событий, где target — дочерний элемент, а обработка нужна на родителе (например, click на пункт меню обрабатывает родительский MenuBarElement), используйте bubble listener с проверкой `event.defaultPrevented`.
+**Ограничение:** `performDefaultAction` вызывается только на `event.target` (элемент, на котором произошло событие), а не на каждом элементе в цепочке propagation.
+
+**Паттерн «click → callback»:** Когда target события — внутренний дочерний элемент (hit-test попадает в `TextLabelElement` внутри `MenuBarItemElement`), используйте bubble listener с проверкой `defaultPrevented` вместо `performDefaultAction`:
+
+```typescript
+class MenuBarItemElement extends TUIElement {
+    public onActivate: (() => void) | null = null;
+
+    constructor() {
+        super();
+        // click бабблится от дочернего TextLabelElement
+        this.addEventListener("click", (event) => {
+            if (event.defaultPrevented) return;
+            this.onActivate?.();
+        });
+    }
+}
+
+// Родитель подписывается при создании:
+const item = new MenuBarItemElement("File");
+item.onActivate = () => this.openMenu(index);
+```
+
+Клиент может вызвать `preventDefault()` на capture-фазе — и `onActivate` не сработает.
 
 ### Editor/
 Модель текстового редактора и виджет-мост к TUIDom. Хранение текста (пока массив строк, в планах Piece Table), состояние вида (scroll, selections, folding, курсор), undo/redo стек, TUI-виджет редактора и набор интерфейсов. Содержит подкаталог с тестовыми утилитами (TrackDSL).

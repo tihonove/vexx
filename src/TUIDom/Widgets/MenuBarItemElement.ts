@@ -13,6 +13,7 @@ const ACTIVE_MENU_BG = packRgb(0, 90, 180);
 export class MenuBarItemElement extends TUIElement {
     public readonly label: string;
     public readonly mnemonic: string | undefined;
+    public onActivate: (() => void) | null = null;
     private textLabel: TextLabelElement;
     private activeValue = false;
 
@@ -24,6 +25,11 @@ export class MenuBarItemElement extends TUIElement {
         this.textLabel = new TextLabelElement(` ${label} `);
         this.textLabel.setParent(this);
         this.applyStyles();
+
+        this.addEventListener("click", (event) => {
+            if (event.defaultPrevented) return;
+            this.onActivate?.();
+        });
     }
 
     public get active(): boolean {

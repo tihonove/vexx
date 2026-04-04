@@ -61,6 +61,11 @@ export class PopupMenuItemElement extends TUIElement {
 
         this.hflex.setParent(this);
         this.applyStyles();
+
+        this.addEventListener("click", (event) => {
+            if (event.defaultPrevented) return;
+            this.onSelect?.();
+        });
     }
 
     public get selected(): boolean {
