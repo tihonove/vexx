@@ -1,7 +1,10 @@
-import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
-import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
-import { StyleFlags } from "../../Rendering/StyleFlags.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
+
+import { PopupMenuItemElement, PopupMenuSeparatorElement } from "./PopupMenuItemElement.ts";
+import type { PopupMenuItemConfig } from "./PopupMenuItemElement.ts";
+import { VStackElement } from "./VStackElement.ts";
 
 export interface MenuItemEntry {
     type?: "item";
@@ -21,12 +24,8 @@ function isSeparator(entry: MenuEntry): entry is MenuSeparatorEntry {
     return entry.type === "separator";
 }
 
-const HIGHLIGHT_BG = packRgb(0, 90, 180);
-const HIGHLIGHT_FG = packRgb(255, 255, 255);
-const MENU_FG = DEFAULT_COLOR;
-const MENU_BG = DEFAULT_COLOR;
 const BORDER_FG = DEFAULT_COLOR;
-const SHORTCUT_FG = packRgb(128, 128, 128);
+const MENU_BG = DEFAULT_COLOR;
 
 export class PopupMenuElement extends TUIElement {
     public readonly entries: MenuEntry[];
@@ -34,12 +33,31 @@ export class PopupMenuElement extends TUIElement {
     public onClose?: () => void;
 
     private selectableIndices: number[];
+    private vstack: VStackElement;
+    private itemElements: PopupMenuItemElement[] = [];
 
     public constructor(entries: MenuEntry[]) {
         super();
         this.entries = entries;
         this.selectableIndices = entries.map((e, i) => (isSeparator(e) ? -1 : i)).filter((i) => i >= 0);
         this.selectedIndex = this.selectableIndices.length > 0 ? this.selectableIndices[0] : -1;
+
+        const config = this.computeConfig();
+        this.vstack = new VStackElement();
+
+        for (const entry of entries) {
+            if (isSeparator(entry)) {
+                this.vstack.addChild(new PopupMenuSeparatorElement(), { width: "stretch", height: 1 });
+            } else {
+                const item = new PopupMenuItemElement(entry.label, config, entry.shortcut, entry.icon);
+                item.onSelect = entry.onSelect;
+                this.itemElements.push(item);
+                this.vstack.addChild(item, { width: "stretch", height: 1 });
+            }
+        }
+
+        this.vstack.setParent(this);
+        this.updateItemSelectedStates();
 
         this.addEventListener("keydown", (event) => {
             if (event.key === "ArrowUp") {
@@ -52,6 +70,10 @@ export class PopupMenuElement extends TUIElement {
                 this.onClose?.();
             }
         });
+    }
+
+    public override getChildren(): readonly TUIElement[] {
+        return [this.vstack];
     }
 
     public override getMinIntrinsicWidth(_height: number): number {
@@ -71,57 +93,28 @@ export class PopupMenuElement extends TUIElement {
     }
 
     public getIntrinsicSize(): Size {
-        let maxLabelWidth = 0;
-        let maxShortcutWidth = 0;
-        let hasIcon = false;
-
-        for (const entry of this.entries) {
-            if (!isSeparator(entry)) {
-                maxLabelWidth = Math.max(maxLabelWidth, entry.label.length);
-                if (entry.shortcut) {
-                    maxShortcutWidth = Math.max(maxShortcutWidth, entry.shortcut.length);
-                }
-                if (entry.icon) {
-                    hasIcon = true;
-                }
-            }
-        }
-
-        const iconPart = hasIcon ? 2 : 0; // "X " — icon char + space
-        const leftPad = hasIcon ? 0 : 1; // icon replaces left padding
-        const rightPad = 1;
-        const gapPart = maxShortcutWidth > 0 ? 2 : 0; // gap between label and shortcut
-        const contentWidth = iconPart + maxLabelWidth + gapPart + maxShortcutWidth;
-        const totalWidth = 1 + leftPad + contentWidth + rightPad + 1; // border + pad + content + pad + border
+        const innerWidth = this.vstack.getMaxIntrinsicWidth(this.entries.length);
+        const totalWidth = 2 + innerWidth; // borders left + right
         const totalHeight = this.entries.length + 2; // border top + entries + border bottom
-
         return new Size(totalWidth, totalHeight);
     }
 
     public performLayout(constraints: BoxConstraints): Size {
         const intrinsic = this.getIntrinsicSize();
         const resultSize = constraints.constrain(intrinsic);
-        // Use parent's mechanism to store size
-        return super.performLayout(BoxConstraints.tight(resultSize));
+        super.performLayout(BoxConstraints.tight(resultSize));
+
+        const innerSize = new Size(resultSize.width - 2, resultSize.height - 2);
+        this.vstack.localPosition = new Offset(1, 1);
+        this.vstack.globalPosition = new Point(this.globalPosition.x + 1, this.globalPosition.y + 1);
+        this.vstack.performLayout(BoxConstraints.tight(innerSize));
+
+        return resultSize;
     }
 
     public render(context: RenderContext): void {
         const w = this.layoutSize.width;
         const h = this.layoutSize.height;
-
-        // Compute column layout
-        let hasIcon = false;
-        let maxShortcutWidth = 0;
-        for (const entry of this.entries) {
-            if (!isSeparator(entry)) {
-                if (entry.icon) hasIcon = true;
-                if (entry.shortcut) {
-                    maxShortcutWidth = Math.max(maxShortcutWidth, entry.shortcut.length);
-                }
-            }
-        }
-        const iconCols = hasIcon ? 2 : 0;
-        const innerWidth = w - 2; // minus borders
 
         // Top border: ┌───┐
         this.drawCell(context, 0, 0, "┌", BORDER_FG, MENU_BG);
@@ -130,52 +123,17 @@ export class PopupMenuElement extends TUIElement {
         }
         this.drawCell(context, w - 1, 0, "┐", BORDER_FG, MENU_BG);
 
-        // Entries
-        for (let i = 0; i < this.entries.length; i++) {
+        // Side borders and separator T-connectors
+        const children = this.vstack.getChildren();
+        for (let i = 0; i < children.length; i++) {
             const rowY = 1 + i;
-            const entry = this.entries[i];
+            const child = children[i];
 
-            if (isSeparator(entry)) {
-                // ├───┤
+            if (child instanceof PopupMenuSeparatorElement) {
                 this.drawCell(context, 0, rowY, "├", BORDER_FG, MENU_BG);
-                for (let x = 1; x < w - 1; x++) {
-                    this.drawCell(context, x, rowY, "─", BORDER_FG, MENU_BG);
-                }
                 this.drawCell(context, w - 1, rowY, "┤", BORDER_FG, MENU_BG);
             } else {
-                const isSelected = i === this.selectedIndex;
-                const fg = isSelected ? HIGHLIGHT_FG : MENU_FG;
-                const bg = isSelected ? HIGHLIGHT_BG : MENU_BG;
-
                 this.drawCell(context, 0, rowY, "│", BORDER_FG, MENU_BG);
-
-                // Fill inner area with bg
-                for (let x = 0; x < innerWidth; x++) {
-                    this.drawCell(context, 1 + x, rowY, " ", fg, bg);
-                }
-
-                // Icon
-                let col = hasIcon ? 1 : 2; // after border; with icon it replaces the pad space
-                if (hasIcon) {
-                    const iconChar = entry.icon ?? " ";
-                    this.drawCell(context, col, rowY, iconChar, fg, bg);
-                    col += iconCols;
-                }
-
-                // Label
-                for (let c = 0; c < entry.label.length; c++) {
-                    this.drawCell(context, col + c, rowY, entry.label[c], fg, bg);
-                }
-
-                // Shortcut (right-aligned, ending right before the border)
-                if (entry.shortcut && maxShortcutWidth > 0) {
-                    const shortcutStart = w - 1 - entry.shortcut.length;
-                    const sFg = isSelected ? HIGHLIGHT_FG : SHORTCUT_FG;
-                    for (let c = 0; c < entry.shortcut.length; c++) {
-                        this.drawCell(context, shortcutStart + c, rowY, entry.shortcut[c], sFg, bg);
-                    }
-                }
-
                 this.drawCell(context, w - 1, rowY, "│", BORDER_FG, MENU_BG);
             }
         }
@@ -187,10 +145,37 @@ export class PopupMenuElement extends TUIElement {
             this.drawCell(context, x, bottomY, "─", BORDER_FG, MENU_BG);
         }
         this.drawCell(context, w - 1, bottomY, "┘", BORDER_FG, MENU_BG);
+
+        // Render VStack content
+        const vstackOffset = new Offset(this.vstack.localPosition.dx, this.vstack.localPosition.dy);
+        const vstackClip = new Rect(this.vstack.globalPosition, this.vstack.layoutSize);
+        this.vstack.render(context.withOffset(vstackOffset).withClip(vstackClip));
     }
 
     private drawCell(context: RenderContext, x: number, y: number, char: string, fg: number, bg: number): void {
         context.setCell(x, y, { char, fg, bg });
+    }
+
+    private computeConfig(): PopupMenuItemConfig {
+        let hasIcon = false;
+        let hasShortcuts = false;
+        for (const entry of this.entries) {
+            if (!isSeparator(entry)) {
+                if (entry.icon) hasIcon = true;
+                if (entry.shortcut) hasShortcuts = true;
+            }
+        }
+        return { hasIconColumn: hasIcon, hasShortcuts };
+    }
+
+    private updateItemSelectedStates(): void {
+        let itemIndex = 0;
+        for (let i = 0; i < this.entries.length; i++) {
+            if (!isSeparator(this.entries[i])) {
+                this.itemElements[itemIndex].selected = i === this.selectedIndex;
+                itemIndex++;
+            }
+        }
     }
 
     private moveSelection(direction: number): void {
@@ -200,6 +185,7 @@ export class PopupMenuElement extends TUIElement {
         if (nextPos < 0) nextPos = this.selectableIndices.length - 1;
         if (nextPos >= this.selectableIndices.length) nextPos = 0;
         this.selectedIndex = this.selectableIndices[nextPos];
+        this.updateItemSelectedStates();
     }
 
     private activateSelected(): void {

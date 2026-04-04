@@ -2,7 +2,7 @@ import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/Geometry
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface VStackLayoutStyle {
-    width: number | "fill";
+    width: number | "fill" | "stretch";
     height: number;
 }
 
@@ -27,10 +27,10 @@ export class VStackElement extends TUIElement {
         let max = 0;
         for (const child of this.children) {
             const style = child.layoutStyle as VStackLayoutStyle;
-            if (style.width !== "fill") {
-                max = Math.max(max, style.width);
-            } else {
+            if (style.width === "fill" || style.width === "stretch") {
                 max = Math.max(max, child.getMinIntrinsicWidth(height));
+            } else {
+                max = Math.max(max, style.width);
             }
         }
         return max;
@@ -40,10 +40,10 @@ export class VStackElement extends TUIElement {
         let max = 0;
         for (const child of this.children) {
             const style = child.layoutStyle as VStackLayoutStyle;
-            if (style.width !== "fill") {
-                max = Math.max(max, style.width);
-            } else {
+            if (style.width === "fill" || style.width === "stretch") {
                 max = Math.max(max, child.getMaxIntrinsicWidth(height));
+            } else {
+                max = Math.max(max, style.width);
             }
         }
         return max;
@@ -75,7 +75,7 @@ export class VStackElement extends TUIElement {
 
         for (const child of this.children) {
             const style = child.layoutStyle as VStackLayoutStyle;
-            const childWidth = style.width === "fill" ? containerWidth : style.width;
+            const childWidth = style.width === "fill" || style.width === "stretch" ? containerWidth : style.width;
             const childHeight = style.height;
             const childSize = new Size(childWidth, childHeight);
 

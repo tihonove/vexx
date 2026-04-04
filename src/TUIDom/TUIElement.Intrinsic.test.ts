@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { BoxConstraints, Size } from "../Common/GeometryPromitives.ts";
+
 import { TextBlockElement } from "./Widgets/TextBlockElement.ts";
 import { PopupMenuElement } from "./Widgets/PopupMenuElement.ts";
 import { StatusBarElement } from "./Widgets/StatusBarElement.ts";
@@ -83,6 +85,23 @@ describe("Intrinsic Size API", () => {
             const child = new TextBlockElement(3);
             stack.addChild(child, { width: "fill", height: 3 });
             expect(stack.getMaxIntrinsicWidth(100)).toBe(child.contentWidth);
+        });
+
+        it("delegates intrinsic width for stretch children", () => {
+            const stack = new VStackElement();
+            const child = new TextBlockElement(3);
+            stack.addChild(child, { width: "stretch", height: 3 });
+            expect(stack.getMaxIntrinsicWidth(100)).toBe(child.contentWidth);
+            expect(stack.getMinIntrinsicWidth(100)).toBe(child.contentWidth);
+        });
+
+        it("stretch children get container width in layout", () => {
+            const stack = new VStackElement();
+            const child = new TUIElement();
+            stack.addChild(child, { width: "stretch", height: 1 });
+            stack.performLayout(BoxConstraints.tight(new Size(40, 10)));
+            expect(child.layoutSize.width).toBe(40);
+            expect(child.layoutSize.height).toBe(1);
         });
     });
 });

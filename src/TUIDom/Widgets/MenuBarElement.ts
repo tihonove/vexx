@@ -1,10 +1,10 @@
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
-import { StyleFlags } from "../../Rendering/StyleFlags.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { HFlexElement, hflexFill, hflexFit } from "./HFlexElement.ts";
+import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.ts";
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
@@ -14,36 +14,42 @@ export interface MenuBarItem {
     entries: MenuEntry[];
 }
 
-interface MenuBarLayoutItem {
-    startX: number;
-    width: number;
-}
-
-const MENU_BAR_FG = DEFAULT_COLOR;
-const MENU_BAR_BG = packRgb(64, 64, 64);
-const ACTIVE_MENU_FG = packRgb(255, 255, 255);
-const ACTIVE_MENU_BG = packRgb(0, 90, 180);
-
 export class MenuBarElement extends TUIElement {
     public readonly items: readonly MenuBarItem[];
     public activeIndex = -1;
 
     private activeMenu: PopupMenuElement | null = null;
-    private layoutItems: MenuBarLayoutItem[] = [];
+    private itemElements: MenuBarItemElement[] = [];
+    private hflex: HFlexElement;
     private previousFocusedElement: TUIElement | null = null;
     private parentMnemonicHandler: ((event: TUIKeyboardEvent) => void) | null = null;
+
+    private updateItemActiveStates(): void {
+        for (let i = 0; i < this.itemElements.length; i++) {
+            this.itemElements[i].active = i === this.activeIndex && this.isFocused;
+        }
+    }
 
     public constructor(items: MenuBarItem[]) {
         super();
         this.tabIndex = 0;
         this.items = items;
-        this.rebuildLayoutItems();
+
+        this.hflex = new HFlexElement();
+        this.itemElements = items.map((item) => {
+            const el = new MenuBarItemElement(item.label, item.mnemonic);
+            this.hflex.addChild(el, { width: hflexFit(), height: 1 });
+            return el;
+        });
+        this.hflex.addChild(new MenuBarFillerElement(), { width: hflexFill(), height: 1 });
+        this.hflex.setParent(this);
 
         this.addEventListener("focus", (event: TUIFocusEvent) => {
             this.previousFocusedElement = event.relatedTarget;
             if (this.activeIndex < 0) {
                 this.activeIndex = 0;
             }
+            this.updateItemActiveStates();
             this.markDirty();
         });
 
@@ -90,6 +96,7 @@ export class MenuBarElement extends TUIElement {
                     this.openMenu(next);
                 } else {
                     this.activeIndex = next;
+                    this.updateItemActiveStates();
                     this.markDirty();
                 }
                 return;
@@ -101,6 +108,7 @@ export class MenuBarElement extends TUIElement {
                     this.openMenu(next);
                 } else {
                     this.activeIndex = next;
+                    this.updateItemActiveStates();
                     this.markDirty();
                 }
                 return;
@@ -152,17 +160,21 @@ export class MenuBarElement extends TUIElement {
     }
 
     public override getChildren(): readonly TUIElement[] {
-        const children: TUIElement[] = [];
+        const children: TUIElement[] = [this.hflex];
         if (this.activeMenu) children.push(this.activeMenu);
         return children;
     }
 
-    public override getMinIntrinsicWidth(_height: number): number {
-        return this.layoutItems.reduce((sum, item) => sum + item.width, 0);
+    public get isMenuOpen(): boolean {
+        return this.activeMenu !== null;
     }
 
-    public override getMaxIntrinsicWidth(_height: number): number {
-        return this.layoutItems.reduce((sum, item) => sum + item.width, 0);
+    public override getMinIntrinsicWidth(height: number): number {
+        return this.hflex.getMinIntrinsicWidth(height);
+    }
+
+    public override getMaxIntrinsicWidth(height: number): number {
+        return this.hflex.getMaxIntrinsicWidth(height);
     }
 
     public override getMinIntrinsicHeight(_width: number): number {
@@ -173,8 +185,24 @@ export class MenuBarElement extends TUIElement {
         return 1;
     }
 
+    public override elementFromPoint(point: Point): TUIElement | null {
+        const bounds = new Rect(this.globalPosition, this.layoutSize);
+        if (!bounds.containsPoint(point)) return null;
+
+        if (this.activeMenu) {
+            const hit = this.activeMenu.elementFromPoint(point);
+            if (hit) return hit;
+        }
+
+        return this;
+    }
+
     public performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
+
+        this.hflex.localPosition = new Offset(0, 0);
+        this.hflex.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
+        this.hflex.performLayout(BoxConstraints.tight(new Size(containerSize.width, 1)));
 
         if (this.activeMenu && this.activeIndex >= 0) {
             const menuPosition = this.getMenuPosition(this.activeIndex);
@@ -194,50 +222,11 @@ export class MenuBarElement extends TUIElement {
     }
 
     public render(context: RenderContext): void {
-        const width = this.layoutSize.width;
-
-        for (let x = 0; x < width; x++) {
-            context.setCell(x, 0, { char: " ", fg: MENU_BAR_FG, bg: MENU_BAR_BG });
-        }
-
-        for (let index = 0; index < this.items.length; index++) {
-            this.renderItem(context, index);
-        }
+        this.hflex.render(context.withOffset(this.hflex.localPosition));
 
         if (this.activeMenu) {
             this.activeMenu.render(context.withOffset(this.activeMenu.localPosition));
         }
-    }
-
-    private renderItem(context: RenderContext, index: number): void {
-        const item = this.items[index];
-        const layoutItem = this.layoutItems[index];
-        const isActive = index === this.activeIndex && this.isFocused;
-        const fg = isActive ? ACTIVE_MENU_FG : MENU_BAR_FG;
-        const bg = isActive ? ACTIVE_MENU_BG : MENU_BAR_BG;
-        const display = ` ${item.label} `;
-        const mnemonicIndex = this.getMnemonicIndex(item);
-
-        for (let offset = 0; offset < display.length; offset++) {
-            const displayIndex = offset - 1;
-            const style = displayIndex === mnemonicIndex ? StyleFlags.Underline : StyleFlags.None;
-            context.setCell(layoutItem.startX + offset, 0, {
-                char: display[offset],
-                fg,
-                bg,
-                style,
-            });
-        }
-    }
-
-    private rebuildLayoutItems(): void {
-        let currentX = 0;
-        this.layoutItems = this.items.map((item) => {
-            const width = item.label.length + 2;
-            const layoutItem = { startX: currentX, width };
-            currentX += width;
-            return layoutItem;
-        });
     }
 
     private openMenu(index: number): void {
@@ -264,6 +253,7 @@ export class MenuBarElement extends TUIElement {
         });
 
         this.activeIndex = index;
+        this.updateItemActiveStates();
         this.activeMenu = new PopupMenuElement(wrappedEntries);
         this.activeMenu.setParent(this);
         this.activeMenu.onClose = () => {
@@ -283,6 +273,7 @@ export class MenuBarElement extends TUIElement {
     private deactivate(): void {
         this.closePopup();
         this.activeIndex = -1;
+        this.updateItemActiveStates();
         this.markDirty();
     }
 
@@ -330,16 +321,12 @@ export class MenuBarElement extends TUIElement {
         });
     }
 
-    private getMnemonicIndex(item: MenuBarItem): number {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        const mnemonic = (item.mnemonic ?? item.label[0] ?? "").toLowerCase();
-        return item.label.toLowerCase().indexOf(mnemonic);
-    }
-
     private findItemAtX(x: number): number {
-        for (let i = 0; i < this.layoutItems.length; i++) {
-            const item = this.layoutItems[i];
-            if (x >= item.startX && x < item.startX + item.width) {
+        for (let i = 0; i < this.itemElements.length; i++) {
+            const el = this.itemElements[i];
+            const startX = el.localPosition.dx;
+            const width = el.layoutSize.width;
+            if (x >= startX && x < startX + width) {
                 return i;
             }
         }
@@ -347,7 +334,7 @@ export class MenuBarElement extends TUIElement {
     }
 
     private getMenuPosition(index: number): Point {
-        const layoutItem = this.layoutItems[index];
-        return new Point(layoutItem.startX, 1);
+        const el = this.itemElements[index];
+        return new Point(el.localPosition.dx, 1);
     }
 }

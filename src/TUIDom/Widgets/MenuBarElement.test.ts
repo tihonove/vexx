@@ -154,7 +154,7 @@ describe("MenuBarElement", () => {
             expect(menuBar.isFocused).toBe(true);
             expect(menuBar.activeIndex).toBe(0);
             // No popup children
-            expect(menuBar.getChildren().length).toBe(0);
+            expect(menuBar.isMenuOpen).toBe(false);
         });
 
         it("Tab past menuBar focuses first content child", () => {
@@ -206,7 +206,7 @@ describe("MenuBarElement", () => {
             backend.sendKey("Alt+f");
             expect(menuBar.isFocused).toBe(true);
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(1); // popup open
+            expect(menuBar.isMenuOpen).toBe(true); // popup open
         });
 
         it("mnemonic opens correct menu item", () => {
@@ -275,7 +275,7 @@ describe("MenuBarElement", () => {
 
             backend.sendKey("ArrowRight");
             expect(menuBar.activeIndex).toBe(1);
-            expect(menuBar.getChildren().length).toBe(0); // no popup
+            expect(menuBar.isMenuOpen).toBe(false); // no popup
         });
 
         it("ArrowLeft moves highlight to previous item (no popup)", () => {
@@ -286,7 +286,7 @@ describe("MenuBarElement", () => {
 
             backend.sendKey("ArrowLeft");
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(0);
+            expect(menuBar.isMenuOpen).toBe(false);
         });
 
         it("ArrowRight wraps from last to first", () => {
@@ -313,11 +313,11 @@ describe("MenuBarElement", () => {
             const { backend, menuBar } = setupWithBody(simpleItems());
 
             backend.sendKey("Tab"); // activeIndex=0
-            expect(menuBar.getChildren().length).toBe(0);
+            expect(menuBar.isMenuOpen).toBe(false);
 
             backend.sendKey("ArrowDown");
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(1); // popup open
+            expect(menuBar.isMenuOpen).toBe(true); // popup open
         });
 
         it("Enter opens popup for current item", () => {
@@ -325,7 +325,7 @@ describe("MenuBarElement", () => {
 
             backend.sendKey("Tab");
             backend.sendKey("Enter");
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
         });
 
         it("ArrowRight with popup open switches to next menu popup", () => {
@@ -333,11 +333,11 @@ describe("MenuBarElement", () => {
 
             backend.sendKey("Alt+f"); // open File popup
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
 
             backend.sendKey("ArrowRight");
             expect(menuBar.activeIndex).toBe(1);
-            expect(menuBar.getChildren().length).toBe(1); // popup still open (different menu)
+            expect(menuBar.isMenuOpen).toBe(true); // popup still open (different menu)
         });
 
         it("ArrowLeft with popup open switches to previous menu popup", () => {
@@ -348,7 +348,7 @@ describe("MenuBarElement", () => {
 
             backend.sendKey("ArrowLeft");
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
         });
 
         it("ignores ArrowLeft/Right when no focus", () => {
@@ -367,10 +367,10 @@ describe("MenuBarElement", () => {
             const { backend, menuBar } = setupWithBody(simpleItems());
 
             backend.sendKey("Alt+f"); // open File popup
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
 
             backend.sendKey("Escape");
-            expect(menuBar.getChildren().length).toBe(0); // popup closed
+            expect(menuBar.isMenuOpen).toBe(false); // popup closed
             expect(menuBar.activeIndex).toBe(0); // highlight remains
             expect(menuBar.isFocused).toBe(true); // still focused
         });
@@ -460,11 +460,11 @@ describe("MenuBarElement", () => {
 
             backend.sendKey("Alt+f");
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
 
             backend.sendKey("Escape");
             expect(menuBar.activeIndex).toBe(0); // highlight stays
-            expect(menuBar.getChildren().length).toBe(0); // popup closed
+            expect(menuBar.isMenuOpen).toBe(false); // popup closed
             expect(menuBar.isFocused).toBe(true);
         });
     });
@@ -506,7 +506,7 @@ describe("MenuBarElement", () => {
             mouseClick(backend, 2, 0); // inside " File "
             expect(menuBar.isFocused).toBe(true);
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
         });
 
         it("click on second item opens its popup", () => {
@@ -515,17 +515,17 @@ describe("MenuBarElement", () => {
             mouseClick(backend, 8, 0); // inside " Edit "
             expect(menuBar.isFocused).toBe(true);
             expect(menuBar.activeIndex).toBe(1);
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
         });
 
         it("clicking same item again closes popup", () => {
             const { backend, menuBar } = setupWithBody(simpleItems(), 0, 30, 10);
 
             mouseClick(backend, 2, 0); // open File
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
 
             mouseClick(backend, 2, 0); // close File
-            expect(menuBar.getChildren().length).toBe(0);
+            expect(menuBar.isMenuOpen).toBe(false);
         });
 
         it("clicking different item switches popup", () => {
@@ -533,11 +533,11 @@ describe("MenuBarElement", () => {
 
             mouseClick(backend, 2, 0); // open File
             expect(menuBar.activeIndex).toBe(0);
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
 
             mouseClick(backend, 8, 0); // switch to Edit
             expect(menuBar.activeIndex).toBe(1);
-            expect(menuBar.getChildren().length).toBe(1);
+            expect(menuBar.isMenuOpen).toBe(true);
         });
 
         it("click outside menu items does not open popup", () => {
@@ -545,7 +545,7 @@ describe("MenuBarElement", () => {
 
             mouseClick(backend, 25, 0); // past all items
             expect(menuBar.activeIndex).toBe(-1);
-            expect(menuBar.getChildren().length).toBe(0);
+            expect(menuBar.isMenuOpen).toBe(false);
         });
     });
 });
