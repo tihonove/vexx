@@ -11,8 +11,6 @@ export interface StyledChar {
 
 export class TextLabelElement extends TUIElement {
     private text: string;
-    private fg: number = DEFAULT_COLOR;
-    private bg: number = DEFAULT_COLOR;
     private charStyles = new Map<number, StyledChar>();
 
     public constructor(text: string) {
@@ -30,9 +28,7 @@ export class TextLabelElement extends TUIElement {
     }
 
     public setColors(fg: number, bg: number): void {
-        this.fg = fg;
-        this.bg = bg;
-        this.markDirty();
+        this.style = { ...this.style, fg, bg };
     }
 
     public setCharStyle(index: number, charStyle: StyledChar): void {
@@ -68,14 +64,15 @@ export class TextLabelElement extends TUIElement {
 
     public override render(context: RenderContext): void {
         const width = this.layoutSize.width;
+        const resolved = this.resolvedStyle;
 
         for (let x = 0; x < width; x++) {
             const char = x < this.text.length ? this.text[x] : " ";
             const charStyle = this.charStyles.get(x);
             context.setCell(x, 0, {
                 char,
-                fg: charStyle?.fg ?? this.fg,
-                bg: charStyle?.bg ?? this.bg,
+                fg: charStyle?.fg ?? resolved.fg,
+                bg: charStyle?.bg ?? resolved.bg,
                 style: charStyle?.style ?? StyleFlags.None,
             });
         }

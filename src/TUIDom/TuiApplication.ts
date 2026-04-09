@@ -7,6 +7,7 @@ import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
 import { FocusManager } from "./Events/FocusManager.ts";
 import { MouseEventDispatcher } from "./Events/MouseEventDispatcher.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
+import { ROOT_RESOLVED_STYLE } from "./Styles/TUIStyle.ts";
 import { RenderContext } from "./TUIElement.ts";
 import type { BodyElement } from "./Widgets/BodyElement.ts";
 
@@ -34,6 +35,9 @@ export class TuiApplication {
             // Perform layout with tight constraints based on screen size
             const constraints = BoxConstraints.tight(this.screen.size);
             this.root.performLayout(constraints);
+
+            // Resolve styles (top-down cascade)
+            this.root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
             // Render
             const screenClip = new Rect(new Point(0, 0), this.screen.size);

@@ -7,6 +7,8 @@ import { EventPhase, TUIEventBase } from "./Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "./Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "./Events/TUIMouseEvent.ts";
+import type { ResolvedTUIStyle, TUIStyle } from "./Styles/TUIStyle.ts";
+import { resolveStyle, ROOT_RESOLVED_STYLE } from "./Styles/TUIStyle.ts";
 import { querySelector, querySelectorAll } from "./TUISelector.ts";
 
 const MAX_COORD = 100_000;
@@ -101,6 +103,20 @@ export class TUIElement {
 
     // Focus manager — set only on root element
     public focusManager: FocusManager | null = null;
+
+    // ─── Style system ───
+    private styleValue: Readonly<TUIStyle> = {};
+    private resolvedStyleValue: ResolvedTUIStyle = ROOT_RESOLVED_STYLE;
+    private isStyleDirty = true;
+
+    public get style(): Readonly<TUIStyle> {
+        return this.styleValue;
+    }
+
+    public set style(value: TUIStyle) {
+        this.styleValue = value;
+        this.markStyleDirty();
+    }
 
     // Event listener storage — supports any event type + capture flag
     private _listeners = new Map<string, ListenerEntry[]>();
@@ -292,6 +308,29 @@ export class TUIElement {
                 entry.handler(event);
                 if (event.immediatePropagationStopped) break;
             }
+        }
+    }
+
+    // ─── Style system ───
+
+    public get resolvedStyle(): ResolvedTUIStyle {
+        return this.resolvedStyleValue;
+    }
+
+    private markStyleDirty(): void {
+        this.isStyleDirty = true;
+        for (const child of this.getChildren()) {
+            child.markStyleDirty();
+        }
+        this.markDirty();
+    }
+
+    public performStyleResolution(inherited: ResolvedTUIStyle): void {
+        if (!this.isStyleDirty) return;
+        this.resolvedStyleValue = resolveStyle(this.style, inherited);
+        this.isStyleDirty = false;
+        for (const child of this.getChildren()) {
+            child.performStyleResolution(this.resolvedStyleValue);
         }
     }
 

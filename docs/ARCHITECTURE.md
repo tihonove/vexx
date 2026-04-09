@@ -26,9 +26,10 @@
 Абстракция терминального I/O. Определяет интерфейс бэкенда (onInput, onResize, flush, setup, teardown) и две реализации: реальную (Node.js stdin/stdout, Kitty protocol, alternate screen) и in-memory для тестов (sendKey DSL, screenToString).
 
 ### TUIDom/
-TUI-фреймворк — дерево элементов с layout, событиями, фокусом. Аналог браузерного DOM. Содержит базовый класс элемента, корневой event loop и два подкаталога. Система layout и позиционирования описана в [docs/LAYOUT.md](LAYOUT.md).
+TUI-фреймворк — дерево элементов с layout, событиями, фокусом. Аналог браузерного DOM. Содержит базовый класс элемента, корневой event loop и три подкаталога. Система layout и позиционирования описана в [docs/LAYOUT.md](LAYOUT.md).
 
 - **Events** — система событий: capture/bubble фазы, клавиатурные и фокус-события, менеджер фокуса с tab-навигацией, механизм default actions
+- **Styles** — система стилей: каскадные `defaultFg`/`defaultBg` токены, мета-цвета (`META_DEFAULT_FG`, `META_DEFAULT_BG`), dirty-пропагация (`markStyleDirty`) и top-down резолвинг (`performStyleResolution`). Стили задаются через типизированное свойство `style: TUIStyle` на каждом элементе; разрешённые значения доступны через `resolvedStyle: ResolvedTUIStyle`
 - **Widgets** — конкретные виджеты: корневой элемент, боксы с рамкой, вертикальный стек, текстовый блок с word-wrap, скролл-контейнер со скроллбаром, контекстные меню, выпадающие меню, полоса меню
 
 #### Default Actions
