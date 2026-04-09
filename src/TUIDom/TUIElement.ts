@@ -272,8 +272,10 @@ export class TUIElement {
      * Called after all capture/target/bubble listeners. Skipped if preventDefault() was called.
      * Analogous to Web DOM default actions (e.g. <a> navigation, <input> text entry).
      */
-    protected performDefaultAction(_event: TUIEventBase): void {
-        // noop by default
+    protected performDefaultAction(event: TUIEventBase): void {
+        if (event.type === "mousedown" && this.tabIndex >= 0) {
+            this.focus();
+        }
     }
 
     /**

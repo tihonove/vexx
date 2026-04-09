@@ -9,7 +9,7 @@ import { StyleFlags } from "./StyleFlags.ts";
 export class TerminalScreen {
     private grid: Grid;
     public size: Size;
-    public cursorPosition: Point = new Point(0, 0);
+    public cursorPosition: Point | null = null;
 
     public get width(): number {
         return this.size.width;
@@ -27,6 +27,10 @@ export class TerminalScreen {
         this.cursorPosition = position;
     }
 
+    public clearCursorPosition(): void {
+        this.cursorPosition = null;
+    }
+
     public setCell(position: Point, cell: CellPatch): void {
         this.grid.updateCell(position, cell);
     }
@@ -37,5 +41,6 @@ export class TerminalScreen {
 
     public clear(): void {
         this.grid.fill(" ", DEFAULT_COLOR, DEFAULT_COLOR, StyleFlags.None);
+        this.cursorPosition = null;
     }
 }

@@ -112,7 +112,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
         }
     }
 
-    public renderFrame(grid: Grid, cursorPosition: Point): void {
+    public renderFrame(grid: Grid, cursorPosition: Point | null): void {
         this.prevGrid ??= new Grid(grid.size);
         const sizeChanged = this.prevGrid.width !== grid.width || this.prevGrid.height !== grid.height;
         if (sizeChanged) {
@@ -124,8 +124,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
             this.stdout.write("\x1b[2J"); // clear screen to avoid stale reflow artifacts
         }
         this.renderer.render(grid, this.prevGrid);
-        this.stdout.write(`\x1b[${(cursorPosition.y + 1).toString()};${(cursorPosition.x + 1).toString()}H`); // position cursor
-        this.stdout.write("\x1b[?25h"); // show cursor
+        if (cursorPosition !== null) {
+            this.stdout.write(`\x1b[${(cursorPosition.y + 1).toString()};${(cursorPosition.x + 1).toString()}H`); // position cursor
+            this.stdout.write("\x1b[?25h"); // show cursor
+        }
         this.stdout.write("\x1b[?2026l"); // end synchronized output
     }
 

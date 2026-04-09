@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import type { MouseToken } from "../../Input/RawTerminalToken.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TuiApplication } from "../TuiApplication.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
@@ -226,5 +227,81 @@ describe("Focus integration: Tab cycling through TuiApplication", () => {
         // Send a key — should reach box 1 only
         backend.sendKey("b");
         expect(log).toEqual(["box1-b"]);
+    });
+});
+
+// ─── helpers ───
+
+function makeMouseToken(overrides: Partial<MouseToken> & { action: MouseToken["action"] }): MouseToken {
+    return {
+        kind: "mouse",
+        button: "left",
+        x: 1,
+        y: 1,
+        shiftKey: false,
+        altKey: false,
+        ctrlKey: false,
+        raw: "",
+        ...overrides,
+    };
+}
+
+// ─── click → focus ───
+
+describe("Focus: click moves focus to focusable element", () => {
+    it("mousedown on focusable element sets focus", () => {
+        const { backend, boxes } = setupApp(2);
+
+        // box[0] occupies rows 0..2, click at (1, 1) = 1-based terminal coords → row 0 (0-based)
+        backend.simulateMouse(makeMouseToken({ action: "press", x: 1, y: 1 }));
+
+        expect(boxes[0].isFocused).toBe(true);
+        expect(boxes[1].isFocused).toBe(false);
+    });
+
+    it("mousedown on second focusable element moves focus from first", () => {
+        const { backend, boxes } = setupApp(2);
+
+        // Focus box[0] first via Tab
+        backend.sendKey("Tab");
+        expect(boxes[0].isFocused).toBe(true);
+
+        // box[1] occupies rows 3..5, click at y=4 (1-based) → row 3 (0-based)
+        backend.simulateMouse(makeMouseToken({ action: "press", x: 1, y: 4 }));
+
+        expect(boxes[0].isFocused).toBe(false);
+        expect(boxes[1].isFocused).toBe(true);
+    });
+
+    it("mousedown with preventDefault does not move focus", () => {
+        const { backend, boxes } = setupApp(2);
+
+        boxes[0].addEventListener("mousedown", (e) => {
+            e.preventDefault();
+        });
+
+        backend.simulateMouse(makeMouseToken({ action: "press", x: 1, y: 1 }));
+
+        expect(boxes[0].isFocused).toBe(false);
+    });
+
+    it("element with tabIndex=-1 does not receive focus on mousedown", () => {
+        const backend = new MockTerminalBackend(new Size(20, 6));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const stack = new VStackElement();
+
+        const box = new FocusableBox();
+        box.tabIndex = -1;
+        stack.addChild(box, { width: "fill", height: 3 });
+
+        body.setContent(stack);
+        app.root = body;
+        app.run();
+
+        backend.simulateMouse(makeMouseToken({ action: "press", x: 1, y: 1 }));
+
+        expect(box.isFocused).toBe(false);
     });
 });

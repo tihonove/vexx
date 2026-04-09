@@ -24,7 +24,7 @@ export interface ITerminalBackend {
      * Render a frame: receive the current grid and cursor position.
      * The backend decides how to output it (ANSI diffing, simple copy, etc.).
      */
-    renderFrame(grid: Grid, cursorPosition: Point): void;
+    renderFrame(grid: Grid, cursorPosition: Point | null): void;
 
     /** Current terminal dimensions */
     getSize(): Size;
