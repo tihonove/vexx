@@ -3,21 +3,21 @@ import { Disposable } from "../Common/Disposable.ts";
 import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
-import type { EditorController } from "./EditorController.ts";
-import { EditorControllerDIToken } from "./EditorController.ts";
+import type { EditorGroupController } from "./EditorGroupController.ts";
+import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import type { IController } from "./IController.ts";
 
 export const StatusBarControllerDIToken = token<StatusBarController>("StatusBarController");
 
 export class StatusBarController extends Disposable implements IController {
-    public static dependencies = [EditorControllerDIToken] as const;
+    public static dependencies = [EditorGroupControllerDIToken] as const;
 
     public readonly view: StatusBarElement;
-    private editorController: EditorController;
+    private editorGroupController: EditorGroupController;
 
-    public constructor(editorController: EditorController) {
+    public constructor(editorGroupController: EditorGroupController) {
         super();
-        this.editorController = editorController;
+        this.editorGroupController = editorGroupController;
         this.view = new StatusBarElement();
     }
 
@@ -32,13 +32,13 @@ export class StatusBarController extends Disposable implements IController {
 
     public update(): void {
         const items: StatusBarItem[] = [];
-        const fileName = this.editorController.fileName;
+        const activeEditor = this.editorGroupController.getActiveEditor();
 
-        if (fileName) {
-            items.push({ text: fileName });
+        if (activeEditor?.fileName) {
+            items.push({ text: activeEditor.fileName });
         }
 
-        if (this.editorController.isModified) {
+        if (activeEditor?.isModified) {
             items.push({ text: "[Modified]" });
         }
 

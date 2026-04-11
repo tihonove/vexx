@@ -10,7 +10,7 @@ import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
-import { EditorController, EditorControllerDIToken } from "./EditorController.ts";
+import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
 
@@ -27,7 +27,7 @@ function createTestAppController(size: Size = new Size(80, 24)): TestAppContext 
         .bind(CommandRegistryDIToken, () => new CommandRegistry())
         .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
         .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
-        .bind(EditorControllerDIToken, EditorController)
+        .bind(EditorGroupControllerDIToken, EditorGroupController)
         .bind(StatusBarControllerDIToken, StatusBarController)
         .bind(AppControllerDIToken, AppController);
 
@@ -46,7 +46,8 @@ function createTestAppController(size: Size = new Size(80, 24)): TestAppContext 
 
 describe("AppController integration", () => {
     it("creates UI tree with menubar and editor", () => {
-        const { testApp } = createTestAppController();
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/test-tree.txt");
 
         expect(testApp.querySelector("MenuBarElement")).not.toBeNull();
         expect(testApp.querySelector("ScrollBarDecorator")).not.toBeNull();
@@ -54,6 +55,7 @@ describe("AppController integration", () => {
 
     it("focuses editor via focusEditor()", () => {
         const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/test-focus.txt");
         controller.focusEditor();
 
         expect(testApp.focusedElement).not.toBeNull();
@@ -87,6 +89,7 @@ describe("AppController integration", () => {
 
     it("typing inserts text into editor", () => {
         const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/test-typing.txt");
         controller.focusEditor();
 
         testApp.sendKey("h");

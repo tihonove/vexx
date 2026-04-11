@@ -12,8 +12,8 @@ import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";
-import { EditorControllerDIToken } from "./EditorController.ts";
-import { EditorController } from "./EditorController.ts";
+import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
+import { EditorGroupController } from "./EditorGroupController.ts";
 import type { IController } from "./IController.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
@@ -26,7 +26,7 @@ const builtinActions = [fileSaveAction, quitAction];
 
 export class AppController extends Disposable implements IController {
     public static dependencies = [
-        EditorControllerDIToken,
+        EditorGroupControllerDIToken,
         CommandRegistryDIToken,
         KeybindingRegistryDIToken,
         ServiceAccessorDIToken,
@@ -34,25 +34,25 @@ export class AppController extends Disposable implements IController {
     ] as const;
     public readonly view: BodyElement;
 
-    private editorController: EditorController;
+    private editorGroupController: EditorGroupController;
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
 
     public constructor(
-        editorController: EditorController,
+        editorGroupController: EditorGroupController,
         commands: CommandRegistry,
         keybindings: KeybindingRegistry,
         accessor: ServiceAccessor,
         statusBarController: StatusBarController,
     ) {
         super();
-        this.editorController = this.register(editorController);
+        this.editorGroupController = this.register(editorGroupController);
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
         this.view = new BodyElement();
-        this.view.setContent(this.editorController.view);
+        this.view.setContent(this.editorGroupController.view);
         this.view.setStatusBar(this.statusBarController.view);
 
         for (const action of builtinActions) {
@@ -65,22 +65,22 @@ export class AppController extends Disposable implements IController {
     public mount(): void {
         this.view.addEventListener("keydown", this.handleKeyDown);
         this.view.addEventListener("keypress", this.handleKeyPress);
-        this.editorController.mount();
+        this.editorGroupController.mount();
         this.statusBarController.mount();
     }
 
     public async activate(): Promise<void> {
-        await this.editorController.activate();
+        await this.editorGroupController.activate();
         await this.statusBarController.activate();
     }
 
     public openFile(filePath: string): void {
-        this.editorController.openFile(filePath);
+        this.editorGroupController.openFile(filePath);
         this.statusBarController.update();
     }
 
     public focusEditor(): void {
-        this.editorController.focusEditor();
+        this.editorGroupController.focusEditor();
     }
 
     private handleKeyDown = (event: TUIKeyboardEvent): void => {

@@ -3,17 +3,24 @@ import { describe, expect, it } from "vitest";
 import { Container } from "../Common/DiContainer.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 
-import { EditorController, EditorControllerDIToken } from "./EditorController.ts";
+import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
 
-function createStatusBarController(): { statusBarController: StatusBarController; editorController: EditorController } {
+function createStatusBarController(): {
+    statusBarController: StatusBarController;
+    editorGroupController: EditorGroupController;
+} {
     const container = new Container();
-    container.bind(EditorControllerDIToken, EditorController).bind(StatusBarControllerDIToken, StatusBarController);
+    container
+        .bind(EditorGroupControllerDIToken, EditorGroupController)
+        .bind(StatusBarControllerDIToken, StatusBarController);
 
-    const editorController = container.get(EditorControllerDIToken);
+    const editorGroupController = container.get(EditorGroupControllerDIToken);
     const statusBarController = container.get(StatusBarControllerDIToken);
 
-    return { statusBarController, editorController };
+    editorGroupController.mount();
+
+    return { statusBarController, editorGroupController };
 }
 
 describe("StatusBarController", () => {
@@ -31,10 +38,10 @@ describe("StatusBarController", () => {
     });
 
     it("shows file name after update when file is opened", () => {
-        const { statusBarController, editorController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();
 
-        editorController.openFile("/tmp/test-statusbar-file.txt");
+        editorGroupController.openFile("/tmp/test-statusbar-file.txt");
         statusBarController.update();
 
         const items = statusBarController.view.getItems();
@@ -42,15 +49,13 @@ describe("StatusBarController", () => {
     });
 
     it("shows [Modified] after text is edited", () => {
-        const { statusBarController, editorController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();
 
-        editorController.openFile("/tmp/test-statusbar-mod.txt");
+        editorGroupController.openFile("/tmp/test-statusbar-mod.txt");
 
-        // Simulate editing by accessing the document via getText/internal state
-        // EditorController exposes getText but not a direct edit method,
-        // so we trigger modification through the view state
-        const editorElement = editorController.view.querySelector("EditorElement") as EditorElement;
+        const activeEditor = editorGroupController.getActiveEditor()!;
+        const editorElement = activeEditor.view.querySelector("EditorElement") as EditorElement;
         editorElement.viewState.type("x");
 
         statusBarController.update();
@@ -61,18 +66,19 @@ describe("StatusBarController", () => {
     });
 
     it("clears [Modified] after save", () => {
-        const { statusBarController, editorController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();
 
-        editorController.openFile("/tmp/test-statusbar-save.txt");
+        editorGroupController.openFile("/tmp/test-statusbar-save.txt");
 
-        const editorElement = editorController.view.querySelector("EditorElement") as EditorElement;
+        const activeEditor = editorGroupController.getActiveEditor()!;
+        const editorElement = activeEditor.view.querySelector("EditorElement") as EditorElement;
         editorElement.viewState.type("x");
 
         statusBarController.update();
         expect(statusBarController.view.getItems()).toContainEqual({ text: "[Modified]" });
 
-        editorController.save();
+        activeEditor.save();
         statusBarController.update();
 
         const items = statusBarController.view.getItems();

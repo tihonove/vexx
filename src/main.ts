@@ -6,20 +6,20 @@ import { Container } from "./Common/DiContainer.ts";
 import { AppController, AppControllerDIToken } from "./Controllers/AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRegistry.ts";
 import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
-import { EditorController, EditorControllerDIToken } from "./Controllers/EditorController.ts";
+import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
-// ── CLI: обязательный аргумент — путь к файлу ──────────────
+// ── CLI: один или несколько файлов ──────────────────────────
 
-const filePath = process.argv[2];
-if (!filePath) {
-    console.error("Usage: vexx <file>");
+const filePaths = process.argv.slice(2);
+if (filePaths.length === 0) {
+    console.error("Usage: vexx <file> [file2] [file3] ...");
     process.exit(1);
 }
 
-const resolvedPath = path.resolve(filePath);
+const resolvedPaths = filePaths.map(f => path.resolve(f));
 const backend = new NodeTerminalBackend();
 const application = new TuiApplication(backend);
 
@@ -29,7 +29,7 @@ const container = new Container()
     .bind(CommandRegistryDIToken, () => new CommandRegistry())
     .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
-    .bind(EditorControllerDIToken, EditorController)
+    .bind(EditorGroupControllerDIToken, EditorGroupController)
     .bind(StatusBarControllerDIToken, StatusBarController)
     .bind(AppControllerDIToken, AppController);
 
@@ -40,5 +40,7 @@ app.root = appController.view;
 appController.mount();
 app.run();
 await appController.activate();
-appController.openFile(resolvedPath);
+for (const p of resolvedPaths) {
+    appController.openFile(p);
+}
 appController.focusEditor();

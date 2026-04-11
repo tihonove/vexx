@@ -1,5 +1,5 @@
 import type { CommandAction } from "../CommandAction.ts";
-import { EditorControllerDIToken } from "../EditorController.ts";
+import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { parseKeybinding } from "../KeybindingRegistry.ts";
 import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 
@@ -8,7 +8,7 @@ export const fileSaveAction: CommandAction = {
     title: "File: Save",
     keybinding: parseKeybinding("ctrl+s"),
     run(accessor) {
-        accessor.get(EditorControllerDIToken).save();
+        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.save();
         accessor.get(StatusBarControllerDIToken).update();
     },
 };
