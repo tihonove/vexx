@@ -8,7 +8,11 @@ import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 const rootPath = process.argv[2] ?? path.resolve(".");
 
-const controller = new FileTreeController(rootPath);
+const controller = new FileTreeController();
+controller.setRootPath(rootPath);
+controller.onFileActivate = (filePath) => {
+    console.log("Activate file:", filePath);
+};
 controller.mount();
 
 const backend = new NodeTerminalBackend();

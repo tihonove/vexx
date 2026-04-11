@@ -5,6 +5,7 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
+import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
@@ -14,6 +15,7 @@ import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
+import { FileTreeController } from "./FileTreeController.ts";
 import type { IController } from "./IController.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
@@ -33,8 +35,10 @@ export class AppController extends Disposable implements IController {
         StatusBarControllerDIToken,
     ] as const;
     public readonly view: BodyElement;
+    public readonly workbenchLayout: WorkbenchLayoutElement;
 
     private editorGroupController: EditorGroupController;
+    private fileTreeController: FileTreeController;
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
@@ -48,11 +52,16 @@ export class AppController extends Disposable implements IController {
     ) {
         super();
         this.editorGroupController = this.register(editorGroupController);
+        this.fileTreeController = this.register(new FileTreeController());
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
+
+        this.workbenchLayout = new WorkbenchLayoutElement();
+        this.workbenchLayout.setCenterContent(this.editorGroupController.view);
+
         this.view = new BodyElement();
-        this.view.setContent(this.editorGroupController.view);
+        this.view.setContent(this.workbenchLayout);
         this.view.setStatusBar(this.statusBarController.view);
 
         for (const action of builtinActions) {
@@ -66,17 +75,27 @@ export class AppController extends Disposable implements IController {
         this.view.addEventListener("keydown", this.handleKeyDown);
         this.view.addEventListener("keypress", this.handleKeyPress);
         this.editorGroupController.mount();
+        this.fileTreeController.mount();
+        this.fileTreeController.onFileActivate = (filePath) => {
+            this.openFile(filePath);
+        };
         this.statusBarController.mount();
     }
 
     public async activate(): Promise<void> {
         await this.editorGroupController.activate();
+        await this.fileTreeController.activate();
         await this.statusBarController.activate();
     }
 
     public openFile(filePath: string): void {
         this.editorGroupController.openFile(filePath);
         this.statusBarController.update();
+    }
+
+    public setWorkspaceFolder(dirPath: string): void {
+        this.fileTreeController.setRootPath(dirPath);
+        this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
     }
 
     public focusEditor(): void {

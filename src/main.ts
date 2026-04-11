@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
@@ -36,11 +37,19 @@ const container = new Container()
 const app = container.get(TuiApplicationDIToken);
 const appController = container.get(AppControllerDIToken);
 
+// If the first argument is a directory, use it as the workspace folder
+const firstResolved = resolvedPaths[0];
+if (fs.statSync(firstResolved, { throwIfNoEntry: false })?.isDirectory()) {
+    appController.setWorkspaceFolder(firstResolved);
+}
+
 app.root = appController.view;
 appController.mount();
 app.run();
 await appController.activate();
 for (const p of resolvedPaths) {
-    appController.openFile(p);
+    if (!fs.statSync(p, { throwIfNoEntry: false })?.isDirectory()) {
+        appController.openFile(p);
+    }
 }
 appController.focusEditor();

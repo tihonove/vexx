@@ -28,7 +28,8 @@ describe("FileTreeController", () => {
 
     beforeEach(async () => {
         tmpDir = createTempDir();
-        controller = new FileTreeController(tmpDir);
+        controller = new FileTreeController();
+        controller.setRootPath(tmpDir);
         controller.mount();
         app = TestApp.createWithContent(controller.view, new Size(30, 10));
         controller.focus();

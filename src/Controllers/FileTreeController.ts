@@ -7,38 +7,67 @@ import { FileTreeDataProvider, type FileTreeNode } from "./FileTreeDataProvider.
 import type { IController } from "./IController.ts";
 
 export class FileTreeController extends Disposable implements IController {
-    public readonly view: TUIElement;
-    private provider: FileTreeDataProvider;
-    private tree: TreeViewElement<FileTreeNode>;
+    public view!: TUIElement;
+    public onFileActivate: ((filePath: string) => void) | null = null;
+    private provider: FileTreeDataProvider | null = null;
+    private tree: TreeViewElement<FileTreeNode> | null = null;
+    private rootPath: string | null = null;
+    private mounted = false;
 
-    public constructor(rootPath: string) {
+    public constructor() {
         super();
+    }
+
+    public setRootPath(rootPath: string): void {
+        this.rootPath = rootPath;
         this.provider = this.register(new FileTreeDataProvider(rootPath));
         this.tree = new TreeViewElement(this.provider);
         this.view = new ScrollBarDecorator(this.tree);
+        if (this.mounted) {
+            this.wireTreeEvents();
+        }
+    }
+
+    public getRootPath(): string | null {
+        return this.rootPath;
+    }
+
+    public hasRootPath(): boolean {
+        return this.rootPath !== null;
     }
 
     public mount(): void {
+        this.mounted = true;
+        if (this.tree) {
+            this.wireTreeEvents();
+        }
+    }
+
+    public async activate(): Promise<void> {
+        if (this.tree) {
+            await this.tree.refresh();
+        }
+    }
+
+    public focus(): void {
+        this.tree?.focus();
+    }
+
+    private wireTreeEvents(): void {
+        if (!this.tree || !this.provider) return;
+        const provider = this.provider;
         this.tree.onExpandedChanged = (node, expanded) => {
             if (expanded) {
-                this.provider.watchDirectory(node.path);
+                provider.watchDirectory(node.path);
             } else {
-                this.provider.unwatchDirectory(node.path);
+                provider.unwatchDirectory(node.path);
             }
         };
 
         this.tree.onActivate = (node) => {
             if (!node.isDirectory) {
-                console.log("Activate file:", node.path);
+                this.onFileActivate?.(node.path);
             }
         };
-    }
-
-    public async activate(): Promise<void> {
-        await this.tree.refresh();
-    }
-
-    public focus(): void {
-        this.tree.focus();
     }
 }
