@@ -108,6 +108,7 @@ export class TUIElement {
     private styleValue: Readonly<TUIStyle> = {};
     private resolvedStyleValue: ResolvedTUIStyle = ROOT_RESOLVED_STYLE;
     private isStyleDirty = true;
+    private subtreeStyleDirty = false;
 
     public get style(): Readonly<TUIStyle> {
         return this.styleValue;
@@ -322,13 +323,27 @@ export class TUIElement {
         for (const child of this.getChildren()) {
             child.markStyleDirty();
         }
+        this.markSubtreeStyleDirtyUp();
         this.markDirty();
     }
 
+    private markSubtreeStyleDirtyUp(): void {
+        let current = this._parent;
+        while (current && !current.subtreeStyleDirty) {
+            current.subtreeStyleDirty = true;
+            current = current._parent;
+        }
+    }
+
     public performStyleResolution(inherited: ResolvedTUIStyle): void {
-        if (!this.isStyleDirty) return;
-        this.resolvedStyleValue = resolveStyle(this.style, inherited);
+        if (!this.isStyleDirty && !this.subtreeStyleDirty) return;
+
+        if (this.isStyleDirty) {
+            this.resolvedStyleValue = resolveStyle(this.style, inherited);
+        }
         this.isStyleDirty = false;
+        this.subtreeStyleDirty = false;
+
         for (const child of this.getChildren()) {
             child.performStyleResolution(this.resolvedStyleValue);
         }
@@ -375,6 +390,9 @@ export class TUIElement {
         this._parent = parent;
         const newRoot = parent ? parent.root : null;
         this.propagateRoot(newRoot);
+        if (parent && (this.isStyleDirty || this.subtreeStyleDirty)) {
+            this.markSubtreeStyleDirtyUp();
+        }
     }
 
     private propagateRoot(newRoot: TUIElement | null): void {

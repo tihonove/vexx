@@ -23,6 +23,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private cells: (string | null)[][];
     private bgs: number[][];
+    private fgs: number[][];
 
     public size: Size;
     private readonly inputParser = new KeyInputParser();
@@ -31,6 +32,7 @@ export class MockTerminalBackend implements ITerminalBackend {
         this.size = size;
         this.cells = this.createEmptyGrid();
         this.bgs = this.createBgGrid();
+        this.fgs = this.createBgGrid();
     }
 
     private createEmptyGrid(): (string | null)[][] {
@@ -66,6 +68,7 @@ export class MockTerminalBackend implements ITerminalBackend {
                 const cell = grid.getCellAt(x, y);
                 this.cells[y][x] = cell.char;
                 this.bgs[y][x] = cell.bg;
+                this.fgs[y][x] = cell.fg;
             }
         }
         this.cursorPosition = cursorPosition;
@@ -168,6 +171,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     public clearScreen(): void {
         this.cells = this.createEmptyGrid();
         this.bgs = this.createBgGrid();
+        this.fgs = this.createBgGrid();
     }
 
     /**
@@ -181,10 +185,18 @@ export class MockTerminalBackend implements ITerminalBackend {
         return DEFAULT_COLOR;
     }
 
+    public getFgAt(position: Point): number {
+        if (position.y >= 0 && position.y < this.size.height && position.x >= 0 && position.x < this.size.width) {
+            return this.fgs[position.y][position.x];
+        }
+        return DEFAULT_COLOR;
+    }
+
     public resize(size: Size): void {
         this.size = size;
         this.cells = this.createEmptyGrid();
         this.bgs = this.createBgGrid();
+        this.fgs = this.createBgGrid();
         for (const cb of this.resizeCallbacks) {
             cb(size);
         }

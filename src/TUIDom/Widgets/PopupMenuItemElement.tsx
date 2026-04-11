@@ -8,11 +8,11 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 import { HFlex, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts";
 import { TextLabel } from "./TextLabelElement.ts";
 
-const HIGHLIGHT_BG = packRgb(0, 90, 180);
-const HIGHLIGHT_FG = packRgb(255, 255, 255);
-const MENU_FG = DEFAULT_COLOR;
-const MENU_BG = DEFAULT_COLOR;
-const SHORTCUT_FG = packRgb(128, 128, 128);
+export const HIGHLIGHT_BG = packRgb(0, 90, 180);
+export const HIGHLIGHT_FG = packRgb(255, 255, 255);
+export const MENU_FG = DEFAULT_COLOR;
+export const MENU_BG = DEFAULT_COLOR;
+export const SHORTCUT_FG = packRgb(128, 128, 128);
 
 export interface PopupMenuItemConfig {
     hasIconColumn: boolean;

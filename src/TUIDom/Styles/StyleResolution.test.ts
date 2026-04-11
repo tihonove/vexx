@@ -174,4 +174,79 @@ describe("performStyleResolution", () => {
         expect(mid.resolvedStyle.fg).toBe(fg2);
         expect(leaf.resolvedStyle.fg).toBe(fg2);
     });
+
+    it("child style change resolves when parent is clean", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        root.setRequestRenderCallback(() => {});
+        const mid = new ContainerElement();
+        const leaf = new TUIElement();
+        root.addChild(mid);
+        mid.addChild(leaf);
+
+        // Initial resolution — clears all dirty flags
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+
+        // Only leaf changes its style — parent stays clean
+        const leafFg = packRgb(255, 0, 128);
+        leaf.style = { fg: leafFg };
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+
+        expect(leaf.resolvedStyle.fg).toBe(leafFg);
+    });
+
+    it("deeply nested child style change propagates through clean ancestors", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        root.setRequestRenderCallback(() => {});
+        const a = new ContainerElement();
+        const b = new ContainerElement();
+        const c = new TUIElement();
+        root.addChild(a);
+        a.addChild(b);
+        b.addChild(c);
+
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+
+        const bg = packRgb(0, 90, 180);
+        c.style = { bg };
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+
+        expect(c.resolvedStyle.bg).toBe(bg);
+        // Ancestors remain unaffected
+        expect(a.resolvedStyle.bg).toBe(ROOT_RESOLVED_STYLE.bg);
+        expect(b.resolvedStyle.bg).toBe(ROOT_RESOLVED_STYLE.bg);
+    });
+
+    it("newly attached subtree with dirty styles resolves correctly", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        root.setRequestRenderCallback(() => {});
+        const mid = new ContainerElement();
+        root.addChild(mid);
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+
+        const detached = new ContainerElement();
+        const leaf = new TUIElement();
+        detached.addChild(leaf);
+        const fg = packRgb(0, 128, 255);
+        leaf.style = { fg };
+
+        mid.addChild(detached);
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+        expect(leaf.resolvedStyle.fg).toBe(fg);
+    });
+
+    it("newly created element attached to clean parent resolves styles", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        root.setRequestRenderCallback(() => {});
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+
+        const child = new TUIElement();
+        child.style = { bg: packRgb(0, 90, 180) };
+        root.addChild(child);
+        root.performStyleResolution(ROOT_RESOLVED_STYLE);
+        expect(child.resolvedStyle.bg).toBe(packRgb(0, 90, 180));
+    });
 });

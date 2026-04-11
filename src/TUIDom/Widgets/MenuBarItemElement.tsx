@@ -7,10 +7,10 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 import type { StyledChar } from "./TextLabelElement.ts";
 import { TextLabel } from "./TextLabelElement.ts";
 
-const MENU_BAR_FG = DEFAULT_COLOR;
-const MENU_BAR_BG = packRgb(64, 64, 64);
-const ACTIVE_MENU_FG = packRgb(255, 255, 255);
-const ACTIVE_MENU_BG = packRgb(0, 90, 180);
+export const MENU_BAR_FG = DEFAULT_COLOR;
+export const MENU_BAR_BG = packRgb(64, 64, 64);
+export const ACTIVE_MENU_FG = packRgb(255, 255, 255);
+export const ACTIVE_MENU_BG = packRgb(0, 90, 180);
 
 export class MenuBarItemElement extends CompositeElement {
     public readonly label: string;
