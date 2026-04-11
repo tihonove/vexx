@@ -22,6 +22,7 @@
     "demo:mouse": "node src/demos/mouseDemo.ts",
     "demo:focus": "node src/demos/focusDemo.ts",
     "demo:layout": "node src/demos/layoutDemo.ts",
+    "demo:tree": "node src/demos/treeDemo.ts",
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",
     "test": "vitest run",
@@ -45,5 +46,8 @@
     "typescript": "^5.8",
     "typescript-eslint": "^8.56.1",
     "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "chokidar": "^5.0.0"
   }
 }
