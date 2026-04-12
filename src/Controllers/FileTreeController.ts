@@ -1,6 +1,8 @@
 import { Disposable } from "../Common/Disposable.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
+import { PaddingContainerElement } from "../TUIDom/Widgets/PaddingContainerElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
+import { TitledPanelElement } from "../TUIDom/Widgets/TitledPanelElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { FileTreeDataProvider, type FileTreeNode } from "./FileTreeDataProvider.ts";
@@ -22,7 +24,10 @@ export class FileTreeController extends Disposable implements IController {
         this.rootPath = rootPath;
         this.provider = this.register(new FileTreeDataProvider(rootPath));
         this.tree = new TreeViewElement(this.provider);
-        this.view = new ScrollBarDecorator(this.tree);
+        this.view = new TitledPanelElement(
+            "  EXPLORER",
+            new PaddingContainerElement(new ScrollBarDecorator(this.tree), { left: 1 }),
+        );
         if (this.mounted) {
             this.wireTreeEvents();
         }

@@ -5,11 +5,7 @@ import chokidar, { type FSWatcher } from "chokidar";
 
 import { Disposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ITreeDataProvider, ITreeItem } from "../TUIDom/Widgets/ITreeDataProvider.ts";
-
-const FOLDER_ICON = "\uF115";
-const FOLDER_ICON_COLOR = packRgb(220, 180, 80);
 
 const EXCLUDED_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);
 
@@ -35,8 +31,6 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
         if (element.isDirectory) {
             return {
                 label: element.name,
-                icon: FOLDER_ICON,
-                iconColor: FOLDER_ICON_COLOR,
                 collapsible: true,
             };
         }
