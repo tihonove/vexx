@@ -1,13 +1,9 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface StatusBarItem {
     text: string;
 }
-
-const STATUS_BAR_BG = packRgb(0, 122, 204);
-const STATUS_BAR_FG = packRgb(255, 255, 255);
 
 export class StatusBarElement extends TUIElement {
     private items: StatusBarItem[] = [];
@@ -44,6 +40,7 @@ export class StatusBarElement extends TUIElement {
 
     public override render(context: RenderContext): void {
         const width = this.layoutSize.width;
+        const resolved = this.resolvedStyle;
 
         const text = this.items.map((item) => item.text).join("  ");
 
@@ -51,8 +48,8 @@ export class StatusBarElement extends TUIElement {
             const char = x < text.length ? text[x] : " ";
             context.setCell(x, 0, {
                 char,
-                fg: STATUS_BAR_FG,
-                bg: STATUS_BAR_BG,
+                fg: resolved.fg,
+                bg: resolved.bg,
             });
         }
     }

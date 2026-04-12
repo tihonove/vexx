@@ -100,6 +100,18 @@ item.onActivate = () => this.openMenu(index);
 ### Editor/
 Модель текстового редактора и виджет-мост к TUIDom. Хранение текста (пока массив строк, в планах Piece Table), состояние вида (scroll, selections, folding, курсор), undo/redo стек, TUI-виджет редактора и набор интерфейсов. Содержит подкаталог с тестовыми утилитами (TrackDSL).
 
+### Theme/
+Система темизации, совместимая с VS Code theme files. Тема — объект `WorkbenchTheme` в DI-контейнере (`WorkbenchThemeDIToken`), хранящий packed RGB цвета и правила подсветки синтаксиса. Контроллеры применяют цвета к элементам через `applyTheme()`, TUIDom ничего не знает о темах.
+
+- **IThemeFile** — типизация для theme JSON (формат совместим с VS Code 1:1)
+- **IWorkbenchColors** — интерфейс со всеми ~700 цветовыми ключами VS Code (большинство закомментировано, раскомментируются по мере реализации)
+- **IEditorTokenTheme** — правила подсветки синтаксиса (TextMate token colors)
+- **WorkbenchTheme** — основной класс с методами `getColor(key)` / `getColorOrDefault(key, default)`, статический `fromThemeFile(json)` парсит hex→packRgb при загрузке
+- **ColorUtils** — `parseHexColor()` — конвертация hex-строк (#RGB, #RGBA, #RRGGBB, #RRGGBBAA) → packed RGB
+- **themes/** — встроенные темы (Dark+)
+
+Зависимости: Theme зависит от Rendering (ColorUtils/packRgb), Common (DI primitives). Находится на одном уровне с Controllers.
+
 ### Controllers/
 Контроллеры приложения с чётким жизненным циклом. Каждый контроллер реализует `IController` (extends `IDisposable`):
 - **constructor** (sync) — создаёт UI-скелет (`view`), все поля non-null
@@ -126,6 +138,8 @@ item.onActivate = () => this.openMenu(index);
 
 ```
 App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → Common
+         ↑
+       Theme → { Rendering, Common }
 ```
 
 - **Common** не импортирует ничего из проекта

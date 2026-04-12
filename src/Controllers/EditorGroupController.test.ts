@@ -4,7 +4,16 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+
 import { EditorGroupController } from "./EditorGroupController.ts";
+
+function createEditorGroupController(): EditorGroupController {
+    const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+    return new EditorGroupController(themeService);
+}
 
 describe("EditorGroupController", () => {
     let tmpDir: string;
@@ -25,7 +34,7 @@ describe("EditorGroupController", () => {
 
     describe("openFile", () => {
         it("opens a file and creates a tab", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             const fp = writeFile("hello.ts", "const x = 1;");
 
@@ -37,7 +46,7 @@ describe("EditorGroupController", () => {
         });
 
         it("opens multiple files", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             const fp1 = writeFile("a.ts", "a");
             const fp2 = writeFile("b.ts", "b");
@@ -50,7 +59,7 @@ describe("EditorGroupController", () => {
         });
 
         it("switches to existing tab if file already open", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             const fp = writeFile("a.ts", "a");
 
@@ -65,7 +74,7 @@ describe("EditorGroupController", () => {
 
     describe("activateTab", () => {
         it("switches to the specified tab", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -77,7 +86,7 @@ describe("EditorGroupController", () => {
         });
 
         it("ignores out-of-range index", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
 
@@ -87,7 +96,7 @@ describe("EditorGroupController", () => {
         });
 
         it("updates view content to the active editor", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -101,7 +110,7 @@ describe("EditorGroupController", () => {
 
     describe("closeTab", () => {
         it("closes the only tab", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
 
@@ -113,7 +122,7 @@ describe("EditorGroupController", () => {
         });
 
         it("closes middle tab and adjusts activeIndex", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -128,7 +137,7 @@ describe("EditorGroupController", () => {
         });
 
         it("closes last tab and activates previous", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -141,7 +150,7 @@ describe("EditorGroupController", () => {
         });
 
         it("closes first tab when second is active", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -157,7 +166,7 @@ describe("EditorGroupController", () => {
 
     describe("syncTabs", () => {
         it("updates tab strip with current file names", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -169,7 +178,7 @@ describe("EditorGroupController", () => {
         });
 
         it("sets active index on tab strip", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -183,7 +192,7 @@ describe("EditorGroupController", () => {
 
     describe("tab callbacks", () => {
         it("onTabActivate switches to the clicked tab", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
@@ -194,7 +203,7 @@ describe("EditorGroupController", () => {
         });
 
         it("onTabClose closes the clicked tab", () => {
-            const ctrl = new EditorGroupController();
+            const ctrl = createEditorGroupController();
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));

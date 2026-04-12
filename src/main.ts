@@ -10,6 +10,10 @@ import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/Cor
 import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
+import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
+import { ThemeService } from "./Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
+import { WorkbenchTheme } from "./Theme/WorkbenchTheme.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
 // ── CLI: один или несколько файлов ──────────────────────────
@@ -27,6 +31,7 @@ const application = new TuiApplication(backend);
 // ── Bootstrap через DI-контейнер ────────────────────────────
 const container = new Container()
     .bind(TuiApplicationDIToken, () => application)
+    .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
     .bind(CommandRegistryDIToken, () => new CommandRegistry())
     .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)

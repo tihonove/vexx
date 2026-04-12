@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { Container } from "../Common/DiContainer.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
+import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
@@ -12,6 +16,7 @@ function createStatusBarController(): {
 } {
     const container = new Container();
     container
+        .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
         .bind(EditorGroupControllerDIToken, EditorGroupController)
         .bind(StatusBarControllerDIToken, StatusBarController);
 

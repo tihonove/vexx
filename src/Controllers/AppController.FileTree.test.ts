@@ -8,6 +8,10 @@ import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -39,6 +43,7 @@ function createIntegrationApp(tmpDir: string, size: Size = new Size(80, 24)): In
         .bind(CommandRegistryDIToken, () => new CommandRegistry())
         .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
         .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
+        .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
         .bind(EditorGroupControllerDIToken, EditorGroupController)
         .bind(StatusBarControllerDIToken, StatusBarController)
         .bind(AppControllerDIToken, AppController);

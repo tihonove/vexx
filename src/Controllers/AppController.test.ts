@@ -5,6 +5,10 @@ import { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -27,6 +31,7 @@ function createTestAppController(size: Size = new Size(80, 24)): TestAppContext 
         .bind(CommandRegistryDIToken, () => new CommandRegistry())
         .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
         .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
+        .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
         .bind(EditorGroupControllerDIToken, EditorGroupController)
         .bind(StatusBarControllerDIToken, StatusBarController)
         .bind(AppControllerDIToken, AppController);

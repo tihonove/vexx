@@ -1,6 +1,9 @@
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
+import type { ThemeService } from "../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
@@ -33,6 +36,7 @@ export class AppController extends Disposable implements IController {
         KeybindingRegistryDIToken,
         ServiceAccessorDIToken,
         StatusBarControllerDIToken,
+        ThemeServiceDIToken,
     ] as const;
     public readonly view: BodyElement;
     public readonly workbenchLayout: WorkbenchLayoutElement;
@@ -49,6 +53,7 @@ export class AppController extends Disposable implements IController {
         keybindings: KeybindingRegistry,
         accessor: ServiceAccessor,
         statusBarController: StatusBarController,
+        themeService: ThemeService,
     ) {
         super();
         this.editorGroupController = this.register(editorGroupController);
@@ -69,6 +74,11 @@ export class AppController extends Disposable implements IController {
         }
 
         this.setupMenu();
+        this.register(
+            themeService.onThemeChange((theme) => {
+                this.applyTheme(theme);
+            }),
+        );
     }
 
     public mount(): void {
@@ -100,6 +110,15 @@ export class AppController extends Disposable implements IController {
 
     public focusEditor(): void {
         this.editorGroupController.focusEditor();
+    }
+
+    private applyTheme(theme: WorkbenchTheme): void {
+        const fg = theme.getColor("foreground");
+        const bg = theme.getColor("editor.background");
+        this.view.style = {
+            ...(fg !== undefined ? { fg } : {}),
+            ...(bg !== undefined ? { bg } : {}),
+        };
     }
 
     private handleKeyDown = (event: TUIKeyboardEvent): void => {

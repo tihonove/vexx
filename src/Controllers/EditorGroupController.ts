@@ -3,6 +3,10 @@ import * as path from "node:path";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
+import type { ThemeService } from "../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
 import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 
@@ -12,16 +16,21 @@ import type { IController } from "./IController.ts";
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 
 export class EditorGroupController extends Disposable implements IController {
-    public static dependencies = [] as const;
+    public static dependencies = [ThemeServiceDIToken] as const;
 
     public readonly view: EditorGroupElement;
 
     private editors: EditorController[] = [];
     private activeIndexValue = -1;
 
-    public constructor() {
+    public constructor(themeService: ThemeService) {
         super();
         this.view = new EditorGroupElement();
+        this.register(
+            themeService.onThemeChange((theme) => {
+                this.applyTheme(theme);
+            }),
+        );
     }
 
     public get activeIndex(): number {
@@ -91,6 +100,23 @@ export class EditorGroupController extends Disposable implements IController {
         for (const editor of this.editors) {
             await editor.activate();
         }
+    }
+
+    private applyTheme(theme: WorkbenchTheme): void {
+        const strip = this.view.tabStrip;
+        strip.activeFg = theme.getColorOrDefault("tab.activeForeground", packRgb(255, 255, 255));
+        strip.activeBg = theme.getColorOrDefault("tab.activeBackground", packRgb(30, 30, 30));
+        strip.inactiveFg = theme.getColorOrDefault("tab.inactiveForeground", packRgb(150, 150, 150));
+        strip.inactiveBg = theme.getColorOrDefault("tab.inactiveBackground", packRgb(45, 45, 45));
+        strip.stripBg = theme.getColorOrDefault("editorGroupHeader.tabsBackground", packRgb(37, 37, 38));
+        strip.activeIndex = strip.activeIndex; // re-trigger style update
+
+        const editorBg = theme.getColor("editor.background");
+        const editorFg = theme.getColor("editor.foreground");
+        this.view.style = {
+            ...(editorFg !== undefined ? { fg: editorFg } : {}),
+            ...(editorBg !== undefined ? { bg: editorBg } : {}),
+        };
     }
 
     public focusEditor(): void {
