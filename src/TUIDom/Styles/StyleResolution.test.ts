@@ -27,17 +27,15 @@ describe("style setter triggers dirty", () => {
         root.addChild(mid);
         mid.addChild(leaf);
 
-        // Resolve to clear dirty flags
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
-        // Setting style triggers markStyleDirty internally
         const fg = packRgb(100, 200, 50);
-        root.style = { defaultFg: fg };
+        root.style = { fg };
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
-        expect(root.resolvedStyle.defaultFg).toBe(fg);
-        expect(mid.resolvedStyle.defaultFg).toBe(fg);
-        expect(leaf.resolvedStyle.defaultFg).toBe(fg);
+        expect(root.resolvedStyle.fg).toBe(fg);
+        expect(mid.resolvedStyle.fg).toBe(fg);
+        expect(leaf.resolvedStyle.fg).toBe(fg);
     });
 
     it("triggers markDirty for render scheduling", () => {
@@ -48,7 +46,7 @@ describe("style setter triggers dirty", () => {
             renderRequested = true;
         });
 
-        root.style = { defaultFg: packRgb(1, 2, 3) };
+        root.style = { fg: packRgb(1, 2, 3) };
         expect(renderRequested).toBe(true);
     });
 });
@@ -65,17 +63,14 @@ describe("performStyleResolution", () => {
 
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
-        // Manually poke resolvedStyle to verify early-exit:
-        // After resolution, setting style triggers dirty again
         const fg = packRgb(255, 0, 0);
-        root.style = { defaultFg: fg };
+        root.style = { fg };
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
-        // This time it WAS dirty (setter triggered it), so it should resolve
-        expect(root.resolvedStyle.defaultFg).toBe(fg);
+        expect(root.resolvedStyle.fg).toBe(fg);
     });
 
-    it("cascades defaultFg through tree", () => {
+    it("cascades fg through tree", () => {
         const root = new ContainerElement();
         root.setAsRoot();
         root.setRequestRenderCallback(() => {
@@ -87,7 +82,7 @@ describe("performStyleResolution", () => {
         mid.addChild(leaf);
 
         const green = packRgb(0, 255, 0);
-        root.style = { defaultFg: green };
+        root.style = { fg: green };
 
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
@@ -96,7 +91,7 @@ describe("performStyleResolution", () => {
         expect(leaf.resolvedStyle.fg).toBe(green);
     });
 
-    it("mid-level defaultFg override shadows parent", () => {
+    it("mid-level fg override shadows parent", () => {
         const root = new ContainerElement();
         root.setAsRoot();
         root.setRequestRenderCallback(() => {
@@ -109,8 +104,8 @@ describe("performStyleResolution", () => {
 
         const rootFg = packRgb(255, 255, 255);
         const midFg = packRgb(128, 128, 128);
-        root.style = { defaultFg: rootFg };
-        mid.style = { defaultFg: midFg };
+        root.style = { fg: rootFg };
+        mid.style = { fg: midFg };
 
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
@@ -130,7 +125,7 @@ describe("performStyleResolution", () => {
 
         const rootFg = packRgb(200, 200, 200);
         const leafFg = packRgb(255, 0, 0);
-        root.style = { defaultFg: rootFg };
+        root.style = { fg: rootFg };
         leaf.style = { fg: leafFg };
 
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
@@ -149,14 +144,11 @@ describe("performStyleResolution", () => {
         root.addChild(child);
 
         const fg1 = packRgb(10, 20, 30);
-        root.style = { defaultFg: fg1 };
+        root.style = { fg: fg1 };
 
-        // First resolution
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
         expect(child.resolvedStyle.fg).toBe(fg1);
 
-        // Second performStyleResolution without style change
-        // Both root and child are clean — should early-exit
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
         expect(child.resolvedStyle.fg).toBe(fg1);
     });
@@ -173,13 +165,12 @@ describe("performStyleResolution", () => {
         mid.addChild(leaf);
 
         const fg1 = packRgb(100, 100, 100);
-        root.style = { defaultFg: fg1 };
+        root.style = { fg: fg1 };
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
         expect(leaf.resolvedStyle.fg).toBe(fg1);
 
-        // Change cascade color via setter — triggers dirty automatically
         const fg2 = packRgb(200, 200, 200);
-        root.style = { defaultFg: fg2 };
+        root.style = { fg: fg2 };
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
         expect(root.resolvedStyle.fg).toBe(fg2);
@@ -198,10 +189,8 @@ describe("performStyleResolution", () => {
         root.addChild(mid);
         mid.addChild(leaf);
 
-        // Initial resolution — clears all dirty flags
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
-        // Only leaf changes its style — parent stays clean
         const leafFg = packRgb(255, 0, 128);
         leaf.style = { fg: leafFg };
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
@@ -229,7 +218,6 @@ describe("performStyleResolution", () => {
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
         expect(c.resolvedStyle.bg).toBe(bg);
-        // Ancestors remain unaffected
         expect(a.resolvedStyle.bg).toBe(ROOT_RESOLVED_STYLE.bg);
         expect(b.resolvedStyle.bg).toBe(ROOT_RESOLVED_STYLE.bg);
     });

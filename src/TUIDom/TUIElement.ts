@@ -77,7 +77,7 @@ interface ListenerEntry {
     capture: boolean;
 }
 
-export class TUIElement {
+export class TUIElement<S extends TUIStyle = TUIStyle> {
     private allocatedSize: Size = new Size(80, 24);
 
     public dirty = false;
@@ -105,16 +105,16 @@ export class TUIElement {
     public focusManager: FocusManager | null = null;
 
     // ─── Style system ───
-    private styleValue: Readonly<TUIStyle> = {};
+    private styleValue: Readonly<S> = {} as S;
     private resolvedStyleValue: ResolvedTUIStyle = ROOT_RESOLVED_STYLE;
     private isStyleDirty = true;
     private subtreeStyleDirty = false;
 
-    public get style(): Readonly<TUIStyle> {
+    public get style(): Readonly<S> {
         return this.styleValue;
     }
 
-    public set style(value: TUIStyle) {
+    public set style(value: S) {
         this.styleValue = value;
         this.markStyleDirty();
     }
@@ -459,7 +459,7 @@ export class TUIElement {
 
     // ─── Hit-testing ───
 
-    public elementFromPoint(point: Point): TUIElement | null {
+    public elementFromPoint(point: Point): this | null {
         const bounds = new Rect(this.globalPosition, this.layoutSize);
         if (!bounds.containsPoint(point)) return null;
 

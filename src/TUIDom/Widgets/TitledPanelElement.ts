@@ -1,7 +1,16 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
+import type { StyleColor, TUIStyle } from "../Styles/TUIStyle.ts";
+import { resolveStyleColor } from "../Styles/TUIStyle.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-export class TitledPanelElement extends TUIElement {
+export interface TitledPanelStyle extends TUIStyle {
+    panelTitleFg?: StyleColor;
+}
+
+const DEFAULT_PANEL_TITLE_FG = packRgb(130, 130, 130);
+
+export class TitledPanelElement extends TUIElement<TitledPanelStyle> {
     private title: string;
     private child: TUIElement;
     private titlePaddingLeft: number;
@@ -41,7 +50,10 @@ export class TitledPanelElement extends TUIElement {
     public override render(context: RenderContext): void {
         const width = this.layoutSize.width;
         const resolved = this.resolvedStyle;
-        const titleFg = resolved.panelTitleFg;
+        const titleFg =
+            this.style.panelTitleFg !== undefined
+                ? resolveStyleColor(this.style.panelTitleFg, resolved.fg, resolved.bg)
+                : DEFAULT_PANEL_TITLE_FG;
         const titleBg = resolved.bg;
 
         for (let x = 0; x < width; x++) {

@@ -1,76 +1,55 @@
-import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
+import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
 
-// ─── Meta Colors ───
-// Sentinel values that reference inherited cascade tokens.
+// ─── Inherited Color Sentinels ───
+// Sentinel values that resolve to the inherited fg/bg from the parent.
 // Start at -100 to avoid collision with DEFAULT_COLOR (-1).
 
-export const META_DEFAULT_FG = -100;
-export const META_DEFAULT_BG = -101;
+export const INHERITED_FG = -100;
+export const INHERITED_BG = -101;
 
 // ─── StyleColor type ───
 // A color value that can be:
 // - packed 24-bit RGB (0x000000–0xFFFFFF)
 // - DEFAULT_COLOR (-1): terminal default
-// - META_DEFAULT_FG (-100): resolve to inherited defaultFg
-// - META_DEFAULT_BG (-101): resolve to inherited defaultBg
+// - INHERITED_FG (-100): resolve to parent's fg
+// - INHERITED_BG (-101): resolve to parent's bg
 export type StyleColor = number;
 
 // ─── TUIStyle ───
 // Declarative style set by the user on an element.
-// All fields optional — undefined means "inherit from parent cascade".
+// All fields optional — undefined means "inherit from parent".
 
 export interface TUIStyle {
-    // Cascade tokens: set a new default for this subtree
-    defaultFg?: number;
-    defaultBg?: number;
-
-    // Element's own colors (concrete RGB, meta-color, or undefined=inherit)
     fg?: StyleColor;
     bg?: StyleColor;
-
-    // Semantic cascade tokens
-    panelTitleFg?: number;
 }
 
 // ─── ResolvedTUIStyle ───
-// Fully resolved style with only concrete values (no undefined, no meta-colors).
+// Fully resolved style with only concrete values (no undefined, no sentinels).
 
 export interface ResolvedTUIStyle {
-    readonly defaultFg: number;
-    readonly defaultBg: number;
     readonly fg: number;
     readonly bg: number;
-    readonly panelTitleFg: number;
 }
 
 // ─── Root default ───
 
 export const ROOT_RESOLVED_STYLE: ResolvedTUIStyle = {
-    defaultFg: DEFAULT_COLOR,
-    defaultBg: DEFAULT_COLOR,
     fg: DEFAULT_COLOR,
     bg: DEFAULT_COLOR,
-    panelTitleFg: packRgb(130, 130, 130),
 };
 
 // ─── Resolution functions ───
 
-export function resolveStyleColor(color: StyleColor | undefined, defaultFg: number, defaultBg: number): number {
-    if (color === undefined) return DEFAULT_COLOR;
-    if (color === META_DEFAULT_FG) return defaultFg;
-    if (color === META_DEFAULT_BG) return defaultBg;
+export function resolveStyleColor(color: StyleColor, inheritedFg: number, inheritedBg: number): number {
+    if (color === INHERITED_FG) return inheritedFg;
+    if (color === INHERITED_BG) return inheritedBg;
     return color;
 }
 
 export function resolveStyle(style: TUIStyle, inherited: ResolvedTUIStyle): ResolvedTUIStyle {
-    // Cascade tokens: if element defines a new default, use it; otherwise inherit
-    const defaultFg = style.defaultFg ?? inherited.defaultFg;
-    const defaultBg = style.defaultBg ?? inherited.defaultBg;
+    const fg = style.fg !== undefined ? resolveStyleColor(style.fg, inherited.fg, inherited.bg) : inherited.fg;
+    const bg = style.bg !== undefined ? resolveStyleColor(style.bg, inherited.fg, inherited.bg) : inherited.bg;
 
-    // Element's own colors: undefined → inherited cascade token; meta → resolve
-    const fg = style.fg === undefined ? defaultFg : resolveStyleColor(style.fg, defaultFg, defaultBg);
-    const bg = style.bg === undefined ? defaultBg : resolveStyleColor(style.bg, defaultFg, defaultBg);
-    const panelTitleFg = style.panelTitleFg ?? inherited.panelTitleFg;
-
-    return { defaultFg, defaultBg, fg, bg, panelTitleFg };
+    return { fg, bg };
 }
