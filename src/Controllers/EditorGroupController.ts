@@ -22,9 +22,11 @@ export class EditorGroupController extends Disposable implements IController {
 
     private editors: EditorController[] = [];
     private activeIndexValue = -1;
+    private themeService: ThemeService;
 
     public constructor(themeService: ThemeService) {
         super();
+        this.themeService = themeService;
         this.view = new EditorGroupElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -53,7 +55,7 @@ export class EditorGroupController extends Disposable implements IController {
             return;
         }
 
-        const editor = this.register(new EditorController());
+        const editor = this.register(new EditorController(this.themeService));
         editor.openFile(filePath);
         this.editors.push(editor);
         this.activateTab(this.editors.length - 1);

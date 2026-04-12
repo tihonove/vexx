@@ -6,6 +6,10 @@ import { Disposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
+import type { ThemeService } from "../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
 import type { IController } from "./IController.ts";
@@ -13,7 +17,7 @@ import type { IController } from "./IController.ts";
 export const EditorControllerDIToken = token<EditorController>("EditorController");
 
 export class EditorController extends Disposable implements IController {
-    public static dependencies = [] as const;
+    public static dependencies = [ThemeServiceDIToken] as const;
 
     public readonly view: ScrollBarDecorator;
 
@@ -31,7 +35,7 @@ export class EditorController extends Disposable implements IController {
         return this.filePath ? path.basename(this.filePath) : null;
     }
 
-    public constructor() {
+    public constructor(themeService: ThemeService) {
         super();
 
         this.doc = new TextDocument("");
@@ -39,6 +43,12 @@ export class EditorController extends Disposable implements IController {
         this.editor = new EditorElement(this.viewState);
         this.editor.tabIndex = 0;
         this.view = new ScrollBarDecorator(this.editor);
+
+        this.register(
+            themeService.onThemeChange((theme) => {
+                this.applyTheme(theme);
+            }),
+        );
     }
 
     public openFile(filePath: string): void {
@@ -72,5 +82,14 @@ export class EditorController extends Disposable implements IController {
 
     public focusEditor(): void {
         this.editor.focus();
+    }
+
+    private applyTheme(theme: WorkbenchTheme): void {
+        const fg = theme.getColorOrDefault("editor.foreground", packRgb(212, 212, 212));
+        const bg = theme.getColorOrDefault("editor.background", packRgb(30, 30, 30));
+        this.editor.style = { fg, bg };
+        this.editor.gutterBackground = theme.getColor("editorGutter.background") ?? bg;
+        this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
+        this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
     }
 }
