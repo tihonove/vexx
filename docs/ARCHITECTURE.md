@@ -114,6 +114,11 @@ item.onActivate = () => this.openMenu(index);
 ### demos/
 Демо-приложения для ручного тестирования отдельных компонентов.
 
+### StoryRunner/
+Лёгкий CLI-раннер для интерактивных stories (по аналогии со Storybook). Story-файлы (`*.stories.ts`) живут рядом с компонентами и экспортируют именованные функции-стори. Раннер автоматически создаёт `TuiApplication` + `BodyElement`, вызывает выбранную стори и запускает приложение.
+
+Запуск: `npm run story -- <story-file> [story-name] [extra-args...]`
+
 ### TestUtils/
 Общие утилиты для тестов (визуальные assertions для экрана).
 

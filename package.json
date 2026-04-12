@@ -23,6 +23,7 @@
     "demo:focus": "node src/demos/focusDemo.ts",
     "demo:layout": "node src/demos/layoutDemo.ts",
     "demo:tree": "node src/demos/treeDemo.ts",
+    "story": "tsx src/StoryRunner/run.ts",
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",
     "test": "vitest run",

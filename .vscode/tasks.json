@@ -20,6 +20,36 @@
             "script": "typecheck",
             "problemMatcher": ["$tsc"],
             "detail": "tsc --noEmit"
+        },
+        {
+            "label": "Run App in External Terminal",
+            "type": "shell",
+            "command": "gnome-terminal",
+            "args": [
+                "--working-directory=${workspaceFolder}",
+                "--", 
+                "bash", "-c", "npm start ~/.dotfiles/.bashrc" 
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "Run Story in External Terminal",
+            "type": "shell",
+            "command": "gnome-terminal",
+            "args": [
+                "--working-directory=${workspaceFolder}",
+                "--",
+                "bash", "-c", "npm run story -- ${relativeFile} ${selectedText}"
+            ],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared"
+            }
         }
     ]
 }
