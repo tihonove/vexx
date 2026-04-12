@@ -42,6 +42,6 @@ export function parseHexColor(hex: string): number {
             return packRgb(r, g, b);
         }
         default:
-            throw new Error(`Invalid hex color: "${hex}" (unexpected length ${body.length})`);
+            throw new Error(`Invalid hex color: "${hex}" (unexpected length ${body.length.toString()})`);
     }
 }

@@ -136,7 +136,7 @@ export class EditorTabStripElement extends TUIElement {
         this.hflex.replaceChildren(children);
     }
 
-    private updateItemStyles(): void {
+    public updateItemStyles(): void {
         for (let i = 0; i < this.itemElements.length; i++) {
             const isActive = i === this.activeIndexValue;
             this.itemElements[i].style = {

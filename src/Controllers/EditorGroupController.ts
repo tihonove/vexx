@@ -109,7 +109,7 @@ export class EditorGroupController extends Disposable implements IController {
         strip.inactiveFg = theme.getColorOrDefault("tab.inactiveForeground", packRgb(150, 150, 150));
         strip.inactiveBg = theme.getColorOrDefault("tab.inactiveBackground", packRgb(45, 45, 45));
         strip.stripBg = theme.getColorOrDefault("editorGroupHeader.tabsBackground", packRgb(37, 37, 38));
-        strip.activeIndex = strip.activeIndex; // re-trigger style update
+        strip.updateItemStyles();
 
         const editorBg = theme.getColor("editor.background");
         const editorFg = theme.getColor("editor.foreground");
