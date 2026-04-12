@@ -1,20 +1,27 @@
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
+import { EditorElement } from "../Editor/EditorElement.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
+import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
+import { cursorPageDownAction, cursorPageUpAction } from "./Actions/EditorActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
+import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { ContextKeyService } from "./ContextKeyService.ts";
+import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
@@ -27,7 +34,14 @@ import { StatusBarController } from "./StatusBarController.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
-const builtinActions = [fileSaveAction, quitAction];
+const builtinActions = [
+    fileSaveAction,
+    quitAction,
+    cursorPageDownAction,
+    cursorPageUpAction,
+    listFocusPageDownAction,
+    listFocusPageUpAction,
+];
 
 export class AppController extends Disposable implements IController {
     public static dependencies = [
@@ -37,6 +51,7 @@ export class AppController extends Disposable implements IController {
         ServiceAccessorDIToken,
         StatusBarControllerDIToken,
         ThemeServiceDIToken,
+        ContextKeyServiceDIToken,
     ] as const;
     public readonly view: BodyElement;
     public readonly workbenchLayout: WorkbenchLayoutElement;
@@ -46,6 +61,7 @@ export class AppController extends Disposable implements IController {
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
+    private contextKeys: ContextKeyService;
 
     public constructor(
         editorGroupController: EditorGroupController,
@@ -54,6 +70,7 @@ export class AppController extends Disposable implements IController {
         accessor: ServiceAccessor,
         statusBarController: StatusBarController,
         themeService: ThemeService,
+        contextKeys: ContextKeyService,
     ) {
         super();
         this.editorGroupController = this.register(editorGroupController);
@@ -61,6 +78,7 @@ export class AppController extends Disposable implements IController {
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
+        this.contextKeys = contextKeys;
 
         this.workbenchLayout = new WorkbenchLayoutElement();
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
@@ -84,6 +102,8 @@ export class AppController extends Disposable implements IController {
     public mount(): void {
         this.view.addEventListener("keydown", this.handleKeyDown);
         this.view.addEventListener("keypress", this.handleKeyPress);
+        this.view.addEventListener("focus", this.handleFocusChange, { capture: true });
+        this.view.addEventListener("blur", this.handleFocusChange, { capture: true });
         this.editorGroupController.mount();
         this.fileTreeController.mount();
         this.fileTreeController.onFileActivate = (filePath) => {
@@ -122,7 +142,7 @@ export class AppController extends Disposable implements IController {
     }
 
     private handleKeyDown = (event: TUIKeyboardEvent): void => {
-        const commandId = this.keybindings.resolve(event);
+        const commandId = this.keybindings.resolve(event, this.contextKeys);
         if (commandId && this.commands.has(commandId)) {
             event.preventDefault();
             this.commands.execute(commandId);
@@ -132,6 +152,17 @@ export class AppController extends Disposable implements IController {
     private handleKeyPress = (): void => {
         this.statusBarController.update();
     };
+
+    private handleFocusChange = (_event: TUIFocusEvent): void => {
+        this.updateContextKeys();
+    };
+
+    private updateContextKeys(): void {
+        const active = this.view.focusManager?.activeElement ?? null;
+
+        this.contextKeys.set("textInputFocus", active instanceof EditorElement);
+        this.contextKeys.set("listFocus", active instanceof TreeViewElement);
+    }
 
     private setupMenu(): void {
         const menuItems: MenuBarItem[] = [

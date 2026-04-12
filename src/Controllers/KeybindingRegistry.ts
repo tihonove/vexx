@@ -1,6 +1,8 @@
 import { token } from "../Common/DiContainer.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
 
+import type { ContextKeyService } from "./ContextKeyService.ts";
+
 export const KeybindingRegistryDIToken = token<KeybindingRegistry>("KeybindingRegistry");
 
 export interface KeyboardEventLike {
@@ -22,6 +24,7 @@ export interface Keybinding {
 interface KeybindingEntry {
     binding: Keybinding;
     commandId: string;
+    when?: string;
 }
 
 const specialKeyMap: Record<string, string> = {
@@ -90,10 +93,11 @@ function matchesBinding(event: KeyboardEventLike, binding: Keybinding): boolean 
 export class KeybindingRegistry implements IDisposable {
     private entries: KeybindingEntry[] = [];
 
-    public register(binding: Keybinding, commandId: string): IDisposable {
+    public register(binding: Keybinding, commandId: string, when?: string): IDisposable {
         const entry: KeybindingEntry = {
             binding,
             commandId,
+            when,
         };
         this.entries.push(entry);
         return {
@@ -104,10 +108,16 @@ export class KeybindingRegistry implements IDisposable {
         };
     }
 
-    public resolve(event: KeyboardEventLike): string | undefined {
+    public resolve(event: KeyboardEventLike, contextKeys?: ContextKeyService): string | undefined {
         for (let i = this.entries.length - 1; i >= 0; i--) {
-            if (matchesBinding(event, this.entries[i].binding)) {
-                return this.entries[i].commandId;
+            const entry = this.entries[i];
+            if (matchesBinding(event, entry.binding)) {
+                if (entry.when && contextKeys) {
+                    if (!contextKeys.evaluate(entry.when)) continue;
+                } else if (entry.when) {
+                    continue;
+                }
+                return entry.commandId;
             }
         }
         return undefined;

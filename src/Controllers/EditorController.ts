@@ -21,8 +21,12 @@ export class EditorController extends Disposable implements IController {
 
     public readonly view: ScrollBarDecorator;
 
+    public get viewState(): EditorViewState {
+        return this.editorViewState;
+    }
+
     private doc: TextDocument;
-    private viewState: EditorViewState;
+    private editorViewState: EditorViewState;
     private editor: EditorElement;
     private filePath: string | null = null;
     private savedVersionId = 0;
@@ -39,8 +43,8 @@ export class EditorController extends Disposable implements IController {
         super();
 
         this.doc = new TextDocument("");
-        this.viewState = new EditorViewState(this.doc);
-        this.editor = new EditorElement(this.viewState);
+        this.editorViewState = new EditorViewState(this.doc);
+        this.editor = new EditorElement(this.editorViewState);
         this.editor.tabIndex = 0;
         this.view = new ScrollBarDecorator(this.editor);
 
@@ -55,8 +59,8 @@ export class EditorController extends Disposable implements IController {
         this.filePath = filePath;
         const content = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : "";
         this.doc = new TextDocument(content);
-        this.viewState = new EditorViewState(this.doc);
-        this.editor = new EditorElement(this.viewState);
+        this.editorViewState = new EditorViewState(this.doc);
+        this.editor = new EditorElement(this.editorViewState);
         this.editor.tabIndex = 0;
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;

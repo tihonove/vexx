@@ -2,12 +2,20 @@
     "version": "2.0.0",
     "tasks": [
         {
+            "label": "npm test",
+            "type": "npm",
+            "script": "test",
+            "problemMatcher": ["$tsc"],
+            "detail": "npm test"
+        },
+        {
             "label": "npm lint",
             "type": "npm",
             "script": "lint",
             "problemMatcher": ["$eslint-compact"],
             "detail": "eslint src/"
-        },{
+        },
+        {
             "label": "npm lint:fix",
             "type": "npm",
             "script": "lint:fix",
@@ -28,7 +36,9 @@
             "args": [
                 "--working-directory=${workspaceFolder}",
                 "--",
-                "bash", "-c", "npm run story -- ${relativeFile} ${selectedText}"
+                "bash",
+                "-c",
+                "npm run story -- ${relativeFile} ${selectedText}"
             ],
             "problemMatcher": [],
             "presentation": {
@@ -43,7 +53,9 @@
             "args": [
                 "--working-directory=${workspaceFolder}",
                 "--",
-                "bash", "-c", "npx tsx --inspect-brk=9229 src/StoryRunner/run.ts ${relativeFile} ${selectedText}"
+                "bash",
+                "-c",
+                "npx tsx --inspect-brk=9229 src/StoryRunner/run.ts ${relativeFile} ${selectedText}"
             ],
             "isBackground": true,
             "problemMatcher": {

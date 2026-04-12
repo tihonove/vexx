@@ -8,6 +8,7 @@ export interface CommandAction {
     readonly id: string;
     readonly title: string;
     readonly keybinding?: Keybinding;
+    readonly when?: string;
     run(accessor: ServiceAccessor, ...args: unknown[]): unknown;
 }
 
@@ -22,7 +23,7 @@ export function registerAction(
     disposables.push(commands.register(action.id, (...args: unknown[]) => action.run(accessor, ...args)));
 
     if (action.keybinding) {
-        disposables.push(keybindings.register(action.keybinding, action.id));
+        disposables.push(keybindings.register(action.keybinding, action.id, action.when));
     }
 
     return {

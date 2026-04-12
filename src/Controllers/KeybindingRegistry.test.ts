@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { ContextKeyService } from "./ContextKeyService.ts";
 import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
 import { KeybindingRegistry, parseKeybinding } from "./KeybindingRegistry.ts";
 
@@ -174,5 +175,66 @@ describe("KeybindingRegistry", () => {
 
         expect(registry.resolve(makeEvent({ key: "s", ctrlKey: true }))).toBeUndefined();
         expect(registry.resolve(makeEvent({ key: "q", ctrlKey: true }))).toBeUndefined();
+    });
+
+    describe("when-context", () => {
+        it("resolves binding with matching when-condition", () => {
+            const registry = new KeybindingRegistry();
+            const ctx = new ContextKeyService();
+            ctx.set("textInputFocus", true);
+            registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
+
+            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("cursorPageDown");
+        });
+
+        it("skips binding when when-condition is false", () => {
+            const registry = new KeybindingRegistry();
+            const ctx = new ContextKeyService();
+            registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
+
+            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBeUndefined();
+        });
+
+        it("selects correct binding among multiple with different when-conditions", () => {
+            const registry = new KeybindingRegistry();
+            const ctx = new ContextKeyService();
+            registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
+            registry.register(kb("pagedown"), "list.focusPageDown", "listFocus");
+
+            ctx.set("listFocus", true);
+            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("list.focusPageDown");
+
+            ctx.reset("listFocus");
+            ctx.set("textInputFocus", true);
+            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("cursorPageDown");
+        });
+
+        it("falls through to binding without when if no when-conditioned matches", () => {
+            const registry = new KeybindingRegistry();
+            const ctx = new ContextKeyService();
+            registry.register(kb("pagedown"), "fallback");
+            registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
+
+            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("fallback");
+        });
+
+        it("skips when-conditioned binding if no contextKeys provided", () => {
+            const registry = new KeybindingRegistry();
+            registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
+
+            expect(registry.resolve(makeEvent({ key: "PageDown" }))).toBeUndefined();
+        });
+
+        it("supports complex when-expressions", () => {
+            const registry = new KeybindingRegistry();
+            const ctx = new ContextKeyService();
+            registry.register(kb("pagedown"), "combined", "textInputFocus && !listFocus");
+
+            ctx.set("textInputFocus", true);
+            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("combined");
+
+            ctx.set("listFocus", true);
+            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBeUndefined();
+        });
     });
 });

@@ -331,6 +331,52 @@ export class EditorViewState {
     }
 
     /**
+     * Moves each cursor one page (viewportHeight lines) down.
+     * Preserves idealColumn for vertical navigation.
+     */
+    public cursorPageDown(inSelectionMode = false): void {
+        const pageSize = Math.max(1, this.viewportHeight - 1);
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            const ideal = getIdealColumn(sel);
+            let targetLine = pos.line;
+            for (let i = 0; i < pageSize; i++) {
+                const next = this.nextVisibleLine(targetLine);
+                if (next < 0) break;
+                targetLine = next;
+            }
+            const targetLineLen = this.document.getLineLength(targetLine);
+            const newChar = Math.min(ideal, targetLineLen);
+            return this.buildSelection(sel, targetLine, newChar, ideal, inSelectionMode);
+        });
+        this.normalizeSelections();
+        this.ensureCursorVisible();
+    }
+
+    /**
+     * Moves each cursor one page (viewportHeight lines) up.
+     * Preserves idealColumn for vertical navigation.
+     */
+    public cursorPageUp(inSelectionMode = false): void {
+        const pageSize = Math.max(1, this.viewportHeight - 1);
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            const ideal = getIdealColumn(sel);
+            let targetLine = pos.line;
+            for (let i = 0; i < pageSize; i++) {
+                const prev = this.previousVisibleLine(targetLine);
+                if (prev < 0) break;
+                targetLine = prev;
+            }
+            const targetLineLen = this.document.getLineLength(targetLine);
+            const newChar = Math.min(ideal, targetLineLen);
+            return this.buildSelection(sel, targetLine, newChar, ideal, inSelectionMode);
+        });
+        this.normalizeSelections();
+        this.ensureCursorVisible();
+    }
+
+    /**
      * Deletes one character to the right of each cursor, or deletes the selection.
      */
     public deleteRight(): IUndoElement | undefined {

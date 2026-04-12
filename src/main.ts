@@ -6,6 +6,7 @@ import type { ServiceAccessor } from "./Common/DiContainer.ts";
 import { Container } from "./Common/DiContainer.ts";
 import { AppController, AppControllerDIToken } from "./Controllers/AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRegistry.ts";
+import { ContextKeyService, ContextKeyServiceDIToken } from "./Controllers/ContextKeyService.ts";
 import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
@@ -34,6 +35,7 @@ const container = new Container()
     .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
     .bind(CommandRegistryDIToken, () => new CommandRegistry())
     .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
+    .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
     .bind(EditorGroupControllerDIToken, EditorGroupController)
     .bind(StatusBarControllerDIToken, StatusBarController)

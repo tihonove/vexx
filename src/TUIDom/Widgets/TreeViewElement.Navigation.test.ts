@@ -427,4 +427,80 @@ describe("TreeViewElement", () => {
             FLAT_TREE.pop();
         });
     });
+
+    describe("page navigation", () => {
+        function makeLargeTree(count: number): TestNode[] {
+            return Array.from({ length: count }, (_, i) => ({
+                id: `item-${String(i)}`,
+                label: `Item ${String(i)}`,
+            }));
+        }
+
+        it("focusPageDown moves selection by viewportHeight - 1", async () => {
+            const items = makeLargeTree(30);
+            const { tree, app } = createTree(items, new Size(40, 10));
+            await tree.refresh();
+            app.render();
+
+            tree.focusPageDown();
+            const selectSpy = vi.fn();
+            tree.onSelect = selectSpy;
+
+            // Verify position by pressing ArrowDown from current position
+            app.sendKey("ArrowDown");
+            // focusPageDown moves from 0 to 9 (viewport=10, page=9), then ArrowDown goes to 10
+            expect(selectSpy).toHaveBeenCalledWith(items[10]);
+        });
+
+        it("focusPageDown clamps at the end of the list", async () => {
+            const items = makeLargeTree(15);
+            const { tree, app } = createTree(items, new Size(40, 10));
+            await tree.refresh();
+            app.render();
+
+            // Move to item 10
+            for (let i = 0; i < 10; i++) app.sendKey("ArrowDown");
+
+            const selectSpy = vi.fn();
+            tree.onSelect = selectSpy;
+
+            tree.focusPageDown();
+            // From index 10, pageSize=9, would be 19 but clamped to 14
+            expect(selectSpy).toHaveBeenCalledWith(items[14]);
+        });
+
+        it("focusPageUp moves selection up by viewportHeight - 1", async () => {
+            const items = makeLargeTree(30);
+            const { tree, app } = createTree(items, new Size(40, 10));
+            await tree.refresh();
+            app.render();
+
+            // Move to index 20
+            for (let i = 0; i < 20; i++) app.sendKey("ArrowDown");
+
+            const selectSpy = vi.fn();
+            tree.onSelect = selectSpy;
+
+            tree.focusPageUp();
+            // From index 20, pageSize=9, target = 11
+            expect(selectSpy).toHaveBeenCalledWith(items[11]);
+        });
+
+        it("focusPageUp clamps at the beginning of the list", async () => {
+            const items = makeLargeTree(30);
+            const { tree, app } = createTree(items, new Size(40, 10));
+            await tree.refresh();
+            app.render();
+
+            // Move to index 3
+            for (let i = 0; i < 3; i++) app.sendKey("ArrowDown");
+
+            const selectSpy = vi.fn();
+            tree.onSelect = selectSpy;
+
+            tree.focusPageUp();
+            // From index 3, pageSize=9, would be -6 but clamped to 0
+            expect(selectSpy).toHaveBeenCalledWith(items[0]);
+        });
+    });
 });

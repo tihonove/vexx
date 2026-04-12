@@ -248,6 +248,16 @@ export class TreeViewElement<T> extends ScrollableElement {
         this.selectedIndex = idx >= 0 ? idx : 0;
     }
 
+    public focusPageDown(): void {
+        const pageSize = Math.max(1, this.layoutSize.height - 1);
+        this.setSelectedIndex(this.selectedIndex + pageSize);
+    }
+
+    public focusPageUp(): void {
+        const pageSize = Math.max(1, this.layoutSize.height - 1);
+        this.setSelectedIndex(this.selectedIndex - pageSize);
+    }
+
     private setSelectedIndex(index: number): void {
         if (index < 0) index = 0;
         if (index >= this.flatNodes.length) index = this.flatNodes.length - 1;

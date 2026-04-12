@@ -13,6 +13,7 @@ import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { ContextKeyService, ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
@@ -30,6 +31,7 @@ function createTestAppController(size: Size = new Size(80, 24)): TestAppContext 
     container
         .bind(CommandRegistryDIToken, () => new CommandRegistry())
         .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
+        .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
         .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
         .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
         .bind(EditorGroupControllerDIToken, EditorGroupController)
