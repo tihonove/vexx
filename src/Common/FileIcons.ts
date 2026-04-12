@@ -6,6 +6,7 @@ export interface FileIcon {
 }
 
 const DEFAULT_ICON: FileIcon = { icon: "\uF016", color: packRgb(180, 180, 180) };
+const FOLDER_ICON: FileIcon = { icon: "\uF115", color: packRgb(138, 180, 248) };
 
 const EXTENSION_ICONS: Record<string, FileIcon | undefined> = {
     ".ts": { icon: "\uE628", color: packRgb(49, 120, 198) },
@@ -49,4 +50,8 @@ export function getFileIcon(filename: string): FileIcon {
     }
 
     return DEFAULT_ICON;
+}
+
+export function getFolderIcon(): FileIcon {
+    return FOLDER_ICON;
 }
