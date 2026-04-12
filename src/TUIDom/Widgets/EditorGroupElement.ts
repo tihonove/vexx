@@ -49,10 +49,7 @@ export class EditorGroupElement extends TUIElement {
         if (this.content) {
             const contentHeight = Math.max(0, containerSize.height - tabStripHeight);
             this.content.localPosition = new Offset(0, tabStripHeight);
-            this.content.globalPosition = new Point(
-                this.globalPosition.x,
-                this.globalPosition.y + tabStripHeight,
-            );
+            this.content.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y + tabStripHeight);
             this.content.performLayout(BoxConstraints.tight(new Size(containerSize.width, contentHeight)));
         }
 

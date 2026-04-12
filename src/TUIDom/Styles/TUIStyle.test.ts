@@ -2,14 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
 
-import {
-    META_DEFAULT_BG,
-    META_DEFAULT_FG,
-    resolveStyle,
-    resolveStyleColor,
-    ROOT_RESOLVED_STYLE,
-} from "./TUIStyle.ts";
 import type { ResolvedTUIStyle } from "./TUIStyle.ts";
+import { META_DEFAULT_BG, META_DEFAULT_FG, resolveStyle, resolveStyleColor, ROOT_RESOLVED_STYLE } from "./TUIStyle.ts";
 
 describe("resolveStyleColor", () => {
     const dfg = packRgb(200, 200, 200);
@@ -117,10 +111,7 @@ describe("resolveStyle", () => {
         const rootBg = packRgb(0, 0, 0);
 
         // Root sets default colors
-        const rootResolved = resolveStyle(
-            { defaultFg: rootFg, defaultBg: rootBg },
-            ROOT_RESOLVED_STYLE,
-        );
+        const rootResolved = resolveStyle({ defaultFg: rootFg, defaultBg: rootBg }, ROOT_RESOLVED_STYLE);
         expect(rootResolved.defaultFg).toBe(rootFg);
         expect(rootResolved.fg).toBe(rootFg);
 

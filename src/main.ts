@@ -20,7 +20,7 @@ if (filePaths.length === 0) {
     process.exit(1);
 }
 
-const resolvedPaths = filePaths.map(f => path.resolve(f));
+const resolvedPaths = filePaths.map((f) => path.resolve(f));
 const backend = new NodeTerminalBackend();
 const application = new TuiApplication(backend);
 

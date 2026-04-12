@@ -32,7 +32,7 @@ export class EditorTabItemElement extends TUIElement {
         this.paddingRight = options?.paddingRight ?? 1;
 
         this.addEventListener("click", (event) => {
-            const mouseEvent = event as TUIMouseEvent;
+            const mouseEvent = event;
             const closeStart = this.getCloseButtonStart();
             if (mouseEvent.localX >= closeStart && mouseEvent.localX < closeStart + CLOSE_CHAR.length) {
                 this.onClose?.();

@@ -50,9 +50,7 @@ const NESTED_TREE: TestNode[] = [
             {
                 id: "src/utils",
                 label: "utils",
-                children: [
-                    { id: "src/utils/helper.ts", label: "helper.ts" },
-                ],
+                children: [{ id: "src/utils/helper.ts", label: "helper.ts" }],
             },
             { id: "src/main.ts", label: "main.ts" },
         ],
@@ -332,7 +330,7 @@ describe("TreeViewElement", () => {
         it("auto-scrolls down when selection goes below viewport", async () => {
             const shortTree: TestNode[] = [];
             for (let i = 0; i < 20; i++) {
-                shortTree.push({ id: `item-${i}`, label: `Item ${i}` });
+                shortTree.push({ id: `item-${String(i)}`, label: `Item ${String(i)}` });
             }
             const { tree, app } = createTree(shortTree, new Size(40, 5));
             await tree.refresh();
@@ -349,7 +347,7 @@ describe("TreeViewElement", () => {
         it("auto-scrolls up when selection goes above viewport", async () => {
             const items: TestNode[] = [];
             for (let i = 0; i < 20; i++) {
-                items.push({ id: `item-${i}`, label: `Item ${i}` });
+                items.push({ id: `item-${String(i)}`, label: `Item ${String(i)}` });
             }
             const { tree, app } = createTree(items, new Size(40, 5));
             await tree.refresh();

@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug selected story",
+            "type": "node",
+            "request": "attach",
+            "port": 9229,
+            "restart": true,
+            "timeout": 10000,
+            "preLaunchTask": "Debug Story in External Terminal",
+            "skipFiles": ["<node_internals>/**", "**/node_modules/**"]
+        }
+    ]
+}

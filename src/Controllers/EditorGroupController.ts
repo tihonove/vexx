@@ -3,8 +3,8 @@ import * as path from "node:path";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
-import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
+import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
@@ -79,8 +79,12 @@ export class EditorGroupController extends Disposable implements IController {
     }
 
     public mount(): void {
-        this.view.tabStrip.onTabActivate = (index) => this.activateTab(index);
-        this.view.tabStrip.onTabClose = (index) => this.closeTab(index);
+        this.view.tabStrip.onTabActivate = (index) => {
+            this.activateTab(index);
+        };
+        this.view.tabStrip.onTabClose = (index) => {
+            this.closeTab(index);
+        };
     }
 
     public async activate(): Promise<void> {

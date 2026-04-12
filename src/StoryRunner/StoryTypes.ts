@@ -9,7 +9,7 @@ export interface StoryContext {
     afterRun(cb: () => void | Promise<void>): void;
 }
 
-export type StoryFunction = (ctx: StoryContext) => TUIElement | void | Promise<TUIElement | void>;
+export type StoryFunction = (ctx: StoryContext) => TUIElement | undefined | Promise<TUIElement | undefined>;
 
 export interface StoryMeta {
     title?: string;

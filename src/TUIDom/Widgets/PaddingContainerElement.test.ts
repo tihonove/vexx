@@ -9,11 +9,7 @@ import { RenderContext } from "../TUIElement.ts";
 import { BoxElement } from "./BoxElement.ts";
 import { PaddingContainerElement } from "./PaddingContainerElement.ts";
 
-function layoutAndRender(
-    element: PaddingContainerElement,
-    width: number,
-    height: number,
-): MockTerminalBackend {
+function layoutAndRender(element: PaddingContainerElement, width: number, height: number): MockTerminalBackend {
     const size = new Size(width, height);
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);
@@ -33,8 +29,8 @@ describe("PaddingContainerElement", () => {
         padded.globalPosition = new Point(0, 0);
         padded.performLayout(BoxConstraints.tight(new Size(8, 5)));
 
-        expect(box.layoutSize.width).toBe(7);   // 8 - 1 left
-        expect(box.layoutSize.height).toBe(4);  // 5 - 1 top
+        expect(box.layoutSize.width).toBe(7); // 8 - 1 left
+        expect(box.layoutSize.height).toBe(4); // 5 - 1 top
     });
 
     it("computes child size with all paddings", () => {
@@ -44,8 +40,8 @@ describe("PaddingContainerElement", () => {
         padded.globalPosition = new Point(0, 0);
         padded.performLayout(BoxConstraints.tight(new Size(20, 10)));
 
-        expect(box.layoutSize.width).toBe(16);  // 20 - 3 - 1
-        expect(box.layoutSize.height).toBe(7);  // 10 - 2 - 1
+        expect(box.layoutSize.width).toBe(16); // 20 - 3 - 1
+        expect(box.layoutSize.height).toBe(7); // 10 - 2 - 1
     });
 
     it("sets child globalPosition with padding offset", () => {
@@ -55,8 +51,8 @@ describe("PaddingContainerElement", () => {
         padded.globalPosition = new Point(5, 10);
         padded.performLayout(BoxConstraints.tight(new Size(20, 10)));
 
-        expect(box.globalPosition.x).toBe(8);   // 5 + 3
-        expect(box.globalPosition.y).toBe(12);  // 10 + 2
+        expect(box.globalPosition.x).toBe(8); // 5 + 3
+        expect(box.globalPosition.y).toBe(12); // 10 + 2
     });
 
     it("renders child without padding (defaults to 0)", () => {

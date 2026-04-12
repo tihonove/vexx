@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
+import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
 
@@ -14,11 +14,7 @@ function layoutGroup(group: EditorGroupElement, width = 40, height = 10): void {
     group.performLayout(BoxConstraints.tight(new Size(width, height)));
 }
 
-function renderGroup(
-    group: EditorGroupElement,
-    width = 40,
-    height = 10,
-): MockTerminalBackend {
+function renderGroup(group: EditorGroupElement, width = 40, height = 10): MockTerminalBackend {
     const size = new Size(width, height);
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);

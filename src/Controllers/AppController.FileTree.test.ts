@@ -85,7 +85,8 @@ describe("FileTree opens file in editor", () => {
         testApp.render();
 
         // File should now be open in the editor group
-        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController }).editorGroupController;
+        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
+            .editorGroupController;
         expect(editorGroupCtrl.editorCount).toBe(1);
         expect(editorGroupCtrl.getActiveEditor()?.fileName).toBe("hello.txt");
     });
@@ -104,7 +105,8 @@ describe("FileTree opens file in editor", () => {
         testApp.sendKey("Enter");
         testApp.render();
 
-        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController }).editorGroupController;
+        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
+            .editorGroupController;
         expect(editorGroupCtrl.editorCount).toBe(2);
     });
 

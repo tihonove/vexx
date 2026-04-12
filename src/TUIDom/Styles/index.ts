@@ -1,8 +1,2 @@
-export type { TUIStyle, ResolvedTUIStyle, StyleColor } from "./TUIStyle.ts";
-export {
-    META_DEFAULT_FG,
-    META_DEFAULT_BG,
-    ROOT_RESOLVED_STYLE,
-    resolveStyleColor,
-    resolveStyle,
-} from "./TUIStyle.ts";
+export type { ResolvedTUIStyle, StyleColor, TUIStyle } from "./TUIStyle.ts";
+export { META_DEFAULT_BG, META_DEFAULT_FG, resolveStyle, resolveStyleColor, ROOT_RESOLVED_STYLE } from "./TUIStyle.ts";

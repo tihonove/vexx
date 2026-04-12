@@ -38,7 +38,9 @@ describe("CompositeElement style resolution", () => {
     it("rebuild with new colors resolves correctly after style resolution", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const composite = new TestComposite();
         root.addChild(composite);
 
@@ -54,7 +56,9 @@ describe("CompositeElement style resolution", () => {
     it("newly attached composite resolves child styles", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
         const composite = new TestComposite();

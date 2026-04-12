@@ -7,7 +7,7 @@ export interface FileIcon {
 
 const DEFAULT_ICON: FileIcon = { icon: "\uF016", color: packRgb(180, 180, 180) };
 
-const EXTENSION_ICONS: Record<string, FileIcon> = {
+const EXTENSION_ICONS: Record<string, FileIcon | undefined> = {
     ".ts": { icon: "\uE628", color: packRgb(49, 120, 198) },
     ".tsx": { icon: "\uE628", color: packRgb(49, 120, 198) },
     ".js": { icon: "\uE781", color: packRgb(241, 224, 90) },
@@ -31,9 +31,9 @@ const EXTENSION_ICONS: Record<string, FileIcon> = {
     ".h": { icon: "\uF1DC", color: packRgb(146, 131, 194) },
 };
 
-const FILENAME_ICONS: Record<string, FileIcon> = {
-    "Makefile": { icon: "\uE779", color: packRgb(111, 66, 193) },
-    "Dockerfile": { icon: "\uE7B0", color: packRgb(56, 151, 214) },
+const FILENAME_ICONS: Record<string, FileIcon | undefined> = {
+    Makefile: { icon: "\uE779", color: packRgb(111, 66, 193) },
+    Dockerfile: { icon: "\uE7B0", color: packRgb(56, 151, 214) },
     ".gitignore": { icon: "\uE702", color: packRgb(240, 80, 50) },
 };
 

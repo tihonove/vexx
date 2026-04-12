@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Point, Size } from "../../Common/GeometryPromitives.ts";
-import { TUIElement } from "../TUIElement.ts";
 import { TuiApplication } from "../TuiApplication.ts";
+import { TUIElement } from "../TUIElement.ts";
 
 import { BodyElement } from "./BodyElement.ts";
 import type { MenuBarItem } from "./MenuBarElement.ts";
@@ -113,7 +113,7 @@ describe("MenuBarElement focus colors", () => {
     it("ArrowRight moves active highlight to next item", () => {
         const { backend } = setup(simpleItems());
 
-        backend.sendKey("Tab");        // focus → "File"
+        backend.sendKey("Tab"); // focus → "File"
         backend.sendKey("ArrowRight"); // → "Edit"
 
         // " File " should revert to bar colors

@@ -13,7 +13,6 @@ export function fileTree(ctx: StoryContext): void {
     const controller = new FileTreeController();
     controller.setRootPath(rootPath);
     controller.onFileActivate = (filePath) => {
-        // eslint-disable-next-line no-console
         console.log("Activate file:", filePath);
     };
     controller.mount();

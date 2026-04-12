@@ -9,7 +9,7 @@ import { jsx } from "./jsx-runtime.ts";
 import { getElementType, reconcile } from "./reconcile.ts";
 
 class FakeLabel extends TUIElement {
-    text = "";
+    public text = "";
 }
 
 const LabelComponent: ComponentType<{ text: string }> = (props: { text: string }): FakeLabel => {
@@ -22,7 +22,7 @@ LabelComponent.update = (el: TUIElement, props: { text: string }): void => {
     (el as FakeLabel).text = props.text;
 };
 
-function OtherComponent(_props: {}): TUIElement {
+function OtherComponent(_props: object): TUIElement {
     return new TUIElement();
 }
 

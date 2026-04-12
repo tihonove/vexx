@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
+import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
@@ -12,10 +12,7 @@ import { EditorTabItemElement } from "./EditorTabItemElement.ts";
 
 const tsIcon = getFileIcon("file.ts");
 
-function renderTab(
-    tab: EditorTabItemElement,
-    width?: number,
-): { backend: MockTerminalBackend; text: string } {
+function renderTab(tab: EditorTabItemElement, width?: number): { backend: MockTerminalBackend; text: string } {
     const intrinsicWidth = width ?? tab.getMaxIntrinsicWidth(1);
     const size = new Size(intrinsicWidth, 1);
     const backend = new MockTerminalBackend(size);

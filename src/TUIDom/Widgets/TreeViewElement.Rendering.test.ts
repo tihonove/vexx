@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
@@ -33,11 +33,7 @@ function createProvider(roots: TestNode[]): ITreeDataProvider<TestNode> {
     };
 }
 
-function renderTree(
-    tree: TreeViewElement<TestNode>,
-    width: number,
-    height: number,
-): MockTerminalBackend {
+function renderTree(tree: TreeViewElement<TestNode>, width: number, height: number): MockTerminalBackend {
     const size = new Size(width, height);
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);
@@ -61,7 +57,10 @@ describe("TreeViewElement rendering", () => {
 
         const backend = renderTree(tree, 12, 3);
         // Each row: expandIcon(" ") + " " + label
-        const actual = backend.screenToString().split("\n").map((l) => l.trimEnd());
+        const actual = backend
+            .screenToString()
+            .split("\n")
+            .map((l) => l.trimEnd());
         expect(actual[0]).toBe("  Alpha");
         expect(actual[1]).toBe("  Beta");
         expect(actual[2]).toBe("  Gamma");
@@ -122,9 +121,7 @@ describe("TreeViewElement rendering", () => {
                     {
                         id: "b",
                         label: "mid",
-                        children: [
-                            { id: "c", label: "leaf" },
-                        ],
+                        children: [{ id: "c", label: "leaf" }],
                     },
                 ],
             },
@@ -146,9 +143,7 @@ describe("TreeViewElement rendering", () => {
     });
 
     it("renders empty lines below content", async () => {
-        const roots: TestNode[] = [
-            { id: "a", label: "One" },
-        ];
+        const roots: TestNode[] = [{ id: "a", label: "One" }];
         const tree = new TreeViewElement(createProvider(roots));
         await tree.refresh();
 
@@ -162,7 +157,7 @@ describe("TreeViewElement rendering", () => {
     it("renders with scroll offset", async () => {
         const roots: TestNode[] = [];
         for (let i = 0; i < 10; i++) {
-            roots.push({ id: `${i}`, label: `Item${i}` });
+            roots.push({ id: String(i), label: `Item${String(i)}` });
         }
         const tree = new TreeViewElement(createProvider(roots));
         await tree.refresh();
@@ -180,7 +175,10 @@ describe("TreeViewElement rendering", () => {
         termScreen.flush(backend);
 
         // Each row: expandIcon(" ") + " " + label
-        const actual = backend.screenToString().split("\n").map((l) => l.trimEnd());
+        const actual = backend
+            .screenToString()
+            .split("\n")
+            .map((l) => l.trimEnd());
         expect(actual[0]).toBe("  Item5");
         expect(actual[1]).toBe("  Item6");
         expect(actual[2]).toBe("  Item7");

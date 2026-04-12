@@ -17,14 +17,14 @@ if (!storyFilePath) {
 
 // ── Import story module ─────────────────────────────
 const resolvedPath = path.resolve(storyFilePath);
-const storyModule: StoryModule = await import(resolvedPath);
+const storyModule = (await import(resolvedPath)) as StoryModule;
 
 // ── Collect story functions ─────────────────────────
 const stories = new Map<string, StoryFunction>();
 for (const [key, value] of Object.entries(storyModule)) {
     if (key === "meta" || key === "default") continue;
     if (typeof value === "function") {
-        stories.set(key, value as StoryFunction);
+        stories.set(key, value);
     }
 }
 
@@ -67,7 +67,7 @@ if (storyModule.meta?.title) {
 }
 
 // ── Build StoryContext ──────────────────────────────
-const afterRunCallbacks: Array<() => void | Promise<void>> = [];
+const afterRunCallbacks: (() => void | Promise<void>)[] = [];
 
 const ctx: StoryContext = {
     app,

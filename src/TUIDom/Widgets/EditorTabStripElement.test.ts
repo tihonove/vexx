@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
+import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
@@ -20,10 +20,7 @@ function makeTabs(...names: string[]): TabInfo[] {
     });
 }
 
-function renderStrip(
-    strip: EditorTabStripElement,
-    width: number,
-): { backend: MockTerminalBackend; text: string } {
+function renderStrip(strip: EditorTabStripElement, width: number): { backend: MockTerminalBackend; text: string } {
     const size = new Size(width, 1);
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);

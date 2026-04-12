@@ -32,10 +32,7 @@ export class TitledPanelElement extends TUIElement {
         const childHeight = Math.max(0, containerSize.height - 1);
 
         this.child.localPosition = new Offset(0, 1);
-        this.child.globalPosition = new Point(
-            this.globalPosition.x,
-            this.globalPosition.y + 1,
-        );
+        this.child.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y + 1);
         this.child.performLayout(BoxConstraints.tight(new Size(containerSize.width, childHeight)));
 
         return containerSize;

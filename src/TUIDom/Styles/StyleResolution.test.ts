@@ -57,7 +57,9 @@ describe("performStyleResolution", () => {
     it("clears dirty flags after resolution", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const child = new TUIElement();
         root.addChild(child);
 
@@ -76,7 +78,9 @@ describe("performStyleResolution", () => {
     it("cascades defaultFg through tree", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const mid = new ContainerElement();
         const leaf = new TUIElement();
         root.addChild(mid);
@@ -95,7 +99,9 @@ describe("performStyleResolution", () => {
     it("mid-level defaultFg override shadows parent", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const mid = new ContainerElement();
         const leaf = new TUIElement();
         root.addChild(mid);
@@ -116,7 +122,9 @@ describe("performStyleResolution", () => {
     it("explicit fg on leaf overrides cascade", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const leaf = new TUIElement();
         root.addChild(leaf);
 
@@ -134,7 +142,9 @@ describe("performStyleResolution", () => {
     it("early exit: clean subtree is not re-resolved", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const child = new TUIElement();
         root.addChild(child);
 
@@ -154,7 +164,9 @@ describe("performStyleResolution", () => {
     it("cascade change via style setter updates entire subtree", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const mid = new ContainerElement();
         const leaf = new TUIElement();
         root.addChild(mid);
@@ -178,7 +190,9 @@ describe("performStyleResolution", () => {
     it("child style change resolves when parent is clean", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const mid = new ContainerElement();
         const leaf = new TUIElement();
         root.addChild(mid);
@@ -198,7 +212,9 @@ describe("performStyleResolution", () => {
     it("deeply nested child style change propagates through clean ancestors", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const a = new ContainerElement();
         const b = new ContainerElement();
         const c = new TUIElement();
@@ -221,7 +237,9 @@ describe("performStyleResolution", () => {
     it("newly attached subtree with dirty styles resolves correctly", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         const mid = new ContainerElement();
         root.addChild(mid);
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
@@ -240,7 +258,9 @@ describe("performStyleResolution", () => {
     it("newly created element attached to clean parent resolves styles", () => {
         const root = new ContainerElement();
         root.setAsRoot();
-        root.setRequestRenderCallback(() => {});
+        root.setRequestRenderCallback(() => {
+            /* noop */
+        });
         root.performStyleResolution(ROOT_RESOLVED_STYLE);
 
         const child = new TUIElement();
