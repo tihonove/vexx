@@ -125,17 +125,18 @@ describe("TuiApplication", () => {
         backend.sendKey("Shift+ArrowLeft");
         backend.sendKey("Shift+ArrowLeft");
 
-        // Characters 1..4 ("ello") should have selection bg
+        // "ello" chars 1..4 of "hello" appear at screen x = gutterWidth + 1..4
+        const gw = editor.gutterWidth;
         for (let x = 1; x <= 4; x++) {
-            expect(backend.getBgAt(new Point(x, 0))).not.toBe(DEFAULT_COLOR);
+            expect(backend.getBgAt(new Point(gw + x, 0))).not.toBe(DEFAULT_COLOR);
         }
 
         // Deselect by pressing ArrowRight (collapses selection)
         backend.sendKey("ArrowRight");
 
-        // Now ALL cells on the first line should have DEFAULT_COLOR bg
-        for (let x = 0; x < 5; x++) {
-            expect(backend.getBgAt(new Point(x, 0))).toBe(DEFAULT_COLOR);
+        // Previously selected cells should now be cleared back to DEFAULT_COLOR
+        for (let x = 1; x <= 4; x++) {
+            expect(backend.getBgAt(new Point(gw + x, 0))).toBe(DEFAULT_COLOR);
         }
     });
 });
