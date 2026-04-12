@@ -122,11 +122,11 @@ describe("FileTreeDataProvider", () => {
             expect(item.iconColor).toBeDefined();
         });
 
-        it("provides folder icon for directories", () => {
+        it("does not provide icon for directories", () => {
             const node = { name: "src", path: "/src", isDirectory: true };
             const item = provider.getTreeItem(node);
-            expect(item.icon).toBeDefined();
-            expect(item.iconColor).toBeDefined();
+            expect(item.icon).toBeUndefined();
+            expect(item.iconColor).toBeUndefined();
         });
     });
 

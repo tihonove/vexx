@@ -4,7 +4,7 @@ import * as path from "node:path";
 import chokidar, { type FSWatcher } from "chokidar";
 
 import { Disposable } from "../Common/Disposable.ts";
-import { getFileIcon, getFolderIcon } from "../Common/FileIcons.ts";
+import { getFileIcon } from "../Common/FileIcons.ts";
 import type { ITreeDataProvider, ITreeItem } from "../TUIDom/Widgets/ITreeDataProvider.ts";
 
 const EXCLUDED_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);
@@ -29,11 +29,8 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
 
     public getTreeItem(element: FileTreeNode): ITreeItem {
         if (element.isDirectory) {
-            const folderIcon = getFolderIcon();
             return {
                 label: element.name,
-                icon: folderIcon.icon,
-                iconColor: folderIcon.color,
                 collapsible: true,
             };
         }
