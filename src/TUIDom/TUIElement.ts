@@ -459,7 +459,7 @@ export class TUIElement<S extends TUIStyle = TUIStyle> {
 
     // ─── Hit-testing ───
 
-    public elementFromPoint(point: Point): TUIElement | null {
+    public elementFromPoint(point: Point): this | null {
         const bounds = new Rect(this.globalPosition, this.layoutSize);
         if (!bounds.containsPoint(point)) return null;
 

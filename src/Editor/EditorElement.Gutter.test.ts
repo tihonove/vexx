@@ -238,9 +238,7 @@ describe("content area rendering", () => {
         const selBg = packRgb(38, 79, 120);
         const { app, editor } = createEditor("Hello World", 20, 3);
         // Select "ello" (chars 1-5) by setting selection directly
-        editor.viewState.selections = [
-            { anchor: { line: 0, character: 1 }, active: { line: 0, character: 5 } },
-        ];
+        editor.viewState.selections = [{ anchor: { line: 0, character: 1 }, active: { line: 0, character: 5 } }];
         app.render();
 
         const backend = app.backend;
@@ -304,9 +302,7 @@ describe("scrolling", () => {
             editor.lineNumberForeground = lnFg;
             editor.lineNumberActiveForeground = lnActiveFg;
             // Cursor on line 5, scroll to show it
-            editor.viewState.selections = [
-                { anchor: { line: 5, character: 0 }, active: { line: 5, character: 0 } },
-            ];
+            editor.viewState.selections = [{ anchor: { line: 5, character: 0 }, active: { line: 5, character: 0 } }];
             editor.viewState.scrollTop = 3;
             app.render();
 

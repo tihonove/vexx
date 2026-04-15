@@ -36,7 +36,9 @@ describe("EditorViewState.cursorPageDown", () => {
     });
 
     it("preserves idealColumn", () => {
-        const doc = new TextDocument("short\nabcdefghij\nhi\nworld is big\nmore lines\neven more\nand more\nstill going\nkeep on\nnine\nten long line");
+        const doc = new TextDocument(
+            "short\nabcdefghij\nhi\nworld is big\nmore lines\neven more\nand more\nstill going\nkeep on\nnine\nten long line",
+        );
         const state = new EditorViewState(doc, [createCursorSelection(1, 8)]);
         state.viewportHeight = 5;
 
