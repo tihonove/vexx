@@ -30,33 +30,20 @@
             "detail": "tsc --noEmit"
         },
         {
-            "label": "Run Story in External Terminal",
+            "label": "Run Story",
             "type": "shell",
-            "command": "gnome-terminal",
-            "args": [
-                "--working-directory=${workspaceFolder}",
-                "--",
-                "bash",
-                "-c",
-                "npm run story -- ${relativeFile} ${selectedText}"
-            ],
+            "command": "${workspaceFolder}/scripts/run-story.sh ${relativeFile} ${selectedText}",
             "problemMatcher": [],
             "presentation": {
-                "reveal": "silent",
-                "panel": "shared"
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": true
             }
         },
         {
-            "label": "Debug Story in External Terminal",
+            "label": "Debug Story",
             "type": "shell",
-            "command": "gnome-terminal",
-            "args": [
-                "--working-directory=${workspaceFolder}",
-                "--",
-                "bash",
-                "-c",
-                "npx tsx --inspect-brk=9229 src/StoryRunner/run.ts ${relativeFile} ${selectedText}"
-            ],
+            "command": "${workspaceFolder}/scripts/debug-story.sh ${relativeFile} ${selectedText}",
             "isBackground": true,
             "problemMatcher": {
                 "pattern": { "regexp": "^$" },

@@ -51,6 +51,7 @@ export const darkPlusTheme: IThemeFile = {
         "list.activeSelectionForeground": "#FFFFFF",
         "list.inactiveSelectionBackground": "#37373D",
         "list.inactiveSelectionForeground": "#CCCCCC",
+        "list.hoverBackground": "#2A2D2E",
     },
     tokenColors: [
         {

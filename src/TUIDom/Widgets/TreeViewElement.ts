@@ -10,7 +10,10 @@ import { ScrollableElement, type ScrollViewportInfo } from "./ScrollableElement.
 const INDENT_SIZE = 2;
 const ICON_EXPANDED = "\u25BE"; // ▾
 const ICON_COLLAPSED = "\u25B8"; // ▸
-const SELECTION_BG = packRgb(4, 57, 94);
+const DEFAULT_ACTIVE_SELECTION_BG = packRgb(4, 57, 94);
+const DEFAULT_ACTIVE_SELECTION_FG = packRgb(255, 255, 255);
+const DEFAULT_INACTIVE_SELECTION_BG = packRgb(55, 55, 61);
+const DEFAULT_INACTIVE_SELECTION_FG = packRgb(204, 204, 204);
 
 interface FlatTreeNode<T> {
     element: T;
@@ -25,7 +28,19 @@ export class TreeViewElement<T> extends ScrollableElement {
     private childrenCache = new Map<string, T[]>();
     private flatNodes: FlatTreeNode<T>[] = [];
     private selectedIndex = 0;
+    private hoveredIndex: number | null = null;
+    private selectedKeys = new Set<string>();
+    private cutKeys = new Set<string>();
     private maxRowWidth = 0;
+
+    // ─── Theme colors ───
+    public activeSelectionBg = DEFAULT_ACTIVE_SELECTION_BG;
+    public activeSelectionFg = DEFAULT_ACTIVE_SELECTION_FG;
+    public inactiveSelectionBg = DEFAULT_INACTIVE_SELECTION_BG;
+    public inactiveSelectionFg = DEFAULT_INACTIVE_SELECTION_FG;
+    public hoverBg: number | undefined = undefined;
+    public hoverFg: number | undefined = undefined;
+    public cutFg: number | undefined = undefined;
 
     public onSelect: ((item: T) => void) | null = null;
     public onActivate: ((item: T) => void) | null = null;
@@ -82,6 +97,16 @@ export class TreeViewElement<T> extends ScrollableElement {
         this.markDirty();
     }
 
+    public setCutKeys(keys: Set<string>): void {
+        this.cutKeys = keys;
+        this.markDirty();
+    }
+
+    public clearCutKeys(): void {
+        this.cutKeys.clear();
+        this.markDirty();
+    }
+
     protected override performDefaultAction(event: TUIEventBase): void {
         if (event.type === "keydown") {
             this.handleKeydown(event as TUIKeyboardEvent);
@@ -91,6 +116,10 @@ export class TreeViewElement<T> extends ScrollableElement {
             this.handleDblClick(event as TUIMouseEvent);
         } else if (event.type === "wheel") {
             this.handleWheel(event as TUIMouseEvent);
+        } else if (event.type === "mousemove") {
+            this.handleMouseMove(event as TUIMouseEvent);
+        } else if (event.type === "mouseleave") {
+            this.handleMouseLeave();
         } else {
             super.performDefaultAction(event);
         }
@@ -99,11 +128,10 @@ export class TreeViewElement<T> extends ScrollableElement {
     protected override renderViewport(context: RenderContext, viewport: ScrollViewportInfo): void {
         const { scrollTop, scrollLeft, viewportWidth, viewportHeight } = viewport;
         const resolved = this.resolvedStyle;
+        const focused = this.isFocused;
 
         for (let screenY = 0; screenY < viewportHeight; screenY++) {
             const nodeIndex = scrollTop + screenY;
-            const isSelected = nodeIndex === this.selectedIndex;
-            const bg = isSelected ? SELECTION_BG : resolved.bg;
 
             if (nodeIndex >= this.flatNodes.length) {
                 for (let x = 0; x < viewportWidth; x++) {
@@ -113,6 +141,16 @@ export class TreeViewElement<T> extends ScrollableElement {
             }
 
             const node = this.flatNodes[nodeIndex];
+            const nodeKey = this.provider.getKey(node.element);
+            const isCursor = nodeIndex === this.selectedIndex;
+            const isSelected = this.selectedKeys.has(nodeKey);
+            const isHovered = nodeIndex === this.hoveredIndex;
+            const isCut = this.cutKeys.has(nodeKey);
+
+            const { bg: rowBg, fg: rowFg } = this.resolveRowColors(
+                resolved, focused, isCursor, isSelected, isHovered, isCut,
+            );
+
             const rowText = this.formatRow(node);
             const rowIcon = node.item.icon;
             const rowIconColor = node.item.iconColor;
@@ -121,7 +159,7 @@ export class TreeViewElement<T> extends ScrollableElement {
             for (let charIdx = scrollLeft; charIdx < scrollLeft + viewportWidth; charIdx++) {
                 if (charIdx < rowText.length) {
                     const char = rowText[charIdx];
-                    let fg = resolved.fg;
+                    let fg = rowFg;
 
                     // Color the icon character
                     const iconStart = node.depth * INDENT_SIZE + 2;
@@ -135,13 +173,37 @@ export class TreeViewElement<T> extends ScrollableElement {
                         fg = packRgb(150, 150, 150);
                     }
 
-                    context.setCell(screenX, screenY, { char, fg, bg });
+                    context.setCell(screenX, screenY, { char, fg, bg: rowBg });
                 } else {
-                    context.setCell(screenX, screenY, { char: " ", fg: resolved.fg, bg });
+                    context.setCell(screenX, screenY, { char: " ", fg: resolved.fg, bg: rowBg });
                 }
                 screenX++;
             }
         }
+    }
+
+    private resolveRowColors(
+        resolved: { fg: number; bg: number },
+        focused: boolean,
+        isCursor: boolean,
+        isSelected: boolean,
+        isHovered: boolean,
+        isCut: boolean,
+    ): { bg: number; fg: number } {
+        // Priority: cursor/selection > hover > cut > normal
+        if (isCursor || isSelected) {
+            if (focused) {
+                return { bg: this.activeSelectionBg, fg: this.activeSelectionFg };
+            }
+            return { bg: this.inactiveSelectionBg, fg: this.inactiveSelectionFg };
+        }
+        if (isHovered && this.hoverBg !== undefined) {
+            return { bg: this.hoverBg, fg: this.hoverFg ?? resolved.fg };
+        }
+        if (isCut && this.cutFg !== undefined) {
+            return { bg: resolved.bg, fg: this.cutFg };
+        }
+        return { bg: resolved.bg, fg: resolved.fg };
     }
 
     // ─── Private: data loading ───
@@ -392,6 +454,22 @@ export class TreeViewElement<T> extends ScrollableElement {
             void this.toggleExpand(node.element);
         } else {
             this.onActivate?.(node.element);
+        }
+    }
+
+    private handleMouseMove(event: TUIMouseEvent): void {
+        const index = this.scrollTop + event.localY;
+        const newHovered = index >= 0 && index < this.flatNodes.length ? index : null;
+        if (newHovered !== this.hoveredIndex) {
+            this.hoveredIndex = newHovered;
+            this.markDirty();
+        }
+    }
+
+    private handleMouseLeave(): void {
+        if (this.hoveredIndex !== null) {
+            this.hoveredIndex = null;
+            this.markDirty();
         }
     }
 

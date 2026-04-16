@@ -153,10 +153,10 @@ export interface IWorkbenchColors {
     // "list.focusAndSelectionOutline"?: number;
     // /** List/Tree foreground color of the match highlights when searching inside the list/tree. */
     // "list.highlightForeground"?: number;
-    // /** List/Tree background when hovering over items using the mouse. */
-    // "list.hoverBackground"?: number;
-    // /** List/Tree foreground when hovering over items using the mouse. */
-    // "list.hoverForeground"?: number;
+    /** List/Tree background when hovering over items using the mouse. */
+    "list.hoverBackground"?: number;
+    /** List/Tree foreground when hovering over items using the mouse. */
+    "list.hoverForeground"?: number;
     /** List/Tree background color for the selected item when the list/tree is inactive. */
     "list.inactiveSelectionBackground"?: number;
     /** List/Tree foreground color for the selected item when the list/tree is inactive. */

@@ -74,7 +74,7 @@ export class AppController extends Disposable implements IController {
     ) {
         super();
         this.editorGroupController = this.register(editorGroupController);
-        this.fileTreeController = this.register(new FileTreeController());
+        this.fileTreeController = this.register(new FileTreeController(themeService));
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
