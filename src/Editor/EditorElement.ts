@@ -188,70 +188,12 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 
     private handleKeyPress(event: TUIKeyboardEvent): void {
-        if (event.key === "z" && event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey) {
-            this.undoManager.redo();
-            return;
-        }
-
-        if (event.key === "z" && event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
-            this.undoManager.undo();
-            return;
-        }
-
         if (event.key === "Enter") {
             this.pushUndo(this.viewState.type("\n"));
             return;
         }
 
-        if (event.key === "Backspace") {
-            this.pushUndo(this.viewState.deleteLeft());
-            return;
-        }
-
-        if (event.key === "Delete") {
-            this.pushUndo(this.viewState.deleteRight());
-            return;
-        }
-
-        if (event.key === "ArrowLeft") {
-            if (event.metaKey) {
-                this.viewState.cursorHome(event.shiftKey);
-            } else {
-                this.viewState.cursorLeft(event.shiftKey);
-            }
-            return;
-        }
-
-        if (event.key === "ArrowRight") {
-            if (event.metaKey) {
-                this.viewState.cursorEnd(event.shiftKey);
-            } else {
-                this.viewState.cursorRight(event.shiftKey);
-            }
-            return;
-        }
-
-        if (event.key === "ArrowUp") {
-            this.viewState.cursorUp(event.shiftKey);
-            return;
-        }
-
-        if (event.key === "ArrowDown") {
-            this.viewState.cursorDown(event.shiftKey);
-            return;
-        }
-
-        if (event.key === "Home") {
-            this.viewState.cursorHome(event.shiftKey);
-            return;
-        }
-
-        if (event.key === "End") {
-            this.viewState.cursorEnd(event.shiftKey);
-            return;
-        }
-
-        // Printable character:     single char, no ctrl/alt/meta modifiers
+        // Printable character: single char, no ctrl/alt/meta modifiers
         if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
             this.pushUndo(this.viewState.type(event.key));
             return;

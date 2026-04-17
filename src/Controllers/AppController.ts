@@ -14,7 +14,41 @@ import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
-import { cursorPageDownAction, cursorPageUpAction } from "./Actions/EditorActions.ts";
+import {
+    cursorBottomAction,
+    cursorBottomSelectAction,
+    cursorDownAction,
+    cursorDownSelectAction,
+    cursorEndAction,
+    cursorEndSelectAction,
+    cursorHomeAction,
+    cursorHomeSelectAction,
+    cursorLeftAction,
+    cursorLeftSelectAction,
+    cursorPageDownAction,
+    cursorPageDownSelectAction,
+    cursorPageUpAction,
+    cursorPageUpSelectAction,
+    cursorRightAction,
+    cursorRightSelectAction,
+    cursorTopAction,
+    cursorTopSelectAction,
+    cursorUpAction,
+    cursorUpSelectAction,
+    cursorWordLeftAction,
+    cursorWordLeftSelectAction,
+    cursorWordRightAction,
+    cursorWordRightSelectAction,
+} from "./Actions/EditorActions.ts";
+import {
+    deleteLeftAction,
+    deleteRightAction,
+    deleteWordLeftAction,
+    deleteWordRightAction,
+    redoAction,
+    selectAllAction,
+    undoAction,
+} from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { registerAction } from "./CommandAction.ts";
@@ -35,10 +69,46 @@ import { StatusBarController } from "./StatusBarController.ts";
 export const AppControllerDIToken = token<AppController>("AppController");
 
 const builtinActions = [
+    // App
     fileSaveAction,
     quitAction,
+
+    // Cursor movement
+    cursorLeftAction,
+    cursorLeftSelectAction,
+    cursorRightAction,
+    cursorRightSelectAction,
+    cursorUpAction,
+    cursorUpSelectAction,
+    cursorDownAction,
+    cursorDownSelectAction,
+    cursorHomeAction,
+    cursorHomeSelectAction,
+    cursorEndAction,
+    cursorEndSelectAction,
+    cursorTopAction,
+    cursorTopSelectAction,
+    cursorBottomAction,
+    cursorBottomSelectAction,
+    cursorWordLeftAction,
+    cursorWordLeftSelectAction,
+    cursorWordRightAction,
+    cursorWordRightSelectAction,
     cursorPageDownAction,
+    cursorPageDownSelectAction,
     cursorPageUpAction,
+    cursorPageUpSelectAction,
+
+    // Editing
+    deleteLeftAction,
+    deleteRightAction,
+    deleteWordLeftAction,
+    deleteWordRightAction,
+    undoAction,
+    redoAction,
+    selectAllAction,
+
+    // List
     listFocusPageDownAction,
     listFocusPageUpAction,
 ];

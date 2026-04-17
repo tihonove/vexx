@@ -5,6 +5,7 @@ import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
+import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
@@ -74,6 +75,20 @@ export class EditorController extends Disposable implements IController {
 
     public getText(): string {
         return this.doc.getText();
+    }
+
+    public pushUndo(element: IUndoElement | undefined): void {
+        if (element) {
+            this.editor.undoManager.pushUndoElement(element);
+        }
+    }
+
+    public undo(): void {
+        this.editor.undoManager.undo();
+    }
+
+    public redo(): void {
+        this.editor.undoManager.redo();
     }
 
     public mount(): void {

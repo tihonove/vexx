@@ -116,14 +116,14 @@ describe("TuiApplication", () => {
         editor.tabIndex = 0;
         editor.focus();
 
-        // Select "ello" via Shift+ArrowLeft × 4 from end
-        // First move cursor to end of "hello"
-        backend.sendKey("End");
-        // Select backwards
-        backend.sendKey("Shift+ArrowLeft");
-        backend.sendKey("Shift+ArrowLeft");
-        backend.sendKey("Shift+ArrowLeft");
-        backend.sendKey("Shift+ArrowLeft");
+        // Select "ello": cursor to end, then select left 4 times
+        viewState.cursorEnd();
+        viewState.cursorLeft(true);
+        viewState.cursorLeft(true);
+        viewState.cursorLeft(true);
+        viewState.cursorLeft(true);
+        editor.markDirty();
+        backend.sendKey("F12"); // trigger render
 
         // "ello" chars 1..4 of "hello" appear at screen x = gutterWidth + 1..4
         const gw = editor.gutterWidth;
@@ -131,8 +131,10 @@ describe("TuiApplication", () => {
             expect(backend.getBgAt(new Point(gw + x, 0))).not.toBe(DEFAULT_COLOR);
         }
 
-        // Deselect by pressing ArrowRight (collapses selection)
-        backend.sendKey("ArrowRight");
+        // Deselect by collapsing selection
+        viewState.cursorRight();
+        editor.markDirty();
+        backend.sendKey("F12"); // trigger render
 
         // Previously selected cells should now be cleared back to DEFAULT_COLOR
         for (let x = 1; x <= 4; x++) {

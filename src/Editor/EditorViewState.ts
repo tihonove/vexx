@@ -306,6 +306,30 @@ export class EditorViewState {
     }
 
     /**
+     * Moves each cursor to the very beginning of the document (line 0, char 0).
+     */
+    public cursorTop(inSelectionMode = false): void {
+        this.selections = this.selections.map((sel) => {
+            return this.buildSelection(sel, 0, 0, 0, inSelectionMode);
+        });
+        this.normalizeSelections();
+        this.ensureCursorVisible();
+    }
+
+    /**
+     * Moves each cursor to the very end of the document (last line, last char).
+     */
+    public cursorBottom(inSelectionMode = false): void {
+        const lastLine = this.document.lineCount - 1;
+        const lastChar = this.document.getLineLength(lastLine);
+        this.selections = this.selections.map((sel) => {
+            return this.buildSelection(sel, lastLine, lastChar, lastChar, inSelectionMode);
+        });
+        this.normalizeSelections();
+        this.ensureCursorVisible();
+    }
+
+    /**
      * Moves each cursor to the beginning of its line.
      * Sets idealColumn to 0 so subsequent Up/Down stay at column 0.
      */
@@ -328,6 +352,61 @@ export class EditorViewState {
         });
         this.normalizeSelections();
         this.ensureCursorVisible();
+    }
+
+    /**
+     * Moves each cursor one word to the left.
+     * At the start of a line, wraps to the end of the previous visible line.
+     */
+    public cursorWordLeft(inSelectionMode = false): void {
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            if (pos.character === 0) {
+                const prevLine = this.previousVisibleLine(pos.line);
+                if (prevLine >= 0) {
+                    const lineLen = this.document.getLineLength(prevLine);
+                    return this.buildSelection(sel, prevLine, lineLen, lineLen, inSelectionMode);
+                }
+                return sel;
+            }
+            const line = this.document.getLineContent(pos.line);
+            const newChar = findWordBoundaryLeft(line, pos.character);
+            return this.buildSelection(sel, pos.line, newChar, newChar, inSelectionMode);
+        });
+        this.normalizeSelections();
+        this.ensureCursorVisible();
+    }
+
+    /**
+     * Moves each cursor one word to the right.
+     * At the end of a line, wraps to the start of the next visible line.
+     */
+    public cursorWordRight(inSelectionMode = false): void {
+        this.selections = this.selections.map((sel) => {
+            const pos = sel.active;
+            const lineLen = this.document.getLineLength(pos.line);
+            if (pos.character >= lineLen) {
+                const nextLine = this.nextVisibleLine(pos.line);
+                if (nextLine >= 0) {
+                    return this.buildSelection(sel, nextLine, 0, 0, inSelectionMode);
+                }
+                return sel;
+            }
+            const line = this.document.getLineContent(pos.line);
+            const newChar = findWordBoundaryRight(line, pos.character);
+            return this.buildSelection(sel, pos.line, newChar, newChar, inSelectionMode);
+        });
+        this.normalizeSelections();
+        this.ensureCursorVisible();
+    }
+
+    /**
+     * Selects the entire document content.
+     */
+    public selectAll(): void {
+        const lastLine = this.document.lineCount - 1;
+        const lastChar = this.document.getLineLength(lastLine);
+        this.selections = [createSelection(0, 0, lastLine, lastChar)];
     }
 
     /**
@@ -407,6 +486,94 @@ export class EditorViewState {
             this.ensureCursorVisible();
             return {
                 label: "deleteRight",
+                versionBefore,
+                versionAfter: appliedVersion,
+                forwardEdits: edits,
+                backwardEdits: inverseEdits,
+                beforeSelections,
+                afterSelections: this.cloneSelections(),
+            };
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Deletes one word to the left of each cursor, or deletes the selection.
+     */
+    public deleteWordLeft(): IUndoElement | undefined {
+        const edits: ITextEdit[] = [];
+
+        for (const sel of this.sortedSelections()) {
+            const range = selectionToRange(sel);
+            if (range.start.line === range.end.line && range.start.character === range.end.character) {
+                const pos = sel.active;
+                if (pos.character > 0) {
+                    const line = this.document.getLineContent(pos.line);
+                    const wordStart = findWordBoundaryLeft(line, pos.character);
+                    edits.push(createTextEdit(createRange(pos.line, wordStart, pos.line, pos.character), ""));
+                } else if (pos.line > 0) {
+                    const prevLineLen = this.document.getLineLength(pos.line - 1);
+                    edits.push(createTextEdit(createRange(pos.line - 1, prevLineLen, pos.line, 0), ""));
+                }
+            } else {
+                edits.push(createTextEdit(range, ""));
+            }
+        }
+
+        if (edits.length > 0) {
+            const beforeSelections = this.cloneSelections();
+            const versionBefore = this.document.versionId;
+            const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
+            this.adjustFoldingRegionsForEdits(edits);
+            this.selections = this.computeSelectionsAfterEdits(edits);
+            this.ensureCursorVisible();
+            return {
+                label: "deleteWordLeft",
+                versionBefore,
+                versionAfter: appliedVersion,
+                forwardEdits: edits,
+                backwardEdits: inverseEdits,
+                beforeSelections,
+                afterSelections: this.cloneSelections(),
+            };
+        }
+
+        return undefined;
+    }
+
+    /**
+     * Deletes one word to the right of each cursor, or deletes the selection.
+     */
+    public deleteWordRight(): IUndoElement | undefined {
+        const edits: ITextEdit[] = [];
+
+        for (const sel of this.sortedSelections()) {
+            const range = selectionToRange(sel);
+            if (range.start.line === range.end.line && range.start.character === range.end.character) {
+                const pos = sel.active;
+                const lineLen = this.document.getLineLength(pos.line);
+                if (pos.character < lineLen) {
+                    const line = this.document.getLineContent(pos.line);
+                    const wordEnd = findWordBoundaryRight(line, pos.character);
+                    edits.push(createTextEdit(createRange(pos.line, pos.character, pos.line, wordEnd), ""));
+                } else if (pos.line < this.document.lineCount - 1) {
+                    edits.push(createTextEdit(createRange(pos.line, lineLen, pos.line + 1, 0), ""));
+                }
+            } else {
+                edits.push(createTextEdit(range, ""));
+            }
+        }
+
+        if (edits.length > 0) {
+            const beforeSelections = this.cloneSelections();
+            const versionBefore = this.document.versionId;
+            const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
+            this.adjustFoldingRegionsForEdits(edits);
+            this.selections = this.computeSelectionsAfterEdits(edits);
+            this.ensureCursorVisible();
+            return {
+                label: "deleteWordRight",
                 versionBefore,
                 versionAfter: appliedVersion,
                 forwardEdits: edits,
@@ -711,4 +878,53 @@ export class EditorViewState {
     private cloneSelections(): ISelection[] {
         return this.selections.map((s) => ({ ...s, anchor: { ...s.anchor }, active: { ...s.active } }));
     }
+}
+
+// ─── Word Boundary Helpers ──────────────────────────────────
+
+const WORD_SEPARATORS = new Set(" \t\r\n`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?");
+
+function charClass(ch: string): number {
+    if (ch === " " || ch === "\t") return 0; // whitespace
+    if (WORD_SEPARATORS.has(ch)) return 1; // punctuation
+    return 2; // word character
+}
+
+/**
+ * Finds the start of the previous word boundary, scanning left from `offset`.
+ * Mirrors VS Code Ctrl+Left behavior: skip whitespace, then skip same-class characters.
+ */
+function findWordBoundaryLeft(line: string, offset: number): number {
+    let pos = offset;
+    // Skip whitespace
+    while (pos > 0 && charClass(line[pos - 1]) === 0) {
+        pos--;
+    }
+    if (pos === 0) return 0;
+    // Skip same-class chars
+    const cls = charClass(line[pos - 1]);
+    while (pos > 0 && charClass(line[pos - 1]) === cls) {
+        pos--;
+    }
+    return pos;
+}
+
+/**
+ * Finds the end of the next word boundary, scanning right from `offset`.
+ * Mirrors VS Code Ctrl+Right behavior: skip same-class characters, then skip whitespace.
+ */
+function findWordBoundaryRight(line: string, offset: number): number {
+    let pos = offset;
+    const len = line.length;
+    if (pos >= len) return len;
+    // Skip same-class chars
+    const cls = charClass(line[pos]);
+    while (pos < len && charClass(line[pos]) === cls) {
+        pos++;
+    }
+    // Skip whitespace
+    while (pos < len && charClass(line[pos]) === 0) {
+        pos++;
+    }
+    return pos;
 }

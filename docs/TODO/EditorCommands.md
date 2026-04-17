@@ -23,6 +23,46 @@
 
 Добыть команды из `coreCommands.ts` + `editor/contrib/*`. Составить таблицу: команда → ID → дефолтный кейбиндинг → статус реализации.
 
-### [ ] 2. Реализовать команды Tier 1
+### [x] 2. Реализовать команды Tier 1
+
+Реализованы все базовые команды навигации и редактирования:
+
+**Навигация курсора (24 команды):**
+- `cursorLeft` / `cursorLeftSelect` — left / shift+left
+- `cursorRight` / `cursorRightSelect` — right / shift+right
+- `cursorUp` / `cursorUpSelect` — up / shift+up
+- `cursorDown` / `cursorDownSelect` — down / shift+down
+- `cursorHome` / `cursorHomeSelect` — home / shift+home
+- `cursorEnd` / `cursorEndSelect` — end / shift+end
+- `cursorTop` / `cursorTopSelect` — ctrl+home / ctrl+shift+home
+- `cursorBottom` / `cursorBottomSelect` — ctrl+end / ctrl+shift+end
+- `cursorWordLeft` / `cursorWordLeftSelect` — ctrl+left / ctrl+shift+left
+- `cursorWordRight` / `cursorWordRightSelect` — ctrl+right / ctrl+shift+right
+- `cursorPageDown` / `cursorPageDownSelect` — pagedown / shift+pagedown
+- `cursorPageUp` / `cursorPageUpSelect` — pageup / shift+pageup
+
+**Редактирование (7 команд):**
+- `deleteLeft` — backspace
+- `deleteRight` — delete
+- `deleteWordLeft` — ctrl+backspace
+- `deleteWordRight` — ctrl+delete
+- `undo` — ctrl+z
+- `redo` — ctrl+shift+z
+- `editor.action.selectAll` — ctrl+a
+
+Все команды зарегистрированы через `CommandAction` + `KeybindingRegistry` с `when: "textInputFocus"`.
+Inline обработка клавиш в `EditorElement.handleKeyPress` убрана — осталось только Enter и печатные символы.
+
+Файлы:
+- `src/Controllers/Actions/EditorActions.ts` — навигация
+- `src/Controllers/Actions/EditorEditActions.ts` — редактирование
+- `src/Editor/EditorViewState.ts` — новые методы: `cursorTop`, `cursorBottom`, `cursorWordLeft`, `cursorWordRight`, `selectAll`, `deleteWordLeft`, `deleteWordRight`
+- `src/Controllers/EditorController.ts` — `pushUndo`, `undo`, `redo` проксирующие методы
+
+Тесты:
+- `src/Editor/EditorViewState.DocumentNavigation.test.ts` (11 тестов)
+- `src/Editor/EditorViewState.WordNavigation.test.ts` (29 тестов)
+- `src/Editor/EditorViewState.SelectAll.test.ts` (7 тестов)
+
 ### [ ] 3. Реализовать команды Tier 2
 ### [ ] 4. Реализовать команды Tier 3
