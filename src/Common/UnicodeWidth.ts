@@ -111,13 +111,62 @@ function isWide(cp: number): boolean {
     // CJK Unified Ideographs Extension B .. Extension H (SIP/TIP)
     if (cp >= 0x20000 && cp <= 0x3134f) return true;
 
-    // Emoji — most emoji in common use
-    // Miscellaneous Symbols and Pictographs
-    if (cp >= 0x1f300 && cp <= 0x1f5ff) return true;
-    // Emoticons
+    // Emoji — only code points with Emoji_Presentation = Yes.
+    // Source: Unicode 15 emoji-data.txt
+    //
+    // Miscellaneous Symbols and Pictographs (1F300-1F5FF)
+    // Emoji_Presentation=Yes sub-ranges only (text-presentation chars excluded):
+    if (cp >= 0x1f300 && cp <= 0x1f320) return true; // weather, misc
+    if (cp >= 0x1f32d && cp <= 0x1f335) return true; // food
+    if (cp >= 0x1f337 && cp <= 0x1f37c) return true; // food, plants
+    if (cp >= 0x1f37e && cp <= 0x1f393) return true; // activities
+    if (cp >= 0x1f3a0 && cp <= 0x1f3ca) return true; // entertainment
+    if (cp >= 0x1f3cf && cp <= 0x1f3d3) return true; // sports
+    if (cp >= 0x1f3e0 && cp <= 0x1f3f0) return true; // buildings
+    if (cp === 0x1f3f4) return true; // BLACK FLAG
+    if (cp >= 0x1f3f8 && cp <= 0x1f43e) return true; // animals, nature
+    if (cp === 0x1f440) return true; // EYES
+    if (cp >= 0x1f442 && cp <= 0x1f4fc) return true; // objects
+    if (cp >= 0x1f4ff && cp <= 0x1f53d) return true; // more objects
+    if (cp >= 0x1f54b && cp <= 0x1f54e) return true; // religious
+    if (cp >= 0x1f550 && cp <= 0x1f567) return true; // clocks
+    if (cp === 0x1f57a) return true; // MAN DANCING
+    if (cp >= 0x1f595 && cp <= 0x1f596) return true; // hand gestures
+    if (cp === 0x1f5a4) return true; // BLACK HEART
+    // Emoticons (1F600-1F64F) — all Emoji_Presentation=Yes
     if (cp >= 0x1f600 && cp <= 0x1f64f) return true;
-    // Transport and Map Symbols
-    if (cp >= 0x1f680 && cp <= 0x1f6ff) return true;
+    // Transport and Map Symbols (1F680-1F6FF) — Emoji_Presentation=Yes sub-ranges
+    if (cp >= 0x1f680 && cp <= 0x1f6ca) return true;
+    if (cp >= 0x1f6d0 && cp <= 0x1f6d2) return true;
+    if (cp >= 0x1f6d5 && cp <= 0x1f6d7) return true;
+    if (cp >= 0x1f6dd && cp <= 0x1f6df) return true;
+    if (cp >= 0x1f6eb && cp <= 0x1f6ec) return true;
+    if (cp >= 0x1f6f4 && cp <= 0x1f6fc) return true; // food
+    if (cp >= 0x1f337 && cp <= 0x1f37c) return true; // food, plants
+    if (cp >= 0x1f37e && cp <= 0x1f393) return true; // activities
+    if (cp >= 0x1f3a0 && cp <= 0x1f3ca) return true; // entertainment
+    if (cp >= 0x1f3cf && cp <= 0x1f3d3) return true; // sports
+    if (cp >= 0x1f3e0 && cp <= 0x1f3f0) return true; // buildings
+    if (cp === 0x1f3f4) return true; // BLACK FLAG
+    if (cp >= 0x1f3f8 && cp <= 0x1f43e) return true; // animals, nature
+    if (cp === 0x1f440) return true; // EYES
+    if (cp >= 0x1f442 && cp <= 0x1f4fc) return true; // objects
+    if (cp >= 0x1f4ff && cp <= 0x1f53d) return true; // more objects
+    if (cp >= 0x1f54b && cp <= 0x1f54e) return true; // religious
+    if (cp >= 0x1f550 && cp <= 0x1f567) return true; // clocks
+    if (cp === 0x1f57a) return true; // MAN DANCING
+    if (cp >= 0x1f595 && cp <= 0x1f596) return true; // hand gestures
+    if (cp === 0x1f5a4) return true; // BLACK HEART
+    if (cp >= 0x1f5fb && cp <= 0x1f5ff) return true; // MOUNT FUJI..MOYAI
+    // Emoticons (1F600-1F64F) — all Emoji_Presentation=Yes
+    if (cp >= 0x1f600 && cp <= 0x1f64f) return true;
+    // Transport and Map Symbols (1F680-1F6FF) — Emoji_Presentation=Yes sub-ranges
+    if (cp >= 0x1f680 && cp <= 0x1f6ca) return true;
+    if (cp >= 0x1f6d0 && cp <= 0x1f6d2) return true;
+    if (cp >= 0x1f6d5 && cp <= 0x1f6d7) return true;
+    if (cp >= 0x1f6dd && cp <= 0x1f6df) return true;
+    if (cp >= 0x1f6eb && cp <= 0x1f6ec) return true;
+    if (cp >= 0x1f6f4 && cp <= 0x1f6fc) return true;
     // Supplemental Symbols and Pictographs
     if (cp >= 0x1f900 && cp <= 0x1f9ff) return true;
     // Symbols and Pictographs Extended-A
@@ -138,6 +187,12 @@ function isWide(cp: number): boolean {
  * The width is determined by the widest non-zero-width code point.
  */
 export function getGraphemeDisplayWidth(grapheme: string): number {
+    // VS16 (U+FE0F, Variation Selector-16) forces emoji presentation.
+    // Any cluster containing VS16 is rendered as wide (2 columns) by terminals.
+    if (grapheme.includes("\uFE0F")) {
+        return 2;
+    }
+
     let width = 0;
     for (const ch of grapheme) {
         const cp = ch.codePointAt(0) ?? 0;

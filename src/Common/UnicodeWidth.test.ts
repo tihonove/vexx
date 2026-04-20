@@ -181,6 +181,46 @@ describe("getCharDisplayWidth", () => {
     });
 });
 
+/**
+ * Text-presentation emoji (Emoji_Presentation = No).
+ * Without VS16 (U+FE0F) terminals render these as width 1.
+ * With VS16 they switch to emoji presentation → width 2.
+ */
+describe("text-presentation emoji (Emoji_Presentation = No)", () => {
+    // U+1F3D7 🏗  BUILDING CONSTRUCTION — in range 1F300-1F5FF but
+    // Emoji_Presentation=No, so terminals render it as width 1 without VS16.
+    it("🏗 U+1F3D7 without VS16: getCharDisplayWidth returns 1", () => {
+        expect(getCharDisplayWidth(0x1f3d7)).toBe(1);
+    });
+
+    it("🏗 U+1F3D7 without VS16: getGraphemeDisplayWidth returns 1", () => {
+        expect(getGraphemeDisplayWidth("\u{1F3D7}")).toBe(1);
+    });
+
+    it("🏗️ U+1F3D7 + VS16: getGraphemeDisplayWidth returns 2", () => {
+        // VS16 (U+FE0F) forces emoji presentation → terminal renders as wide
+        expect(getGraphemeDisplayWidth("\u{1F3D7}\uFE0F")).toBe(2);
+    });
+
+    // Other text-presentation symbols in same block
+    it("U+1F321 THERMOMETER without VS16: getCharDisplayWidth returns 1", () => {
+        expect(getCharDisplayWidth(0x1f321)).toBe(1);
+    });
+
+    it("U+1F324 CLOUD WITH SMALL SUN without VS16: getCharDisplayWidth returns 1", () => {
+        expect(getCharDisplayWidth(0x1f324)).toBe(1);
+    });
+
+    // Make sure true emoji in the same block still return 2
+    it("🌀 U+1F300 CYCLONE (Emoji_Presentation=Yes): getCharDisplayWidth returns 2", () => {
+        expect(getCharDisplayWidth(0x1f300)).toBe(2);
+    });
+
+    it("🎃 U+1F383 JACK-O-LANTERN (Emoji_Presentation=Yes): getCharDisplayWidth returns 2", () => {
+        expect(getCharDisplayWidth(0x1f383)).toBe(2);
+    });
+});
+
 describe("getGraphemeDisplayWidth", () => {
     it("returns 1 for a single ASCII char", () => {
         expect(getGraphemeDisplayWidth("A")).toBe(1);
