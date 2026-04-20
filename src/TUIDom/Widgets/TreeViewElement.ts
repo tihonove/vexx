@@ -1,3 +1,4 @@
+import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
@@ -148,36 +149,59 @@ export class TreeViewElement<T> extends ScrollableElement {
             const isCut = this.cutKeys.has(nodeKey);
 
             const { bg: rowBg, fg: rowFg } = this.resolveRowColors(
-                resolved, focused, isCursor, isSelected, isHovered, isCut,
+                resolved,
+                focused,
+                isCursor,
+                isSelected,
+                isHovered,
+                isCut,
             );
 
             const rowText = this.formatRow(node);
             const rowIcon = node.item.icon;
             const rowIconColor = node.item.iconColor;
+            const dl = new DisplayLine(rowText);
 
             let screenX = 0;
-            for (let charIdx = scrollLeft; charIdx < scrollLeft + viewportWidth; charIdx++) {
-                if (charIdx < rowText.length) {
-                    const char = rowText[charIdx];
-                    let fg = rowFg;
-
-                    // Color the icon character
-                    const iconStart = node.depth * INDENT_SIZE + 2;
-                    if (rowIcon && rowIconColor !== undefined && charIdx === iconStart) {
-                        fg = rowIconColor;
-                    }
-
-                    // Color the expand icon
-                    const expandIconPos = node.depth * INDENT_SIZE;
-                    if (charIdx === expandIconPos && node.item.collapsible) {
-                        fg = packRgb(150, 150, 150);
-                    }
-
-                    context.setCell(screenX, screenY, { char, fg, bg: rowBg });
-                } else {
+            let col = scrollLeft;
+            while (col < scrollLeft + viewportWidth) {
+                if (col >= dl.displayWidth) {
                     context.setCell(screenX, screenY, { char: " ", fg: resolved.fg, bg: rowBg });
+                    col++;
+                    screenX++;
+                    continue;
                 }
-                screenX++;
+                const char = dl.charAtColumn(col);
+                if (char === "") {
+                    col++;
+                    screenX++;
+                    continue;
+                }
+                const slot = dl.graphemeAtColumn(col);
+                const w = slot ? slot.displayWidth : 1;
+                let fg = rowFg;
+
+                // Color the icon character
+                const iconStart = node.depth * INDENT_SIZE + 2;
+                if (rowIcon && rowIconColor !== undefined && col === iconStart) {
+                    fg = rowIconColor;
+                }
+
+                // Color the expand icon
+                const expandIconPos = node.depth * INDENT_SIZE;
+                if (col === expandIconPos && node.item.collapsible) {
+                    fg = packRgb(150, 150, 150);
+                }
+
+                if (w === 2 && screenX + 1 >= viewportWidth) {
+                    context.setCell(screenX, screenY, { char: " ", fg, bg: rowBg, width: 1 });
+                    col++;
+                    screenX++;
+                } else {
+                    context.setCell(screenX, screenY, { char, fg, bg: rowBg, width: w });
+                    col += w;
+                    screenX += w;
+                }
             }
         }
     }
@@ -278,7 +302,7 @@ export class TreeViewElement<T> extends ScrollableElement {
 
     private calculateRowWidth(depth: number, item: ITreeItem): number {
         // indent + expandIcon + space + icon + space + label
-        return depth * INDENT_SIZE + 2 + (item.icon ? 2 : 0) + item.label.length;
+        return depth * INDENT_SIZE + 2 + (item.icon ? 2 : 0) + new DisplayLine(item.label).displayWidth;
     }
 
     private formatRow(node: FlatTreeNode<T>): string {

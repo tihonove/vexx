@@ -1,3 +1,5 @@
+import { DisplayLine } from "../Common/DisplayLine.ts";
+
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
 import { comparePositions } from "./IPosition.ts";
@@ -21,6 +23,7 @@ export class EditorViewState {
     public scrollTop = 0;
     public viewportWidth = 80;
     public viewportHeight = 24;
+    public tabSize = 4;
     public selections: ISelection[];
     public readonly document: ITextDocument;
     public foldedRegions: IFoldingRegion[] = [];
@@ -166,10 +169,19 @@ export class EditorViewState {
         for (const sel of this.sortedSelections()) {
             const range = selectionToRange(sel);
             if (range.start.line === range.end.line && range.start.character === range.end.character) {
-                // Collapsed: expand one char left
+                // Collapsed: expand one grapheme left
                 const pos = sel.active;
                 if (pos.character > 0) {
-                    edits.push(createTextEdit(createRange(pos.line, pos.character - 1, pos.line, pos.character), ""));
+                    const lineContent = this.document.getLineContent(pos.line);
+                    const dl = new DisplayLine(lineContent, this.tabSize);
+                    let prevOffset: number;
+                    if (pos.character >= lineContent.length) {
+                        prevOffset = dl.slots.length > 0 ? dl.slots[dl.slots.length - 1].offset : 0;
+                    } else {
+                        const slotIndex = dl.slotIndexAtOffset(pos.character);
+                        prevOffset = slotIndex > 0 ? dl.slots[slotIndex - 1].offset : 0;
+                    }
+                    edits.push(createTextEdit(createRange(pos.line, prevOffset, pos.line, pos.character), ""));
                 } else if (pos.line > 0) {
                     const prevLineLen = this.document.getLineLength(pos.line - 1);
                     edits.push(createTextEdit(createRange(pos.line - 1, prevLineLen, pos.line, 0), ""));
@@ -211,10 +223,17 @@ export class EditorViewState {
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
             let newLine = pos.line;
-            let newChar;
+            let newChar: number;
 
             if (pos.character > 0) {
-                newChar = pos.character - 1;
+                const lineContent = this.document.getLineContent(pos.line);
+                const dl = new DisplayLine(lineContent, this.tabSize);
+                if (pos.character >= lineContent.length) {
+                    newChar = dl.slots.length > 0 ? dl.slots[dl.slots.length - 1].offset : 0;
+                } else {
+                    const slotIndex = dl.slotIndexAtOffset(pos.character);
+                    newChar = slotIndex > 0 ? dl.slots[slotIndex - 1].offset : 0;
+                }
             } else if (pos.line > 0) {
                 const prevVisible = this.previousVisibleLine(pos.line);
                 if (prevVisible >= 0) {
@@ -227,7 +246,8 @@ export class EditorViewState {
                 return sel;
             }
 
-            return this.buildSelection(sel, newLine, newChar, newChar, inSelectionMode);
+            const targetDl = new DisplayLine(this.document.getLineContent(newLine), this.tabSize);
+            return this.buildSelection(sel, newLine, newChar, targetDl.offsetToColumn(newChar), inSelectionMode);
         });
         this.normalizeSelections();
         this.ensureCursorVisible();
@@ -243,10 +263,17 @@ export class EditorViewState {
             const pos = sel.active;
             const lineLen = this.document.getLineLength(pos.line);
             let newLine = pos.line;
-            let newChar;
+            let newChar: number;
 
             if (pos.character < lineLen) {
-                newChar = pos.character + 1;
+                const lineContent = this.document.getLineContent(pos.line);
+                const dl = new DisplayLine(lineContent, this.tabSize);
+                const slotIndex = dl.slotIndexAtOffset(pos.character);
+                if (slotIndex >= 0 && slotIndex < dl.slots.length - 1) {
+                    newChar = dl.slots[slotIndex + 1].offset;
+                } else {
+                    newChar = lineLen;
+                }
             } else {
                 const nextVisible = this.nextVisibleLine(pos.line);
                 if (nextVisible >= 0) {
@@ -257,7 +284,8 @@ export class EditorViewState {
                 }
             }
 
-            return this.buildSelection(sel, newLine, newChar, newChar, inSelectionMode);
+            const targetDl = new DisplayLine(this.document.getLineContent(newLine), this.tabSize);
+            return this.buildSelection(sel, newLine, newChar, targetDl.offsetToColumn(newChar), inSelectionMode);
         });
         this.normalizeSelections();
         this.ensureCursorVisible();
@@ -273,9 +301,13 @@ export class EditorViewState {
             const pos = sel.active;
             const prevVisible = this.previousVisibleLine(pos.line);
             if (prevVisible >= 0) {
-                const ideal = getIdealColumn(sel);
-                const targetLineLen = this.document.getLineLength(prevVisible);
-                const newChar = Math.min(ideal, targetLineLen);
+                let ideal = getIdealColumn(sel);
+                if (sel.idealColumn === undefined) {
+                    const currentDl = new DisplayLine(this.document.getLineContent(pos.line), this.tabSize);
+                    ideal = currentDl.offsetToColumn(pos.character);
+                }
+                const targetDl = new DisplayLine(this.document.getLineContent(prevVisible), this.tabSize);
+                const newChar = targetDl.columnToOffset(ideal);
                 return this.buildSelection(sel, prevVisible, newChar, ideal, inSelectionMode);
             }
             return sel;
@@ -294,9 +326,13 @@ export class EditorViewState {
             const pos = sel.active;
             const nextVisible = this.nextVisibleLine(pos.line);
             if (nextVisible >= 0) {
-                const ideal = getIdealColumn(sel);
-                const targetLineLen = this.document.getLineLength(nextVisible);
-                const newChar = Math.min(ideal, targetLineLen);
+                let ideal = getIdealColumn(sel);
+                if (sel.idealColumn === undefined) {
+                    const currentDl = new DisplayLine(this.document.getLineContent(pos.line), this.tabSize);
+                    ideal = currentDl.offsetToColumn(pos.character);
+                }
+                const targetDl = new DisplayLine(this.document.getLineContent(nextVisible), this.tabSize);
+                const newChar = targetDl.columnToOffset(ideal);
                 return this.buildSelection(sel, nextVisible, newChar, ideal, inSelectionMode);
             }
             return sel;
@@ -322,8 +358,10 @@ export class EditorViewState {
     public cursorBottom(inSelectionMode = false): void {
         const lastLine = this.document.lineCount - 1;
         const lastChar = this.document.getLineLength(lastLine);
+        const dl = new DisplayLine(this.document.getLineContent(lastLine), this.tabSize);
+        const idealCol = dl.offsetToColumn(lastChar);
         this.selections = this.selections.map((sel) => {
-            return this.buildSelection(sel, lastLine, lastChar, lastChar, inSelectionMode);
+            return this.buildSelection(sel, lastLine, lastChar, idealCol, inSelectionMode);
         });
         this.normalizeSelections();
         this.ensureCursorVisible();
@@ -365,13 +403,15 @@ export class EditorViewState {
                 const prevLine = this.previousVisibleLine(pos.line);
                 if (prevLine >= 0) {
                     const lineLen = this.document.getLineLength(prevLine);
-                    return this.buildSelection(sel, prevLine, lineLen, lineLen, inSelectionMode);
+                    const dl = new DisplayLine(this.document.getLineContent(prevLine), this.tabSize);
+                    return this.buildSelection(sel, prevLine, lineLen, dl.offsetToColumn(lineLen), inSelectionMode);
                 }
                 return sel;
             }
             const line = this.document.getLineContent(pos.line);
             const newChar = findWordBoundaryLeft(line, pos.character);
-            return this.buildSelection(sel, pos.line, newChar, newChar, inSelectionMode);
+            const dl = new DisplayLine(line, this.tabSize);
+            return this.buildSelection(sel, pos.line, newChar, dl.offsetToColumn(newChar), inSelectionMode);
         });
         this.normalizeSelections();
         this.ensureCursorVisible();
@@ -394,7 +434,8 @@ export class EditorViewState {
             }
             const line = this.document.getLineContent(pos.line);
             const newChar = findWordBoundaryRight(line, pos.character);
-            return this.buildSelection(sel, pos.line, newChar, newChar, inSelectionMode);
+            const dl = new DisplayLine(line, this.tabSize);
+            return this.buildSelection(sel, pos.line, newChar, dl.offsetToColumn(newChar), inSelectionMode);
         });
         this.normalizeSelections();
         this.ensureCursorVisible();
@@ -417,15 +458,19 @@ export class EditorViewState {
         const pageSize = Math.max(1, this.viewportHeight - 1);
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
-            const ideal = getIdealColumn(sel);
+            let ideal = getIdealColumn(sel);
+            if (sel.idealColumn === undefined) {
+                const currentDl = new DisplayLine(this.document.getLineContent(pos.line), this.tabSize);
+                ideal = currentDl.offsetToColumn(pos.character);
+            }
             let targetLine = pos.line;
             for (let i = 0; i < pageSize; i++) {
                 const next = this.nextVisibleLine(targetLine);
                 if (next < 0) break;
                 targetLine = next;
             }
-            const targetLineLen = this.document.getLineLength(targetLine);
-            const newChar = Math.min(ideal, targetLineLen);
+            const targetDl = new DisplayLine(this.document.getLineContent(targetLine), this.tabSize);
+            const newChar = targetDl.columnToOffset(ideal);
             return this.buildSelection(sel, targetLine, newChar, ideal, inSelectionMode);
         });
         this.normalizeSelections();
@@ -440,15 +485,19 @@ export class EditorViewState {
         const pageSize = Math.max(1, this.viewportHeight - 1);
         this.selections = this.selections.map((sel) => {
             const pos = sel.active;
-            const ideal = getIdealColumn(sel);
+            let ideal = getIdealColumn(sel);
+            if (sel.idealColumn === undefined) {
+                const currentDl = new DisplayLine(this.document.getLineContent(pos.line), this.tabSize);
+                ideal = currentDl.offsetToColumn(pos.character);
+            }
             let targetLine = pos.line;
             for (let i = 0; i < pageSize; i++) {
                 const prev = this.previousVisibleLine(targetLine);
                 if (prev < 0) break;
                 targetLine = prev;
             }
-            const targetLineLen = this.document.getLineLength(targetLine);
-            const newChar = Math.min(ideal, targetLineLen);
+            const targetDl = new DisplayLine(this.document.getLineContent(targetLine), this.tabSize);
+            const newChar = targetDl.columnToOffset(ideal);
             return this.buildSelection(sel, targetLine, newChar, ideal, inSelectionMode);
         });
         this.normalizeSelections();
@@ -464,11 +513,21 @@ export class EditorViewState {
         for (const sel of this.sortedSelections()) {
             const range = selectionToRange(sel);
             if (range.start.line === range.end.line && range.start.character === range.end.character) {
-                // Collapsed: expand one char right
+                // Collapsed: expand one grapheme right
                 const pos = sel.active;
                 const lineLen = this.document.getLineLength(pos.line);
                 if (pos.character < lineLen) {
-                    edits.push(createTextEdit(createRange(pos.line, pos.character, pos.line, pos.character + 1), ""));
+                    const lineContent = this.document.getLineContent(pos.line);
+                    const dl = new DisplayLine(lineContent, this.tabSize);
+                    const slotIndex = dl.slotIndexAtOffset(pos.character);
+                    let nextEnd: number;
+                    if (slotIndex >= 0) {
+                        const slot = dl.slots[slotIndex];
+                        nextEnd = slot.offset + slot.length;
+                    } else {
+                        nextEnd = Math.min(pos.character + 1, lineLen);
+                    }
+                    edits.push(createTextEdit(createRange(pos.line, pos.character, pos.line, nextEnd), ""));
                 } else if (pos.line < this.document.lineCount - 1) {
                     edits.push(createTextEdit(createRange(pos.line, lineLen, pos.line + 1, 0), ""));
                 }
@@ -624,7 +683,9 @@ export class EditorViewState {
             this.scrollTop = visualLine - this.viewportHeight + 1;
         }
 
-        const col = primary.active.character;
+        const lineContent = this.document.getLineContent(primary.active.line);
+        const dl = new DisplayLine(lineContent, this.tabSize);
+        const col = dl.offsetToColumn(primary.active.character);
         if (col < this.scrollLeft) {
             this.scrollLeft = col;
         } else if (col >= this.scrollLeft + this.viewportWidth) {

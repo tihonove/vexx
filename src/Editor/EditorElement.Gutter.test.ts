@@ -26,14 +26,14 @@ describe("gutterWidth", () => {
     });
 
     it("returns GUTTER_LEFT_PADDING + 2 digits + 1 separator for 10–99 lines", () => {
-        const lines = Array.from({ length: 15 }, (_, i) => `line ${i + 1}`).join("\n");
+        const lines = Array.from({ length: 15 }, (_, i) => `line ${String(i + 1)}`).join("\n");
         const { editor } = createEditor(lines);
         // 15 lines → 2 digits → 2 + 2 + 1 = 5
         expect(editor.gutterWidth).toBe(5);
     });
 
     it("returns GUTTER_LEFT_PADDING + 3 digits + 1 separator for 100–999 lines", () => {
-        const lines = Array.from({ length: 100 }, (_, i) => `${i}`).join("\n");
+        const lines = Array.from({ length: 100 }, (_, i) => String(i)).join("\n");
         const { editor } = createEditor(lines);
         // 100 lines → 3 digits → 2 + 3 + 1 = 6
         expect(editor.gutterWidth).toBe(6);
@@ -253,7 +253,7 @@ describe("content area rendering", () => {
 // ─── Scrolling ──────────────────────────────────────────────
 
 describe("scrolling", () => {
-    const tenLines = Array.from({ length: 10 }, (_, i) => `Line${i + 1}`).join("\n");
+    const tenLines = Array.from({ length: 10 }, (_, i) => `Line${String(i + 1)}`).join("\n");
 
     describe("vertical scroll", () => {
         it("shows correct line numbers after scrolling down", () => {
@@ -351,7 +351,7 @@ describe("scrolling", () => {
 
     describe("combined vertical + horizontal scroll", () => {
         it("applies both scroll offsets correctly", () => {
-            const lines = Array.from({ length: 10 }, (_, i) => `ABCDEFGH_${i + 1}`).join("\n");
+            const lines = Array.from({ length: 10 }, (_, i) => `ABCDEFGH_${String(i + 1)}`).join("\n");
             const { app, editor } = createEditor(lines, 16, 3);
             // gutterWidth = 5 (2+2+1), contentCols = 11
             editor.viewState.scrollTop = 4;

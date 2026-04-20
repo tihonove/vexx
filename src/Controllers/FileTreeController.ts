@@ -92,8 +92,14 @@ export class FileTreeController extends Disposable implements IController {
         if (!this.tree) return;
         this.tree.activeSelectionBg = theme.getColorOrDefault("list.activeSelectionBackground", packRgb(4, 57, 94));
         this.tree.activeSelectionFg = theme.getColorOrDefault("list.activeSelectionForeground", packRgb(255, 255, 255));
-        this.tree.inactiveSelectionBg = theme.getColorOrDefault("list.inactiveSelectionBackground", packRgb(55, 55, 61));
-        this.tree.inactiveSelectionFg = theme.getColorOrDefault("list.inactiveSelectionForeground", packRgb(204, 204, 204));
+        this.tree.inactiveSelectionBg = theme.getColorOrDefault(
+            "list.inactiveSelectionBackground",
+            packRgb(55, 55, 61),
+        );
+        this.tree.inactiveSelectionFg = theme.getColorOrDefault(
+            "list.inactiveSelectionForeground",
+            packRgb(204, 204, 204),
+        );
         this.tree.hoverBg = theme.getColor("list.hoverBackground");
         this.tree.hoverFg = theme.getColor("list.hoverForeground");
 

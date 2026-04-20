@@ -1,3 +1,4 @@
+import { DisplayLine } from "../Common/DisplayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../Common/GeometryPromitives.ts";
 import type { CellPatch } from "../Rendering/Grid.ts";
 import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
@@ -49,6 +50,52 @@ export class RenderContext {
         const screenY = y + this.offset.dy;
         if (!this.clipRect.containsPoint(new Point(screenX, screenY))) return;
         this.canvas.setCursorPosition(new Point(screenX, screenY));
+    }
+
+    /**
+     * Render a text string at (x, y), handling wide chars, tabs, combining marks and emoji.
+     * Each column within [startCol, startCol + maxWidth) is rendered.
+     *
+     * @param x       Left screen column (local coordinates)
+     * @param y       Screen row (local coordinates)
+     * @param text    Raw text to render
+     * @param style   Optional cell style (fg, bg, style flags) applied to every cell
+     * @param options tabSize (default 4) and maxWidth (default: no limit)
+     * @returns Number of display columns written
+     */
+    public drawText(
+        x: number,
+        y: number,
+        text: string,
+        style?: { fg?: number; bg?: number; style?: number },
+        options?: {
+            tabSize?: number;
+            maxWidth?: number;
+            getStyle?: (offset: number) => { fg?: number; bg?: number; style?: number } | undefined;
+        },
+    ): number {
+        const dl = new DisplayLine(text, options?.tabSize);
+        const maxWidth = options?.maxWidth ?? dl.displayWidth;
+        let col = 0;
+        while (col < maxWidth) {
+            const char = dl.charAtColumn(col);
+            if (char === "") {
+                col++;
+                continue;
+            }
+            const slot = dl.graphemeAtColumn(col);
+            const w = slot ? slot.displayWidth : 1;
+            const slotStyle = slot && options?.getStyle ? options.getStyle(slot.offset) : undefined;
+            const resolvedStyle = slotStyle !== undefined ? { ...style, ...slotStyle } : style;
+            if (w === 2 && col + 1 >= maxWidth) {
+                this.setCell(x + col, y, { char: " ", width: 1, ...resolvedStyle });
+                col++;
+            } else {
+                this.setCell(x + col, y, { char, width: w, ...resolvedStyle });
+                col += w;
+            }
+        }
+        return col;
     }
 }
 
@@ -459,7 +506,8 @@ export class TUIElement<S extends TUIStyle = TUIStyle> {
 
     // ─── Hit-testing ───
 
-    public elementFromPoint(point: Point): this | null {
+    // eslint-disable-next-line @typescript-eslint/prefer-return-this-type
+    public elementFromPoint(point: Point): TUIElement | null {
         const bounds = new Rect(this.globalPosition, this.layoutSize);
         if (!bounds.containsPoint(point)) return null;
 

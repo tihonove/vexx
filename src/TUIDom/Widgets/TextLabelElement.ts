@@ -1,3 +1,4 @@
+import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../../Rendering/StyleFlags.ts";
@@ -42,11 +43,11 @@ export class TextLabelElement extends TUIElement {
     }
 
     public override getMinIntrinsicWidth(_height: number): number {
-        return this.text.length;
+        return new DisplayLine(this.text).displayWidth;
     }
 
     public override getMaxIntrinsicWidth(_height: number): number {
-        return this.text.length;
+        return new DisplayLine(this.text).displayWidth;
     }
 
     public override getMinIntrinsicHeight(_width: number): number {
@@ -58,24 +59,23 @@ export class TextLabelElement extends TUIElement {
     }
 
     public override performLayout(constraints: BoxConstraints): Size {
-        const width = constraints.constrain(new Size(this.text.length, 1)).width;
+        const width = constraints.constrain(new Size(new DisplayLine(this.text).displayWidth, 1)).width;
         return super.performLayout(BoxConstraints.tight(new Size(width, 1)));
     }
 
     public override render(context: RenderContext): void {
         const width = this.layoutSize.width;
         const resolved = this.resolvedStyle;
-
-        for (let x = 0; x < width; x++) {
-            const char = x < this.text.length ? this.text[x] : " ";
-            const charStyle = this.charStyles.get(x);
-            context.setCell(x, 0, {
-                char,
-                fg: charStyle?.fg ?? resolved.fg,
-                bg: charStyle?.bg ?? resolved.bg,
-                style: charStyle?.style ?? StyleFlags.None,
-            });
-        }
+        context.drawText(
+            0,
+            0,
+            this.text,
+            { fg: resolved.fg, bg: resolved.bg, style: StyleFlags.None },
+            {
+                maxWidth: width,
+                getStyle: (offset) => this.charStyles.get(offset),
+            },
+        );
     }
 }
 

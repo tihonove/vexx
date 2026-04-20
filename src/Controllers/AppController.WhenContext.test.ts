@@ -63,7 +63,7 @@ describe("AppController when-context integration", () => {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-when-"));
         // Create enough files so the tree has items to page through
         for (let i = 0; i < 30; i++) {
-            fs.writeFileSync(path.join(tmpDir, `file-${String(i).padStart(2, "0")}.txt`), `content ${i}`);
+            fs.writeFileSync(path.join(tmpDir, `file-${String(i).padStart(2, "0")}.txt`), `content ${String(i)}`);
         }
     });
 
@@ -97,7 +97,7 @@ describe("AppController when-context integration", () => {
 
         // Create a file with many lines
         const longFile = path.join(tmpDir, "long.txt");
-        const lines = Array.from({ length: 100 }, (_, i) => `line ${i}`);
+        const lines = Array.from({ length: 100 }, (_, i) => `line ${String(i)}`);
         fs.writeFileSync(longFile, lines.join("\n"));
 
         controller.openFile(longFile);
@@ -134,19 +134,19 @@ describe("AppController when-context integration", () => {
         await controller.activate();
 
         const longFile = path.join(tmpDir, "long.txt");
-        const lines = Array.from({ length: 100 }, (_, i) => `line ${i}`);
+        const lines = Array.from({ length: 100 }, (_, i) => `line ${String(i)}`);
         fs.writeFileSync(longFile, lines.join("\n"));
 
         controller.openFile(longFile);
         controller.focusEditor();
 
         const tree = testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
-        const initialTreeScrollTop = tree?.scrollTop ?? 0;
+        const initialTreeScrollTop = tree.scrollTop;
 
         testApp.sendKey("PageDown");
 
         // Tree should not have changed
-        expect(tree?.scrollTop ?? 0).toBe(initialTreeScrollTop);
+        expect(tree.scrollTop).toBe(initialTreeScrollTop);
     });
 
     it("context keys update correctly when switching focus", () => {

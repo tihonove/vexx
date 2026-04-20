@@ -1,3 +1,4 @@
+import { DisplayLine } from "../Common/DisplayLine.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
@@ -23,6 +24,7 @@ export class EditorElement extends TUIElement implements IScrollable {
     public readonly viewState: EditorViewState;
     public readonly undoManager: UndoManager;
 
+    public tabSize = 4;
     public gutterBackground: number | undefined;
     public lineNumberForeground: number | undefined;
     public lineNumberActiveForeground: number | undefined;
@@ -35,7 +37,8 @@ export class EditorElement extends TUIElement implements IScrollable {
         const doc = this.viewState.document;
         let max = 0;
         for (let i = 0; i < doc.lineCount; i++) {
-            max = Math.max(max, doc.getLineLength(i));
+            const dl = new DisplayLine(doc.getLineContent(i), this.tabSize);
+            max = Math.max(max, dl.displayWidth);
         }
         return max;
     }
@@ -138,10 +141,26 @@ export class EditorElement extends TUIElement implements IScrollable {
             }
 
             const lineContent = this.viewState.getViewLine(viewLine);
-            for (let screenX = 0; screenX < contentCols; screenX++) {
-                const docChar = scrollLeft + screenX;
-                const char = docChar < lineContent.length ? lineContent[docChar] : " ";
-                context.setCell(gutterW + screenX, screenY, { char, fg: editorFg, bg: editorBg });
+            const dl = new DisplayLine(lineContent, this.tabSize);
+            let screenX = 0;
+            while (screenX < contentCols) {
+                const displayCol = scrollLeft + screenX;
+                const char = dl.charAtColumn(displayCol);
+                if (char === "") {
+                    // Continuation column of a wide char — skip, already handled by Grid
+                    screenX++;
+                    continue;
+                }
+                const slot = dl.graphemeAtColumn(displayCol);
+                const width = slot ? slot.displayWidth : 1;
+                if (width === 2 && screenX + 1 >= contentCols) {
+                    // Wide char doesn't fit at the right edge — render space instead
+                    context.setCell(gutterW + screenX, screenY, { char: " ", fg: editorFg, bg: editorBg, width: 1 });
+                    screenX++;
+                } else {
+                    context.setCell(gutterW + screenX, screenY, { char, fg: editorFg, bg: editorBg, width });
+                    screenX += width;
+                }
             }
         }
 
@@ -158,11 +177,15 @@ export class EditorElement extends TUIElement implements IScrollable {
                 if (logLine < range.start.line || logLine > range.end.line) continue;
 
                 const lineContent = this.viewState.getViewLine(viewLine);
+                const dl = new DisplayLine(lineContent, this.tabSize);
                 const selStartChar = logLine === range.start.line ? range.start.character : 0;
                 const selEndChar = logLine === range.end.line ? range.end.character : lineContent.length + 1;
 
-                const screenXStart = Math.max(0, selStartChar - scrollLeft);
-                const screenXEnd = Math.min(contentCols, selEndChar - scrollLeft);
+                const selStartCol = logLine === range.start.line ? dl.offsetToColumn(selStartChar) : 0;
+                const selEndCol = logLine === range.end.line ? dl.offsetToColumn(selEndChar) : dl.displayWidth + 1;
+
+                const screenXStart = Math.max(0, selStartCol - scrollLeft);
+                const screenXEnd = Math.min(contentCols, selEndCol - scrollLeft);
 
                 for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
                     context.setCell(gutterW + screenX, screenY, { bg: SELECTION_BG });
@@ -173,7 +196,9 @@ export class EditorElement extends TUIElement implements IScrollable {
         // Position hardware cursor at the primary selection's active position
         const primary = this.viewState.selections[0];
         const cursorVisualLine = this.viewState.logicalToVisualLine(primary.active.line);
-        const cursorScreenX = primary.active.character - scrollLeft + gutterW;
+        const cursorLineContent = this.viewState.getViewLine(cursorVisualLine);
+        const cursorDl = new DisplayLine(cursorLineContent, this.tabSize);
+        const cursorScreenX = cursorDl.offsetToColumn(primary.active.character) - scrollLeft + gutterW;
         const cursorScreenY = cursorVisualLine - scrollTop;
 
         if (

@@ -71,6 +71,14 @@ export class TerminalRenderer {
 
                 const cur = currentGrid.getCellAt(x, y);
 
+                // Skip continuation cells (second column of a wide character).
+                // The head cell already wrote the character, and the terminal
+                // auto-advanced the cursor past the continuation column.
+                if (cur.width === 0) {
+                    previousGrid.copyCellFrom(x, y, currentGrid);
+                    continue;
+                }
+
                 // ── Cursor positioning ──────────────────────────
                 // If the cursor is already at (x, y) we can skip the CUP sequence.
                 // After writing a character the cursor auto-advances by one column.
@@ -122,14 +130,16 @@ export class TerminalRenderer {
                 buf += cur.char;
 
                 // Update cursor tracking (character auto-advances).
-                if (x === width - 1) {
+                // Wide characters (width=2) advance the cursor by 2 columns.
+                const charWidth = cur.width;
+                if (x + charWidth >= width) {
                     // Right margin: terminal behaviour is unpredictable after
                     // writing the last column (may or may not auto-wrap).
                     // Invalidate cursor so the next cell gets an absolute CUP.
                     cursorX = -1;
                     cursorY = -1;
                 } else {
-                    cursorX = x + 1;
+                    cursorX = x + charWidth;
                     cursorY = y;
                 }
 

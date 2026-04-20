@@ -9,6 +9,7 @@ export interface ReadonlyCellData {
     readonly fg: number;
     readonly bg: number;
     readonly style: number;
+    readonly width: number;
 }
 
 export interface CellPatch {
@@ -16,6 +17,7 @@ export interface CellPatch {
     fg?: number;
     bg?: number;
     style?: number;
+    width?: number;
 }
 
 /**
@@ -58,20 +60,106 @@ export class Grid {
         fg: number = DEFAULT_COLOR,
         bg: number = DEFAULT_COLOR,
         style: number = StyleFlags.None,
+        width = 1,
     ): void {
-        const cell = this.cells[position.y * this.size.width + position.x];
+        const x = position.x;
+        const y = position.y;
+        const idx = y * this.size.width + x;
+        const cell = this.cells[idx];
+
+        // If overwriting a continuation cell, clear the head cell of that wide char
+        if (cell.width === 0 && x > 0) {
+            const head = this.cells[idx - 1];
+            if (head.width === 2) {
+                head.char = " ";
+                head.width = 1;
+            }
+        }
+        // If overwriting a head cell of a wide char, clear its continuation
+        if (cell.width === 2 && x + 1 < this.size.width) {
+            const cont = this.cells[idx + 1];
+            if (cont.width === 0) {
+                cont.char = " ";
+                cont.width = 1;
+            }
+        }
+
         cell.char = char;
         cell.fg = fg;
         cell.bg = bg;
         cell.style = style;
+        cell.width = width;
+
+        // For wide chars, set up the continuation cell
+        if (width === 2 && x + 1 < this.size.width) {
+            const cont = this.cells[idx + 1];
+            // If the continuation position holds a wide char head, clear its own continuation
+            if (cont.width === 2 && x + 2 < this.size.width) {
+                const nextCont = this.cells[idx + 2];
+                if (nextCont.width === 0) {
+                    nextCont.char = " ";
+                    nextCont.width = 1;
+                }
+            }
+            cont.char = "";
+            cont.fg = fg;
+            cont.bg = bg;
+            cont.style = style;
+            cont.width = 0;
+        }
     }
 
     public updateCell(position: Point, patch: CellPatch): void {
-        const cell = this.cells[position.y * this.size.width + position.x];
+        const x = position.x;
+        const y = position.y;
+        const w = this.size.width;
+        const idx = y * w + x;
+        const cell = this.cells[idx];
+
+        // Wide-char bookkeeping only when char or width are being set
+        if (patch.char !== undefined || patch.width !== undefined) {
+            // If overwriting a continuation cell, clear the head cell of that wide char
+            if (cell.width === 0 && x > 0) {
+                const head = this.cells[idx - 1];
+                if (head.width === 2) {
+                    head.char = " ";
+                    head.width = 1;
+                }
+            }
+            // If overwriting a head cell of a wide char, clear its continuation
+            if (cell.width === 2 && x + 1 < w) {
+                const cont = this.cells[idx + 1];
+                if (cont.width === 0) {
+                    cont.char = " ";
+                    cont.width = 1;
+                }
+            }
+        }
+
         if (patch.char !== undefined) cell.char = patch.char;
         if (patch.fg !== undefined) cell.fg = patch.fg;
         if (patch.bg !== undefined) cell.bg = patch.bg;
         if (patch.style !== undefined) cell.style = patch.style;
+        if (patch.width !== undefined) cell.width = patch.width;
+
+        // For wide chars, set up the continuation cell
+        const newWidth = patch.width ?? cell.width;
+        if (newWidth === 2 && x + 1 < w) {
+            const cont = this.cells[idx + 1];
+            // If the continuation position holds a wide char head, clear its own continuation
+            if (cont.width === 2 && x + 2 < w) {
+                const nextCont = this.cells[idx + 2];
+                if (nextCont.width === 0) {
+                    nextCont.char = " ";
+                    nextCont.width = 1;
+                }
+            }
+            cont.char = "";
+            cont.width = 0;
+            if (patch.fg !== undefined) cont.fg = patch.fg;
+            if (patch.bg !== undefined) cont.bg = patch.bg;
+            if (patch.style !== undefined) cont.style = patch.style;
+        }
     }
 
     public cellEqualsAt(x: number, y: number, other: Grid): boolean {
@@ -102,6 +190,7 @@ export class Grid {
             cell.fg = fg;
             cell.bg = bg;
             cell.style = style;
+            cell.width = 1;
         }
     }
 }

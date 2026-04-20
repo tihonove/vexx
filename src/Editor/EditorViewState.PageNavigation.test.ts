@@ -5,7 +5,7 @@ import { createCursorSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
 
 function makeDoc(lineCount: number): TextDocument {
-    const lines = Array.from({ length: lineCount }, (_, i) => `line ${i}`);
+    const lines = Array.from({ length: lineCount }, (_, i) => `line ${String(i)}`);
     return new TextDocument(lines.join("\n"));
 }
 

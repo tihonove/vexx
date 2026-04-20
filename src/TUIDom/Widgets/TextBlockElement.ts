@@ -1,3 +1,4 @@
+import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { IContentSized } from "./IScrollable.ts";
@@ -14,7 +15,7 @@ export class TextBlockElement extends TUIElement implements IContentSized {
         for (let i = 0; i < lineCount; i++) {
             this.lines.push(`Line ${String(i + 1).padStart(3, "0")}`);
         }
-        this.contentWidth = this.lines.reduce((max, l) => Math.max(max, l.length), 0);
+        this.contentWidth = this.lines.reduce((max, l) => Math.max(max, new DisplayLine(l).displayWidth), 0);
     }
 
     public override getMinIntrinsicWidth(_height: number): number {
@@ -38,11 +39,7 @@ export class TextBlockElement extends TUIElement implements IContentSized {
 
         for (let y = 0; y < this.contentHeight; y++) {
             const lineContent = y < this.lines.length ? this.lines[y] : "";
-
-            for (let x = 0; x < width; x++) {
-                const char = x < lineContent.length ? lineContent[x] : " ";
-                context.setCell(x, y, { char });
-            }
+            context.drawText(0, y, lineContent, undefined, { maxWidth: width });
         }
     }
 }

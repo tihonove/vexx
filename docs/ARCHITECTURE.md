@@ -16,6 +16,8 @@
 ### Common/
 Базовые типы и утилиты, не зависящие ни от чего: `Point`, `Size`, `Offset`, `BoxConstraints`, `Rect`, `IDisposable`, `Disposable`, DI-контейнер (`Token`, `Container`, см. [docs/DI.md](DI.md)).
 
+Также здесь живут Unicode-утилиты: `UnicodeWidth` (ширина code point/grapheme) и `DisplayLine` — маппинг строки документа на массив grapheme-слотов с двусторонним конвертером offset↔column. `DisplayLine` используется всеми слоями (Editor, TUIDom/Widgets, RenderContext) для корректной обработки wide chars, emoji, табов и combining marks.
+
 ### Input/
 Пайплайн парсинга терминального ввода: сырые байты stdin → токены → `KeyPressEvent`. Включает токенизатор stdin, отслеживание мыши, stateful парсер клавиатурных событий (keydown/keypress/keyup в browser-like стиле) и обратную сериализацию для тестов.
 
@@ -27,6 +29,8 @@
 
 ### TUIDom/
 TUI-фреймворк — дерево элементов с layout, событиями, фокусом. Аналог браузерного DOM. Содержит базовый класс элемента, корневой event loop и три подкаталога. Система layout и позиционирования описана в [docs/LAYOUT.md](LAYOUT.md).
+
+`RenderContext` предоставляет метод `drawText(x, y, text, style?, options?)` который инкапсулирует рендеринг wide chars через `DisplayLine` — виджеты не обязаны знать про grapheme-слоты и wide-char продолжение.
 
 - **Events** — система событий: capture/bubble фазы, клавиатурные и фокус-события, менеджер фокуса с tab-навигацией, механизм default actions
 - **Styles** — система стилей: наследование `fg`/`bg` от родителя к потомку, sentinel-значения (`INHERITED_FG`, `INHERITED_BG`), dirty-пропагация (`markStyleDirty`) и top-down резолвинг (`performStyleResolution`). Базовый `TUIStyle` содержит только `fg`/`bg`. Компонент-специфичные стили задаются через generic: `TUIElement<S extends TUIStyle>`, расширения стилей определяются рядом с соответствующими виджетами (например `TitledPanelStyle`). Разрешённые значения доступны через `resolvedStyle: ResolvedTUIStyle`

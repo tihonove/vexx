@@ -34,7 +34,9 @@ export class ContextKeyService implements IDisposable {
     public evaluate(when: string): boolean {
         const args = allContextKeys.map((k) => this.values.get(k) ?? false);
         try {
+            // eslint-disable-next-line @typescript-eslint/no-implied-eval
             const fn = new Function(...allContextKeys, `return !!(${when})`);
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-call
             return fn(...args) as boolean;
         } catch {
             return false;
