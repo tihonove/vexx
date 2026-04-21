@@ -24,7 +24,14 @@ export class EditorElement extends TUIElement implements IScrollable {
     public readonly viewState: EditorViewState;
     public readonly undoManager: UndoManager;
 
-    public tabSize = 4;
+    public get tabSize(): number {
+        return this.viewState.tabSize;
+    }
+
+    public set tabSize(value: number) {
+        this.viewState.tabSize = value;
+    }
+
     public gutterBackground: number | undefined;
     public lineNumberForeground: number | undefined;
     public lineNumberActiveForeground: number | undefined;
@@ -153,7 +160,14 @@ export class EditorElement extends TUIElement implements IScrollable {
                 }
                 const slot = dl.graphemeAtColumn(displayCol);
                 const width = slot ? slot.displayWidth : 1;
-                if (width === 2 && screenX + 1 >= contentCols) {
+                if (slot?.grapheme === "\t") {
+                    // Tab: render each column as an individual space so Grid/TerminalRenderer
+                    // tracks the cursor correctly (they only support width=1 and width=2).
+                    for (let i = 0; i < width && screenX + i < contentCols; i++) {
+                        context.setCell(gutterW + screenX + i, screenY, { char: " ", fg: editorFg, bg: editorBg });
+                    }
+                    screenX += width;
+                } else if (width === 2 && screenX + 1 >= contentCols) {
                     // Wide char doesn't fit at the right edge — render space instead
                     context.setCell(gutterW + screenX, screenY, { char: " ", fg: editorFg, bg: editorBg, width: 1 });
                     screenX++;

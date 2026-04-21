@@ -53,6 +53,34 @@ describe("tab rendering", () => {
         // Two tabs = 8 spaces, then "x"
         expect(backend.getTextAt(new Point(gw, 0), 9)).toBe("        x");
     });
+
+    it("regression: all tab columns receive editor background (not just the first)", () => {
+        // Before the fix, tab was rendered as a single setCell with width=4.
+        // Grid/TerminalRenderer only support width=1 and width=2, so columns 1-3
+        // of the tab were never written — they kept DEFAULT_COLOR background.
+        const EDITOR_BG = packRgb(30, 30, 46);
+        const { app, editor } = createEditor("\tx", 20, 3);
+        editor.tabSize = 4;
+        editor.style = { bg: EDITOR_BG };
+        app.render();
+
+        const backend = app.backend;
+        const gw = editor.gutterWidth;
+        // All 4 columns of the tab (cols 0-3) must have the editor background
+        for (let i = 0; i < 4; i++) {
+            expect(backend.getBgAt(new Point(gw + i, 0))).toBe(EDITOR_BG);
+        }
+        // "x" at col 4 also has editor background
+        expect(backend.getBgAt(new Point(gw + 4, 0))).toBe(EDITOR_BG);
+    });
+
+    it("tabSize setting is shared between EditorElement and EditorViewState", () => {
+        const { editor } = createEditor("\tx", 20, 3);
+        editor.tabSize = 2;
+        expect(editor.viewState.tabSize).toBe(2);
+        editor.viewState.tabSize = 8;
+        expect(editor.tabSize).toBe(8);
+    });
 });
 
 // ─── CJK rendering ─────────────────────────────────────────
