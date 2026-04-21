@@ -118,11 +118,6 @@ export class TuiApplication {
         this.backend.setup();
 
         this.backend.onInput((event) => {
-            // Ctrl+C — exit
-            if (event.ctrlKey && event.key === "c") {
-                this.backend.teardown();
-                process.exit(0);
-            }
             this.handleInput(event);
         });
 

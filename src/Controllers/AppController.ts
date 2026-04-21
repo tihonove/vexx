@@ -14,6 +14,7 @@ import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
+import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./Actions/ClipboardActions.ts";
 import {
     cursorBottomAction,
     cursorBottomSelectAction,
@@ -107,6 +108,11 @@ const builtinActions = [
     undoAction,
     redoAction,
     selectAllAction,
+
+    // Clipboard
+    clipboardCopyAction,
+    clipboardCutAction,
+    clipboardPasteAction,
 
     // List
     listFocusPageDownAction,

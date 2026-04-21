@@ -5,7 +5,13 @@ import type { ILineTokens } from "./ILineTokens.ts";
 import { comparePositions } from "./IPosition.ts";
 import { createRange } from "./IRange.ts";
 import type { ISelection } from "./ISelection.ts";
-import { createCursorSelection, createSelection, getIdealColumn, selectionToRange } from "./ISelection.ts";
+import {
+    createCursorSelection,
+    createSelection,
+    getIdealColumn,
+    isSelectionCollapsed,
+    selectionToRange,
+} from "./ISelection.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
 import { createTextEdit } from "./ITextEdit.ts";
@@ -128,6 +134,26 @@ export class EditorViewState {
             return -1;
         }
         return visible[visualLine];
+    }
+
+    /**
+     * Returns the text covered by the primary (first) selection.
+     * Returns an empty string when the selection is collapsed (cursor only).
+     */
+    public getSelectedText(): string {
+        const sel = this.selections[0];
+        if (isSelectionCollapsed(sel)) {
+            return "";
+        }
+        return this.document.getTextInRange(selectionToRange(sel));
+    }
+
+    /**
+     * Inserts text at every cursor/selection, replacing any selected content.
+     * Delegates to type() which already handles selection replacement.
+     */
+    public insertText(text: string): IUndoElement {
+        return this.type(text);
     }
 
     /**

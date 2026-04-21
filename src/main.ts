@@ -4,10 +4,11 @@ import * as path from "node:path";
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
 import type { ServiceAccessor } from "./Common/DiContainer.ts";
 import { Container } from "./Common/DiContainer.ts";
+import { InMemoryClipboard } from "./Common/InMemoryClipboard.ts";
 import { AppController, AppControllerDIToken } from "./Controllers/AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRegistry.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "./Controllers/ContextKeyService.ts";
-import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
+import { ClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
@@ -36,6 +37,7 @@ const container = new Container()
     .bind(CommandRegistryDIToken, () => new CommandRegistry())
     .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
     .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
+    .bind(ClipboardDIToken, () => new InMemoryClipboard())
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
     .bind(EditorGroupControllerDIToken, EditorGroupController)
     .bind(StatusBarControllerDIToken, StatusBarController)
