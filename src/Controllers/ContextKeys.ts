@@ -12,6 +12,8 @@ export interface ContextKeyTypes {
     // editorFocus: boolean;
     // editorTextFocus: boolean;
     textInputFocus: boolean;
+    editorGroupHasEditors: boolean;
+    editorTabsMultiple: boolean;
     // inputFocus: boolean;
     // editorTabMovesFocus: boolean;
     // editorHasSelection: boolean;
@@ -131,6 +133,8 @@ export const allContextKeys: ContextKey[] = [
     // "editorFocus",
     // "editorTextFocus",
     "textInputFocus",
+    "editorGroupHasEditors",
+    "editorTabsMultiple",
     // "inputFocus",
     // "editorTabMovesFocus",
     // "editorHasSelection",

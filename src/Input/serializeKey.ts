@@ -100,6 +100,12 @@ export function serializeKey(name: string): string {
         return "\x1b[Z";
     }
 
+    // Tab with modifiers in Kitty CSI-u form: CSI 9;{mod}:1u
+    if (remaining === "Tab" && hasModifiers) {
+        const mod = encodeModifier(ctrl, shift, alt, meta);
+        return `\x1b[9;${mod.toString()}:1u`;
+    }
+
     // Ctrl+letter → control character (0x01–0x1a)
     if (ctrl && !shift && !alt && !meta && remaining.length === 1 && /[a-zA-Z]/.test(remaining)) {
         const code = remaining.toUpperCase().charCodeAt(0) - 0x40;

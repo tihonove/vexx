@@ -13,6 +13,7 @@ import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -78,6 +79,8 @@ describe("AppController when-context integration", () => {
 
         expect(contextKeys.get("textInputFocus")).toBe(true);
         expect(contextKeys.get("listFocus")).toBe(false);
+        expect(contextKeys.get("editorGroupHasEditors")).toBe(true);
+        expect(contextKeys.get("editorTabsMultiple")).toBe(false);
     });
 
     it("sets listFocus when tree is focused", async () => {
@@ -152,21 +155,47 @@ describe("AppController when-context integration", () => {
     it("context keys update correctly when switching focus", () => {
         const { testApp, controller, contextKeys } = createIntegrationApp(tmpDir);
         controller.openFile(path.join(tmpDir, "file-00.txt"));
+        controller.openFile(path.join(tmpDir, "file-01.txt"));
 
         // Focus editor
         controller.focusEditor();
         expect(contextKeys.get("textInputFocus")).toBe(true);
         expect(contextKeys.get("listFocus")).toBe(false);
+        expect(contextKeys.get("editorGroupHasEditors")).toBe(true);
+        expect(contextKeys.get("editorTabsMultiple")).toBe(true);
 
         // Focus tree
         const tree = testApp.querySelector("TreeViewElement");
         tree!.focus();
         expect(contextKeys.get("textInputFocus")).toBe(false);
         expect(contextKeys.get("listFocus")).toBe(true);
+        expect(contextKeys.get("editorGroupHasEditors")).toBe(true);
+        expect(contextKeys.get("editorTabsMultiple")).toBe(true);
 
         // Focus editor again
         controller.focusEditor();
         expect(contextKeys.get("textInputFocus")).toBe(true);
         expect(contextKeys.get("listFocus")).toBe(false);
+        expect(contextKeys.get("editorGroupHasEditors")).toBe(true);
+        expect(contextKeys.get("editorTabsMultiple")).toBe(true);
+    });
+
+    it("Ctrl+Tab does not switch tabs when tree has focus", async () => {
+        const { testApp, controller } = createIntegrationApp(tmpDir);
+        await controller.activate();
+
+        controller.openFile(path.join(tmpDir, "file-00.txt"));
+        controller.openFile(path.join(tmpDir, "file-01.txt"));
+        controller.focusEditor();
+
+        const tabStrip = testApp.querySelector("EditorTabStripElement") as EditorTabStripElement;
+        expect(tabStrip.activeIndex).toBe(1);
+
+        const tree = testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
+        tree.focus();
+
+        testApp.sendKey("Ctrl+Tab");
+
+        expect(tabStrip.activeIndex).toBe(1);
     });
 });

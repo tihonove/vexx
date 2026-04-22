@@ -9,6 +9,7 @@ import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -104,6 +105,84 @@ describe("AppController integration", () => {
 
         const editorElement = testApp.querySelector("EditorElement") as EditorElement;
         expect(editorElement.viewState.document.getText()).toBe("hi");
+    });
+
+    it("Ctrl+Tab switches to next editor tab", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/tab-a.txt");
+        controller.openFile("/tmp/tab-b.txt");
+        controller.focusEditor();
+
+        const tabStrip = testApp.querySelector("EditorTabStripElement") as EditorTabStripElement;
+        expect(tabStrip.activeIndex).toBe(1);
+
+        testApp.sendKey("Ctrl+Tab");
+
+        expect(tabStrip.activeIndex).toBe(0);
+    });
+
+    it("Ctrl+Tab keeps focus on EditorElement", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/tab-a.txt");
+        controller.openFile("/tmp/tab-b.txt");
+        controller.focusEditor();
+
+        testApp.sendKey("Ctrl+Tab");
+
+        expect(testApp.focusedElement).not.toBeNull();
+        expect(testApp.focusedElement).toBe(testApp.querySelector("EditorElement"));
+    });
+
+    it("Ctrl+Shift+Tab switches to previous editor tab", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/tab-a.txt");
+        controller.openFile("/tmp/tab-b.txt");
+        controller.focusEditor();
+
+        const tabStrip = testApp.querySelector("EditorTabStripElement") as EditorTabStripElement;
+        expect(tabStrip.activeIndex).toBe(1);
+
+        testApp.sendKey("Ctrl+Shift+Tab");
+
+        expect(tabStrip.activeIndex).toBe(0);
+    });
+
+    it("Ctrl+Shift+Tab keeps focus on EditorElement", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/tab-a.txt");
+        controller.openFile("/tmp/tab-b.txt");
+        controller.focusEditor();
+
+        testApp.sendKey("Ctrl+Shift+Tab");
+
+        expect(testApp.focusedElement).not.toBeNull();
+        expect(testApp.focusedElement).toBe(testApp.querySelector("EditorElement"));
+    });
+
+    it("Ctrl+W closes active tab", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/tab-a.txt");
+        controller.openFile("/tmp/tab-b.txt");
+        controller.focusEditor();
+
+        const tabStrip = testApp.querySelector("EditorTabStripElement") as EditorTabStripElement;
+        expect(tabStrip.getItemElements()).toHaveLength(2);
+
+        testApp.sendKey("Ctrl+W");
+
+        expect(tabStrip.getItemElements()).toHaveLength(1);
+    });
+
+    it("Ctrl+W keeps focus on remaining EditorElement", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/tab-a.txt");
+        controller.openFile("/tmp/tab-b.txt");
+        controller.focusEditor();
+
+        testApp.sendKey("Ctrl+W");
+
+        expect(testApp.focusedElement).not.toBeNull();
+        expect(testApp.focusedElement).toBe(testApp.querySelector("EditorElement"));
     });
 
     it("creates UI tree with statusbar", () => {

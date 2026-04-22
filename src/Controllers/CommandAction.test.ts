@@ -80,6 +80,38 @@ describe("registerAction", () => {
         expect(resolved).toBe("test.action");
     });
 
+    it("registers all keybindings when keybindings array is specified", () => {
+        const commands = new CommandRegistry();
+        const keybindings = new KeybindingRegistry();
+        const accessor = new Container();
+        const action: CommandAction = {
+            id: "test.action",
+            title: "Test Action",
+            keybindings: [parseKeybinding("ctrl+s"), parseKeybinding("ctrl+pagedown")],
+            run: vi.fn(),
+        };
+
+        registerAction(commands, keybindings, accessor, action);
+
+        const resolvedCtrlS = keybindings.resolve({
+            key: "s",
+            ctrlKey: true,
+            shiftKey: false,
+            altKey: false,
+            metaKey: false,
+        });
+        expect(resolvedCtrlS).toBe("test.action");
+
+        const resolvedCtrlPageDown = keybindings.resolve({
+            key: "PageDown",
+            ctrlKey: true,
+            shiftKey: false,
+            altKey: false,
+            metaKey: false,
+        });
+        expect(resolvedCtrlPageDown).toBe("test.action");
+    });
+
     it("does not register keybinding when not specified", () => {
         const commands = new CommandRegistry();
         const keybindings = new KeybindingRegistry();

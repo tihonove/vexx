@@ -52,6 +52,11 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
+import {
+    closeActiveEditorAction,
+    nextEditorInGroupAction,
+    previousEditorInGroupAction,
+} from "./Actions/TabActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -117,6 +122,11 @@ const builtinActions = [
     // List
     listFocusPageDownAction,
     listFocusPageUpAction,
+
+    // Tabs
+    nextEditorInGroupAction,
+    previousEditorInGroupAction,
+    closeActiveEditorAction,
 ];
 
 export class AppController extends Disposable implements IController {
@@ -196,6 +206,7 @@ export class AppController extends Disposable implements IController {
 
     public openFile(filePath: string): void {
         this.editorGroupController.openFile(filePath);
+        this.updateContextKeys();
         this.statusBarController.update();
     }
 
@@ -218,6 +229,7 @@ export class AppController extends Disposable implements IController {
     }
 
     private handleKeyDown = (event: TUIKeyboardEvent): void => {
+        this.updateContextKeys();
         const commandId = this.keybindings.resolve(event, this.contextKeys);
         if (commandId && this.commands.has(commandId)) {
             event.preventDefault();
@@ -235,9 +247,12 @@ export class AppController extends Disposable implements IController {
 
     private updateContextKeys(): void {
         const active = this.view.focusManager?.activeElement ?? null;
+        const editorCount = this.editorGroupController.editorCount;
 
         this.contextKeys.set("textInputFocus", active instanceof EditorElement);
         this.contextKeys.set("listFocus", active instanceof TreeViewElement);
+        this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
+        this.contextKeys.set("editorTabsMultiple", editorCount > 1);
     }
 
     private setupMenu(): void {

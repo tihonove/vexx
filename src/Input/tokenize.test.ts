@@ -217,6 +217,23 @@ describe("tokenize", () => {
         ]);
     });
 
+    it("tokenizes xterm modifyOtherKeys Ctrl+Tab (\\x1b[27;5;9~) as csi-tilde", () => {
+        const tokens = tokenize("\x1b[27;5;9~");
+        expect(tokens).toEqual([
+            {
+                kind: "csi-tilde",
+                number: 27,
+                key: "Tab",
+                shiftKey: false,
+                altKey: false,
+                ctrlKey: true,
+                metaKey: false,
+                eventType: 0,
+                raw: "\x1b[27;5;9~",
+            },
+        ]);
+    });
+
     // ─── CsiUToken ───
 
     it("tokenizes basic CSI u 'a' (\\x1b[97u) as csi-u", () => {

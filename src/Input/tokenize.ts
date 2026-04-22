@@ -262,6 +262,7 @@ export const csiKeyMap: Partial<Record<string, string>> = {
     C: "ArrowRight",
     D: "ArrowLeft",
     H: "Home",
+    I: "Tab",
     F: "End",
     P: "F1",
     Q: "F2",
@@ -464,7 +465,16 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
     if (finalByte === "~") {
         const { codepoint: num } = parseCodepointParam(paramStrings[0] ?? "0");
         const { mod, eventType } = parseModifierParam(paramStrings[1] ?? "");
-        const keyName = tildeKeyMap[num];
+        let keyName = tildeKeyMap[num];
+
+        // xterm modifyOtherKeys compatibility:
+        // CSI 27;<mod>;<codepoint>~ (e.g. Ctrl+Tab => CSI 27;5;9~)
+        if (!keyName && num === 27 && paramStrings.length >= 3) {
+            const { codepoint: encodedCodepoint } = parseCodepointParam(paramStrings[2] ?? "0");
+            const kittyKey = kittyCodepointMap[encodedCodepoint];
+            keyName = kittyKey ? kittyKey.key : undefined;
+        }
+
         if (!keyName) return null;
         const mods = decodeModifiers(mod);
         const token: CsiTildeToken = {

@@ -51,23 +51,24 @@ export class EditorGroupController extends Disposable implements IController {
     public openFile(filePath: string): void {
         const existingIndex = this.editors.findIndex((e) => e.fileName === path.basename(filePath));
         if (existingIndex >= 0) {
-            this.activateTab(existingIndex);
+            this.activateTab(existingIndex, { focus: false });
             return;
         }
 
         const editor = this.register(new EditorController(this.themeService));
         editor.openFile(filePath);
         this.editors.push(editor);
-        this.activateTab(this.editors.length - 1);
+        this.activateTab(this.editors.length - 1, { focus: false });
     }
 
-    public activateTab(index: number): void {
+    public activateTab(index: number, { focus = true }: { focus?: boolean } = {}): void {
         if (index < 0 || index >= this.editors.length) return;
         this.activeIndexValue = index;
 
         const editor = this.editors[index];
         this.view.setContent(editor.view);
         this.syncTabs();
+        if (focus) this.focusEditor();
     }
 
     public closeTab(index: number): void {
@@ -84,6 +85,7 @@ export class EditorGroupController extends Disposable implements IController {
             this.activeIndexValue = Math.max(0, this.activeIndexValue - 1);
             const activeEditor = this.editors[this.activeIndexValue];
             this.view.setContent(activeEditor.view);
+            this.focusEditor();
         }
 
         this.syncTabs();

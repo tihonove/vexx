@@ -125,6 +125,11 @@ item.onActivate = () => this.openMenu(index);
 
 Родительский контроллер создаёт дочерние, вставляет их `view` в своё дерево, вызывает `mount()` и `activate()`. Текущие контроллеры: `AppController` (корневой, меню, шорткаты), `EditorController` (текстовый редактор).
 
+Соглашения для системы команд в слое Controllers:
+- ID команд, которые отражают поведение VS Code Workbench/Editor, именуются в стиле VS Code (например `workbench.action.nextEditorInGroup`, `workbench.action.closeActiveEditor`).
+- Доступность кейбиндингов определяется typed when-контекстами из `ContextKeys.ts` и вычисляется через `ContextKeyService`.
+- Фокусные и UI-состояния (например `textInputFocus`, `editorGroupHasEditors`, `editorTabsMultiple`) обновляются в `AppController.updateContextKeys()`.
+
 Зависимости контроллеров объявляются через `static dependencies` и резолвятся DI-контейнером из `Common/DiContainer.ts` при старте приложения. Подробности — [docs/DI.md](DI.md).
 
 ### demos/

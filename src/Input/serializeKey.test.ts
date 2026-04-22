@@ -124,6 +124,14 @@ describe("serializeKey", () => {
         expect(serializeKey("Ctrl+Delete")).toBe("\x1b[3;5~");
     });
 
+    it("serializes Ctrl+Tab via Kitty CSI-u", () => {
+        expect(serializeKey("Ctrl+Tab")).toBe("\x1b[9;5:1u");
+    });
+
+    it("serializes Ctrl+Shift+Tab via Kitty CSI-u", () => {
+        expect(serializeKey("Ctrl+Shift+Tab")).toBe("\x1b[9;6:1u");
+    });
+
     it("serializes Alt+a", () => {
         expect(serializeKey("Alt+a")).toBe("\x1ba");
     });
@@ -165,6 +173,8 @@ describe("serializeKey", () => {
             { dsl: "Ctrl+ArrowUp", expectedKey: "ArrowUp", ctrlKey: true },
             { dsl: "Shift+ArrowDown", expectedKey: "ArrowDown", shiftKey: true },
             { dsl: "Ctrl+Delete", expectedKey: "Delete", ctrlKey: true, altKey: false },
+            { dsl: "Ctrl+Tab", expectedKey: "Tab", ctrlKey: true },
+            { dsl: "Ctrl+Shift+Tab", expectedKey: "Tab", ctrlKey: true, shiftKey: true },
         ];
 
         for (const { dsl, expectedKey, ctrlKey, shiftKey, altKey } of simpleKeys) {

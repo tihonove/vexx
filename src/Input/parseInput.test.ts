@@ -387,6 +387,21 @@ describe("parseInput", () => {
         expect(events).toEqual([kp("Tab", "\x1b[9;5:1u", { type: "keydown", ctrlKey: true })]);
     });
 
+    it("parses Tab via CSI I with modifiers — CSI 1;5I (Ctrl+Tab)", () => {
+        const events = parseInput("\x1b[1;5I");
+        expect(events).toEqual([kp("Tab", "\x1b[1;5I", { type: "keydown", ctrlKey: true })]);
+    });
+
+    it("parses Tab via xterm modifyOtherKeys — CSI 27;5;9~ (Ctrl+Tab)", () => {
+        const events = parseInput("\x1b[27;5;9~");
+        expect(events).toEqual([kp("Tab", "\x1b[27;5;9~", { type: "keydown", ctrlKey: true })]);
+    });
+
+    it("parses Shift+Ctrl+Tab via xterm modifyOtherKeys — CSI 27;6;9~", () => {
+        const events = parseInput("\x1b[27;6;9~");
+        expect(events).toEqual([kp("Tab", "\x1b[27;6;9~", { type: "keydown", ctrlKey: true, shiftKey: true })]);
+    });
+
     it("parses Escape via CSI u — CSI 27;1:3 u (release) as keyup", () => {
         const events = parseInput("\x1b[27;1:3u");
         expect(events).toEqual([kp("Escape", "\x1b[27;1:3u", { type: "keyup" })]);
