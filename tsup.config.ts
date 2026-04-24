@@ -4,6 +4,7 @@ export default defineConfig({
   entry: ["src/main.ts"],
   format: ["esm"],
   target: "es2024",
+  noExternal: ["chokidar"],
   dts: true,
   clean: true,
   sourcemap: true
