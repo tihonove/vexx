@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { createLineTokens, createToken } from "./ILineTokens.ts";
 import { createRange } from "./IRange.ts";
 import { createDeleteEdit, createInsertEdit, createTextEdit } from "./ITextEdit.ts";
 import { TextDocument } from "./TextDocument.ts";
@@ -147,74 +146,6 @@ describe("TextDocument", () => {
             createInsertEdit(0, 5, "\nnewLine"), // insert newLine after line1
         ]);
         expect(doc.getText()).toBe("line1\nnewLine\n\nline3");
-    });
-
-    // ─── Token Storage ──────────────────────────────────────
-
-    it("stores and retrieves line tokens", () => {
-        const doc = new TextDocument("hello world");
-        const tokens = createLineTokens([createToken(0, "keyword"), createToken(6, "identifier")]);
-        doc.setLineTokens(0, tokens);
-        expect(doc.getLineTokens(0)).toEqual(tokens);
-    });
-
-    it("returns undefined for lines without tokens", () => {
-        const doc = new TextDocument("hello");
-        expect(doc.getLineTokens(0)).toBeUndefined();
-    });
-
-    // ─── Token Lazy Shifting ────────────────────────────────
-
-    it("invalidates tokens on edited line", () => {
-        const doc = new TextDocument("hello world");
-        doc.setLineTokens(0, createLineTokens([createToken(0, "keyword")]));
-        doc.applyEdits([createInsertEdit(0, 5, "X")]);
-        expect(doc.getLineTokens(0)).toBeUndefined();
-    });
-
-    it("shifts token line indices down when inserting a newline", () => {
-        const doc = new TextDocument("aaa\nbbb\nccc");
-        const tokensBbb = createLineTokens([createToken(0, "B")]);
-        const tokensCcc = createLineTokens([createToken(0, "C")]);
-        doc.setLineTokens(1, tokensBbb);
-        doc.setLineTokens(2, tokensCcc);
-
-        // Insert a newline at the start of line 1 — pushes bbb and ccc down by 1
-        doc.applyEdits([createInsertEdit(0, 3, "\nXXX")]);
-        // Now: aaa / XXX / bbb / ccc (lines 0/1/2/3)
-        expect(doc.getText()).toBe("aaa\nXXX\nbbb\nccc");
-
-        // Line 0 (aaa) was edited — tokens invalidated on line 0
-        // bbb was on line 1, now on line 2 — tokens should have shifted
-        expect(doc.getLineTokens(2)).toEqual(tokensBbb);
-        // ccc was on line 2, now on line 3
-        expect(doc.getLineTokens(3)).toEqual(tokensCcc);
-        // Line 1 (XXX) is new — no tokens
-        expect(doc.getLineTokens(1)).toBeUndefined();
-    });
-
-    it("shifts token line indices up when deleting lines", () => {
-        const doc = new TextDocument("aaa\nbbb\nccc\nddd");
-        const tokensDdd = createLineTokens([createToken(0, "D")]);
-        doc.setLineTokens(3, tokensDdd);
-
-        // Delete line 1 entirely by merging it with line 0
-        doc.applyEdits([createDeleteEdit(0, 3, 1, 3)]);
-        // Now: aaa / ccc / ddd (lines 0/1/2)
-        expect(doc.getText()).toBe("aaa\nccc\nddd");
-
-        // ddd was on line 3, should now be on line 2
-        expect(doc.getLineTokens(2)).toEqual(tokensDdd);
-    });
-
-    it("preserves tokens on lines above the edit", () => {
-        const doc = new TextDocument("aaa\nbbb\nccc");
-        const tokensAaa = createLineTokens([createToken(0, "A")]);
-        doc.setLineTokens(0, tokensAaa);
-
-        doc.applyEdits([createInsertEdit(2, 0, "X")]);
-        // Line 0 is untouched — tokens should remain
-        expect(doc.getLineTokens(0)).toEqual(tokensAaa);
     });
 
     // ─── Version ID ─────────────────────────────────────────

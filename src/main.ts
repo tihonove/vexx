@@ -8,13 +8,22 @@ import { InMemoryClipboard } from "./Common/InMemoryClipboard.ts";
 import { AppController, AppControllerDIToken } from "./Controllers/AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRegistry.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "./Controllers/ContextKeyService.ts";
-import { ClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
+import {
+    ClipboardDIToken,
+    ServiceAccessorDIToken,
+    TokenizationRegistryDIToken,
+    TokenStyleResolverDIToken,
+    TuiApplicationDIToken,
+} from "./Controllers/CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
+import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
+import { WordTokenizer } from "./Editor/Tokenization/builtin/WordTokenizer.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { ThemeService } from "./Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
+import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
 import { WorkbenchTheme } from "./Theme/WorkbenchTheme.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
@@ -30,14 +39,22 @@ const resolvedPaths = filePaths.map((f) => path.resolve(f));
 const backend = new NodeTerminalBackend();
 const application = new TuiApplication(backend);
 
+const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
+
 // ── Bootstrap через DI-контейнер ────────────────────────────
 const container = new Container()
     .bind(TuiApplicationDIToken, () => application)
-    .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
+    .bind(ThemeServiceDIToken, () => new ThemeService(initialTheme))
     .bind(CommandRegistryDIToken, () => new CommandRegistry())
     .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
     .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
     .bind(ClipboardDIToken, () => new InMemoryClipboard())
+    .bind(TokenizationRegistryDIToken, () => {
+        const registry = new TokenizationRegistry();
+        registry.register("javascript", new WordTokenizer());
+        return registry;
+    })
+    .bind(TokenStyleResolverDIToken, () => new TokenThemeResolver(initialTheme.tokenTheme))
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
     .bind(EditorGroupControllerDIToken, EditorGroupController)
     .bind(StatusBarControllerDIToken, StatusBarController)

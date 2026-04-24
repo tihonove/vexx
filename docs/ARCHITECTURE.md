@@ -104,6 +104,29 @@ item.onActivate = () => this.openMenu(index);
 ### Editor/
 Модель текстового редактора и виджет-мост к TUIDom. Хранение текста (пока массив строк, в планах Piece Table), состояние вида (scroll, selections, folding, курсор), undo/redo стек, TUI-виджет редактора и набор интерфейсов. Содержит подкаталог с тестовыми утилитами (TrackDSL).
 
+Документ публикует структурные изменения через `ITextDocument.onDidChangeContent(listener)` (тип `IDocumentContentChange { startLine, oldEndLine, newEndLine }`). Это событие — точка расширения для всех per-document подсистем (токенайзер, decorations, marker tracking, future Piece Tree).
+
+#### Editor/Tokenization/
+Подсветка синтаксиса организована по образцу VS Code: разделены *источник токенов*, *хранилище*, *резолвер стиля* и *рендер*.
+
+- **`IState`** + **`NULL_STATE`** — состояние токенайзера на границе строк (`clone()`, `equals(other)`). Для TextMate state — это rule stack; для stateless токенайзеров используется `NULL_STATE`.
+- **`ITokenizationSupport`** — `tokenizeLine(line, state) → { tokens, endState }`. Sync MVP. Async-вариант (LSP semantic tokens) — точка расширения.
+- **`ILineTokens` / `IToken`** — `IToken { startIndex, scopes: readonly string[] }` (TextMate scope stack от корня к более специфичным).
+- **`TokenizationRegistry`** — DI-сервис: `register(languageId, support)`, `get(languageId)`, `onDidChange(listener)`. Резолвится по `TokenizationRegistryDIToken`.
+- **`DocumentTokenStore`** — per-document Disposable. Подписан на `document.onDidChangeContent`: при изменении строк сдвигает массив кешированных токенов (splice по `lineDelta`), инвалидирует затронутые строки и опускает `invalidLineIndex`. `tokenizeUpTo(line)` догоняет токенизацию синхронно с использованием end-state оптимизации (если новый endState равен прежнему — останавливаемся, нижестоящий кеш ещё валиден). `setLineTokens(line, tokens)` — externally-pushed tokens (LSP, тесты).
+- **`ITokenStyleResolver`** + **`NULL_TOKEN_STYLE_RESOLVER`** — `resolve(scopes): ResolvedTokenStyle { fg?, bg?, bold, italic, underline, strikethrough }`. Editor НЕ зависит от Theme напрямую — только от этого интерфейса.
+- **`builtin/PlainTextTokenizer`**, **`builtin/WordTokenizer`** — встроенные заглушки. WordTokenizer распознаёт ~50 JS/TS-ключевых слов, числа, строки, `//`-комментарии и идентификаторы; используется как временный glue до подключения настоящего TextMate-движка.
+
+`EditorElement.render()` пользуется этими сервисами так:
+1. До итерации по строкам вызывает `tokenStore.tokenizeUpTo(visibleBottomLine)`.
+2. На каждый кадр строит локальный кеш `Map<scopes, ResolvedTokenStyle>` чтобы не звать резолвер повторно для повторяющихся скоупов.
+3. Для каждой видимой строки конструирует `TokenIndex` (forward-cursor поиск токена по offset), резолвит стиль и применяет `fg/bg/style` к каждой ячейке.
+
+#### Theme/Tokenization/
+- **`TokenThemeResolver implements ITokenStyleResolver`** — компилирует `IEditorTokenTheme.rules` в массив правил, отсортированных по специфичности (число `.`-сегментов desc, затем порядок объявления desc — позже определённое побеждает на ties). `scopeMatches`: пустая строка матчит всё, exact, или префикс по dot-сегментам (`scope.startsWith(rule + ".")`). `foreground/background/fontStyle` каскадируются независимо: первый правило с заданным значением для каждой оси выигрывает. Кеширует резолв по `scopes.join(" ")`.
+
+Связывание происходит на App-уровне (`main.ts`): `TokenizationRegistry` регистрирует языковые токенайзеры, `TokenThemeResolver` создаётся из `WorkbenchTheme.tokenTheme`, оба биндятся в DI и попадают в `EditorController` → `EditorElement`.
+
 ### Theme/
 Система темизации, совместимая с VS Code theme files. Тема — объект `WorkbenchTheme` в DI-контейнере (`WorkbenchThemeDIToken`), хранящий packed RGB цвета и правила подсветки синтаксиса. Контроллеры применяют цвета к элементам через `applyTheme()`, TUIDom ничего не знает о темах.
 
@@ -147,7 +170,8 @@ item.onActivate = () => this.openMenu(index);
 
 ```
 App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → Common
-         ↑
+         ↑              ↑
+       Theme ───────────┘ (через ITokenStyleResolver, Editor НЕ импортирует Theme)
        Theme → { Rendering, Common }
 ```
 
@@ -156,8 +180,9 @@ App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → 
 - **Backend** зависит от Input, Rendering, Common
 - **TUIDom** зависит от Rendering, Common (через TerminalScreen)
 - **TUIDom/Events** используют тип TUIElement — это внутренняя зависимость TUIDom
-- **Editor** зависит от TUIDom, Rendering (ColorUtils), Common
-- **Controllers** зависит от Editor, TUIDom, Common
+- **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme — связь через интерфейсы (`ITokenStyleResolver`)
+- **Theme/Tokenization** реализует `ITokenStyleResolver` из `Editor/Tokenization`
+- **Controllers** зависит от Editor, TUIDom, Theme, Common
 - **App** (main.ts) зависит от всех слоёв
 
 ### DI-контейнер: границы использования

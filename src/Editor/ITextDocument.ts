@@ -1,4 +1,6 @@
-import type { ILineTokens } from "./ILineTokens.ts";
+import type { IDisposable } from "../Common/Disposable.ts";
+
+import type { IDocumentContentChange } from "./IDocumentContentChange.ts";
 import type { IRange } from "./IRange.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
 
@@ -10,6 +12,9 @@ export interface IApplyEditsResult {
 /**
  * Read/write interface for a text document.
  * Line indices are 0-based.
+ *
+ * Token storage is intentionally NOT part of this interface; tokens live in
+ * a separate per-document cache that subscribes to {@link onDidChangeContent}.
  */
 export interface ITextDocument {
     readonly lineCount: number;
@@ -23,6 +28,10 @@ export interface ITextDocument {
 
     applyEdits(edits: readonly ITextEdit[]): IApplyEditsResult;
 
-    getLineTokens(lineIndex: number): ILineTokens | undefined;
-    setLineTokens(lineIndex: number, tokens: ILineTokens): void;
+    /**
+     * Notifies of any structural change (applyEdits / setText). Multiple
+     * changes from a single `applyEdits` call are emitted one after another
+     * in document order.
+     */
+    onDidChangeContent(listener: (change: IDocumentContentChange) => void): IDisposable;
 }

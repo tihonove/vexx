@@ -115,12 +115,12 @@ describe("TrackDSL", () => {
             tokens: kkkbbbbnn
         `;
         const state = parseDSL(dsl);
-        const tokens = state.document.getLineTokens(0);
+        const tokens = state.tokenStore?.getLineTokens(0);
         expect(tokens).toBeDefined();
         expect(tokens?.tokens).toEqual([
-            { startIndex: 0, type: "k" },
-            { startIndex: 3, type: "b" },
-            { startIndex: 7, type: "n" },
+            { startIndex: 0, scopes: ["k"] },
+            { startIndex: 3, scopes: ["b"] },
+            { startIndex: 7, scopes: ["n"] },
         ]);
 
         const rendered = renderToDSL(state);
@@ -133,11 +133,11 @@ describe("TrackDSL", () => {
             tokens: kk nn
         `;
         const state = parseDSL(dsl);
-        const tokens = state.document.getLineTokens(0);
+        const tokens = state.tokenStore?.getLineTokens(0);
         expect(tokens).toBeDefined();
         expect(tokens?.tokens).toEqual([
-            { startIndex: 0, type: "k" },
-            { startIndex: 3, type: "n" },
+            { startIndex: 0, scopes: ["k"] },
+            { startIndex: 3, scopes: ["n"] },
         ]);
     });
 
@@ -152,8 +152,8 @@ describe("TrackDSL", () => {
         const state = parseDSL(dsl);
         expect(state.document.lineCount).toBe(2);
         expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
-        expect(state.document.getLineTokens(0)).toBeDefined();
-        expect(state.document.getLineTokens(1)).toBeDefined();
+        expect(state.tokenStore?.getLineTokens(0)).toBeDefined();
+        expect(state.tokenStore?.getLineTokens(1)).toBeDefined();
 
         const rendered = renderToDSL(state);
         expect(rendered).toBe(dsl);

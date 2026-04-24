@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Container } from "../Common/DiContainer.ts";
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
+import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
@@ -16,7 +18,12 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
+import {
+    ServiceAccessorDIToken,
+    TokenizationRegistryDIToken,
+    TokenStyleResolverDIToken,
+    TuiApplicationDIToken,
+} from "./CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
@@ -36,6 +43,8 @@ function createTestContext(size: Size = new Size(80, 24)): TestContext {
         .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
         .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
         .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
+        .bind(TokenizationRegistryDIToken, () => new TokenizationRegistry())
+        .bind(TokenStyleResolverDIToken, () => NULL_TOKEN_STYLE_RESOLVER)
         .bind(EditorGroupControllerDIToken, EditorGroupController)
         .bind(StatusBarControllerDIToken, StatusBarController)
         .bind(AppControllerDIToken, AppController);

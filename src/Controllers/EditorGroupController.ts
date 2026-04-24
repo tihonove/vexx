@@ -3,6 +3,8 @@ import * as path from "node:path";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
+import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
+import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -10,23 +12,36 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
 import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 
+import { TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 
 export class EditorGroupController extends Disposable implements IController {
-    public static dependencies = [ThemeServiceDIToken] as const;
+    public static dependencies = [
+        ThemeServiceDIToken,
+        TokenizationRegistryDIToken,
+        TokenStyleResolverDIToken,
+    ] as const;
 
     public readonly view: EditorGroupElement;
 
     private editors: EditorController[] = [];
     private activeIndexValue = -1;
     private themeService: ThemeService;
+    private tokenizationRegistry: TokenizationRegistry;
+    private tokenStyleResolver: ITokenStyleResolver;
 
-    public constructor(themeService: ThemeService) {
+    public constructor(
+        themeService: ThemeService,
+        tokenizationRegistry: TokenizationRegistry,
+        tokenStyleResolver: ITokenStyleResolver,
+    ) {
         super();
         this.themeService = themeService;
+        this.tokenizationRegistry = tokenizationRegistry;
+        this.tokenStyleResolver = tokenStyleResolver;
         this.view = new EditorGroupElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -55,7 +70,9 @@ export class EditorGroupController extends Disposable implements IController {
             return;
         }
 
-        const editor = this.register(new EditorController(this.themeService));
+        const editor = this.register(
+            new EditorController(this.themeService, this.tokenizationRegistry, this.tokenStyleResolver),
+        );
         editor.openFile(filePath);
         this.editors.push(editor);
         this.activateTab(this.editors.length - 1, { focus: false });

@@ -16,6 +16,7 @@ import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
 import { createTextEdit } from "./ITextEdit.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
+import type { DocumentTokenStore } from "./Tokenization/DocumentTokenStore.ts";
 
 /**
  * Represents the view state for one editor pane.
@@ -33,6 +34,11 @@ export class EditorViewState {
     public selections: ISelection[];
     public readonly document: ITextDocument;
     public foldedRegions: IFoldingRegion[] = [];
+    /**
+     * Optional per-document token cache. The renderer is responsible for
+     * calling `tokenStore.tokenizeUpTo(visibleBottom)` before reading tokens.
+     */
+    public tokenStore: DocumentTokenStore | undefined;
 
     public constructor(document: ITextDocument, selections?: ISelection[]) {
         this.document = document;
@@ -102,14 +108,17 @@ export class EditorViewState {
     }
 
     /**
-     * Returns tokens for a visual line.
+     * Returns tokens for a visual line (from the attached token store, if any).
+     * Does NOT trigger lazy tokenization — the renderer must call
+     * `tokenStore.tokenizeUpTo(...)` first.
      */
     public getViewLineTokens(visualLineNumber: number): ILineTokens | undefined {
+        if (!this.tokenStore) return undefined;
         const logicalLine = this.visualToLogicalLine(visualLineNumber);
         if (logicalLine < 0 || logicalLine >= this.document.lineCount) {
             return undefined;
         }
-        return this.document.getLineTokens(logicalLine);
+        return this.tokenStore.getLineTokens(logicalLine);
     }
 
     // ─── Line Mapping ───────────────────────────────────────

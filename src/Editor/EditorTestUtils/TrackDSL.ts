@@ -10,6 +10,8 @@ import { comparePositions } from "../IPosition.ts";
 import type { ISelection } from "../ISelection.ts";
 import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "../ISelection.ts";
 import { TextDocument } from "../TextDocument.ts";
+import { DocumentTokenStore } from "../Tokenization/DocumentTokenStore.ts";
+import { PlainTextTokenizer } from "../Tokenization/builtin/PlainTextTokenizer.ts";
 
 // ─── Constants ──────────────────────────────────────────────
 
@@ -109,11 +111,14 @@ export function parseDSL(dsl: string): EditorViewState {
     // For multi-line selections, we need to collect ░ ranges across consecutive lines
     parseSelections(cursorTrackByLine, selectTrackByLine, textLines, selections);
 
-    // Parse tokens
+    // Parse tokens — attach them via a token store. We use PlainTextTokenizer
+    // as a placeholder support; tokens are pushed externally via setLineTokens.
+    let tokenStore: DocumentTokenStore | undefined;
     for (const [lineIdx, track] of tokensTrackByLine) {
         const tokens = parseTokenTrack(track);
         if (tokens.tokens.length > 0) {
-            doc.setLineTokens(lineIdx, tokens);
+            tokenStore ??= new DocumentTokenStore(doc, new PlainTextTokenizer());
+            tokenStore.setLineTokens(lineIdx, tokens);
         }
     }
 
@@ -126,6 +131,9 @@ export function parseDSL(dsl: string): EditorViewState {
     const state = new EditorViewState(doc, selections.length > 0 ? selections : undefined);
     if (foldingRegions.length > 0) {
         state.setFoldingRegions(foldingRegions);
+    }
+    if (tokenStore) {
+        state.tokenStore = tokenStore;
     }
     return state;
 }
@@ -156,7 +164,7 @@ export function renderToDSL(state: EditorViewState): string {
         }
 
         // Render tokens track
-        const tokens = doc.getLineTokens(lineIdx);
+        const tokens = state.tokenStore?.getLineTokens(lineIdx);
         if (tokens && tokens.tokens.length > 0) {
             const tokensTrack = renderTokensTrack(tokens, textContent.length);
             lines.push(`${TRACK_PREFIX_TOKENS} ${tokensTrack}`);
@@ -259,7 +267,6 @@ function parseTokenTrack(track: string): ILineTokens {
 
     const tokens: { startIndex: number; type: string }[] = [];
     let currentType = track[0];
-    const startIndex = 0;
 
     // Skip spaces — they mean "no token"
     if (currentType !== " ") {
@@ -276,7 +283,9 @@ function parseTokenTrack(track: string): ILineTokens {
         }
     }
 
-    return createLineTokens(tokens.map((t) => createToken(t.startIndex, t.type)));
+    // Encode `type` as a single-element scope so the legacy single-character
+    // DSL keeps working with the new IToken shape.
+    return createLineTokens(tokens.map((t) => createToken(t.startIndex, [t.type])));
 }
 
 // ─── Private: Rendering Helpers ─────────────────────────────
@@ -340,10 +349,11 @@ function renderTokensTrack(tokens: ILineTokens, lineLength: number): string {
     for (let i = 0; i < tokens.tokens.length; i++) {
         const token = tokens.tokens[i];
         const end = i + 1 < tokens.tokens.length ? tokens.tokens[i + 1].startIndex : lineLength;
+        const ch = token.scopes[0] ?? " ";
 
         for (let c = token.startIndex; c < end; c++) {
             if (c < chars.length) {
-                chars[c] = token.type;
+                chars[c] = ch;
             }
         }
     }

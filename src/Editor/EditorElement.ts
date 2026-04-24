@@ -1,12 +1,16 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
+import { StyleFlags } from "../Rendering/StyleFlags.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
 
 import { EditorViewState } from "./EditorViewState.ts";
+import type { ILineTokens, IToken } from "./ILineTokens.ts";
 import { isSelectionCollapsed, selectionToRange } from "./ISelection.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
+import type { ITokenStyleResolver, ResolvedTokenStyle } from "./Tokenization/ITokenStyleResolver.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "./Tokenization/ITokenStyleResolver.ts";
 import { UndoManager } from "./UndoManager.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);
@@ -23,6 +27,12 @@ const DEFAULT_LINE_NUMBER_ACTIVE_FG = packRgb(198, 198, 198);
 export class EditorElement extends TUIElement implements IScrollable {
     public readonly viewState: EditorViewState;
     public readonly undoManager: UndoManager;
+    /**
+     * Resolves TextMate scopes to {@link ResolvedTokenStyle}. Defaults to a
+     * no-op resolver; concrete implementations live in the Theme layer (or
+     * are supplied by an LSP semantic-tokens provider).
+     */
+    public tokenStyleResolver: ITokenStyleResolver = NULL_TOKEN_STYLE_RESOLVER;
 
     public get tabSize(): number {
         return this.viewState.tabSize;
@@ -110,6 +120,26 @@ export class EditorElement extends TUIElement implements IScrollable {
         const primaryLine = this.viewState.selections[0].active.line;
         const digitCount = gutterW - GUTTER_LEFT_PADDING - 1;
 
+        // Bring the token cache up to the bottom of the viewport before reading.
+        const tokenStore = this.viewState.tokenStore;
+        if (tokenStore) {
+            const lastVisibleLogical = this.viewState.visualToLogicalLine(
+                Math.min(scrollTop + visibleLines - 1, viewLineCount - 1),
+            );
+            if (lastVisibleLogical >= 0) tokenStore.tokenizeUpTo(lastVisibleLogical);
+        }
+
+        // Frame-local cache of resolved styles to avoid re-walking the rule list
+        // for repeated scopes within a single render pass.
+        const styleCache = new Map<readonly string[], ResolvedTokenStyle>();
+        const resolveStyle = (scopes: readonly string[]): ResolvedTokenStyle => {
+            const cached = styleCache.get(scopes);
+            if (cached) return cached;
+            const result = this.tokenStyleResolver.resolve(scopes);
+            styleCache.set(scopes, result);
+            return result;
+        };
+
         for (let screenY = 0; screenY < visibleLines; screenY++) {
             const viewLine = scrollTop + screenY;
 
@@ -149,6 +179,9 @@ export class EditorElement extends TUIElement implements IScrollable {
 
             const lineContent = this.viewState.getViewLine(viewLine);
             const dl = new DisplayLine(lineContent, this.tabSize);
+            const lineTokens = this.viewState.getViewLineTokens(viewLine);
+            const tokenIndex = lineTokens ? new TokenIndex(lineTokens, lineContent.length) : null;
+
             let screenX = 0;
             while (screenX < contentCols) {
                 const displayCol = scrollLeft + screenX;
@@ -160,19 +193,35 @@ export class EditorElement extends TUIElement implements IScrollable {
                 }
                 const slot = dl.graphemeAtColumn(displayCol);
                 const width = slot ? slot.displayWidth : 1;
+
+                // Resolve style for this offset.
+                let fg = editorFg;
+                let bg = editorBg;
+                let style: number = StyleFlags.None;
+                if (tokenIndex && slot) {
+                    const offset = slot.offset;
+                    const token = tokenIndex.tokenAt(offset);
+                    if (token) {
+                        const resolved = resolveStyle(token.scopes);
+                        if (resolved.fg !== undefined) fg = resolved.fg;
+                        if (resolved.bg !== undefined) bg = resolved.bg;
+                        style = packStyleFlags(resolved);
+                    }
+                }
+
                 if (slot?.grapheme === "\t") {
                     // Tab: render each column as an individual space so Grid/TerminalRenderer
                     // tracks the cursor correctly (they only support width=1 and width=2).
                     for (let i = 0; i < width && screenX + i < contentCols; i++) {
-                        context.setCell(gutterW + screenX + i, screenY, { char: " ", fg: editorFg, bg: editorBg });
+                        context.setCell(gutterW + screenX + i, screenY, { char: " ", fg, bg, style });
                     }
                     screenX += width;
                 } else if (width === 2 && screenX + 1 >= contentCols) {
                     // Wide char doesn't fit at the right edge — render space instead
-                    context.setCell(gutterW + screenX, screenY, { char: " ", fg: editorFg, bg: editorBg, width: 1 });
+                    context.setCell(gutterW + screenX, screenY, { char: " ", fg, bg, style, width: 1 });
                     screenX++;
                 } else {
-                    context.setCell(gutterW + screenX, screenY, { char, fg: editorFg, bg: editorBg, width });
+                    context.setCell(gutterW + screenX, screenY, { char, fg, bg, style, width });
                     screenX += width;
                 }
             }
@@ -243,5 +292,46 @@ export class EditorElement extends TUIElement implements IScrollable {
         if (element) {
             this.undoManager.pushUndoElement(element);
         }
+    }
+}
+
+function packStyleFlags(style: ResolvedTokenStyle): number {
+    let flags = 0;
+    if (style.bold) flags |= StyleFlags.Bold;
+    if (style.italic) flags |= StyleFlags.Italic;
+    if (style.underline) flags |= StyleFlags.Underline;
+    if (style.strikethrough) flags |= StyleFlags.Strikethrough;
+    return flags;
+}
+
+/**
+ * Linear cursor over a sorted token array, optimised for left-to-right
+ * scans (which is how the renderer walks columns). Falls back to binary
+ * search when the offset rewinds.
+ */
+class TokenIndex {
+    private readonly tokens: readonly IToken[];
+    private readonly lineLength: number;
+    private cursor = 0;
+
+    public constructor(lineTokens: ILineTokens, lineLength: number) {
+        this.tokens = lineTokens.tokens;
+        this.lineLength = lineLength;
+    }
+
+    /** Token covering `[token.startIndex .. nextToken.startIndex)` for `offset`. */
+    public tokenAt(offset: number): IToken | undefined {
+        if (this.tokens.length === 0 || offset >= this.lineLength) return undefined;
+
+        // Fast path: forward scan.
+        let i = this.cursor;
+        if (i >= this.tokens.length || this.tokens[i].startIndex > offset) {
+            i = 0; // rewind
+        }
+        while (i + 1 < this.tokens.length && this.tokens[i + 1].startIndex <= offset) {
+            i++;
+        }
+        this.cursor = i;
+        return this.tokens[i];
     }
 }

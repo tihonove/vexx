@@ -1,4 +1,6 @@
-import type { ILineTokens } from "./ILineTokens.ts";
+import type { IDisposable } from "../Common/Disposable.ts";
+
+import type { IDocumentContentChange } from "./IDocumentContentChange.ts";
 import { comparePositions } from "./IPosition.ts";
 import type { IRange } from "./IRange.ts";
 import { createRange } from "./IRange.ts";
@@ -9,18 +11,20 @@ import { createTextEdit } from "./ITextEdit.ts";
 /**
  * Simple array-backed implementation of ITextDocument.
  * Uses string[] for line storage (Piece Table deferred to future iteration).
+ *
+ * Token caches live outside this class — see DocumentTokenStore.
  */
 export class TextDocument implements ITextDocument {
     private lines: string[];
-    private tokensByLine = new Map<number, ILineTokens>();
-    private _versionId = 0;
+    private contentChangeListeners: ((change: IDocumentContentChange) => void)[] = [];
+    private innerVersionId = 0;
 
     public constructor(text: string) {
         this.lines = text.split("\n");
     }
 
     public get versionId(): number {
-        return this._versionId;
+        return this.innerVersionId;
     }
 
     public get lineCount(): number {
@@ -42,9 +46,14 @@ export class TextDocument implements ITextDocument {
     }
 
     public setText(text: string): void {
-        this._versionId++;
+        const oldEndLine = this.lines.length - 1;
+        this.innerVersionId++;
         this.lines = text.split("\n");
-        this.tokensByLine.clear();
+        this.fireChange({
+            startLine: 0,
+            oldEndLine,
+            newEndLine: this.lines.length - 1,
+        });
     }
 
     public getTextInRange(range: IRange): string {
@@ -61,20 +70,22 @@ export class TextDocument implements ITextDocument {
         return result.join("\n");
     }
 
-    public getLineTokens(lineIndex: number): ILineTokens | undefined {
-        return this.tokensByLine.get(lineIndex);
-    }
-
-    public setLineTokens(lineIndex: number, tokens: ILineTokens): void {
-        this.tokensByLine.set(lineIndex, tokens);
+    public onDidChangeContent(listener: (change: IDocumentContentChange) => void): IDisposable {
+        this.contentChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.contentChangeListeners.indexOf(listener);
+                if (i >= 0) this.contentChangeListeners.splice(i, 1);
+            },
+        };
     }
 
     public applyEdits(edits: readonly ITextEdit[]): IApplyEditsResult {
         if (edits.length === 0) {
-            return { appliedVersion: this._versionId, inverseEdits: [] };
+            return { appliedVersion: this.innerVersionId, inverseEdits: [] };
         }
 
-        this._versionId++;
+        this.innerVersionId++;
 
         // Sort edits in document order (ascending) to collect old texts
         const docOrder = [...edits].sort((a, b) => {
@@ -93,14 +104,21 @@ export class TextDocument implements ITextDocument {
             return comparePositions(b.range.end, a.range.end);
         });
 
+        // Apply edits bottom-up (so coordinates of earlier edits stay valid),
+        // collect changes, then emit them in document order.
+        const changesBottomUp: IDocumentContentChange[] = [];
         for (const edit of reversed) {
-            this.applySingleEdit(edit);
+            changesBottomUp.push(this.applySingleEdit(edit));
         }
 
         // Compute inverse edits in new-document coordinates
         const inverseEdits = this.computeInverseEdits(docOrder, oldTexts);
 
-        return { appliedVersion: this._versionId, inverseEdits };
+        for (let i = changesBottomUp.length - 1; i >= 0; i--) {
+            this.fireChange(changesBottomUp[i]);
+        }
+
+        return { appliedVersion: this.innerVersionId, inverseEdits };
     }
 
     private computeInverseEdits(editsInDocOrder: readonly ITextEdit[], oldTexts: string[]): ITextEdit[] {
@@ -161,7 +179,7 @@ export class TextDocument implements ITextDocument {
 
     // ─── Private ────────────────────────────────────────────
 
-    private applySingleEdit(edit: ITextEdit): void {
+    private applySingleEdit(edit: ITextEdit): IDocumentContentChange {
         const { range, text } = edit;
         const { start, end } = range;
 
@@ -179,66 +197,18 @@ export class TextDocument implements ITextDocument {
         // How many lines we delete vs insert
         const deletedLineCount = endLine - startLine + 1;
         const insertedLineCount = newLines.length;
-        const lineDelta = insertedLineCount - deletedLineCount;
 
-        // Shift tokens before modifying lines
-        this.shiftTokensForEdit(startLine, endLine, startChar, endChar, text, lineDelta);
-
-        // Replace lines in the array
         this.lines.splice(startLine, deletedLineCount, ...newLines);
+
+        return {
+            startLine,
+            oldEndLine: endLine,
+            newEndLine: startLine + insertedLineCount - 1,
+        };
     }
 
-    private shiftTokensForEdit(
-        startLine: number,
-        endLine: number,
-        startChar: number,
-        endChar: number,
-        insertedText: string,
-        lineDelta: number,
-    ): void {
-        // Invalidate tokens on all lines that the edit touches
-        for (let i = startLine; i <= endLine; i++) {
-            this.tokensByLine.delete(i);
-        }
-
-        if (lineDelta !== 0) {
-            // Shift tokens for lines below the edited region
-            this.shiftLineTokenKeys(endLine + 1, lineDelta);
-        } else if (startLine === endLine) {
-            // Single-line edit: shift character offsets on the same line if tokens still exist
-            // (tokens were already deleted above, so this handles the case where we want
-            //  to keep tokens that are entirely before/after the edit)
-            // For MVP we simply invalidate; a smarter version would shift offsets
-        }
-    }
-
-    /**
-     * Shifts all token line keys >= fromLine by delta.
-     * Moves entries in the Map so that tokens remain attached to their correct lines.
-     */
-    private shiftLineTokenKeys(fromLine: number, delta: number): void {
-        if (delta === 0) return;
-
-        // Collect entries that need shifting
-        const toShift: [number, ILineTokens][] = [];
-        for (const [lineIndex, tokens] of this.tokensByLine) {
-            if (lineIndex >= fromLine) {
-                toShift.push([lineIndex, tokens]);
-            }
-        }
-
-        // Remove old keys
-        for (const [lineIndex] of toShift) {
-            this.tokensByLine.delete(lineIndex);
-        }
-
-        // Re-insert with shifted keys
-        for (const [lineIndex, tokens] of toShift) {
-            const newIndex = lineIndex + delta;
-            if (newIndex >= 0) {
-                this.tokensByLine.set(newIndex, tokens);
-            }
-        }
+    private fireChange(change: IDocumentContentChange): void {
+        for (const listener of this.contentChangeListeners) listener(change);
     }
 
     private assertValidLineIndex(lineIndex: number): void {
