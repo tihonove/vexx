@@ -443,6 +443,9 @@ export class TUIElement<S extends TUIStyle = TUIStyle> {
     }
 
     private propagateRoot(newRoot: TUIElement | null): void {
+        if (newRoot === null && this.root?.focusManager?.activeElement === this) {
+            this.root.focusManager.setFocus(null);
+        }
         this.root = newRoot;
         for (const child of this.getChildren()) {
             child.propagateRoot(newRoot);
