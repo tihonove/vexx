@@ -1,5 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
 import type { ServiceAccessor } from "./Common/DiContainer.ts";
@@ -10,6 +11,7 @@ import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRe
 import { ContextKeyService, ContextKeyServiceDIToken } from "./Controllers/ContextKeyService.ts";
 import {
     ClipboardDIToken,
+    LanguageServiceDIToken,
     ServiceAccessorDIToken,
     TokenizationRegistryDIToken,
     TokenStyleResolverDIToken,
@@ -18,10 +20,10 @@ import {
 import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
-import { WordTokenizer } from "./Editor/Tokenization/builtin/WordTokenizer.ts";
-import { BUILTIN_GRAMMAR_RECORDS, BUILTIN_LANGUAGES } from "./Editor/Tokenization/textmate/builtinGrammars.ts";
-import { TextMateGrammarLoader } from "./Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
+import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
+import { scanBuiltinExtensions } from "./Extensions/ExtensionScanner.ts";
+import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { ThemeService } from "./Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
@@ -43,24 +45,20 @@ const application = new TuiApplication(backend);
 
 const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 
-// TextMate-грамматики регистрируются через общий loader. До завершения async
-// загрузки `TokenizationRegistry` заполнен fallback-токенайзерами (WordTokenizer
-// для JS-семейства, PlainTextTokenizer — по умолчанию через `pickTokenizer`).
-const tokenizationRegistry = new TokenizationRegistry();
-tokenizationRegistry.register("javascript", new WordTokenizer());
+// ── Загрузка builtin-расширений ────────────────────────────
+// Сканируем `src/Extensions/builtin/`, регистрируем contributes.languages в
+// LanguageRegistry и contributes.grammars в TokenizationRegistry. Внешние
+// расширения (~/.vexx/extensions/) — отдельная задача (см. docs/TODO/Extensions.md).
+const here = path.dirname(fileURLToPath(import.meta.url));
+const builtinExtensionsDir = path.resolve(here, "Extensions", "builtin");
+const builtinExtensions = await scanBuiltinExtensions(builtinExtensionsDir);
 
-const grammarLoader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
-const grammarsLoading = Promise.all(
-    BUILTIN_LANGUAGES.map(async (lang) => {
-        try {
-            const support = await grammarLoader.loadSupport(lang.scopeName);
-            if (support !== null) tokenizationRegistry.register(lang.languageId, support);
-        } catch (err) {
-            // Не валим bootstrap: оставляем fallback-токенайзер для этого языка.
-            console.error(`Failed to load TextMate grammar for ${lang.languageId}:`, err);
-        }
-    }),
-);
+const languageRegistry = new LanguageRegistry();
+for (const ext of builtinExtensions) languageRegistry.register(ext);
+
+const tokenizationRegistry = new TokenizationRegistry();
+const tokenizationContributor = new ExtensionTokenizationContributor(builtinExtensions, tokenizationRegistry);
+const grammarsLoading = tokenizationContributor.apply();
 
 // ── Bootstrap через DI-контейнер ────────────────────────────
 const container = new Container()
@@ -72,6 +70,7 @@ const container = new Container()
     .bind(ClipboardDIToken, () => new InMemoryClipboard())
     .bind(TokenizationRegistryDIToken, () => tokenizationRegistry)
     .bind(TokenStyleResolverDIToken, () => new TokenThemeResolver(initialTheme.tokenTheme))
+    .bind(LanguageServiceDIToken, () => languageRegistry)
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
     .bind(EditorGroupControllerDIToken, EditorGroupController)
     .bind(StatusBarControllerDIToken, StatusBarController)

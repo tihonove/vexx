@@ -34,7 +34,7 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 **Что сделано:**
 - Зависимости: `vscode-textmate` + `vscode-oniguruma` (MIT, без нативных биндингов).
 - Адаптер: `src/Editor/Tokenization/textmate/` — `OnigLib`, `TextMateState`, `TextMateTokenizationSupport`, `TextMateGrammarLoader`.
-- Встроенные языки и маппинг расширений: `textmate/builtinGrammars.ts` + `Editor/Tokenization/languageDetection.ts`.
+- Встроенные языки и маппинг расширений поставляются builtin-расширениями из `src/Extensions/builtin/` (см. [Extensions.md](Extensions.md)); резолвит `LanguageRegistry implements ILanguageService`.
 - Регистрация в `main.ts` через `TextMateGrammarLoader.loadSupport(scope)` для всех `BUILTIN_LANGUAGES`. Async-загрузка дожидается `await grammarsLoading` до открытия первого файла. На ошибку грамматики — fallback на `WordTokenizer`/`PlainTextTokenizer`.
 - Защита от ReDoS: строки длиннее 20K символов отдаются одним root-токеном без вызова oniguruma.
 - Тесты: 20 учебных тестов на сам `vscode-textmate` (Registry, tokenizeLine, multiline state, tokenizeLine2, jsdoc injections) + 7 на адаптер + 15 на language detection.
@@ -102,28 +102,15 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 
 **Граничный случай:** end-state convergence уже умеет «пропустить хвост». Если фоновая задача доходит до места, где endState не изменился, она прекращает работу досрочно (текущая логика и так это делает).
 
-### [ ] Language detection service
-Сейчас `EditorController.pickTokenizer(filePath)` хардкодит маппинг `.ts/.tsx/.js/.jsx → "javascript"`, остальное `"plaintext"`.
+### [x] Language detection service
+Реализовано в рамках [Extensions.md](Extensions.md) Phase 1: `ILanguageService` в `Editor/Tokenization/`, `LanguageRegistry` в `Extensions/`. `EditorController.pickTokenizer` ходит через DI-токен `LanguageServiceDIToken`. Поддерживаются `extensions`, `filenames`, `filenamePatterns` (минимальный glob).
 
-**План:**
-1. Новый сервис `ILanguageService` в `Controllers/Language/`:
-   ```ts
-   interface ILanguageService {
-       getLanguageIdForFile(filePath: string, firstLine?: string): string;
-       registerLanguage(def: ILanguageDefinition): IDisposable;
-   }
-   interface ILanguageDefinition {
-       id: string;            // "javascript"
-       extensions: string[];  // [".js", ".jsx"]
-       filenames?: string[];  // ["Makefile"]
-       firstLine?: RegExp;    // shebang detection: /^#!.*\bnode\b/
-       mimetypes?: string[];
-   }
-   ```
-2. DI-токен `LanguageServiceDIToken`. Регистрация встроенных языков в `main.ts`.
-3. `EditorController.pickTokenizer` → использует `languageService.getLanguageIdForFile(uri, firstLine)`.
-4. **Шебанг** требует прочесть первую строку — есть в `TextDocument.getLineContent(0)`.
-5. **VS Code-style modeline** (`vim: set filetype=...`) — отложить в отдельную подзадачу.
+Осталось (отдельными подзадачами):
+
+- [ ] **Шебанг** (`firstLine`): в манифесте типизировано, но в `LanguageRegistry.getLanguageIdForResource` не используется. Требует расширения API (принять `firstLine`).
+- [ ] **mimetypes** — типизировано, не используется.
+- [ ] **VS Code-style modeline** (`vim: set filetype=...`) — отдельная задача.
+- [ ] **Команда `editor.action.changeLanguage`** — ручная смена языка с пересозданием `DocumentTokenStore`.
 
 ### [ ] Hot-swap токенайзера
 При смене языка пользователем (или установке нового tokenizer-а через `TokenizationRegistry.register`) — пересоздать токенизатор у `DocumentTokenStore`. Сейчас `TokenizationRegistry.onDidChange` существует, но `DocumentTokenStore` на него не подписан.

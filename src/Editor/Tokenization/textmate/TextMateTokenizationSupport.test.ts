@@ -1,12 +1,44 @@
+import * as path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { describe, expect, it } from "vitest";
 
-import { BUILTIN_GRAMMAR_RECORDS, BUILTIN_LANGUAGES } from "./builtinGrammars.ts";
+import { scanBuiltinExtensions } from "../../../Extensions/ExtensionScanner.ts";
+import type { IExtension } from "../../../Extensions/IExtension.ts";
+
+import type { IGrammarRecord } from "./TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "./TextMateGrammarLoader.ts";
 import { TextMateState } from "./TextMateState.ts";
 
+const here = path.dirname(fileURLToPath(import.meta.url));
+const builtinDir = path.resolve(here, "..", "..", "..", "Extensions", "builtin");
+
+function collectGrammarRecords(extensions: readonly IExtension[]): IGrammarRecord[] {
+    const records: IGrammarRecord[] = [];
+    for (const ext of extensions) {
+        const grammars = ext.manifest.contributes?.grammars;
+        if (grammars === undefined) continue;
+        for (const grammar of grammars) {
+            records.push({
+                scopeName: grammar.scopeName,
+                path: path.resolve(ext.location, grammar.path),
+                injections: grammar.injectTo,
+            });
+        }
+    }
+    return records;
+}
+
+const extensionsPromise = scanBuiltinExtensions(builtinDir);
+const recordsPromise = extensionsPromise.then(collectGrammarRecords);
+
+async function createLoader(): Promise<TextMateGrammarLoader> {
+    return new TextMateGrammarLoader(await recordsPromise);
+}
+
 describe("TextMateTokenizationSupport", () => {
     it("getInitialState() возвращает обёртку TextMateState над INITIAL", async () => {
-        const loader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
+        const loader = await createLoader();
         const support = await loader.loadSupport("source.js");
         if (!support) throw new Error("source.js not loaded");
 
@@ -16,7 +48,7 @@ describe("TextMateTokenizationSupport", () => {
     });
 
     it("конвертирует вывод vscode-textmate в наш ILineTokens", async () => {
-        const loader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
+        const loader = await createLoader();
         const support = await loader.loadSupport("source.js");
         if (!support) throw new Error("source.js not loaded");
 
@@ -29,7 +61,7 @@ describe("TextMateTokenizationSupport", () => {
     });
 
     it("`const` получает scope `storage.type.js`", async () => {
-        const loader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
+        const loader = await createLoader();
         const support = await loader.loadSupport("source.js");
         if (!support) throw new Error("source.js not loaded");
 
@@ -40,7 +72,7 @@ describe("TextMateTokenizationSupport", () => {
     });
 
     it("endState между строками внутри блока комментария стабилизируется (equals=true)", async () => {
-        const loader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
+        const loader = await createLoader();
         const support = await loader.loadSupport("source.js");
         if (!support) throw new Error("source.js not loaded");
 
@@ -53,7 +85,7 @@ describe("TextMateTokenizationSupport", () => {
     });
 
     it("на сверхдлинной строке возвращает один root-scope токен и тот же endState", async () => {
-        const loader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
+        const loader = await createLoader();
         const support = await loader.loadSupport("source.js");
         if (!support) throw new Error("source.js not loaded");
 
@@ -66,16 +98,24 @@ describe("TextMateTokenizationSupport", () => {
     });
 
     it("loader.loadSupport для неизвестного scope возвращает null", async () => {
-        const loader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
+        const loader = await createLoader();
         const support = await loader.loadSupport("source.unknown");
         expect(support).toBeNull();
     });
 
-    it("все BUILTIN_LANGUAGES грузятся успешно", async () => {
-        const loader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
-        for (const lang of BUILTIN_LANGUAGES) {
-            const support = await loader.loadSupport(lang.scopeName);
-            expect(support, `${lang.languageId} (${lang.scopeName}) must load`).not.toBeNull();
+    it("все builtin-грамматики с language грузятся успешно", async () => {
+        const loader = await createLoader();
+        const extensions = await extensionsPromise;
+        for (const ext of extensions) {
+            const grammars = ext.manifest.contributes?.grammars ?? [];
+            for (const grammar of grammars) {
+                if (grammar.language === undefined) continue;
+                const support = await loader.loadSupport(grammar.scopeName);
+                expect(
+                    support,
+                    `${grammar.language} (${grammar.scopeName}) must load`,
+                ).not.toBeNull();
+            }
         }
     });
 });

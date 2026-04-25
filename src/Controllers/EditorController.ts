@@ -9,9 +9,9 @@ import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import { DocumentTokenStore } from "../Editor/Tokenization/DocumentTokenStore.ts";
+import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { getLanguageIdForFile } from "../Editor/Tokenization/languageDetection.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
@@ -19,13 +19,18 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
-import { TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
+import { TokenizationRegistryDIToken, TokenStyleResolverDIToken, LanguageServiceDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");
 
 export class EditorController extends Disposable implements IController {
-    public static dependencies = [ThemeServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken] as const;
+    public static dependencies = [
+        ThemeServiceDIToken,
+        TokenizationRegistryDIToken,
+        TokenStyleResolverDIToken,
+        LanguageServiceDIToken,
+    ] as const;
 
     public readonly view: ScrollBarDecorator;
 
@@ -41,6 +46,7 @@ export class EditorController extends Disposable implements IController {
     private savedVersionId = 0;
     private readonly tokenizationRegistry: TokenizationRegistry;
     private readonly tokenStyleResolver: ITokenStyleResolver;
+    private readonly languageService: ILanguageService;
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId;
@@ -54,11 +60,13 @@ export class EditorController extends Disposable implements IController {
         themeService: ThemeService,
         tokenizationRegistry: TokenizationRegistry,
         tokenStyleResolver: ITokenStyleResolver,
+        languageService: ILanguageService,
     ) {
         super();
 
         this.tokenizationRegistry = tokenizationRegistry;
         this.tokenStyleResolver = tokenStyleResolver;
+        this.languageService = languageService;
 
         this.doc = new TextDocument("");
         this.editorViewState = new EditorViewState(this.doc);
@@ -137,11 +145,13 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Picks a tokenizer based on the file extension. Temporary glue — a
-     * dedicated language detection service will own this concern later.
+     * Picks a tokenizer based on the file path. Language detection is
+     * delegated to the {@link ILanguageService} (implemented by
+     * `LanguageRegistry` from the Extensions layer).
      */
     private pickTokenizer(filePath: string | null): ITokenizationSupport {
-        const languageId = getLanguageIdForFile(filePath);
+        const languageId = filePath === null ? undefined : this.languageService.getLanguageIdForResource(filePath);
+        if (languageId === undefined) return new PlainTextTokenizer();
         return this.tokenizationRegistry.get(languageId) ?? new PlainTextTokenizer();
     }
 }

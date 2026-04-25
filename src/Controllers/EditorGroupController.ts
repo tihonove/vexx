@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
+import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
@@ -12,14 +13,19 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
 import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 
-import { TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
+import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 
 export class EditorGroupController extends Disposable implements IController {
-    public static dependencies = [ThemeServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken] as const;
+    public static dependencies = [
+        ThemeServiceDIToken,
+        TokenizationRegistryDIToken,
+        TokenStyleResolverDIToken,
+        LanguageServiceDIToken,
+    ] as const;
 
     public readonly view: EditorGroupElement;
 
@@ -28,16 +34,19 @@ export class EditorGroupController extends Disposable implements IController {
     private themeService: ThemeService;
     private tokenizationRegistry: TokenizationRegistry;
     private tokenStyleResolver: ITokenStyleResolver;
+    private languageService: ILanguageService;
 
     public constructor(
         themeService: ThemeService,
         tokenizationRegistry: TokenizationRegistry,
         tokenStyleResolver: ITokenStyleResolver,
+        languageService: ILanguageService,
     ) {
         super();
         this.themeService = themeService;
         this.tokenizationRegistry = tokenizationRegistry;
         this.tokenStyleResolver = tokenStyleResolver;
+        this.languageService = languageService;
         this.view = new EditorGroupElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -67,7 +76,12 @@ export class EditorGroupController extends Disposable implements IController {
         }
 
         const editor = this.register(
-            new EditorController(this.themeService, this.tokenizationRegistry, this.tokenStyleResolver),
+            new EditorController(
+                this.themeService,
+                this.tokenizationRegistry,
+                this.tokenStyleResolver,
+                this.languageService,
+            ),
         );
         editor.openFile(filePath);
         this.editors.push(editor);

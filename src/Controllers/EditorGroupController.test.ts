@@ -4,6 +4,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
@@ -14,7 +15,12 @@ import { EditorGroupController } from "./EditorGroupController.ts";
 
 function createEditorGroupController(): EditorGroupController {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    return new EditorGroupController(themeService, new TokenizationRegistry(), NULL_TOKEN_STYLE_RESOLVER);
+    return new EditorGroupController(
+        themeService,
+        new TokenizationRegistry(),
+        NULL_TOKEN_STYLE_RESOLVER,
+        NULL_LANGUAGE_SERVICE,
+    );
 }
 
 describe("EditorGroupController", () => {

@@ -116,8 +116,8 @@ item.onActivate = () => this.openMenu(index);
 - **`DocumentTokenStore`** — per-document Disposable. Подписан на `document.onDidChangeContent`: при изменении строк сдвигает массив кешированных токенов (splice по `lineDelta`), инвалидирует затронутые строки и опускает `invalidLineIndex`. `tokenizeUpTo(line)` догоняет токенизацию синхронно с использованием end-state оптимизации (если новый endState равен прежнему — останавливаемся, нижестоящий кеш ещё валиден). `setLineTokens(line, tokens)` — externally-pushed tokens (LSP, тесты).
 - **`ITokenStyleResolver`** + **`NULL_TOKEN_STYLE_RESOLVER`** — `resolve(scopes): ResolvedTokenStyle { fg?, bg?, bold, italic, underline, strikethrough }`. Editor НЕ зависит от Theme напрямую — только от этого интерфейса.
 - **`builtin/PlainTextTokenizer`**, **`builtin/WordTokenizer`** — встроенные заглушки. WordTokenizer распознаёт ~50 JS/TS-ключевых слов, числа, строки, `//`-комментарии и идентификаторы; используется как fallback до завершения async-загрузки настоящих TextMate-грамматик.
-- **`textmate/`** — адаптер над [`vscode-textmate`](https://github.com/microsoft/vscode-textmate) и [`vscode-oniguruma`](https://github.com/microsoft/vscode-oniguruma) (оба MIT). `OnigLib` — singleton-loader WASM-движка regex; `TextMateState` — обёртка `StateStack` под наш `IState`; `TextMateTokenizationSupport` — реализация `ITokenizationSupport` поверх `IGrammar.tokenizeLine` с защитой от ReDoS на длинных строках; `TextMateGrammarLoader` — фабрика над `vscode-textmate.Registry`, грузит `.tmLanguage.json` с диска (см. `Editor/Tokenization/grammars/`); `builtinGrammars.ts` — описание встроенных языков (js/jsx/ts/tsx/html/css) и injection-грамматик (jsdoc). Учебные тесты на сам `vscode-textmate` лежат в `textmate/learning/`.
-- **`languageDetection.ts`** — `getLanguageIdForFile(path)`: маппинг расширения → `languageId` на основе `BUILTIN_LANGUAGES`. Используется `EditorController.pickTokenizer`. Полноценный `ILanguageService` (filename patterns, shebang, mimetype) — отдельная задача.
+- **`textmate/`** — адаптер над [`vscode-textmate`](https://github.com/microsoft/vscode-textmate) и [`vscode-oniguruma`](https://github.com/microsoft/vscode-oniguruma) (оба MIT). `OnigLib` — singleton-loader WASM-движка regex; `TextMateState` — обёртка `StateStack` под наш `IState`; `TextMateTokenizationSupport` — реализация `ITokenizationSupport` поверх `IGrammar.tokenizeLine` с защитой от ReDoS на длинных строках; `TextMateGrammarLoader` — фабрика над `vscode-textmate.Registry`, грузит `.tmLanguage(.json)` с диска по списку `IGrammarRecord[]`. Конкретные грамматики поставляются builtin-расширениями из `src/Extensions/builtin/` (см. слой Extensions). Учебные тесты на сам `vscode-textmate` лежат в `textmate/learning/`.
+- **`ILanguageService`** + **`NULL_LANGUAGE_SERVICE`** — абстракция определения `languageId` по пути файла (`getLanguageIdForResource(filePath)`). Editor НЕ зависит от Extensions напрямую — только от этого интерфейса (по аналогии с `ITokenStyleResolver`). Реальную реализацию (`LanguageRegistry`) поставляет слой Extensions.
 
 `EditorElement.render()` пользуется этими сервисами так:
 1. До итерации по строкам вызывает `tokenStore.tokenizeUpTo(visibleBottomLine)`.
@@ -127,7 +127,18 @@ item.onActivate = () => this.openMenu(index);
 #### Theme/Tokenization/
 - **`TokenThemeResolver implements ITokenStyleResolver`** — компилирует `IEditorTokenTheme.rules` в массив правил, отсортированных по специфичности (число `.`-сегментов desc, затем порядок объявления desc — позже определённое побеждает на ties). `scopeMatches`: пустая строка матчит всё, exact, или префикс по dot-сегментам (`scope.startsWith(rule + ".")`). `foreground/background/fontStyle` каскадируются независимо: первый правило с заданным значением для каждой оси выигрывает. Кеширует резолв по `scopes.join(" ")`.
 
-Связывание происходит на App-уровне (`main.ts`): `TokenizationRegistry` регистрирует языковые токенайзеры, `TokenThemeResolver` создаётся из `WorkbenchTheme.tokenTheme`, оба биндятся в DI и попадают в `EditorController` → `EditorElement`.
+Связывание происходит на App-уровне (`main.ts`): `ExtensionScanner` находит builtin-расширения, `LanguageRegistry` собирает `contributes.languages`, `ExtensionTokenizationContributor` асинхронно регистрирует `contributes.grammars` в `TokenizationRegistry`. `TokenThemeResolver` создаётся из `WorkbenchTheme.tokenTheme`. Все три сервиса (`TokenizationRegistry`, `TokenStyleResolver`, `LanguageService`) биндятся в DI и попадают в `EditorController` → `EditorElement`.
+
+### Extensions/
+Загрузка VS Code-совместимых расширений. На текущем этапе поддерживаются только `contributes.languages` и `contributes.grammars` builtin-расширений из `src/Extensions/builtin/` (verbatim-копии `javascript`, `typescript-basics`, `css` из microsoft/vscode). Внешние расширения, активация (`main`/`activationEvents`), темы, команды и прочие contribution points — отдельные фазы (см. [docs/TODO/Extensions.md](TODO/Extensions.md)).
+
+- **`IExtensionManifest`** — полная типизация `package.json` расширения. Нереализованные contribution points типизированы, но закомментированы (themes, commands, keybindings, snippets, configuration, views, …) — раскомментируются по мере реализации.
+- **`IExtension`** — `{ id: "${publisher}.${name}", manifest, location, isBuiltin }`.
+- **`ExtensionScanner.scanBuiltinExtensions(dir)`** — читает подкаталоги, парсит `package.json`, валидирует обязательные поля (`name`, `publisher`, `version`), пропускает невалидные с логом.
+- **`LanguageRegistry implements ILanguageService`** — собирает `contributes.languages`. `register(IExtension): IDisposable` инкрементально добавляет вклад (с refcounting расширений и filenames/extensions/patterns), `dispose()` — корректно убирает. `getLanguageIdForResource(filePath)`: приоритет — exact `filenames` → `filenamePatterns` (минимальный glob: `*`, `?`, case-insensitive) → `extensions` (case-insensitive).
+- **`ExtensionTokenizationContributor`** — `apply()` собирает `IGrammarRecord[]` из всех `contributes.grammars`, создаёт `TextMateGrammarLoader`, для каждой грамматики с привязанным `language` загружает support и регистрирует в `TokenizationRegistry`. Хранит disposable-ссылки для будущей выгрузки.
+
+Зависимости: Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Common.
 
 ### Theme/
 Система темизации, совместимая с VS Code theme files. Тема — объект `WorkbenchTheme` в DI-контейнере (`WorkbenchThemeDIToken`), хранящий packed RGB цвета и правила подсветки синтаксиса. Контроллеры применяют цвета к элементам через `applyTheme()`, TUIDom ничего не знает о темах.
@@ -171,10 +182,11 @@ item.onActivate = () => this.openMenu(index);
 ## Правила зависимостей
 
 ```
-App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → Common
-         ↑              ↑
-       Theme ───────────┘ (через ITokenStyleResolver, Editor НЕ импортирует Theme)
-       Theme → { Rendering, Common }
+App → Extensions → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → Common
+          ↑           ↑              ↑
+        Theme ────────┘──────────────┘ (через ITokenStyleResolver/ILanguageService;
+                                         Editor НЕ импортирует Theme/Extensions)
+        Theme → { Rendering, Common }
 ```
 
 - **Common** не импортирует ничего из проекта
@@ -182,10 +194,11 @@ App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → 
 - **Backend** зависит от Input, Rendering, Common
 - **TUIDom** зависит от Rendering, Common (через TerminalScreen)
 - **TUIDom/Events** используют тип TUIElement — это внутренняя зависимость TUIDom
-- **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme — связь через интерфейсы (`ITokenStyleResolver`)
+- **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme и Extensions — связь через интерфейсы (`ITokenStyleResolver`, `ILanguageService`)
 - **Theme/Tokenization** реализует `ITokenStyleResolver` из `Editor/Tokenization`
+- **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик
 - **Controllers** зависит от Editor, TUIDom, Theme, Common
-- **App** (main.ts) зависит от всех слоёв
+- **App** (main.ts) зависит от всех слоёв и оркеструет загрузку builtin-расширений до bootstrap DI
 
 ### DI-контейнер: границы использования
 

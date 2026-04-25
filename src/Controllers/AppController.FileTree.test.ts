@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
+import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
@@ -19,6 +20,7 @@ import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import {
+    LanguageServiceDIToken,
     ServiceAccessorDIToken,
     TokenizationRegistryDIToken,
     TokenStyleResolverDIToken,
@@ -55,6 +57,7 @@ function createIntegrationApp(tmpDir: string, size: Size = new Size(80, 24)): In
         .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
         .bind(TokenizationRegistryDIToken, () => new TokenizationRegistry())
         .bind(TokenStyleResolverDIToken, () => NULL_TOKEN_STYLE_RESOLVER)
+        .bind(LanguageServiceDIToken, () => NULL_LANGUAGE_SERVICE)
         .bind(EditorGroupControllerDIToken, EditorGroupController)
         .bind(StatusBarControllerDIToken, StatusBarController)
         .bind(AppControllerDIToken, AppController);

@@ -9,23 +9,31 @@ import { getOnigLib } from "../OnigLib.ts";
 
 /**
  * Тестовый хелпер: строит `Registry` поверх грамматик, лежащих в
- * `src/Editor/Tokenization/grammars/`. Каждый тест получает свежий Registry
- * (общий `onigLib` синглтон, чтобы WASM грузился один раз на процесс).
+ * builtin-расширениях `src/Extensions/builtin/`. Каждый тест получает свежий
+ * Registry (общий `onigLib` синглтон, чтобы WASM грузился один раз на процесс).
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const grammarsDir = path.resolve(here, "..", "..", "grammars");
+const builtinDir = path.resolve(here, "..", "..", "..", "..", "Extensions", "builtin");
 
-const SCOPE_TO_FILENAME: Partial<Record<string, string>> = {
-    "source.js": "JavaScript.tmLanguage.json",
-    "source.js.jsx": "JavaScriptReact.tmLanguage.json",
-    "source.ts": "TypeScript.tmLanguage.json",
-    "source.tsx": "TypeScriptReact.tmLanguage.json",
-    "source.css": "css.tmLanguage.json",
-    "text.html.basic": "html.tmLanguage.json",
-    "text.html.derivative": "html-derivative.tmLanguage.json",
-    "documentation.injection.js.jsx": "jsdoc.js.injection.tmLanguage.json",
-    "documentation.injection.ts": "jsdoc.ts.injection.tmLanguage.json",
+const SCOPE_TO_PATH: Partial<Record<string, string>> = {
+    "source.js": path.join(builtinDir, "javascript", "syntaxes", "JavaScript.tmLanguage.json"),
+    "source.js.jsx": path.join(builtinDir, "javascript", "syntaxes", "JavaScriptReact.tmLanguage.json"),
+    "source.ts": path.join(builtinDir, "typescript-basics", "syntaxes", "TypeScript.tmLanguage.json"),
+    "source.tsx": path.join(builtinDir, "typescript-basics", "syntaxes", "TypeScriptReact.tmLanguage.json"),
+    "source.css": path.join(builtinDir, "css", "syntaxes", "css.tmLanguage.json"),
+    "documentation.injection.js.jsx": path.join(
+        builtinDir,
+        "typescript-basics",
+        "syntaxes",
+        "jsdoc.js.injection.tmLanguage.json",
+    ),
+    "documentation.injection.ts": path.join(
+        builtinDir,
+        "typescript-basics",
+        "syntaxes",
+        "jsdoc.ts.injection.tmLanguage.json",
+    ),
 };
 
 const INJECTION_SCOPES_BY_HOST: Record<string, string[]> = {
@@ -39,9 +47,8 @@ export function createTestRegistry(): Registry {
     return new vsctm.Registry({
         onigLib: getOnigLib(),
         loadGrammar: async (scopeName: string): Promise<IRawGrammar | null> => {
-            const filename = SCOPE_TO_FILENAME[scopeName];
-            if (filename === undefined) return null;
-            const filePath = path.join(grammarsDir, filename);
+            const filePath = SCOPE_TO_PATH[scopeName];
+            if (filePath === undefined) return null;
             const content = await fs.promises.readFile(filePath, "utf-8");
             return vsctm.parseRawGrammar(content, filePath);
         },

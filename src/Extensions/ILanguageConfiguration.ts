@@ -1,0 +1,71 @@
+/**
+ * Формат `language-configuration.json` из расширения VS Code.
+ *
+ * Phase 1 редактор НЕ применяет ни одно из этих полей: brackets, comments,
+ * autoClosingPairs, indentationRules — будущие задачи. Тип нужен, чтобы
+ * скопированные файлы расширений валидировались, и чтобы загрузка была
+ * подготовлена ровно тогда, когда соответствующая фича появится.
+ */
+export interface ILanguageConfiguration {
+    readonly comments?: ICommentRule;
+    readonly brackets?: ReadonlyArray<CharacterPair>;
+    readonly autoClosingPairs?: ReadonlyArray<CharacterPair | IAutoClosingPair>;
+    readonly autoCloseBefore?: string;
+    readonly surroundingPairs?: ReadonlyArray<CharacterPair | ISurroundingPair>;
+    readonly colorizedBracketPairs?: ReadonlyArray<CharacterPair>;
+    readonly wordPattern?: string | IRegExpDefinition;
+    readonly indentationRules?: IIndentationRules;
+    readonly folding?: IFoldingRules;
+    readonly onEnterRules?: ReadonlyArray<IOnEnterRule>;
+}
+
+export type CharacterPair = readonly [string, string];
+
+export interface ICommentRule {
+    readonly lineComment?: string;
+    readonly blockComment?: CharacterPair;
+}
+
+export interface IAutoClosingPair {
+    readonly open: string;
+    readonly close: string;
+    readonly notIn?: readonly ("string" | "comment")[];
+}
+
+export interface ISurroundingPair {
+    readonly open: string;
+    readonly close: string;
+}
+
+export interface IRegExpDefinition {
+    readonly pattern: string;
+    readonly flags?: string;
+}
+
+export interface IIndentationRules {
+    readonly increaseIndentPattern: string | IRegExpDefinition;
+    readonly decreaseIndentPattern: string | IRegExpDefinition;
+    readonly indentNextLinePattern?: string | IRegExpDefinition;
+    readonly unIndentedLinePattern?: string | IRegExpDefinition;
+}
+
+export interface IFoldingRules {
+    readonly offSide?: boolean;
+    readonly markers?: {
+        readonly start: string | IRegExpDefinition;
+        readonly end: string | IRegExpDefinition;
+    };
+}
+
+export interface IOnEnterRule {
+    readonly beforeText: string | IRegExpDefinition;
+    readonly afterText?: string | IRegExpDefinition;
+    readonly previousLineText?: string | IRegExpDefinition;
+    readonly action: IOnEnterAction;
+}
+
+export interface IOnEnterAction {
+    readonly indent: "none" | "indent" | "indentOutdent" | "outdent";
+    readonly appendText?: string;
+    readonly removeText?: number;
+}
