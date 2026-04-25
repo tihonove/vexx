@@ -19,7 +19,7 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
-import { TokenizationRegistryDIToken, TokenStyleResolverDIToken, LanguageServiceDIToken } from "./CoreTokens.ts";
+import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");

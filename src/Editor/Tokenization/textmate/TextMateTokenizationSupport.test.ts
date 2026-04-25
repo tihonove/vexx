@@ -111,10 +111,7 @@ describe("TextMateTokenizationSupport", () => {
             for (const grammar of grammars) {
                 if (grammar.language === undefined) continue;
                 const support = await loader.loadSupport(grammar.scopeName);
-                expect(
-                    support,
-                    `${grammar.language} (${grammar.scopeName}) must load`,
-                ).not.toBeNull();
+                expect(support, `${grammar.language} (${grammar.scopeName}) must load`).not.toBeNull();
             }
         }
     });

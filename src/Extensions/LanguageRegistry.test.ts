@@ -39,9 +39,7 @@ describe("LanguageRegistry", () => {
 
     it("matches по filenamePatterns (glob)", () => {
         const registry = new LanguageRegistry();
-        registry.register(makeExt("ts", [
-            { id: "jsonc", filenamePatterns: ["tsconfig.*.json"] },
-        ]));
+        registry.register(makeExt("ts", [{ id: "jsonc", filenamePatterns: ["tsconfig.*.json"] }]));
 
         expect(registry.getLanguageIdForResource("/p/tsconfig.build.json")).toBe("jsonc");
         expect(registry.getLanguageIdForResource("/p/tsconfig.json")).toBeUndefined();
@@ -103,11 +101,13 @@ describe("LanguageRegistry", () => {
 
     it("resolveить configurationPath относительно extension.location", () => {
         const registry = new LanguageRegistry();
-        registry.register(makeExt(
-            "ts",
-            [{ id: "typescript", extensions: [".ts"], configuration: "./language-configuration.json" }],
-            "/ext/typescript-basics",
-        ));
+        registry.register(
+            makeExt(
+                "ts",
+                [{ id: "typescript", extensions: [".ts"], configuration: "./language-configuration.json" }],
+                "/ext/typescript-basics",
+            ),
+        );
 
         const lang = registry.getLanguage("typescript");
         expect(lang?.configurationPath).toBe("/ext/typescript-basics/language-configuration.json");
@@ -115,12 +115,17 @@ describe("LanguageRegistry", () => {
 
     it("allLanguages() возвращает все зарегистрированные", () => {
         const registry = new LanguageRegistry();
-        registry.register(makeExt("a", [
-            { id: "typescript", extensions: [".ts"] },
-            { id: "javascript", extensions: [".js"] },
-        ]));
+        registry.register(
+            makeExt("a", [
+                { id: "typescript", extensions: [".ts"] },
+                { id: "javascript", extensions: [".js"] },
+            ]),
+        );
 
-        const ids = registry.allLanguages().map((l) => l.id).sort();
+        const ids = registry
+            .allLanguages()
+            .map((l) => l.id)
+            .sort();
         expect(ids).toEqual(["javascript", "typescript"]);
     });
 });

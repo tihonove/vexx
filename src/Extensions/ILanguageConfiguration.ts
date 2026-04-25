@@ -8,15 +8,15 @@
  */
 export interface ILanguageConfiguration {
     readonly comments?: ICommentRule;
-    readonly brackets?: ReadonlyArray<CharacterPair>;
-    readonly autoClosingPairs?: ReadonlyArray<CharacterPair | IAutoClosingPair>;
+    readonly brackets?: readonly CharacterPair[];
+    readonly autoClosingPairs?: readonly (CharacterPair | IAutoClosingPair)[];
     readonly autoCloseBefore?: string;
-    readonly surroundingPairs?: ReadonlyArray<CharacterPair | ISurroundingPair>;
-    readonly colorizedBracketPairs?: ReadonlyArray<CharacterPair>;
+    readonly surroundingPairs?: readonly (CharacterPair | ISurroundingPair)[];
+    readonly colorizedBracketPairs?: readonly CharacterPair[];
     readonly wordPattern?: string | IRegExpDefinition;
     readonly indentationRules?: IIndentationRules;
     readonly folding?: IFoldingRules;
-    readonly onEnterRules?: ReadonlyArray<IOnEnterRule>;
+    readonly onEnterRules?: readonly IOnEnterRule[];
 }
 
 export type CharacterPair = readonly [string, string];

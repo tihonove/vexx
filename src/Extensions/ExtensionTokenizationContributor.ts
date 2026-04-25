@@ -1,9 +1,9 @@
 import * as path from "node:path";
 
 import type { IDisposable } from "../Common/Disposable.ts";
-import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
+import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
 import type { IExtension } from "./IExtension.ts";
 
@@ -41,7 +41,8 @@ export class ExtensionTokenizationContributor implements IDisposable {
         const records = this.collectGrammarRecords();
         if (records.length === 0) return;
 
-        this.loader = new TextMateGrammarLoader(records);
+        const loader = new TextMateGrammarLoader(records);
+        this.loader = loader;
 
         const tasks: Promise<void>[] = [];
         for (const grammar of this.iterAllGrammars()) {
@@ -51,11 +52,9 @@ export class ExtensionTokenizationContributor implements IDisposable {
             tasks.push(
                 (async () => {
                     try {
-                        const support = await this.loader!.loadSupport(scopeName);
+                        const support = await loader.loadSupport(scopeName);
                         if (support === null) {
-                            console.error(
-                                `Failed to load grammar "${scopeName}" for language "${languageId}"`,
-                            );
+                            console.error(`Failed to load grammar "${scopeName}" for language "${languageId}"`);
                             return;
                         }
                         const disposable = this.tokenizationRegistry.register(languageId, support);

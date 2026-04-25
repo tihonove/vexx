@@ -56,13 +56,13 @@ export class LanguageRegistry implements ILanguageService {
     public register(extension: IExtension): IDisposable {
         const langs = extension.manifest.contributes?.languages;
         if (langs === undefined || langs.length === 0) {
-            return { dispose: () => {} };
+            return { dispose: () => undefined };
         }
 
         const ownContributions: ILanguageContribution[] = [];
         for (const lang of langs) {
             ownContributions.push(lang);
-            this.applyContribution(lang, extension.location, +1);
+            this.applyContribution(lang, extension.location, 1);
         }
 
         return {
@@ -117,11 +117,7 @@ export class LanguageRegistry implements ILanguageService {
         return undefined;
     }
 
-    private applyContribution(
-        lang: ILanguageContribution,
-        extensionLocation: string,
-        delta: 1 | -1,
-    ): void {
+    private applyContribution(lang: ILanguageContribution, extensionLocation: string, delta: 1 | -1): void {
         let entry = this.languages.get(lang.id);
         if (entry === undefined) {
             if (delta < 0) return;
@@ -156,12 +152,12 @@ export class LanguageRegistry implements ILanguageService {
         // снимется при удалении пустой записи ниже. Это упрощение, достаточное для Phase 1.
 
         if (
-            delta < 0
-            && entry.aliases.length === 0
-            && entry.extensions.length === 0
-            && entry.filenames.length === 0
-            && entry.filenamePatterns.length === 0
-            && entry.mimetypes.length === 0
+            delta < 0 &&
+            entry.aliases.length === 0 &&
+            entry.extensions.length === 0 &&
+            entry.filenames.length === 0 &&
+            entry.filenamePatterns.length === 0 &&
+            entry.mimetypes.length === 0
         ) {
             this.languages.delete(lang.id);
         }

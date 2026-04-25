@@ -21,8 +21,8 @@ import { EditorGroupController, EditorGroupControllerDIToken } from "./Controlle
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
-import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { scanBuiltinExtensions } from "./Extensions/ExtensionScanner.ts";
+import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { ThemeService } from "./Theme/ThemeService.ts";

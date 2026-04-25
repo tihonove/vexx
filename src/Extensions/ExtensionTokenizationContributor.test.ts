@@ -5,8 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
-import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
 import { scanBuiltinExtensions } from "./ExtensionScanner.ts";
+import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const builtinDir = path.resolve(here, "builtin");
