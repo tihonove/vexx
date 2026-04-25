@@ -28,8 +28,22 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 
 ## Подзадачи
 
-### [ ] Полный TextMate-движок
+### [x] Полный TextMate-движок
 Подключить настоящий TextMate-парсер вместо `WordTokenizer`. Грамматика на YAML/plist, состояние = stack of rules. Принимать `.tmLanguage.json` файлы.
+
+**Что сделано:**
+- Зависимости: `vscode-textmate` + `vscode-oniguruma` (MIT, без нативных биндингов).
+- Адаптер: `src/Editor/Tokenization/textmate/` — `OnigLib`, `TextMateState`, `TextMateTokenizationSupport`, `TextMateGrammarLoader`.
+- Встроенные языки и маппинг расширений: `textmate/builtinGrammars.ts` + `Editor/Tokenization/languageDetection.ts`.
+- Регистрация в `main.ts` через `TextMateGrammarLoader.loadSupport(scope)` для всех `BUILTIN_LANGUAGES`. Async-загрузка дожидается `await grammarsLoading` до открытия первого файла. На ошибку грамматики — fallback на `WordTokenizer`/`PlainTextTokenizer`.
+- Защита от ReDoS: строки длиннее 20K символов отдаются одним root-токеном без вызова oniguruma.
+- Тесты: 20 учебных тестов на сам `vscode-textmate` (Registry, tokenizeLine, multiline state, tokenizeLine2, jsdoc injections) + 7 на адаптер + 15 на language detection.
+
+**Открытые вопросы:**
+- Стратегия загрузки `onig.wasm` и `.tmLanguage.json` в production-сборке (сейчас читается из `node_modules` через `import.meta.url`; для SEA/`tsup` нужно копирование в `dist/`).
+- Бинарный API `tokenizeLine2` (быстрее, но требует переделки рендера на работу с metadata) — пока не используется.
+
+### [ ] Полный TextMate-движок (заархивированный план)
 
 **План реализации:**
 1. **Зависимости.** `vscode-textmate` + WASM-движок regex (`vscode-oniguruma` или `onigasm`). Оба — npm-пакеты, MIT, без нативных биндингов. Проверить размер бандла WASM (~300 КБ); для CLI/SEA — норм.

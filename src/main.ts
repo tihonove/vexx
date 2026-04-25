@@ -19,6 +19,8 @@ import { EditorGroupController, EditorGroupControllerDIToken } from "./Controlle
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
 import { WordTokenizer } from "./Editor/Tokenization/builtin/WordTokenizer.ts";
+import { BUILTIN_GRAMMAR_RECORDS, BUILTIN_LANGUAGES } from "./Editor/Tokenization/textmate/builtinGrammars.ts";
+import { TextMateGrammarLoader } from "./Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { ThemeService } from "./Theme/ThemeService.ts";
@@ -41,6 +43,25 @@ const application = new TuiApplication(backend);
 
 const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 
+// TextMate-грамматики регистрируются через общий loader. До завершения async
+// загрузки `TokenizationRegistry` заполнен fallback-токенайзерами (WordTokenizer
+// для JS-семейства, PlainTextTokenizer — по умолчанию через `pickTokenizer`).
+const tokenizationRegistry = new TokenizationRegistry();
+tokenizationRegistry.register("javascript", new WordTokenizer());
+
+const grammarLoader = new TextMateGrammarLoader(BUILTIN_GRAMMAR_RECORDS);
+const grammarsLoading = Promise.all(
+    BUILTIN_LANGUAGES.map(async (lang) => {
+        try {
+            const support = await grammarLoader.loadSupport(lang.scopeName);
+            if (support !== null) tokenizationRegistry.register(lang.languageId, support);
+        } catch (err) {
+            // Не валим bootstrap: оставляем fallback-токенайзер для этого языка.
+            console.error(`Failed to load TextMate grammar for ${lang.languageId}:`, err);
+        }
+    }),
+);
+
 // ── Bootstrap через DI-контейнер ────────────────────────────
 const container = new Container()
     .bind(TuiApplicationDIToken, () => application)
@@ -49,11 +70,7 @@ const container = new Container()
     .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
     .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
     .bind(ClipboardDIToken, () => new InMemoryClipboard())
-    .bind(TokenizationRegistryDIToken, () => {
-        const registry = new TokenizationRegistry();
-        registry.register("javascript", new WordTokenizer());
-        return registry;
-    })
+    .bind(TokenizationRegistryDIToken, () => tokenizationRegistry)
     .bind(TokenStyleResolverDIToken, () => new TokenThemeResolver(initialTheme.tokenTheme))
     .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
     .bind(EditorGroupControllerDIToken, EditorGroupController)
@@ -73,6 +90,9 @@ app.root = appController.view;
 appController.mount();
 app.run();
 await appController.activate();
+// Дожидаемся регистрации TextMate-грамматик до открытия первых файлов,
+// чтобы при создании `DocumentTokenStore` уже был полноценный токенайзер.
+await grammarsLoading;
 for (const p of resolvedPaths) {
     if (!fs.statSync(p, { throwIfNoEntry: false })?.isDirectory()) {
         appController.openFile(p);

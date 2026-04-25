@@ -11,6 +11,7 @@ import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextToke
 import { DocumentTokenStore } from "../Editor/Tokenization/DocumentTokenStore.ts";
 import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
+import { getLanguageIdForFile } from "../Editor/Tokenization/languageDetection.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
@@ -140,9 +141,7 @@ export class EditorController extends Disposable implements IController {
      * dedicated language detection service will own this concern later.
      */
     private pickTokenizer(filePath: string | null): ITokenizationSupport {
-        const ext = filePath ? path.extname(filePath).toLowerCase() : "";
-        const languageId =
-            ext === ".ts" || ext === ".tsx" || ext === ".js" || ext === ".jsx" ? "javascript" : "plaintext";
+        const languageId = getLanguageIdForFile(filePath);
         return this.tokenizationRegistry.get(languageId) ?? new PlainTextTokenizer();
     }
 }
