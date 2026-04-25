@@ -4,8 +4,8 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Container } from "../Common/DiContainer.ts";
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
+import { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";

@@ -91,8 +91,7 @@ export class WordTokenizer implements ITokenizationSupport {
         let i = 0;
 
         const push = (start: number, scope: readonly string[]): void => {
-            const last = tokens[tokens.length - 1];
-            if (last && last.scopes === scope) return;
+            if (tokens.length > 0 && tokens[tokens.length - 1].scopes === scope) return;
             tokens.push(createToken(start, scope));
         };
 

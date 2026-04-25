@@ -19,11 +19,7 @@ import type { IController } from "./IController.ts";
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 
 export class EditorGroupController extends Disposable implements IController {
-    public static dependencies = [
-        ThemeServiceDIToken,
-        TokenizationRegistryDIToken,
-        TokenStyleResolverDIToken,
-    ] as const;
+    public static dependencies = [ThemeServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken] as const;
 
     public readonly view: EditorGroupElement;
 

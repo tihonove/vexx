@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { PlainTextTokenizer } from "./builtin/PlainTextTokenizer.ts";
 import { NULL_STATE } from "./IState.ts";
 import type { ITokenizationSupport } from "./ITokenizationSupport.ts";
 import { TokenizationRegistry } from "./TokenizationRegistry.ts";
-import { PlainTextTokenizer } from "./builtin/PlainTextTokenizer.ts";
 
 function makeStubSupport(): ITokenizationSupport {
     return {

@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { createDeleteEdit, createInsertEdit } from "../ITextEdit.ts";
 import { TextDocument } from "../TextDocument.ts";
 
-import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 import { PlainTextTokenizer } from "./builtin/PlainTextTokenizer.ts";
+import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 
 const MARKER = { tokens: [{ startIndex: 0, scopes: ["marker"] }] };
 

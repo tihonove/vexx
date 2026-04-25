@@ -7,9 +7,11 @@ import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
-import { DocumentTokenStore } from "../Editor/Tokenization/DocumentTokenStore.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
+import { DocumentTokenStore } from "../Editor/Tokenization/DocumentTokenStore.ts";
 import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
+import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
+import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -18,17 +20,11 @@ import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts"
 
 import { TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
-import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");
 
 export class EditorController extends Disposable implements IController {
-    public static dependencies = [
-        ThemeServiceDIToken,
-        TokenizationRegistryDIToken,
-        TokenStyleResolverDIToken,
-    ] as const;
+    public static dependencies = [ThemeServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken] as const;
 
     public readonly view: ScrollBarDecorator;
 
@@ -145,9 +141,8 @@ export class EditorController extends Disposable implements IController {
      */
     private pickTokenizer(filePath: string | null): ITokenizationSupport {
         const ext = filePath ? path.extname(filePath).toLowerCase() : "";
-        const languageId = ext === ".ts" || ext === ".tsx" || ext === ".js" || ext === ".jsx"
-            ? "javascript"
-            : "plaintext";
+        const languageId =
+            ext === ".ts" || ext === ".tsx" || ext === ".js" || ext === ".jsx" ? "javascript" : "plaintext";
         return this.tokenizationRegistry.get(languageId) ?? new PlainTextTokenizer();
     }
 }

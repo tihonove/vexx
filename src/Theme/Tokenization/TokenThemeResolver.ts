@@ -24,7 +24,8 @@ function compileRules(rules: readonly ITokenColorRule[]): CompiledRule[] {
     const compiled: CompiledRule[] = [];
     let order = 0;
     for (const rule of rules) {
-        const scopes = rule.scope === undefined ? [""] : Array.isArray(rule.scope) ? rule.scope : splitScopeSelector(rule.scope);
+        const scopes =
+            rule.scope === undefined ? [""] : Array.isArray(rule.scope) ? rule.scope : splitScopeSelector(rule.scope);
         const fg = rule.settings.foreground !== undefined ? parseHexColor(rule.settings.foreground) : undefined;
         const bg = rule.settings.background !== undefined ? parseHexColor(rule.settings.background) : undefined;
         const fontStyle = rule.settings.fontStyle;

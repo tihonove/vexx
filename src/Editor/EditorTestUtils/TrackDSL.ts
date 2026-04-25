@@ -10,8 +10,8 @@ import { comparePositions } from "../IPosition.ts";
 import type { ISelection } from "../ISelection.ts";
 import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "../ISelection.ts";
 import { TextDocument } from "../TextDocument.ts";
-import { DocumentTokenStore } from "../Tokenization/DocumentTokenStore.ts";
 import { PlainTextTokenizer } from "../Tokenization/builtin/PlainTextTokenizer.ts";
+import { DocumentTokenStore } from "../Tokenization/DocumentTokenStore.ts";
 
 // ─── Constants ──────────────────────────────────────────────
 

@@ -21,50 +21,48 @@ describe("TokenThemeResolver", () => {
     });
 
     it("matches an exact scope", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: "keyword.control", settings: { foreground: "#ff0000" } },
-        ]));
+        const resolver = new TokenThemeResolver(
+            theme([{ scope: "keyword.control", settings: { foreground: "#ff0000" } }]),
+        );
         const result = resolver.resolve(["source", "keyword.control"]);
         expect(result.fg).toBe(RED);
     });
 
     it("matches via prefix on dot segments", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: "keyword", settings: { foreground: "#ff0000" } },
-        ]));
+        const resolver = new TokenThemeResolver(theme([{ scope: "keyword", settings: { foreground: "#ff0000" } }]));
         const result = resolver.resolve(["source", "keyword.control.flow"]);
         expect(result.fg).toBe(RED);
     });
 
     it("does NOT match a scope that is merely a substring", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: "key", settings: { foreground: "#ff0000" } },
-        ]));
+        const resolver = new TokenThemeResolver(theme([{ scope: "key", settings: { foreground: "#ff0000" } }]));
         const result = resolver.resolve(["source", "keyword.control"]);
         expect(result.fg).toBeUndefined();
     });
 
     it("more specific rule wins on foreground", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: "keyword", settings: { foreground: "#ff0000" } },
-            { scope: "keyword.control", settings: { foreground: "#0000ff" } },
-        ]));
+        const resolver = new TokenThemeResolver(
+            theme([
+                { scope: "keyword", settings: { foreground: "#ff0000" } },
+                { scope: "keyword.control", settings: { foreground: "#0000ff" } },
+            ]),
+        );
         const result = resolver.resolve(["source", "keyword.control"]);
         expect(result.fg).toBe(BLUE);
     });
 
     it("expands a scope-array rule into multiple selectors", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: ["keyword", "constant"], settings: { foreground: "#00ff00" } },
-        ]));
+        const resolver = new TokenThemeResolver(
+            theme([{ scope: ["keyword", "constant"], settings: { foreground: "#00ff00" } }]),
+        );
         expect(resolver.resolve(["source", "keyword"]).fg).toBe(GREEN);
         expect(resolver.resolve(["source", "constant.numeric"]).fg).toBe(GREEN);
     });
 
     it("merges fontStyle: bold/italic flags", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: "keyword", settings: { fontStyle: "bold italic underline" } },
-        ]));
+        const resolver = new TokenThemeResolver(
+            theme([{ scope: "keyword", settings: { fontStyle: "bold italic underline" } }]),
+        );
         const result = resolver.resolve(["source", "keyword"]);
         expect(result.bold).toBe(true);
         expect(result.italic).toBe(true);
@@ -72,10 +70,12 @@ describe("TokenThemeResolver", () => {
     });
 
     it("foreground/background/fontStyle cascade independently", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: "keyword", settings: { foreground: "#ff0000", fontStyle: "bold" } },
-            { scope: "keyword.control", settings: { background: "#0000ff" } },
-        ]));
+        const resolver = new TokenThemeResolver(
+            theme([
+                { scope: "keyword", settings: { foreground: "#ff0000", fontStyle: "bold" } },
+                { scope: "keyword.control", settings: { background: "#0000ff" } },
+            ]),
+        );
         const result = resolver.resolve(["source", "keyword.control"]);
         // background comes from the more specific rule
         expect(result.bg).toBe(BLUE);
@@ -85,9 +85,7 @@ describe("TokenThemeResolver", () => {
     });
 
     it("returns the same object on a cache hit", () => {
-        const resolver = new TokenThemeResolver(theme([
-            { scope: "keyword", settings: { foreground: "#ff0000" } },
-        ]));
+        const resolver = new TokenThemeResolver(theme([{ scope: "keyword", settings: { foreground: "#ff0000" } }]));
         const a = resolver.resolve(["source", "keyword"]);
         const b = resolver.resolve(["source", "keyword"]);
         expect(a).toBe(b);

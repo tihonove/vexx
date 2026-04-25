@@ -3,12 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 import { createInsertEdit } from "../ITextEdit.ts";
 import { TextDocument } from "../TextDocument.ts";
 
+import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 import type { IState } from "./IState.ts";
 import type { ITokenizationResult, ITokenizationSupport } from "./ITokenizationSupport.ts";
-import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 
 class CounterState implements IState {
-    public constructor(public readonly value: number) {}
+    public readonly value: number;
+    public constructor(value: number) {
+        this.value = value;
+    }
     public clone(): IState {
         return new CounterState(this.value);
     }
@@ -30,7 +33,7 @@ class StatefulTokenizer implements ITokenizationSupport {
         const counter = (state as CounterState).value;
         const next = line.startsWith(">") ? new CounterState(counter + 1) : new CounterState(counter);
         return {
-            tokens: { tokens: [{ startIndex: 0, scopes: [`s${counter}`] }] },
+            tokens: { tokens: [{ startIndex: 0, scopes: [`s${String(counter)}`] }] },
             endState: next,
         };
     }

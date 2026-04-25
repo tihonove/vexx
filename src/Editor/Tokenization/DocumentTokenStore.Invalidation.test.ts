@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { createInsertEdit } from "../ITextEdit.ts";
 import { TextDocument } from "../TextDocument.ts";
 
-import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 import { PlainTextTokenizer } from "./builtin/PlainTextTokenizer.ts";
+import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 
 describe("DocumentTokenStore invalidation", () => {
     it("invalidates the edited line on a single-line edit", () => {

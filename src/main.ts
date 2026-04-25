@@ -18,8 +18,8 @@ import {
 import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
-import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { WordTokenizer } from "./Editor/Tokenization/builtin/WordTokenizer.ts";
+import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { ThemeService } from "./Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";

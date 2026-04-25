@@ -94,7 +94,8 @@ export class DocumentTokenStore extends Disposable {
         if (last < this.invalidLineIndexInternal) return;
 
         let line = this.invalidLineIndexInternal;
-        let state = line === 0 ? this.support.getInitialState() : (this.endStates[line - 1] ?? this.support.getInitialState());
+        let state =
+            line === 0 ? this.support.getInitialState() : (this.endStates[line - 1] ?? this.support.getInitialState());
 
         for (; line <= last; line++) {
             const text = this.document.getLineContent(line);
@@ -104,7 +105,7 @@ export class DocumentTokenStore extends Disposable {
             this.endStates[line] = result.endState;
             state = result.endState;
 
-            if (previousEndState && previousEndState.equals(result.endState)) {
+            if (previousEndState?.equals(result.endState)) {
                 // Subsequent lines were already tokenized starting from this same
                 // end state, so their cached tokens are still valid — jump to EOF.
                 this.invalidLineIndexInternal = this.document.lineCount;
@@ -126,8 +127,8 @@ export class DocumentTokenStore extends Disposable {
 
         if (lineDelta > 0) {
             // Insert `lineDelta` empty slots after `oldEndLine`.
-            const placeholderTokens: (ILineTokens | undefined)[] = new Array(lineDelta).fill(undefined);
-            const placeholderStates: (IState | undefined)[] = new Array(lineDelta).fill(undefined);
+            const placeholderTokens = new Array<ILineTokens | undefined>(lineDelta).fill(undefined);
+            const placeholderStates = new Array<IState | undefined>(lineDelta).fill(undefined);
             this.cachedTokens.splice(oldEndLine + 1, 0, ...placeholderTokens);
             this.endStates.splice(oldEndLine + 1, 0, ...placeholderStates);
         } else if (lineDelta < 0) {

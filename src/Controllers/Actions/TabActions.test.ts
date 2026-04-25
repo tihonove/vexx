@@ -1,15 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
 import { registerAction } from "../CommandAction.ts";
+import { CommandRegistry } from "../CommandRegistry.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
-import {
-    closeActiveEditorAction,
-    nextEditorInGroupAction,
-    previousEditorInGroupAction,
-} from "./TabActions.ts";
+
+import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./TabActions.ts";
 
 interface GroupStub {
     activeIndex: number;

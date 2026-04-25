@@ -52,11 +52,7 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
-import {
-    closeActiveEditorAction,
-    nextEditorInGroupAction,
-    previousEditorInGroupAction,
-} from "./Actions/TabActions.ts";
+import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";

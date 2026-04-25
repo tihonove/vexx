@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { TextDocument } from "../TextDocument.ts";
 
-import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 import { PlainTextTokenizer } from "./builtin/PlainTextTokenizer.ts";
+import { DocumentTokenStore } from "./DocumentTokenStore.ts";
 
 describe("DocumentTokenStore caching", () => {
     it("returns undefined for lines that have not been tokenized yet", () => {

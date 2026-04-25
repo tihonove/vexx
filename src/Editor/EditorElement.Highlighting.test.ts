@@ -7,8 +7,8 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { TextDocument } from "./TextDocument.ts";
-import { DocumentTokenStore } from "./Tokenization/DocumentTokenStore.ts";
 import { WordTokenizer } from "./Tokenization/builtin/WordTokenizer.ts";
+import { DocumentTokenStore } from "./Tokenization/DocumentTokenStore.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "./Tokenization/ITokenStyleResolver.ts";
 import { EMPTY_RESOLVED_TOKEN_STYLE } from "./Tokenization/ITokenStyleResolver.ts";
 
@@ -25,7 +25,11 @@ class StubResolver implements ITokenStyleResolver {
     }
 }
 
-function createHighlightedEditor(text: string, width = 40, height = 4): {
+function createHighlightedEditor(
+    text: string,
+    width = 40,
+    height = 4,
+): {
     app: TestApp;
     editor: EditorElement;
     doc: TextDocument;
@@ -67,9 +71,7 @@ describe("EditorElement syntax highlighting", () => {
     it("re-tokenizes on edit and updates colours", () => {
         const { app, doc, gw } = createHighlightedEditor("foo");
         app.render();
-        doc.applyEdits([
-            { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } }, text: "if" },
-        ]);
+        doc.applyEdits([{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } }, text: "if" }]);
         app.render();
         expect(app.backend.getFgAt(new Point(gw, 0))).toBe(KEYWORD_FG);
     });
