@@ -116,3 +116,75 @@ const appCtrl = container.get(AppControllerDIToken);
 ```typescript
 const ctrl = new AppController(mockApp, mockEditor);
 ```
+
+## Модули и профили
+
+Чтобы избежать копипасты конфигурации в каждой точке входа (`main.ts`, тесты,
+демо), биндинги группируются в **модули** — функции вида
+`(container, ctx) => void`. Модули собираются в **профили** — фабрики готовых
+контейнеров под конкретный сценарий (production, test).
+
+Файлы: `src/Controllers/Modules/`.
+
+### `ContainerModule<Ctx>`
+
+```typescript
+export type ContainerModule<Ctx = void> = (container: Container, ctx: Ctx) => void;
+```
+
+Модуль регистрирует группу связанных по смыслу сервисов. Опциональный `Ctx` —
+типизированный конфиг (например, `{ theme }` или `{ clipboard }`). Применяется
+через `.use()`:
+
+```typescript
+const container = new Container()
+    .use(coreModule, { app })
+    .use(commandsModule)
+    .use(themeModule, { theme })
+    .use(controllersModule);
+```
+
+`.use()` возвращает контейнер — его можно чейнить с обычным `.bind()`.
+
+### Существующие модули
+
+| Модуль | Контекст | Что регистрирует |
+|--------|----------|------------------|
+| `coreModule` | `{ app }` | `ServiceAccessor`, `TuiApplication` |
+| `coreModuleLate` | — | Только `ServiceAccessor`. Для тестов, где `TuiApplication` создаётся позже от view контроллера. |
+| `commandsModule` | — | `CommandRegistry`, `KeybindingRegistry`, `ContextKeyService` |
+| `themeModule` | `{ theme }` | `ThemeService` |
+| `tokenizationModule` | `{ tokenizationRegistry, tokenStyleResolver, languageService }` | Соответствующие токены. Реализации передаются снаружи. |
+| `backendModule` | `{ clipboard }` | `Clipboard` |
+| `backendModuleDefault` | — | `Clipboard` с `InMemoryClipboard` по умолчанию |
+| `controllersModule` | — | `EditorGroupController`, `StatusBarController`, `AppController` |
+
+### Профили
+
+- **`createProductionContainer(ctx)`** — собирает полный production-контейнер
+  с реальными tokenization/language. Используется в `main.ts`.
+- **`createTestContainer()`** — возвращает `{ container, bindApp }`. Использует
+  `darkPlusTheme`, `NULL_TOKEN_STYLE_RESOLVER`, `NULL_LANGUAGE_SERVICE` и пустой
+  `TokenizationRegistry`. `bindApp(testApp.app)` вызывается после создания
+  `TestApp` от view, чтобы поздно забиндить `TuiApplicationDIToken`.
+
+Шаблон тестовой обёртки:
+
+```typescript
+const { container, bindApp } = createTestContainer();
+const controller = container.get(AppControllerDIToken);
+controller.mount();
+
+const testApp = TestApp.create(controller.view, size);
+bindApp(testApp.app);
+```
+
+### Когда добавлять новый модуль
+
+- Появляется набор из 2+ связанных сервисов одного домена.
+- Новая ось вариативности (например, `Filesystem` с реальной/мок-реализацией) —
+  заводим модуль с `Ctx` и подставляем разные значения в профилях.
+
+Не нужно делать модуль для одиночного сервиса без вариативности — достаточно
+`.bind()` в профиле.
+

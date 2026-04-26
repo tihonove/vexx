@@ -1,33 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ServiceAccessor } from "../Common/DiContainer.ts";
-import { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { ContextKeyService, ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import {
-    LanguageServiceDIToken,
-    ServiceAccessorDIToken,
-    TokenizationRegistryDIToken,
-    TokenStyleResolverDIToken,
-    TuiApplicationDIToken,
-} from "./CoreTokens.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { KeybindingRegistry, KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
-import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
+import { createTestContainer } from "./Modules/TestProfile.ts";
 
 interface TestAppContext {
     testApp: TestApp;
@@ -36,28 +17,13 @@ interface TestAppContext {
 }
 
 function createTestAppController(size: Size = new Size(80, 24)): TestAppContext {
-    // Build a DI container identical to production, but with MockTerminalBackend via TestApp
-    const container = new Container();
-    container
-        .bind(CommandRegistryDIToken, () => new CommandRegistry())
-        .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
-        .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
-        .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
-        .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
-        .bind(TokenizationRegistryDIToken, () => new TokenizationRegistry())
-        .bind(TokenStyleResolverDIToken, () => NULL_TOKEN_STYLE_RESOLVER)
-        .bind(LanguageServiceDIToken, () => NULL_LANGUAGE_SERVICE)
-        .bind(EditorGroupControllerDIToken, EditorGroupController)
-        .bind(StatusBarControllerDIToken, StatusBarController)
-        .bind(AppControllerDIToken, AppController);
+    const { container, bindApp } = createTestContainer();
 
     const controller = container.get(AppControllerDIToken);
     controller.mount();
 
     const testApp = TestApp.create(controller.view, size);
-
-    // Bind TuiApplicationDIToken for actions that need it (like quit)
-    container.bind(TuiApplicationDIToken, () => testApp.app);
+    bindApp(testApp.app);
 
     const commandRegistry = container.get(CommandRegistryDIToken);
 

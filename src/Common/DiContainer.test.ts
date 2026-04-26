@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import type { ContainerModule } from "./DiContainer.ts";
 import { Container, token } from "./DiContainer.ts";
 
 // ── Test helpers ────────────────────────────────────────────
@@ -161,6 +162,55 @@ describe("DiContainer", () => {
 
             expect(svc.logger).toBe(logger);
             expect(svc.db).toBe(db);
+        });
+    });
+
+    describe("modules (.use)", () => {
+        it("applies a context-less module", () => {
+            const loggingModule: ContainerModule = (c) => {
+                c.bind(LoggerDIToken, Logger);
+            };
+            const container = new Container().use(loggingModule);
+
+            expect(container.get(LoggerDIToken)).toBeInstanceOf(Logger);
+        });
+
+        it("applies a module with typed context", () => {
+            const ValueDIToken = token<number>("Value");
+            const valueModule: ContainerModule<{ value: number }> = (c, ctx) => {
+                c.bind(ValueDIToken, () => ctx.value);
+            };
+            const container = new Container().use(valueModule, { value: 7 });
+
+            expect(container.get(ValueDIToken)).toBe(7);
+        });
+
+        it("modules compose via chaining", () => {
+            const loggingModule: ContainerModule = (c) => {
+                c.bind(LoggerDIToken, Logger);
+            };
+            const dbModule: ContainerModule = (c) => {
+                c.bind(DatabaseDIToken, Database);
+            };
+            const userModule: ContainerModule = (c) => {
+                c.bind(UserServiceDIToken, UserService);
+            };
+
+            const container = new Container().use(loggingModule).use(dbModule).use(userModule);
+
+            const svc = container.get(UserServiceDIToken);
+            expect(svc.logger).toBeInstanceOf(Logger);
+            expect(svc.db).toBeInstanceOf(Database);
+        });
+
+        it("returns container for chaining mixed with bind", () => {
+            const loggingModule: ContainerModule = (c) => {
+                c.bind(LoggerDIToken, Logger);
+            };
+            const container = new Container().use(loggingModule).bind(DatabaseDIToken, Database);
+
+            expect(container.get(LoggerDIToken)).toBeInstanceOf(Logger);
+            expect(container.get(DatabaseDIToken)).toBeInstanceOf(Database);
         });
     });
 });

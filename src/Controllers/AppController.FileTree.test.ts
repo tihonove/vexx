@@ -4,31 +4,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ServiceAccessor } from "../Common/DiContainer.ts";
-import { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { ContextKeyService, ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import {
-    LanguageServiceDIToken,
-    ServiceAccessorDIToken,
-    TokenizationRegistryDIToken,
-    TokenStyleResolverDIToken,
-    TuiApplicationDIToken,
-} from "./CoreTokens.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { KeybindingRegistry, KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
-import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
+import type { EditorGroupController } from "./EditorGroupController.ts";
+import { createTestContainer } from "./Modules/TestProfile.ts";
 
 function createTempWorkspace(): string {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-integration-"));
@@ -48,26 +29,14 @@ interface IntegrationContext {
 }
 
 function createIntegrationApp(tmpDir: string, size: Size = new Size(80, 24)): IntegrationContext {
-    const container = new Container();
-    container
-        .bind(CommandRegistryDIToken, () => new CommandRegistry())
-        .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
-        .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
-        .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
-        .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
-        .bind(TokenizationRegistryDIToken, () => new TokenizationRegistry())
-        .bind(TokenStyleResolverDIToken, () => NULL_TOKEN_STYLE_RESOLVER)
-        .bind(LanguageServiceDIToken, () => NULL_LANGUAGE_SERVICE)
-        .bind(EditorGroupControllerDIToken, EditorGroupController)
-        .bind(StatusBarControllerDIToken, StatusBarController)
-        .bind(AppControllerDIToken, AppController);
+    const { container, bindApp } = createTestContainer();
 
     const controller = container.get(AppControllerDIToken);
     controller.setWorkspaceFolder(tmpDir);
     controller.mount();
 
     const testApp = TestApp.create(controller.view, size);
-    container.bind(TuiApplicationDIToken, () => testApp.app);
+    bindApp(testApp.app);
 
     return { testApp, controller, tmpDir };
 }

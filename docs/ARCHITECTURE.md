@@ -168,6 +168,12 @@ item.onActivate = () => this.openMenu(index);
 
 Зависимости контроллеров объявляются через `static dependencies` и резолвятся DI-контейнером из `Common/DiContainer.ts` при старте приложения. Подробности — [docs/DI.md](DI.md).
 
+Подкаталог `Controllers/Modules/` содержит модули конфигурации DI (`coreModule`,
+`commandsModule`, `themeModule` и т.д.) и профили (`createProductionContainer`,
+`createTestContainer`). Здесь же группируются связи между токенами — точечные
+вариации (production vs test) задаются через `Ctx`-параметры модулей. Подробности
+— [docs/DI.md](DI.md#модули-и-профили).
+
 ### demos/
 Демо-приложения для ручного тестирования отдельных компонентов.
 

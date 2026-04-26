@@ -3,30 +3,15 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
-import type { ServiceAccessor } from "./Common/DiContainer.ts";
-import { Container } from "./Common/DiContainer.ts";
 import { InMemoryClipboard } from "./Common/InMemoryClipboard.ts";
-import { AppController, AppControllerDIToken } from "./Controllers/AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./Controllers/CommandRegistry.ts";
-import { ContextKeyService, ContextKeyServiceDIToken } from "./Controllers/ContextKeyService.ts";
-import {
-    ClipboardDIToken,
-    LanguageServiceDIToken,
-    ServiceAccessorDIToken,
-    TokenizationRegistryDIToken,
-    TokenStyleResolverDIToken,
-    TuiApplicationDIToken,
-} from "./Controllers/CoreTokens.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
-import { KeybindingRegistry, KeybindingRegistryDIToken } from "./Controllers/KeybindingRegistry.ts";
-import { StatusBarController, StatusBarControllerDIToken } from "./Controllers/StatusBarController.ts";
+import { AppControllerDIToken } from "./Controllers/AppController.ts";
+import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
+import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { scanBuiltinExtensions } from "./Extensions/ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
-import { ThemeService } from "./Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
 import { WorkbenchTheme } from "./Theme/WorkbenchTheme.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
@@ -61,20 +46,14 @@ const tokenizationContributor = new ExtensionTokenizationContributor(builtinExte
 const grammarsLoading = tokenizationContributor.apply();
 
 // ── Bootstrap через DI-контейнер ────────────────────────────
-const container = new Container()
-    .bind(TuiApplicationDIToken, () => application)
-    .bind(ThemeServiceDIToken, () => new ThemeService(initialTheme))
-    .bind(CommandRegistryDIToken, () => new CommandRegistry())
-    .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
-    .bind(ContextKeyServiceDIToken, () => new ContextKeyService())
-    .bind(ClipboardDIToken, () => new InMemoryClipboard())
-    .bind(TokenizationRegistryDIToken, () => tokenizationRegistry)
-    .bind(TokenStyleResolverDIToken, () => new TokenThemeResolver(initialTheme.tokenTheme))
-    .bind(LanguageServiceDIToken, () => languageRegistry)
-    .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
-    .bind(EditorGroupControllerDIToken, EditorGroupController)
-    .bind(StatusBarControllerDIToken, StatusBarController)
-    .bind(AppControllerDIToken, AppController);
+const container = createProductionContainer({
+    app: application,
+    theme: initialTheme,
+    clipboard: new InMemoryClipboard(),
+    tokenizationRegistry,
+    tokenStyleResolver: new TokenThemeResolver(initialTheme.tokenTheme),
+    languageService: languageRegistry,
+});
 
 const app = container.get(TuiApplicationDIToken);
 const appController = container.get(AppControllerDIToken);

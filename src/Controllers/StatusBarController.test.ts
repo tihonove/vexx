@@ -1,31 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { Container } from "../Common/DiContainer.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
+import { createTestContainer } from "./Modules/TestProfile.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
 
 function createStatusBarController(): {
     statusBarController: StatusBarController;
     editorGroupController: EditorGroupController;
 } {
-    const container = new Container();
-    container
-        .bind(ThemeServiceDIToken, () => new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)))
-        .bind(TokenizationRegistryDIToken, () => new TokenizationRegistry())
-        .bind(TokenStyleResolverDIToken, () => NULL_TOKEN_STYLE_RESOLVER)
-        .bind(LanguageServiceDIToken, () => NULL_LANGUAGE_SERVICE)
-        .bind(EditorGroupControllerDIToken, EditorGroupController)
-        .bind(StatusBarControllerDIToken, StatusBarController);
+    const { container } = createTestContainer();
 
     const editorGroupController = container.get(EditorGroupControllerDIToken);
     const statusBarController = container.get(StatusBarControllerDIToken);
