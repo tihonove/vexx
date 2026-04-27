@@ -19,3 +19,29 @@ jobs:
       - run: npm install
 
       - run: npm test
+
+  e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+
+      # node-pty собирается из исходников, если для текущей версии Node нет prebuild.
+      # На ubuntu нужен build-essential + python3 (на macOS они уже есть из Xcode CLT,
+      # на Windows setup-node + windows-build-tools обычно достаточно).
+      - name: Install build deps for node-pty (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential python3
+
+      - run: npm install
+
+      - run: npm run test:e2e
