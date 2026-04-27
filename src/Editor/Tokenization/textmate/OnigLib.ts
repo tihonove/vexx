@@ -24,9 +24,10 @@ export function getOnigLib(): Promise<IOnigLib> {
 }
 
 async function loadOnigLib(): Promise<IOnigLib> {
-    const require = createRequire(import.meta.url);
-    const wasmPath = require.resolve("vscode-oniguruma/release/onig.wasm");
-    const wasmBytes = fs.readFileSync(wasmPath);
+    // node:sea is only resolvable via require() inside a SEA binary; static ESM
+    // import of "node:sea" fails even inside the SEA executable in mainFormat:"module".
+    const wasmBytes = tryLoadFromSea() ?? loadFromNodeModules();
+
     await oniguruma.loadWASM(wasmBytes);
     return {
         createOnigScanner(patterns: string[]) {
@@ -36,4 +37,21 @@ async function loadOnigLib(): Promise<IOnigLib> {
             return oniguruma.createOnigString(s);
         },
     };
+}
+
+function tryLoadFromSea(): ArrayBuffer | null {
+    try {
+        const req = createRequire("file:///");
+        const sea = req("node:sea") as { isSea(): boolean; getAsset(key: string): ArrayBuffer };
+        if (sea.isSea()) return sea.getAsset("onig.wasm");
+    } catch {
+        // not running as SEA or node:sea unavailable
+    }
+    return null;
+}
+
+function loadFromNodeModules(): Buffer {
+    const require = createRequire(import.meta.url);
+    const wasmPath = require.resolve("vscode-oniguruma/release/onig.wasm");
+    return fs.readFileSync(wasmPath);
 }

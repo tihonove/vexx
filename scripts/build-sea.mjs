@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 import { execSync } from "node:child_process";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, cpSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve, join } from "node:path";
 
 const root = resolve(import.meta.dirname, "..");
@@ -20,22 +21,32 @@ function run(cmd) {
 mkdirSync(dist, { recursive: true });
 run("npx tsup");
 
-// 2. Generate SEA config
+// 2. Copy builtin extensions (grammars, manifests) next to the binary
+cpSync(join(root, "src", "Extensions", "builtin"), join(dist, "Extensions", "builtin"), { recursive: true });
+console.log("Copied src/Extensions/builtin → dist/Extensions/builtin");
+
+// 3. Generate SEA config
+const require = createRequire(import.meta.url);
+const onigWasmPath = require.resolve("vscode-oniguruma/release/onig.wasm");
+
 const seaConfig = {
     main: join(dist, "main.js"),
     output: outputPath,
     mainFormat: "module",
     disableExperimentalSEAWarning: true,
+    assets: {
+        "onig.wasm": onigWasmPath,
+    },
 };
 
 const configPath = join(dist, "sea-config.json");
 writeFileSync(configPath, JSON.stringify(seaConfig, null, 2));
 console.log(`SEA config written to ${configPath}`);
 
-// 3. Build SEA binary
+// 4. Build SEA binary
 run(`node --build-sea ${configPath}`);
 
-// 4. Sign on macOS (required for SEA to run)
+// 5. Sign on macOS (required for SEA to run)
 if (isMac) {
     run(`codesign --sign - ${outputPath}`);
 }
