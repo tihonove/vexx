@@ -48,7 +48,8 @@ run(`node --build-sea ${configPath}`);
 
 // 5. Sign on macOS (required for SEA to run)
 if (isMac) {
-    run(`codesign --sign - ${outputPath}`);
+    run(`chmod +x ${outputPath}`);
+    run(`codesign --sign - --force ${outputPath}`);
 }
 
 console.log(`\nDone! Binary: ${outputPath}`);
