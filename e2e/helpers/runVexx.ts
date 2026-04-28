@@ -91,11 +91,12 @@ export class VexxSession {
         const timeoutMs = opts.timeoutMs ?? 10_000;
         const stableMs = opts.stableMs ?? 150;
         const deadline = Date.now() + timeoutMs;
-        // On Windows, ConPTY can inject clearing sequences that cause the app's
-        // delta renderer to miss cells it already thought were drawn. After 2 s of
-        // the predicate not being satisfied, trigger one resize cycle so the app
-        // resets prevGrid and issues a full redraw.
-        let conptyKickDeadline = process.platform === "win32" ? Date.now() + 2000 : Infinity;
+        // On Windows, ConPTY can inject clearing sequences after each resize that
+        // cause the app's delta renderer to miss cells. Do up to 3 resize cycles so
+        // the app eventually resets prevGrid and issues a full redraw that lands
+        // AFTER the ConPTY injections have settled.
+        let winKicksLeft = process.platform === "win32" ? 3 : 0;
+        let winNextKickAt = process.platform === "win32" ? Date.now() + 500 : Infinity;
 
         while (Date.now() < deadline) {
             const screen = this.parseScreen();
@@ -108,12 +109,13 @@ export class VexxSession {
                 }
                 continue;
             }
-            if (Date.now() >= conptyKickDeadline) {
-                conptyKickDeadline = Infinity; // only once
+            if (winKicksLeft > 0 && Date.now() >= winNextKickAt) {
+                winKicksLeft--;
+                winNextKickAt = Date.now() + 2500; // space kicks ≥ 2.5 s apart
                 this.term.resize(this.cols, this.rows + 1);
-                await sleep(200);
+                await sleep(300); // let ConPTY inject for this resize
                 this.term.resize(this.cols, this.rows);
-                await sleep(300);
+                await sleep(800); // let ConPTY inject for the reverse, then app re-renders
                 continue;
             }
             await this.waitForData(Math.max(50, deadline - Date.now()));
@@ -170,6 +172,13 @@ export class VexxSession {
                 }
             }
             await this.waitForExit(1000);
+        }
+        // If onExit still hasn't fired (can happen on Windows when ConPTY
+        // terminates the process without propagating the exit event), mark the
+        // session as disposed so callers are not left hanging.
+        if (!this.exited) {
+            this.exited = true;
+            for (const w of this.waiters.splice(0)) w();
         }
     }
 
