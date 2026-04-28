@@ -49,7 +49,13 @@ run(`node --build-sea ${configPath}`);
 // 5. Sign on macOS (required for SEA to run)
 if (isMac) {
     run(`chmod +x ${outputPath}`);
-    run(`codesign --sign - --force ${outputPath}`);
+    // Remove any existing (potentially broken) signature left by postject before re-signing.
+    try {
+        execSync(`codesign --remove-signature "${outputPath}"`, { stdio: "pipe", cwd: root });
+    } catch {
+        // Binary may not have a signature yet — that is fine.
+    }
+    run(`codesign --sign - "${outputPath}"`);
 }
 
 console.log(`\nDone! Binary: ${outputPath}`);
