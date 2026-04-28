@@ -34,9 +34,11 @@ function build(): Promise<string> {
         let stdout = "";
         child.stdout.on("data", (chunk: Buffer) => {
             stdout += chunk.toString();
+            process.stderr.write(chunk);
         });
         child.stderr.on("data", (chunk: Buffer) => {
             stderr += chunk.toString();
+            process.stderr.write(chunk);
         });
         child.on("error", rejectPromise);
         child.on("exit", (code) => {
