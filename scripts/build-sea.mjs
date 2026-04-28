@@ -59,6 +59,10 @@ if (isMac) {
         const fileInfo = execSync(`file "${outputPath}"`, { encoding: "utf8", stdio: "pipe" }).trim();
         console.error(`[build-sea] file: ${fileInfo}`);
     } catch {}
+    try {
+        const lipoInfo = execSync(`lipo -info "${outputPath}" 2>&1`, { encoding: "utf8", stdio: "pipe" }).trim();
+        console.error(`[build-sea] lipo: ${lipoInfo}`);
+    } catch {}
 
     // Remove quarantine bit (set by macOS on some CI environments)
     try {
