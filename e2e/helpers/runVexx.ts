@@ -40,8 +40,7 @@ export class VexxSession {
             rows,
             env,
         });
-        const session = new VexxSession(term, cols, rows);
-        return session;
+        return new VexxSession(term, cols, rows);
     }
 
     private constructor(term: pty.IPty, cols: number, rows: number) {
@@ -96,7 +95,7 @@ export class VexxSession {
         // delta renderer to miss cells it already thought were drawn. After 2 s of
         // the predicate not being satisfied, trigger one resize cycle so the app
         // resets prevGrid and issues a full redraw.
-        let winKickAt = process.platform === "win32" ? Date.now() + 2000 : Infinity;
+        let conptyKickDeadline = process.platform === "win32" ? Date.now() + 2000 : Infinity;
 
         while (Date.now() < deadline) {
             const screen = this.parseScreen();
@@ -109,8 +108,8 @@ export class VexxSession {
                 }
                 continue;
             }
-            if (Date.now() >= winKickAt) {
-                winKickAt = Infinity; // only once
+            if (Date.now() >= conptyKickDeadline) {
+                conptyKickDeadline = Infinity; // only once
                 this.term.resize(this.cols, this.rows + 1);
                 await sleep(200);
                 this.term.resize(this.cols, this.rows);
