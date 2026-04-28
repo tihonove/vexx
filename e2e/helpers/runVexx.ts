@@ -41,15 +41,6 @@ export class VexxSession {
             env,
         });
         const session = new VexxSession(term, cols, rows);
-        // On Windows, ConPTY may inject escape sequences during PTY initialization
-        // that clear the app's rendered output. Force a resize cycle so the app
-        // resets prevGrid and does a full redraw after any such injections.
-        if (process.platform === "win32") {
-            await sleep(300);
-            term.resize(cols, rows + 1);
-            await sleep(150);
-            term.resize(cols, rows);
-        }
         return session;
     }
 
@@ -101,6 +92,11 @@ export class VexxSession {
         const timeoutMs = opts.timeoutMs ?? 10_000;
         const stableMs = opts.stableMs ?? 150;
         const deadline = Date.now() + timeoutMs;
+        // On Windows, ConPTY can inject clearing sequences that cause the app's
+        // delta renderer to miss cells it already thought were drawn. After 2 s of
+        // the predicate not being satisfied, trigger one resize cycle so the app
+        // resets prevGrid and issues a full redraw.
+        let winKickAt = process.platform === "win32" ? Date.now() + 2000 : Infinity;
 
         while (Date.now() < deadline) {
             const screen = this.parseScreen();
@@ -111,6 +107,14 @@ export class VexxSession {
                 if (this.buffer.length === sizeBefore) {
                     return this.parseScreen();
                 }
+                continue;
+            }
+            if (Date.now() >= winKickAt) {
+                winKickAt = Infinity; // only once
+                this.term.resize(this.cols, this.rows + 1);
+                await sleep(200);
+                this.term.resize(this.cols, this.rows);
+                await sleep(300);
                 continue;
             }
             await this.waitForData(Math.max(50, deadline - Date.now()));
@@ -156,6 +160,15 @@ export class VexxSession {
                 this.term.kill("SIGKILL");
             } catch {
                 // ignore
+            }
+            // On Windows node-pty's kill() closes the ConPTY handle but may not
+            // immediately fire onExit. Also signal the process directly by PID.
+            if (process.platform === "win32") {
+                try {
+                    process.kill(this.term.pid);
+                } catch {
+                    // ignore — process may have already exited
+                }
             }
             await this.waitForExit(1000);
         }
