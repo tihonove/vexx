@@ -88,14 +88,15 @@ export class VexxSession {
         predicate: (screen: AnsiScreen) => boolean,
         opts: { timeoutMs?: number; stableMs?: number } = {},
     ): Promise<AnsiScreen> {
-        const timeoutMs = opts.timeoutMs ?? 10_000;
+        const timeoutMs = opts.timeoutMs ?? (process.platform === "win32" ? 30_000 : 10_000);
         const stableMs = opts.stableMs ?? 150;
         const deadline = Date.now() + timeoutMs;
         // On Windows, ConPTY can inject clearing sequences after each resize that
-        // cause the app's delta renderer to miss cells. Do up to 3 resize cycles so
+        // cause the app's delta renderer to miss cells. Do up to 5 resize cycles so
         // the app eventually resets prevGrid and issues a full redraw that lands
-        // AFTER the ConPTY injections have settled.
-        let winKicksLeft = process.platform === "win32" ? 3 : 0;
+        // AFTER the ConPTY injections have settled. The 1.2 s sleep after the
+        // second resize gives ConPTY and the app enough time to finish.
+        let winKicksLeft = process.platform === "win32" ? 5 : 0;
         let winNextKickAt = process.platform === "win32" ? Date.now() + 500 : Infinity;
 
         while (Date.now() < deadline) {
@@ -111,11 +112,11 @@ export class VexxSession {
             }
             if (winKicksLeft > 0 && Date.now() >= winNextKickAt) {
                 winKicksLeft--;
-                winNextKickAt = Date.now() + 2500; // space kicks ≥ 2.5 s apart
+                winNextKickAt = Date.now() + 4000; // space kicks ≥ 4 s apart
                 this.term.resize(this.cols, this.rows + 1);
                 await sleep(300); // let ConPTY inject for this resize
                 this.term.resize(this.cols, this.rows);
-                await sleep(800); // let ConPTY inject for the reverse, then app re-renders
+                await sleep(1200); // let ConPTY inject for reverse, then app re-renders
                 continue;
             }
             await this.waitForData(Math.max(50, deadline - Date.now()));
