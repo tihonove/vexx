@@ -40,7 +40,17 @@ export class VexxSession {
             rows,
             env,
         });
-        return new VexxSession(term, cols, rows);
+        const session = new VexxSession(term, cols, rows);
+        // On Windows, ConPTY may inject escape sequences during PTY initialization
+        // that clear the app's rendered output. Force a resize cycle so the app
+        // resets prevGrid and does a full redraw after any such injections.
+        if (process.platform === "win32") {
+            await sleep(300);
+            term.resize(cols, rows + 1);
+            await sleep(150);
+            term.resize(cols, rows);
+        }
+        return session;
     }
 
     private constructor(term: pty.IPty, cols: number, rows: number) {
@@ -147,6 +157,7 @@ export class VexxSession {
             } catch {
                 // ignore
             }
+            await this.waitForExit(1000);
         }
     }
 

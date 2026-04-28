@@ -168,8 +168,10 @@ export class AnsiScreen {
             }
             case "J": {
                 const mode = params[0] ?? 0;
-                if (mode === 2 || mode === 0) {
+                if (mode === 2 || mode === 3) {
                     this.clearAll();
+                } else if (mode === 0) {
+                    this.clearToEnd();
                 }
                 return consumed;
             }
@@ -283,6 +285,13 @@ export class AnsiScreen {
 
     private clearAll(): void {
         for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
+        }
+    }
+
+    private clearToEnd(): void {
+        for (let x = this.cursorX; x < this.width; x++) this.cells[this.cursorY][x] = { ...SPACE_CELL };
+        for (let y = this.cursorY + 1; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
         }
     }
