@@ -15,38 +15,7 @@
 
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
-
-const stdin = process.stdin;
-const stdout = process.stdout;
-
-// ── Kitty Keyboard Protocol + TMUX passthrough ──
-const KITTY_ENABLE = "\x1b[>11u";
-const KITTY_DISABLE = "\x1b[<u";
-
-const isTmux = process.env.TMUX != null && process.env.TMUX !== "";
-
-function wrapForTmux(sequence: string): string {
-    // eslint-disable-next-line no-control-regex
-    const escaped = sequence.replace(/\x1b/g, "\x1b\x1b");
-    return `\x1bPtmux;${escaped}\x1b\\`;
-}
-
-function writePassthrough(sequence: string): void {
-    stdout.write(isTmux ? wrapForTmux(sequence) : sequence);
-}
-
-stdin.setRawMode(true);
-stdin.setEncoding("utf8");
-stdin.resume();
-
-writePassthrough(KITTY_ENABLE);
-
-function cleanup(): void {
-    writePassthrough(KITTY_DISABLE);
-    stdin.setRawMode(false);
-}
-
-process.on("exit", cleanup);
+import { exitOnCtrlC, stdin, stdout } from "./demoSetup.ts";
 
 // ── ANSI colors ──
 const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
@@ -93,11 +62,7 @@ stdin.on("data", (chunk: string) => {
     const events: KeyPressEvent[] = parser.parse(chunk);
 
     for (const event of events) {
-        if (event.type === "keypress" && event.ctrlKey && event.key === "c") {
-            stdout.write("\n👋 Bye!\n");
-            cleanup();
-            process.exit(0);
-        }
+        if (event.type === "keypress") exitOnCtrlC(event.ctrlKey, event.key);
 
         const type = colorType(event.type.padEnd(8));
         const key = event.key.padEnd(12);

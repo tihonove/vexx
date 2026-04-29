@@ -84,6 +84,14 @@ if (result != null) {
     body.setContent(result);
 }
 
+// ── Ctrl+C exits stories (not bound in story context) ───────
+backend.onInput((event) => {
+    if (event.ctrlKey && event.key === "c") {
+        backend.teardown();
+        process.exit(0);
+    }
+});
+
 // ── Start the application ───────────────────────────
 app.root = body;
 app.run();

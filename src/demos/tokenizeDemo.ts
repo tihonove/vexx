@@ -14,38 +14,7 @@
  */
 
 import { tokenize } from "../Input/tokenize.ts";
-
-const stdin = process.stdin;
-const stdout = process.stdout;
-
-// ── Kitty Keyboard Protocol + TMUX passthrough ──
-const KITTY_ENABLE = "\x1b[>11u";
-const KITTY_DISABLE = "\x1b[<u";
-
-const isTmux = process.env.TMUX != null && process.env.TMUX !== "";
-
-function wrapForTmux(sequence: string): string {
-    // eslint-disable-next-line no-control-regex
-    const escaped = sequence.replace(/\x1b/g, "\x1b\x1b");
-    return `\x1bPtmux;${escaped}\x1b\\`;
-}
-
-function writePassthrough(sequence: string): void {
-    stdout.write(isTmux ? wrapForTmux(sequence) : sequence);
-}
-
-stdin.setRawMode(true);
-stdin.setEncoding("utf8");
-stdin.resume();
-
-writePassthrough(KITTY_ENABLE);
-
-function cleanup(): void {
-    writePassthrough(KITTY_DISABLE);
-    stdin.setRawMode(false);
-}
-
-process.on("exit", cleanup);
+import { exitOnCtrlCToken, stdin, stdout } from "./demoSetup.ts";
 
 stdout.write("🔬 Tokenize Demo (Kitty protocol enabled) — press any key. Ctrl+C to exit.\n\n");
 
@@ -53,12 +22,7 @@ stdin.on("data", (chunk: string) => {
     const tokens = tokenize(chunk);
 
     for (const token of tokens) {
-        // Exit on Ctrl+C
-        if (token.kind === "ctrl-char" && token.letter === "c") {
-            stdout.write("\n👋 Bye!\n");
-            cleanup();
-            process.exit(0);
-        }
+        exitOnCtrlCToken(token.kind, "letter" in token ? token.letter : "");
 
         // Format raw bytes as hex for readability
         const rawHex = Array.from(token.raw)
