@@ -168,17 +168,84 @@ export class AnsiScreen {
             }
             case "J": {
                 const mode = params[0] ?? 0;
-                if (mode === 2 || mode === 0) {
+                if (mode === 2 || mode === 3) {
                     this.clearAll();
+                } else if (mode === 0) {
+                    this.clearToEnd();
                 }
                 return consumed;
             }
             case "K": {
-                // Erase in line — игнорируем, рендерер не пользуется.
+                // Erase in Line (EL)
+                // Mode 0 (default): erase from cursor to end of line
+                // Mode 1: erase from start of line to cursor
+                // Mode 2: erase entire line
+                const mode = params[0] ?? 0;
+                if (mode === 0) {
+                    for (let x = this.cursorX; x < this.width; x++) {
+                        this.cells[this.cursorY][x] = { ...SPACE_CELL };
+                    }
+                } else if (mode === 1) {
+                    for (let x = 0; x <= this.cursorX; x++) {
+                        this.cells[this.cursorY][x] = { ...SPACE_CELL };
+                    }
+                } else if (mode === 2) {
+                    for (let x = 0; x < this.width; x++) {
+                        this.cells[this.cursorY][x] = { ...SPACE_CELL };
+                    }
+                }
                 return consumed;
             }
             case "m": {
                 this.applySgr(params);
+                return consumed;
+            }
+            case "M": {
+                // Delete Lines (DL) — delete N lines at current row, shifting lines up
+                const count = params[0] ?? 1;
+                const row = this.cursorY;
+                const bottom = this.height - 1;
+                for (let y = row; y <= bottom - count; y++) {
+                    this.cells[y] = this.cells[y + count].map((c) => ({ ...c }));
+                }
+                for (let y = Math.max(row, bottom - count + 1); y <= bottom; y++) {
+                    for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
+                }
+                return consumed;
+            }
+            case "L": {
+                // Insert Lines (IL) — insert N blank lines at current row, shifting lines down
+                const count = params[0] ?? 1;
+                const row = this.cursorY;
+                const bottom = this.height - 1;
+                for (let y = bottom; y >= row + count; y--) {
+                    this.cells[y] = this.cells[y - count].map((c) => ({ ...c }));
+                }
+                for (let y = row; y < row + count && y <= bottom; y++) {
+                    for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
+                }
+                return consumed;
+            }
+            case "S": {
+                // Scroll Up — scroll N lines up (top lines disappear, blanks appear at bottom)
+                const count = params[0] ?? 1;
+                for (let y = 0; y < this.height - count; y++) {
+                    this.cells[y] = this.cells[y + count].map((c) => ({ ...c }));
+                }
+                for (let y = Math.max(0, this.height - count); y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
+                }
+                return consumed;
+            }
+            case "T": {
+                // Scroll Down — scroll N lines down (bottom lines disappear, blanks appear at top)
+                const count = params[0] ?? 1;
+                for (let y = this.height - 1; y >= count; y--) {
+                    this.cells[y] = this.cells[y - count].map((c) => ({ ...c }));
+                }
+                for (let y = 0; y < count && y < this.height; y++) {
+                    for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
+                }
                 return consumed;
             }
             default:
@@ -283,6 +350,13 @@ export class AnsiScreen {
 
     private clearAll(): void {
         for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
+        }
+    }
+
+    private clearToEnd(): void {
+        for (let x = this.cursorX; x < this.width; x++) this.cells[this.cursorY][x] = { ...SPACE_CELL };
+        for (let y = this.cursorY + 1; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) this.cells[y][x] = { ...SPACE_CELL };
         }
     }

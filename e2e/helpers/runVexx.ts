@@ -88,9 +88,16 @@ export class VexxSession {
         predicate: (screen: AnsiScreen) => boolean,
         opts: { timeoutMs?: number; stableMs?: number } = {},
     ): Promise<AnsiScreen> {
-        const timeoutMs = opts.timeoutMs ?? 10_000;
+        const timeoutMs = opts.timeoutMs ?? (process.platform === "win32" ? 30_000 : 10_000);
         const stableMs = opts.stableMs ?? 150;
         const deadline = Date.now() + timeoutMs;
+        // On Windows, ConPTY can inject clearing sequences after each resize that
+        // cause the app's delta renderer to miss cells. Do up to 5 resize cycles so
+        // the app eventually resets prevGrid and issues a full redraw that lands
+        // AFTER the ConPTY injections have settled. The 1.2 s sleep after the
+        // second resize gives ConPTY and the app enough time to finish.
+        let winKicksLeft = process.platform === "win32" ? 5 : 0;
+        let winNextKickAt = process.platform === "win32" ? Date.now() + 500 : Infinity;
 
         while (Date.now() < deadline) {
             const screen = this.parseScreen();
@@ -101,6 +108,15 @@ export class VexxSession {
                 if (this.buffer.length === sizeBefore) {
                     return this.parseScreen();
                 }
+                continue;
+            }
+            if (winKicksLeft > 0 && Date.now() >= winNextKickAt) {
+                winKicksLeft--;
+                winNextKickAt = Date.now() + 4000; // space kicks ≥ 4 s apart
+                this.term.resize(this.cols, this.rows + 1);
+                await sleep(300); // let ConPTY inject for this resize
+                this.term.resize(this.cols, this.rows);
+                await sleep(1200); // let ConPTY inject for reverse, then app re-renders
                 continue;
             }
             await this.waitForData(Math.max(50, deadline - Date.now()));
@@ -147,6 +163,23 @@ export class VexxSession {
             } catch {
                 // ignore
             }
+            // On Windows node-pty's kill() closes the ConPTY handle but may not
+            // immediately fire onExit. Also signal the process directly by PID.
+            if (process.platform === "win32") {
+                try {
+                    process.kill(this.term.pid);
+                } catch {
+                    // ignore — process may have already exited
+                }
+            }
+            await this.waitForExit(1000);
+        }
+        // If onExit still hasn't fired (can happen on Windows when ConPTY
+        // terminates the process without propagating the exit event), mark the
+        // session as disposed so callers are not left hanging.
+        if (!this.exited) {
+            this.exited = true;
+            for (const w of this.waiters.splice(0)) w();
         }
     }
 
