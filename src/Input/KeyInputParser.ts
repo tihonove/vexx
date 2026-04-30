@@ -31,7 +31,7 @@ const modifierKeyValues = new Set([
  * Normal keys:
  *   keydown → keypress  (legacy: no keyup since protocol doesn't send it)
  *   keydown → keypress → keyup  (Kitty: full lifecycle)
- *   keydown → keypress → keypress(repeat) → ... → keyup  (Kitty hold)
+ *   keydown → keypress → keydown → keypress → ... → keyup  (Kitty hold/auto-repeat)
  *
  * Modifier-only keys (Shift, Ctrl, Alt, Meta):
  *   keydown → keyup  (no keypress — same as browser)

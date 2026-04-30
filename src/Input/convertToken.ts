@@ -3,15 +3,18 @@ import type { RawKeyToken } from "./RawTerminalToken.ts";
 
 /**
  * Map Kitty event type number to TUI event type string.
+ *
+ * Browser-aligned semantics: a held key fires repeated `keydown` events
+ * (with `repeat: true`), not `keypress`. We follow the same model so
+ * keydown listeners (e.g. AppController for arrows/Backspace) auto-repeat.
+ *
  * - 0 (not specified) → "keydown" (default is press per spec)
  * - 1 (press) → "keydown"
- * - 2 (repeat) → "keypress" (held key)
+ * - 2 (repeat) → "keydown" (held key — also marked via the caller as a repeat)
  * - 3 (release) → "keyup"
  */
 function kittyEventType(eventType: number): "keypress" | "keydown" | "keyup" {
     switch (eventType) {
-        case 2:
-            return "keypress";
         case 3:
             return "keyup";
         default:

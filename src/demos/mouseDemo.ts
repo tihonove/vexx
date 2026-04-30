@@ -25,7 +25,7 @@ stdin.on("data", (chunk: string) => {
     const tokens = tokenize(chunk);
 
     for (const token of tokens) {
-        exitOnCtrlCToken(token.kind, "letter" in token ? token.letter : "");
+        exitOnCtrlCToken(token);
 
         // Format raw bytes as hex for readability
         const rawHex = Array.from(token.raw)

@@ -49,17 +49,15 @@ export function isCtrlC(ctrlKey: boolean, key: string): boolean {
 
 export function exitOnCtrlC(ctrlKey: boolean, key: string): void {
     if (isCtrlC(ctrlKey, key)) {
-        stdout.write("\n👋 Bye!\n");
-        cleanup();
         process.exit(0);
     }
 }
 
-/** For tokenize-level demos that get raw ctrl-char tokens. */
-export function exitOnCtrlCToken(kind: string, letter: string): void {
-    if (kind === "ctrl-char" && letter === "c") {
-        stdout.write("\n👋 Bye!\n");
-        cleanup();
+/** For tokenize-level demos that get raw RawTerminalTokens (handles both legacy ctrl-char and Kitty csi-u). */
+export function exitOnCtrlCToken(token: { kind: string; letter?: string; key?: string; ctrlKey?: boolean }): void {
+    const isLegacy = token.kind === "ctrl-char" && token.letter === "c";
+    const isKitty = token.kind === "csi-u" && token.ctrlKey === true && token.key === "c";
+    if (isLegacy || isKitty) {
         process.exit(0);
     }
 }

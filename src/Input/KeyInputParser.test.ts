@@ -108,7 +108,7 @@ describe("KeyInputParser — browser-like event model", () => {
             ]);
         });
 
-        it("press + repeat + release → keydown + keypress + keypress(repeat) + keyup", () => {
+        it("press + repeat + release → keydown + keypress + keydown(repeat) + keypress + keyup", () => {
             const parser = new KeyInputParser();
 
             const e1 = parser.parse("\x1b[97;1:1u"); // press
@@ -117,14 +117,17 @@ describe("KeyInputParser — browser-like event model", () => {
                 ev("a", "\x1b[97;1:1u", { type: "keypress", code: "KeyA" }),
             ]);
 
-            const e2 = parser.parse("\x1b[97;1:2u"); // repeat
-            expect(e2).toEqual([ev("a", "\x1b[97;1:2u", { type: "keypress", code: "KeyA" })]);
+            const e2 = parser.parse("\x1b[97;1:2u"); // repeat → keydown + synthesized keypress
+            expect(e2).toEqual([
+                ev("a", "\x1b[97;1:2u", { code: "KeyA" }),
+                ev("a", "\x1b[97;1:2u", { type: "keypress", code: "KeyA" }),
+            ]);
 
             const e3 = parser.parse("\x1b[97;1:3u"); // release
             expect(e3).toEqual([ev("a", "\x1b[97;1:3u", { type: "keyup", code: "KeyA" })]);
         });
 
-        it("multiple repeats produce multiple keypress events", () => {
+        it("multiple repeats produce multiple keydown+keypress pairs", () => {
             const parser = new KeyInputParser();
             parser.parse("\x1b[97;1:1u"); // press
 
@@ -132,12 +135,15 @@ describe("KeyInputParser — browser-like event model", () => {
             const e2 = parser.parse("\x1b[97;1:2u");
             const e3 = parser.parse("\x1b[97;1:2u");
 
-            expect(e1).toHaveLength(1);
-            expect(e2).toHaveLength(1);
-            expect(e3).toHaveLength(1);
-            expect(e1[0].type).toBe("keypress");
-            expect(e2[0].type).toBe("keypress");
-            expect(e3[0].type).toBe("keypress");
+            expect(e1).toHaveLength(2);
+            expect(e2).toHaveLength(2);
+            expect(e3).toHaveLength(2);
+            expect(e1[0].type).toBe("keydown");
+            expect(e1[1].type).toBe("keypress");
+            expect(e2[0].type).toBe("keydown");
+            expect(e2[1].type).toBe("keypress");
+            expect(e3[0].type).toBe("keydown");
+            expect(e3[1].type).toBe("keypress");
         });
     });
 

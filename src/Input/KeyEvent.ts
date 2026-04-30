@@ -14,8 +14,8 @@ import { inferCode } from "./tokenize.ts";
 export interface KeyPressEvent {
     /**
      * Event type, following DOM KeyboardEvent naming:
-     * - "keypress" — default for standard key events (legacy / no event type info)
-     * - "keydown"  — key press or repeat (Kitty event type 1 or 2)
+     * - "keypress" — synthesized companion event for printable input (legacy)
+     * - "keydown"  — key press or auto-repeat (Kitty event type 1 or 2)
      * - "keyup"    — key release (Kitty event type 3)
      */
     readonly type: "keypress" | "keydown" | "keyup";

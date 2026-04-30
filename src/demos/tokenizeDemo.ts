@@ -14,6 +14,7 @@
  */
 
 import { tokenize } from "../Input/tokenize.ts";
+
 import { exitOnCtrlCToken, stdin, stdout } from "./demoSetup.ts";
 
 stdout.write("🔬 Tokenize Demo (Kitty protocol enabled) — press any key. Ctrl+C to exit.\n\n");
@@ -22,7 +23,7 @@ stdin.on("data", (chunk: string) => {
     const tokens = tokenize(chunk);
 
     for (const token of tokens) {
-        exitOnCtrlCToken(token.kind, "letter" in token ? token.letter : "");
+        exitOnCtrlCToken(token);
 
         // Format raw bytes as hex for readability
         const rawHex = Array.from(token.raw)

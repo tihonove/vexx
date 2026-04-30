@@ -306,10 +306,10 @@ describe("parseInput", () => {
         expect(events).toEqual([kp("a", "\x1b[97;1:1u", { type: "keydown", code: "KeyA" })]);
     });
 
-    it("parses CSI u with repeat event type :2 as keypress", () => {
-        // CSI 97;1:2 u → 'a' repeat, no modifiers, event type 2 (repeat → keypress)
+    it("parses CSI u with repeat event type :2 as keydown", () => {
+        // CSI 97;1:2 u → 'a' repeat, no modifiers, event type 2 (repeat → keydown, browser-aligned)
         const events = parseInput("\x1b[97;1:2u");
-        expect(events).toEqual([kp("a", "\x1b[97;1:2u", { type: "keypress", code: "KeyA" })]);
+        expect(events).toEqual([kp("a", "\x1b[97;1:2u", { type: "keydown", code: "KeyA" })]);
     });
 
     it("parses CSI u with release event type :3 as keyup", () => {
@@ -454,22 +454,22 @@ describe("parseInput", () => {
 
     // ─── Key held down (repeat) ───
 
-    it("parses held ArrowDown (repeat) as keypress", () => {
-        // CSI 1;1:2 B → ArrowDown, no modifiers, repeat
+    it("parses held ArrowDown (repeat) as keydown", () => {
+        // CSI 1;1:2 B → ArrowDown, no modifiers, repeat (browser-aligned: keydown auto-repeat)
         const events = parseInput("\x1b[1;1:2B");
-        expect(events).toEqual([kp("ArrowDown", "\x1b[1;1:2B", { type: "keypress" })]);
+        expect(events).toEqual([kp("ArrowDown", "\x1b[1;1:2B", { type: "keydown" })]);
     });
 
-    it("parses held Ctrl+ArrowRight (repeat) as keypress with modifier", () => {
+    it("parses held Ctrl+ArrowRight (repeat) as keydown with modifier", () => {
         // CSI 1;5:2 C → ArrowRight, Ctrl, repeat
         const events = parseInput("\x1b[1;5:2C");
-        expect(events).toEqual([kp("ArrowRight", "\x1b[1;5:2C", { type: "keypress", ctrlKey: true })]);
+        expect(events).toEqual([kp("ArrowRight", "\x1b[1;5:2C", { type: "keydown", ctrlKey: true })]);
     });
 
-    it("parses held Delete (repeat via tilde) as keypress", () => {
+    it("parses held Delete (repeat via tilde) as keydown", () => {
         // CSI 3;1:2 ~ → Delete, no modifiers, repeat
         const events = parseInput("\x1b[3;1:2~");
-        expect(events).toEqual([kp("Delete", "\x1b[3;1:2~", { type: "keypress" })]);
+        expect(events).toEqual([kp("Delete", "\x1b[3;1:2~", { type: "keydown" })]);
     });
 
     // ─── No synthesis in parseInput (it’s pure) ───
