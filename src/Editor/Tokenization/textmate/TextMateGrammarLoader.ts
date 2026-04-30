@@ -1,17 +1,16 @@
-import * as fs from "node:fs";
-
 import type { IGrammar, IRawGrammar, Registry } from "vscode-textmate";
 import vsctm from "vscode-textmate";
 
+import type { IAssetAccess } from "../../../Common/Assets/IAssetAccess.ts";
 import type { ITokenizationSupport } from "../ITokenizationSupport.ts";
 
 import { getOnigLib } from "./OnigLib.ts";
 import { TextMateTokenizationSupport } from "./TextMateTokenizationSupport.ts";
 
 /**
- * Описание грамматики на диске: scope (`source.js`), путь к `.tmLanguage.json`
- * и опциональный список injection-scopes, которые нужно подключать в эту
- * грамматику.
+ * Описание грамматики в bundle: scope (`source.js`), виртуальный путь к
+ * `.tmLanguage.json` (резолвится через {@link IAssetAccess}) и опциональный
+ * список injection-scopes, которые нужно подключать в эту грамматику.
  */
 export interface IGrammarRecord {
     readonly scopeName: string;
@@ -24,15 +23,18 @@ export interface IGrammarRecord {
  * (включая injection-грамматики) и предоставляет асинхронную загрузку
  * нашего {@link ITokenizationSupport} по scope-имени.
  *
- * Все грамматики читаются с диска лениво — при первом запросе.
+ * Все грамматики читаются через {@link IAssetAccess} лениво — при первом
+ * запросе.
  */
 export class TextMateGrammarLoader {
+    private readonly assets: IAssetAccess;
     private readonly registry: Registry;
     private readonly recordsByScope = new Map<string, IGrammarRecord>();
     private readonly injectionsByHost = new Map<string, string[]>();
     private readonly grammarCache = new Map<string, Promise<IGrammar | null>>();
 
-    public constructor(records: readonly IGrammarRecord[]) {
+    public constructor(assets: IAssetAccess, records: readonly IGrammarRecord[]) {
+        this.assets = assets;
         for (const rec of records) {
             this.recordsByScope.set(rec.scopeName, rec);
             if (rec.injections) {
@@ -48,7 +50,7 @@ export class TextMateGrammarLoader {
         }
 
         this.registry = new vsctm.Registry({
-            onigLib: getOnigLib(),
+            onigLib: getOnigLib(this.assets),
             loadGrammar: (scopeName) => this.loadRawGrammar(scopeName),
             getInjections: (scopeName) => this.injectionsByHost.get(scopeName),
         });
@@ -79,7 +81,7 @@ export class TextMateGrammarLoader {
     private async loadRawGrammar(scopeName: string): Promise<IRawGrammar | null> {
         const rec = this.recordsByScope.get(scopeName);
         if (rec === undefined) return null;
-        const content = await fs.promises.readFile(rec.path, "utf-8");
+        const content = this.assets.readText(rec.path);
         return vsctm.parseRawGrammar(content, rec.path);
     }
 }

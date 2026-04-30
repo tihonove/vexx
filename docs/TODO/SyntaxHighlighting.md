@@ -40,7 +40,7 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 - Тесты: 20 учебных тестов на сам `vscode-textmate` (Registry, tokenizeLine, multiline state, tokenizeLine2, jsdoc injections) + 7 на адаптер + 15 на language detection.
 
 **Открытые вопросы:**
-- Стратегия загрузки `onig.wasm` и `.tmLanguage.json` в production-сборке (сейчас читается из `node_modules` через `import.meta.url`; для SEA/`tsup` нужно копирование в `dist/`).
+- ✅ Стратегия загрузки `onig.wasm` и `.tmLanguage.json` в production-сборке: всё пакуется в `dist/vexx.bundle` (custom mini-archive) и читается через `IAssetAccess` из `node:sea` ассетов. В dev-режиме — напрямую из `src/Extensions/builtin/` и `node_modules/vscode-oniguruma`. См. `Common/Assets/` в [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
 - Бинарный API `tokenizeLine2` (быстрее, но требует переделки рендера на работу с metadata) — пока не используется.
 
 ### [ ] Полный TextMate-движок (заархивированный план)

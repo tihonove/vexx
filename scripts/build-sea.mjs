@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { execSync, spawnSync } from "node:child_process";
-import { writeFileSync, mkdirSync, cpSync, statSync } from "node:fs";
-import { createRequire } from "node:module";
+import { writeFileSync, mkdirSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
+
+import { buildVexxBundle } from "./pack-assets.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = join(root, "dist");
@@ -21,21 +22,22 @@ function run(cmd) {
 mkdirSync(dist, { recursive: true });
 run("npx tsup");
 
-// 2. Copy builtin extensions (grammars, manifests) next to the binary
-cpSync(join(root, "src", "Extensions", "builtin"), join(dist, "Extensions", "builtin"), { recursive: true });
-console.log("Copied src/Extensions/builtin → dist/Extensions/builtin");
+// 2. Pack onig.wasm + src/Extensions/builtin/** into a single dist/vexx.bundle
+const { bundle, inputs } = buildVexxBundle({ repoRoot: root });
+const bundlePath = join(dist, "vexx.bundle");
+writeFileSync(bundlePath, bundle);
+console.log(
+    `[build-sea] Packed ${inputs.length} assets → ${bundlePath} (${(bundle.length / 1024).toFixed(1)} KB)`,
+);
 
 // 3. Generate SEA config
-const require = createRequire(import.meta.url);
-const onigWasmPath = require.resolve("vscode-oniguruma/release/onig.wasm");
-
 const seaConfig = {
     main: join(dist, "main.js"),
     output: outputPath,
     mainFormat: "module",
     disableExperimentalSEAWarning: true,
     assets: {
-        "onig.wasm": onigWasmPath,
+        "vexx.bundle": bundlePath,
     },
 };
 

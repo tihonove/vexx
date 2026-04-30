@@ -1,5 +1,5 @@
-import * as path from "node:path";
-
+import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
+import { joinVirtualPath } from "../Common/Assets/AssetBundleFormat.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
 import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
@@ -22,12 +22,18 @@ import type { IExtension } from "./IExtension.ts";
  * vscode-textmate Registry при dispose.
  */
 export class ExtensionTokenizationContributor implements IDisposable {
+    private readonly assets: IAssetAccess;
     private readonly extensions: readonly IExtension[];
     private readonly tokenizationRegistry: TokenizationRegistry;
     private loader: TextMateGrammarLoader | undefined;
     private registrationDisposables: IDisposable[] = [];
 
-    public constructor(extensions: readonly IExtension[], tokenizationRegistry: TokenizationRegistry) {
+    public constructor(
+        assets: IAssetAccess,
+        extensions: readonly IExtension[],
+        tokenizationRegistry: TokenizationRegistry,
+    ) {
+        this.assets = assets;
         this.extensions = extensions;
         this.tokenizationRegistry = tokenizationRegistry;
     }
@@ -41,7 +47,7 @@ export class ExtensionTokenizationContributor implements IDisposable {
         const records = this.collectGrammarRecords();
         if (records.length === 0) return;
 
-        const loader = new TextMateGrammarLoader(records);
+        const loader = new TextMateGrammarLoader(this.assets, records);
         this.loader = loader;
 
         const tasks: Promise<void>[] = [];
@@ -83,7 +89,7 @@ export class ExtensionTokenizationContributor implements IDisposable {
             for (const grammar of grammars) {
                 records.push({
                     scopeName: grammar.scopeName,
-                    path: path.resolve(ext.location, grammar.path),
+                    path: joinVirtualPath(ext.location, grammar.path),
                     injections: grammar.injectTo,
                 });
             }

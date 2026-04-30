@@ -23,7 +23,7 @@
 
 - В Phase 1 `language-configuration.json` загружается ТОЛЬКО как путь в манифесте — auto-closing pairs, brackets, on-enter rules ещё не применяются (типизация в `ILanguageConfiguration.ts` готова).
 - `main` поле манифеста игнорируется — extension host (запуск JS-кода расширения) не реализован.
-- Сборка через tsup сейчас не копирует `src/Extensions/builtin/` в `dist/` — нужно отдельной задачей перед SEA-билдом.
+- ✅ SEA-сборка: `src/Extensions/builtin/**` и `onig.wasm` пакуются в `dist/vexx.bundle` (custom mini-archive) и читаются через `IAssetAccess` (см. `Common/Assets/` в [docs/ARCHITECTURE.md](../ARCHITECTURE.md)). Никаких файлов рядом с бинарём не нужно.
 
 ---
 

@@ -18,6 +18,13 @@
 
 Также здесь живут Unicode-утилиты: `UnicodeWidth` (ширина code point/grapheme) и `DisplayLine` — маппинг строки документа на массив grapheme-слотов с двусторонним конвертером offset↔column. `DisplayLine` используется всеми слоями (Editor, TUIDom/Widgets, RenderContext) для корректной обработки wide chars, emoji, табов и combining marks.
 
+#### Common/Assets/
+Унифицированный доступ к статическим ассетам (грамматики, `onig.wasm`, манифесты builtin-расширений). Один интерфейс `IAssetAccess` (sync read/exists/listEntries) с двумя реализациями:
+- `BundleAssetAccess` — читает из in-memory mini-archive (формат `AssetBundleFormat`: magic + JSON header + concat data). В SEA-бинаре bundle грузится через `node:sea.getAsset("vexx.bundle")`.
+- `FsAssetAccess` — читает из файловой системы по mapping `virtualPrefix → fsRoot`. Используется в dev-режиме (`createDevAssetAccess()` мапит `Extensions/builtin/` на `src/Extensions/builtin` и `onig.wasm` на пакет `vscode-oniguruma`).
+
+`createDefaultAssetAccess()` автоматически выбирает реализацию через `node:sea.isSea()`. Все consumers (ExtensionScanner, OnigLib, TextMateGrammarLoader, ExtensionTokenizationContributor, LanguageRegistry) работают с виртуальными POSIX-путями и не знают, откуда физически читаются файлы. Сборка bundle — `scripts/pack-assets.mjs`, вызывается из `scripts/build-sea.mjs`.
+
 ### Input/
 Пайплайн парсинга терминального ввода: сырые байты stdin → токены → `KeyPressEvent`. Включает токенизатор stdin, отслеживание мыши, stateful парсер клавиатурных событий (keydown/keypress/keyup в browser-like стиле) и обратную сериализацию для тестов.
 

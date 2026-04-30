@@ -4,13 +4,18 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { FsAssetAccess } from "../Common/Assets/FsAssetAccess.ts";
+
 import { scanBuiltinExtensions } from "./ExtensionScanner.ts";
 
 describe("scanBuiltinExtensions", () => {
     let tempDir: string;
+    let assets: FsAssetAccess;
+    const ROOT_PREFIX = "Extensions/builtin/";
 
     beforeEach(async () => {
         tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "vexx-ext-scan-"));
+        assets = new FsAssetAccess({ [ROOT_PREFIX]: tempDir });
     });
 
     afterEach(async () => {
@@ -30,17 +35,17 @@ describe("scanBuiltinExtensions", () => {
             version: "10.0.0",
         });
 
-        const result = await scanBuiltinExtensions(tempDir);
+        const result = await scanBuiltinExtensions(assets, ROOT_PREFIX);
 
         expect(result).toHaveLength(1);
         expect(result[0].id).toBe("vscode.typescript");
-        expect(result[0].location).toBe(path.join(tempDir, "ts-basics"));
+        expect(result[0].location).toBe(`${ROOT_PREFIX}ts-basics/`);
         expect(result[0].isBuiltin).toBe(true);
     });
 
     it("пропускает каталоги без package.json", async () => {
         await fs.promises.mkdir(path.join(tempDir, "empty"));
-        const result = await scanBuiltinExtensions(tempDir);
+        const result = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         expect(result).toEqual([]);
     });
 
@@ -49,7 +54,7 @@ describe("scanBuiltinExtensions", () => {
         await fs.promises.mkdir(dir);
         await fs.promises.writeFile(path.join(dir, "package.json"), "{not json");
 
-        const result = await scanBuiltinExtensions(tempDir);
+        const result = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         expect(result).toEqual([]);
     });
 
@@ -59,12 +64,13 @@ describe("scanBuiltinExtensions", () => {
         ["version", { name: "n", publisher: "p" }],
     ])("пропускает манифест без поля %s", async (_field, manifest) => {
         await writeManifest("ext", manifest);
-        const result = await scanBuiltinExtensions(tempDir);
+        const result = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         expect(result).toEqual([]);
     });
 
     it("возвращает пустой массив, если корневого каталога нет", async () => {
-        const result = await scanBuiltinExtensions(path.join(tempDir, "missing"));
+        const missingAssets = new FsAssetAccess({ [ROOT_PREFIX]: path.join(tempDir, "missing") });
+        const result = await scanBuiltinExtensions(missingAssets, ROOT_PREFIX);
         expect(result).toEqual([]);
     });
 
@@ -78,7 +84,11 @@ describe("scanBuiltinExtensions", () => {
         };
         await writeManifest("css", manifest);
 
-        const [ext] = await scanBuiltinExtensions(tempDir);
+        const [ext] = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         expect(ext.manifest).toEqual(manifest);
+    });
+
+    it("rootPrefix без trailing / — ошибка", async () => {
+        await expect(scanBuiltinExtensions(assets, "Extensions/builtin")).rejects.toThrow();
     });
 });

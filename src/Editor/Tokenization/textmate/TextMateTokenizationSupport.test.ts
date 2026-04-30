@@ -1,8 +1,7 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
+import { joinVirtualPath } from "../../../Common/Assets/AssetBundleFormat.ts";
+import { createDevAssetAccess } from "../../../Common/Assets/createDefaultAssetAccess.ts";
 import { scanBuiltinExtensions } from "../../../Extensions/ExtensionScanner.ts";
 import type { IExtension } from "../../../Extensions/IExtension.ts";
 
@@ -10,8 +9,7 @@ import type { IGrammarRecord } from "./TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "./TextMateGrammarLoader.ts";
 import { TextMateState } from "./TextMateState.ts";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const builtinDir = path.resolve(here, "..", "..", "..", "Extensions", "builtin");
+const assets = createDevAssetAccess();
 
 function collectGrammarRecords(extensions: readonly IExtension[]): IGrammarRecord[] {
     const records: IGrammarRecord[] = [];
@@ -21,7 +19,7 @@ function collectGrammarRecords(extensions: readonly IExtension[]): IGrammarRecor
         for (const grammar of grammars) {
             records.push({
                 scopeName: grammar.scopeName,
-                path: path.resolve(ext.location, grammar.path),
+                path: joinVirtualPath(ext.location, grammar.path),
                 injections: grammar.injectTo,
             });
         }
@@ -29,11 +27,11 @@ function collectGrammarRecords(extensions: readonly IExtension[]): IGrammarRecor
     return records;
 }
 
-const extensionsPromise = scanBuiltinExtensions(builtinDir);
+const extensionsPromise = scanBuiltinExtensions(assets, "Extensions/builtin/");
 const recordsPromise = extensionsPromise.then(collectGrammarRecords);
 
 async function createLoader(): Promise<TextMateGrammarLoader> {
-    return new TextMateGrammarLoader(await recordsPromise);
+    return new TextMateGrammarLoader(assets, await recordsPromise);
 }
 
 describe("TextMateTokenizationSupport", () => {

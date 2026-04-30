@@ -1,23 +1,21 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
+import { createDevAssetAccess } from "../Common/Assets/createDefaultAssetAccess.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
 import { scanBuiltinExtensions } from "./ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const builtinDir = path.resolve(here, "builtin");
+const ROOT_PREFIX = "Extensions/builtin/";
 
 describe("ExtensionTokenizationContributor", () => {
     it("регистрирует tokenization support для всех языков из builtin-расширений", async () => {
-        const exts = await scanBuiltinExtensions(builtinDir);
+        const assets = createDevAssetAccess();
+        const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         expect(exts.length).toBeGreaterThan(0);
 
         const registry = new TokenizationRegistry();
-        const contributor = new ExtensionTokenizationContributor(exts, registry);
+        const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
         await contributor.apply();
 
         for (const lang of ["javascript", "javascriptreact", "typescript", "typescriptreact", "css"]) {
@@ -27,9 +25,10 @@ describe("ExtensionTokenizationContributor", () => {
     });
 
     it("loaded TypeScript support tokenizes 'const x = 1;' с scope storage.type.ts", async () => {
-        const exts = await scanBuiltinExtensions(builtinDir);
+        const assets = createDevAssetAccess();
+        const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         const registry = new TokenizationRegistry();
-        const contributor = new ExtensionTokenizationContributor(exts, registry);
+        const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
         await contributor.apply();
 
         const ts = registry.get("typescript");
@@ -42,9 +41,10 @@ describe("ExtensionTokenizationContributor", () => {
     });
 
     it("dispose() убирает регистрации из TokenizationRegistry", async () => {
-        const exts = await scanBuiltinExtensions(builtinDir);
+        const assets = createDevAssetAccess();
+        const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         const registry = new TokenizationRegistry();
-        const contributor = new ExtensionTokenizationContributor(exts, registry);
+        const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
         await contributor.apply();
         expect(registry.get("typescript")).toBeDefined();
 

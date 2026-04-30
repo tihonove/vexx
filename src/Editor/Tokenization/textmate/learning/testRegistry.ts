@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { IRawGrammar, Registry } from "vscode-textmate";
 import vsctm from "vscode-textmate";
 
+import { createDevAssetAccess } from "../../../../Common/Assets/createDefaultAssetAccess.ts";
 import { getOnigLib } from "../OnigLib.ts";
 
 /**
@@ -45,7 +46,7 @@ const INJECTION_SCOPES_BY_HOST: Record<string, string[]> = {
 
 export function createTestRegistry(): Registry {
     return new vsctm.Registry({
-        onigLib: getOnigLib(),
+        onigLib: getOnigLib(createDevAssetAccess()),
         loadGrammar: async (scopeName: string): Promise<IRawGrammar | null> => {
             const filePath = SCOPE_TO_PATH[scopeName];
             if (filePath === undefined) return null;

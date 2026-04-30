@@ -1,5 +1,6 @@
 import * as path from "node:path";
 
+import { joinVirtualPath } from "../Common/Assets/AssetBundleFormat.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 
@@ -19,7 +20,7 @@ export interface ILanguageEntry {
     readonly filenamePatterns: readonly string[];
     readonly firstLine: string | undefined;
     readonly mimetypes: readonly string[];
-    /** Абсолютный путь к `language-configuration.json`, если есть. */
+    /** Виртуальный путь к `language-configuration.json`, если есть. */
     readonly configurationPath: string | undefined;
 }
 
@@ -145,7 +146,7 @@ export class LanguageRegistry implements ILanguageService {
                 entry.firstLine = lang.firstLine;
             }
             if (entry.configurationPath === undefined && lang.configuration !== undefined) {
-                entry.configurationPath = path.resolve(extensionLocation, lang.configuration);
+                entry.configurationPath = joinVirtualPath(extensionLocation, lang.configuration);
             }
         }
         // Замечание: при unregister мы оставляем firstLine/configurationPath как есть —

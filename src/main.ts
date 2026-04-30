@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
+import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
 import { InMemoryClipboard } from "./Common/InMemoryClipboard.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
@@ -31,18 +31,21 @@ const application = new TuiApplication(backend);
 const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 
 // ── Загрузка builtin-расширений ────────────────────────────
-// Сканируем `src/Extensions/builtin/`, регистрируем contributes.languages в
-// LanguageRegistry и contributes.grammars в TokenizationRegistry. Внешние
-// расширения (~/.vexx/extensions/) — отдельная задача (см. docs/TODO/Extensions.md).
-const here = path.dirname(fileURLToPath(import.meta.url));
-const builtinExtensionsDir = path.resolve(here, "Extensions", "builtin");
-const builtinExtensions = await scanBuiltinExtensions(builtinExtensionsDir);
+// Источник ассетов: либо встроенный SEA-bundle (`vexx.bundle`), либо
+// реальные файлы в `src/Extensions/builtin/` для dev/tests. См.
+// `Common/Assets/createDefaultAssetAccess.ts`.
+const assets = createDefaultAssetAccess();
+const builtinExtensions = await scanBuiltinExtensions(assets, "Extensions/builtin/");
 
 const languageRegistry = new LanguageRegistry();
 for (const ext of builtinExtensions) languageRegistry.register(ext);
 
 const tokenizationRegistry = new TokenizationRegistry();
-const tokenizationContributor = new ExtensionTokenizationContributor(builtinExtensions, tokenizationRegistry);
+const tokenizationContributor = new ExtensionTokenizationContributor(
+    assets,
+    builtinExtensions,
+    tokenizationRegistry,
+);
 const grammarsLoading = tokenizationContributor.apply();
 
 // ── Bootstrap через DI-контейнер ────────────────────────────

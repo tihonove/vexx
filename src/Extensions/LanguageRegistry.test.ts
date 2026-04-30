@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { IExtension } from "./IExtension.ts";
 import { LanguageRegistry } from "./LanguageRegistry.ts";
 
-function makeExt(id: string, languages: object[], location = "/ext"): IExtension {
+function makeExt(id: string, languages: object[], location = "Extensions/builtin/test/"): IExtension {
     return {
         id,
         location,
@@ -105,12 +105,12 @@ describe("LanguageRegistry", () => {
             makeExt(
                 "ts",
                 [{ id: "typescript", extensions: [".ts"], configuration: "./language-configuration.json" }],
-                "/ext/typescript-basics",
+                "Extensions/builtin/typescript-basics/",
             ),
         );
 
         const lang = registry.getLanguage("typescript");
-        expect(lang?.configurationPath).toBe("/ext/typescript-basics/language-configuration.json");
+        expect(lang?.configurationPath).toBe("Extensions/builtin/typescript-basics/language-configuration.json");
     });
 
     it("allLanguages() возвращает все зарегистрированные", () => {

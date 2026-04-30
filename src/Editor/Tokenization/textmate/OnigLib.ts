@@ -1,33 +1,27 @@
-import * as fs from "node:fs";
-import { createRequire } from "node:module";
-
 import oniguruma from "vscode-oniguruma";
 import type { IOnigLib } from "vscode-textmate";
+
+import type { IAssetAccess } from "../../../Common/Assets/IAssetAccess.ts";
 
 /**
  * Singleton initializer for the `vscode-oniguruma` WASM regex engine.
  *
  * `loadWASM` мутирует глобальное состояние модуля и должен вызываться ровно
  * один раз за процесс. Возвращаемый `IOnigLib` совместим с
- * `vscode-textmate` `RegistryOptions.onigLib`.
- *
- * Для dev/tests читаем `onig.wasm` напрямую из `node_modules` через
- * `require.resolve`. Стратегия для production-сборки описана в
- * `docs/TODO/SyntaxHighlighting.md`.
+ * `vscode-textmate` `RegistryOptions.onigLib`. Источник `onig.wasm` —
+ * абстракция {@link IAssetAccess}: в dev/tests читаем из реальной FS,
+ * в SEA-сборке — из встроенного `vexx.bundle`.
  */
 
 let onigLibPromise: Promise<IOnigLib> | undefined;
 
-export function getOnigLib(): Promise<IOnigLib> {
-    onigLibPromise ??= loadOnigLib();
+export function getOnigLib(assets: IAssetAccess): Promise<IOnigLib> {
+    onigLibPromise ??= loadOnigLib(assets);
     return onigLibPromise;
 }
 
-async function loadOnigLib(): Promise<IOnigLib> {
-    // node:sea is only resolvable via require() inside a SEA binary; static ESM
-    // import of "node:sea" fails even inside the SEA executable in mainFormat:"module".
-    const wasmBytes = tryLoadFromSea() ?? loadFromNodeModules();
-
+async function loadOnigLib(assets: IAssetAccess): Promise<IOnigLib> {
+    const wasmBytes = assets.read("onig.wasm");
     await oniguruma.loadWASM(wasmBytes);
     return {
         createOnigScanner(patterns: string[]) {
@@ -37,21 +31,4 @@ async function loadOnigLib(): Promise<IOnigLib> {
             return oniguruma.createOnigString(s);
         },
     };
-}
-
-function tryLoadFromSea(): ArrayBuffer | null {
-    try {
-        const req = createRequire("file:///");
-        const sea = req("node:sea") as { isSea(): boolean; getAsset(key: string): ArrayBuffer };
-        if (sea.isSea()) return sea.getAsset("onig.wasm");
-    } catch {
-        // not running as SEA or node:sea unavailable
-    }
-    return null;
-}
-
-function loadFromNodeModules(): Buffer {
-    const require = createRequire(import.meta.url);
-    const wasmPath = require.resolve("vscode-oniguruma/release/onig.wasm");
-    return fs.readFileSync(wasmPath);
 }

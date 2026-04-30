@@ -1,39 +1,51 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
+import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
 
 import type { IExtension } from "./IExtension.ts";
 import type { IExtensionManifest } from "./IExtensionManifest.ts";
 
 /**
- * Сканирует каталог `<rootDir>/<extension>/package.json`, парсит манифесты
- * и возвращает список валидных расширений.
+ * Сканирует виртуальный каталог `<rootPrefix><extension>/package.json` через
+ * {@link IAssetAccess}, парсит манифесты и возвращает список валидных
+ * расширений. `rootPrefix` должен заканчиваться на `/` (например
+ * `"Extensions/builtin/"`).
  *
  * Битые манифесты (отсутствие `name`/`publisher`/`version`, невалидный JSON,
  * отсутствующий `package.json`) пропускаются с записью в `console.error` —
  * bootstrap не должен падать из-за одного криво скопированного расширения.
  *
- * Сканирование строго неглубокое: только поддиректории первого уровня.
+ * Сканирование строго неглубокое: только поддиректории первого уровня под
+ * `rootPrefix`. `IExtension.location` устанавливается в виртуальный prefix
+ * расширения (с trailing `/`), пригодный для join'а через `joinVirtualPath`.
  */
-export async function scanBuiltinExtensions(rootDir: string): Promise<IExtension[]> {
-    let entries: fs.Dirent[];
+export async function scanBuiltinExtensions(assets: IAssetAccess, rootPrefix: string): Promise<IExtension[]> {
+    if (!rootPrefix.endsWith("/")) {
+        throw new Error(`scanBuiltinExtensions: rootPrefix must end with "/": ${rootPrefix}`);
+    }
+
+    let entries;
     try {
-        entries = await fs.promises.readdir(rootDir, { withFileTypes: true });
+        entries = assets.listEntries(rootPrefix);
     } catch (err) {
-        console.error(`Failed to scan builtin extensions in ${rootDir}:`, err);
+        console.error(`Failed to scan builtin extensions in ${rootPrefix}:`, err);
         return [];
     }
 
     const result: IExtension[] = [];
     for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-        const extensionDir = path.join(rootDir, entry.name);
-        const manifestPath = path.join(extensionDir, "package.json");
+        if (!entry.isDirectory) continue;
+        const extensionPrefix = `${rootPrefix}${entry.name}/`;
+        const manifestPath = `${extensionPrefix}package.json`;
+
+        if (!assets.exists(manifestPath)) {
+            // Каталог без package.json — не расширение, тихо пропускаем.
+            continue;
+        }
 
         let raw: string;
         try {
-            raw = await fs.promises.readFile(manifestPath, "utf-8");
-        } catch {
-            // Каталог без package.json — не расширение, тихо пропускаем.
+            raw = assets.readText(manifestPath);
+        } catch (err) {
+            console.error(`Failed to read ${manifestPath}:`, err);
             continue;
         }
 
@@ -61,7 +73,7 @@ export async function scanBuiltinExtensions(rootDir: string): Promise<IExtension
         result.push({
             id: `${manifest.publisher}.${manifest.name}`,
             manifest,
-            location: extensionDir,
+            location: extensionPrefix,
             isBuiltin: true,
         });
     }
