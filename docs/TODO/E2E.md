@@ -16,6 +16,7 @@
 - [ ] CI: документировать build-essential / python3 для нативной сборки `node-pty`. Возможна замена на `@homebridge/node-pty-prebuilt-multiarch` при проблемах.
 - [ ] Расширить кейсы: открытие директории как workspace + проверка, что fixture виден в файловом дереве.
 - [ ] Снять зависимость от точной фразы из комментария (`fixture used`) — заменить на стабильный маркер в фикстуре.
+- [ ] **e2e-cross-platform**: `renders fixture text on screen` и `applies syntax highlighting` пропускаются на Windows и macOS. На Windows ConPTY инжектирует `CSI K` / clearing sequences после resize, стирая строки которые рендерер уже вывел; `stdout.on("resize")` внутри ConPTY-процесса ненадёжен → delta-рендерер не знает что нужен полный redraw. Нужно либо добавить в `NodeTerminalBackend` принудительный механизм полного сброса при потере синхронизации (watchdog по неизменному грид-хешу?), либо перейти на Inspector-протокол (Phase 2) для e2e вместо PTY-парсинга.
 
 ## Phase 2 — Inspector-протокол (draft)
 

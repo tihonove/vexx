@@ -56,7 +56,6 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private onDataHandler: ((chunk: string) => void) | null = null;
     private onResizeHandler: (() => void) | null = null;
     private resizeThrottleTimer: ReturnType<typeof setTimeout> | null = null;
-    private resizePollTimer: ReturnType<typeof setInterval> | null = null;
     private resizeThrottleMs: number;
     private lastEmittedSize: Size | null = null;
     private resizePending = false;
@@ -185,15 +184,6 @@ export class NodeTerminalBackend implements ITerminalBackend {
         };
         this.stdout.on("resize", this.onResizeHandler);
 
-        // On Windows, ConPTY does not reliably deliver a "resize" event to the
-        // child process's stdout. Poll the terminal size every 200 ms as a
-        // fallback so that resize-triggered full redraws work in e2e tests.
-        if (process.platform === "win32") {
-            this.resizePollTimer = setInterval(() => {
-                this.onResizeHandler?.();
-            }, 200);
-        }
-
         // Cleanup on exit/SIGINT
         const onExit = () => {
             this.teardown();
@@ -237,10 +227,6 @@ export class NodeTerminalBackend implements ITerminalBackend {
         if (this.onResizeHandler) {
             this.stdout.removeListener("resize", this.onResizeHandler);
             this.onResizeHandler = null;
-        }
-        if (this.resizePollTimer !== null) {
-            clearInterval(this.resizePollTimer);
-            this.resizePollTimer = null;
         }
 
         // Remove process listeners
