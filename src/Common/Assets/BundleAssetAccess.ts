@@ -27,7 +27,7 @@ export class BundleAssetAccess implements IAssetAccess {
     public read(virtualPath: string): Promise<Uint8Array> {
         validateVirtualPath(virtualPath);
         const entry = this.entries.get(virtualPath);
-        if (entry === undefined) throw new Error(`Bundle entry not found: ${virtualPath}`);
+        if (entry === undefined) return Promise.reject(new Error(`Bundle entry not found: ${virtualPath}`));
         return Promise.resolve(this.dataView.subarray(entry.offset, entry.offset + entry.size));
     }
 
@@ -46,7 +46,7 @@ export class BundleAssetAccess implements IAssetAccess {
 
     public listEntries(virtualPrefix: string): Promise<IAssetEntry[]> {
         if (virtualPrefix.length > 0 && !virtualPrefix.endsWith("/")) {
-            throw new Error(`listEntries prefix must end with "/" or be empty: ${virtualPrefix}`);
+            return Promise.reject(new Error(`listEntries prefix must end with "/" or be empty: ${virtualPrefix}`));
         }
         const children = this.childrenByPrefix.get(virtualPrefix);
         if (children === undefined) return Promise.resolve([]);
