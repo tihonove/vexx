@@ -8,12 +8,12 @@ export const clipboardCopyAction: CommandAction = {
     title: "Copy",
     keybinding: parseKeybinding("ctrl+c"),
     when: "textInputFocus",
-    run(accessor) {
+    async run(accessor) {
         const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
         if (!editor) return;
         const text = editor.viewState.getSelectedText();
         if (text !== "") {
-            accessor.get(ClipboardDIToken).writeText(text);
+            await accessor.get(ClipboardDIToken).writeText(text);
         }
     },
 };
@@ -23,12 +23,12 @@ export const clipboardCutAction: CommandAction = {
     title: "Cut",
     keybinding: parseKeybinding("ctrl+x"),
     when: "textInputFocus",
-    run(accessor) {
+    async run(accessor) {
         const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
         if (!editor) return;
         const text = editor.viewState.getSelectedText();
         if (text === "") return;
-        accessor.get(ClipboardDIToken).writeText(text);
+        await accessor.get(ClipboardDIToken).writeText(text);
         const undo = editor.viewState.deleteLeft();
         if (undo) {
             editor.pushUndo(undo);
@@ -41,10 +41,10 @@ export const clipboardPasteAction: CommandAction = {
     title: "Paste",
     keybinding: parseKeybinding("ctrl+v"),
     when: "textInputFocus",
-    run(accessor) {
+    async run(accessor) {
         const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
         if (!editor) return;
-        const text = accessor.get(ClipboardDIToken).readText();
+        const text = await accessor.get(ClipboardDIToken).readText();
         if (text !== "") {
             editor.pushUndo(editor.viewState.insertText(text));
         }

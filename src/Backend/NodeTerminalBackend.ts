@@ -84,6 +84,14 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout.write(this.isTmux ? wrapForTmux(sequence) : sequence);
     }
 
+    /**
+     * Write an OSC or other escape sequence to the terminal.
+     * TMUX passthrough is applied automatically when running inside TMUX.
+     */
+    public writeOscSequence(sequence: string): void {
+        this.writePassthrough(sequence);
+    }
+
     public onInput(callback: (event: KeyPressEvent) => void): void {
         this.inputCallbacks.push(callback);
     }

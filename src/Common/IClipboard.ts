@@ -1,4 +1,4 @@
 export interface IClipboard {
-    readText(): string;
-    writeText(text: string): void;
+    readText(): Promise<string>;
+    writeText(text: string): Promise<void>;
 }

@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
-import { InMemoryClipboard } from "./Common/InMemoryClipboard.ts";
+import { OscClipboard } from "./Common/OscClipboard.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
@@ -27,6 +27,7 @@ if (filePaths.length === 0) {
 const resolvedPaths = filePaths.map((f) => path.resolve(f));
 const backend = new NodeTerminalBackend();
 const application = new TuiApplication(backend);
+const clipboard = new OscClipboard(seq => backend.writeOscSequence(seq));
 
 const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 
@@ -48,7 +49,7 @@ const grammarsLoading = tokenizationContributor.apply();
 const container = createProductionContainer({
     app: application,
     theme: initialTheme,
-    clipboard: new InMemoryClipboard(),
+    clipboard,
     tokenizationRegistry,
     tokenStyleResolver: new TokenThemeResolver(initialTheme.tokenTheme),
     languageService: languageRegistry,
