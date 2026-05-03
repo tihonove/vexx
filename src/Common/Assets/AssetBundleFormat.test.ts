@@ -12,6 +12,7 @@ function bytesOf(text: string): Uint8Array {
 function readEntry(bundle: Uint8Array, virtualPath: string): Uint8Array {
     const { header, dataView } = readBundleHeader(bundle);
     const entry = header.files[virtualPath];
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (entry === undefined) throw new Error(`missing: ${virtualPath}`);
     return dataView.subarray(entry.offset, entry.offset + entry.size);
 }
@@ -57,13 +58,27 @@ describe("AssetBundleFormat", () => {
     });
 
     it("validates virtual paths", () => {
-        expect(() => validateVirtualPath("")).toThrow();
-        expect(() => validateVirtualPath("/abs")).toThrow();
-        expect(() => validateVirtualPath("trail/")).toThrow();
-        expect(() => validateVirtualPath("a/../b")).toThrow();
-        expect(() => validateVirtualPath("a/./b")).toThrow();
-        expect(() => validateVirtualPath("a//b")).toThrow();
-        expect(() => validateVirtualPath("ok/path/file.json")).not.toThrow();
+        expect(() => {
+            validateVirtualPath("");
+        }).toThrow();
+        expect(() => {
+            validateVirtualPath("/abs");
+        }).toThrow();
+        expect(() => {
+            validateVirtualPath("trail/");
+        }).toThrow();
+        expect(() => {
+            validateVirtualPath("a/../b");
+        }).toThrow();
+        expect(() => {
+            validateVirtualPath("a/./b");
+        }).toThrow();
+        expect(() => {
+            validateVirtualPath("a//b");
+        }).toThrow();
+        expect(() => {
+            validateVirtualPath("ok/path/file.json");
+        }).not.toThrow();
     });
 
     it("joinVirtualPath склеивает по POSIX", () => {

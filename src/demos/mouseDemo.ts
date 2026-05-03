@@ -14,10 +14,13 @@
 
 import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../Input/mouseTracking.ts";
 import { tokenize } from "../Input/tokenize.ts";
+
 import { addCleanup, exitOnCtrlCToken, stdin, stdout, writePassthrough } from "./demoSetup.ts";
 
 writePassthrough(MOUSE_TRACKING_ALL_ENABLE);
-addCleanup(() => writePassthrough(MOUSE_TRACKING_DISABLE));
+addCleanup(() => {
+    writePassthrough(MOUSE_TRACKING_DISABLE);
+});
 
 stdout.write("🖱️  Mouse Demo (SGR mouse + Kitty keyboard) — click, scroll, move. Ctrl+C to exit.\n\n");
 

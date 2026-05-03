@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -21,41 +21,38 @@ describe("FsAssetAccess", () => {
         // best-effort cleanup; tmp will be reaped anyway
     });
 
-    it("читает текстовые ассеты по prefix-mapping", () => {
+    it("читает текстовые ассеты по prefix-mapping", async () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
-        expect(assets.readText("Extensions/builtin/ts/package.json")).toBe('{"name":"ts"}');
+        expect(await assets.readText("Extensions/builtin/ts/package.json")).toBe('{"name":"ts"}');
     });
 
-    it("читает бинарные ассеты по exact-mapping", () => {
+    it("читает бинарные ассеты по exact-mapping", async () => {
         const assets = new FsAssetAccess({ "onig.wasm": join(root, "onig.wasm") });
-        expect(Array.from(assets.read("onig.wasm"))).toEqual([1, 2, 3]);
+        expect(Array.from(await assets.read("onig.wasm"))).toEqual([1, 2, 3]);
     });
 
-    it("exists() возвращает true/false", () => {
+    it("exists() возвращает true/false", async () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
-        expect(assets.exists("Extensions/builtin/ts/package.json")).toBe(true);
-        expect(assets.exists("Extensions/builtin/ts/missing.json")).toBe(false);
+        expect(await assets.exists("Extensions/builtin/ts/package.json")).toBe(true);
+        expect(await assets.exists("Extensions/builtin/ts/missing.json")).toBe(false);
     });
 
-    it("listEntries возвращает дочерние записи каталога", () => {
+    it("listEntries возвращает дочерние записи каталога", async () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
-        const entries = assets.listEntries("Extensions/builtin/").sort((a, b) => a.name.localeCompare(b.name));
+        const entries = (await assets.listEntries("Extensions/builtin/")).sort((a, b) => a.name.localeCompare(b.name));
         expect(entries).toEqual([{ name: "ts", isDirectory: true }]);
 
-        const tsEntries = assets
-            .listEntries("Extensions/builtin/ts/")
-            .map((e) => e.name)
-            .sort();
+        const tsEntries = (await assets.listEntries("Extensions/builtin/ts/")).map((e) => e.name).sort();
         expect(tsEntries).toEqual(["package.json", "syntaxes"]);
     });
 
-    it("бросает на путь без mapping", () => {
+    it("бросает на путь без mapping", async () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
-        expect(() => assets.read("unmapped.bin")).toThrow(/No FS mapping/);
+        await expect(assets.read("unmapped.bin")).rejects.toThrow(/No FS mapping/);
     });
 
-    it("validate-ит виртуальные пути (`..` запрещены)", () => {
+    it("validate-ит виртуальные пути (`..` запрещены)", async () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
-        expect(() => assets.read("Extensions/../escape")).toThrow();
+        await expect(assets.read("Extensions/../escape")).rejects.toThrow();
     });
 });

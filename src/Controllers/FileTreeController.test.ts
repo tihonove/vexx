@@ -4,8 +4,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { FileTreeController } from "./FileTreeController.ts";
 
@@ -79,5 +83,58 @@ describe("FileTreeController", () => {
     it("cleans up on dispose", () => {
         controller.dispose();
         // No error thrown — test passes
+    });
+});
+
+describe("FileTreeController with ThemeService", () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-ctrl-test-"));
+        fs.writeFileSync(path.join(tmpDir, "index.ts"), "");
+    });
+
+    afterEach(() => {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it("applies sideBar.background from theme after setRootPath", async () => {
+        const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+        const controller = new FileTreeController(themeService);
+        controller.setRootPath(tmpDir);
+        controller.mount();
+
+        const app = TestApp.createWithContent(controller.view, new Size(30, 10));
+        await controller.activate();
+        app.render();
+
+        const expectedBg = themeService.theme.getColor("sideBar.background")!;
+        // Top-left cell of the sidebar view must use the sidebar background
+        expect(app.backend.getBgAt(new Point(0, 0))).toBe(expectedBg);
+
+        controller.dispose();
+    });
+
+    it("applies sideBar.background when theme changes after setRootPath", async () => {
+        const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
+        const themeService = new ThemeService(initialTheme);
+        const controller = new FileTreeController(themeService);
+        controller.setRootPath(tmpDir);
+        controller.mount();
+
+        const newBg = packRgb(0x40, 0x40, 0x40);
+        const newThemeFile = {
+            ...darkPlusTheme,
+            colors: { ...darkPlusTheme.colors, "sideBar.background": "#404040" },
+        };
+        themeService.setTheme(WorkbenchTheme.fromThemeFile(newThemeFile));
+
+        const app = TestApp.createWithContent(controller.view, new Size(30, 10));
+        await controller.activate();
+        app.render();
+
+        expect(app.backend.getBgAt(new Point(0, 0))).toBe(newBg);
+
+        controller.dispose();
     });
 });

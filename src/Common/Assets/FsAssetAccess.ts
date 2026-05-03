@@ -25,43 +25,44 @@ export type AssetMapping = Readonly<Record<string, string>>;
  * через `tsx`/`vitest`, когда `src/Extensions/builtin/` лежит на диске.
  */
 export class FsAssetAccess implements IAssetAccess {
-    private readonly mapping: ReadonlyArray<readonly [string, string]>;
+    private readonly mapping: readonly (readonly [string, string])[];
 
     public constructor(mapping: AssetMapping) {
         // Сортируем префиксы по убыванию длины — иначе `""` проглотит всё.
         this.mapping = Object.entries(mapping).sort((a, b) => b[0].length - a[0].length);
     }
 
-    public read(virtualPath: string): Uint8Array {
+    public async read(virtualPath: string): Promise<Uint8Array> {
         validateVirtualPath(virtualPath);
         const fsPath = this.resolveToFs(virtualPath);
-        return fs.readFileSync(fsPath);
+        return fs.promises.readFile(fsPath);
     }
 
-    public readText(virtualPath: string): string {
+    public async readText(virtualPath: string): Promise<string> {
         validateVirtualPath(virtualPath);
         const fsPath = this.resolveToFs(virtualPath);
-        return fs.readFileSync(fsPath, "utf-8");
+        return fs.promises.readFile(fsPath, "utf-8");
     }
 
-    public exists(virtualPath: string): boolean {
+    public async exists(virtualPath: string): Promise<boolean> {
         validateVirtualPath(virtualPath);
         try {
             const fsPath = this.resolveToFs(virtualPath);
-            return fs.existsSync(fsPath);
+            await fs.promises.access(fsPath);
+            return true;
         } catch {
             return false;
         }
     }
 
-    public listEntries(virtualPrefix: string): IAssetEntry[] {
+    public async listEntries(virtualPrefix: string): Promise<IAssetEntry[]> {
         if (virtualPrefix.length > 0 && !virtualPrefix.endsWith("/")) {
             throw new Error(`listEntries prefix must end with "/" or be empty: ${virtualPrefix}`);
         }
         const fsDir = this.resolveDirToFs(virtualPrefix);
         let dirents: fs.Dirent[];
         try {
-            dirents = fs.readdirSync(fsDir, { withFileTypes: true });
+            dirents = await fs.promises.readdir(fsDir, { withFileTypes: true });
         } catch {
             return [];
         }

@@ -21,7 +21,7 @@ export function getOnigLib(assets: IAssetAccess): Promise<IOnigLib> {
 }
 
 async function loadOnigLib(assets: IAssetAccess): Promise<IOnigLib> {
-    const wasmBytes = assets.read("onig.wasm");
+    const wasmBytes = await assets.read("onig.wasm");
     await oniguruma.loadWASM(wasmBytes);
     return {
         createOnigScanner(patterns: string[]) {

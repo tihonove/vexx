@@ -15,6 +15,7 @@
 
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
+
 import { exitOnCtrlC, stdin, stdout } from "./demoSetup.ts";
 
 // ── ANSI colors ──

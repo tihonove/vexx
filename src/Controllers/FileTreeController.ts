@@ -40,6 +40,9 @@ export class FileTreeController extends Disposable implements IController {
             "  EXPLORER",
             new PaddingContainerElement(new ScrollBarDecorator(this.tree), { left: 1 }),
         );
+        if (this.themeService) {
+            this.applyTheme(this.themeService.theme);
+        }
         if (this.mounted) {
             this.wireTreeEvents();
         }

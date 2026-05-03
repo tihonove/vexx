@@ -19,6 +19,7 @@
 
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
+
 import { exitOnCtrlC, stdin, stdout } from "./demoSetup.ts";
 
 stdout.write("🎹 Event Log Demo (Kitty protocol enabled) — press any key. Ctrl+C to exit.\n\n");

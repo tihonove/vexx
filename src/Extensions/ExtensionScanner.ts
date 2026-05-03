@@ -24,7 +24,7 @@ export async function scanBuiltinExtensions(assets: IAssetAccess, rootPrefix: st
 
     let entries;
     try {
-        entries = assets.listEntries(rootPrefix);
+        entries = await assets.listEntries(rootPrefix);
     } catch (err) {
         console.error(`Failed to scan builtin extensions in ${rootPrefix}:`, err);
         return [];
@@ -36,14 +36,14 @@ export async function scanBuiltinExtensions(assets: IAssetAccess, rootPrefix: st
         const extensionPrefix = `${rootPrefix}${entry.name}/`;
         const manifestPath = `${extensionPrefix}package.json`;
 
-        if (!assets.exists(manifestPath)) {
+        if (!(await assets.exists(manifestPath))) {
             // Каталог без package.json — не расширение, тихо пропускаем.
             continue;
         }
 
         let raw: string;
         try {
-            raw = assets.readText(manifestPath);
+            raw = await assets.readText(manifestPath);
         } catch (err) {
             console.error(`Failed to read ${manifestPath}:`, err);
             continue;

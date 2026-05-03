@@ -79,6 +79,26 @@ export class PaddingContainerElement extends TUIElement {
     }
 
     public override render(context: RenderContext): void {
+        const resolved = this.resolvedStyle;
+        const { width, height } = this.layoutSize;
+
+        for (let x = 0; x < width; x++) {
+            for (let y = 0; y < this.top; y++) {
+                context.setCell(x, y, { char: " ", fg: resolved.fg, bg: resolved.bg });
+            }
+            for (let y = height - this.bottom; y < height; y++) {
+                context.setCell(x, y, { char: " ", fg: resolved.fg, bg: resolved.bg });
+            }
+        }
+        for (let y = this.top; y < height - this.bottom; y++) {
+            for (let x = 0; x < this.left; x++) {
+                context.setCell(x, y, { char: " ", fg: resolved.fg, bg: resolved.bg });
+            }
+            for (let x = width - this.right; x < width; x++) {
+                context.setCell(x, y, { char: " ", fg: resolved.fg, bg: resolved.bg });
+            }
+        }
+
         const childOffset = new Offset(this.child.localPosition.dx, this.child.localPosition.dy);
         const childClip = new Rect(this.child.globalPosition, this.child.layoutSize);
         this.child.render(context.withOffset(childOffset).withClip(childClip));

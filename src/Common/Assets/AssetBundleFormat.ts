@@ -92,6 +92,7 @@ export function readBundleHeader(buffer: Uint8Array): IUnpackedBundle {
     }
     const headerJson = new TextDecoder("utf-8").decode(buffer.subarray(headerStart, headerEnd));
     const header = JSON.parse(headerJson) as IBundleHeader;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (header.version !== 1) throw new Error(`Unsupported bundle version: ${String(header.version)}`);
     return {
         header,

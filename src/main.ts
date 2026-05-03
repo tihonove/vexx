@@ -41,11 +41,7 @@ const languageRegistry = new LanguageRegistry();
 for (const ext of builtinExtensions) languageRegistry.register(ext);
 
 const tokenizationRegistry = new TokenizationRegistry();
-const tokenizationContributor = new ExtensionTokenizationContributor(
-    assets,
-    builtinExtensions,
-    tokenizationRegistry,
-);
+const tokenizationContributor = new ExtensionTokenizationContributor(assets, builtinExtensions, tokenizationRegistry);
 const grammarsLoading = tokenizationContributor.apply();
 
 // ── Bootstrap через DI-контейнер ────────────────────────────

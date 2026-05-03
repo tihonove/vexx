@@ -67,6 +67,15 @@ export class EditorGroupElement extends TUIElement {
             const contentOffset = new Offset(this.content.localPosition.dx, this.content.localPosition.dy);
             const contentClip = new Rect(this.content.globalPosition, this.content.layoutSize);
             this.content.render(context.withOffset(contentOffset).withClip(contentClip));
+        } else {
+            const resolved = this.resolvedStyle;
+            const { width, height } = this.layoutSize;
+            const tabStripHeight = 1;
+            for (let y = tabStripHeight; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    context.setCell(x, y, { char: " ", fg: resolved.fg, bg: resolved.bg });
+                }
+            }
         }
     }
 }

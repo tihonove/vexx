@@ -24,33 +24,33 @@ export class BundleAssetAccess implements IAssetAccess {
         this.childrenByPrefix = buildPrefixIndex(entries.keys());
     }
 
-    public read(virtualPath: string): Uint8Array {
+    public read(virtualPath: string): Promise<Uint8Array> {
         validateVirtualPath(virtualPath);
         const entry = this.entries.get(virtualPath);
         if (entry === undefined) throw new Error(`Bundle entry not found: ${virtualPath}`);
-        return this.dataView.subarray(entry.offset, entry.offset + entry.size);
+        return Promise.resolve(this.dataView.subarray(entry.offset, entry.offset + entry.size));
     }
 
-    public readText(virtualPath: string): string {
-        return new TextDecoder("utf-8").decode(this.read(virtualPath));
+    public async readText(virtualPath: string): Promise<string> {
+        return new TextDecoder("utf-8").decode(await this.read(virtualPath));
     }
 
-    public exists(virtualPath: string): boolean {
+    public exists(virtualPath: string): Promise<boolean> {
         try {
             validateVirtualPath(virtualPath);
         } catch {
-            return false;
+            return Promise.resolve(false);
         }
-        return this.entries.has(virtualPath);
+        return Promise.resolve(this.entries.has(virtualPath));
     }
 
-    public listEntries(virtualPrefix: string): IAssetEntry[] {
+    public listEntries(virtualPrefix: string): Promise<IAssetEntry[]> {
         if (virtualPrefix.length > 0 && !virtualPrefix.endsWith("/")) {
             throw new Error(`listEntries prefix must end with "/" or be empty: ${virtualPrefix}`);
         }
         const children = this.childrenByPrefix.get(virtualPrefix);
-        if (children === undefined) return [];
-        return Array.from(children, ([name, isDirectory]) => ({ name, isDirectory }));
+        if (children === undefined) return Promise.resolve([]);
+        return Promise.resolve(Array.from(children, ([name, isDirectory]) => ({ name, isDirectory })));
     }
 }
 

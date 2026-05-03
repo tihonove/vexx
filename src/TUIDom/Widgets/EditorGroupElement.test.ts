@@ -3,9 +3,12 @@ import { describe, expect, it } from "vitest";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { TestApp } from "../../TestUtils/TestApp.ts";
 import { RenderContext } from "../TUIElement.ts";
 
+import { BodyElement } from "./BodyElement.ts";
 import { BoxElement } from "./BoxElement.ts";
 import { EditorGroupElement } from "./EditorGroupElement.ts";
 
@@ -138,6 +141,23 @@ describe("EditorGroupElement", () => {
             // BoxElement renders borders, check content area starts at row 1
             const row1 = backend.getTextAt(new Point(0, 1), 10);
             expect(row1.length).toBe(10);
+        });
+
+        it("fills content area with background color when no content is open", () => {
+            const editorBg = packRgb(0x1e, 0x1e, 0x1e);
+            const group = new EditorGroupElement();
+            group.style = { bg: editorBg };
+
+            const body = new BodyElement();
+            body.setContent(group);
+            const app = TestApp.create(body, new Size(10, 5));
+
+            // Rows 1-4 (below tab strip) must all have the editor background color
+            for (let y = 1; y < 5; y++) {
+                for (let x = 0; x < 10; x++) {
+                    expect(app.backend.getBgAt(new Point(x, y))).toBe(editorBg);
+                }
+            }
         });
     });
 });

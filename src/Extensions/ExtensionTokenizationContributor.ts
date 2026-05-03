@@ -1,5 +1,5 @@
-import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
 import { joinVirtualPath } from "../Common/Assets/AssetBundleFormat.ts";
+import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
 import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";

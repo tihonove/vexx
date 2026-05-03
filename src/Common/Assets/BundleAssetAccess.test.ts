@@ -15,32 +15,28 @@ function makeBundle() {
 }
 
 describe("BundleAssetAccess", () => {
-    it("читает entries по виртуальному пути", () => {
+    it("читает entries по виртуальному пути", async () => {
         const access = new BundleAssetAccess(makeBundle());
-        expect(Array.from(access.read("onig.wasm"))).toEqual([0xaa, 0xbb, 0xcc]);
-        expect(access.readText("Extensions/builtin/ts/package.json")).toBe('{"name":"ts"}');
+        expect(Array.from(await access.read("onig.wasm"))).toEqual([0xaa, 0xbb, 0xcc]);
+        expect(await access.readText("Extensions/builtin/ts/package.json")).toBe('{"name":"ts"}');
     });
 
-    it("exists() корректно отвечает", () => {
+    it("exists() корректно отвечает", async () => {
         const access = new BundleAssetAccess(makeBundle());
-        expect(access.exists("onig.wasm")).toBe(true);
-        expect(access.exists("Extensions/builtin/ts/package.json")).toBe(true);
-        expect(access.exists("missing.bin")).toBe(false);
+        expect(await access.exists("onig.wasm")).toBe(true);
+        expect(await access.exists("Extensions/builtin/ts/package.json")).toBe(true);
+        expect(await access.exists("missing.bin")).toBe(false);
     });
 
-    it("listEntries по корню возвращает верхний уровень", () => {
+    it("listEntries по корню возвращает верхний уровень", async () => {
         const access = new BundleAssetAccess(makeBundle());
-        const top = access
-            .listEntries("")
-            .map((e) => `${e.name}${e.isDirectory ? "/" : ""}`)
-            .sort();
+        const top = (await access.listEntries("")).map((e) => `${e.name}${e.isDirectory ? "/" : ""}`).sort();
         expect(top).toEqual(["Extensions/", "onig.wasm"]);
     });
 
-    it("listEntries по префиксу возвращает дочерние записи", () => {
+    it("listEntries по префиксу возвращает дочерние записи", async () => {
         const access = new BundleAssetAccess(makeBundle());
-        const exts = access
-            .listEntries("Extensions/builtin/")
+        const exts = (await access.listEntries("Extensions/builtin/"))
             .map((e) => ({ name: e.name, isDirectory: e.isDirectory }))
             .sort((a, b) => a.name.localeCompare(b.name));
         expect(exts).toEqual([
@@ -48,8 +44,7 @@ describe("BundleAssetAccess", () => {
             { name: "ts", isDirectory: true },
         ]);
 
-        const tsContents = access
-            .listEntries("Extensions/builtin/ts/")
+        const tsContents = (await access.listEntries("Extensions/builtin/ts/"))
             .map((e) => ({ name: e.name, isDirectory: e.isDirectory }))
             .sort((a, b) => a.name.localeCompare(b.name));
         expect(tsContents).toEqual([
@@ -58,13 +53,13 @@ describe("BundleAssetAccess", () => {
         ]);
     });
 
-    it("read бросает на отсутствующий путь", () => {
+    it("read бросает на отсутствующий путь", async () => {
         const access = new BundleAssetAccess(makeBundle());
-        expect(() => access.read("missing.bin")).toThrow(/not found/);
+        await expect(access.read("missing.bin")).rejects.toThrow(/not found/);
     });
 
-    it("listEntries без trailing / бросает", () => {
+    it("listEntries без trailing / бросает", async () => {
         const access = new BundleAssetAccess(makeBundle());
-        expect(() => access.listEntries("Extensions/builtin")).toThrow();
+        await expect(access.listEntries("Extensions/builtin")).rejects.toThrow();
     });
 });

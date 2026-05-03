@@ -12,20 +12,20 @@
  * Реализация валидирует пути и не должна допускать `..` сегменты.
  */
 export interface IAssetAccess {
-    /** Прочитать бинарное содержимое ассета. Бросает, если ассет отсутствует. */
-    read(virtualPath: string): Uint8Array;
+    /** Прочитать бинарное содержимое ассета. Отклоняет, если ассет отсутствует. */
+    read(virtualPath: string): Promise<Uint8Array>;
 
-    /** Прочитать текстовое содержимое (UTF-8). Бросает, если ассет отсутствует. */
-    readText(virtualPath: string): string;
+    /** Прочитать текстовое содержимое (UTF-8). Отклоняет, если ассет отсутствует. */
+    readText(virtualPath: string): Promise<string>;
 
     /** Существует ли файл по этому виртуальному пути. */
-    exists(virtualPath: string): boolean;
+    exists(virtualPath: string): Promise<boolean>;
 
     /**
      * Перечислить непосредственные дочерние записи указанного префикса.
      * `virtualPrefix` должен заканчиваться на `/` или быть пустой строкой.
      */
-    listEntries(virtualPrefix: string): IAssetEntry[];
+    listEntries(virtualPrefix: string): Promise<IAssetEntry[]>;
 }
 
 export interface IAssetEntry {

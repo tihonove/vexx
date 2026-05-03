@@ -81,7 +81,7 @@ export class TextMateGrammarLoader {
     private async loadRawGrammar(scopeName: string): Promise<IRawGrammar | null> {
         const rec = this.recordsByScope.get(scopeName);
         if (rec === undefined) return null;
-        const content = this.assets.readText(rec.path);
+        const content = await this.assets.readText(rec.path);
         return vsctm.parseRawGrammar(content, rec.path);
     }
 }
