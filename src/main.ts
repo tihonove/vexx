@@ -27,7 +27,7 @@ if (filePaths.length === 0) {
 const resolvedPaths = filePaths.map((f) => path.resolve(f));
 const backend = new NodeTerminalBackend();
 const application = new TuiApplication(backend);
-const clipboard = new OscClipboard(seq => backend.writeOscSequence(seq));
+const clipboard = new OscClipboard(seq => backend.writeOscSequence(seq), cb => backend.onOscResponse(cb));
 
 const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 

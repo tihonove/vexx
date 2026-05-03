@@ -21,6 +21,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
     private mouseCallbacks: ((event: MouseToken) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
+    private oscResponseCallbacks: ((code: number, data: string) => void)[] = [];
     private cells: (string | null)[][];
     private bgs: number[][];
     private fgs: number[][];
@@ -58,6 +59,10 @@ export class MockTerminalBackend implements ITerminalBackend {
 
     public onResize(callback: (size: Size) => void): void {
         this.resizeCallbacks.push(callback);
+    }
+
+    public onOscResponse(callback: (code: number, data: string) => void): void {
+        this.oscResponseCallbacks.push(callback);
     }
 
     public cursorPosition: Point = new Point(0, 0);
@@ -115,6 +120,15 @@ export class MockTerminalBackend implements ITerminalBackend {
     public simulateMouse(token: MouseToken): void {
         for (const cb of this.mouseCallbacks) {
             cb(token);
+        }
+    }
+
+    /**
+     * Simulate an OSC response from the terminal (test helper).
+     */
+    public simulateOscResponse(code: number, data: string): void {
+        for (const cb of this.oscResponseCallbacks) {
+            cb(code, data);
         }
     }
 

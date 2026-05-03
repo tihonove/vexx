@@ -1,4 +1,4 @@
-import type { CsiLetterToken, CsiTildeToken, CsiUToken, MouseToken, RawTerminalToken } from "./RawTerminalToken.ts";
+import type { CsiLetterToken, CsiTildeToken, CsiUToken, MouseToken, OscToken, RawTerminalToken } from "./RawTerminalToken.ts";
 import type { MouseAction, MouseButton } from "./RawTerminalToken.ts";
 
 /**
@@ -36,6 +36,17 @@ export function tokenize(data: string): RawTerminalToken[] {
                     continue;
                 }
                 // Failed to parse CSI — emit standalone Escape, let '[' be handled next iteration
+                tokens.push({ kind: "standalone-esc", raw: data[i] });
+                i++;
+            } else if (next === 0x5d) {
+                // OSC sequence: \x1b] ...
+                const oscResult = parseOSC(data, i);
+                if (oscResult) {
+                    tokens.push(oscResult.token);
+                    i = oscResult.nextIndex;
+                    continue;
+                }
+                // Incomplete OSC — emit standalone Escape
                 tokens.push({ kind: "standalone-esc", raw: data[i] });
                 i++;
             } else if (next === 0x4f) {
@@ -599,4 +610,53 @@ function decodeMouseButton(cb: number, isRelease: boolean): { button: MouseButto
         return { button: lowBits === 3 ? "none" : button, action: "move" };
     }
     return { button, action: "press" };
+}
+
+// ─── OSC parser ───
+
+interface OSCTokenResult {
+    token: OscToken;
+    nextIndex: number;
+}
+
+/**
+ * Parse an OSC sequence starting at data[start] = ESC, data[start+1] = ']'.
+ * OSC is terminated by BEL (\x07) or ST (\x1b\\).
+ * Returns null if the sequence is not complete.
+ */
+function parseOSC(data: string, start: number): OSCTokenResult | null {
+    let i = start + 2; // skip ESC ]
+
+    // Collect OSC body until BEL or ST
+    let body = "";
+    while (i < data.length) {
+        const c = data.charCodeAt(i);
+        if (c === 0x07) {
+            // BEL terminator
+            const raw = data.slice(start, i + 1);
+            i++;
+            return buildOscResult(body, raw, i);
+        } else if (c === 0x1b && i + 1 < data.length && data.charCodeAt(i + 1) === 0x5c) {
+            // ST terminator: ESC \
+            const raw = data.slice(start, i + 2);
+            i += 2;
+            return buildOscResult(body, raw, i);
+        }
+        body += data[i];
+        i++;
+    }
+    // Incomplete sequence
+    return null;
+}
+
+function buildOscResult(body: string, raw: string, nextIndex: number): OSCTokenResult {
+    // OSC body format: "<code>;<data>"
+    const semicolonIdx = body.indexOf(";");
+    const codeStr = semicolonIdx >= 0 ? body.substring(0, semicolonIdx) : body;
+    const data = semicolonIdx >= 0 ? body.substring(semicolonIdx + 1) : "";
+    const code = parseInt(codeStr, 10);
+    return {
+        token: { kind: "osc", code: isNaN(code) ? -1 : code, data, raw },
+        nextIndex,
+    };
 }

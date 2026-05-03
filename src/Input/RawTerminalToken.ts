@@ -110,6 +110,17 @@ export interface UnknownByteToken {
     readonly raw: string;
 }
 
+// ─── OSC tokens ───
+
+export interface OscToken {
+    readonly kind: "osc";
+    /** OSC command number, e.g. 52 for clipboard */
+    readonly code: number;
+    /** Everything after the first semicolon, up to the terminator */
+    readonly data: string;
+    readonly raw: string;
+}
+
 // ─── Mouse tokens ───
 
 export type MouseButton = "left" | "middle" | "right" | "none";
@@ -143,7 +154,8 @@ export type RawTerminalToken =
     | SpecialKeyToken
     | CtrlCharToken
     | UnknownByteToken
-    | MouseToken;
+    | MouseToken
+    | OscToken;
 
 export type RawKeyToken =
     | CsiUToken
@@ -158,4 +170,5 @@ export type RawKeyToken =
     | CharToken
     | SpecialKeyToken
     | CtrlCharToken
-    | UnknownByteToken;
+    | UnknownByteToken
+    | OscToken;

@@ -406,4 +406,36 @@ describe("tokenize", () => {
         const tokens = tokenize("\x1bOZ");
         expect(tokens[0]).toMatchObject({ kind: "standalone-esc" });
     });
+
+    // ─── OSC sequences ───
+
+    it("parses OSC 52 with BEL terminator", () => {
+        const tokens = tokenize("\x1b]52;c;aGVsbG8=\x07");
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({ kind: "osc", code: 52, data: "c;aGVsbG8=" });
+    });
+
+    it("parses OSC 52 with ST terminator", () => {
+        const tokens = tokenize("\x1b]52;c;aGVsbG8=\x1b\\");
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({ kind: "osc", code: 52, data: "c;aGVsbG8=" });
+    });
+
+    it("parses OSC 52 query response '?'", () => {
+        const tokens = tokenize("\x1b]52;c;?\x07");
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({ kind: "osc", code: 52, data: "c;?" });
+    });
+
+    it("emits standalone-esc for incomplete OSC sequence", () => {
+        const tokens = tokenize("\x1b]52;c;aGVsbG8=");
+        expect(tokens[0]).toMatchObject({ kind: "standalone-esc" });
+    });
+
+    it("parses OSC followed by regular input", () => {
+        const tokens = tokenize("\x1b]52;c;aGVsbG8=\x07a");
+        expect(tokens).toHaveLength(2);
+        expect(tokens[0]).toMatchObject({ kind: "osc", code: 52 });
+        expect(tokens[1]).toMatchObject({ kind: "char", char: "a" });
+    });
 });

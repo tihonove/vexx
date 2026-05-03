@@ -20,6 +20,9 @@ export interface ITerminalBackend {
     /** Subscribe to terminal resize events */
     onResize(callback: (size: Size) => void): void;
 
+    /** Subscribe to OSC response sequences from the terminal (e.g. OSC 52 clipboard replies) */
+    onOscResponse(callback: (code: number, data: string) => void): void;
+
     /**
      * Render a frame: receive the current grid and cursor position.
      * The backend decides how to output it (ANSI diffing, simple copy, etc.).

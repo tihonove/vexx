@@ -51,6 +51,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
     private mouseCallbacks: ((event: MouseToken) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
+    private oscResponseCallbacks: ((code: number, data: string) => void)[] = [];
     private stdin: NodeJS.ReadStream;
     private stdout: NodeJS.WriteStream;
     private onDataHandler: ((chunk: string) => void) | null = null;
@@ -102,6 +103,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
     public onResize(callback: (size: Size) => void): void {
         this.resizeCallbacks.push(callback);
+    }
+
+    public onOscResponse(callback: (code: number, data: string) => void): void {
+        this.oscResponseCallbacks.push(callback);
     }
 
     /** Emit resize only if dimensions actually changed */
@@ -169,6 +174,11 @@ export class NodeTerminalBackend implements ITerminalBackend {
             for (const mouseToken of result.mouse) {
                 for (const cb of this.mouseCallbacks) {
                     cb(mouseToken);
+                }
+            }
+            for (const oscToken of result.osc) {
+                for (const cb of this.oscResponseCallbacks) {
+                    cb(oscToken.code, oscToken.data);
                 }
             }
         };
