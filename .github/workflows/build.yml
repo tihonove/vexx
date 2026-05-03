@@ -11,9 +11,9 @@ jobs:
           - os: ubuntu-latest
             artifact: vexx-linux-x64
             binary: dist/vexx
-          - os: macos-latest
-            artifact: vexx-macos-arm64
-            binary: dist/vexx
+          # - os: macos-latest
+          #   artifact: vexx-macos-arm64
+          #   binary: dist/vexx
           - os: windows-latest
             artifact: vexx-windows-x64
             binary: dist/vexx.exe
