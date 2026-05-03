@@ -1,4 +1,11 @@
-import type { CsiLetterToken, CsiTildeToken, CsiUToken, MouseToken, OscToken, RawTerminalToken } from "./RawTerminalToken.ts";
+import type {
+    CsiLetterToken,
+    CsiTildeToken,
+    CsiUToken,
+    MouseToken,
+    OscToken,
+    RawTerminalToken,
+} from "./RawTerminalToken.ts";
 import type { MouseAction, MouseButton } from "./RawTerminalToken.ts";
 
 /**

@@ -69,7 +69,7 @@ describe("OscClipboard", () => {
         it("readText decodes unicode text from OSC 52 response", async () => {
             const writeFn = vi.fn();
             let subscriber: ((code: number, data: string) => void) | null = null;
-            const clipboard = new OscClipboard(writeFn, cb => {
+            const clipboard = new OscClipboard(writeFn, (cb) => {
                 subscriber = cb;
             });
 
@@ -82,7 +82,9 @@ describe("OscClipboard", () => {
         it("readText falls back to buffer on timeout", async () => {
             vi.useFakeTimers();
             const writeFn = vi.fn();
-            const clipboard = new OscClipboard(writeFn, () => { /* never responds */ });
+            const clipboard = new OscClipboard(writeFn, () => {
+                /* never responds */
+            });
             await clipboard.writeText("buffered");
 
             const promise = clipboard.readText();
@@ -95,7 +97,7 @@ describe("OscClipboard", () => {
             vi.useFakeTimers();
             const writeFn = vi.fn();
             let subscriber: ((code: number, data: string) => void) | null = null;
-            const clipboard = new OscClipboard(writeFn, cb => {
+            const clipboard = new OscClipboard(writeFn, (cb) => {
                 subscriber = cb;
             });
             await clipboard.writeText("buffered");
@@ -111,7 +113,7 @@ describe("OscClipboard", () => {
             vi.useFakeTimers();
             const writeFn = vi.fn();
             let subscriber: ((code: number, data: string) => void) | null = null;
-            const clipboard = new OscClipboard(writeFn, cb => {
+            const clipboard = new OscClipboard(writeFn, (cb) => {
                 subscriber = cb;
             });
             await clipboard.writeText("buffered");
@@ -126,7 +128,7 @@ describe("OscClipboard", () => {
         it("second readText cancels the first", async () => {
             const writeFn = vi.fn();
             let subscriber: ((code: number, data: string) => void) | null = null;
-            const clipboard = new OscClipboard(writeFn, cb => {
+            const clipboard = new OscClipboard(writeFn, (cb) => {
                 subscriber = cb;
             });
             await clipboard.writeText("initial");

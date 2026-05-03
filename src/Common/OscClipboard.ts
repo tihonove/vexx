@@ -69,7 +69,7 @@ export class OscClipboard implements IClipboard {
             this.pendingRead = null;
         }
 
-        return new Promise<string>(resolve => {
+        return new Promise<string>((resolve) => {
             const timer = setTimeout(() => {
                 if (this.pendingRead?.resolve === resolve) {
                     this.pendingRead = null;
