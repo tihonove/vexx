@@ -170,5 +170,4 @@ export type RawKeyToken =
     | CharToken
     | SpecialKeyToken
     | CtrlCharToken
-    | UnknownByteToken
-    | OscToken;
+    | UnknownByteToken;

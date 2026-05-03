@@ -1,5 +1,6 @@
 import { convertTokenToKeyPressEvent } from "./convertToken.ts";
 import type { KeyPressEvent } from "./KeyEvent.ts";
+import type { RawKeyToken } from "./RawTerminalToken.ts";
 import { tokenize } from "./tokenize.ts";
 
 /**
@@ -14,7 +15,6 @@ import { tokenize } from "./tokenize.ts";
  * Pure function, no side effects.
  */
 export function parseInput(data: string): KeyPressEvent[] {
-    return tokenize(data)
-        .filter((t) => t.kind !== "mouse")
-        .map(convertTokenToKeyPressEvent);
+    const keyTokens = tokenize(data).filter((t) => t.kind !== "mouse" && t.kind !== "osc") as RawKeyToken[];
+    return keyTokens.map(convertTokenToKeyPressEvent);м
 }
