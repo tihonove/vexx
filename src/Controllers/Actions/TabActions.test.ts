@@ -13,6 +13,8 @@ interface GroupStub {
     editorCount: number;
     activateTab: (index: number) => void;
     closeTab: (index: number) => void;
+    getActiveEditor?: () => { isModified: boolean } | null;
+    onRequestConfirmClose?: (index: number) => void;
 }
 
 function setupActionTest(group: GroupStub) {
@@ -82,6 +84,7 @@ describe("TabActions", () => {
             editorCount: 3,
             activateTab: vi.fn(),
             closeTab,
+            getActiveEditor: () => ({ isModified: false }),
         };
 
         const { commands, keybindings, accessor } = setupActionTest(group);

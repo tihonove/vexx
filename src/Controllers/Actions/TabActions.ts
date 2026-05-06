@@ -41,6 +41,11 @@ export const closeActiveEditorAction: CommandAction = {
         const group = accessor.get(EditorGroupControllerDIToken);
         if (group.editorCount === 0 || group.activeIndex < 0) return;
 
-        group.closeTab(group.activeIndex);
+        const editor = group.getActiveEditor();
+        if (editor?.isModified && group.onRequestConfirmClose) {
+            group.onRequestConfirmClose(group.activeIndex);
+        } else {
+            group.closeTab(group.activeIndex);
+        }
     },
 };

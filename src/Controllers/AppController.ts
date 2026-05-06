@@ -1,13 +1,20 @@
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
+import { Point } from "../Common/GeometryPromitives.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import {
+    CONFIRM_SAVE_DIALOG_HEIGHT,
+    CONFIRM_SAVE_DIALOG_WIDTH,
+    ConfirmSaveDialogElement,
+} from "../TUIDom/Widgets/ConfirmSaveDialogElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
@@ -58,7 +65,7 @@ import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import { ServiceAccessorDIToken } from "./CoreTokens.ts";
+import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileTreeController } from "./FileTreeController.ts";
@@ -73,7 +80,6 @@ export const AppControllerDIToken = token<AppController>("AppController");
 const builtinActions = [
     // App
     fileSaveAction,
-    quitAction,
 
     // Cursor movement
     cursorLeftAction,
@@ -139,6 +145,8 @@ export class AppController extends Disposable implements IController {
     public readonly workbenchLayout: WorkbenchLayoutElement;
 
     private editorGroupController: EditorGroupController;
+    private confirmDialog: ConfirmSaveDialogElement | null = null;
+    private savedFocusElement: TUIElement | null = null;
     private fileTreeController: FileTreeController;
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
@@ -172,6 +180,12 @@ export class AppController extends Disposable implements IController {
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
         }
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...quitAction,
+                run: (a) => this.requestQuit(a),
+            }),
+        );
 
         this.setupMenu();
         this.register(
@@ -187,6 +201,20 @@ export class AppController extends Disposable implements IController {
         this.view.addEventListener("focus", this.handleFocusChange, { capture: true });
         this.view.addEventListener("blur", this.handleFocusChange, { capture: true });
         this.editorGroupController.mount();
+        this.editorGroupController.onRequestConfirmClose = (index) => {
+            const editor = this.editorGroupController.getEditor(index);
+            if (!editor) return;
+            this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
+                onSave: () => {
+                    editor.save();
+                    this.editorGroupController.closeTab(index);
+                },
+                onDontSave: () => {
+                    this.editorGroupController.closeTab(index);
+                },
+                onCancel: () => {},
+            });
+        };
         this.fileTreeController.mount();
         this.fileTreeController.onFileActivate = (filePath) => {
             this.openFile(filePath);
@@ -278,5 +306,98 @@ export class AppController extends Disposable implements IController {
 
         const menuBar = new MenuBarElement(menuItems);
         this.view.setMenuBar(menuBar);
+    }
+
+    public showConfirmSaveDialog(
+        filename: string,
+        callbacks: { onSave: () => void; onDontSave: () => void; onCancel: () => void },
+    ): void {
+        if (!this.confirmDialog) {
+            this.confirmDialog = new ConfirmSaveDialogElement(filename);
+            this.view.contextMenuLayer.addItem(this.confirmDialog, new Point(0, 0), false);
+        } else {
+            this.confirmDialog.setFilename(filename);
+        }
+
+        this.confirmDialog.onSave = () => {
+            this.hideConfirmSaveDialog();
+            callbacks.onSave();
+        };
+        this.confirmDialog.onDontSave = () => {
+            this.hideConfirmSaveDialog();
+            callbacks.onDontSave();
+        };
+        this.confirmDialog.onCancel = () => {
+            this.hideConfirmSaveDialog();
+        };
+
+        const screenW = this.view.layoutSize.width;
+        const screenH = this.view.layoutSize.height;
+        const px = Math.max(0, Math.floor((screenW - CONFIRM_SAVE_DIALOG_WIDTH) / 2));
+        const py = Math.max(0, Math.floor((screenH - CONFIRM_SAVE_DIALOG_HEIGHT) / 2));
+        this.view.contextMenuLayer.setPosition(this.confirmDialog, new Point(px, py));
+
+        this.savedFocusElement = this.view.focusManager?.activeElement ?? null;
+        this.view.contextMenuLayer.setVisible(this.confirmDialog, true);
+        this.confirmDialog.focusDefault();
+    }
+
+    private hideConfirmSaveDialog(): void {
+        if (!this.confirmDialog) return;
+        this.view.contextMenuLayer.setVisible(this.confirmDialog, false);
+        if (this.savedFocusElement) {
+            this.view.focusManager?.setFocus(this.savedFocusElement);
+            this.savedFocusElement = null;
+        }
+    }
+
+    private doQuit(accessor: ServiceAccessor): void {
+        accessor.get(TuiApplicationDIToken).backend.teardown();
+        process.exit(0);
+    }
+
+    public requestQuit(accessor: ServiceAccessor): void {
+        const modifiedIndices: number[] = [];
+        for (let i = 0; i < this.editorGroupController.editorCount; i++) {
+            if (this.editorGroupController.getEditor(i)?.isModified) {
+                modifiedIndices.push(i);
+            }
+        }
+        if (modifiedIndices.length === 0) {
+            this.doQuit(accessor);
+        } else {
+            this.showQuitConfirmDialogSequential(modifiedIndices, accessor);
+        }
+    }
+
+    private showQuitConfirmDialogSequential(remainingIndices: number[], accessor: ServiceAccessor): void {
+        const [index, ...rest] = remainingIndices;
+        const editor = this.editorGroupController.getEditor(index);
+        if (!editor) {
+            if (rest.length === 0) {
+                this.doQuit(accessor);
+            } else {
+                this.showQuitConfirmDialogSequential(rest, accessor);
+            }
+            return;
+        }
+        this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
+            onSave: () => {
+                editor.save();
+                if (rest.length === 0) {
+                    this.doQuit(accessor);
+                } else {
+                    this.showQuitConfirmDialogSequential(rest, accessor);
+                }
+            },
+            onDontSave: () => {
+                if (rest.length === 0) {
+                    this.doQuit(accessor);
+                } else {
+                    this.showQuitConfirmDialogSequential(rest, accessor);
+                }
+            },
+            onCancel: () => {},
+        });
     }
 }

@@ -36,6 +36,8 @@ export class EditorGroupController extends Disposable implements IController {
     private tokenStyleResolver: ITokenStyleResolver;
     private languageService: ILanguageService;
 
+    public onRequestConfirmClose?: (index: number) => void;
+
     public constructor(
         themeService: ThemeService,
         tokenizationRegistry: TokenizationRegistry,
@@ -66,6 +68,11 @@ export class EditorGroupController extends Disposable implements IController {
     public getActiveEditor(): EditorController | null {
         if (this.activeIndexValue < 0 || this.activeIndexValue >= this.editors.length) return null;
         return this.editors[this.activeIndexValue];
+    }
+
+    public getEditor(index: number): EditorController | null {
+        if (index < 0 || index >= this.editors.length) return null;
+        return this.editors[index];
     }
 
     public openFile(filePath: string): void {
@@ -123,7 +130,12 @@ export class EditorGroupController extends Disposable implements IController {
             this.activateTab(index);
         };
         this.view.tabStrip.onTabClose = (index) => {
-            this.closeTab(index);
+            const editor = this.editors[index];
+            if (editor?.isModified && this.onRequestConfirmClose) {
+                this.onRequestConfirmClose(index);
+            } else {
+                this.closeTab(index);
+            }
         };
     }
 
