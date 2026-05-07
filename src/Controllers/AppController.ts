@@ -10,11 +10,7 @@ import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import {
-    CONFIRM_SAVE_DIALOG_HEIGHT,
-    CONFIRM_SAVE_DIALOG_WIDTH,
-    ConfirmSaveDialogElement,
-} from "../TUIDom/Widgets/ConfirmSaveDialogElement.ts";
+import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
@@ -333,8 +329,10 @@ export class AppController extends Disposable implements IController {
 
         const screenW = this.view.layoutSize.width;
         const screenH = this.view.layoutSize.height;
-        const px = Math.max(0, Math.floor((screenW - CONFIRM_SAVE_DIALOG_WIDTH) / 2));
-        const py = Math.max(0, Math.floor((screenH - CONFIRM_SAVE_DIALOG_HEIGHT) / 2));
+        const dialogW = this.confirmDialog.getMaxIntrinsicWidth(0);
+        const dialogH = this.confirmDialog.getMaxIntrinsicHeight(dialogW);
+        const px = Math.max(0, Math.floor((screenW - dialogW) / 2));
+        const py = Math.max(0, Math.floor((screenH - dialogH) / 2));
         this.view.contextMenuLayer.setPosition(this.confirmDialog, new Point(px, py));
 
         this.savedFocusElement = this.view.focusManager?.activeElement ?? null;

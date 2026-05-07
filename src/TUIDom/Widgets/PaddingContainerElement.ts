@@ -1,4 +1,6 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import type { JsxChild } from "../JSX/jsx-runtime.ts";
+import { normalizeChildren, reconcileChildren } from "../JSX/reconcile.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface Padding {
@@ -9,24 +11,55 @@ export interface Padding {
 }
 
 export class PaddingContainerElement extends TUIElement {
-    private child: TUIElement;
+    private child: TUIElement | null;
     private top: number;
     private right: number;
     private bottom: number;
     private left: number;
 
-    public constructor(child: TUIElement, padding?: Padding) {
+    public constructor(child: TUIElement | null, padding?: Padding) {
         super();
         this.child = child;
-        this.child.setParent(this);
+        if (this.child) this.child.setParent(this);
         this.top = padding?.top ?? 0;
         this.right = padding?.right ?? 0;
         this.bottom = padding?.bottom ?? 0;
         this.left = padding?.left ?? 0;
     }
 
+    public setChild(child: TUIElement | null): void {
+        if (this.child) this.child.setParent(null);
+        this.child = child;
+        if (this.child) this.child.setParent(this);
+        this.markDirty();
+    }
+
     public override getChildren(): readonly TUIElement[] {
-        return [this.child];
+        return this.child ? [this.child] : [];
+    }
+
+    public override getMinIntrinsicWidth(height: number): number {
+        const paddingX = this.left + this.right;
+        if (!this.child) return paddingX;
+        return this.child.getMinIntrinsicWidth(Math.max(0, height - this.top - this.bottom)) + paddingX;
+    }
+
+    public override getMaxIntrinsicWidth(height: number): number {
+        const paddingX = this.left + this.right;
+        if (!this.child) return paddingX;
+        return this.child.getMaxIntrinsicWidth(Math.max(0, height - this.top - this.bottom)) + paddingX;
+    }
+
+    public override getMinIntrinsicHeight(width: number): number {
+        const paddingY = this.top + this.bottom;
+        if (!this.child) return paddingY;
+        return this.child.getMinIntrinsicHeight(Math.max(0, width - this.left - this.right)) + paddingY;
+    }
+
+    public override getMaxIntrinsicHeight(width: number): number {
+        const paddingY = this.top + this.bottom;
+        if (!this.child) return paddingY;
+        return this.child.getMaxIntrinsicHeight(Math.max(0, width - this.left - this.right)) + paddingY;
     }
 
     public getPaddingTop(): number {
@@ -68,12 +101,13 @@ export class PaddingContainerElement extends TUIElement {
     public override performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
 
-        const childWidth = Math.max(0, containerSize.width - this.left - this.right);
-        const childHeight = Math.max(0, containerSize.height - this.top - this.bottom);
-
-        this.child.localPosition = new Offset(this.left, this.top);
-        this.child.globalPosition = new Point(this.globalPosition.x + this.left, this.globalPosition.y + this.top);
-        this.child.performLayout(BoxConstraints.tight(new Size(childWidth, childHeight)));
+        if (this.child) {
+            const childWidth = Math.max(0, containerSize.width - this.left - this.right);
+            const childHeight = Math.max(0, containerSize.height - this.top - this.bottom);
+            this.child.localPosition = new Offset(this.left, this.top);
+            this.child.globalPosition = new Point(this.globalPosition.x + this.left, this.globalPosition.y + this.top);
+            this.child.performLayout(BoxConstraints.tight(new Size(childWidth, childHeight)));
+        }
 
         return containerSize;
     }
@@ -99,8 +133,34 @@ export class PaddingContainerElement extends TUIElement {
             }
         }
 
-        const childOffset = new Offset(this.child.localPosition.dx, this.child.localPosition.dy);
-        const childClip = new Rect(this.child.globalPosition, this.child.layoutSize);
-        this.child.render(context.withOffset(childOffset).withClip(childClip));
+        if (this.child) {
+            const childOffset = new Offset(this.child.localPosition.dx, this.child.localPosition.dy);
+            const childClip = new Rect(this.child.globalPosition, this.child.layoutSize);
+            this.child.render(context.withOffset(childOffset).withClip(childClip));
+        }
     }
 }
+
+// ─── PaddingContainer JSX Adapter ───
+
+export interface PaddingContainerProps extends Padding {
+    children?: JsxChild;
+}
+
+export function PaddingContainer(props: PaddingContainerProps): PaddingContainerElement {
+    const nodes = normalizeChildren(props.children);
+    const children = reconcileChildren([], nodes);
+    const padding = { top: props.top, right: props.right, bottom: props.bottom, left: props.left };
+    return new PaddingContainerElement(children[0] ?? null, padding);
+}
+
+PaddingContainer.update = (el: TUIElement, props: PaddingContainerProps): void => {
+    const pad = el as PaddingContainerElement;
+    pad.setPaddingTop(props.top ?? 0);
+    pad.setPaddingRight(props.right ?? 0);
+    pad.setPaddingBottom(props.bottom ?? 0);
+    pad.setPaddingLeft(props.left ?? 0);
+    const nodes = normalizeChildren(props.children);
+    const newChildren = reconcileChildren(pad.getChildren(), nodes);
+    pad.setChild(newChildren[0] ?? null);
+};

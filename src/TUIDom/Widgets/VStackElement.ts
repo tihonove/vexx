@@ -1,4 +1,6 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import type { JsxChild } from "../JSX/jsx-runtime.ts";
+import { normalizeChildren, reconcileChildren } from "../JSX/reconcile.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface VStackLayoutStyle {
@@ -17,6 +19,22 @@ export class VStackElement extends TUIElement {
         child.layoutStyle = style;
         child.setParent(this); // Set parent for dirty propagation
         this.children.push(child);
+    }
+
+    public replaceChildren(newChildren: TUIElement[]): void {
+        const oldSet = new Set(this.children);
+        const newSet = new Set(newChildren);
+
+        for (const old of oldSet) {
+            if (!newSet.has(old)) {
+                old.setParent(null);
+            }
+        }
+
+        this.children = newChildren;
+        for (const child of newChildren) {
+            child.setParent(this);
+        }
     }
 
     public getChildren(): readonly TUIElement[] {
@@ -110,3 +128,26 @@ export class VStackElement extends TUIElement {
         }
     }
 }
+
+// ─── VStack JSX Adapter ───
+
+export interface VStackProps {
+    children?: JsxChild | JsxChild[];
+}
+
+export function VStack(props: VStackProps): VStackElement {
+    const el = new VStackElement();
+    const nodes = normalizeChildren(props.children);
+    const children = reconcileChildren([], nodes);
+    for (const child of children) {
+        el.addChild(child, child.layoutStyle as VStackLayoutStyle);
+    }
+    return el;
+}
+
+VStack.update = (el: TUIElement, props: VStackProps): void => {
+    const vstack = el as VStackElement;
+    const nodes = normalizeChildren(props.children);
+    const newChildren = reconcileChildren(vstack.getChildren(), nodes);
+    vstack.replaceChildren(newChildren);
+};
