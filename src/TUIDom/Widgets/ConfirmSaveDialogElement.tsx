@@ -58,7 +58,7 @@ export class ConfirmSaveDialogElement extends CompositeElement {
         this.saveButton.layoutStyle = { width: hflexFit(), height: 1 };
 
         this.addEventListener("keydown", (event) => {
-            this.handleDialogKeydown(event);
+        this.handleDialogKeydown(event);
         });
 
         this.rebuild();
