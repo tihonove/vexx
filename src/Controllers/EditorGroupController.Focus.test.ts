@@ -127,3 +127,41 @@ describe("EditorGroupController focus management on tab close", () => {
         }
     });
 });
+
+describe("EditorGroupController auto-focus on file open", () => {
+    let tmpDir: string;
+
+    beforeEach(() => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-autofocus-test-"));
+    });
+
+    afterEach(() => {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function writeFile(name: string, content: string): string {
+        const filePath = path.join(tmpDir, name);
+        fs.writeFileSync(filePath, content, "utf-8");
+        return filePath;
+    }
+
+    it("editor receives focus automatically when a file is opened", () => {
+        const { testApp, controller } = createTestContext();
+        controller.openFile(writeFile("a.ts", "a"));
+
+        expect(testApp.focusedElement).not.toBeNull();
+        expect(testApp.querySelector("EditorElement")).toBe(testApp.focusedElement);
+    });
+
+    it("editor receives focus when switching to an already-open file", () => {
+        const { testApp, controller } = createTestContext();
+        const fp = writeFile("a.ts", "a");
+        controller.openFile(fp);
+        controller.openFile(writeFile("b.ts", "b"));
+        // open a.ts again — should switch tab and focus
+        controller.openFile(fp);
+
+        expect(testApp.focusedElement).not.toBeNull();
+        expect(testApp.querySelector("EditorElement")).toBe(testApp.focusedElement);
+    });
+});
