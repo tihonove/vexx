@@ -70,6 +70,25 @@ describe("EditorViewState.cursorWordLeft", () => {
         state.cursorWordLeft();
         expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
     });
+
+    it("extends existing selection further left on second call", () => {
+        const doc = new TextDocument("hello world");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 11)]);
+        state.cursorWordLeft(true);
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 11 });
+        expect(state.selections[0].active).toEqual({ line: 0, character: 6 });
+        state.cursorWordLeft(true);
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 11 });
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+    });
+
+    it("shrinks a rightward selection when moving left", () => {
+        const doc = new TextDocument("hello world");
+        const state = new EditorViewState(doc, [createSelection(0, 0, 0, 6)]);
+        state.cursorWordLeft(true);
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 0 });
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+    });
 });
 
 // ─── cursorWordRight ────────────────────────────────────────
@@ -130,6 +149,25 @@ describe("EditorViewState.cursorWordRight", () => {
         const state = new EditorViewState(doc, [createCursorSelection(0, 0)]);
         state.cursorWordRight();
         expect(state.selections[0].active).toEqual({ line: 0, character: 5 });
+    });
+
+    it("extends existing selection further right on second call", () => {
+        const doc = new TextDocument("hello world");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+        state.cursorWordRight(true);
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 0 });
+        expect(state.selections[0].active).toEqual({ line: 0, character: 6 });
+        state.cursorWordRight(true);
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 0 });
+        expect(state.selections[0].active).toEqual({ line: 0, character: 11 });
+    });
+
+    it("shrinks a leftward selection when moving right", () => {
+        const doc = new TextDocument("hello world");
+        const state = new EditorViewState(doc, [createSelection(0, 6, 0, 0)]);
+        state.cursorWordRight(true);
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 6 });
+        expect(state.selections[0].active).toEqual({ line: 0, character: 6 });
     });
 });
 

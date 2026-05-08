@@ -1,6 +1,100 @@
+import type { Token } from "../../Common/DiContainer.ts";
+import type { ServiceAccessor } from "../../Common/DiContainer.ts";
+import { InMemoryClipboard } from "../../Common/InMemoryClipboard.ts";
+import {
+    inputCopyAction,
+    inputCursorEndAction,
+    inputCursorHomeAction,
+    inputCursorLeftAction,
+    inputCursorRightAction,
+    inputCursorWordLeftAction,
+    inputCursorWordRightAction,
+    inputCutAction,
+    inputDeleteLeftAction,
+    inputDeleteRightAction,
+    inputDeleteWordLeftAction,
+    inputDeleteWordRightAction,
+    inputPasteAction,
+    inputSelectAllAction,
+    inputSelectLeftAction,
+    inputSelectRightAction,
+    inputSelectToEndAction,
+    inputSelectToHomeAction,
+    inputSelectWordLeftAction,
+    inputSelectWordRightAction,
+} from "../../Controllers/Actions/InputActions.ts";
+import { registerAction } from "../../Controllers/CommandAction.ts";
+import { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
+import { ContextKeyService } from "../../Controllers/ContextKeyService.ts";
+import { ClipboardDIToken } from "../../Controllers/CoreTokens.ts";
+import { InputWidgetController, InputWidgetControllerDIToken } from "../../Controllers/InputWidgetController.ts";
+import { KeybindingRegistry } from "../../Controllers/KeybindingRegistry.ts";
 import type { StoryContext, StoryMeta } from "../../StoryRunner/StoryTypes.ts";
-import { VStackElement } from "./VStackElement.ts";
+import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+
 import { InputElement } from "./InputElement.ts";
+import { VStackElement } from "./VStackElement.ts";
+
+/** Wires up a minimal keybinding stack for a single InputElement. */
+function mountInputKeybindings(ctx: StoryContext, input: InputElement): void {
+    const commands = new CommandRegistry();
+    const keybindings = new KeybindingRegistry();
+    const contextKeys = new ContextKeyService();
+    const inputCtrl = new InputWidgetController();
+    const clipboard = new InMemoryClipboard();
+
+    const accessor: ServiceAccessor = {
+        get<T>(tok: Token<T>): T {
+            if (tok === InputWidgetControllerDIToken) return inputCtrl as T;
+            if (tok === ClipboardDIToken) return clipboard as T;
+            throw new Error(`Unknown token: ${tok.id}`);
+        },
+    };
+
+    const inputActions = [
+        inputCursorLeftAction,
+        inputCursorRightAction,
+        inputCursorHomeAction,
+        inputCursorEndAction,
+        inputCursorWordLeftAction,
+        inputCursorWordRightAction,
+        inputDeleteLeftAction,
+        inputDeleteRightAction,
+        inputDeleteWordLeftAction,
+        inputDeleteWordRightAction,
+        inputSelectLeftAction,
+        inputSelectRightAction,
+        inputSelectToHomeAction,
+        inputSelectToEndAction,
+        inputSelectWordLeftAction,
+        inputSelectWordRightAction,
+        inputSelectAllAction,
+        inputCopyAction,
+        inputCutAction,
+        inputPasteAction,
+    ];
+    for (const action of inputActions) {
+        registerAction(commands, keybindings, accessor, action);
+    }
+
+    function updateContext(): void {
+        const active = ctx.body.focusManager?.activeElement ?? null;
+        const isInput = active instanceof InputElement;
+        contextKeys.set("inputWidgetFocus", isInput);
+        inputCtrl.setActive(isInput ? active : null);
+    }
+
+    ctx.body.addEventListener("focus", updateContext, { capture: true });
+    ctx.body.addEventListener("blur", updateContext, { capture: true });
+
+    ctx.body.addEventListener("keydown", (e: TUIKeyboardEvent) => {
+        const commandId = keybindings.resolve(e, contextKeys);
+        if (commandId && commands.has(commandId)) {
+            e.preventDefault();
+            commands.execute(commandId);
+        }
+    });
+}
 
 export const meta: StoryMeta = {
     title: "InputElement",
@@ -71,12 +165,79 @@ export function focusCycling(ctx: StoryContext): void {
 export function longText(ctx: StoryContext): void {
     ctx.body.title = "InputElement — long text / horizontal scroll";
     const input = new InputElement();
-    input.inputState.value = "The quick brown fox jumps over the lazy dog — a very long sentence to test scrolling behaviour.";
+    input.inputState.value =
+        "The quick brown fox jumps over the lazy dog — a very long sentence to test scrolling behaviour.";
     input.placeholder = "Type something long…";
 
     ctx.body.setContent(input);
 
     ctx.afterRun(() => {
         input.focus();
+    });
+}
+
+/**
+ * Input with full keybinding support via InputWidgetController.
+ *
+ * Keys:
+ *   ← / →                — move by character
+ *   Ctrl+← / Ctrl+→      — move by word
+ *   Home / End            — line start / end
+ *   Shift+← / Shift+→    — select by character
+ *   Ctrl+Shift+← / →     — select by word
+ *   Shift+Home / Shift+End — select to line start / end
+ *   Ctrl+A                — select all
+ *   Backspace             — delete left
+ *   Delete                — delete right
+ *   Ctrl+Backspace        — delete word left
+ *   Ctrl+Delete           — delete word right
+ *   Ctrl+C                — copy selection
+ *   Ctrl+X                — cut selection
+ *   Ctrl+V                — paste
+ */
+export function withKeybindings(ctx: StoryContext): void {
+    ctx.body.title = "InputElement — full keybindings (Shift+←/→, Ctrl+A, Ctrl+C/X/V)";
+
+    const input = new InputElement();
+    input.showBorder = true;
+    input.placeholder = "Type then try Ctrl+← / Ctrl+→ / Ctrl+Backspace…";
+    input.inputState.value = "hello world foo bar";
+
+    mountInputKeybindings(ctx, input);
+
+    const stack = new VStackElement();
+    stack.addChild(input, { width: "fill", height: 3 });
+    ctx.body.setContent(stack);
+
+    ctx.afterRun(() => {
+        input.focus();
+    });
+}
+
+/**
+ * Two inputs — Tab to switch, keybindings active only for the focused one.
+ */
+export function twoInputsWithKeybindings(ctx: StoryContext): void {
+    ctx.body.title = "InputElement — two inputs, Tab to switch, keybindings follow focus";
+
+    const first = new InputElement();
+    first.showBorder = true;
+    first.placeholder = "First field…";
+    first.inputState.value = "hello world";
+
+    const second = new InputElement();
+    second.showBorder = true;
+    second.placeholder = "Second field…";
+    second.inputState.value = "foo bar baz";
+
+    mountInputKeybindings(ctx, first);
+
+    const stack = new VStackElement();
+    stack.addChild(first, { width: "fill", height: 3 });
+    stack.addChild(second, { width: "fill", height: 3 });
+    ctx.body.setContent(stack);
+
+    ctx.afterRun(() => {
+        first.focus();
     });
 }

@@ -13,6 +13,7 @@ import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
+import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
@@ -56,6 +57,18 @@ import {
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
+import {
+    inputCursorEndAction,
+    inputCursorHomeAction,
+    inputCursorLeftAction,
+    inputCursorRightAction,
+    inputCursorWordLeftAction,
+    inputCursorWordRightAction,
+    inputDeleteLeftAction,
+    inputDeleteRightAction,
+    inputDeleteWordLeftAction,
+    inputDeleteWordRightAction,
+} from "./Actions/InputActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -70,6 +83,7 @@ import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
+import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
@@ -125,6 +139,18 @@ const builtinActions = [
     nextEditorInGroupAction,
     previousEditorInGroupAction,
     closeActiveEditorAction,
+
+    // Input widget
+    inputCursorLeftAction,
+    inputCursorRightAction,
+    inputCursorHomeAction,
+    inputCursorEndAction,
+    inputCursorWordLeftAction,
+    inputCursorWordRightAction,
+    inputDeleteLeftAction,
+    inputDeleteRightAction,
+    inputDeleteWordLeftAction,
+    inputDeleteWordRightAction,
 ];
 
 export class AppController extends Disposable implements IController {
@@ -136,6 +162,7 @@ export class AppController extends Disposable implements IController {
         StatusBarControllerDIToken,
         ThemeServiceDIToken,
         ContextKeyServiceDIToken,
+        InputWidgetControllerDIToken,
     ] as const;
     public readonly view: BodyElement;
     public readonly workbenchLayout: WorkbenchLayoutElement;
@@ -148,6 +175,7 @@ export class AppController extends Disposable implements IController {
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
+    private inputWidgetController: InputWidgetController;
 
     public constructor(
         editorGroupController: EditorGroupController,
@@ -157,6 +185,7 @@ export class AppController extends Disposable implements IController {
         statusBarController: StatusBarController,
         themeService: ThemeService,
         contextKeys: ContextKeyService,
+        inputWidgetController: InputWidgetController,
     ) {
         super();
         this.editorGroupController = this.register(editorGroupController);
@@ -165,6 +194,7 @@ export class AppController extends Disposable implements IController {
         this.commands = commands;
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
+        this.inputWidgetController = inputWidgetController;
 
         this.workbenchLayout = new WorkbenchLayoutElement();
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
@@ -270,7 +300,9 @@ export class AppController extends Disposable implements IController {
         const editorCount = this.editorGroupController.editorCount;
 
         this.contextKeys.set("textInputFocus", active instanceof EditorElement);
+        this.contextKeys.set("inputWidgetFocus", active instanceof InputElement);
         this.contextKeys.set("listFocus", active instanceof TreeViewElement);
+        this.inputWidgetController.setActive(active instanceof InputElement ? active : null);
         this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
     }

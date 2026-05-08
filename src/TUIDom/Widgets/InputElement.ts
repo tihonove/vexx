@@ -12,6 +12,7 @@ const INPUT_BG = packRgb(60, 60, 60);
 const PLACEHOLDER_FG = packRgb(110, 110, 110);
 const FOCUSED_BORDER_FG = packRgb(0x00, 0x7f, 0xd4); // #007FD4 — focusBorder from dark+
 const UNFOCUSED_BORDER_FG = packRgb(0x3c, 0x3c, 0x3c); // #3C3C3C
+const SELECTION_BG = packRgb(0x26, 0x4f, 0x78); // #264F78 — VS Code selection
 
 export interface InputElementStyle {
     fg?: number;
@@ -117,6 +118,8 @@ export class InputElement extends TUIElement {
         // Draw text or placeholder
         if (text.length === 0 && this.placeholder !== undefined) {
             textContext.drawText(contentXStart, contentY, this.placeholder, { fg: PLACEHOLDER_FG, bg: INPUT_BG });
+        } else if (this.inputState.hasSelection) {
+            this.renderTextWithSelection(textContext, dl, text, contentXStart, contentY);
         } else {
             textContext.drawText(contentXStart - this.scrollX, contentY, text, { fg: INPUT_FG, bg: INPUT_BG });
         }
@@ -127,6 +130,34 @@ export class InputElement extends TUIElement {
             if (cursorX >= contentXStart && cursorX < contentXStart + contentWidth) {
                 context.setCursorPosition(cursorX, contentY);
             }
+        }
+    }
+
+    private renderTextWithSelection(context: RenderContext, dl: DisplayLine, text: string, contentXStart: number, contentY: number): void {
+        const selStart = this.inputState.selectionStart;
+        const selEnd = this.inputState.selectionEnd;
+        const before = text.slice(0, selStart);
+        const selected = text.slice(selStart, selEnd);
+        const after = text.slice(selEnd);
+
+        const selStartCol = dl.offsetToColumn(selStart);
+        const selEndCol = dl.offsetToColumn(selEnd);
+
+        if (before.length > 0) {
+            context.drawText(contentXStart - this.scrollX, contentY, before, { fg: INPUT_FG, bg: INPUT_BG });
+        }
+        if (selected.length > 0) {
+            context.drawText(contentXStart + selStartCol - this.scrollX, contentY, selected, { fg: INPUT_FG, bg: SELECTION_BG });
+        }
+        // Fill selection background for empty tail columns up to selEndCol (handles wide chars)
+        for (let col = selStartCol; col < selEndCol; col++) {
+            const x = contentXStart + col - this.scrollX;
+            // Overwrite only cells that didn't get text (will be spaces from background fill)
+            // drawText already covered the chars, this handles any residual slots
+            void x;
+        }
+        if (after.length > 0) {
+            context.drawText(contentXStart + selEndCol - this.scrollX, contentY, after, { fg: INPUT_FG, bg: INPUT_BG });
         }
     }
 

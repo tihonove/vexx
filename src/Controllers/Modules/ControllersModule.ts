@@ -1,6 +1,7 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { AppController, AppControllerDIToken } from "../AppController.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWidgetController.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarController.ts";
 
 /**
@@ -12,5 +13,6 @@ import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarCon
 export const controllersModule: ContainerModule = (container) => {
     container.bind(EditorGroupControllerDIToken, EditorGroupController);
     container.bind(StatusBarControllerDIToken, StatusBarController);
+    container.bind(InputWidgetControllerDIToken, InputWidgetController);
     container.bind(AppControllerDIToken, AppController);
 };

@@ -246,6 +246,58 @@ describe("parseInput", () => {
         expect(events).toEqual([kp("a", "\x1b[97;4u", { shiftKey: true, altKey: true, code: "KeyA" })]);
     });
 
+    // ─── Kitty CSI u: navigation keys (sent when Kitty flags include 8) ───
+
+    it("parses Kitty CSI u: ArrowLeft (\\x1b[57350u)", () => {
+        const events = parseInput("\x1b[57350u");
+        expect(events).toEqual([kp("ArrowLeft", "\x1b[57350u")]);
+    });
+
+    it("parses Kitty CSI u: Ctrl+Shift+ArrowLeft (\\x1b[57350;6u)", () => {
+        const events = parseInput("\x1b[57350;6u");
+        expect(events).toEqual([kp("ArrowLeft", "\x1b[57350;6u", { ctrlKey: true, shiftKey: true })]);
+    });
+
+    it("parses Kitty CSI u: Ctrl+Shift+ArrowRight (\\x1b[57351;6u)", () => {
+        const events = parseInput("\x1b[57351;6u");
+        expect(events).toEqual([kp("ArrowRight", "\x1b[57351;6u", { ctrlKey: true, shiftKey: true })]);
+    });
+
+    it("parses Kitty CSI u: Ctrl+Shift+Home (\\x1b[57356;6u)", () => {
+        const events = parseInput("\x1b[57356;6u");
+        expect(events).toEqual([kp("Home", "\x1b[57356;6u", { ctrlKey: true, shiftKey: true })]);
+    });
+
+    it("parses Kitty CSI u: Ctrl+Shift+End (\\x1b[57357;6u)", () => {
+        const events = parseInput("\x1b[57357;6u");
+        expect(events).toEqual([kp("End", "\x1b[57357;6u", { ctrlKey: true, shiftKey: true })]);
+    });
+
+    it("parses Kitty CSI u: Shift+Home (\\x1b[57356;2u)", () => {
+        const events = parseInput("\x1b[57356;2u");
+        expect(events).toEqual([kp("Home", "\x1b[57356;2u", { shiftKey: true })]);
+    });
+
+    it("parses Kitty CSI u: Shift+End (\\x1b[57357;2u)", () => {
+        const events = parseInput("\x1b[57357;2u");
+        expect(events).toEqual([kp("End", "\x1b[57357;2u", { shiftKey: true })]);
+    });
+
+    it("parses Kitty CSI u: PageUp (\\x1b[57354u)", () => {
+        const events = parseInput("\x1b[57354u");
+        expect(events).toEqual([kp("PageUp", "\x1b[57354u")]);
+    });
+
+    it("parses Kitty CSI u: PageDown (\\x1b[57355u)", () => {
+        const events = parseInput("\x1b[57355u");
+        expect(events).toEqual([kp("PageDown", "\x1b[57355u")]);
+    });
+
+    it("parses Kitty CSI u: Delete (\\x1b[57349u)", () => {
+        const events = parseInput("\x1b[57349u");
+        expect(events).toEqual([kp("Delete", "\x1b[57349u")]);
+    });
+
     // ─── Alt+key via ESC prefix ───
 
     it("parses Alt+a (\\x1ba)", () => {

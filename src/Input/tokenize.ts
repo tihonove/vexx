@@ -171,6 +171,24 @@ export const kittyCodepointMap: Partial<Record<number, { key: string; code?: str
     27: { key: "Escape" },
     127: { key: "Backspace" },
 
+    // F1–F4 (Kitty PUA; legacy terminals use SS3 \x1bOP–\x1bOS)
+    57344: { key: "F1", code: "F1" },
+    57345: { key: "F2", code: "F2" },
+    57346: { key: "F3", code: "F3" },
+    57347: { key: "F4", code: "F4" },
+
+    // Navigation keys (Kitty sends these as CSI u with PUA codepoints when flags include 8)
+    57348: { key: "Insert" },
+    57349: { key: "Delete" },
+    57350: { key: "ArrowLeft" },
+    57351: { key: "ArrowRight" },
+    57352: { key: "ArrowUp" },
+    57353: { key: "ArrowDown" },
+    57354: { key: "PageUp" },
+    57355: { key: "PageDown" },
+    57356: { key: "Home" },
+    57357: { key: "End" },
+
     // Lock keys
     57358: { key: "CapsLock" },
     57359: { key: "ScrollLock" },
