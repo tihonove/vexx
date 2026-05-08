@@ -2,12 +2,13 @@ import { DisplayLine } from "../Common/DisplayLine.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
 
 import { EditorViewState } from "./EditorViewState.ts";
 import type { ILineTokens, IToken } from "./ILineTokens.ts";
-import { isSelectionCollapsed, selectionToRange } from "./ISelection.ts";
+import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "./ISelection.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "./Tokenization/ITokenStyleResolver.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "./Tokenization/ITokenStyleResolver.ts";
@@ -98,6 +99,9 @@ export class EditorElement extends TUIElement implements IScrollable {
 
         this.addEventListener("keypress", (event) => {
             this.handleKeyPress(event);
+        });
+        this.addEventListener("mousedown", (event) => {
+            this.handleMouseDown(event);
         });
     }
 
@@ -272,6 +276,34 @@ export class EditorElement extends TUIElement implements IScrollable {
             cursorScreenY < visibleLines
         ) {
             context.setCursorPosition(cursorScreenX, cursorScreenY);
+        }
+    }
+
+    private handleMouseDown(event: TUIMouseEvent): void {
+        const gutterW = this.gutterWidth;
+        const viewLineCount = this.viewState.getViewLineCount();
+        if (viewLineCount === 0) return;
+
+        const viewLine = Math.min(
+            this.viewState.scrollTop + event.localY,
+            viewLineCount - 1,
+        );
+        const logLine = this.viewState.visualToLogicalLine(viewLine);
+        const displayCol =
+            event.localX < gutterW
+                ? 0
+                : event.localX - gutterW + this.viewState.scrollLeft;
+        const lineContent = this.viewState.document.getLineContent(logLine);
+        const dl = new DisplayLine(lineContent, this.tabSize);
+        const charOffset = dl.columnToOffset(displayCol);
+
+        if (event.shiftKey && this.viewState.selections.length > 0) {
+            const anchor = this.viewState.selections[0].anchor;
+            this.viewState.selections = [
+                createSelection(anchor.line, anchor.character, logLine, charOffset),
+            ];
+        } else {
+            this.viewState.selections = [createCursorSelection(logLine, charOffset)];
         }
     }
 
