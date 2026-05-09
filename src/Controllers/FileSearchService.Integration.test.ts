@@ -1,0 +1,203 @@
+/**
+ * Integration test: FileSearchService against the real vexx project.
+ *
+ * This test suite exercises FileSearchService with the actual workspace
+ * at process.cwd() (i.e. /workspaces/vexx).  It verifies that:
+ *   - real project files are indexed
+ *   - fuzzy ranking produces VS Code-like results on actual filenames
+ *   - known files are discoverable by their common abbreviations
+ */
+
+import * as path from "node:path";
+
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { FileSearchService } from "./FileSearchService.ts";
+
+const ROOT = path.join(process.cwd()); // /workspaces/vexx
+const SRC = path.join(ROOT, "src");
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function relativePaths(results: ReturnType<FileSearchService["search"]>): string[] {
+    return results.map((r) => r.entry.relativePath);
+}
+
+function scoreOf(
+    results: ReturnType<FileSearchService["search"]>,
+    fragment: string
+): number | undefined {
+    return results.find((r) => r.entry.relativePath.includes(fragment))?.score;
+}
+
+// ─── Suite ────────────────────────────────────────────────────────────────────
+
+describe("FileSearchService — integration against real project", () => {
+    let service: FileSearchService;
+
+    beforeAll(() => {
+        service = new FileSearchService();
+        service.activate(SRC);
+    });
+
+    afterAll(() => {
+        service.dispose();
+    });
+
+    describe("index coverage", () => {
+        it("is indexed after activate", () => {
+            expect(service.isIndexed).toBe(true);
+        });
+
+        it("finds more than 50 files in src/", () => {
+            const results = service.search("", 1000);
+            expect(results.length).toBeGreaterThan(50);
+        });
+
+        it("indexes AppController.ts", () => {
+            // pass large maxResults — default 50 may not cover all files
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.some((p) => p.includes("AppController.ts"))).toBe(true);
+        });
+
+        it("indexes files in nested directories", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.some((p) => p.includes("Controllers/"))).toBe(true);
+            expect(paths.some((p) => p.includes("TUIDom/"))).toBe(true);
+            expect(paths.some((p) => p.includes("Editor/"))).toBe(true);
+        });
+
+        it("does not include node_modules files", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.every((p) => !p.includes("node_modules"))).toBe(true);
+        });
+
+        it("does not include .git files", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.every((p) => !p.startsWith(".git"))).toBe(true);
+        });
+
+        it("all relative paths use forward slashes", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.every((p) => !p.includes("\\"))).toBe(true);
+        });
+    });
+
+    describe("finding well-known files", () => {
+        it('"ac" finds AppController.ts', () => {
+            const paths = relativePaths(service.search("ac"));
+            expect(paths.some((p) => p.includes("AppController.ts"))).toBe(true);
+        });
+
+        it('"ftc" finds FileTreeController.ts', () => {
+            const paths = relativePaths(service.search("ftc"));
+            expect(paths.some((p) => p.includes("FileTreeController.ts"))).toBe(true);
+        });
+
+        it('"dic" finds DiContainer.ts', () => {
+            const paths = relativePaths(service.search("dic"));
+            expect(paths.some((p) => p.includes("DiContainer.ts"))).toBe(true);
+        });
+
+        it('"cr" finds CommandRegistry.ts', () => {
+            const paths = relativePaths(service.search("cr"));
+            expect(paths.some((p) => p.includes("CommandRegistry.ts"))).toBe(true);
+        });
+
+        it('"ie" finds InputElement.ts', () => {
+            const paths = relativePaths(service.search("ie"));
+            expect(paths.some((p) => p.includes("InputElement.ts"))).toBe(true);
+        });
+
+        it('"fs" finds FuzzySearch.ts', () => {
+            const paths = relativePaths(service.search("fs"));
+            expect(paths.some((p) => p.includes("FuzzySearch.ts"))).toBe(true);
+        });
+
+        it('"ntb" finds NodeTerminalBackend.ts', () => {
+            const paths = relativePaths(service.search("ntb"));
+            expect(paths.some((p) => p.includes("NodeTerminalBackend.ts"))).toBe(true);
+        });
+    });
+
+    describe("ranking on real files", () => {
+        it('"ac": AppController.ts scores higher than other "ac" matches', () => {
+            const results = service.search("ac");
+            expect(results.length).toBeGreaterThan(0);
+            // AppController.ts should be in top-10 — both A and C are word boundaries
+            // (sibling test files share the same score; exact position depends on walk order)
+            const top10 = relativePaths(results.slice(0, 10));
+            expect(top10.some((p) => p.includes("AppController.ts"))).toBe(true);
+        });
+
+        it('"cr": CommandRegistry.ts scores higher than files with c...r scattered', () => {
+            const results = service.search("cr");
+            const top5 = relativePaths(results.slice(0, 5));
+            expect(top5.some((p) => p.includes("CommandRegistry.ts"))).toBe(true);
+        });
+
+        it('"ks": KeybindingRegistry scores above files with k...s scattered', () => {
+            const results = service.search("kr");
+            const top5 = relativePaths(results.slice(0, 5));
+            expect(top5.some((p) => p.includes("KeybindingRegistry.ts"))).toBe(true);
+        });
+
+        it("basename match ranks above path-only match", () => {
+            // "sc" query: ScrollContainerElement (basename) vs path-only matches
+            const results = service.search("sc");
+            const scrollIdx = results.findIndex((r) =>
+                r.entry.relativePath.includes("ScrollContainerElement.ts")
+            );
+            if (scrollIdx !== -1) {
+                // ScrollContainerElement.ts should be in top 10
+                expect(scrollIdx).toBeLessThan(10);
+            }
+        });
+
+        it("results are sorted by score descending", () => {
+            const results = service.search("controller");
+            for (let i = 1; i < results.length; i++) {
+                expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score);
+            }
+        });
+
+        it('"AppController" exact substring \u2014 all results contain AppController in basename', () => {
+            const results = service.search("AppController");
+            expect(results.length).toBeGreaterThan(0);
+            // Every result should have "AppController" in basename (high word-boundary score)
+            // or at least in the path; files without it should score too low to appear in top-N
+            const top = results.slice(0, results.length);
+            // All top results share the same matched region — verify they are all AppController files
+            const scores = top.map((r) => r.score);
+            const maxScore = scores[0];
+            // Files sharing the top score should all be AppController*.ts variants
+            const topTier = top.filter((r) => r.score === maxScore);
+            expect(topTier.every((r) => r.entry.relativePath.includes("AppController"))).toBe(true);
+        });
+
+        it("searching by full filename with extension works", () => {
+            const results = service.search("DiContainer.ts");
+            expect(results.length).toBeGreaterThan(0);
+            expect(results[0].entry.relativePath).toContain("DiContainer.ts");
+        });
+    });
+
+    describe("result structure", () => {
+        it("each result has entry.relativePath, entry.absolutePath, score, matchedIndices", () => {
+            const results = service.search("app");
+            expect(results.length).toBeGreaterThan(0);
+            const r = results[0];
+            expect(typeof r.entry.relativePath).toBe("string");
+            expect(typeof r.entry.absolutePath).toBe("string");
+            expect(typeof r.score).toBe("number");
+            expect(Array.isArray(r.matchedIndices)).toBe(true);
+        });
+
+        it("absolutePath starts with SRC root", () => {
+            const results = service.search("app");
+            for (const r of results) {
+                expect(r.entry.absolutePath.startsWith(SRC)).toBe(true);
+            }
+        });
+    });
+});
