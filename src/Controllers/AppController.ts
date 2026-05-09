@@ -6,14 +6,14 @@ import { EditorElement } from "../Editor/EditorElement.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
+import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
+import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
-import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
@@ -55,8 +55,6 @@ import {
     undoAction,
 } from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
-import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
-import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import {
     inputCursorEndAction,
     inputCursorHomeAction,
@@ -69,6 +67,8 @@ import {
     inputDeleteWordLeftAction,
     inputDeleteWordRightAction,
 } from "./Actions/InputActions.ts";
+import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
+import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -79,11 +79,11 @@ import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileTreeController } from "./FileTreeController.ts";
 import type { IController } from "./IController.ts";
+import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
-import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
@@ -209,7 +209,9 @@ export class AppController extends Disposable implements IController {
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...quitAction,
-                run: (a) => this.requestQuit(a),
+                run: (a) => {
+                    this.requestQuit(a);
+                },
             }),
         );
 
@@ -238,7 +240,9 @@ export class AppController extends Disposable implements IController {
                 onDontSave: () => {
                     this.editorGroupController.closeTab(index);
                 },
-                onCancel: () => {},
+                onCancel: () => {
+                    // noop
+                },
             });
         };
         this.fileTreeController.mount();
@@ -427,7 +431,9 @@ export class AppController extends Disposable implements IController {
                     this.showQuitConfirmDialogSequential(rest, accessor);
                 }
             },
-            onCancel: () => {},
+            onCancel: () => {
+                // noop
+            },
         });
     }
 }

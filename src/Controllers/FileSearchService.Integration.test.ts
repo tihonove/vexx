@@ -23,10 +23,7 @@ function relativePaths(results: ReturnType<FileSearchService["search"]>): string
     return results.map((r) => r.entry.relativePath);
 }
 
-function scoreOf(
-    results: ReturnType<FileSearchService["search"]>,
-    fragment: string
-): number | undefined {
+function scoreOf(results: ReturnType<FileSearchService["search"]>, fragment: string): number | undefined {
     return results.find((r) => r.entry.relativePath.includes(fragment))?.score;
 }
 
@@ -145,9 +142,7 @@ describe("FileSearchService — integration against real project", () => {
         it("basename match ranks above path-only match", () => {
             // "sc" query: ScrollContainerElement (basename) vs path-only matches
             const results = service.search("sc");
-            const scrollIdx = results.findIndex((r) =>
-                r.entry.relativePath.includes("ScrollContainerElement.ts")
-            );
+            const scrollIdx = results.findIndex((r) => r.entry.relativePath.includes("ScrollContainerElement.ts"));
             if (scrollIdx !== -1) {
                 // ScrollContainerElement.ts should be in top 10
                 expect(scrollIdx).toBeLessThan(10);

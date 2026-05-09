@@ -131,7 +131,7 @@ export class EditorGroupController extends Disposable implements IController {
         };
         this.view.tabStrip.onTabClose = (index) => {
             const editor = this.editors[index];
-            if (editor?.isModified && this.onRequestConfirmClose) {
+            if (editor.isModified && this.onRequestConfirmClose) {
                 this.onRequestConfirmClose(index);
             } else {
                 this.closeTab(index);

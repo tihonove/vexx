@@ -4,6 +4,7 @@ import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
+
 import { InputState } from "./InputState.ts";
 
 // ─── Colors ─────────────────────────────────────────────────────────────────
@@ -34,10 +35,10 @@ export interface InputElementStyle {
 export class InputElement extends TUIElement {
     public readonly inputState: InputState;
     public placeholder: string | undefined = undefined;
-    public showBorder: boolean = false;
+    public showBorder = false;
     public onChange: ((value: string) => void) | undefined = undefined;
 
-    private scrollX: number = 0;
+    private scrollX = 0;
 
     public constructor(inputState?: InputState) {
         super();
@@ -68,9 +69,7 @@ export class InputElement extends TUIElement {
 
     public override performLayout(constraints: BoxConstraints): Size {
         const height = this.showBorder ? 3 : 1;
-        const width = Number.isFinite(constraints.maxWidth)
-            ? constraints.maxWidth
-            : Math.max(constraints.minWidth, 20);
+        const width = Number.isFinite(constraints.maxWidth) ? constraints.maxWidth : Math.max(constraints.minWidth, 20);
         return super.performLayout(BoxConstraints.tight(new Size(width, height)));
     }
 
@@ -133,7 +132,13 @@ export class InputElement extends TUIElement {
         }
     }
 
-    private renderTextWithSelection(context: RenderContext, dl: DisplayLine, text: string, contentXStart: number, contentY: number): void {
+    private renderTextWithSelection(
+        context: RenderContext,
+        dl: DisplayLine,
+        text: string,
+        contentXStart: number,
+        contentY: number,
+    ): void {
         const selStart = this.inputState.selectionStart;
         const selEnd = this.inputState.selectionEnd;
         const before = text.slice(0, selStart);
@@ -147,7 +152,10 @@ export class InputElement extends TUIElement {
             context.drawText(contentXStart - this.scrollX, contentY, before, { fg: INPUT_FG, bg: INPUT_BG });
         }
         if (selected.length > 0) {
-            context.drawText(contentXStart + selStartCol - this.scrollX, contentY, selected, { fg: INPUT_FG, bg: SELECTION_BG });
+            context.drawText(contentXStart + selStartCol - this.scrollX, contentY, selected, {
+                fg: INPUT_FG,
+                bg: SELECTION_BG,
+            });
         }
         // Fill selection background for empty tail columns up to selEndCol (handles wide chars)
         for (let col = selStartCol; col < selEndCol; col++) {

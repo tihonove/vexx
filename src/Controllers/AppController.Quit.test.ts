@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import type { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";
-import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 interface TestQuitContext {

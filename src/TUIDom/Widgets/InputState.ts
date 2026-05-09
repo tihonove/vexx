@@ -6,8 +6,8 @@ import { DisplayLine } from "../../Common/DisplayLine.ts";
  * No UI dependencies.
  */
 export class InputState {
-    private textValue: string = "";
-    private cursorOffsetValue: number = 0;
+    private textValue = "";
+    private cursorOffsetValue = 0;
     private anchorOffset: number | null = null;
 
     public get text(): string {
@@ -59,32 +59,32 @@ export class InputState {
     }
 
     public selectLeft(): void {
-        if (this.anchorOffset === null) this.anchorOffset = this.cursorOffsetValue;
+        this.anchorOffset ??= this.cursorOffsetValue;
         this.moveCursorLeftRaw();
     }
 
     public selectRight(): void {
-        if (this.anchorOffset === null) this.anchorOffset = this.cursorOffsetValue;
+        this.anchorOffset ??= this.cursorOffsetValue;
         this.moveCursorRightRaw();
     }
 
     public selectToStart(): void {
-        if (this.anchorOffset === null) this.anchorOffset = this.cursorOffsetValue;
+        this.anchorOffset ??= this.cursorOffsetValue;
         this.cursorOffsetValue = 0;
     }
 
     public selectToEnd(): void {
-        if (this.anchorOffset === null) this.anchorOffset = this.cursorOffsetValue;
+        this.anchorOffset ??= this.cursorOffsetValue;
         this.cursorOffsetValue = this.textValue.length;
     }
 
     public selectWordLeft(): void {
-        if (this.anchorOffset === null) this.anchorOffset = this.cursorOffsetValue;
+        this.anchorOffset ??= this.cursorOffsetValue;
         this.cursorOffsetValue = this.wordBoundaryLeft(this.cursorOffsetValue);
     }
 
     public selectWordRight(): void {
-        if (this.anchorOffset === null) this.anchorOffset = this.cursorOffsetValue;
+        this.anchorOffset ??= this.cursorOffsetValue;
         this.cursorOffsetValue = this.wordBoundaryRight(this.cursorOffsetValue);
     }
 
@@ -122,7 +122,8 @@ export class InputState {
             }
         }
         // Fallback: delete one code unit
-        this.textValue = this.textValue.slice(0, this.cursorOffsetValue - 1) + this.textValue.slice(this.cursorOffsetValue);
+        this.textValue =
+            this.textValue.slice(0, this.cursorOffsetValue - 1) + this.textValue.slice(this.cursorOffsetValue);
         this.cursorOffsetValue--;
     }
 
@@ -142,7 +143,8 @@ export class InputState {
             }
         }
         // Fallback: delete one code unit
-        this.textValue = this.textValue.slice(0, this.cursorOffsetValue) + this.textValue.slice(this.cursorOffsetValue + 1);
+        this.textValue =
+            this.textValue.slice(0, this.cursorOffsetValue) + this.textValue.slice(this.cursorOffsetValue + 1);
     }
 
     /** Move cursor one grapheme to the left (ArrowLeft). */

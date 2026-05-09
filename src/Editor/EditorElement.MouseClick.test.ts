@@ -1,18 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { TextDocument } from "./TextDocument.ts";
 
-function createEditor(
-    text: string,
-    width = 30,
-    height = 5,
-): { app: TestApp; editor: EditorElement } {
+function createEditor(text: string, width = 30, height = 5): { app: TestApp; editor: EditorElement } {
     const doc = new TextDocument(text);
     const viewState = new EditorViewState(doc);
     const editor = new EditorElement(viewState);
@@ -20,12 +16,7 @@ function createEditor(
     return { app, editor };
 }
 
-function fireMouseDown(
-    editor: EditorElement,
-    localX: number,
-    localY: number,
-    shiftKey = false,
-): void {
+function fireMouseDown(editor: EditorElement, localX: number, localY: number, shiftKey = false): void {
     editor.dispatchEvent(
         new TUIMouseEvent("mousedown", {
             button: "left",

@@ -8,10 +8,7 @@ import { RenderContext } from "../TUIElement.ts";
 import { InputElement } from "./InputElement.ts";
 import { InputState } from "./InputState.ts";
 
-function renderInput(
-    input: InputElement,
-    width: number,
-): { backend: MockTerminalBackend; termScreen: TerminalScreen } {
+function renderInput(input: InputElement, width: number): { backend: MockTerminalBackend; termScreen: TerminalScreen } {
     const height = input.showBorder ? 3 : 1;
     const size = new Size(width, height);
     const backend = new MockTerminalBackend(size);

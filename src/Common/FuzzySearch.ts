@@ -52,8 +52,7 @@ export function fuzzyMatch(query: string, text: string): FuzzyMatch | null {
 
     const matchedIndices: number[] = [];
     let ti = 0;
-    for (let qi = 0; qi < qLower.length; qi++) {
-        const ch = qLower[qi];
+    for (const ch of qLower) {
         let found = false;
         while (ti < tLower.length) {
             if (tLower[ti] === ch) {
@@ -70,7 +69,7 @@ export function fuzzyMatch(query: string, text: string): FuzzyMatch | null {
     // Score the matched positions
     let score = 0;
     let prevMatched = -1;
-    let gapStart = 0;
+    const gapStart = 0;
 
     for (let i = 0; i < matchedIndices.length; i++) {
         const pos = matchedIndices[i];

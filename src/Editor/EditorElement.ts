@@ -284,24 +284,16 @@ export class EditorElement extends TUIElement implements IScrollable {
         const viewLineCount = this.viewState.getViewLineCount();
         if (viewLineCount === 0) return;
 
-        const viewLine = Math.min(
-            this.viewState.scrollTop + event.localY,
-            viewLineCount - 1,
-        );
+        const viewLine = Math.min(this.viewState.scrollTop + event.localY, viewLineCount - 1);
         const logLine = this.viewState.visualToLogicalLine(viewLine);
-        const displayCol =
-            event.localX < gutterW
-                ? 0
-                : event.localX - gutterW + this.viewState.scrollLeft;
+        const displayCol = event.localX < gutterW ? 0 : event.localX - gutterW + this.viewState.scrollLeft;
         const lineContent = this.viewState.document.getLineContent(logLine);
         const dl = new DisplayLine(lineContent, this.tabSize);
         const charOffset = dl.columnToOffset(displayCol);
 
         if (event.shiftKey && this.viewState.selections.length > 0) {
             const anchor = this.viewState.selections[0].anchor;
-            this.viewState.selections = [
-                createSelection(anchor.line, anchor.character, logLine, charOffset),
-            ];
+            this.viewState.selections = [createSelection(anchor.line, anchor.character, logLine, charOffset)];
         } else {
             this.viewState.selections = [createCursorSelection(logLine, charOffset)];
         }
