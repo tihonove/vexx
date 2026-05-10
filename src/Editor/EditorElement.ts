@@ -103,6 +103,9 @@ export class EditorElement extends TUIElement implements IScrollable {
         this.addEventListener("mousedown", (event) => {
             this.handleMouseDown(event);
         });
+        this.addEventListener("wheel", (event) => {
+            this.handleWheel(event);
+        });
     }
 
     public render(context: RenderContext): void {
@@ -277,6 +280,29 @@ export class EditorElement extends TUIElement implements IScrollable {
         ) {
             context.setCursorPosition(cursorScreenX, cursorScreenY);
         }
+    }
+
+    private handleWheel(event: TUIMouseEvent): void {
+        const viewState = this.viewState;
+        const maxScrollTop = Math.max(0, viewState.getViewLineCount() - viewState.viewportHeight);
+        const maxScrollLeft = Math.max(0, this.contentWidth - viewState.viewportWidth);
+
+        switch (event.wheelDirection) {
+            case "up":
+                viewState.scrollTop = Math.max(0, viewState.scrollTop - 3);
+                break;
+            case "down":
+                viewState.scrollTop = Math.min(maxScrollTop, viewState.scrollTop + 3);
+                break;
+            case "left":
+                viewState.scrollLeft = Math.max(0, viewState.scrollLeft - 3);
+                break;
+            case "right":
+                viewState.scrollLeft = Math.min(maxScrollLeft, viewState.scrollLeft + 3);
+                break;
+        }
+
+        this.markDirty();
     }
 
     private handleMouseDown(event: TUIMouseEvent): void {
