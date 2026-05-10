@@ -86,6 +86,17 @@ export class EditorViewState {
         }
     }
 
+    // ─── Scroll API ─────────────────────────────────────────
+
+    public scrollLineUp(): void {
+        this.scrollTop = Math.max(0, this.scrollTop - 1);
+    }
+
+    public scrollLineDown(): void {
+        const maxScrollTop = Math.max(0, this.getViewLineCount() - this.viewportHeight);
+        this.scrollTop = Math.min(maxScrollTop, this.scrollTop + 1);
+    }
+
     // ─── View API (projection for renderer) ─────────────────
 
     /**

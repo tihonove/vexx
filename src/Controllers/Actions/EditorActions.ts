@@ -251,3 +251,25 @@ export const cursorPageUpSelectAction: CommandAction = {
         accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorPageUp(true);
     },
 };
+
+// ─── Scroll View ────────────────────────────────────────────
+
+export const scrollLineUpAction: CommandAction = {
+    id: "scrollLineUp",
+    title: "Scroll Line Up",
+    keybinding: parseKeybinding("ctrl+up"),
+    when: "textInputFocus",
+    run(accessor) {
+        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.scrollLineUp();
+    },
+};
+
+export const scrollLineDownAction: CommandAction = {
+    id: "scrollLineDown",
+    title: "Scroll Line Down",
+    keybinding: parseKeybinding("ctrl+down"),
+    when: "textInputFocus",
+    run(accessor) {
+        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.scrollLineDown();
+    },
+};

@@ -35,6 +35,8 @@ import {
     cursorPageUpAction,
     cursorPageUpSelectAction,
     cursorRightAction,
+    scrollLineDownAction,
+    scrollLineUpAction,
     cursorRightSelectAction,
     cursorTopAction,
     cursorTopSelectAction,
@@ -119,6 +121,8 @@ const builtinActions = [
     cursorPageDownSelectAction,
     cursorPageUpAction,
     cursorPageUpSelectAction,
+    scrollLineUpAction,
+    scrollLineDownAction,
 
     // Editing
     deleteLeftAction,
