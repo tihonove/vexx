@@ -75,10 +75,10 @@ export class EditorGroupController extends Disposable implements IController {
         return this.editors[index];
     }
 
-    public openFile(filePath: string): void {
+    public openFile(filePath: string, { focus = true }: { focus?: boolean } = {}): void {
         const existingIndex = this.editors.findIndex((e) => e.fileName === path.basename(filePath));
         if (existingIndex >= 0) {
-            this.activateTab(existingIndex);
+            this.activateTab(existingIndex, { focus });
             return;
         }
 
@@ -92,7 +92,7 @@ export class EditorGroupController extends Disposable implements IController {
         );
         editor.openFile(filePath);
         this.editors.push(editor);
-        this.activateTab(this.editors.length - 1);
+        this.activateTab(this.editors.length - 1, { focus });
     }
 
     public activateTab(index: number, { focus = true }: { focus?: boolean } = {}): void {

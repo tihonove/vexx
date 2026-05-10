@@ -69,6 +69,7 @@ import {
 } from "./Actions/InputActions.ts";
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
+import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -78,10 +79,12 @@ import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileTreeController } from "./FileTreeController.ts";
+import { FileSearchService } from "./FileSearchService.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
+import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
 
@@ -171,6 +174,8 @@ export class AppController extends Disposable implements IController {
     private confirmDialog: ConfirmSaveDialogElement | null = null;
     private savedFocusElement: TUIElement | null = null;
     private fileTreeController: FileTreeController;
+    private fileSearchService: FileSearchService;
+    private quickOpenController: QuickOpenController;
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
@@ -190,6 +195,8 @@ export class AppController extends Disposable implements IController {
         super();
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
+        this.fileSearchService = this.register(new FileSearchService());
+        this.quickOpenController = this.register(new QuickOpenController(this.fileSearchService, commands));
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
@@ -203,6 +210,16 @@ export class AppController extends Disposable implements IController {
         this.view.setContent(this.workbenchLayout);
         this.view.setStatusBar(this.statusBarController.view);
 
+        this.quickOpenController.setHostView(this.view);
+        this.quickOpenController.onOpenFile = (absolutePath) => {
+            this.editorGroupController.openFile(absolutePath);
+            this.updateContextKeys();
+            this.statusBarController.update();
+        };
+        this.quickOpenController.onExecuteCommand = (id) => {
+            this.commands.execute(id);
+        };
+
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
         }
@@ -211,6 +228,22 @@ export class AppController extends Disposable implements IController {
                 ...quitAction,
                 run: (a) => {
                     this.requestQuit(a);
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...quickOpenAction,
+                run: () => {
+                    this.quickOpenController.open("files");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...showCommandsAction,
+                run: () => {
+                    this.quickOpenController.open("commands");
                 },
             }),
         );
@@ -247,7 +280,9 @@ export class AppController extends Disposable implements IController {
         };
         this.fileTreeController.mount();
         this.fileTreeController.onFileActivate = (filePath) => {
-            this.openFile(filePath);
+            this.editorGroupController.openFile(filePath, { focus: false });
+            this.updateContextKeys();
+            this.statusBarController.update();
         };
         this.statusBarController.mount();
     }
@@ -267,6 +302,7 @@ export class AppController extends Disposable implements IController {
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
+        this.fileSearchService.activate(dirPath);
     }
 
     public focusEditor(): void {

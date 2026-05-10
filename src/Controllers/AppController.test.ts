@@ -191,3 +191,73 @@ describe("AppController integration", () => {
         expect(items).toContainEqual({ text: "[Modified]" });
     });
 });
+
+describe("AppController — Quick Open", () => {
+    it("Ctrl+P opens QuickPickElement (picker is visible)", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.focusEditor();
+
+        testApp.sendKey("Ctrl+P");
+
+        expect(testApp.querySelector("QuickPickElement")).not.toBeNull();
+        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+    });
+
+    it("Ctrl+Shift+P opens QuickPickElement in commands mode", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        controller.focusEditor();
+
+        commandRegistry.execute("workbench.action.showCommands");
+        testApp.render();
+
+        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        const picker = testApp.querySelector("QuickPickElement") as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
+        expect(picker.placeholder).toBe("Show All Commands");
+    });
+
+    it("Escape closes Quick Open picker", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.focusEditor();
+        testApp.sendKey("Ctrl+P");
+        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+
+        testApp.sendKey("Escape");
+
+        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("Escape after Ctrl+P returns focus to editor", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/focus-restore.txt");
+        controller.focusEditor();
+        const editorElement = testApp.querySelector("EditorElement");
+
+        testApp.sendKey("Ctrl+P");
+        testApp.sendKey("Escape");
+
+        expect(testApp.focusedElement).toBe(editorElement);
+    });
+
+    it("Ctrl+P while picker already open does not open second picker", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.focusEditor();
+        testApp.sendKey("Ctrl+P");
+        testApp.sendKey("Ctrl+P");
+
+        const pickers = testApp.querySelectorAll("QuickPickElement");
+        expect(pickers).toHaveLength(1);
+    });
+
+    it("Show Commands lists registered commands", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        commandRegistry.register("test.myCmd", () => {}, "My Test Command");
+        controller.focusEditor();
+
+        commandRegistry.execute("workbench.action.showCommands");
+        testApp.render();
+
+        const picker = testApp.querySelector("QuickPickElement") as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
+        const labels = picker.items.map((i) => i.label);
+        expect(labels).toContain("My Test Command");
+    });
+});

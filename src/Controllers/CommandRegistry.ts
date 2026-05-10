@@ -5,31 +5,46 @@ export const CommandRegistryDIToken = token<CommandRegistry>("CommandRegistry");
 
 export type CommandHandler = (...args: unknown[]) => unknown;
 
-export class CommandRegistry implements IDisposable {
-    private handlers = new Map<string, CommandHandler>();
+interface CommandEntry {
+    handler: CommandHandler;
+    title?: string;
+}
 
-    public register(id: string, handler: CommandHandler): IDisposable {
-        this.handlers.set(id, handler);
+export class CommandRegistry implements IDisposable {
+    private entries = new Map<string, CommandEntry>();
+
+    public register(id: string, handler: CommandHandler, title?: string): IDisposable {
+        this.entries.set(id, { handler, title });
         return {
             dispose: () => {
-                if (this.handlers.get(id) === handler) {
-                    this.handlers.delete(id);
+                if (this.entries.get(id)?.handler === handler) {
+                    this.entries.delete(id);
                 }
             },
         };
     }
 
     public execute(id: string, ...args: unknown[]): unknown {
-        const handler = this.handlers.get(id);
-        if (!handler) return undefined;
-        return handler(...args);
+        const entry = this.entries.get(id);
+        if (!entry) return undefined;
+        return entry.handler(...args);
     }
 
     public has(id: string): boolean {
-        return this.handlers.has(id);
+        return this.entries.has(id);
+    }
+
+    public listCommands(): Array<{ id: string; title: string }> {
+        const result: Array<{ id: string; title: string }> = [];
+        for (const [id, entry] of this.entries) {
+            if (entry.title !== undefined) {
+                result.push({ id, title: entry.title });
+            }
+        }
+        return result;
     }
 
     public dispose(): void {
-        this.handlers.clear();
+        this.entries.clear();
     }
 }

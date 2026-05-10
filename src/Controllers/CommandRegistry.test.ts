@@ -91,4 +91,41 @@ describe("CommandRegistry", () => {
         expect(registry.has("cmd.a")).toBe(false);
         expect(registry.has("cmd.b")).toBe(false);
     });
+
+    it("listCommands() returns commands registered with title", () => {
+        const registry = new CommandRegistry();
+        registry.register("cmd.a", () => {}, "Command A");
+        registry.register("cmd.b", () => {}, "Command B");
+
+        const list = registry.listCommands();
+
+        expect(list).toContainEqual({ id: "cmd.a", title: "Command A" });
+        expect(list).toContainEqual({ id: "cmd.b", title: "Command B" });
+    });
+
+    it("listCommands() excludes commands registered without title", () => {
+        const registry = new CommandRegistry();
+        registry.register("cmd.with", () => {}, "With Title");
+        registry.register("cmd.without", () => {});
+
+        const list = registry.listCommands();
+
+        expect(list.map((c) => c.id)).toContain("cmd.with");
+        expect(list.map((c) => c.id)).not.toContain("cmd.without");
+    });
+
+    it("listCommands() returns empty array when no titled commands", () => {
+        const registry = new CommandRegistry();
+        registry.register("cmd.a", () => {});
+
+        expect(registry.listCommands()).toHaveLength(0);
+    });
+
+    it("listCommands() does not include disposed command", () => {
+        const registry = new CommandRegistry();
+        const disposable = registry.register("cmd.a", () => {}, "Command A");
+        disposable.dispose();
+
+        expect(registry.listCommands()).toHaveLength(0);
+    });
 });

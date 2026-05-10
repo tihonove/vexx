@@ -21,7 +21,7 @@ export function registerAction(
 ): IDisposable {
     const disposables: IDisposable[] = [];
 
-    disposables.push(commands.register(action.id, (...args: unknown[]) => action.run(accessor, ...args)));
+    disposables.push(commands.register(action.id, (...args: unknown[]) => action.run(accessor, ...args), action.title));
 
     const allBindings: Keybinding[] = [];
     if (action.keybinding) {
