@@ -103,6 +103,12 @@ export class EditorElement extends TUIElement implements IScrollable {
         this.addEventListener("mousedown", (event) => {
             this.handleMouseDown(event);
         });
+        this.addEventListener("mousemove", (event) => {
+            this.handleMouseMove(event);
+        });
+        this.addEventListener("mouseup", () => {
+            this.dragAnchor = null;
+        });
         this.addEventListener("wheel", (event) => {
             this.handleWheel(event);
         });
@@ -305,24 +311,45 @@ export class EditorElement extends TUIElement implements IScrollable {
         this.markDirty();
     }
 
-    private handleMouseDown(event: TUIMouseEvent): void {
+    private dragAnchor: { line: number; character: number } | null = null;
+
+    private screenToDocPosition(localX: number, localY: number): { line: number; character: number } {
         const gutterW = this.gutterWidth;
         const viewLineCount = this.viewState.getViewLineCount();
-        if (viewLineCount === 0) return;
+        if (viewLineCount === 0) return { line: 0, character: 0 };
 
-        const viewLine = Math.min(this.viewState.scrollTop + event.localY, viewLineCount - 1);
+        const viewLine = Math.min(this.viewState.scrollTop + localY, viewLineCount - 1);
         const logLine = this.viewState.visualToLogicalLine(viewLine);
-        const displayCol = event.localX < gutterW ? 0 : event.localX - gutterW + this.viewState.scrollLeft;
+        const displayCol = localX < gutterW ? 0 : localX - gutterW + this.viewState.scrollLeft;
         const lineContent = this.viewState.document.getLineContent(logLine);
         const dl = new DisplayLine(lineContent, this.tabSize);
         const charOffset = dl.columnToOffset(displayCol);
+        return { line: logLine, character: charOffset };
+    }
+
+    private handleMouseDown(event: TUIMouseEvent): void {
+        if (this.viewState.getViewLineCount() === 0) return;
+
+        const pos = this.screenToDocPosition(event.localX, event.localY);
 
         if (event.shiftKey && this.viewState.selections.length > 0) {
             const anchor = this.viewState.selections[0].anchor;
-            this.viewState.selections = [createSelection(anchor.line, anchor.character, logLine, charOffset)];
+            this.dragAnchor = { line: anchor.line, character: anchor.character };
+            this.viewState.selections = [createSelection(anchor.line, anchor.character, pos.line, pos.character)];
         } else {
-            this.viewState.selections = [createCursorSelection(logLine, charOffset)];
+            this.dragAnchor = { line: pos.line, character: pos.character };
+            this.viewState.selections = [createCursorSelection(pos.line, pos.character)];
         }
+    }
+
+    private handleMouseMove(event: TUIMouseEvent): void {
+        if (this.dragAnchor === null) return;
+        if (this.viewState.getViewLineCount() === 0) return;
+
+        const pos = this.screenToDocPosition(event.localX, event.localY);
+        this.viewState.selections = [
+            createSelection(this.dragAnchor.line, this.dragAnchor.character, pos.line, pos.character),
+        ];
     }
 
     private handleKeyPress(event: TUIKeyboardEvent): void {
