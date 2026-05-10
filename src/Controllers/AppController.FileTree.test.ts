@@ -84,11 +84,12 @@ describe("FileTree opens file in editor", () => {
         tree!.focus();
         testApp.render();
 
-        // Activate first file
+        // Activate first file — focus moves to editor
         testApp.sendKey("Enter");
         testApp.render();
 
-        // Navigate down to second file and activate
+        // Return focus to tree to navigate to second file
+        tree!.focus();
         testApp.sendKey("ArrowDown");
         testApp.sendKey("Enter");
         testApp.render();
@@ -96,6 +97,19 @@ describe("FileTree opens file in editor", () => {
         const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
             .editorGroupController;
         expect(editorGroupCtrl.editorCount).toBe(2);
+    });
+
+    it("focus moves to editor after activating a file from the tree", () => {
+        const tree = testApp.querySelector("TreeViewElement");
+        tree!.focus();
+        testApp.render();
+
+        testApp.sendKey("Enter");
+        testApp.render();
+
+        const focused = testApp.focusedElement;
+        expect(focused).not.toBeNull();
+        expect(focused!.constructor.name).toBe("EditorElement");
     });
 
     it("does not call console.log when activating file", () => {

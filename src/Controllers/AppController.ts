@@ -284,7 +284,7 @@ export class AppController extends Disposable implements IController {
         };
         this.fileTreeController.mount();
         this.fileTreeController.onFileActivate = (filePath) => {
-            this.editorGroupController.openFile(filePath, { focus: false });
+            this.editorGroupController.openFile(filePath);
             this.updateContextKeys();
             this.statusBarController.update();
         };

@@ -164,4 +164,12 @@ describe("EditorGroupController auto-focus on file open", () => {
         expect(testApp.focusedElement).not.toBeNull();
         expect(testApp.querySelector("EditorElement")).toBe(testApp.focusedElement);
     });
+
+    it("focusManager.activeElement is the exact EditorElement instance after openFile", () => {
+        const { testApp, editorGroupController, controller } = createTestContext();
+        controller.openFile(writeFile("a.ts", "a"));
+
+        const editorElement = editorGroupController.getActiveEditor()!.view.getChild();
+        expect(testApp.app.focusManager?.activeElement).toBe(editorElement);
+    });
 });
