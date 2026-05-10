@@ -374,6 +374,77 @@ export class AppController extends Disposable implements IController {
                     },
                 ],
             },
+            {
+                label: "Edit",
+                mnemonic: "e",
+                entries: [
+                    {
+                        label: "Undo",
+                        shortcut: "Ctrl+Z",
+                        onSelect: () => {
+                            this.commands.execute("undo");
+                        },
+                    },
+                    {
+                        label: "Redo",
+                        shortcut: "Ctrl+Shift+Z",
+                        onSelect: () => {
+                            this.commands.execute("redo");
+                        },
+                    },
+                    { type: "separator" },
+                    {
+                        label: "Cut",
+                        shortcut: "Ctrl+X",
+                        onSelect: () => {
+                            this.commands.execute("editor.action.clipboardCutAction");
+                        },
+                    },
+                    {
+                        label: "Copy",
+                        shortcut: "Ctrl+C",
+                        onSelect: () => {
+                            this.commands.execute("editor.action.clipboardCopyAction");
+                        },
+                    },
+                    {
+                        label: "Paste",
+                        shortcut: "Ctrl+V",
+                        onSelect: () => {
+                            this.commands.execute("editor.action.clipboardPasteAction");
+                        },
+                    },
+                    { type: "separator" },
+                    {
+                        label: "Select All",
+                        shortcut: "Ctrl+A",
+                        onSelect: () => {
+                            this.commands.execute("editor.action.selectAll");
+                        },
+                    },
+                ],
+            },
+            {
+                label: "Selection",
+                mnemonic: "s",
+                entries: [
+                    {
+                        label: "Select All",
+                        shortcut: "Ctrl+A",
+                        onSelect: () => {
+                            this.commands.execute("editor.action.selectAll");
+                        },
+                    },
+                    { type: "separator" },
+                    {
+                        label: "Expand Selection (Word)",
+                        shortcut: "Ctrl+Shift+Right",
+                        onSelect: () => {
+                            this.commands.execute("cursorWordRightSelect");
+                        },
+                    },
+                ],
+            },
         ];
 
         const menuBar = new MenuBarElement(menuItems);
