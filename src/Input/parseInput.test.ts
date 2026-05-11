@@ -241,9 +241,31 @@ describe("parseInput", () => {
         expect(events).toEqual([kp("a", "\x1b[97;5u", { ctrlKey: true, code: "KeyA" })]);
     });
 
+    it("parses Kitty CSI u: Shift+a (\\x1b[97;2u)", () => {
+        const events = parseInput("\x1b[97;2u");
+        expect(events).toEqual([kp("A", "\x1b[97;2u", { shiftKey: true, code: "KeyA" })]);
+    });
+
     it("parses Kitty CSI u: Shift+Alt+a (\\x1b[97;4u)", () => {
         const events = parseInput("\x1b[97;4u");
-        expect(events).toEqual([kp("a", "\x1b[97;4u", { shiftKey: true, altKey: true, code: "KeyA" })]);
+        expect(events).toEqual([kp("A", "\x1b[97;4u", { shiftKey: true, altKey: true, code: "KeyA" })]);
+    });
+
+    it("parses Kitty CSI u: Shift+a with shiftedKey sub-parameter (\\x1b[97:65;2u)", () => {
+        const events = parseInput("\x1b[97:65;2u");
+        expect(events).toEqual([kp("A", "\x1b[97:65;2u", { shiftKey: true, code: "KeyA" })]);
+    });
+
+    it("parses Kitty CSI u: Shift+а cyrillic (\\x1b[1072;2u) → key='А'", () => {
+        // U+0430 'а' (codepoint 1072) with Shift → U+0410 'А'
+        const events = parseInput("\x1b[1072;2u");
+        expect(events).toEqual([kp("А", "\x1b[1072;2u", { shiftKey: true, code: "а" })]);
+    });
+
+    it("parses Kitty CSI u: Shift+а cyrillic with shiftedKey sub-parameter (\\x1b[1072:1040;2u) → key='А'", () => {
+        // shiftedKey=1040 'А'
+        const events = parseInput("\x1b[1072:1040;2u");
+        expect(events).toEqual([kp("А", "\x1b[1072:1040;2u", { shiftKey: true, code: "а" })]);
     });
 
     // ─── Kitty CSI u: navigation keys (sent when Kitty flags include 8) ───
@@ -499,9 +521,9 @@ describe("parseInput", () => {
     // ─── Codepoint sub-parameters (shifted:base) ───
 
     it("parses CSI u with codepoint sub-parameters (shifted key)", () => {
-        // CSI 97:65;2 u → 'a' with shifted value 65 ('A'), Shift modifier
+        // CSI 97:65;2 u → 'a' with shifted value 65 ('A'), Shift modifier → key='A'
         const events = parseInput("\x1b[97:65;2u");
-        expect(events).toEqual([kp("a", "\x1b[97:65;2u", { shiftKey: true, code: "KeyA" })]);
+        expect(events).toEqual([kp("A", "\x1b[97:65;2u", { shiftKey: true, code: "KeyA" })]);
     });
 
     // ─── Key held down (repeat) ───

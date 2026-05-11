@@ -258,5 +258,22 @@ describe("KeyInputParser — browser-like event model", () => {
             const e2 = parser.parse("\x1b[98;1:3u");
             expect(e2).toEqual([ev("b", "\x1b[98;1:3u", { type: "keyup", code: "KeyB" })]);
         });
+
+        it("Shift released before letter — keyup with unshifted key is NOT orphaned", () => {
+            const parser = new KeyInputParser();
+
+            // Shift+A keydown (shiftKey=true, modifier=130)
+            parser.parse("\x1b[97;130u"); // 'a' keydown with Shift → key='A', code='KeyA'
+
+            // Shift keyup
+            parser.parse("\x1b[57441;129:3u");
+
+            // 'a' keyup (shiftKey=false now, modifier=129, eventType=3) → key='a', code='KeyA'
+            const events = parser.parse("\x1b[97;129:3u");
+
+            // Should produce a single keyup, no spurious keydown+keypress synthesis
+            expect(events).toHaveLength(1);
+            expect(events[0]).toMatchObject({ type: "keyup", key: "a", code: "KeyA" });
+        });
     });
 });

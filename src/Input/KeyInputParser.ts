@@ -83,7 +83,7 @@ export class KeyInputParser {
 
         for (const event of rawEvents) {
             if (event.type === "keydown") {
-                this.pressedKeys.add(event.key);
+                this.pressedKeys.add(event.code);
                 result.push(event);
                 if (!modifierKeyValues.has(event.key)) {
                     result.push(
@@ -98,11 +98,11 @@ export class KeyInputParser {
                     );
                 }
             } else if (event.type === "keypress") {
-                this.pressedKeys.add(event.key);
+                this.pressedKeys.add(event.code);
                 result.push(event);
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             } else if (event.type === "keyup") {
-                if (!modifierKeyValues.has(event.key) && !this.pressedKeys.has(event.key)) {
+                if (!modifierKeyValues.has(event.key) && !this.pressedKeys.has(event.code)) {
                     const synth = {
                         type: "keypress" as const,
                         code: event.code,
@@ -114,7 +114,7 @@ export class KeyInputParser {
                     result.push(createKeyPressEvent(event.key, event.raw, { ...synth, type: "keydown" }));
                     result.push(createKeyPressEvent(event.key, event.raw, synth));
                 }
-                this.pressedKeys.delete(event.key);
+                this.pressedKeys.delete(event.code);
                 result.push(event);
             } else {
                 result.push(event);

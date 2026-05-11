@@ -24,8 +24,14 @@ function kittyEventType(eventType: number): "keypress" | "keydown" | "keyup" {
 
 export function convertTokenToKeyPressEvent(token: RawKeyToken): KeyPressEvent {
     switch (token.kind) {
-        case "csi-u":
-            return createKeyPressEvent(token.key, token.raw, {
+        case "csi-u": {
+            let key = token.key;
+            if (token.shiftedKey !== undefined) {
+                key = String.fromCodePoint(token.shiftedKey);
+            } else if (token.shiftKey && key.length === 1 && key !== key.toUpperCase()) {
+                key = key.toUpperCase();
+            }
+            return createKeyPressEvent(key, token.raw, {
                 type: kittyEventType(token.eventType),
                 code: token.code,
                 shiftKey: token.shiftKey,
@@ -33,6 +39,7 @@ export function convertTokenToKeyPressEvent(token: RawKeyToken): KeyPressEvent {
                 ctrlKey: token.ctrlKey,
                 metaKey: token.metaKey,
             });
+        }
 
         case "csi-letter":
             return createKeyPressEvent(token.key, token.raw, {
