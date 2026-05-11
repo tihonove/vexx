@@ -7,6 +7,7 @@ export const KeybindingRegistryDIToken = token<KeybindingRegistry>("KeybindingRe
 
 export interface KeyboardEventLike {
     readonly key: string;
+    readonly code?: string;
     readonly ctrlKey: boolean;
     readonly shiftKey: boolean;
     readonly altKey: boolean;
@@ -81,13 +82,28 @@ export function parseKeybinding(spec: string): Keybinding {
 }
 
 function matchesBinding(event: KeyboardEventLike, binding: Keybinding): boolean {
-    return (
-        event.key.toLowerCase() === binding.key.toLowerCase() &&
+    const modifiersMatch =
         event.ctrlKey === binding.ctrlKey &&
         event.shiftKey === binding.shiftKey &&
         event.altKey === binding.altKey &&
-        event.metaKey === binding.metaKey
-    );
+        event.metaKey === binding.metaKey;
+    if (!modifiersMatch) return false;
+
+    if (event.key.toLowerCase() === binding.key.toLowerCase()) return true;
+
+    // Layout-independent fallback: for single-letter Ctrl/Meta shortcuts match by physical key code.
+    // This makes e.g. Ctrl+S work even when the Russian layout is active.
+    if (
+        binding.key.length === 1 &&
+        (event.ctrlKey || event.metaKey) &&
+        event.code != null &&
+        event.code !== ""
+    ) {
+        const expectedCode = `Key${binding.key.toUpperCase()}`;
+        if (event.code === expectedCode) return true;
+    }
+
+    return false;
 }
 
 export class KeybindingRegistry implements IDisposable {

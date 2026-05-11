@@ -11,10 +11,13 @@ import type { ITerminalBackend } from "./ITerminalBackend.ts";
 /**
  * Kitty Keyboard Protocol escape sequences.
  *
- * Flags (push mode): disambiguate(1) + event types(2) + all keys as escapes(8) = 11
+ * Flags (push mode): disambiguate(1) + event types(2) + all keys as escapes(8) + alternate keys(4) = 15
+ * Alternate keys (flag 4) makes the terminal report baseLayoutKey — the physical key position in the
+ * base (US QWERTY) layout — as the third sub-parameter of the codepoint field. This lets us match
+ * shortcuts like Ctrl+S regardless of the active keyboard layout (e.g. Russian).
  * See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
  */
-const KITTY_ENABLE = "\x1b[>11u";
+const KITTY_ENABLE = "\x1b[>15u";
 const KITTY_DISABLE = "\x1b[<u";
 
 /**

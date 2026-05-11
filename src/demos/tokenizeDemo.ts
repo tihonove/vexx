@@ -9,8 +9,9 @@
  * Kitty protocol flags used (push mode):
  *   1 = Disambiguate escape codes
  *   2 = Report event types (press/repeat/release)
+ *   4 = Report alternate keys (baseLayoutKey — physical US QWERTY position)
  *   8 = Report all keys as escape codes
- * Total: 11 = 1 | 2 | 8
+ * Total: 15 = 1 | 2 | 4 | 8
  */
 
 import { tokenize } from "../Input/tokenize.ts";

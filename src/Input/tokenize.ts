@@ -481,7 +481,10 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
 
         const kittyKey = kittyCodepointMap[codepoint];
         const key = kittyKey ? kittyKey.key : String.fromCodePoint(codepoint);
-        const code = kittyKey ? (kittyKey.code ?? kittyKey.key) : inferCode(key);
+        // If baseLayoutKey is present (Kitty flag 4 / alternate keys), use it to compute the physical
+        // key code so that shortcuts match regardless of the active keyboard layout (e.g. Russian).
+        const baseKeyStr = baseLayoutKey != null && baseLayoutKey > 0 ? String.fromCodePoint(baseLayoutKey) : undefined;
+        const code = kittyKey ? (kittyKey.code ?? kittyKey.key) : inferCode(baseKeyStr ?? key);
 
         const token: CsiUToken = {
             kind: "csi-u",

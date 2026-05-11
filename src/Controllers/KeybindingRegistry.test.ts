@@ -148,6 +148,56 @@ describe("KeybindingRegistry", () => {
         expect(result).toBe("save");
     });
 
+    describe("layout-independent matching via code", () => {
+        it("matches ctrl+s when key is Cyrillic с but code is KeyS", () => {
+            const registry = new KeybindingRegistry();
+            registry.register(kb("ctrl+s"), "workbench.action.files.save");
+
+            // Ctrl+с (Russian layout) with Kitty alternate-keys flag sends baseLayoutKey=115 ('s') → code='KeyS'
+            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS", ctrlKey: true }));
+
+            expect(result).toBe("workbench.action.files.save");
+        });
+
+        it("matches meta+s when key is Cyrillic с but code is KeyS", () => {
+            const registry = new KeybindingRegistry();
+            registry.register(kb("meta+s"), "save");
+
+            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS", metaKey: true }));
+
+            expect(result).toBe("save");
+        });
+
+        it("does NOT code-fallback for alt+letter (only ctrl/meta)", () => {
+            const registry = new KeybindingRegistry();
+            registry.register(kb("alt+s"), "do-something");
+
+            // alt+с with code=KeyS — should NOT match, alt shortcuts are layout-sensitive
+            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS", altKey: true }));
+
+            expect(result).toBeUndefined();
+        });
+
+        it("does NOT code-fallback when modifiers do not match", () => {
+            const registry = new KeybindingRegistry();
+            registry.register(kb("ctrl+s"), "save");
+
+            // code matches but no ctrl pressed
+            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS" }));
+
+            expect(result).toBeUndefined();
+        });
+
+        it("primary key match still works (English layout)", () => {
+            const registry = new KeybindingRegistry();
+            registry.register(kb("ctrl+s"), "save");
+
+            const result = registry.resolve(makeEvent({ key: "s", code: "KeyS", ctrlKey: true }));
+
+            expect(result).toBe("save");
+        });
+    });
+
     it("resolves special keys", () => {
         const registry = new KeybindingRegistry();
         registry.register(kb("ctrl+enter"), "exec");

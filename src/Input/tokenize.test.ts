@@ -309,6 +309,35 @@ describe("tokenize", () => {
         ]);
     });
 
+    it("tokenizes CSI u with baseLayoutKey — uses it for code (Ctrl+с Russian = \\x1b[1089::115;5u)", () => {
+        // Kitty flag 4 (alternate keys): codepoint=1089 (с), shiftedKey=none, baseLayoutKey=115 (s)
+        const tokens = tokenize("\x1b[1089::115;5u");
+        expect(tokens).toMatchObject([
+            {
+                kind: "csi-u",
+                codepoint: 1089,
+                baseLayoutKey: 115,
+                key: "\u0441",
+                code: "KeyS", // inferred from baseLayoutKey, not from codepoint
+                ctrlKey: true,
+            },
+        ]);
+    });
+
+    it("tokenizes CSI u without baseLayoutKey — code is inferred from key (\\x1b[115;5u = Ctrl+s)", () => {
+        const tokens = tokenize("\x1b[115;5u");
+        expect(tokens).toMatchObject([
+            {
+                kind: "csi-u",
+                codepoint: 115,
+                baseLayoutKey: undefined,
+                key: "s",
+                code: "KeyS",
+                ctrlKey: true,
+            },
+        ]);
+    });
+
     it("tokenizes CSI u LEFT_SUPER release (\\x1b[57444;1:3u) as csi-u with kitty key", () => {
         const tokens = tokenize("\x1b[57444;1:3u");
         expect(tokens).toEqual([

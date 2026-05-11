@@ -13,7 +13,7 @@ export const stdin = process.stdin;
 export const stdout = process.stdout;
 
 // ── Kitty Keyboard Protocol ──────────────────────────────────────
-export const KITTY_ENABLE = "\x1b[>11u";
+export const KITTY_ENABLE = "\x1b[>15u";
 export const KITTY_DISABLE = "\x1b[<u";
 
 const isTmux = process.env.TMUX != null && process.env.TMUX !== "";
