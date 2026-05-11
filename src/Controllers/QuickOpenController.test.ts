@@ -158,25 +158,27 @@ describe("QuickOpenController — files mode", () => {
         expect(item.labelMatchRanges).toEqual([[0, 3]]);
     });
 
-    it("onAccept fires onOpenFile callback with absolutePath", () => {
+    it("onAccept calls onExecuteCommand with workbench.openFile and absolutePath", async () => {
         const results = [makeSearchResult("src/main.ts", [])];
         const { controller } = createController(results);
-        const openFileSpy = vi.fn();
-        controller.onOpenFile = openFileSpy;
+        const execSpy = vi.fn();
+        controller.onExecuteCommand = execSpy;
         controller.open("files");
 
         const item = controller.view.items[0] as QuickPickItem & { absolutePath: string };
         controller.view.onAccept?.(item, 0);
+        await new Promise<void>((r) => queueMicrotask(r));
 
-        expect(openFileSpy).toHaveBeenCalledWith("/root/src/main.ts");
+        expect(execSpy).toHaveBeenCalledWith("workbench.openFile", "/root/src/main.ts");
     });
 
-    it("accepting file closes the picker", () => {
+    it("accepting file closes the picker", async () => {
         const results = [makeSearchResult("src/main.ts")];
         const { controller, body } = createController(results);
         controller.open("files");
         const item = controller.view.items[0];
         controller.view.onAccept?.(item, 0);
+        await new Promise<void>((r) => queueMicrotask(r));
         expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
     });
 });
@@ -227,7 +229,7 @@ describe("QuickOpenController — commands mode", () => {
         expect(labels).not.toContain("Quit");
     });
 
-    it("onAccept fires onExecuteCommand with commandId", () => {
+    it("onAccept fires onExecuteCommand with commandId", async () => {
         const { controller, commands } = createController();
         commands.register("cmd.x", () => {}, "Do X");
         const execSpy = vi.fn();
@@ -235,15 +237,17 @@ describe("QuickOpenController — commands mode", () => {
         controller.open("commands");
         const item = controller.view.items[0];
         controller.view.onAccept?.(item, 0);
+        await new Promise<void>((r) => queueMicrotask(r));
         expect(execSpy).toHaveBeenCalledWith("cmd.x");
     });
 
-    it("accepting command closes the picker", () => {
+    it("accepting command closes the picker", async () => {
         const { controller, commands, body } = createController();
         commands.register("cmd.x", () => {}, "Do X");
         controller.open("commands");
         const item = controller.view.items[0];
         controller.view.onAccept?.(item, 0);
+        await new Promise<void>((r) => queueMicrotask(r));
         expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
     });
 });

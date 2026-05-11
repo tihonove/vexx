@@ -215,13 +215,15 @@ export class AppController extends Disposable implements IController {
         this.view.setStatusBar(this.statusBarController.view);
 
         this.quickOpenController.setHostView(this.view);
-        this.quickOpenController.onOpenFile = (absolutePath) => {
-            this.editorGroupController.openFile(absolutePath);
-            this.updateContextKeys();
-            this.statusBarController.update();
-        };
-        this.quickOpenController.onExecuteCommand = (id) => {
-            this.commands.execute(id);
+        this.register(
+            commands.register("workbench.openFile", (absolutePath: unknown) => {
+                this.editorGroupController.openFile(absolutePath as string);
+                this.updateContextKeys();
+                this.statusBarController.update();
+            }),
+        );
+        this.quickOpenController.onExecuteCommand = (id, ...args) => {
+            this.commands.execute(id, ...args);
         };
 
         for (const action of builtinActions) {

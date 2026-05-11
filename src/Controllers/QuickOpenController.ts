@@ -26,8 +26,7 @@ export class QuickOpenController extends Disposable {
     private isVisible = false;
     private currentMode: OpenMode = "files";
 
-    public onOpenFile: ((absolutePath: string) => void) | null = null;
-    public onExecuteCommand: ((id: string) => void) | null = null;
+    public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
 
     public constructor(
         private readonly fileSearch: FileSearchService,
@@ -101,13 +100,15 @@ export class QuickOpenController extends Disposable {
     private handleAccept(item: QuickPickItem): void {
         const meta = item as QuickPickItemWithMeta;
 
-        if (meta.commandId !== undefined) {
-            this.close();
-            this.onExecuteCommand?.(meta.commandId);
-        } else if (meta.absolutePath !== undefined) {
-            this.close();
-            this.onOpenFile?.(meta.absolutePath);
-        }
+        queueMicrotask(() => {
+            if (meta.commandId !== undefined) {
+                this.close();
+                this.onExecuteCommand?.(meta.commandId);
+            } else if (meta.absolutePath !== undefined) {
+                this.close();
+                this.onExecuteCommand?.("workbench.openFile", meta.absolutePath);
+            }
+        });
     }
 
     private updateItems(query: string): void {
