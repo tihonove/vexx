@@ -40,6 +40,11 @@ export class EditorViewState {
      */
     public tokenStore: DocumentTokenStore | undefined;
 
+    private visibleLinesCache: number[] | null = null;
+    private visibleLinesCacheDocVersion: number = -1;
+    private foldsVersion: number = 0;
+    private visibleLinesCacheFoldsVersion: number = -1;
+
     public constructor(document: ITextDocument, selections?: ISelection[]) {
         this.document = document;
         this.selections = selections && selections.length > 0 ? selections : [createCursorSelection(0, 0)];
@@ -53,6 +58,7 @@ export class EditorViewState {
      */
     public setFoldingRegions(regions: IFoldingRegion[]): void {
         this.foldedRegions = regions;
+        this.foldsVersion++;
     }
 
     /**
@@ -63,6 +69,7 @@ export class EditorViewState {
         for (const region of this.foldedRegions) {
             if (region.startLine === line) {
                 region.isCollapsed = !region.isCollapsed;
+                this.foldsVersion++;
                 return;
             }
         }
@@ -75,6 +82,7 @@ export class EditorViewState {
         for (const region of this.foldedRegions) {
             region.isCollapsed = true;
         }
+        this.foldsVersion++;
     }
 
     /**
@@ -84,6 +92,7 @@ export class EditorViewState {
         for (const region of this.foldedRegions) {
             region.isCollapsed = false;
         }
+        this.foldsVersion++;
     }
 
     // ─── Scroll API ─────────────────────────────────────────
@@ -744,6 +753,14 @@ export class EditorViewState {
      * A line is hidden if it falls in range (startLine+1 .. endLine) of a collapsed region.
      */
     private buildVisibleLines(): number[] {
+        if (
+            this.visibleLinesCache !== null &&
+            this.visibleLinesCacheDocVersion === this.document.versionId &&
+            this.visibleLinesCacheFoldsVersion === this.foldsVersion
+        ) {
+            return this.visibleLinesCache;
+        }
+
         // Collect all hidden line ranges from collapsed regions
         const hiddenRanges: { from: number; to: number }[] = [];
         for (const region of this.foldedRegions) {
@@ -776,6 +793,9 @@ export class EditorViewState {
             }
         }
 
+        this.visibleLinesCache = visible;
+        this.visibleLinesCacheDocVersion = this.document.versionId;
+        this.visibleLinesCacheFoldsVersion = this.foldsVersion;
         return visible;
     }
 

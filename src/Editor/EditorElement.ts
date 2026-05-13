@@ -47,17 +47,24 @@ export class EditorElement extends TUIElement implements IScrollable {
     public lineNumberForeground: number | undefined;
     public lineNumberActiveForeground: number | undefined;
 
+    private contentWidthCache: { versionId: number; value: number } | null = null;
+
     public get contentHeight(): number {
         return this.viewState.getViewLineCount();
     }
 
     public get contentWidth(): number {
         const doc = this.viewState.document;
+        const currentVersionId = doc.versionId;
+        if (this.contentWidthCache !== null && this.contentWidthCache.versionId === currentVersionId) {
+            return this.contentWidthCache.value;
+        }
         let max = 0;
         for (let i = 0; i < doc.lineCount; i++) {
             const dl = new DisplayLine(doc.getLineContent(i), this.tabSize);
             max = Math.max(max, dl.displayWidth);
         }
+        this.contentWidthCache = { versionId: currentVersionId, value: max };
         return max;
     }
 
