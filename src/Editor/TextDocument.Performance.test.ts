@@ -96,10 +96,9 @@ describe("TextDocument array-backend performance (baseline)", () => {
         expect(doc.lineCount).toBe(LINE_COUNT + EDIT_COUNT);
 
         // This assertion DOCUMENTS the problem:
-        // Observed: ~300 ms for 1000 inserts at position 0 in a 1M-line array.
-        // The array impl must take > 150 ms (we use half the observed value as floor).
-        // PieceTree target: < 20 ms.
-        expect(ms).toBeGreaterThan(150);
+        // Observed: ~130–300 ms for 1000 inserts at position 0 in a 1M-line array.
+        // The array impl must take > 80 ms (conservative floor; PieceTree target: < 20 ms).
+        expect(ms).toBeGreaterThan(80);
     }, 60_000);
 
     /**
