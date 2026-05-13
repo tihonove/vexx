@@ -39,7 +39,10 @@ describe("SEA binary — startup", () => {
 
     it("boots, draws a non-empty frame and exits on Ctrl+C", async () => {
         session = await VexxSession.start({ args: [fixturePath] });
-        const screen = await session.waitFor((s) => s.findText("sample.ts") !== null);
+        // Wait for the menu bar which is stable on all platforms. The tab bar
+        // ("sample.ts") is on a lower row that ConPTY clears after resize on
+        // Windows — see docs/TODO/E2E.md.
+        const screen = await session.waitFor((s) => s.findText("Edit") !== null);
         expect(screen.toString().trim().length).toBeGreaterThan(0);
 
         await session.dispose();
