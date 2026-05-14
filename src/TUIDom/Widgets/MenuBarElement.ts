@@ -6,7 +6,7 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { BodyElement } from "./BodyElement.ts";
 import type { ContextMenuLayer } from "./ContextMenuLayer.ts";
-import { HFlexElement, hflexFill, hflexFit } from "./HFlexElement.ts";
+import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts";
 import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
@@ -39,6 +39,7 @@ export class MenuBarElement extends TUIElement {
         this.items = items;
 
         this.hflex = new HFlexElement();
+        this.hflex.addChild(new MenuBarFillerElement(), { width: hflexFixed(1), height: 1 });
         this.itemElements = items.map((item, index) => {
             const el = new MenuBarItemElement(item.label, item.mnemonic);
             el.onActivate = () => {

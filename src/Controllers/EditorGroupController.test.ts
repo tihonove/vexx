@@ -198,6 +198,35 @@ describe("EditorGroupController", () => {
         });
     });
 
+    describe("modified state", () => {
+        it("tab becomes modified after document edit", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            const fp = writeFile("a.ts", "const x = 1;");
+
+            ctrl.openFile(fp);
+            const editor = ctrl.getActiveEditor()!;
+            editor.viewState.insertText("y");
+
+            const items = ctrl.view.tabStrip.getItemElements();
+            expect(items[0].getModified()).toBe(true);
+        });
+
+        it("tab becomes not-modified after save", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            const fp = writeFile("a.ts", "const x = 1;");
+
+            ctrl.openFile(fp);
+            const editor = ctrl.getActiveEditor()!;
+            editor.viewState.insertText("y");
+            editor.save();
+
+            const items = ctrl.view.tabStrip.getItemElements();
+            expect(items[0].getModified()).toBe(false);
+        });
+    });
+
     describe("tab callbacks", () => {
         it("onTabActivate switches to the clicked tab", () => {
             const ctrl = createEditorGroupController();

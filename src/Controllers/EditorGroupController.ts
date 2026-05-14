@@ -91,6 +91,8 @@ export class EditorGroupController extends Disposable implements IController {
             ),
         );
         editor.openFile(filePath);
+        this.register(editor.onDidChangeContent(() => this.syncTabs()));
+        editor.onDidSave = () => this.syncTabs();
         this.editors.push(editor);
         this.activateTab(this.editors.length - 1, { focus });
     }

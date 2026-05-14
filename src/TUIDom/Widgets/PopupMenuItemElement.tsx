@@ -79,9 +79,7 @@ export class PopupMenuItemElement extends CompositeElement {
                         layout={{ width: hflexFit(), height: "fill" }}
                     />
                 ) : null}
-                {!this.config.hasShortcuts ? (
-                    <TextLabel text=" " fg={fg} bg={bg} layout={{ width: hflexFixed(1), height: "fill" }} />
-                ) : null}
+                <TextLabel text=" " fg={fg} bg={bg} layout={{ width: hflexFixed(1), height: "fill" }} />
             </HFlex>
         );
     }

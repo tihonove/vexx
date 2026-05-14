@@ -144,6 +144,8 @@ export class PaddingContainerElement extends TUIElement {
 // ─── PaddingContainer JSX Adapter ───
 
 export interface PaddingContainerProps extends Padding {
+    bg?: number;
+    fg?: number;
     children?: JsxChild;
 }
 
@@ -151,7 +153,11 @@ export function PaddingContainer(props: PaddingContainerProps): PaddingContainer
     const nodes = normalizeChildren(props.children);
     const children = reconcileChildren([], nodes);
     const padding = { top: props.top, right: props.right, bottom: props.bottom, left: props.left };
-    return new PaddingContainerElement(children[0] ?? null, padding);
+    const el = new PaddingContainerElement(children[0] ?? null, padding);
+    if (props.bg !== undefined || props.fg !== undefined) {
+        el.style = { bg: props.bg, fg: props.fg };
+    }
+    return el;
 }
 
 PaddingContainer.update = (el: TUIElement, props: PaddingContainerProps): void => {
@@ -160,6 +166,7 @@ PaddingContainer.update = (el: TUIElement, props: PaddingContainerProps): void =
     pad.setPaddingRight(props.right ?? 0);
     pad.setPaddingBottom(props.bottom ?? 0);
     pad.setPaddingLeft(props.left ?? 0);
+    pad.style = { bg: props.bg, fg: props.fg };
     const nodes = normalizeChildren(props.children);
     const newChildren = reconcileChildren(pad.getChildren(), nodes);
     pad.setChild(newChildren[0] ?? null);

@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { token } from "../Common/DiContainer.ts";
-import { Disposable } from "../Common/Disposable.ts";
+import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
@@ -50,6 +50,12 @@ export class EditorController extends Disposable implements IController {
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId;
+    }
+
+    public onDidSave?: () => void;
+
+    public onDidChangeContent(listener: () => void): IDisposable {
+        return this.doc.onDidChangeContent(listener);
     }
 
     public get fileName(): string | null {
@@ -103,6 +109,7 @@ export class EditorController extends Disposable implements IController {
         if (this.filePath === null) return;
         fs.writeFileSync(this.filePath, this.doc.getText(), "utf-8");
         this.savedVersionId = this.doc.versionId;
+        this.onDidSave?.();
     }
 
     public getText(): string {

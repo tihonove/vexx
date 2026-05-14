@@ -340,3 +340,38 @@ describe("QuickPickElement — snapshot", () => {
         );
     });
 });
+
+// ─── Layout width ────────────────────────────────────────────────────────────
+
+describe("QuickPickElement — layout width", () => {
+    it("with loose constraints uses preferredWidth, not maxWidth", () => {
+        const picker = new QuickPickElement();
+        picker.preferredWidth = 40;
+        picker.globalPosition = new Point(0, 0);
+        picker.performLayout(BoxConstraints.loose(new Size(100, 50)));
+        expect(picker.layoutSize.width).toBe(40);
+    });
+
+    it("with loose constraints is clamped to maxWidth when smaller than preferredWidth", () => {
+        const picker = new QuickPickElement();
+        picker.preferredWidth = 40;
+        picker.globalPosition = new Point(0, 0);
+        picker.performLayout(BoxConstraints.loose(new Size(30, 50)));
+        expect(picker.layoutSize.width).toBe(30);
+    });
+
+    it("with tight constraints uses exact size regardless of preferredWidth", () => {
+        const picker = new QuickPickElement();
+        picker.preferredWidth = 40;
+        picker.globalPosition = new Point(0, 0);
+        const height = picker.getMinIntrinsicHeight(50);
+        picker.performLayout(BoxConstraints.tight(new Size(50, height)));
+        expect(picker.layoutSize.width).toBe(50);
+    });
+
+    it("getMaxIntrinsicWidth reflects preferredWidth", () => {
+        const picker = new QuickPickElement();
+        picker.preferredWidth = 75;
+        expect(picker.getMaxIntrinsicWidth(0)).toBe(75);
+    });
+});

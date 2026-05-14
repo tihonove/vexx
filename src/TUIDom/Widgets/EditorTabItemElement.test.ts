@@ -56,6 +56,16 @@ describe("EditorTabItemElement", () => {
             expect(tab.getMaxIntrinsicWidth(1)).toBe(13);
         });
 
+        it("calculates width with padding=2 on each side", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color, {
+                paddingLeft: 2,
+                paddingRight: 2,
+            });
+            // [2 pad][icon][space][file.ts][ ×][2 pad] = 2 + 1 + 1 + 7 + 2 + 2 = 15
+            expect(tab.getMinIntrinsicWidth(1)).toBe(15);
+            expect(tab.getMaxIntrinsicWidth(1)).toBe(15);
+        });
+
         it("height is always 1", () => {
             const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
             expect(tab.getMinIntrinsicHeight(100)).toBe(1);

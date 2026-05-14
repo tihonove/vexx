@@ -100,7 +100,7 @@ export class ConfirmSaveDialogElement extends CompositeElement {
                 titleFg={TITLE_FG}
                 hasSeparator
             >
-                <PaddingContainer left={2} right={2}>
+                <PaddingContainer left={2} right={2} bg={BG}>
                     <VStack>
                         <TextLabel
                             text="! Do you want to save the changes you made to"

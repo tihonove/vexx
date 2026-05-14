@@ -39,8 +39,8 @@ describe("PopupMenuElement", () => {
                 { label: "Copy", shortcut: "Ctrl+C" },
             ]);
             const size = menu.getIntrinsicSize();
-            // border(1) + pad(1) + "Copy"(4) + gap(2) + "Ctrl+X"(6) + pad(1) + border(1) = 16
-            expect(size.width).toBe(16);
+            // border(1) + pad(1) + "Copy"(4) + gap(2) + "Ctrl+X"(6) + pad(1) + border(1) = 16, +1 trailing space = 17
+            expect(size.width).toBe(17);
         });
 
         it("accounts for icons in width", () => {
@@ -95,10 +95,10 @@ describe("PopupMenuElement", () => {
             expectScreen(
                 backend,
                 screen`
-                    ┌──────────────┐
-                    │ Cut    Ctrl+X│
-                    │ Copy   Ctrl+C│
-                    └──────────────┘
+                    ┌───────────────┐
+                    │ Cut    Ctrl+X │
+                    │ Copy   Ctrl+C │
+                    └───────────────┘
                 `,
             );
         });

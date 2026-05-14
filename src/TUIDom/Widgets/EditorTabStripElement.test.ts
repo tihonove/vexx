@@ -154,6 +154,24 @@ describe("EditorTabStripElement", () => {
             strip.setTabs(tabs);
             expect(items[0].getModified()).toBe(true);
         });
+
+        it("tabs created with paddingLeft=2 and paddingRight=2", () => {
+            const strip = new EditorTabStripElement();
+            strip.setTabs(makeTabs("file.ts"));
+
+            const items = strip.getItemElements();
+            expect(items[0].getPaddingLeft()).toBe(2);
+            expect(items[0].getPaddingRight()).toBe(2);
+        });
+
+        it("tab getMinIntrinsicWidth reflects padding=2", () => {
+            const strip = new EditorTabStripElement();
+            strip.setTabs(makeTabs("file.ts"));
+
+            const items = strip.getItemElements();
+            // [2 pad][icon][space][file.ts][ ×][2 pad] = 2 + 1 + 1 + 7 + 2 + 2 = 15
+            expect(items[0].getMinIntrinsicWidth(1)).toBe(15);
+        });
     });
 
     describe("intrinsic size", () => {

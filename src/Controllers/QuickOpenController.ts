@@ -182,6 +182,7 @@ export class QuickOpenController extends Disposable {
         // Sit just below the menu bar (row 1)
         const py = Math.max(1, Math.floor(screenH * 0.1));
 
+        this.view.preferredWidth = pickerW;
         this.hostBody.contextMenuLayer.setPosition(this.view, new Point(px, py));
     }
 }

@@ -85,7 +85,7 @@ import { FileSearchService } from "./FileSearchService.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
-import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
+import { KeybindingRegistryDIToken, parseKeybinding } from "./KeybindingRegistry.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
@@ -250,6 +250,30 @@ export class AppController extends Disposable implements IController {
                 ...showCommandsAction,
                 run: () => {
                     this.quickOpenController.open("commands");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.toggleSidebarVisibility",
+                title: "View: Toggle Primary Side Bar Visibility",
+                keybinding: parseKeybinding("ctrl+b"),
+                run: () => {
+                    const visible = this.workbenchLayout.getLeftPanelVisible();
+                    this.workbenchLayout.setLeftPanelVisible(!visible);
+                    this.workbenchLayout.markDirty();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.view.explorer",
+                title: "View: Show Explorer",
+                keybinding: parseKeybinding("ctrl+shift+e"),
+                run: () => {
+                    this.workbenchLayout.setLeftPanelVisible(true);
+                    this.workbenchLayout.markDirty();
+                    this.fileTreeController.focus();
                 },
             }),
         );
@@ -443,6 +467,27 @@ export class AppController extends Disposable implements IController {
                         shortcut: "Ctrl+Shift+Right",
                         onSelect: () => {
                             this.commands.execute("cursorWordRightSelect");
+                        },
+                    },
+                ],
+            },
+            {
+                label: "View",
+                mnemonic: "v",
+                entries: [
+                    {
+                        label: "Explorer",
+                        shortcut: "Ctrl+Shift+E",
+                        onSelect: () => {
+                            this.commands.execute("workbench.view.explorer");
+                        },
+                    },
+                    { type: "separator" },
+                    {
+                        label: "Toggle Primary Side Bar",
+                        shortcut: "Ctrl+B",
+                        onSelect: () => {
+                            this.commands.execute("workbench.action.toggleSidebarVisibility");
                         },
                     },
                 ],

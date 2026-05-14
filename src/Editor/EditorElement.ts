@@ -104,6 +104,9 @@ export class EditorElement extends TUIElement implements IScrollable {
         this.viewState = viewState;
         this.undoManager = new UndoManager(viewState.document, viewState);
 
+        this.addEventListener("keydown", (event) => {
+            this.handleKeyDown(event);
+        });
         this.addEventListener("keypress", (event) => {
             this.handleKeyPress(event);
         });
@@ -357,6 +360,15 @@ export class EditorElement extends TUIElement implements IScrollable {
         this.viewState.selections = [
             createSelection(this.dragAnchor.line, this.dragAnchor.character, pos.line, pos.character),
         ];
+    }
+
+    private handleKeyDown(event: TUIKeyboardEvent): void {
+        if (event.key === "Tab") {
+            event.preventDefault();
+            if (!event.shiftKey) {
+                this.pushUndo(this.viewState.type("\t"));
+            }
+        }
     }
 
     private handleKeyPress(event: TUIKeyboardEvent): void {

@@ -68,6 +68,12 @@ export class QuickPickElement extends TUIElement {
     public placeholder: string = "Type to search…";
     /** Maximum rows of the list to show at once (scrolls when exceeded). */
     public maxVisibleItems: number = 10;
+    /**
+     * Desired width of the picker in columns.
+     * When the element is laid out with loose constraints it will use this
+     * value (clamped to [minWidth, maxWidth]).
+     */
+    public preferredWidth: number = 60;
 
     /** Colours exposed for theming. */
     public activeSelectionBg: number = ACTIVE_SELECTION_BG;
@@ -176,7 +182,7 @@ export class QuickPickElement extends TUIElement {
     }
 
     public override getMaxIntrinsicWidth(_height: number): number {
-        return 60;
+        return this.preferredWidth;
     }
 
     public override getMinIntrinsicHeight(_width: number): number {
@@ -188,9 +194,8 @@ export class QuickPickElement extends TUIElement {
     }
 
     public override performLayout(constraints: BoxConstraints): Size {
-        const width = Number.isFinite(constraints.maxWidth)
-            ? Math.max(constraints.minWidth, constraints.maxWidth)
-            : Math.max(constraints.minWidth, 60);
+        const maxW = Number.isFinite(constraints.maxWidth) ? constraints.maxWidth : this.preferredWidth;
+        const width = Math.max(constraints.minWidth, Math.min(this.preferredWidth, maxW));
         // Always use natural height — QuickPickElement is self-sizing vertically.
         // Callers may allocate more rows, but we only occupy what we need.
         const size = new Size(width, this.totalHeight);

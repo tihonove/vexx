@@ -9,6 +9,8 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 function createTempWorkspace(): string {
@@ -25,6 +27,7 @@ function cleanupDir(dirPath: string): void {
 interface IntegrationContext {
     testApp: TestApp;
     controller: AppController;
+    commands: CommandRegistry;
     tmpDir: string;
 }
 
@@ -38,7 +41,7 @@ function createIntegrationApp(tmpDir: string, size: Size = new Size(80, 24)): In
     const testApp = TestApp.create(controller.view, size);
     bindApp(testApp.app);
 
-    return { testApp, controller, tmpDir };
+    return { testApp, controller, commands: container.get(CommandRegistryDIToken), tmpDir };
 }
 
 describe("FileTree opens file in editor", () => {
@@ -123,5 +126,67 @@ describe("FileTree opens file in editor", () => {
 
         expect(consoleSpy).not.toHaveBeenCalled();
         consoleSpy.mockRestore();
+    });
+});
+
+describe("sidebar visibility commands", () => {
+    let tmpDir: string;
+    let testApp: TestApp;
+    let controller: AppController;
+    let commands: CommandRegistry;
+
+    beforeEach(async () => {
+        tmpDir = createTempWorkspace();
+        const ctx = createIntegrationApp(tmpDir);
+        testApp = ctx.testApp;
+        controller = ctx.controller;
+        commands = ctx.commands;
+        await controller.activate();
+        testApp.render();
+    });
+
+    afterEach(() => {
+        controller.dispose();
+        cleanupDir(tmpDir);
+    });
+
+    it("Ctrl+B hides the left panel", () => {
+        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(true);
+        testApp.sendKey("Ctrl+B");
+        testApp.render();
+        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(false);
+    });
+
+    it("Ctrl+B toggles back to visible", () => {
+        testApp.sendKey("Ctrl+B");
+        testApp.render();
+        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(false);
+
+        testApp.sendKey("Ctrl+B");
+        testApp.render();
+        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(true);
+    });
+
+    it("Ctrl+Shift+E makes hidden panel visible", () => {
+        controller.workbenchLayout.setLeftPanelVisible(false);
+        controller.workbenchLayout.markDirty();
+        testApp.render();
+
+        commands.execute("workbench.view.explorer");
+        testApp.render();
+
+        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(true);
+    });
+
+    it("Ctrl+Shift+E focuses the file tree", async () => {
+        await controller.activate();
+        testApp.render();
+
+        commands.execute("workbench.view.explorer");
+        testApp.render();
+
+        const focused = testApp.focusedElement;
+        expect(focused).not.toBeNull();
+        expect(focused!.constructor.name).toBe("TreeViewElement");
     });
 });

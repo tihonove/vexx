@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { ROOT_RESOLVED_STYLE } from "../Styles/TUIStyle.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
 
@@ -95,5 +97,33 @@ describe("PaddingContainerElement", () => {
 
         expect(box.layoutSize.width).toBe(0);
         expect(box.layoutSize.height).toBe(0);
+    });
+
+    it("renders padding cells with explicit bg color, not transparent", () => {
+        const BG = packRgb(37, 37, 38);
+        const padded = new PaddingContainerElement(null, { top: 1, bottom: 1, left: 2, right: 2 });
+        padded.style = { bg: BG };
+
+        const size = new Size(8, 4);
+        const backend = new MockTerminalBackend(size);
+        const termScreen = new TerminalScreen(size);
+
+        padded.globalPosition = new Point(0, 0);
+        padded.performStyleResolution(ROOT_RESOLVED_STYLE);
+        padded.performLayout(BoxConstraints.tight(size));
+        padded.render(new RenderContext(termScreen));
+        termScreen.flush(backend);
+
+        // Top padding row
+        expect(backend.getBgAt(new Point(0, 0))).toBe(BG);
+        expect(backend.getBgAt(new Point(0, 0))).not.toBe(DEFAULT_COLOR);
+        // Bottom padding row
+        expect(backend.getBgAt(new Point(0, 3))).toBe(BG);
+        // Left padding column (middle rows)
+        expect(backend.getBgAt(new Point(0, 1))).toBe(BG);
+        expect(backend.getBgAt(new Point(1, 1))).toBe(BG);
+        // Right padding column (middle rows)
+        expect(backend.getBgAt(new Point(6, 1))).toBe(BG);
+        expect(backend.getBgAt(new Point(7, 1))).toBe(BG);
     });
 });

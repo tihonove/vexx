@@ -57,9 +57,9 @@ function setup(
 }
 
 describe("MenuBarElement focus colors", () => {
-    // " File " occupies positions x=0..5 on y=0
-    // " Edit " occupies positions x=6..11 on y=0
-    // " View " occupies positions x=12..17 on y=0
+    // " File " occupies positions x=1..6 on y=0 (x=0 is the 1-char spacer)
+    // " Edit " occupies positions x=7..12 on y=0
+    // " View " occupies positions x=13..18 on y=0
 
     it("unfocused menu items have bar background color", () => {
         const { backend } = setup(simpleItems());
@@ -83,8 +83,8 @@ describe("MenuBarElement focus colors", () => {
 
         backend.sendKey("Tab"); // focus menuBar → activeIndex=0 ("File")
 
-        // " File " positions should have ACTIVE_MENU_BG
-        for (let x = 0; x < 6; x++) {
+        // " File " positions should have ACTIVE_MENU_BG (starts at x=1 due to spacer)
+        for (let x = 1; x < 7; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(ACTIVE_MENU_BG);
         }
     });
@@ -94,7 +94,7 @@ describe("MenuBarElement focus colors", () => {
 
         backend.sendKey("Tab");
 
-        for (let x = 0; x < 6; x++) {
+        for (let x = 1; x < 7; x++) {
             expect(backend.getFgAt(new Point(x, 0))).toBe(ACTIVE_MENU_FG);
         }
     });
@@ -104,8 +104,8 @@ describe("MenuBarElement focus colors", () => {
 
         backend.sendKey("Tab"); // focus → "File" active
 
-        // " Edit " at x=6..11 should keep bar colors
-        for (let x = 6; x < 12; x++) {
+        // " Edit " at x=7..12 should keep bar colors
+        for (let x = 7; x < 13; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(MENU_BAR_BG);
         }
     });
@@ -117,12 +117,12 @@ describe("MenuBarElement focus colors", () => {
         backend.sendKey("ArrowRight"); // → "Edit"
 
         // " File " should revert to bar colors
-        for (let x = 0; x < 6; x++) {
+        for (let x = 1; x < 7; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(MENU_BAR_BG);
         }
 
         // " Edit " should have active colors
-        for (let x = 6; x < 12; x++) {
+        for (let x = 7; x < 13; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(ACTIVE_MENU_BG);
         }
     });

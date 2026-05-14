@@ -106,6 +106,8 @@ export class EditorTabStripElement extends TUIElement {
             } else {
                 item = new EditorTabItemElement(tab.label, tab.icon, tab.iconColor, {
                     modified: tab.isModified,
+                    paddingLeft: 2,
+                    paddingRight: 2,
                 });
                 const index = i;
                 item.onActivate = () => this.onTabActivate?.(index);

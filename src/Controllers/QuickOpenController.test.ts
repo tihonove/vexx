@@ -272,3 +272,42 @@ describe("QuickOpenController — mode switching via '>'", () => {
         expect(labels).toContain("main.ts");
     });
 });
+
+describe("QuickOpenController — position and size", () => {
+    it("open() sets preferredWidth to computed pickerW", () => {
+        // 80-wide screen: pickerW = min(80, max(40, 80-4)) = 76
+        const { controller } = createController();
+        controller.open("files");
+        expect(controller.view.preferredWidth).toBe(76);
+    });
+
+    it("open() sets smaller pickerW on narrow screen", () => {
+        const commands = new CommandRegistry();
+        const fileSearch = makeFileSearchStub();
+        const ctrl = new QuickOpenController(fileSearch, commands);
+        const body = new BodyElement();
+        const testApp = TestApp.create(body, new Size(50, 24));
+        ctrl.setHostView(body);
+
+        ctrl.open("files");
+        // pickerW = min(80, max(40, 50-4)) = min(80, 46) = 46
+        expect(ctrl.view.preferredWidth).toBe(46);
+        testApp.render();
+        expect(ctrl.view.layoutSize.width).toBe(46);
+    });
+
+    it("picker is horizontally centred after layout", () => {
+        const { controller, testApp } = createController();
+        controller.open("files");
+        testApp.render();
+        // pickerW=76, screen=80: px = floor((80-76)/2) = 2
+        expect(controller.view.globalPosition.x).toBe(2);
+    });
+
+    it("picker width after layout matches preferredWidth", () => {
+        const { controller, testApp } = createController();
+        controller.open("files");
+        testApp.render();
+        expect(controller.view.layoutSize.width).toBe(controller.view.preferredWidth);
+    });
+});
