@@ -55,6 +55,16 @@ describe("EditorElement – Tab key", () => {
     });
 });
 
+describe("EditorElement – Ctrl+Tab key", () => {
+    it("Ctrl+Tab does not insert any character", () => {
+        const { app, editor } = createEditor("hello");
+
+        app.sendKey("Ctrl+Tab");
+
+        expect(editor.viewState.document.getText()).toBe("hello");
+    });
+});
+
 describe("EditorElement – Shift+Tab key", () => {
     it("Shift+Tab does not insert any character", () => {
         const { app, editor } = createEditor("hello");

@@ -363,7 +363,7 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 
     private handleKeyDown(event: TUIKeyboardEvent): void {
-        if (event.key === "Tab") {
+        if (event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey) {
             event.preventDefault();
             if (!event.shiftKey) {
                 this.pushUndo(this.viewState.type("\t"));
