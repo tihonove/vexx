@@ -1,6 +1,7 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
 
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
+import { detectIndentation } from "./IndentationDetector.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
 import { comparePositions } from "./IPosition.ts";
 import { createRange } from "./IRange.ts";
@@ -31,6 +32,8 @@ export class EditorViewState {
     public viewportWidth = 80;
     public viewportHeight = 24;
     public tabSize = 4;
+    public insertSpaces = false;
+    public detectIndentation = true;
     public selections: ISelection[];
     public readonly document: ITextDocument;
     public foldedRegions: IFoldingRegion[] = [];
@@ -48,6 +51,20 @@ export class EditorViewState {
     public constructor(document: ITextDocument, selections?: ISelection[]) {
         this.document = document;
         this.selections = selections && selections.length > 0 ? selections : [createCursorSelection(0, 0)];
+        this.runDetectIndentation();
+    }
+
+    /**
+     * Re-runs indentation detection against the current document content.
+     * No-op if `detectIndentation` is false or the document has no indented lines.
+     */
+    public runDetectIndentation(): void {
+        if (!this.detectIndentation) return;
+        const result = detectIndentation(this.document);
+        if (result !== null) {
+            this.insertSpaces = result.insertSpaces;
+            this.tabSize = result.tabSize;
+        }
     }
 
     // ─── Folding API ────────────────────────────────────────
