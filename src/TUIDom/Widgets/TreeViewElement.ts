@@ -46,6 +46,7 @@ export class TreeViewElement<T> extends ScrollableElement {
     public onSelect: ((item: T) => void) | null = null;
     public onActivate: ((item: T) => void) | null = null;
     public onExpandedChanged: ((element: T, expanded: boolean) => void) | null = null;
+    public onContextMenu: ((element: T, screenX: number, screenY: number) => void) | null = null;
 
     public constructor(provider: ITreeDataProvider<T>) {
         super();
@@ -457,6 +458,13 @@ export class TreeViewElement<T> extends ScrollableElement {
     private handleClick(event: TUIMouseEvent): void {
         const index = this.scrollTop + event.localY;
         if (index < 0 || index >= this.flatNodes.length) return;
+
+        if (event.button === "right") {
+            this.setSelectedIndex(index);
+            const node = this.flatNodes[index];
+            this.onContextMenu?.(node.element, event.screenX, event.screenY);
+            return;
+        }
 
         this.setSelectedIndex(index);
 

@@ -14,6 +14,8 @@ import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogEle
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
+import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
@@ -57,6 +59,7 @@ import {
     undoAction,
 } from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
+import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import {
     inputCursorEndAction,
     inputCursorHomeAction,
@@ -177,6 +180,8 @@ export class AppController extends Disposable implements IController {
     private editorGroupController: EditorGroupController;
     private confirmDialog: ConfirmSaveDialogElement | null = null;
     private savedFocusElement: TUIElement | null = null;
+    private fileTreeContextMenu: PopupMenuElement | null = null;
+    private fileTreeContextMenuSavedFocus: TUIElement | null = null;
     private fileTreeController: FileTreeController;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
@@ -277,6 +282,15 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileDeleteAction,
+                run: (a, ...args) => {
+                    fileDeleteAction.run(a, ...args);
+                    void this.fileTreeController.refresh();
+                },
+            }),
+        );
 
         this.setupMenu();
         this.register(
@@ -347,6 +361,9 @@ export class AppController extends Disposable implements IController {
             this.editorGroupController.openFile(filePath);
             this.updateContextKeys();
             this.statusBarController.update();
+        };
+        this.fileTreeController.onFileContextMenu = (node, screenX, screenY) => {
+            this.showFileTreeContextMenu(node.path, screenX, screenY);
         };
         this.statusBarController.mount();
     }
@@ -574,6 +591,50 @@ export class AppController extends Disposable implements IController {
         if (this.savedFocusElement) {
             this.view.focusManager?.setFocus(this.savedFocusElement);
             this.savedFocusElement = null;
+        }
+    }
+
+    private showFileTreeContextMenu(filePath: string, screenX: number, screenY: number): void {
+        this.hideFileTreeContextMenu();
+
+        const entries: MenuEntry[] = [
+            {
+                label: "Delete",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("fileOperations.deleteFile", filePath);
+                },
+            },
+        ];
+
+        this.fileTreeContextMenu = new PopupMenuElement(entries);
+        this.fileTreeContextMenu.tabIndex = 0;
+        this.fileTreeContextMenu.onClose = () => {
+            this.hideFileTreeContextMenu();
+        };
+
+        const menuW = this.fileTreeContextMenu.getMaxIntrinsicWidth(0);
+        const menuH = this.fileTreeContextMenu.getMaxIntrinsicHeight(menuW);
+        const screenW = this.view.layoutSize.width;
+        const screenH = this.view.layoutSize.height;
+
+        let px = screenX;
+        let py = screenY + 1;
+        if (px + menuW > screenW) px = Math.max(0, screenW - menuW);
+        if (py + menuH > screenH) py = Math.max(0, screenY - menuH);
+
+        this.view.contextMenuLayer.addItem(this.fileTreeContextMenu, new Point(px, py), true);
+        this.fileTreeContextMenuSavedFocus = this.view.focusManager?.activeElement ?? null;
+        this.fileTreeContextMenu.focus();
+    }
+
+    private hideFileTreeContextMenu(): void {
+        if (!this.fileTreeContextMenu) return;
+        this.view.contextMenuLayer.removeItem(this.fileTreeContextMenu);
+        this.fileTreeContextMenu = null;
+        if (this.fileTreeContextMenuSavedFocus) {
+            this.view.focusManager?.setFocus(this.fileTreeContextMenuSavedFocus);
+            this.fileTreeContextMenuSavedFocus = null;
         }
     }
 

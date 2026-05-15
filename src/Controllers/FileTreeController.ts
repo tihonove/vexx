@@ -14,6 +14,7 @@ import type { IController } from "./IController.ts";
 export class FileTreeController extends Disposable implements IController {
     public view!: TUIElement;
     public onFileActivate: ((filePath: string) => void) | null = null;
+    public onFileContextMenu: ((node: FileTreeNode, screenX: number, screenY: number) => void) | null = null;
     private provider: FileTreeDataProvider | null = null;
     private tree: TreeViewElement<FileTreeNode> | null = null;
     private rootPath: string | null = null;
@@ -69,6 +70,12 @@ export class FileTreeController extends Disposable implements IController {
         }
     }
 
+    public async refresh(): Promise<void> {
+        if (this.tree) {
+            await this.tree.refresh();
+        }
+    }
+
     public focus(): void {
         this.tree?.focus();
     }
@@ -88,6 +95,10 @@ export class FileTreeController extends Disposable implements IController {
             if (!node.isDirectory) {
                 this.onFileActivate?.(node.path);
             }
+        };
+
+        this.tree.onContextMenu = (node, screenX, screenY) => {
+            this.onFileContextMenu?.(node, screenX, screenY);
         };
     }
 
