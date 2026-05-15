@@ -127,6 +127,19 @@ describe("FileTree opens file in editor", () => {
         expect(consoleSpy).not.toHaveBeenCalled();
         consoleSpy.mockRestore();
     });
+
+    it("does not insert characters into editor when opened with Enter", () => {
+        const tree = testApp.querySelector("TreeViewElement");
+        tree!.focus();
+        testApp.render();
+
+        testApp.sendKey("Enter");
+        testApp.render();
+
+        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
+            .editorGroupController;
+        expect(editorGroupCtrl.getActiveEditor()?.getText()).toBe("hello world");
+    });
 });
 
 describe("sidebar visibility commands", () => {

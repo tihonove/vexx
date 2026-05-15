@@ -109,8 +109,8 @@ export class TreeViewElement<T> extends ScrollableElement {
     }
 
     protected override performDefaultAction(event: TUIEventBase): void {
-        if (event.type === "keydown") {
-            this.handleKeydown(event as TUIKeyboardEvent);
+        if (event.type === "keypress") {
+            this.handleKeypress(event as TUIKeyboardEvent);
         } else if (event.type === "click") {
             this.handleClick(event as TUIMouseEvent);
         } else if (event.type === "dblclick") {
@@ -385,7 +385,7 @@ export class TreeViewElement<T> extends ScrollableElement {
 
     // ─── Private: input handlers ───
 
-    private handleKeydown(event: TUIKeyboardEvent): void {
+    private handleKeypress(event: TUIKeyboardEvent): void {
         switch (event.key) {
             case "ArrowUp":
                 this.setSelectedIndex(this.selectedIndex - 1);
