@@ -7,6 +7,7 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
 import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
@@ -55,8 +56,7 @@ export class EditorElement extends TUIElement implements IScrollable {
     public contextMenuEntries: MenuEntry[] = [];
 
     private contentWidthCache: { versionId: number; value: number } | null = null;
-    private activeContextMenu: PopupMenuElement | null = null;
-    private outsideClickHandler: ((e: TUIEventBase) => void) | null = null;
+    private activeContextMenuSession: OverlaySessionHandle | null = null;
 
     public get contentHeight(): number {
         return this.viewState.getViewLineCount();
@@ -382,38 +382,36 @@ export class EditorElement extends TUIElement implements IScrollable {
         });
 
         const menu = new PopupMenuElement(wrappedEntries);
-        menu.onClose = () => this.closeContextMenu();
-        this.activeContextMenu = menu;
 
         const layer = this.getContextMenuLayer();
         if (!layer) return;
-        layer.addItem(menu, new Point(screenX, screenY), true);
 
-        const root = this.getRoot();
-        if (root) {
-            this.outsideClickHandler = (e: TUIEventBase) => {
-                if (e.target && isInsideElement(e.target, menu)) return;
-                this.closeContextMenu();
-            };
-            root.addEventListener("mousedown", this.outsideClickHandler, { capture: true });
-        }
+        let session: OverlaySessionHandle | null = null;
+        session = layer.createSession(menu, new Point(screenX, screenY), {
+            visible: true,
+            closeOnEscape: true,
+            closeOnOutsidePointer: true,
+            focusOnOpen: true,
+            disposeOnClose: true,
+            onClose: () => {
+                if (this.activeContextMenuSession === session) {
+                    this.activeContextMenuSession = null;
+                }
+            },
+        });
 
-        this.markDirty();
+        menu.onClose = () => {
+            session?.close();
+        };
+
+        this.activeContextMenuSession = session;
     }
 
     private closeContextMenu(): void {
-        if (!this.activeContextMenu) return;
-
-        const layer = this.getContextMenuLayer();
-        if (layer) layer.removeItem(this.activeContextMenu);
-        this.activeContextMenu = null;
-
-        if (this.outsideClickHandler) {
-            this.getRoot()?.removeEventListener("mousedown", this.outsideClickHandler, { capture: true });
-            this.outsideClickHandler = null;
-        }
-
-        this.markDirty();
+        if (!this.activeContextMenuSession) return;
+        const session = this.activeContextMenuSession;
+        this.activeContextMenuSession = null;
+        session.dispose();
     }
 
     private getContextMenuLayer() {
@@ -471,15 +469,6 @@ function packStyleFlags(style: ResolvedTokenStyle): number {
     if (style.underline) flags |= StyleFlags.Underline;
     if (style.strikethrough) flags |= StyleFlags.Strikethrough;
     return flags;
-}
-
-function isInsideElement(element: TUIElement, ancestor: TUIElement): boolean {
-    let current: TUIElement | null = element;
-    while (current !== null) {
-        if (current === ancestor) return true;
-        current = current.getParent();
-    }
-    return false;
 }
 
 /**

@@ -89,19 +89,21 @@ describe("EditorElement — right-click context menu", () => {
         expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
 
         const menuEl = app.root.contextMenuLayer.getItems()[0].element as PopupMenuElement;
-        menuEl.entries[0].onSelect?.();
+        const firstEntry = menuEl.entries[0] as { onSelect?: () => void };
+        firstEntry.onSelect?.();
 
         expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
     });
 
     it("calls the original onSelect handler after closing", () => {
-        const { editor } = createEditor("hello world");
+        const { app, editor } = createEditor("hello world");
         const onSelect = vi.fn();
         editor.contextMenuEntries = [{ label: "Copy", onSelect }];
 
         fireMouseDown(editor, 5, 0, "right");
-        const menuEl = editor["activeContextMenu"] as PopupMenuElement;
-        menuEl.entries[0].onSelect?.();
+        const menuEl = app.root.contextMenuLayer.getItems()[0].element as PopupMenuElement;
+        const firstEntry = menuEl.entries[0] as { onSelect?: () => void };
+        firstEntry.onSelect?.();
 
         expect(onSelect).toHaveBeenCalledOnce();
     });

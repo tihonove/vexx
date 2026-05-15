@@ -2,8 +2,8 @@ import * as nodePath from "node:path";
 
 import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
 import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
@@ -22,8 +22,7 @@ export class QuickOpenController extends Disposable {
     public readonly view: QuickPickElement;
 
     private hostBody: BodyElement | null = null;
-    private savedFocusElement: TUIElement | null = null;
-    private isVisible = false;
+    private quickOpenSession: OverlaySessionHandle | null = null;
     private currentMode: OpenMode = "files";
 
     public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
@@ -43,23 +42,26 @@ export class QuickOpenController extends Disposable {
 
     public setHostView(body: BodyElement): void {
         this.hostBody = body;
-        body.contextMenuLayer.addItem(this.view, new Point(0, 0), false);
+        this.quickOpenSession = body.contextMenuLayer.createSession(this.view, new Point(0, 0), {
+            visible: false,
+            restoreFocus: true,
+        });
 
         this.register({
             dispose: () => {
-                body.contextMenuLayer.removeItem(this.view);
+                this.quickOpenSession?.dispose();
+                this.quickOpenSession = null;
             },
         });
     }
 
     public open(mode: OpenMode): void {
-        if (this.isVisible) {
+        if (this.quickOpenSession?.isOpen()) {
             this.view.focus();
             return;
         }
 
         this.currentMode = mode;
-        this.isVisible = true;
 
         if (mode === "commands") {
             this.view.setQuery(">");
@@ -72,19 +74,13 @@ export class QuickOpenController extends Disposable {
         this.updatePosition();
         this.updateItems(this.view.getQuery());
 
-        this.savedFocusElement = this.hostBody?.focusManager?.activeElement ?? null;
-        this.hostBody?.contextMenuLayer.setVisible(this.view, true);
+        this.quickOpenSession?.open();
         this.view.focus();
     }
 
     public close(): void {
-        if (!this.isVisible) return;
-        this.isVisible = false;
-        this.hostBody?.contextMenuLayer.setVisible(this.view, false);
-        if (this.savedFocusElement) {
-            this.hostBody?.focusManager?.setFocus(this.savedFocusElement);
-            this.savedFocusElement = null;
-        }
+        if (!this.quickOpenSession?.isOpen()) return;
+        this.quickOpenSession.close();
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────
@@ -183,6 +179,6 @@ export class QuickOpenController extends Disposable {
         const py = Math.max(1, Math.floor(screenH * 0.1));
 
         this.view.preferredWidth = pickerW;
-        this.hostBody.contextMenuLayer.setPosition(this.view, new Point(px, py));
+        this.quickOpenSession?.setPosition(new Point(px, py));
     }
 }

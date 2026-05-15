@@ -1,4 +1,6 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import type { TUIEventBase } from "../Events/TUIEventBase.ts";
+import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface ContextMenuLayerItem {
@@ -7,19 +9,70 @@ export interface ContextMenuLayerItem {
     visible: boolean;
 }
 
+export interface OverlayAnchorPosition {
+    screenX: number;
+    screenY: number;
+    offsetX?: number;
+    offsetY?: number;
+    preferBelow?: boolean;
+}
+
+export interface OverlaySessionOptions {
+    visible?: boolean;
+    restoreFocus?: boolean;
+    focusOnOpen?: boolean;
+    closeOnEscape?: boolean;
+    closeOnOutsidePointer?: boolean;
+    disposeOnClose?: boolean;
+    onClose?: () => void;
+}
+
+export interface OverlaySessionHandle {
+    readonly element: TUIElement;
+    readonly isDisposed: boolean;
+    isOpen(): boolean;
+    open(): void;
+    close(): void;
+    setPosition(position: Point): void;
+    setAnchor(anchor: OverlayAnchorPosition): void;
+    dispose(): void;
+}
+
+interface OverlaySessionState {
+    element: TUIElement;
+    options: Required<
+        Pick<OverlaySessionOptions, "restoreFocus" | "focusOnOpen" | "closeOnEscape" | "closeOnOutsidePointer" | "disposeOnClose">
+    >;
+    visible: boolean;
+    isDisposed: boolean;
+    savedFocus: TUIElement | null;
+    rootEscapeHandler: ((event: TUIEventBase) => void) | null;
+    rootOutsideHandler: ((event: TUIEventBase) => void) | null;
+    onClose: (() => void) | null;
+}
+
 export class ContextMenuLayer extends TUIElement {
     private items: ContextMenuLayerItem[] = [];
+    private sessions = new Map<TUIElement, OverlaySessionState>();
 
     public addItem(element: TUIElement, position: Point, visible = false): void {
         element.setParent(this);
         this.items.push({ element, position, visible });
+        this.markDirty();
     }
 
     public removeItem(element: TUIElement): void {
+        const session = this.sessions.get(element);
+        if (session && !session.isDisposed) {
+            this.disposeSession(session);
+            return;
+        }
+
         const index = this.items.findIndex((item) => item.element === element);
         if (index !== -1) {
             this.items[index].element.setParent(null);
             this.items.splice(index, 1);
+            this.markDirty();
         }
     }
 
@@ -27,6 +80,7 @@ export class ContextMenuLayer extends TUIElement {
         const item = this.items.find((item) => item.element === element);
         if (item) {
             item.visible = visible;
+            this.markDirty();
         }
     }
 
@@ -34,7 +88,110 @@ export class ContextMenuLayer extends TUIElement {
         const item = this.items.find((item) => item.element === element);
         if (item) {
             item.position = position;
+            this.markDirty();
         }
+    }
+
+    public createSession(
+        element: TUIElement,
+        position: Point,
+        options: OverlaySessionOptions = {},
+    ): OverlaySessionHandle {
+        this.disposeSessionByElement(element);
+
+        const initialVisible = options.visible ?? false;
+
+        this.addItem(element, position, false);
+
+        const session: OverlaySessionState = {
+            element,
+            options: {
+                restoreFocus: options.restoreFocus ?? false,
+                focusOnOpen: options.focusOnOpen ?? false,
+                closeOnEscape: options.closeOnEscape ?? false,
+                closeOnOutsidePointer: options.closeOnOutsidePointer ?? false,
+                disposeOnClose: options.disposeOnClose ?? false,
+            },
+            visible: false,
+            isDisposed: false,
+            savedFocus: null,
+            rootEscapeHandler: null,
+            rootOutsideHandler: null,
+            onClose: options.onClose ?? null,
+        };
+
+        this.sessions.set(element, session);
+
+        if (initialVisible) {
+            this.openSession(session);
+        }
+
+        const handle: OverlaySessionHandle = {
+            element,
+            get isDisposed() {
+                return session.isDisposed;
+            },
+            isOpen: () => {
+                return !session.isDisposed && session.visible;
+            },
+            open: () => {
+                if (session.isDisposed) return;
+                this.openSession(session);
+            },
+            close: () => {
+                if (session.isDisposed) return;
+                this.closeSession(session);
+            },
+            setPosition: (nextPosition: Point) => {
+                if (session.isDisposed) return;
+                this.setPosition(session.element, nextPosition);
+            },
+            setAnchor: (anchor: OverlayAnchorPosition) => {
+                if (session.isDisposed) return;
+                this.setPosition(session.element, this.computeAnchorPosition(session.element, anchor));
+            },
+            dispose: () => {
+                if (session.isDisposed) return;
+                this.disposeSession(session);
+            },
+        };
+
+        return handle;
+    }
+
+    public openPopupSession(
+        element: TUIElement,
+        anchor: OverlayAnchorPosition,
+        options: OverlaySessionOptions = {},
+    ): OverlaySessionHandle {
+        const position = this.computeAnchorPosition(element, anchor);
+        return this.createSession(element, position, options);
+    }
+
+    public computeAnchorPosition(element: TUIElement, anchor: OverlayAnchorPosition): Point {
+        const menuW = element.getMaxIntrinsicWidth(0);
+        const menuH = element.getMaxIntrinsicHeight(menuW);
+        const screenW = this.layoutSize.width;
+        const screenH = this.layoutSize.height;
+
+        const offsetX = anchor.offsetX ?? 0;
+        const offsetY = anchor.offsetY ?? 0;
+        const preferBelow = anchor.preferBelow ?? true;
+
+        let px = anchor.screenX + offsetX;
+        let py = preferBelow ? anchor.screenY + 1 + offsetY : anchor.screenY + offsetY;
+
+        if (px + menuW > screenW) {
+            px = Math.max(0, screenW - menuW);
+        }
+        if (py + menuH > screenH) {
+            py = Math.max(0, anchor.screenY - menuH);
+        }
+
+        px = Math.max(0, px);
+        py = Math.max(0, py);
+
+        return new Point(px, py);
     }
 
     public hasVisibleItems(): boolean {
@@ -42,10 +199,17 @@ export class ContextMenuLayer extends TUIElement {
     }
 
     public clearAll(): void {
+        for (const session of this.sessions.values()) {
+            this.cleanupSessionListeners(session);
+            session.isDisposed = true;
+        }
+        this.sessions.clear();
+
         for (const item of this.items) {
             item.element.setParent(null);
         }
         this.items = [];
+        this.markDirty();
     }
 
     public getItems(): readonly ContextMenuLayerItem[] {
@@ -98,4 +262,120 @@ export class ContextMenuLayer extends TUIElement {
             item.element.render(context.withOffset(childOffset));
         }
     }
+
+    private openSession(session: OverlaySessionState): void {
+        if (session.visible || session.isDisposed) return;
+
+        const root = this.getRoot();
+        const focusManager = root?.focusManager ?? null;
+
+        if (session.options.restoreFocus) {
+            session.savedFocus = focusManager?.activeElement ?? null;
+        }
+
+        session.visible = true;
+        this.setVisible(session.element, true);
+        this.attachSessionListeners(session);
+
+        if (session.options.focusOnOpen) {
+            session.element.focus();
+        }
+    }
+
+    private closeSession(session: OverlaySessionState): void {
+        if (!session.visible || session.isDisposed) return;
+
+        const root = this.getRoot();
+        const focusManager = root?.focusManager ?? null;
+
+        session.visible = false;
+        this.setVisible(session.element, false);
+        this.cleanupSessionListeners(session);
+
+        if (session.options.restoreFocus && session.savedFocus) {
+            focusManager?.setFocus(session.savedFocus);
+            session.savedFocus = null;
+        }
+
+        session.onClose?.();
+
+        if (session.options.disposeOnClose) {
+            this.disposeSession(session);
+        }
+    }
+
+    private disposeSessionByElement(element: TUIElement): void {
+        const session = this.sessions.get(element);
+        if (!session) return;
+        this.disposeSession(session);
+    }
+
+    private disposeSession(session: OverlaySessionState): void {
+        if (session.isDisposed) return;
+
+        if (session.visible) {
+            session.visible = false;
+            this.setVisible(session.element, false);
+        }
+
+        this.cleanupSessionListeners(session);
+
+        const index = this.items.findIndex((item) => item.element === session.element);
+        if (index >= 0) {
+            this.items[index].element.setParent(null);
+            this.items.splice(index, 1);
+        }
+
+        session.isDisposed = true;
+        session.savedFocus = null;
+        this.sessions.delete(session.element);
+        this.markDirty();
+    }
+
+    private attachSessionListeners(session: OverlaySessionState): void {
+        const root = this.getRoot();
+        if (!root) return;
+
+        if (session.options.closeOnEscape && !session.rootEscapeHandler) {
+            session.rootEscapeHandler = (event: TUIEventBase) => {
+                if (event.type !== "keydown") return;
+                const keyEvent = event as TUIKeyboardEvent;
+                if (keyEvent.key !== "Escape" || event.defaultPrevented) return;
+                this.closeSession(session);
+            };
+            root.addEventListener("keydown", session.rootEscapeHandler, { capture: true });
+        }
+
+        if (session.options.closeOnOutsidePointer && !session.rootOutsideHandler) {
+            session.rootOutsideHandler = (event: TUIEventBase) => {
+                if (event.type !== "mousedown") return;
+                if (event.target && isInsideElement(event.target, session.element)) return;
+                this.closeSession(session);
+            };
+            root.addEventListener("mousedown", session.rootOutsideHandler, { capture: true });
+        }
+    }
+
+    private cleanupSessionListeners(session: OverlaySessionState): void {
+        const root = this.getRoot();
+
+        if (root && session.rootEscapeHandler) {
+            root.removeEventListener("keydown", session.rootEscapeHandler, { capture: true });
+        }
+        if (root && session.rootOutsideHandler) {
+            root.removeEventListener("mousedown", session.rootOutsideHandler, { capture: true });
+        }
+
+        session.rootEscapeHandler = null;
+        session.rootOutsideHandler = null;
+    }
+}
+
+function isInsideElement(element: TUIElement, ancestor: TUIElement): boolean {
+    let current: TUIElement | null = element;
+    while (current !== null) {
+        if (current === ancestor) return true;
+        current = current.getParent();
+    }
+    return false;
 }

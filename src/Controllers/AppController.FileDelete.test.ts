@@ -150,7 +150,6 @@ describe("File tree context menu — right-click opens context menu", () => {
         expect(popup).not.toBeNull();
 
         const items = testApp.querySelectorAll("PopupMenuItemElement");
-        const labels = items.map((el) => el.textContent ?? (el as unknown as { label?: string }).label ?? "");
         // At least one item should be present; check it renders Delete
         expect(items.length).toBeGreaterThan(0);
         // The rendered popup should have a Delete label item visible on screen

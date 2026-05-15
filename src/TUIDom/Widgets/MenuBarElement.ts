@@ -6,6 +6,7 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { BodyElement } from "./BodyElement.ts";
 import type { ContextMenuLayer } from "./ContextMenuLayer.ts";
+import type { OverlaySessionHandle } from "./ContextMenuLayer.ts";
 import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts";
 import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
 import type { MenuEntry } from "./PopupMenuElement.ts";
@@ -22,6 +23,7 @@ export class MenuBarElement extends TUIElement {
     public activeIndex = -1;
 
     private activeMenu: PopupMenuElement | null = null;
+    private activeMenuSession: OverlaySessionHandle | null = null;
     private itemElements: MenuBarItemElement[] = [];
     private hflex: HFlexElement;
     private previousFocusedElement: TUIElement | null = null;
@@ -224,22 +226,34 @@ export class MenuBarElement extends TUIElement {
 
         this.activeIndex = index;
         this.updateItemActiveStates();
-        this.activeMenu = new PopupMenuElement(wrappedEntries);
-        this.activeMenu.onClose = () => {
-            this.closePopup();
-        };
+        const menu = new PopupMenuElement(wrappedEntries);
+        this.activeMenu = menu;
 
         const layer = this.getOverlayLayer();
         const position = this.getMenuGlobalPosition(index);
-        layer.addItem(this.activeMenu, position, true);
+        let session: OverlaySessionHandle | null = null;
+        session = layer.createSession(menu, position, {
+            visible: true,
+            disposeOnClose: true,
+            onClose: () => {
+                if (this.activeMenuSession === session) {
+                    this.activeMenuSession = null;
+                }
+                if (this.activeMenu === menu) {
+                    this.activeMenu = null;
+                }
+            },
+        });
+        menu.onClose = () => {
+            session?.close();
+        };
+        this.activeMenuSession = session;
         this.markDirty();
     }
 
     private closePopup(): void {
-        if (this.activeMenu) {
-            const layer = this.getOverlayLayer();
-            layer.removeItem(this.activeMenu);
-        }
+        this.activeMenuSession?.dispose();
+        this.activeMenuSession = null;
         this.activeMenu = null;
         this.markDirty();
     }

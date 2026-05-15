@@ -43,6 +43,8 @@ TUI-фреймворк — дерево элементов с layout, событ
 - **Styles** — система стилей: наследование `fg`/`bg` от родителя к потомку, sentinel-значения (`INHERITED_FG`, `INHERITED_BG`), dirty-пропагация (`markStyleDirty`) и top-down резолвинг (`performStyleResolution`). Базовый `TUIStyle` содержит только `fg`/`bg`. Компонент-специфичные стили задаются через generic: `TUIElement<S extends TUIStyle>`, расширения стилей определяются рядом с соответствующими виджетами (например `TitledPanelStyle`). Разрешённые значения доступны через `resolvedStyle: ResolvedTUIStyle`
 - **Widgets** — конкретные виджеты: корневой элемент, боксы с рамкой, вертикальный стек, текстовый блок с word-wrap, скролл-контейнер со скроллбаром, контекстные меню, выпадающие меню, полоса меню
 
+`ContextMenuLayer` также выступает как overlay-менеджер: помимо legacy-операций (`addItem/removeItem/setVisible/setPosition`) поддерживает session API (`createSession`, `openPopupSession`) с единым lifecycle для popup/dialog/quick-open. Сессии умеют политики закрытия (`closeOnEscape`, `closeOnOutsidePointer`, `disposeOnClose`), восстановление фокуса (`restoreFocus`) и якорное позиционирование popup с clamp/flip по экрану.
+
 #### Default Actions
 
 Система default actions повторяет модель Web DOM. У каждого элемента есть встроенное поведение (default action), отделённое от клиентских event listeners.

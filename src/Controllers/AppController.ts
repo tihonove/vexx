@@ -10,6 +10,7 @@ import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
@@ -179,9 +180,8 @@ export class AppController extends Disposable implements IController {
 
     private editorGroupController: EditorGroupController;
     private confirmDialog: ConfirmSaveDialogElement | null = null;
-    private savedFocusElement: TUIElement | null = null;
-    private fileTreeContextMenu: PopupMenuElement | null = null;
-    private fileTreeContextMenuSavedFocus: TUIElement | null = null;
+    private confirmDialogSession: OverlaySessionHandle | null = null;
+    private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
@@ -555,7 +555,11 @@ export class AppController extends Disposable implements IController {
     ): void {
         if (!this.confirmDialog) {
             this.confirmDialog = new ConfirmSaveDialogElement(filename);
-            this.view.contextMenuLayer.addItem(this.confirmDialog, new Point(0, 0), false);
+            this.confirmDialogSession = this.view.contextMenuLayer.createSession(this.confirmDialog, new Point(0, 0), {
+                visible: false,
+                restoreFocus: true,
+                closeOnEscape: true,
+            });
         } else {
             this.confirmDialog.setFilename(filename);
         }
@@ -578,20 +582,15 @@ export class AppController extends Disposable implements IController {
         const dialogH = this.confirmDialog.getMaxIntrinsicHeight(dialogW);
         const px = Math.max(0, Math.floor((screenW - dialogW) / 2));
         const py = Math.max(0, Math.floor((screenH - dialogH) / 2));
-        this.view.contextMenuLayer.setPosition(this.confirmDialog, new Point(px, py));
+        this.confirmDialogSession?.setPosition(new Point(px, py));
 
-        this.savedFocusElement = this.view.focusManager?.activeElement ?? null;
-        this.view.contextMenuLayer.setVisible(this.confirmDialog, true);
+        this.confirmDialogSession?.open();
         this.confirmDialog.focusDefault();
     }
 
     private hideConfirmSaveDialog(): void {
         if (!this.confirmDialog) return;
-        this.view.contextMenuLayer.setVisible(this.confirmDialog, false);
-        if (this.savedFocusElement) {
-            this.view.focusManager?.setFocus(this.savedFocusElement);
-            this.savedFocusElement = null;
-        }
+        this.confirmDialogSession?.close();
     }
 
     private showFileTreeContextMenu(filePath: string, screenX: number, screenY: number): void {
@@ -607,35 +606,36 @@ export class AppController extends Disposable implements IController {
             },
         ];
 
-        this.fileTreeContextMenu = new PopupMenuElement(entries);
-        this.fileTreeContextMenu.tabIndex = 0;
-        this.fileTreeContextMenu.onClose = () => {
-            this.hideFileTreeContextMenu();
+        const menu = new PopupMenuElement(entries);
+        menu.tabIndex = 0;
+
+        let session: OverlaySessionHandle | null = null;
+        session = this.view.contextMenuLayer.openPopupSession(menu, { screenX, screenY }, {
+            visible: true,
+            restoreFocus: true,
+            focusOnOpen: true,
+            closeOnEscape: true,
+            closeOnOutsidePointer: true,
+            disposeOnClose: true,
+            onClose: () => {
+                if (this.fileTreeContextMenuSession === session) {
+                    this.fileTreeContextMenuSession = null;
+                }
+            },
+        });
+
+        menu.onClose = () => {
+            session?.close();
         };
 
-        const menuW = this.fileTreeContextMenu.getMaxIntrinsicWidth(0);
-        const menuH = this.fileTreeContextMenu.getMaxIntrinsicHeight(menuW);
-        const screenW = this.view.layoutSize.width;
-        const screenH = this.view.layoutSize.height;
-
-        let px = screenX;
-        let py = screenY + 1;
-        if (px + menuW > screenW) px = Math.max(0, screenW - menuW);
-        if (py + menuH > screenH) py = Math.max(0, screenY - menuH);
-
-        this.view.contextMenuLayer.addItem(this.fileTreeContextMenu, new Point(px, py), true);
-        this.fileTreeContextMenuSavedFocus = this.view.focusManager?.activeElement ?? null;
-        this.fileTreeContextMenu.focus();
+        this.fileTreeContextMenuSession = session;
     }
 
     private hideFileTreeContextMenu(): void {
-        if (!this.fileTreeContextMenu) return;
-        this.view.contextMenuLayer.removeItem(this.fileTreeContextMenu);
-        this.fileTreeContextMenu = null;
-        if (this.fileTreeContextMenuSavedFocus) {
-            this.view.focusManager?.setFocus(this.fileTreeContextMenuSavedFocus);
-            this.fileTreeContextMenuSavedFocus = null;
-        }
+        if (!this.fileTreeContextMenuSession) return;
+        const session = this.fileTreeContextMenuSession;
+        this.fileTreeContextMenuSession = null;
+        session.dispose();
     }
 
     private doQuit(accessor: ServiceAccessor): void {
