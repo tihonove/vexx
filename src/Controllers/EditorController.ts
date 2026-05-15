@@ -17,6 +17,7 @@ import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
@@ -47,9 +48,15 @@ export class EditorController extends Disposable implements IController {
     private readonly tokenizationRegistry: TokenizationRegistry;
     private readonly tokenStyleResolver: ITokenStyleResolver;
     private readonly languageService: ILanguageService;
+    private contextMenuEntriesValue: MenuEntry[] = [];
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId;
+    }
+
+    public set contextMenuEntries(entries: MenuEntry[]) {
+        this.contextMenuEntriesValue = entries;
+        this.editor.contextMenuEntries = entries;
     }
 
     public onDidSave?: () => void;
@@ -101,6 +108,7 @@ export class EditorController extends Disposable implements IController {
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
+        this.editor.contextMenuEntries = this.contextMenuEntriesValue;
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
     }

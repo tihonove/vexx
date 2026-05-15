@@ -284,6 +284,40 @@ export class AppController extends Disposable implements IController {
                 this.applyTheme(theme);
             }),
         );
+
+        this.editorGroupController.onEditorCreate = (editor) => {
+            editor.contextMenuEntries = [
+                {
+                    label: "Copy",
+                    shortcut: "Ctrl+C",
+                    onSelect: () => {
+                        this.commands.execute("editor.action.clipboardCopyAction");
+                    },
+                },
+                {
+                    label: "Cut",
+                    shortcut: "Ctrl+X",
+                    onSelect: () => {
+                        this.commands.execute("editor.action.clipboardCutAction");
+                    },
+                },
+                {
+                    label: "Paste",
+                    shortcut: "Ctrl+V",
+                    onSelect: () => {
+                        this.commands.execute("editor.action.clipboardPasteAction");
+                    },
+                },
+                { type: "separator" },
+                {
+                    label: "Undo",
+                    shortcut: "Ctrl+Z",
+                    onSelect: () => {
+                        this.commands.execute("undo");
+                    },
+                },
+            ];
+        };
     }
 
     public mount(): void {

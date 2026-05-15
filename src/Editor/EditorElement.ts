@@ -1,10 +1,15 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
+import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
+import type { TUIEventBase } from "../TUIDom/Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
+import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
+import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
 import { EditorViewState } from "./EditorViewState.ts";
 import type { ILineTokens, IToken } from "./ILineTokens.ts";
@@ -47,7 +52,11 @@ export class EditorElement extends TUIElement implements IScrollable {
     public lineNumberForeground: number | undefined;
     public lineNumberActiveForeground: number | undefined;
 
+    public contextMenuEntries: MenuEntry[] = [];
+
     private contentWidthCache: { versionId: number; value: number } | null = null;
+    private activeContextMenu: PopupMenuElement | null = null;
+    private outsideClickHandler: ((e: TUIEventBase) => void) | null = null;
 
     public get contentHeight(): number {
         return this.viewState.getViewLineCount();
@@ -338,6 +347,10 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 
     private handleMouseDown(event: TUIMouseEvent): void {
+        if (event.button === "right") {
+            this.openContextMenu(event.screenX, event.screenY);
+            return;
+        }
         if (this.viewState.getViewLineCount() === 0) return;
 
         const pos = this.screenToDocPosition(event.localX, event.localY);
@@ -350,6 +363,63 @@ export class EditorElement extends TUIElement implements IScrollable {
             this.dragAnchor = { line: pos.line, character: pos.character };
             this.viewState.selections = [createCursorSelection(pos.line, pos.character)];
         }
+    }
+
+    private openContextMenu(screenX: number, screenY: number): void {
+        this.closeContextMenu();
+        if (this.contextMenuEntries.length === 0) return;
+
+        const wrappedEntries: MenuEntry[] = this.contextMenuEntries.map((entry) => {
+            if (entry.type === "separator") return entry;
+            const original = entry.onSelect;
+            return {
+                ...entry,
+                onSelect: () => {
+                    this.closeContextMenu();
+                    original?.();
+                },
+            };
+        });
+
+        const menu = new PopupMenuElement(wrappedEntries);
+        menu.onClose = () => this.closeContextMenu();
+        this.activeContextMenu = menu;
+
+        const layer = this.getContextMenuLayer();
+        if (!layer) return;
+        layer.addItem(menu, new Point(screenX, screenY), true);
+
+        const root = this.getRoot();
+        if (root) {
+            this.outsideClickHandler = (e: TUIEventBase) => {
+                if (e.target && isInsideElement(e.target, menu)) return;
+                this.closeContextMenu();
+            };
+            root.addEventListener("mousedown", this.outsideClickHandler, { capture: true });
+        }
+
+        this.markDirty();
+    }
+
+    private closeContextMenu(): void {
+        if (!this.activeContextMenu) return;
+
+        const layer = this.getContextMenuLayer();
+        if (layer) layer.removeItem(this.activeContextMenu);
+        this.activeContextMenu = null;
+
+        if (this.outsideClickHandler) {
+            this.getRoot()?.removeEventListener("mousedown", this.outsideClickHandler, { capture: true });
+            this.outsideClickHandler = null;
+        }
+
+        this.markDirty();
+    }
+
+    private getContextMenuLayer() {
+        const root = this.getRoot();
+        if (!root) return null;
+        return (root as BodyElement).contextMenuLayer ?? null;
     }
 
     private handleMouseMove(event: TUIMouseEvent): void {
@@ -398,6 +468,15 @@ function packStyleFlags(style: ResolvedTokenStyle): number {
     if (style.underline) flags |= StyleFlags.Underline;
     if (style.strikethrough) flags |= StyleFlags.Strikethrough;
     return flags;
+}
+
+function isInsideElement(element: TUIElement, ancestor: TUIElement): boolean {
+    let current: TUIElement | null = element;
+    while (current !== null) {
+        if (current === ancestor) return true;
+        current = current.getParent();
+    }
+    return false;
 }
 
 /**

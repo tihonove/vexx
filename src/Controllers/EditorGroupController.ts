@@ -37,6 +37,7 @@ export class EditorGroupController extends Disposable implements IController {
     private languageService: ILanguageService;
 
     public onRequestConfirmClose?: (index: number) => void;
+    public onEditorCreate?: (controller: EditorController) => void;
 
     public constructor(
         themeService: ThemeService,
@@ -91,6 +92,7 @@ export class EditorGroupController extends Disposable implements IController {
             ),
         );
         editor.openFile(filePath);
+        this.onEditorCreate?.(editor);
         this.register(editor.onDidChangeContent(() => this.syncTabs()));
         editor.onDidSave = () => this.syncTabs();
         this.editors.push(editor);
