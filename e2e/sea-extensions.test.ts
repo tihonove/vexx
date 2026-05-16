@@ -1,0 +1,111 @@
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
+
+import { packRgb } from "../src/Rendering/ColorUtils.ts";
+
+import type { AnsiScreen } from "./helpers/AnsiScreen.ts";
+import { getBinaryPath } from "./helpers/buildOnce.ts";
+import { VexxSession } from "./helpers/runVexx.ts";
+
+const here = fileURLToPath(new URL(".", import.meta.url));
+const fixturePath = resolve(here, "fixtures", "sample.hello");
+const userDataPath = resolve(here, "fixtures", "user-data-with-hello");
+
+const KEYWORD_FG = packRgb(0x56, 0x9c, 0xd6); // keyword.control — Dark+ blue
+const STRING_FG = packRgb(0xce, 0x91, 0x78); // string — Dark+ orange
+const COMMENT_FG = packRgb(0x6a, 0x99, 0x55); // comment — Dark+ green
+const NUMBER_FG = packRgb(0xb5, 0xce, 0xa8); // constant.numeric — Dark+ light green
+
+// ConPTY interaction makes colour assertions unreliable on non-Linux.
+// See docs/TODO/E2E.md.
+const itLinuxOnly = process.platform === "linux" ? it : it.skip;
+
+describe("SEA binary — user extensions", () => {
+    let session: VexxSession | null = null;
+
+    beforeAll(async () => {
+        await getBinaryPath();
+    }, 180_000);
+
+    afterEach(async () => {
+        if (session) {
+            await session.dispose();
+            session = null;
+        }
+    });
+
+    it("boots with --user-data-dir and renders hello-lang fixture", async () => {
+        session = await VexxSession.start({
+            args: ["--user-data-dir", userDataPath, fixturePath],
+        });
+        const screen = await session.waitFor((s) => s.findText("hello") !== null);
+        expect(screen.findText("hello")).not.toBeNull();
+    });
+
+    itLinuxOnly(
+        "user extension grammar applies syntax highlighting with --user-data-dir",
+        async () => {
+            session = await VexxSession.start({
+                args: ["--user-data-dir", userDataPath, fixturePath],
+            });
+            const screen = await session.waitFor(
+                (s) =>
+                    s.findText("hello world") !== null &&
+                    rowHasFg(s, locateRow(s, "hello world"), KEYWORD_FG),
+            );
+
+            // `hello` — keyword.control → синий
+            const helloPos = screen.findText("hello world");
+            expect(helloPos).not.toBeNull();
+            const helloCell = screen.cellAt(helloPos!.x, helloPos!.y);
+            expect(helloCell.fg).toBe(KEYWORD_FG);
+
+            // `world` — string.quoted → оранжевый
+            const worldX = helloPos!.x + "hello ".length;
+            const worldCell = screen.cellAt(worldX, helloPos!.y);
+            expect(worldCell.fg).toBe(STRING_FG);
+
+            // Комментарий → зелёный
+            const commentRow = locateRow(screen, "// greeting");
+            expect(rowHasFg(screen, commentRow, COMMENT_FG)).toBe(true);
+
+            // Число 42 (не внутри комментария) → светло-зелёный
+            const numPos = screen.findText("score 42");
+            expect(numPos).not.toBeNull();
+            const numCell = screen.cellAt(numPos!.x + "score ".length, numPos!.y);
+            expect(numCell.fg).toBe(NUMBER_FG);
+        },
+    );
+
+    itLinuxOnly(
+        "without --user-data-dir hello-lang grammar is not applied",
+        async () => {
+            session = await VexxSession.start({
+                args: [fixturePath],
+            });
+            const screen = await session.waitFor((s) => s.findText("hello") !== null);
+
+            // Без расширения .hello — plain text, ни одна ячейка не должна быть покрашена
+            // в KEYWORD_FG через нашу грамматику.
+            const helloPos = screen.findText("hello");
+            expect(helloPos).not.toBeNull();
+            const helloCell = screen.cellAt(helloPos!.x, helloPos!.y);
+            expect(helloCell.fg).not.toBe(KEYWORD_FG);
+        },
+    );
+});
+
+function locateRow(screen: AnsiScreen, text: string): number {
+    const pos = screen.findText(text);
+    if (!pos) throw new Error(`text not found on screen: ${JSON.stringify(text)}`);
+    return pos.y;
+}
+
+function rowHasFg(screen: AnsiScreen, y: number, fg: number): boolean {
+    for (let x = 0; x < screen.width; x++) {
+        if (screen.cellAt(x, y).fg === fg) return true;
+    }
+    return false;
+}

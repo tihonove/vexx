@@ -1,0 +1,26 @@
+{
+    "name": "hello-lang",
+    "displayName": "Hello Language",
+    "description": "Test extension for e2e: a tiny language with .hello extension.",
+    "version": "0.0.1",
+    "publisher": "test",
+    "engines": {
+        "vscode": "^1.0.0"
+    },
+    "contributes": {
+        "languages": [
+            {
+                "id": "hellolang",
+                "aliases": ["Hello Language", "hello"],
+                "extensions": [".hello"]
+            }
+        ],
+        "grammars": [
+            {
+                "language": "hellolang",
+                "scopeName": "source.hello",
+                "path": "./syntaxes/hello.tmGrammar.json"
+            }
+        ]
+    }
+}

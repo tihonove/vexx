@@ -1,0 +1,22 @@
+{
+    "name": "Hello Language",
+    "scopeName": "source.hello",
+    "patterns": [
+        {
+            "match": "\\bhello\\b",
+            "name": "keyword.control.hello"
+        },
+        {
+            "match": "\\bworld\\b",
+            "name": "string.quoted.hello"
+        },
+        {
+            "match": "\\d+",
+            "name": "constant.numeric.hello"
+        },
+        {
+            "match": "//.*$",
+            "name": "comment.line.double-slash.hello"
+        }
+    ]
+}
