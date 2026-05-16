@@ -1,0 +1,6 @@
+{
+    // Пример пользовательских настроек для default-профиля.
+    // tabSize=2 — отличается от дефолтного 4, чтобы было видно, что settings.json подхватился.
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true
+}

@@ -1,0 +1,97 @@
+import * as path from "node:path";
+
+/**
+ * Резолв путей user data в стиле VS Code. Полностью pure — никакого I/O.
+ *
+ * Раскладка (см. docs/ARCHITECTURE.md, раздел Configuration):
+ *
+ *     <root>/
+ *       extensions/                      ← внешние расширения, плоско
+ *       user-data/
+ *         User/                          ← default-профиль
+ *           settings.json
+ *           keybindings.json
+ *           profiles/
+ *             <profileName>/             ← именованные профили
+ *               settings.json
+ *               keybindings.json
+ *
+ * Активный профиль `default` использует файлы прямо в `User/`. Любое другое
+ * имя кладёт файлы в `User/profiles/<name>/`.
+ */
+export interface IUserDataPaths {
+    /** Корень — `<userDataDir>` (то, что было передано через `--user-data-dir` или дефолт `~/.vexx`). */
+    readonly root: string;
+    /** Каталог внешних расширений: `<root>/extensions`. */
+    readonly extensionsDir: string;
+    /** `<root>/user-data`. */
+    readonly userDataDir: string;
+    /** `<root>/user-data/User`. */
+    readonly userDir: string;
+    /** Имя активного профиля. `"default"` для default-профиля. */
+    readonly profileName: string;
+    /** `true`, если активен default-профиль. */
+    readonly isDefaultProfile: boolean;
+    /** Каталог настроек активного профиля: `userDir` (default) или `userDir/profiles/<name>`. */
+    readonly profileDir: string;
+    /** `<profileDir>/settings.json` — основной settings.json активного профиля. */
+    readonly settingsFile: string;
+    /** `<profileDir>/keybindings.json`. */
+    readonly keybindingsFile: string;
+}
+
+export const DEFAULT_PROFILE_NAME = "default";
+
+/** Имя корневого каталога user data в `homedir()`. */
+export const DEFAULT_USER_DATA_ROOT_NAME = ".vexx";
+
+export interface IResolveUserDataPathsOptions {
+    /** Абсолютный путь — если задан, замещает дефолт `~/.vexx`. */
+    readonly userDataDir?: string;
+    /** Имя профиля. По умолчанию `"default"`. */
+    readonly profile?: string;
+    /** Хоум-каталог пользователя. Передаётся явно ради тестируемости. */
+    readonly homedir: string;
+}
+
+/**
+ * Резолвит набор путей user data. Не создаёт каталоги, не читает FS.
+ * Все возвращаемые пути — абсолютные (через `path.resolve`).
+ */
+export function resolveUserDataPaths(options: IResolveUserDataPathsOptions): IUserDataPaths {
+    const profileName = normalizeProfileName(options.profile);
+    const root =
+        options.userDataDir !== undefined && options.userDataDir.length > 0
+            ? path.resolve(options.userDataDir)
+            : path.resolve(options.homedir, DEFAULT_USER_DATA_ROOT_NAME);
+
+    const extensionsDir = path.join(root, "extensions");
+    const userDataDir = path.join(root, "user-data");
+    const userDir = path.join(userDataDir, "User");
+    const isDefaultProfile = profileName === DEFAULT_PROFILE_NAME;
+    const profileDir = isDefaultProfile ? userDir : path.join(userDir, "profiles", profileName);
+
+    return {
+        root,
+        extensionsDir,
+        userDataDir,
+        userDir,
+        profileName,
+        isDefaultProfile,
+        profileDir,
+        settingsFile: path.join(profileDir, "settings.json"),
+        keybindingsFile: path.join(profileDir, "keybindings.json"),
+    };
+}
+
+function normalizeProfileName(raw: string | undefined): string {
+    if (raw === undefined) return DEFAULT_PROFILE_NAME;
+    const trimmed = raw.trim();
+    if (trimmed.length === 0) return DEFAULT_PROFILE_NAME;
+    if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
+        throw new Error(
+            `Invalid profile name "${raw}": only letters, digits, ".", "_" and "-" are allowed`,
+        );
+    }
+    return trimmed;
+}

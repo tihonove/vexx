@@ -3,6 +3,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 
 import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -53,6 +54,7 @@ export async function createExtensionTestHarness(
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
         NULL_LANGUAGE_SERVICE,
+        NULL_CONFIGURATION_SERVICE,
     );
     group.mount();
 

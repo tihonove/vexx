@@ -4,12 +4,13 @@
 
 Проект организован в виде стека слоёв. Каждый слой зависит только от нижележащих.
 
-1. **App** (main.ts) — точка входа, bootstrap
+1. **App** (main.ts) — точка входа, bootstrap (CLI → user data paths → configuration → asset access → extensions → DI)
 2. **Controllers** — контроллеры с lifecycle (constructor → mount → activate → dispose), оркестрация UI и бизнес-логики
-3. **Editor** — модель текстового редактора + мост к TUIDom
-4. **TUIDom** — TUI-фреймворк (аналог браузерного DOM): дерево элементов, события, виджеты
-5. **Input**, **Rendering**, **Backend** — платформенный слой: парсинг ввода, отрисовка, терминальный I/O
-6. **Common** — общие примитивы и утилиты
+3. **Configuration** — настройки пользователя (JSONC, профили, слои default/user/profile)
+4. **Editor** — модель текстового редактора + мост к TUIDom
+5. **TUIDom** — TUI-фреймворк (аналог браузерного DOM): дерево элементов, события, виджеты
+6. **Input**, **Rendering**, **Backend** — платформенный слой: парсинг ввода, отрисовка, терминальный I/O
+7. **Common** — общие примитивы и утилиты
 
 ## Каталоги src/
 
@@ -24,6 +25,8 @@
 - `FsAssetAccess` — читает из файловой системы по mapping `virtualPrefix → fsRoot`. Используется в dev-режиме (`createDevAssetAccess()` мапит `Extensions/builtin/` на `src/Extensions/builtin` и `onig.wasm` на пакет `vscode-oniguruma`).
 
 `createDefaultAssetAccess()` автоматически выбирает реализацию через `node:sea.isSea()`. Все consumers (ExtensionScanner, OnigLib, TextMateGrammarLoader, ExtensionTokenizationContributor, LanguageRegistry) работают с виртуальными POSIX-путями и не знают, откуда физически читаются файлы. Сборка bundle — `scripts/pack-assets.mjs`, вызывается из `scripts/build-sea.mjs`.
+
+`CompositeAssetAccess` — роутер по longest-prefix между несколькими `IAssetAccess`. Используется в `main.ts` чтобы склеить builtin-ассеты (SEA-bundle/`Extensions/builtin/`) и user-extensions (`<userData.root>/extensions/`, замапленный на виртуальный префикс `UserExtensions/`) в единое адресное пространство. Downstream-потребители (`ExtensionTokenizationContributor`, грамматики) видят расширения единообразно и не различают builtin vs user по способу чтения.
 
 ### Input/
 Пайплайн парсинга терминального ввода: сырые байты stdin → токены → `KeyPressEvent`. Включает токенизатор stdin, отслеживание мыши, stateful парсер клавиатурных событий (keydown/keypress/keyup в browser-like стиле) и обратную сериализацию для тестов.
@@ -139,11 +142,12 @@ item.onActivate = () => this.openMenu(index);
 Связывание происходит на App-уровне (`main.ts`): `ExtensionScanner` находит builtin-расширения, `LanguageRegistry` собирает `contributes.languages`, `ExtensionTokenizationContributor` асинхронно регистрирует `contributes.grammars` в `TokenizationRegistry`. `TokenThemeResolver` создаётся из `WorkbenchTheme.tokenTheme`. Все три сервиса (`TokenizationRegistry`, `TokenStyleResolver`, `LanguageService`) биндятся в DI и попадают в `EditorController` → `EditorElement`.
 
 ### Extensions/
-Загрузка VS Code-совместимых расширений. На текущем этапе поддерживаются только `contributes.languages` и `contributes.grammars` builtin-расширений из `src/Extensions/builtin/` (verbatim-копии `javascript`, `typescript-basics`, `css` из microsoft/vscode). Внешние расширения, активация (`main`/`activationEvents`), темы, команды и прочие contribution points — отдельные фазы (см. [docs/TODO/Extensions.md](TODO/Extensions.md)).
+Загрузка VS Code-совместимых расширений. На текущем этапе поддерживаются только `contributes.languages` и `contributes.grammars` для builtin (`src/Extensions/builtin/`, verbatim из microsoft/vscode) и user-расширений (`<userData.root>/extensions/<publisher>.<name>-<version>/`). Активация (`main`/`activationEvents`), темы, команды и прочие contribution points — отдельные фазы (см. [docs/TODO/Extensions.md](TODO/Extensions.md)).
 
 - **`IExtensionManifest`** — полная типизация `package.json` расширения. Нереализованные contribution points типизированы, но закомментированы (themes, commands, keybindings, snippets, configuration, views, …) — раскомментируются по мере реализации.
 - **`IExtension`** — `{ id: "${publisher}.${name}", manifest, location, isBuiltin }`.
-- **`ExtensionScanner.scanBuiltinExtensions(dir)`** — читает подкаталоги, парсит `package.json`, валидирует обязательные поля (`name`, `publisher`, `version`), пропускает невалидные с логом.
+- **`ExtensionScanner.scanExtensions(assets, rootPrefix, { isBuiltin })`** — читает подкаталоги по виртуальному префиксу через `IAssetAccess`, парсит `package.json`, валидирует обязательные поля (`name`, `publisher`, `version`), пропускает невалидные с логом. Backward-совместимая обёртка `scanBuiltinExtensions(assets, prefix)` эквивалентна `scanExtensions(..., { isBuiltin: true })`.
+- **`mergeExtensions(builtin, user)`** — склеивает два списка с разруливанием конфликтов id: builtin побеждает user (с `console.warn`); дубликаты внутри одного списка тоже логируются.
 - **`LanguageRegistry implements ILanguageService`** — собирает `contributes.languages`. `register(IExtension): IDisposable` инкрементально добавляет вклад (с refcounting расширений и filenames/extensions/patterns), `dispose()` — корректно убирает. `getLanguageIdForResource(filePath)`: приоритет — exact `filenames` → `filenamePatterns` (минимальный glob: `*`, `?`, case-insensitive) → `extensions` (case-insensitive).
 - **`ExtensionTokenizationContributor`** — `apply()` собирает `IGrammarRecord[]` из всех `contributes.grammars`, создаёт `TextMateGrammarLoader`, для каждой грамматики с привязанным `language` загружает support и регистрирует в `TokenizationRegistry`. Хранит disposable-ссылки для будущей выгрузки.
 
@@ -163,6 +167,32 @@ item.onActivate = () => this.openMenu(index);
 Зависимости: `Extensions/Host` → `Controllers` (через `EditorGroupController` в адаптере) → `Editor` → … . Сам `EditorController` экспонирует только seam `setIndentOptions({ tabSize?, insertSpaces? })`; auto-detect indent выключается при явной установке.
 
 Зависимости: Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Controllers (только `Extensions/Host` — через `EditorGroupController`), Common.
+
+### Configuration/
+Сервис пользовательских настроек, аналог `IConfigurationService` из VS Code (урезанный). Источники: хардкод-дефолты приложения, `~/.vexx/user-data/User/settings.json` (default-профиль) и `~/.vexx/user-data/User/profiles/<name>/settings.json` (именованный профиль). Формат — JSONC (`jsonc-parser` от Microsoft), битый файл логируется и заменяется на пустую модель — bootstrap не падает.
+
+Раскладка user data (VS Code-совместимая):
+```
+<root>/                          # default ~/.vexx ; CLI --user-data-dir <path>
+  extensions/                    # внешние расширения
+  user-data/
+    User/
+      settings.json              # default-профиль
+      keybindings.json           # (парсинг пока не реализован)
+      profiles/<name>/           # именованные профили
+        settings.json
+        keybindings.json
+```
+
+- **`resolveUserDataPaths({ userDataDir?, profile?, homedir })`** — чистая функция (`Common/UserDataPaths.ts`), возвращает `IUserDataPaths` со всеми путями. Имя профиля валидируется `/^[A-Za-z0-9._-]+$/`. Default-профиль кладёт settings прямо в `User/`, именованный — в `User/profiles/<name>/`.
+- **`parseCliArgs(argv)`** — CLI-парсер (`Common/CliArgs.ts`): флаги `--user-data-dir <path>`, `--profile <name>`, `-h/--help`, разделитель `--`, неизвестные флаги → `CliArgsError`.
+- **`ConfigurationModel`** (`Configuration/ConfigurationModel.ts`) — иммутабельная модель: нормализует dotted-keys (`"editor.tabSize"` → `{editor: {tabSize}}`), deep-merge слоёв (default → user → profile), `get<T>(key, default?)`, `getValue(section?)`, diff через `collectKeys()`.
+- **`IConfigurationService`** + **`ConfigurationService extends Disposable`** — `loadConfiguration(paths)` async-bootstrap, читает оба слоя через `jsonc-parser`, отсутствующий файл → EMPTY. `onDidChangeConfiguration` — пока no-op (watcher не реализован, изменения подхватываются перезапуском).
+- **`NULL_CONFIGURATION_SERVICE`** — заглушка для тестов и demo, всегда возвращает `defaultValue`. Биндится через `configurationModuleDefault` в `TestProfile`.
+
+Настройки применяются к редактору так: `IConfigurationService` биндится в DI через `configurationModule`, `EditorGroupController` инжектит сервис и при создании каждого нового `EditorController` (в `openFile`) дёргает `setIndentOptions({ tabSize, insertSpaces })` из ключей `editor.tabSize` / `editor.insertSpaces`. `EditorController.setIndentOptions` принудительно выключает auto-detect.
+
+Тестовая фикстура `test-fixtures/vexx-home/` повторяет реальную раскладку и подключается флагом `--user-data-dir ./test-fixtures/vexx-home` — даёт возможность ткнуть приложение без влияния на `~/.vexx`. Профиль `compact` в фикстуре (`--profile compact`) демонстрирует переопределение `editor.tabSize`.
 
 ### Theme/
 Система темизации, совместимая с VS Code theme files. Тема — объект `WorkbenchTheme` в DI-контейнере (`WorkbenchThemeDIToken`), хранящий packed RGB цвета и правила подсветки синтаксиса. Контроллеры применяют цвета к элементам через `applyTheme()`, TUIDom ничего не знает о темах.

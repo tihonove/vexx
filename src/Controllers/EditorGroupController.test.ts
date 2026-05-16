@@ -4,6 +4,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -20,6 +21,7 @@ function createEditorGroupController(): EditorGroupController {
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
         NULL_LANGUAGE_SERVICE,
+        NULL_CONFIGURATION_SERVICE,
     );
 }
 

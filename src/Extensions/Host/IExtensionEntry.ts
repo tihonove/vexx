@@ -34,4 +34,3 @@ export interface IExtensionRegistration {
     };
     readonly entry: IExtensionEntry;
 }
-ё

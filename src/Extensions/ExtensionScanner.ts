@@ -3,11 +3,17 @@ import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
 import type { IExtension } from "./IExtension.ts";
 import type { IExtensionManifest } from "./IExtensionManifest.ts";
 
+export interface IScanExtensionsOptions {
+    /** Помечать ли найденные расширения как builtin. По умолчанию `true`. */
+    readonly isBuiltin?: boolean;
+}
+
 /**
  * Сканирует виртуальный каталог `<rootPrefix><extension>/package.json` через
  * {@link IAssetAccess}, парсит манифесты и возвращает список валидных
  * расширений. `rootPrefix` должен заканчиваться на `/` (например
- * `"Extensions/builtin/"`).
+ * `"Extensions/builtin/"` для builtin или `"UserExtensions/"` для
+ * `~/.vexx/extensions/`, замапленного через `FsAssetAccess`).
  *
  * Битые манифесты (отсутствие `name`/`publisher`/`version`, невалидный JSON,
  * отсутствующий `package.json`) пропускаются с записью в `console.error` —
@@ -17,16 +23,21 @@ import type { IExtensionManifest } from "./IExtensionManifest.ts";
  * `rootPrefix`. `IExtension.location` устанавливается в виртуальный prefix
  * расширения (с trailing `/`), пригодный для join'а через `joinVirtualPath`.
  */
-export async function scanBuiltinExtensions(assets: IAssetAccess, rootPrefix: string): Promise<IExtension[]> {
+export async function scanExtensions(
+    assets: IAssetAccess,
+    rootPrefix: string,
+    options: IScanExtensionsOptions = {},
+): Promise<IExtension[]> {
     if (!rootPrefix.endsWith("/")) {
-        throw new Error(`scanBuiltinExtensions: rootPrefix must end with "/": ${rootPrefix}`);
+        throw new Error(`scanExtensions: rootPrefix must end with "/": ${rootPrefix}`);
     }
+    const isBuiltin = options.isBuiltin ?? true;
 
     let entries;
     try {
         entries = await assets.listEntries(rootPrefix);
     } catch (err) {
-        console.error(`Failed to scan builtin extensions in ${rootPrefix}:`, err);
+        console.error(`Failed to scan extensions in ${rootPrefix}:`, err);
         return [];
     }
 
@@ -74,8 +85,15 @@ export async function scanBuiltinExtensions(assets: IAssetAccess, rootPrefix: st
             id: `${manifest.publisher}.${manifest.name}`,
             manifest,
             location: extensionPrefix,
-            isBuiltin: true,
+            isBuiltin,
         });
     }
     return result;
+}
+
+/**
+ * Backward-совместимая обёртка: эквивалент `scanExtensions(assets, prefix, { isBuiltin: true })`.
+ */
+export function scanBuiltinExtensions(assets: IAssetAccess, rootPrefix: string): Promise<IExtension[]> {
+    return scanExtensions(assets, rootPrefix, { isBuiltin: true });
 }

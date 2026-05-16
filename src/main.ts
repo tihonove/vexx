@@ -1,31 +1,71 @@
 import * as fs from "node:fs";
+import { createRequire } from "node:module";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
+import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
+import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
+import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
+import { CliArgsError, parseCliArgs, USAGE } from "./Common/CliArgs.ts";
 import { OscClipboard } from "./Common/OscClipboard.ts";
+import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
+import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
-import { scanBuiltinExtensions } from "./Extensions/ExtensionScanner.ts";
+import { scanExtensions } from "./Extensions/ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
+import type { IExtensionEntry, IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
+import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
 import { WorkbenchTheme } from "./Theme/WorkbenchTheme.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
-// ── CLI: один или несколько файлов ──────────────────────────
+// ── CLI ────────────────────────────────────────────────────
 
-const filePaths = process.argv.slice(2);
+let cli;
+try {
+    cli = parseCliArgs(process.argv.slice(2));
+} catch (err) {
+    if (err instanceof CliArgsError) {
+        console.error(err.message);
+        console.error(USAGE);
+        process.exit(2);
+    }
+    throw err;
+}
+
+if (cli.help) {
+    console.log(USAGE);
+    process.exit(0);
+}
+
+const filePaths = cli.positional;
 if (filePaths.length === 0) {
     console.error("Usage: vexx <file> [file2] [file3] ...");
+    console.error(USAGE);
     process.exit(1);
 }
 
 const resolvedPaths = filePaths.map((f) => path.resolve(f));
+
+// ── User data: пути, настройки ─────────────────────────────
+
+const userDataPaths = resolveUserDataPaths({
+    userDataDir: cli.userDataDir,
+    profile: cli.profile,
+    homedir: os.homedir(),
+});
+const configurationService = await loadConfiguration(userDataPaths);
+
+// ── Backend / Theme ────────────────────────────────────────
+
 const backend = new NodeTerminalBackend();
 const application = new TuiApplication(backend);
 const clipboard = new OscClipboard(
@@ -39,18 +79,37 @@ const clipboard = new OscClipboard(
 
 const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 
-// ── Загрузка builtin-расширений ────────────────────────────
-// Источник ассетов: либо встроенный SEA-bundle (`vexx.bundle`), либо
-// реальные файлы в `src/Extensions/builtin/` для dev/tests. См.
-// `Common/Assets/createDefaultAssetAccess.ts`.
-const assets = createDefaultAssetAccess();
-const builtinExtensions = await scanBuiltinExtensions(assets, "Extensions/builtin/");
+// ── Загрузка расширений ────────────────────────────────────
+// Builtin: либо SEA-bundle, либо `src/Extensions/builtin/` в dev.
+// User: `<userData.root>/extensions/` через `FsAssetAccess`, замапленный
+// на виртуальный префикс `UserExtensions/`. Оба источника склеиваются в
+// один `IAssetAccess` через `CompositeAssetAccess`, чтобы все downstream
+// потребители (`ExtensionTokenizationContributor`, грамматики и т.д.)
+// видели единое адресное пространство.
+
+const BUILTIN_PREFIX = "Extensions/builtin/";
+const USER_PREFIX = "UserExtensions/";
+
+const builtinAssets = createDefaultAssetAccess();
+const userExtensionsAssets: IAssetAccess = new FsAssetAccess({
+    [USER_PREFIX]: userDataPaths.extensionsDir,
+});
+const assets = new CompositeAssetAccess({
+    "": builtinAssets,
+    [USER_PREFIX]: userExtensionsAssets,
+});
+
+const builtinExtensions = await scanExtensions(assets, BUILTIN_PREFIX, { isBuiltin: true });
+const userExtensions = fs.existsSync(userDataPaths.extensionsDir)
+    ? await scanExtensions(assets, USER_PREFIX, { isBuiltin: false })
+    : [];
+const allExtensions = mergeExtensions(builtinExtensions, userExtensions);
 
 const languageRegistry = new LanguageRegistry();
-for (const ext of builtinExtensions) languageRegistry.register(ext);
+for (const ext of allExtensions) languageRegistry.register(ext);
 
 const tokenizationRegistry = new TokenizationRegistry();
-const tokenizationContributor = new ExtensionTokenizationContributor(assets, builtinExtensions, tokenizationRegistry);
+const tokenizationContributor = new ExtensionTokenizationContributor(assets, allExtensions, tokenizationRegistry);
 const grammarsLoading = tokenizationContributor.apply();
 
 // ── Bootstrap через DI-контейнер ────────────────────────────
@@ -61,13 +120,14 @@ const container = createProductionContainer({
     tokenizationRegistry,
     tokenStyleResolver: new TokenThemeResolver(initialTheme.tokenTheme),
     languageService: languageRegistry,
+    configurationService,
 });
 
 const app = container.get(TuiApplicationDIToken);
 const appController = container.get(AppControllerDIToken);
 // Поднимаем extension host (пока без зарегистрированных расширений: исполнение
 // `main` builtin-расширений будет в Phase F вместе с self-spawn).
-container.get(ExtensionHostDIToken);
+const extensionHost = container.get(ExtensionHostDIToken);
 
 // If the first argument is a directory, use it as the workspace folder
 const firstResolved = resolvedPaths[0];
@@ -88,3 +148,35 @@ for (const p of resolvedPaths) {
     }
 }
 appController.focusEditor();
+
+// Активируем пользовательские расширения с `manifest.main` — загружаем
+// через createRequire (CJS), что работает как в tsx/dev, так и в SEA-бинарнике.
+// ESM dynamic import() в SEA не работает для внешних файлов — Node перехватывает
+// file:// URL как builtin-модули. Builtin-расширения пока декларативные.
+// Активация ПОСЛЕ openFile, чтобы activeTextEditor был доступен.
+for (const ext of userExtensions) {
+    if (typeof ext.manifest.main !== "string" || ext.manifest.main === "") continue;
+    const dirName = ext.location.slice(USER_PREFIX.length).replace(/\/$/, "");
+    const mainPath = path.resolve(userDataPaths.extensionsDir, dirName, ext.manifest.main);
+    try {
+        const extRequire = createRequire(mainPath);
+        const mod = extRequire(mainPath) as Partial<IExtensionEntry>;
+        if (typeof mod.activate !== "function") {
+            console.error(`[extensions] ${ext.id}: main "${ext.manifest.main}" has no activate()`);
+            continue;
+        }
+        const reg: IExtensionRegistration = {
+            id: ext.id,
+            manifest: {
+                name: ext.manifest.name,
+                publisher: ext.manifest.publisher,
+                version: ext.manifest.version,
+            },
+            entry: mod as IExtensionEntry,
+        };
+        await extensionHost.registerExtension(reg);
+    } catch (err) {
+        console.error(`[extensions] ${ext.id}: failed to activate`, err);
+    }
+}
+

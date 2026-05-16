@@ -1,0 +1,100 @@
+import { describe, it, expect } from "vitest";
+
+import { ConfigurationModel } from "./ConfigurationModel.ts";
+
+describe("ConfigurationModel", () => {
+    describe("fromRaw", () => {
+        it("returns empty for non-object input", () => {
+            expect(ConfigurationModel.fromRaw(null).get("x")).toBeUndefined();
+            expect(ConfigurationModel.fromRaw(undefined).get("x")).toBeUndefined();
+            expect(ConfigurationModel.fromRaw([1, 2]).get("0")).toBeUndefined();
+            expect(ConfigurationModel.fromRaw(42).get("x")).toBeUndefined();
+        });
+
+        it("reads top-level keys", () => {
+            const m = ConfigurationModel.fromRaw({ a: 1, b: "x" });
+            expect(m.get<number>("a")).toBe(1);
+            expect(m.get<string>("b")).toBe("x");
+        });
+
+        it("expands dotted keys to nested objects", () => {
+            const m = ConfigurationModel.fromRaw({ "editor.tabSize": 4 });
+            expect(m.get<number>("editor.tabSize")).toBe(4);
+            expect(m.getValue("editor")).toEqual({ tabSize: 4 });
+        });
+
+        it("merges dotted and nested forms", () => {
+            const m = ConfigurationModel.fromRaw({
+                editor: { insertSpaces: false },
+                "editor.tabSize": 2,
+            });
+            expect(m.get<number>("editor.tabSize")).toBe(2);
+            expect(m.get<boolean>("editor.insertSpaces")).toBe(false);
+        });
+
+        it("does not flatten array values", () => {
+            const m = ConfigurationModel.fromRaw({ "files.exclude": ["a", "b"] });
+            expect(m.get("files.exclude")).toEqual(["a", "b"]);
+        });
+    });
+
+    describe("get / getValue", () => {
+        it("returns undefined for missing keys", () => {
+            const m = ConfigurationModel.fromRaw({ a: { b: 1 } });
+            expect(m.get("a.c")).toBeUndefined();
+            expect(m.get("x")).toBeUndefined();
+        });
+
+        it("getValue without argument returns root object", () => {
+            const m = ConfigurationModel.fromRaw({ a: 1 });
+            expect(m.getValue()).toEqual({ a: 1 });
+        });
+
+        it("getValue with section returns subtree", () => {
+            const m = ConfigurationModel.fromRaw({ editor: { tabSize: 4, insertSpaces: true } });
+            expect(m.getValue("editor")).toEqual({ tabSize: 4, insertSpaces: true });
+        });
+    });
+
+    describe("merge", () => {
+        it("later layer wins for primitives", () => {
+            const a = ConfigurationModel.fromRaw({ "editor.tabSize": 4 });
+            const b = ConfigurationModel.fromRaw({ "editor.tabSize": 2 });
+            const merged = ConfigurationModel.merge(a, b);
+            expect(merged.get("editor.tabSize")).toBe(2);
+        });
+
+        it("deep-merges objects across layers", () => {
+            const a = ConfigurationModel.fromRaw({ editor: { tabSize: 4 } });
+            const b = ConfigurationModel.fromRaw({ editor: { insertSpaces: false } });
+            const merged = ConfigurationModel.merge(a, b);
+            expect(merged.getValue("editor")).toEqual({ tabSize: 4, insertSpaces: false });
+        });
+
+        it("arrays are replaced, not concatenated", () => {
+            const a = ConfigurationModel.fromRaw({ "x.list": [1, 2] });
+            const b = ConfigurationModel.fromRaw({ "x.list": [3] });
+            expect(ConfigurationModel.merge(a, b).get("x.list")).toEqual([3]);
+        });
+
+        it("returns EMPTY for zero layers", () => {
+            expect(ConfigurationModel.merge().get("x")).toBeUndefined();
+        });
+    });
+
+    describe("collectKeys", () => {
+        it("flattens nested tree into dotted keys", () => {
+            const m = ConfigurationModel.fromRaw({
+                editor: { tabSize: 4, insertSpaces: true },
+                workbench: { colorTheme: "Dark+" },
+            });
+            const keys = m.collectKeys().sort();
+            expect(keys).toEqual(["editor.insertSpaces", "editor.tabSize", "workbench.colorTheme"]);
+        });
+
+        it("treats arrays as leaves", () => {
+            const m = ConfigurationModel.fromRaw({ "files.exclude": ["a"] });
+            expect(m.collectKeys()).toEqual(["files.exclude"]);
+        });
+    });
+});

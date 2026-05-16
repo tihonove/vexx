@@ -3,6 +3,8 @@ import * as path from "node:path";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
+import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -25,6 +27,7 @@ export class EditorGroupController extends Disposable implements IController {
         TokenizationRegistryDIToken,
         TokenStyleResolverDIToken,
         LanguageServiceDIToken,
+        IConfigurationServiceDIToken,
     ] as const;
 
     public readonly view: EditorGroupElement;
@@ -35,6 +38,7 @@ export class EditorGroupController extends Disposable implements IController {
     private tokenizationRegistry: TokenizationRegistry;
     private tokenStyleResolver: ITokenStyleResolver;
     private languageService: ILanguageService;
+    private configurationService: IConfigurationService;
 
     public onRequestConfirmClose?: (index: number) => void;
     public onEditorCreate?: (controller: EditorController) => void;
@@ -44,12 +48,14 @@ export class EditorGroupController extends Disposable implements IController {
         tokenizationRegistry: TokenizationRegistry,
         tokenStyleResolver: ITokenStyleResolver,
         languageService: ILanguageService,
+        configurationService: IConfigurationService,
     ) {
         super();
         this.themeService = themeService;
         this.tokenizationRegistry = tokenizationRegistry;
         this.tokenStyleResolver = tokenStyleResolver;
         this.languageService = languageService;
+        this.configurationService = configurationService;
         this.view = new EditorGroupElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -92,6 +98,7 @@ export class EditorGroupController extends Disposable implements IController {
             ),
         );
         editor.openFile(filePath);
+        this.applyConfigurationToEditor(editor);
         this.onEditorCreate?.(editor);
         this.register(editor.onDidChangeContent(() => this.syncTabs()));
         editor.onDidSave = () => this.syncTabs();
@@ -147,6 +154,21 @@ export class EditorGroupController extends Disposable implements IController {
         for (const editor of this.editors) {
             await editor.activate();
         }
+    }
+
+    /**
+     * Применяет к редактору настройки из `IConfigurationService` (сейчас —
+     * только `editor.tabSize` и `editor.insertSpaces`). Если ключ не задан,
+     * `setIndentOptions` оставит существующее значение (auto-detect и т.п.).
+     */
+    private applyConfigurationToEditor(editor: EditorController): void {
+        const tabSize = this.configurationService.get<number>("editor.tabSize");
+        const insertSpaces = this.configurationService.get<boolean>("editor.insertSpaces");
+        if (tabSize === undefined && insertSpaces === undefined) return;
+        editor.setIndentOptions({
+            ...(tabSize !== undefined ? { tabSize } : {}),
+            ...(insertSpaces !== undefined ? { insertSpaces } : {}),
+        });
     }
 
     private applyTheme(theme: WorkbenchTheme): void {

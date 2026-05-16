@@ -1,5 +1,6 @@
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
+import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
@@ -8,6 +9,7 @@ import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
 
 import { backendModule } from "./BackendModule.ts";
 import { commandsModule } from "./CommandsModule.ts";
+import { configurationModule } from "./ConfigurationModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModule } from "./CoreModule.ts";
 import { extensionHostModule } from "./ExtensionHostModule.ts";
@@ -21,6 +23,7 @@ export interface ProductionProfileContext {
     tokenizationRegistry: TokenizationRegistry;
     tokenStyleResolver: ITokenStyleResolver;
     languageService: ILanguageService;
+    configurationService: IConfigurationService;
 }
 
 /**
@@ -38,6 +41,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
             tokenStyleResolver: ctx.tokenStyleResolver,
             languageService: ctx.languageService,
         })
+        .use(configurationModule, { configurationService: ctx.configurationService })
         .use(controllersModule)
         .use(extensionHostModule);
 }

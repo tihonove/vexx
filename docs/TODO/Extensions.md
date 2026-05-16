@@ -54,9 +54,23 @@
 
 ## Phase 6 — Configuration
 
-- [ ] `contributes.configuration` — JSON-схема настроек.
-- [ ] `ConfigurationService` + persistent storage.
+Частично сделано:
+
+- `Configuration/IConfigurationService.ts` — интерфейс (`get`, `getValue`, `inspect`, `onDidChangeConfiguration`).
+- `Configuration/ConfigurationModel.ts` — иммутабельная модель с нормализацией dotted-keys и слиянием слоёв.
+- `Configuration/ConfigurationService.ts` + `loadConfiguration(paths)` — реализация, читает JSONC через `jsonc-parser` (Microsoft).
+- `Common/UserDataPaths.ts` + `Common/CliArgs.ts` — раскладка `~/.vexx/` (VS Code-совместимая), CLI `--user-data-dir`, `--profile`, `--help`.
+- `Controllers/Modules/ConfigurationModule.ts` + DI в `ProductionProfile`/`TestProfile`; `EditorGroupController` применяет `editor.tabSize`/`editor.insertSpaces` к каждому новому редактору.
+- `test-fixtures/vexx-home/` — изолированный каталог с default + `compact` профилями для ручного запуска.
+
+Остаётся:
+
+- [ ] `contributes.configuration` — JSON-схема настроек расширений, регистрация в ConfigurationService.
+- [ ] Persistent storage и запись из UI/расширений (`update(key, value)`).
 - [ ] `contributes.configurationDefaults` — оверрайды для language-specific.
+- [ ] Live-reload settings.json через fs.watch + эмит `onDidChangeConfiguration` (сейчас no-op).
+- [ ] Workspace-слой (`.vexx/settings.json` в корне проекта).
+- [ ] Парсинг и применение `keybindings.json` (сейчас файл может существовать, но игнорируется).
 
 ## Phase 7 — Активация и lifecycle
 
@@ -93,9 +107,19 @@
 
 ## Phase 9 — Внешние расширения
 
-- [ ] Сканер `~/.vexx/extensions/`.
+Частично сделано:
+
+- `scanExtensions(assets, rootPrefix, { isBuiltin })` (`Extensions/ExtensionScanner.ts`) используется и для builtin (`Extensions/builtin/`), и для юзерского префикса `UserExtensions/`.
+- `Common/Assets/CompositeAssetAccess.ts` роутит виртуальные пути между builtin (SEA/FS) и user (FsAssetAccess на `<userData>/extensions/`).
+- `Extensions/mergeExtensions.ts` разруливает конфликты id (builtin побеждает user с `console.warn`).
+- `main.ts` сканирует оба источника и регистрирует в `LanguageRegistry` + `ExtensionTokenizationContributor`.
+
+Остаётся:
+
 - [ ] Установка из `.vsix` (или из marketplace API позже).
-- [ ] Версионирование, миграции, конфликты contribution points.
+- [ ] Версионирование (выбор последней из нескольких версий одного id), миграции.
+- [ ] Конфликты contribution points (сейчас резолвится только по id расширения, не по перекрывающимся language ids).
+- [ ] Активация user-расширений в ExtensionHost после Phase 7/8.
 
 ---
 

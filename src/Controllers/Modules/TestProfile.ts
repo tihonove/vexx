@@ -9,6 +9,7 @@ import { TuiApplicationDIToken } from "../CoreTokens.ts";
 
 import { backendModuleDefault } from "./BackendModule.ts";
 import { commandsModule } from "./CommandsModule.ts";
+import { configurationModuleDefault } from "./ConfigurationModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModuleLate } from "./CoreModule.ts";
 import { themeModule } from "./ThemeModule.ts";
@@ -41,6 +42,7 @@ export function createTestContainer(): TestContainerHandle {
             tokenStyleResolver: NULL_TOKEN_STYLE_RESOLVER,
             languageService: NULL_LANGUAGE_SERVICE,
         })
+        .use(configurationModuleDefault)
         .use(controllersModule);
 
     return {
