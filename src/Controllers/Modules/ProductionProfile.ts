@@ -10,6 +10,7 @@ import { backendModule } from "./BackendModule.ts";
 import { commandsModule } from "./CommandsModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModule } from "./CoreModule.ts";
+import { extensionHostModule } from "./ExtensionHostModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
 
@@ -37,5 +38,6 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
             tokenStyleResolver: ctx.tokenStyleResolver,
             languageService: ctx.languageService,
         })
-        .use(controllersModule);
+        .use(controllersModule)
+        .use(extensionHostModule);
 }

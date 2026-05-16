@@ -10,6 +10,7 @@ import { createProductionContainer } from "./Controllers/Modules/ProductionProfi
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { scanBuiltinExtensions } from "./Extensions/ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
+import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
@@ -64,6 +65,9 @@ const container = createProductionContainer({
 
 const app = container.get(TuiApplicationDIToken);
 const appController = container.get(AppControllerDIToken);
+// Поднимаем extension host (пока без зарегистрированных расширений: исполнение
+// `main` builtin-расширений будет в Phase F вместе с self-spawn).
+container.get(ExtensionHostDIToken);
 
 // If the first argument is a directory, use it as the workspace folder
 const firstResolved = resolvedPaths[0];

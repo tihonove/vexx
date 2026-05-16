@@ -11,7 +11,11 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
-    "types": ["node"]
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "vscode": ["src/Extensions/Api/vscode.d.ts"]
+    }
   },
   "include": ["src"]
 }

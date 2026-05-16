@@ -147,7 +147,22 @@ item.onActivate = () => this.openMenu(index);
 - **`LanguageRegistry implements ILanguageService`** — собирает `contributes.languages`. `register(IExtension): IDisposable` инкрементально добавляет вклад (с refcounting расширений и filenames/extensions/patterns), `dispose()` — корректно убирает. `getLanguageIdForResource(filePath)`: приоритет — exact `filenames` → `filenamePatterns` (минимальный glob: `*`, `?`, case-insensitive) → `extensions` (case-insensitive).
 - **`ExtensionTokenizationContributor`** — `apply()` собирает `IGrammarRecord[]` из всех `contributes.grammars`, создаёт `TextMateGrammarLoader`, для каждой грамматики с привязанным `language` загружает support и регистрирует в `TokenizationRegistry`. Хранит disposable-ссылки для будущей выгрузки.
 
-Зависимости: Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Common.
+#### Extensions/Host/ — extension host (Phase 1 MVP, in-process)
+
+Изоляция кода расширений от ядра. Расширения общаются с приложением **только через RPC поверх абстрактного канала сообщений** — это позволит без переписывания перейти на self-spawn в Phase 8 (см. [docs/TODO/Extensions.md](TODO/Extensions.md)).
+
+- **`IMessageChannel`** — двунаправленный канал: `postMessage(msg)`, `onMessage(cb): IDisposable`, `dispose()`. Транспортно-агностичен.
+- **`createInProcessChannelPair()`** — две `IMessageChannel`, соединённые через `queueMicrotask` + `JSON.stringify`/`parse` (эмулирует structural cloning, ловит мутации общих объектов уже сейчас).
+- **`RpcEndpoint(channel)`** — request/response/notification поверх `IMessageChannel`: `request(method, params): Promise`, `notify`, `handleRequest`, `handleNotification`.
+- **`IEditorOptionsService`** + **`EditorOptionsServiceAdapter`** — host-сервис настроек активного редактора (`tabSize`, `insertSpaces`). Адаптер обёрнут вокруг `EditorGroupController` — `Controllers` ничего не знает про расширения.
+- **`IExtensionEntry`** — контракт точки входа: `activate(context, api: typeof vscode)` (в Phase 1 `vscode` передаётся вторым аргументом; в Phase 8 вернётся к каноническому `import "vscode"`).
+- **`ExtensionRuntime(channel, entry)`** — «runtime-сторона» расширения: строит минимальный `vscode` namespace (`window.activeTextEditor.options` через Proxy, мутации идут как RPC-запросы `editor.setOptions`) и вызывает `entry.activate(ctx, api)`.
+- **`ExtensionHost(editorOptions)`** — host-сторона: `registerExtension/unregisterExtension/dispose`, создаёт пару каналов на каждое расширение, регистрирует RPC-обработчики `editor.setOptions`/`editor.getOptions`. В DI — `ExtensionHostDIToken` (см. `Controllers/Modules/ExtensionHostModule.ts`).
+- **`Extensions/Api/vscode.d.ts`** — копия `vscode.d.ts` из microsoft/vscode, всё line-commented кроме минимальной активной поверхности. `tsconfig paths` маршрутизирует `import type * as vscode from "vscode"` сюда.
+
+Зависимости: `Extensions/Host` → `Controllers` (через `EditorGroupController` в адаптере) → `Editor` → … . Сам `EditorController` экспонирует только seam `setIndentOptions({ tabSize?, insertSpaces? })`; auto-detect indent выключается при явной установке.
+
+Зависимости: Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Controllers (только `Extensions/Host` — через `EditorGroupController`), Common.
 
 ### Theme/
 Система темизации, совместимая с VS Code theme files. Тема — объект `WorkbenchTheme` в DI-контейнере (`WorkbenchThemeDIToken`), хранящий packed RGB цвета и правила подсветки синтаксиса. Контроллеры применяют цвета к элементам через `applyTheme()`, TUIDom ничего не знает о темах.
@@ -192,7 +207,7 @@ item.onActivate = () => this.openMenu(index);
 Запуск: `npm run story -- <story-file> [story-name] [extra-args...]`
 
 ### TestUtils/
-Общие утилиты для тестов (визуальные assertions для экрана).
+Общие утилиты для тестов (визуальные assertions для экрана). `ExtensionTestHarness.createExtensionTestHarness({ initialFile?, extensions? })` поднимает реальный `EditorGroupController` + `ExtensionHost` поверх `TestApp`/`MockTerminalBackend` для in-process тестов расширений; см. фикстуры в `src/Extensions/Host/__fixtures__/`.
 
 ## Правила зависимостей
 
@@ -211,7 +226,7 @@ App → Extensions → Controllers → Editor → TUIDom → { Input, Rendering,
 - **TUIDom/Events** используют тип TUIElement — это внутренняя зависимость TUIDom
 - **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme и Extensions — связь через интерфейсы (`ITokenStyleResolver`, `ILanguageService`)
 - **Theme/Tokenization** реализует `ITokenStyleResolver` из `Editor/Tokenization`
-- **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик
+- **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик. Подмодуль **`Extensions/Host`** дополнительно зависит от `Controllers` (через `EditorGroupController`-адаптер) — единственное место, где Extensions поднимается выше Controllers.
 - **Controllers** зависит от Editor, TUIDom, Theme, Common
 - **App** (main.ts) зависит от всех слоёв и оркеструет загрузку builtin-расширений до bootstrap DI
 

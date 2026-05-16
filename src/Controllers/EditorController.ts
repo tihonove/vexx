@@ -138,6 +138,28 @@ export class EditorController extends Disposable implements IController {
         this.editor.undoManager.redo();
     }
 
+    /**
+     * Применяет к view-state'у редактора частичный набор настроек indent.
+     * После изменений принудительно отключает auto-detect (если расширение
+     * выставило размер таба, оно знает, что делает) и помечает редактор
+     * dirty, чтобы изменения отрисовались в следующем кадре.
+     */
+    public setIndentOptions(patch: { tabSize?: number; insertSpaces?: boolean }): void {
+        let changed = false;
+        if (patch.tabSize !== undefined && patch.tabSize > 0 && this.editorViewState.tabSize !== patch.tabSize) {
+            this.editorViewState.tabSize = patch.tabSize;
+            changed = true;
+        }
+        if (patch.insertSpaces !== undefined && this.editorViewState.insertSpaces !== patch.insertSpaces) {
+            this.editorViewState.insertSpaces = patch.insertSpaces;
+            changed = true;
+        }
+        if (changed) {
+            this.editorViewState.detectIndentation = false;
+            this.editor.markDirty();
+        }
+    }
+
     public mount(): void {
         // Future: subscribe to editor-specific events
     }
