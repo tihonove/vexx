@@ -245,7 +245,7 @@ export class MenuBarElement extends TUIElement {
             },
         });
         menu.onClose = () => {
-            session?.close();
+            session.close();
         };
         this.activeMenuSession = session;
         this.markDirty();

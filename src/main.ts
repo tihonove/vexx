@@ -33,7 +33,7 @@ import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 // `ExtensionHost.ensureSubprocess()`.
 
 if (process.env.VEXX_EXTENSION_HOST === "1") {
-    await runExtensionHostSubprocess();
+    runExtensionHostSubprocess();
     // runExtensionHostSubprocess() возвращается, но процесс остаётся живым
     // на IPC-канале до disconnect/shutdown. Просто не идём в TUI-ветку.
 } else {

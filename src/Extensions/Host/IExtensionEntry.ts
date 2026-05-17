@@ -6,8 +6,8 @@
  * в subprocess'е через `Module._cache` + `_resolveFilename` patch.
  */
 export interface IExtensionEntry {
-    activate(context: { readonly subscriptions: { dispose(): unknown }[] }): unknown | Promise<unknown>;
-    deactivate?(): unknown | Promise<unknown>;
+    activate(context: { readonly subscriptions: { dispose(): unknown }[] }): unknown;
+    deactivate?(): unknown;
 }
 
 /**

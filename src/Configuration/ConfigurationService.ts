@@ -50,7 +50,7 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
 
     public get<T>(key: string, defaultValue?: T): T | undefined {
         const v = this.merged.get<T>(key);
-        return v === undefined ? defaultValue : v;
+        return v ?? defaultValue;
     }
 
     public getValue(section?: string): unknown {
@@ -69,7 +69,11 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
     public onDidChangeConfiguration(_listener: (event: IConfigurationChangeEvent) => void): IDisposable {
         // Пока без watch — событие никогда не эмитится. Возвращаем no-op
         // Disposable, чтобы потребители могли подписываться безопасно.
-        return { dispose: () => {} };
+        return {
+            dispose: () => {
+                /* no-op: watcher not implemented */
+            },
+        };
     }
 }
 
@@ -108,11 +112,11 @@ async function loadSettingsLayer(filePath: string): Promise<ConfigurationModel> 
     }
 
     const errors: ParseError[] = [];
-    const parsed = parseJsonc(content, errors, { allowTrailingComma: true });
+    const parsed: unknown = parseJsonc(content, errors, { allowTrailingComma: true });
     if (errors.length > 0) {
         for (const err of errors) {
             console.error(
-                `JSONC parse error in ${filePath} at offset ${err.offset}: ${printParseErrorCode(err.error)}`,
+                `JSONC parse error in ${filePath} at offset ${String(err.offset)}: ${printParseErrorCode(err.error)}`,
             );
         }
         // Если ничего распарсить не удалось — пусто. Если parser вернул

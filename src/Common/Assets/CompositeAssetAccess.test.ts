@@ -4,26 +4,29 @@ import { CompositeAssetAccess } from "./CompositeAssetAccess.ts";
 import type { IAssetAccess, IAssetEntry } from "./IAssetAccess.ts";
 
 class FakeAccess implements IAssetAccess {
-    public constructor(
-        private readonly files: Record<string, string>,
-        private readonly entries: Record<string, IAssetEntry[]> = {},
-    ) {}
+    private readonly files: Record<string, string | undefined>;
+    private readonly entries: Record<string, IAssetEntry[]>;
 
-    public async read(p: string): Promise<Uint8Array> {
+    public constructor(files: Record<string, string | undefined>, entries: Record<string, IAssetEntry[]> = {}) {
+        this.files = files;
+        this.entries = entries;
+    }
+
+    public read(p: string): Promise<Uint8Array> {
         const t = this.files[p];
         if (t === undefined) throw new Error(`missing: ${p}`);
-        return new TextEncoder().encode(t);
+        return Promise.resolve(new TextEncoder().encode(t));
     }
-    public async readText(p: string): Promise<string> {
+    public readText(p: string): Promise<string> {
         const t = this.files[p];
         if (t === undefined) throw new Error(`missing: ${p}`);
-        return t;
+        return Promise.resolve(t);
     }
-    public async exists(p: string): Promise<boolean> {
-        return this.files[p] !== undefined;
+    public exists(p: string): Promise<boolean> {
+        return Promise.resolve(this.files[p] !== undefined);
     }
-    public async listEntries(prefix: string): Promise<IAssetEntry[]> {
-        return this.entries[prefix] ?? [];
+    public listEntries(prefix: string): Promise<IAssetEntry[]> {
+        return Promise.resolve(this.entries[prefix] ?? []);
     }
 }
 

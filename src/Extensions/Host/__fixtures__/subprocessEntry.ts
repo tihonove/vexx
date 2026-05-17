@@ -8,4 +8,4 @@
  */
 import { runExtensionHostSubprocess } from "../ExtensionHostSubprocess.ts";
 
-await runExtensionHostSubprocess();
+runExtensionHostSubprocess();

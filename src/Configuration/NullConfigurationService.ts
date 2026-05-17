@@ -22,6 +22,10 @@ export const NULL_CONFIGURATION_SERVICE: IConfigurationService = {
         return { default: undefined, user: undefined, profile: undefined, value: undefined };
     },
     onDidChangeConfiguration(_listener: (event: IConfigurationChangeEvent) => void): IDisposable {
-        return { dispose() {} };
+        return {
+            dispose() {
+                /* no-op */
+            },
+        };
     },
 };

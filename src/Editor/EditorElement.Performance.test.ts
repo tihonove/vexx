@@ -72,11 +72,11 @@ describe("EditorElement / EditorViewState render-loop performance (cached)", () 
         const editor = new EditorElement(viewState);
 
         // Warm up JIT + first cache population
-        editor.contentWidth;
+        void editor.contentWidth;
 
         const t0 = performance.now();
         for (let move = 0; move < CURSOR_MOVES; move++) {
-            editor.contentWidth;
+            void editor.contentWidth;
         }
         const ms = performance.now() - t0;
 

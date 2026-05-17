@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 
 import { CommandRegistry } from "./CommandRegistry.ts";
@@ -94,7 +95,7 @@ describe("QuickOpenController — open/close", () => {
     it("close() restores focus to previously focused element", () => {
         const { controller, testApp, body } = createController();
         // Put something focusable in the body and focus it first
-        const dummyInput = new (require("../TUIDom/Widgets/InputElement.ts").InputElement)();
+        const dummyInput = new InputElement();
         dummyInput.tabIndex = 0;
         body.setContent(dummyInput);
         testApp.app.root = body;

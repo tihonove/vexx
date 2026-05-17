@@ -6,7 +6,13 @@ import overrides from "./eslint.overrides.ts";
 export default tseslint.config(
     // Глобальные игноры
     {
-        ignores: ["dist/", "node_modules/", "*.config.*"],
+        ignores: [
+            "dist/",
+            "node_modules/",
+            "*.config.*",
+            "src/Extensions/Api/vscode.d.ts",
+            "src/Extensions/Host/__fixtures__/*.cjs",
+        ],
     },
 
     // Базовые рекомендации ESLint для JS

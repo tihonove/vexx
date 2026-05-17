@@ -629,7 +629,7 @@ export class AppController extends Disposable implements IController {
         );
 
         menu.onClose = () => {
-            session?.close();
+            session.close();
         };
 
         this.fileTreeContextMenuSession = session;

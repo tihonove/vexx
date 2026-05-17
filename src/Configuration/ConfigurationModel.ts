@@ -41,6 +41,7 @@ export class ConfigurationModel {
     }
 
     /** Точечный лукап. */
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
     public get<T>(key: string): T | undefined {
         const segments = splitKey(key);
         if (segments.length === 0) return undefined;

@@ -21,17 +21,18 @@ interface QuickPickItemWithMeta extends QuickPickItem {
 export class QuickOpenController extends Disposable {
     public readonly view: QuickPickElement;
 
+    private readonly fileSearch: FileSearchService;
+    private readonly commands: CommandRegistry;
     private hostBody: BodyElement | null = null;
     private quickOpenSession: OverlaySessionHandle | null = null;
     private currentMode: OpenMode = "files";
 
     public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
 
-    public constructor(
-        private readonly fileSearch: FileSearchService,
-        private readonly commands: CommandRegistry,
-    ) {
+    public constructor(fileSearch: FileSearchService, commands: CommandRegistry) {
         super();
+        this.fileSearch = fileSearch;
+        this.commands = commands;
         this.view = new QuickPickElement();
         this.view.maxVisibleItems = 10;
 

@@ -109,7 +109,7 @@ describe("IpcMessageChannel", () => {
         chB.dispose();
     });
 
-    it("после события disconnect postMessage no-op", async () => {
+    it("после события disconnect postMessage no-op", () => {
         const [a, b] = pair();
         const chA = new IpcMessageChannel(a);
         const chB = new IpcMessageChannel(b);

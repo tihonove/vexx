@@ -401,7 +401,7 @@ export class EditorElement extends TUIElement implements IScrollable {
         });
 
         menu.onClose = () => {
-            session?.close();
+            session.close();
         };
 
         this.activeContextMenuSession = session;
@@ -417,7 +417,7 @@ export class EditorElement extends TUIElement implements IScrollable {
     private getContextMenuLayer() {
         const root = this.getRoot();
         if (!root) return null;
-        return (root as BodyElement).contextMenuLayer ?? null;
+        return (root as BodyElement).contextMenuLayer;
     }
 
     private handleMouseMove(event: TUIMouseEvent): void {

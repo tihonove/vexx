@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import type { IIpcEndpoint } from "./IpcMessageChannel.ts";
 import { IpcMessageChannel } from "./IpcMessageChannel.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
 
@@ -41,7 +42,7 @@ describe("IpcMessageChannel — real subprocess round-trip", () => {
                 stdio: ["ignore", "pipe", "pipe", "ipc"],
                 env: { ...process.env },
             });
-            const channel = new IpcMessageChannel(child as unknown as import("./IpcMessageChannel.ts").IIpcEndpoint);
+            const channel = new IpcMessageChannel(child as unknown as IIpcEndpoint);
             const handle: RunningChild = { child, channel, rpc: new RpcEndpoint(channel) };
             running.push(handle);
             const onReady = channel.onMessage((msg) => {

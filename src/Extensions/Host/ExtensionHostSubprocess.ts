@@ -28,8 +28,8 @@ interface ActivatedExtension {
 }
 
 interface ExtensionModule {
-    activate?: (context: ExtensionContext) => unknown | Promise<unknown>;
-    deactivate?: () => unknown | Promise<unknown>;
+    activate?: (context: ExtensionContext) => unknown;
+    deactivate?: () => unknown;
 }
 
 interface ExtensionContext {
@@ -41,7 +41,7 @@ interface ExtensionContext {
  * обнаружении env-флага `VEXX_EXTENSION_HOST=1`. НИКОГДА не возвращает в
  * нормальном режиме — процесс живёт до `host.shutdown` или `disconnect`.
  */
-export async function runExtensionHostSubprocess(): Promise<void> {
+export function runExtensionHostSubprocess(): void {
     if (typeof process.send !== "function") {
         // Без IPC-канала смысла нет. Завершаемся, чтобы не висеть мёртвым.
 
@@ -187,7 +187,7 @@ function installVscodeStub(rpc: RpcEndpoint): IDisposable {
     return {
         dispose: (): void => {
             moduleAny._resolveFilename = origResolve;
-            delete moduleAny._cache[cacheKey];
+            Reflect.deleteProperty(moduleAny._cache, cacheKey);
         },
     };
 }

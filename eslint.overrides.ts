@@ -25,6 +25,8 @@ const overrides: TSESLint.FlatConfig.ConfigArray = [
         files: ["**/*.test.ts", "**/*.test.tsx"],
         rules: {
             "@typescript-eslint/no-non-null-assertion": "off",
+            "@typescript-eslint/no-empty-function": "off",
+            "@typescript-eslint/unbound-method": "off",
         },
     },
     {
@@ -43,6 +45,8 @@ const overrides: TSESLint.FlatConfig.ConfigArray = [
             "@typescript-eslint/parameter-properties": "error",
             // Форсируем явный спецификатор видимости на всех членах класса
             "@typescript-eslint/explicit-member-accessibility": ["error", { accessibility: "explicit" }],
+            // Разрешаем числа в template literals
+            "@typescript-eslint/restrict-template-expressions": ["error", { allowNumber: true }],
             // Сортировка импортов по группам:
             // 1. Node built-in модули (node:*)
             // 2. Внешние пакеты (npm)

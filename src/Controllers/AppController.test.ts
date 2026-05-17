@@ -4,6 +4,7 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
+import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -211,9 +212,7 @@ describe("AppController — Quick Open", () => {
         testApp.render();
 
         expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
-        const picker = testApp.querySelector(
-            "QuickPickElement",
-        ) as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
+        const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
         expect(picker.placeholder).toBe("Show All Commands");
     });
 
@@ -258,9 +257,7 @@ describe("AppController — Quick Open", () => {
         commandRegistry.execute("workbench.action.showCommands");
         testApp.render();
 
-        const picker = testApp.querySelector(
-            "QuickPickElement",
-        ) as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
+        const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
         const labels = picker.items.map((i) => i.label);
         expect(labels).toContain("My Test Command");
     });

@@ -43,7 +43,7 @@ interface IFlagSpec {
     readonly value: true;
 }
 
-const FLAG_SPECS: Readonly<Record<string, IFlagSpec>> = {
+const FLAG_SPECS: Readonly<Record<string, IFlagSpec | undefined>> = {
     "--user-data-dir": { key: "userDataDir", value: true },
     "--profile": { key: "profile", value: true },
 };

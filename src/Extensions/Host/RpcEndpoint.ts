@@ -28,7 +28,7 @@ export interface INotificationMessage {
 
 export type IProtocolMessage = IRequestMessage | IResponseMessage | INotificationMessage;
 
-export type IRequestHandler = (params: unknown) => unknown | Promise<unknown>;
+export type IRequestHandler = (params: unknown) => unknown;
 export type INotificationHandler = (params: unknown) => void;
 
 /**
