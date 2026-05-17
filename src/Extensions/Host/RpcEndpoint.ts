@@ -55,7 +55,7 @@ export class RpcEndpoint implements IDisposable {
         });
     }
 
-    public request(method: string, params: unknown = undefined): Promise<unknown> {
+    public request(method: string, params?: unknown): Promise<unknown> {
         if (this.disposed) {
             return Promise.reject(new Error(`RpcEndpoint disposed; cannot request "${method}"`));
         }
@@ -67,7 +67,7 @@ export class RpcEndpoint implements IDisposable {
         });
     }
 
-    public notify(method: string, params: unknown = undefined): void {
+    public notify(method: string, params?: unknown): void {
         if (this.disposed) return;
         const msg: INotificationMessage = { kind: "notif", method, params };
         this.channel.postMessage(msg);

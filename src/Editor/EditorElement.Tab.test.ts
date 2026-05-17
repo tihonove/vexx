@@ -38,7 +38,6 @@ describe("EditorElement – Tab key", () => {
     it("Tab does not trigger focus cycling", () => {
         const { app, editor: _ } = createEditor("hello");
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const cycleFocusSpy = vi.spyOn(app.app.focusManager!, "cycleFocus");
 
         app.sendKey("Tab");
@@ -77,7 +76,6 @@ describe("EditorElement – Shift+Tab key", () => {
     it("Shift+Tab does not trigger focus cycling", () => {
         const { app, editor: _ } = createEditor("hello");
 
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         const cycleFocusSpy = vi.spyOn(app.app.focusManager!, "cycleFocus");
 
         app.sendKey("Shift+Tab");

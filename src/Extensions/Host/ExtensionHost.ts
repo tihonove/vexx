@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 
 import { token } from "../../Common/DiContainer.ts";
@@ -260,7 +260,9 @@ function waitForExit(child: ChildProcess): Promise<void> {
             resolve();
             return;
         }
-        child.once("exit", () => resolve());
+        child.once("exit", () => {
+            resolve();
+        });
     });
 }
 

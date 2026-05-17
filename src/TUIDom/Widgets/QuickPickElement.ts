@@ -35,9 +35,9 @@ export interface QuickPickItem {
     /** Marker badge, e.g. "recently used". */
     badge?: string;
     /** Byte-offset ranges in `label` to highlight as fuzzy-match hits. */
-    labelMatchRanges?: ReadonlyArray<[number, number]>;
+    labelMatchRanges?: readonly [number, number][];
     /** Byte-offset ranges in `description` to highlight as fuzzy-match hits. */
-    descriptionMatchRanges?: ReadonlyArray<[number, number]>;
+    descriptionMatchRanges?: readonly [number, number][];
 }
 
 // ─── Widget ──────────────────────────────────────────────────────────────────
@@ -65,15 +65,15 @@ export interface QuickPickItem {
  *   picker.onAccept = (item) => openFile(item.description!);
  */
 export class QuickPickElement extends TUIElement {
-    public placeholder: string = "Type to search…";
+    public placeholder = "Type to search…";
     /** Maximum rows of the list to show at once (scrolls when exceeded). */
-    public maxVisibleItems: number = 10;
+    public maxVisibleItems = 10;
     /**
      * Desired width of the picker in columns.
      * When the element is laid out with loose constraints it will use this
      * value (clamped to [minWidth, maxWidth]).
      */
-    public preferredWidth: number = 60;
+    public preferredWidth = 60;
 
     /** Colours exposed for theming. */
     public activeSelectionBg: number = ACTIVE_SELECTION_BG;
@@ -87,8 +87,8 @@ export class QuickPickElement extends TUIElement {
     public readonly inputElement: InputElement;
 
     private itemsValue: readonly QuickPickItem[] = [];
-    private selectedIndexValue: number = 0;
-    private scrollOffset: number = 0;
+    private selectedIndexValue = 0;
+    private scrollOffset = 0;
 
     public constructor() {
         super();
@@ -106,7 +106,7 @@ export class QuickPickElement extends TUIElement {
         // These keys are not consumed by InputElement.performDefaultAction, so they
         // bubble here. We preventDefault() to suppress further handling.
         this.addEventListener("keydown", (event) => {
-            const keyEvent = event as TUIKeyboardEvent;
+            const keyEvent = event;
             switch (keyEvent.key) {
                 case "ArrowDown":
                     event.preventDefault();
@@ -205,10 +205,7 @@ export class QuickPickElement extends TUIElement {
         // Position InputElement inside the top border, padded by 1 on each side.
         const inputWidth = Math.max(0, size.width - 2);
         this.inputElement.localPosition = new Offset(1, 1);
-        this.inputElement.globalPosition = new Point(
-            this.globalPosition.x + 1,
-            this.globalPosition.y + 1,
-        );
+        this.inputElement.globalPosition = new Point(this.globalPosition.x + 1, this.globalPosition.y + 1);
         this.inputElement.performLayout(BoxConstraints.tight(new Size(inputWidth, 1)));
 
         return size;
@@ -287,13 +284,7 @@ export class QuickPickElement extends TUIElement {
         }
     }
 
-    private renderItemRow(
-        context: RenderContext,
-        w: number,
-        rowY: number,
-        itemIndex: number,
-        hasIcons: boolean,
-    ): void {
+    private renderItemRow(context: RenderContext, w: number, rowY: number, itemIndex: number, hasIcons: boolean): void {
         const item = this.itemsValue[itemIndex];
         const isSelected = itemIndex === this.selectedIndexValue;
         const rowBg = isSelected ? this.activeSelectionBg : BG;
@@ -318,7 +309,10 @@ export class QuickPickElement extends TUIElement {
         }
 
         // ── Right-side text: badge, description, shortcut, hint ───────────────
-        type RightPart = { text: string; fg: number };
+        interface RightPart {
+            text: string;
+            fg: number;
+        }
         const rightParts: RightPart[] = [];
 
         if (item.badge !== undefined) {
@@ -404,7 +398,7 @@ export class QuickPickElement extends TUIElement {
  * Expands [start, end) range pairs into a flat Set of matched byte offsets,
  * for per-character colour lookups in `drawText.getStyle`.
  */
-function buildMatchSet(ranges: ReadonlyArray<[number, number]>): Set<number> {
+function buildMatchSet(ranges: readonly [number, number][]): Set<number> {
     const set = new Set<number>();
     for (const [start, end] of ranges) {
         for (let i = start; i < end; i++) {

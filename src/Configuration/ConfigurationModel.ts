@@ -48,7 +48,7 @@ export class ConfigurationModel {
         for (const seg of segments) {
             if (!isPlainObject(current)) return undefined;
             if (!Object.prototype.hasOwnProperty.call(current, seg)) return undefined;
-            current = (current as Record<string, unknown>)[seg];
+            current = current[seg];
         }
         return current as T;
     }

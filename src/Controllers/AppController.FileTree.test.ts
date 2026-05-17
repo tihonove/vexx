@@ -8,9 +8,9 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { EditorGroupController } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 function createTempWorkspace(): string {

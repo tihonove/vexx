@@ -89,9 +89,7 @@ function normalizeProfileName(raw: string | undefined): string {
     const trimmed = raw.trim();
     if (trimmed.length === 0) return DEFAULT_PROFILE_NAME;
     if (!/^[A-Za-z0-9._-]+$/.test(trimmed)) {
-        throw new Error(
-            `Invalid profile name "${raw}": only letters, digits, ".", "_" and "-" are allowed`,
-        );
+        throw new Error(`Invalid profile name "${raw}": only letters, digits, ".", "_" and "-" are allowed`);
     }
     return trimmed;
 }

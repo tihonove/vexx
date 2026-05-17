@@ -41,7 +41,10 @@ export interface OverlaySessionHandle {
 interface OverlaySessionState {
     element: TUIElement;
     options: Required<
-        Pick<OverlaySessionOptions, "restoreFocus" | "focusOnOpen" | "closeOnEscape" | "closeOnOutsidePointer" | "disposeOnClose">
+        Pick<
+            OverlaySessionOptions,
+            "restoreFocus" | "focusOnOpen" | "closeOnEscape" | "closeOnOutsidePointer" | "disposeOnClose"
+        >
     >;
     visible: boolean;
     isDisposed: boolean;

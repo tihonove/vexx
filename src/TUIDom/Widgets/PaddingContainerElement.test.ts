@@ -4,8 +4,8 @@ import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { ROOT_RESOLVED_STYLE } from "../Styles/TUIStyle.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
+import { ROOT_RESOLVED_STYLE } from "../Styles/TUIStyle.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import { BoxElement } from "./BoxElement.ts";

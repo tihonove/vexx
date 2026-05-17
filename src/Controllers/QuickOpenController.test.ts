@@ -147,11 +147,13 @@ describe("QuickOpenController — files mode", () => {
     it("match indices map to label highlight ranges", () => {
         // relativePath = "src/App.ts", basename = "App.ts" (offset=4)
         // indices [4, 5, 6] → basename indices [0, 1, 2] → one range [0, 3]
-        const results: FileSearchResult[] = [{
-            entry: makeFileEntry("src/App.ts"),
-            score: 100,
-            matchedIndices: [4, 5, 6],
-        }];
+        const results: FileSearchResult[] = [
+            {
+                entry: makeFileEntry("src/App.ts"),
+                score: 100,
+                matchedIndices: [4, 5, 6],
+            },
+        ];
         const { controller } = createController(results);
         controller.open("files");
         const item = controller.view.items[0];
@@ -167,7 +169,9 @@ describe("QuickOpenController — files mode", () => {
 
         const item = controller.view.items[0] as QuickPickItem & { absolutePath: string };
         controller.view.onAccept?.(item, 0);
-        await new Promise<void>((r) => queueMicrotask(r));
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
 
         expect(execSpy).toHaveBeenCalledWith("workbench.openFile", "/root/src/main.ts");
     });
@@ -178,7 +182,9 @@ describe("QuickOpenController — files mode", () => {
         controller.open("files");
         const item = controller.view.items[0];
         controller.view.onAccept?.(item, 0);
-        await new Promise<void>((r) => queueMicrotask(r));
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
         expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
     });
 });
@@ -237,7 +243,9 @@ describe("QuickOpenController — commands mode", () => {
         controller.open("commands");
         const item = controller.view.items[0];
         controller.view.onAccept?.(item, 0);
-        await new Promise<void>((r) => queueMicrotask(r));
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
         expect(execSpy).toHaveBeenCalledWith("cmd.x");
     });
 
@@ -247,7 +255,9 @@ describe("QuickOpenController — commands mode", () => {
         controller.open("commands");
         const item = controller.view.items[0];
         controller.view.onAccept?.(item, 0);
-        await new Promise<void>((r) => queueMicrotask(r));
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
         expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
     });
 });

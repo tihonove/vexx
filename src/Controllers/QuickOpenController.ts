@@ -35,9 +35,15 @@ export class QuickOpenController extends Disposable {
         this.view = new QuickPickElement();
         this.view.maxVisibleItems = 10;
 
-        this.view.onQueryChange = (query) => this.handleQueryChange(query);
-        this.view.onAccept = (item) => this.handleAccept(item);
-        this.view.onCancel = () => this.close();
+        this.view.onQueryChange = (query) => {
+            this.handleQueryChange(query);
+        };
+        this.view.onAccept = (item) => {
+            this.handleAccept(item);
+        };
+        this.view.onCancel = () => {
+            this.close();
+        };
     }
 
     public setHostView(body: BodyElement): void {
@@ -157,14 +163,14 @@ export class QuickOpenController extends Disposable {
         const all = this.commands.listCommands();
         const filterLower = filter.toLowerCase();
 
-        const matched = filterLower === ""
-            ? all
-            : all.filter((cmd) => cmd.title.toLowerCase().includes(filterLower));
+        const matched = filterLower === "" ? all : all.filter((cmd) => cmd.title.toLowerCase().includes(filterLower));
 
-        return matched.map((cmd): QuickPickItemWithMeta => ({
-            label: cmd.title,
-            commandId: cmd.id,
-        }));
+        return matched.map(
+            (cmd): QuickPickItemWithMeta => ({
+                label: cmd.title,
+                commandId: cmd.id,
+            }),
+        );
     }
 
     private updatePosition(): void {

@@ -93,12 +93,7 @@ function matchesBinding(event: KeyboardEventLike, binding: Keybinding): boolean 
 
     // Layout-independent fallback: for single-letter Ctrl/Meta shortcuts match by physical key code.
     // This makes e.g. Ctrl+S work even when the Russian layout is active.
-    if (
-        binding.key.length === 1 &&
-        (event.ctrlKey || event.metaKey) &&
-        event.code != null &&
-        event.code !== ""
-    ) {
+    if (binding.key.length === 1 && (event.ctrlKey || event.metaKey) && event.code != null && event.code !== "") {
         const expectedCode = `Key${binding.key.toUpperCase()}`;
         if (event.code === expectedCode) return true;
     }

@@ -113,7 +113,7 @@ export function fileSearch(ctx: StoryContext): void {
             // Simple highlight: mark first occurrence of query string
             labelMatchRanges: (() => {
                 const idx = item.label.toLowerCase().indexOf(q);
-                return idx >= 0 ? ([[idx, idx + q.length]] as Array<[number, number]>) : [];
+                return idx >= 0 ? ([[idx, idx + q.length]] as [number, number][]) : [];
             })(),
         }));
     };

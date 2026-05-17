@@ -7,8 +7,8 @@ import { subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarnes
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
 import { ExtensionHost } from "./ExtensionHost.ts";
-import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
+import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 
 const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
 

@@ -23,7 +23,11 @@ describe("InProcessChannelPair", () => {
         b.onMessage((m) => fromA.push(m));
         a.postMessage(1);
         b.postMessage(2);
-        await new Promise((r) => queueMicrotask(() => r(undefined)));
+        await new Promise((r) => {
+            queueMicrotask(() => {
+                r(undefined);
+            });
+        });
         expect(fromA).toEqual([1]);
         expect(fromB).toEqual([2]);
     });
@@ -35,7 +39,11 @@ describe("InProcessChannelPair", () => {
         a.postMessage("a");
         a.postMessage("b");
         a.postMessage("c");
-        await new Promise((r) => queueMicrotask(() => r(undefined)));
+        await new Promise((r) => {
+            queueMicrotask(() => {
+                r(undefined);
+            });
+        });
         expect(received).toEqual(["a", "b", "c"]);
     });
 

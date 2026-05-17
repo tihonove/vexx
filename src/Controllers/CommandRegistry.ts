@@ -34,8 +34,8 @@ export class CommandRegistry implements IDisposable {
         return this.entries.has(id);
     }
 
-    public listCommands(): Array<{ id: string; title: string }> {
-        const result: Array<{ id: string; title: string }> = [];
+    public listCommands(): { id: string; title: string }[] {
+        const result: { id: string; title: string }[] = [];
         for (const [id, entry] of this.entries) {
             if (entry.title !== undefined) {
                 result.push({ id, title: entry.title });

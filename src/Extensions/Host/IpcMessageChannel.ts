@@ -29,7 +29,7 @@ export interface IIpcEndpoint {
  */
 export class IpcMessageChannel implements IMessageChannel {
     private readonly endpoint: IIpcEndpoint;
-    private readonly listeners: Array<(message: unknown) => void> = [];
+    private readonly listeners: ((message: unknown) => void)[] = [];
     private readonly onIncoming: (message: unknown) => void;
     private readonly onDisconnect: () => void;
     private disposed = false;

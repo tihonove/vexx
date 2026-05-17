@@ -66,9 +66,7 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
         };
     }
 
-    public onDidChangeConfiguration(
-        _listener: (event: IConfigurationChangeEvent) => void,
-    ): IDisposable {
+    public onDidChangeConfiguration(_listener: (event: IConfigurationChangeEvent) => void): IDisposable {
         // Пока без watch — событие никогда не эмитится. Возвращаем no-op
         // Disposable, чтобы потребители могли подписываться безопасно.
         return { dispose: () => {} };
@@ -125,9 +123,5 @@ async function loadSettingsLayer(filePath: string): Promise<ConfigurationModel> 
 }
 
 function isFileNotFound(err: unknown): boolean {
-    return (
-        typeof err === "object" &&
-        err !== null &&
-        (err as { code?: string }).code === "ENOENT"
-    );
+    return typeof err === "object" && err !== null && (err as { code?: string }).code === "ENOENT";
 }

@@ -1,4 +1,4 @@
-import { Module, createRequire } from "node:module";
+import { createRequire, Module } from "node:module";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
 
@@ -44,7 +44,7 @@ interface ExtensionContext {
 export async function runExtensionHostSubprocess(): Promise<void> {
     if (typeof process.send !== "function") {
         // Без IPC-канала смысла нет. Завершаемся, чтобы не висеть мёртвым.
-        // eslint-disable-next-line no-console
+
         console.error("[ext-host] subprocess started without IPC channel; exiting");
         process.exit(2);
     }

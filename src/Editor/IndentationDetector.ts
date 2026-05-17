@@ -20,9 +20,9 @@ export function detectIndentation(document: ITextDocument): DetectedIndentation 
         const line = document.getLineContent(i);
         if (line.length === 0) continue;
 
-        if (line[0] === "\t") {
+        if (line.startsWith("\t")) {
             tabLines++;
-        } else if (line[0] === " ") {
+        } else if (line.startsWith(" ")) {
             let spaces = 0;
             while (spaces < line.length && line[spaces] === " ") {
                 spaces++;

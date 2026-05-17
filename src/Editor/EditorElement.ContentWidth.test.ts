@@ -57,7 +57,9 @@ describe("EditorElement.contentWidth", () => {
         expect(editor.contentWidth).toBe(20);
 
         // Delete the wide line (line 1)
-        viewState.selections = [{ anchor: { line: 1, character: 0 }, active: { line: 2, character: 0 }, idealColumn: undefined }];
+        viewState.selections = [
+            { anchor: { line: 1, character: 0 }, active: { line: 2, character: 0 }, idealColumn: undefined },
+        ];
         viewState.deleteLeft();
 
         expect(editor.contentWidth).toBeLessThan(20);

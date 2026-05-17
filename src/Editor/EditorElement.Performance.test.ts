@@ -16,9 +16,9 @@
 
 import { describe, expect, it } from "vitest";
 
-import { createCursorSelection } from "./ISelection.ts";
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
+import { createCursorSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
 
 // ─── Helpers ────────────────────────────────────────────────
@@ -65,34 +65,30 @@ describe("EditorElement / EditorViewState render-loop performance (cached)", () 
      * Called every render frame (by ScrollBarDecorator / layout system).
      * PASSES when slow (> 3000 ms for 100 frames). Fix target: < 100 ms.
      */
-    it(
-        "contentWidth: cached by versionId — 100 cursor-move frames must be fast",
-        () => {
-            const text = generateJsonLikeText(DOC_LINE_COUNT);
-            const doc = new TextDocument(text);
-            const viewState = new EditorViewState(doc, [createCursorSelection(0, 0)]);
-            const editor = new EditorElement(viewState);
+    it("contentWidth: cached by versionId — 100 cursor-move frames must be fast", () => {
+        const text = generateJsonLikeText(DOC_LINE_COUNT);
+        const doc = new TextDocument(text);
+        const viewState = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+        const editor = new EditorElement(viewState);
 
-            // Warm up JIT + first cache population
+        // Warm up JIT + first cache population
+        editor.contentWidth;
+
+        const t0 = performance.now();
+        for (let move = 0; move < CURSOR_MOVES; move++) {
             editor.contentWidth;
+        }
+        const ms = performance.now() - t0;
 
-            const t0 = performance.now();
-            for (let move = 0; move < CURSOR_MOVES; move++) {
-                editor.contentWidth;
-            }
-            const ms = performance.now() - t0;
+        console.log(
+            `[cached] contentWidth ×${CURSOR_MOVES} on ${DOC_LINE_COUNT}-line doc: ${ms.toFixed(1)} ms` +
+                ` (${(ms / CURSOR_MOVES).toFixed(2)} ms/frame)`,
+        );
 
-            console.log(
-                `[cached] contentWidth ×${CURSOR_MOVES} on ${DOC_LINE_COUNT}-line doc: ${ms.toFixed(1)} ms` +
-                    ` (${(ms / CURSOR_MOVES).toFixed(2)} ms/frame)`,
-            );
-
-            // Cache hit on every frame (versionId unchanged by cursor moves).
-            // 100 frames on a 3500-line doc should complete in well under 300 ms.
-            expect(ms).toBeLessThan(300);
-        },
-        120_000,
-    );
+        // Cache hit on every frame (versionId unchanged by cursor moves).
+        // 100 frames on a 3500-line doc should complete in well under 300 ms.
+        expect(ms).toBeLessThan(300);
+    }, 120_000);
 
     /**
      * Bottleneck 2: EditorViewState.buildVisibleLines() called for every visible line
@@ -106,47 +102,43 @@ describe("EditorElement / EditorViewState render-loop performance (cached)", () 
      *
      * PASSES when slow (> 300 ms for 100 frames). Fix target: < 10 ms.
      */
-    it(
-        "buildVisibleLines: cached by versionId — 100 render frames must be fast",
-        () => {
-            const text = generateJsonLikeText(DOC_LINE_COUNT);
-            const doc = new TextDocument(text);
-            const viewState = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+    it("buildVisibleLines: cached by versionId — 100 render frames must be fast", () => {
+        const text = generateJsonLikeText(DOC_LINE_COUNT);
+        const doc = new TextDocument(text);
+        const viewState = new EditorViewState(doc, [createCursorSelection(0, 0)]);
 
-            // Replicate the call pattern during a single render frame:
-            // - 3 calls per visible line (visualToLogicalLine is called 3× in render loop)
-            // - plus getViewLineCount() calls from layout
-            const simulateOneFrame = (): void => {
-                viewState.getViewLineCount(); // layout call
-                for (let screenY = 0; screenY < VIEWPORT_HEIGHT; screenY++) {
-                    const viewLine = screenY; // scrollTop = 0 for simplicity
-                    viewState.visualToLogicalLine(viewLine); // gutter
-                    viewState.getViewLine(viewLine);         // content
-                    viewState.getViewLineTokens(viewLine);   // tokens
-                }
-                viewState.getViewLineCount(); // scrollbar layout
-            };
-
-            // Warm up JIT
-            simulateOneFrame();
-
-            const t0 = performance.now();
-            for (let move = 0; move < CURSOR_MOVES; move++) {
-                simulateOneFrame();
+        // Replicate the call pattern during a single render frame:
+        // - 3 calls per visible line (visualToLogicalLine is called 3× in render loop)
+        // - plus getViewLineCount() calls from layout
+        const simulateOneFrame = (): void => {
+            viewState.getViewLineCount(); // layout call
+            for (let screenY = 0; screenY < VIEWPORT_HEIGHT; screenY++) {
+                const viewLine = screenY; // scrollTop = 0 for simplicity
+                viewState.visualToLogicalLine(viewLine); // gutter
+                viewState.getViewLine(viewLine); // content
+                viewState.getViewLineTokens(viewLine); // tokens
             }
-            const ms = performance.now() - t0;
+            viewState.getViewLineCount(); // scrollbar layout
+        };
 
-            console.log(
-                `[cached] buildVisibleLines ×${CURSOR_MOVES * (VIEWPORT_HEIGHT * 3 + 2)} on ${DOC_LINE_COUNT}-line doc: ${ms.toFixed(1)} ms` +
-                    ` (${(ms / CURSOR_MOVES).toFixed(2)} ms/frame)`,
-            );
+        // Warm up JIT
+        simulateOneFrame();
 
-            // Cache hit on every frame (versionId and foldsVersion unchanged by cursor moves).
-            // 12 200 calls on a 3500-line doc should complete in well under 20 ms.
-            expect(ms).toBeLessThan(20);
-        },
-        120_000,
-    );
+        const t0 = performance.now();
+        for (let move = 0; move < CURSOR_MOVES; move++) {
+            simulateOneFrame();
+        }
+        const ms = performance.now() - t0;
+
+        console.log(
+            `[cached] buildVisibleLines ×${CURSOR_MOVES * (VIEWPORT_HEIGHT * 3 + 2)} on ${DOC_LINE_COUNT}-line doc: ${ms.toFixed(1)} ms` +
+                ` (${(ms / CURSOR_MOVES).toFixed(2)} ms/frame)`,
+        );
+
+        // Cache hit on every frame (versionId and foldsVersion unchanged by cursor moves).
+        // 12 200 calls on a 3500-line doc should complete in well under 20 ms.
+        expect(ms).toBeLessThan(20);
+    }, 120_000);
 
     /**
      * Combined: both bottlenecks together, simulating a realistic render frame.
@@ -156,46 +148,42 @@ describe("EditorElement / EditorViewState render-loop performance (cached)", () 
      *
      * PASSES when slow (> 3000 ms for 100 moves). Fix target: < 100 ms.
      */
-    it(
-        "combined render frame: contentWidth + buildVisibleLines × 100 cursor moves — must be fast",
-        () => {
-            const text = generateJsonLikeText(DOC_LINE_COUNT);
-            const doc = new TextDocument(text);
-            const viewState = new EditorViewState(doc, [createCursorSelection(0, 0)]);
-            const editor = new EditorElement(viewState);
+    it("combined render frame: contentWidth + buildVisibleLines × 100 cursor moves — must be fast", () => {
+        const text = generateJsonLikeText(DOC_LINE_COUNT);
+        const doc = new TextDocument(text);
+        const viewState = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+        const editor = new EditorElement(viewState);
 
-            const simulateFrame = (): void => {
-                // --- Layout: contentWidth (called by ScrollBarDecorator) ---
-                void editor.contentWidth;
+        const simulateFrame = (): void => {
+            // --- Layout: contentWidth (called by ScrollBarDecorator) ---
+            void editor.contentWidth;
 
-                // --- Render: visualToLogicalLine × 3 per visible line ---
-                viewState.getViewLineCount();
-                for (let screenY = 0; screenY < VIEWPORT_HEIGHT; screenY++) {
-                    viewState.visualToLogicalLine(screenY);
-                    viewState.getViewLine(screenY);
-                    viewState.getViewLineTokens(screenY);
-                }
-                viewState.getViewLineCount();
-            };
-
-            // Warm up
-            simulateFrame();
-
-            const t0 = performance.now();
-            for (let move = 0; move < CURSOR_MOVES; move++) {
-                simulateFrame();
+            // --- Render: visualToLogicalLine × 3 per visible line ---
+            viewState.getViewLineCount();
+            for (let screenY = 0; screenY < VIEWPORT_HEIGHT; screenY++) {
+                viewState.visualToLogicalLine(screenY);
+                viewState.getViewLine(screenY);
+                viewState.getViewLineTokens(screenY);
             }
-            const ms = performance.now() - t0;
+            viewState.getViewLineCount();
+        };
 
-            console.log(
-                `[cached] combined render frame ×${CURSOR_MOVES} on ${DOC_LINE_COUNT}-line doc: ${ms.toFixed(1)} ms` +
-                    ` (${(ms / CURSOR_MOVES).toFixed(2)} ms/frame)`,
-            );
+        // Warm up
+        simulateFrame();
 
-            // Both caches hit on every cursor-move frame.
-            // 100 frames on a 3500-line doc should complete in well under 300 ms.
-            expect(ms).toBeLessThan(300);
-        },
-        120_000,
-    );
+        const t0 = performance.now();
+        for (let move = 0; move < CURSOR_MOVES; move++) {
+            simulateFrame();
+        }
+        const ms = performance.now() - t0;
+
+        console.log(
+            `[cached] combined render frame ×${CURSOR_MOVES} on ${DOC_LINE_COUNT}-line doc: ${ms.toFixed(1)} ms` +
+                ` (${(ms / CURSOR_MOVES).toFixed(2)} ms/frame)`,
+        );
+
+        // Both caches hit on every cursor-move frame.
+        // 100 frames on a 3500-line doc should complete in well under 300 ms.
+        expect(ms).toBeLessThan(300);
+    }, 120_000);
 });

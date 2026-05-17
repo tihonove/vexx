@@ -1,10 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import {
-    DEFAULT_PROFILE_NAME,
-    DEFAULT_USER_DATA_ROOT_NAME,
-    resolveUserDataPaths,
-} from "./UserDataPaths.ts";
+import { DEFAULT_PROFILE_NAME, DEFAULT_USER_DATA_ROOT_NAME, resolveUserDataPaths } from "./UserDataPaths.ts";
 
 describe("resolveUserDataPaths", () => {
     const home = "/home/alice";
@@ -43,9 +39,7 @@ describe("resolveUserDataPaths", () => {
         expect(paths.profileName).toBe("compact");
         expect(paths.isDefaultProfile).toBe(false);
         expect(paths.profileDir).toBe("/home/alice/.vexx/user-data/User/profiles/compact");
-        expect(paths.settingsFile).toBe(
-            "/home/alice/.vexx/user-data/User/profiles/compact/settings.json",
-        );
+        expect(paths.settingsFile).toBe("/home/alice/.vexx/user-data/User/profiles/compact/settings.json");
     });
 
     it("treats explicit `default` profile as default", () => {
@@ -60,9 +54,7 @@ describe("resolveUserDataPaths", () => {
     });
 
     it("rejects invalid profile name characters", () => {
-        expect(() => resolveUserDataPaths({ homedir: home, profile: "with space" })).toThrow(
-            /Invalid profile name/,
-        );
+        expect(() => resolveUserDataPaths({ homedir: home, profile: "with space" })).toThrow(/Invalid profile name/);
         expect(() => resolveUserDataPaths({ homedir: home, profile: "with/slash" })).toThrow();
         expect(() => resolveUserDataPaths({ homedir: home, profile: "../up" })).toThrow();
     });

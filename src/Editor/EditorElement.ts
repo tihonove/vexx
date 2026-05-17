@@ -434,9 +434,7 @@ export class EditorElement extends TUIElement implements IScrollable {
         if (event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey) {
             event.preventDefault();
             if (!event.shiftKey) {
-                const indent = this.viewState.insertSpaces
-                    ? " ".repeat(this.viewState.tabSize)
-                    : "\t";
+                const indent = this.viewState.insertSpaces ? " ".repeat(this.viewState.tabSize) : "\t";
                 this.pushUndo(this.viewState.type(indent));
             }
         }

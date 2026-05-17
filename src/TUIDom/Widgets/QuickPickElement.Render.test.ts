@@ -124,11 +124,7 @@ describe("QuickPickElement — placeholder", () => {
 describe("QuickPickElement — items", () => {
     it("renders item labels starting at row 3", () => {
         const picker = new QuickPickElement();
-        picker.items = [
-            { label: "Alpha" },
-            { label: "Beta" },
-            { label: "Gamma" },
-        ];
+        picker.items = [{ label: "Alpha" }, { label: "Beta" }, { label: "Gamma" }];
         const backend = renderPicker(picker, 30);
         expect(backend.getTextAt(new Point(0, 3), 30)).toContain("Alpha");
         expect(backend.getTextAt(new Point(0, 4), 30)).toContain("Beta");
@@ -164,10 +160,7 @@ describe("QuickPickElement — items", () => {
 
     it("renders icon column when any item has an icon", () => {
         const picker = new QuickPickElement();
-        picker.items = [
-            { icon: "A", label: "Alpha" },
-            { label: "Beta" },
-        ];
+        picker.items = [{ icon: "A", label: "Alpha" }, { label: "Beta" }];
         const backend = renderPicker(picker, 30);
         // Row with icon: the icon char should appear before the label
         const rowWithIcon = backend.getTextAt(new Point(2, 3), 10);
@@ -178,7 +171,7 @@ describe("QuickPickElement — items", () => {
         const picker = new QuickPickElement();
         picker.items = [
             { icon: "A", label: "Alpha" },
-            { label: "Beta" },     // no icon
+            { label: "Beta" }, // no icon
         ];
         const backend = renderPicker(picker, 30);
         // For the row without icon, position 2 should be a space
@@ -223,15 +216,12 @@ describe("QuickPickElement — match highlight colours", () => {
         const picker = new QuickPickElement();
         // Put a match-highlighted item at index 1 so it is NOT selected
         // (index 0 is selected by default and uses activeSelectionFg).
-        picker.items = [
-            { label: "Other" },
-            { label: "AppController", labelMatchRanges: [[0, 3]] },
-        ];
+        picker.items = [{ label: "Other" }, { label: "AppController", labelMatchRanges: [[0, 3]] }];
         const backend = renderPicker(picker, 40);
 
         // Row 4 = item index 1 (not selected)
         // Label starts at x=2 (no icon column)
-        const matchedFg = backend.getFgAt(new Point(2, 4));   // 'A' in "App"
+        const matchedFg = backend.getFgAt(new Point(2, 4)); // 'A' in "App"
         const unmatchedFg = backend.getFgAt(new Point(5, 4)); // 'C' in "Controller"
         expect(matchedFg).toBe(picker.matchFg);
         expect(unmatchedFg).not.toBe(picker.matchFg);
@@ -322,10 +312,7 @@ describe("QuickPickElement — snapshot", () => {
     it("renders picker with two items", () => {
         const picker = new QuickPickElement();
         picker.placeholder = "Search";
-        picker.items = [
-            { label: "Alpha" },
-            { label: "Beta" },
-        ];
+        picker.items = [{ label: "Alpha" }, { label: "Beta" }];
         const backend = renderPicker(picker, 20);
         expectScreen(
             backend,

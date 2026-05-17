@@ -8,12 +8,12 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
+import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
-import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 function createTempWorkspace(): string {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-file-delete-integration-"));

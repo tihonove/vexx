@@ -20,7 +20,7 @@ export function createInProcessChannelPair(): [IMessageChannel, IMessageChannel]
 
 class InProcessChannel implements IMessageChannel {
     private peer: InProcessChannel | null = null;
-    private listeners: Array<(message: unknown) => void> = [];
+    private listeners: ((message: unknown) => void)[] = [];
     private disposed = false;
 
     public connect(peer: InProcessChannel): void {

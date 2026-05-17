@@ -10,8 +10,8 @@ import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
@@ -38,8 +38,6 @@ import {
     cursorPageUpAction,
     cursorPageUpSelectAction,
     cursorRightAction,
-    scrollLineDownAction,
-    scrollLineUpAction,
     cursorRightSelectAction,
     cursorTopAction,
     cursorTopSelectAction,
@@ -49,6 +47,8 @@ import {
     cursorWordLeftSelectAction,
     cursorWordRightAction,
     cursorWordRightSelectAction,
+    scrollLineDownAction,
+    scrollLineUpAction,
 } from "./Actions/EditorActions.ts";
 import {
     deleteLeftAction,
@@ -74,8 +74,8 @@ import {
     inputDeleteWordRightAction,
 } from "./Actions/InputActions.ts";
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
-import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
+import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -84,8 +84,8 @@ import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
-import { FileTreeController } from "./FileTreeController.ts";
 import { FileSearchService } from "./FileSearchService.ts";
+import { FileTreeController } from "./FileTreeController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
@@ -610,19 +610,23 @@ export class AppController extends Disposable implements IController {
         menu.tabIndex = 0;
 
         let session: OverlaySessionHandle | null = null;
-        session = this.view.contextMenuLayer.openPopupSession(menu, { screenX, screenY }, {
-            visible: true,
-            restoreFocus: true,
-            focusOnOpen: true,
-            closeOnEscape: true,
-            closeOnOutsidePointer: true,
-            disposeOnClose: true,
-            onClose: () => {
-                if (this.fileTreeContextMenuSession === session) {
-                    this.fileTreeContextMenuSession = null;
-                }
+        session = this.view.contextMenuLayer.openPopupSession(
+            menu,
+            { screenX, screenY },
+            {
+                visible: true,
+                restoreFocus: true,
+                focusOnOpen: true,
+                closeOnEscape: true,
+                closeOnOutsidePointer: true,
+                disposeOnClose: true,
+                onClose: () => {
+                    if (this.fileTreeContextMenuSession === session) {
+                        this.fileTreeContextMenuSession = null;
+                    }
+                },
             },
-        });
+        );
 
         menu.onClose = () => {
             session?.close();

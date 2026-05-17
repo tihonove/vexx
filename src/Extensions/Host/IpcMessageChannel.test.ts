@@ -69,7 +69,11 @@ describe("IpcMessageChannel", () => {
         chA.postMessage("a1");
         chA.postMessage("a2");
         chB.postMessage("b1");
-        await new Promise((r) => queueMicrotask(() => r(undefined)));
+        await new Promise((r) => {
+            queueMicrotask(() => {
+                r(undefined);
+            });
+        });
         expect(fromA).toEqual(["a1", "a2"]);
         expect(fromB).toEqual(["b1"]);
         chA.dispose();
@@ -135,7 +139,9 @@ describe("IpcMessageChannel", () => {
         a.send = (): boolean => {
             throw new Error("EPIPE");
         };
-        expect(() => chA.postMessage("x")).not.toThrow();
+        expect(() => {
+            chA.postMessage("x");
+        }).not.toThrow();
         chA.dispose();
         chB.dispose();
     });

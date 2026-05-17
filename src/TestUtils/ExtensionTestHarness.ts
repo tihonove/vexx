@@ -3,8 +3,8 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -12,9 +12,7 @@ import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsSer
 import { ExtensionHost } from "../Extensions/Host/ExtensionHost.ts";
 import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
 
-const SUBPROCESS_ENTRY = fileURLToPath(
-    new URL("../Extensions/Host/__fixtures__/subprocessEntry.ts", import.meta.url),
-);
+const SUBPROCESS_ENTRY = fileURLToPath(new URL("../Extensions/Host/__fixtures__/subprocessEntry.ts", import.meta.url));
 
 /**
  * Возвращает `spawnArgs`-фабрику для тестового запуска subprocess'а — вместо
@@ -61,9 +59,7 @@ export interface IExtensionHarness {
  * Расширения регистрируются последовательно — каждый `registerExtension`
  * ждёт завершения `activate()` и RPC-вызовов внутри него.
  */
-export async function createExtensionTestHarness(
-    options: IExtensionHarnessOptions = {},
-): Promise<IExtensionHarness> {
+export async function createExtensionTestHarness(options: IExtensionHarnessOptions = {}): Promise<IExtensionHarness> {
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-ext-"));
 
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
@@ -94,7 +90,9 @@ export async function createExtensionTestHarness(
 
     const flushRpc = async (turns = 2): Promise<void> => {
         for (let i = 0; i < turns; i++) {
-            await new Promise<void>((resolve) => queueMicrotask(resolve));
+            await new Promise<void>((resolve) => {
+                queueMicrotask(resolve);
+            });
         }
     };
 

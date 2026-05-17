@@ -1,8 +1,7 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-
 import { EditorOptionsServiceAdapter } from "../../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import { ExtensionHost, ExtensionHostDIToken } from "../../Extensions/Host/ExtensionHost.ts";
+import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 
 /**
  * DI-модуль extension host'а. Связывает `EditorGroupController` →

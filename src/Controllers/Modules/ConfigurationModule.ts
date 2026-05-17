@@ -1,6 +1,6 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
-import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 
 export interface ConfigurationModuleContext {
@@ -12,7 +12,10 @@ export interface ConfigurationModuleContext {
  * В production-сборке это `ConfigurationService.loadConfiguration(paths)`,
  * в тестах — `NULL_CONFIGURATION_SERVICE` (см. `configurationModuleDefault`).
  */
-export const configurationModule: ContainerModule<ConfigurationModuleContext> = (container, { configurationService }) => {
+export const configurationModule: ContainerModule<ConfigurationModuleContext> = (
+    container,
+    { configurationService },
+) => {
     container.bind(IConfigurationServiceDIToken, () => configurationService);
 };
 

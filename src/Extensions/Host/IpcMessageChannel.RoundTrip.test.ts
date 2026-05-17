@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from "node:child_process";
+import { type ChildProcess, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
@@ -26,7 +26,9 @@ describe("IpcMessageChannel — real subprocess round-trip", () => {
             if (!r.child.killed && r.child.exitCode === null) {
                 r.child.kill("SIGTERM");
                 await new Promise<void>((resolve) => {
-                    r.child.once("exit", () => resolve());
+                    r.child.once("exit", () => {
+                        resolve();
+                    });
                     setTimeout(resolve, 500);
                 });
             }

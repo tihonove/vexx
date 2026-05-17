@@ -66,8 +66,6 @@ describe("CompositeAssetAccess", () => {
     });
 
     it("rejects non-empty prefix without trailing slash", () => {
-        expect(() => new CompositeAssetAccess({ bad: new FakeAccess({}) })).toThrow(
-            /must end with "\/"/,
-        );
+        expect(() => new CompositeAssetAccess({ bad: new FakeAccess({}) })).toThrow(/must end with "\/"/);
     });
 });

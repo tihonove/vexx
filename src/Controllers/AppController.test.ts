@@ -211,7 +211,9 @@ describe("AppController — Quick Open", () => {
         testApp.render();
 
         expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
-        const picker = testApp.querySelector("QuickPickElement") as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
+        const picker = testApp.querySelector(
+            "QuickPickElement",
+        ) as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
         expect(picker.placeholder).toBe("Show All Commands");
     });
 
@@ -256,7 +258,9 @@ describe("AppController — Quick Open", () => {
         commandRegistry.execute("workbench.action.showCommands");
         testApp.render();
 
-        const picker = testApp.querySelector("QuickPickElement") as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
+        const picker = testApp.querySelector(
+            "QuickPickElement",
+        ) as import("../TUIDom/Widgets/QuickPickElement.ts").QuickPickElement;
         const labels = picker.items.map((i) => i.label);
         expect(labels).toContain("My Test Command");
     });

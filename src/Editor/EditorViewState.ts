@@ -1,8 +1,8 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
 
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
-import { detectIndentation } from "./IndentationDetector.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
+import { detectIndentation } from "./IndentationDetector.ts";
 import { comparePositions } from "./IPosition.ts";
 import { createRange } from "./IRange.ts";
 import type { ISelection } from "./ISelection.ts";
@@ -44,9 +44,9 @@ export class EditorViewState {
     public tokenStore: DocumentTokenStore | undefined;
 
     private visibleLinesCache: number[] | null = null;
-    private visibleLinesCacheDocVersion: number = -1;
-    private foldsVersion: number = 0;
-    private visibleLinesCacheFoldsVersion: number = -1;
+    private visibleLinesCacheDocVersion = -1;
+    private foldsVersion = 0;
+    private visibleLinesCacheFoldsVersion = -1;
 
     public constructor(document: ITextDocument, selections?: ISelection[]) {
         this.document = document;
