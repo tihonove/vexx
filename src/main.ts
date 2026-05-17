@@ -8,6 +8,10 @@ import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAcce
 import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
 import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
 import { CliArgsError, parseCliArgs, USAGE } from "./Common/CliArgs.ts";
+import { isSeaBinary } from "./Common/IsSea.ts";
+import { LogService } from "./Common/Logging/LogService.ts";
+import { FileSink } from "./Common/Logging/sinks/FileSink.ts";
+import { RingBufferSink } from "./Common/Logging/sinks/RingBufferSink.ts";
 import { OscClipboard } from "./Common/OscClipboard.ts";
 import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
@@ -69,6 +73,21 @@ async function runEditor(): Promise<void> {
 
     const resolvedPaths = filePaths.map((f) => path.resolve(f));
 
+    // ── Logging ──────────────────────────────────────────────
+    // Всегда поднимаем RingBufferSink (источник данных для будущей
+    // Output-вкладки). FileSink — только в dev (!SEA): пишем в ./vexx.log в cwd
+    // с truncate при каждом запуске. Для агентов/разработчиков это удобный
+    // debug-tool; в SEA-prod файл вообще не создаётся.
+    const logService = new LogService();
+    logService.addSink(new RingBufferSink());
+    if (!isSeaBinary()) {
+        logService.addSink(new FileSink(path.resolve(process.cwd(), "vexx.log")));
+    }
+    const bootstrapLogger = logService.createLogger("bootstrap");
+    const extensionsLogger = logService.createLogger("extensions");
+    const configurationLogger = logService.createLogger("configuration");
+    bootstrapLogger.info("vexx starting", { cwd: process.cwd(), files: filePaths.length });
+
     // ── User data: пути, настройки ─────────────────────────────
 
     const userDataPaths = resolveUserDataPaths({
@@ -76,7 +95,7 @@ async function runEditor(): Promise<void> {
         profile: cli.profile,
         homedir: os.homedir(),
     });
-    const configurationService = await loadConfiguration(userDataPaths);
+    const configurationService = await loadConfiguration(userDataPaths, configurationLogger);
 
     // ── Backend / Theme ────────────────────────────────────────
 
@@ -113,17 +132,22 @@ async function runEditor(): Promise<void> {
         [USER_PREFIX]: userExtensionsAssets,
     });
 
-    const builtinExtensions = await scanExtensions(assets, BUILTIN_PREFIX, { isBuiltin: true });
+    const builtinExtensions = await scanExtensions(assets, BUILTIN_PREFIX, { isBuiltin: true }, extensionsLogger);
     const userExtensions = fs.existsSync(userDataPaths.extensionsDir)
-        ? await scanExtensions(assets, USER_PREFIX, { isBuiltin: false })
+        ? await scanExtensions(assets, USER_PREFIX, { isBuiltin: false }, extensionsLogger)
         : [];
-    const allExtensions = mergeExtensions(builtinExtensions, userExtensions);
+    const allExtensions = mergeExtensions(builtinExtensions, userExtensions, extensionsLogger);
 
     const languageRegistry = new LanguageRegistry();
     for (const ext of allExtensions) languageRegistry.register(ext);
 
     const tokenizationRegistry = new TokenizationRegistry();
-    const tokenizationContributor = new ExtensionTokenizationContributor(assets, allExtensions, tokenizationRegistry);
+    const tokenizationContributor = new ExtensionTokenizationContributor(
+        assets,
+        allExtensions,
+        tokenizationRegistry,
+        extensionsLogger,
+    );
     const grammarsLoading = tokenizationContributor.apply();
 
     // ── Bootstrap через DI-контейнер ────────────────────────────
@@ -135,6 +159,7 @@ async function runEditor(): Promise<void> {
         tokenStyleResolver: new TokenThemeResolver(initialTheme.tokenTheme),
         languageService: languageRegistry,
         configurationService,
+        logService,
     });
 
     const app = container.get(TuiApplicationDIToken);
@@ -183,7 +208,7 @@ async function runEditor(): Promise<void> {
             };
             await extensionHost.registerExtension(reg);
         } catch (err) {
-            console.error(`[extensions] ${ext.id}: failed to activate`, err);
+            extensionsLogger.error(`${ext.id}: failed to activate`, err);
         }
     }
 }

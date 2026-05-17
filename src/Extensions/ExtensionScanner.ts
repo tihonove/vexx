@@ -1,4 +1,5 @@
 import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
+import type { ILogger } from "../Common/Logging/ILogger.ts";
 
 import type { IExtension } from "./IExtension.ts";
 import type { IExtensionManifest } from "./IExtensionManifest.ts";
@@ -16,7 +17,7 @@ export interface IScanExtensionsOptions {
  * `~/.vexx/extensions/`, замапленного через `FsAssetAccess`).
  *
  * Битые манифесты (отсутствие `name`/`publisher`/`version`, невалидный JSON,
- * отсутствующий `package.json`) пропускаются с записью в `console.error` —
+ * отсутствующий `package.json`) пропускаются с записью в `logger.error` —
  * bootstrap не должен падать из-за одного криво скопированного расширения.
  *
  * Сканирование строго неглубокое: только поддиректории первого уровня под
@@ -27,6 +28,7 @@ export async function scanExtensions(
     assets: IAssetAccess,
     rootPrefix: string,
     options: IScanExtensionsOptions = {},
+    logger?: ILogger,
 ): Promise<IExtension[]> {
     if (!rootPrefix.endsWith("/")) {
         throw new Error(`scanExtensions: rootPrefix must end with "/": ${rootPrefix}`);
@@ -37,7 +39,7 @@ export async function scanExtensions(
     try {
         entries = await assets.listEntries(rootPrefix);
     } catch (err) {
-        console.error(`Failed to scan extensions in ${rootPrefix}:`, err);
+        logger?.error(`Failed to scan extensions in ${rootPrefix}`, err);
         return [];
     }
 
@@ -56,7 +58,7 @@ export async function scanExtensions(
         try {
             raw = await assets.readText(manifestPath);
         } catch (err) {
-            console.error(`Failed to read ${manifestPath}:`, err);
+            logger?.error(`Failed to read ${manifestPath}`, err);
             continue;
         }
 
@@ -64,20 +66,20 @@ export async function scanExtensions(
         try {
             manifest = JSON.parse(raw) as IExtensionManifest;
         } catch (err) {
-            console.error(`Invalid JSON in ${manifestPath}:`, err);
+            logger?.error(`Invalid JSON in ${manifestPath}`, err);
             continue;
         }
 
         if (typeof manifest.name !== "string" || manifest.name.length === 0) {
-            console.error(`Extension ${manifestPath} has no "name" field`);
+            logger?.error(`Extension ${manifestPath} has no "name" field`);
             continue;
         }
         if (typeof manifest.publisher !== "string" || manifest.publisher.length === 0) {
-            console.error(`Extension ${manifestPath} has no "publisher" field`);
+            logger?.error(`Extension ${manifestPath} has no "publisher" field`);
             continue;
         }
         if (typeof manifest.version !== "string" || manifest.version.length === 0) {
-            console.error(`Extension ${manifestPath} has no "version" field`);
+            logger?.error(`Extension ${manifestPath} has no "version" field`);
             continue;
         }
 

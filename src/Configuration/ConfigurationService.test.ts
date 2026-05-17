@@ -60,14 +60,17 @@ describe("loadConfiguration", () => {
     it("falls back to defaults on broken JSONC", async () => {
         const p = paths();
         writeSettings(p.settingsFile, `{ this is not json`);
-        const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-        try {
-            const cfg = await loadConfiguration(p);
-            expect(cfg.get<number>("editor.tabSize")).toBe(4);
-            expect(errorSpy).toHaveBeenCalled();
-        } finally {
-            errorSpy.mockRestore();
-        }
+        const logger = {
+            trace: vi.fn(),
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+            isEnabled: () => true,
+        };
+        const cfg = await loadConfiguration(p, logger);
+        expect(cfg.get<number>("editor.tabSize")).toBe(4);
+        expect(logger.error).toHaveBeenCalled();
     });
 
     it("named profile overrides user settings", async () => {

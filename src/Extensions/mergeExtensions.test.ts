@@ -1,7 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { IExtension } from "./IExtension.ts";
 import { mergeExtensions } from "./mergeExtensions.ts";
+
+function createLoggerMock(): ILogger & { warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> } {
+    return {
+        trace: vi.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        isEnabled: () => true,
+    } as unknown as ILogger & { warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> };
+}
 
 function ext(id: string, isBuiltin: boolean): IExtension {
     const [publisher, name] = id.split(".");
@@ -20,26 +32,18 @@ describe("mergeExtensions", () => {
     });
 
     it("builtin shadows user with the same id", () => {
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-        try {
-            const result = mergeExtensions([ext("vscode.javascript", true)], [ext("vscode.javascript", false)]);
-            expect(result).toHaveLength(1);
-            expect(result[0].isBuiltin).toBe(true);
-            expect(warn).toHaveBeenCalledWith(expect.stringContaining("shadowed by a builtin"));
-        } finally {
-            warn.mockRestore();
-        }
+        const logger = createLoggerMock();
+        const result = mergeExtensions([ext("vscode.javascript", true)], [ext("vscode.javascript", false)], logger);
+        expect(result).toHaveLength(1);
+        expect(result[0].isBuiltin).toBe(true);
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("shadowed by a builtin"));
     });
 
     it("dedupes within the same list", () => {
-        const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-        try {
-            const result = mergeExtensions([], [ext("a.b", false), ext("a.b", false)]);
-            expect(result).toHaveLength(1);
-            expect(warn).toHaveBeenCalledWith(expect.stringContaining("Duplicate user extension"));
-        } finally {
-            warn.mockRestore();
-        }
+        const logger = createLoggerMock();
+        const result = mergeExtensions([], [ext("a.b", false), ext("a.b", false)], logger);
+        expect(result).toHaveLength(1);
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Duplicate user extension"));
     });
 
     it("returns empty list when both inputs are empty", () => {

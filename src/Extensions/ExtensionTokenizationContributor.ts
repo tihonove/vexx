@@ -1,6 +1,7 @@
 import { joinVirtualPath } from "../Common/Assets/AssetBundleFormat.ts";
 import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
+import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -25,6 +26,7 @@ export class ExtensionTokenizationContributor implements IDisposable {
     private readonly assets: IAssetAccess;
     private readonly extensions: readonly IExtension[];
     private readonly tokenizationRegistry: TokenizationRegistry;
+    private readonly logger: ILogger | undefined;
     private loader: TextMateGrammarLoader | undefined;
     private registrationDisposables: IDisposable[] = [];
 
@@ -32,10 +34,12 @@ export class ExtensionTokenizationContributor implements IDisposable {
         assets: IAssetAccess,
         extensions: readonly IExtension[],
         tokenizationRegistry: TokenizationRegistry,
+        logger?: ILogger,
     ) {
         this.assets = assets;
         this.extensions = extensions;
         this.tokenizationRegistry = tokenizationRegistry;
+        this.logger = logger;
     }
 
     /**
@@ -60,13 +64,13 @@ export class ExtensionTokenizationContributor implements IDisposable {
                     try {
                         const support = await loader.loadSupport(scopeName);
                         if (support === null) {
-                            console.error(`Failed to load grammar "${scopeName}" for language "${languageId}"`);
+                            this.logger?.error(`Failed to load grammar "${scopeName}" for language "${languageId}"`);
                             return;
                         }
                         const disposable = this.tokenizationRegistry.register(languageId, support);
                         this.registrationDisposables.push(disposable);
                     } catch (err) {
-                        console.error(`Error loading grammar "${scopeName}" (${languageId}):`, err);
+                        this.logger?.error(`Error loading grammar "${scopeName}" (${languageId})`, err);
                     }
                 })(),
             );

@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
 
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { IUserDataPaths } from "../Common/UserDataPaths.ts";
 
 import { ConfigurationModel } from "./ConfigurationModel.ts";
@@ -27,8 +28,8 @@ import type {
  * перезапуска. API события `onDidChangeConfiguration` стабилен, чтобы
  * не ломать потребителей при добавлении watch.
  *
- * Битые JSONC-файлы логируются в `console.error` и трактуются как пустой
- * слой — bootstrap не должен падать из-за невалидного settings.json.
+ * Битые JSONC-файлы логируются через переданный `ILogger` и трактуются как
+ * пустой слой — bootstrap не должен падать из-за невалидного settings.json.
  */
 export class ConfigurationService extends Disposable implements IConfigurationService {
     private readonly defaultsLayer: ConfigurationModel;
@@ -86,28 +87,28 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
  * мы загружаем тот же файл дважды, но второй слой даёт пустой результат,
  * чтобы не дублировать значения (см. ниже).
  */
-export async function loadConfiguration(paths: IUserDataPaths): Promise<ConfigurationService> {
+export async function loadConfiguration(paths: IUserDataPaths, logger?: ILogger): Promise<ConfigurationService> {
     const defaultsRaw = getDefaultConfiguration();
     const defaultsLayer = ConfigurationModel.fromRaw(defaultsRaw);
 
     const userSettingsPath = path.join(paths.userDir, "settings.json");
-    const userLayer = await loadSettingsLayer(userSettingsPath);
+    const userLayer = await loadSettingsLayer(userSettingsPath, logger);
 
     let profileLayer = ConfigurationModel.EMPTY;
     if (!paths.isDefaultProfile) {
-        profileLayer = await loadSettingsLayer(paths.settingsFile);
+        profileLayer = await loadSettingsLayer(paths.settingsFile, logger);
     }
 
     return new ConfigurationService({ defaultsLayer, userLayer, profileLayer });
 }
 
-async function loadSettingsLayer(filePath: string): Promise<ConfigurationModel> {
+async function loadSettingsLayer(filePath: string, logger: ILogger | undefined): Promise<ConfigurationModel> {
     let content: string;
     try {
         content = await fs.promises.readFile(filePath, "utf-8");
     } catch (err) {
         if (isFileNotFound(err)) return ConfigurationModel.EMPTY;
-        console.error(`Failed to read settings file ${filePath}:`, err);
+        logger?.error(`Failed to read settings file ${filePath}`, err);
         return ConfigurationModel.EMPTY;
     }
 
@@ -115,7 +116,7 @@ async function loadSettingsLayer(filePath: string): Promise<ConfigurationModel> 
     const parsed: unknown = parseJsonc(content, errors, { allowTrailingComma: true });
     if (errors.length > 0) {
         for (const err of errors) {
-            console.error(
+            logger?.error(
                 `JSONC parse error in ${filePath} at offset ${String(err.offset)}: ${printParseErrorCode(err.error)}`,
             );
         }

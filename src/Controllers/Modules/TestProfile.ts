@@ -12,6 +12,7 @@ import { commandsModule } from "./CommandsModule.ts";
 import { configurationModuleDefault } from "./ConfigurationModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModuleLate } from "./CoreModule.ts";
+import { loggingModuleDefault } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
 
@@ -34,6 +35,7 @@ export interface TestContainerHandle {
 export function createTestContainer(): TestContainerHandle {
     const container = new Container()
         .use(coreModuleLate)
+        .use(loggingModuleDefault)
         .use(commandsModule)
         .use(themeModule, { theme: WorkbenchTheme.fromThemeFile(darkPlusTheme) })
         .use(backendModuleDefault)

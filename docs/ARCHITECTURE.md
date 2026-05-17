@@ -28,6 +28,22 @@
 
 `CompositeAssetAccess` — роутер по longest-prefix между несколькими `IAssetAccess`. Используется в `main.ts` чтобы склеить builtin-ассеты (SEA-bundle/`Extensions/builtin/`) и user-extensions (`<userData.root>/extensions/`, замапленный на виртуальный префикс `UserExtensions/`) в единое адресное пространство. Downstream-потребители (`ExtensionTokenizationContributor`, грамматики) видят расширения единообразно и не различают builtin vs user по способу чтения.
 
+#### Common/Logging/
+Подсистема логирования и диагностики в стиле VS Code. Один `ILogService` на процесс, из него создаются `ILogger` per channel (channel — dotted string, например `extensions`, `extensions.host`, `configuration`).
+
+- **Уровни**: `Off | Trace | Debug | Info | Warn | Error` (`LogLevel.ts`).
+- **Резолв уровня по каналу** (`LogService.getLevel`): exact match → walk dots up (`a.b.c` → `a.b` → `a`) → wildcard `*` → DEFAULT (Trace — пока активная разработка). `setLevel("*", …)` меняет глобальный дефолт; `setLevel("extensions.host", Trace)` — точечно поддерево.
+- **Sinks** (`ILogSink`): fan-out fire-and-forget, ошибки одного sink не валят остальные. Базовые реализации:
+  - `RingBufferSink` — per-channel ring (default capacity 1000). Источник данных для будущей Output-вкладки; `onAppend` колбэк позволяет подписаться на новые записи.
+  - `FileSink` — append-only текстовый файл, форматирует `[ISO] [LEVEL] [channel] message\\tjsonArg…`. По умолчанию `flags: "w"` — truncate per run.
+- **`onDidAppend(listener)`** — общий subscribe на все добавленные записи (для Output UI / live-tail).
+- **DI**: токен `ILogServiceDIToken`, модули `loggingModule` (продакшен — биндит переданный `LogService`) и `loggingModuleDefault` (тесты — биндит `NULL_LOG_SERVICE`).
+- **Bootstrap-функции** (вызываются до построения DI-контейнера: `mergeExtensions`, `loadConfiguration`) принимают опциональный `ILogger` параметром — `main.ts` пробрасывает туда соответствующие каналы.
+- **Extension host channels** (`extensions.host.*`): `ExtensionHost` берёт из DI логгеры `extensions.host` (lifecycle: spawn/ready/register/exit), `extensions.host.rpc` (trace каждого RPC-сообщения в обе стороны), `extensions.host.stdout` / `.stderr` (линейно-буферизованный вывод subprocess'а). При NULL_LOG_SERVICE (тесты) `isEnabled` всегда `false`, и stdio остаётся `"inherit"` (никаких изменений семантики).
+- **dev vs SEA**: в `main.ts` всегда добавляется `RingBufferSink`; `FileSink` добавляется только если `isSeaBinary() === false` — пишет `./vexx.log` в текущий рабочий каталог (удобно для агентов и разработки). В SEA-prod файловый sink не создаётся.
+
+`isSeaBinary()` (`src/Common/IsSea.ts`) — тонкая обёртка над `node:sea.isSea()` через `createRequire("file:///")("node:sea")` (статический ESM import `node:sea` ломает SEA-сборку).
+
 ### Input/
 Пайплайн парсинга терминального ввода: сырые байты stdin → токены → `KeyPressEvent`. Включает токенизатор stdin, отслеживание мыши, stateful парсер клавиатурных событий (keydown/keypress/keyup в browser-like стиле) и обратную сериализацию для тестов.
 

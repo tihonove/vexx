@@ -1,5 +1,6 @@
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
+import type { ILogService } from "../../Common/Logging/ILogService.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -13,6 +14,7 @@ import { configurationModule } from "./ConfigurationModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModule } from "./CoreModule.ts";
 import { extensionHostModule } from "./ExtensionHostModule.ts";
+import { loggingModule } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
 
@@ -24,6 +26,7 @@ export interface ProductionProfileContext {
     tokenStyleResolver: ITokenStyleResolver;
     languageService: ILanguageService;
     configurationService: IConfigurationService;
+    logService: ILogService;
 }
 
 /**
@@ -33,6 +36,7 @@ export interface ProductionProfileContext {
 export function createProductionContainer(ctx: ProductionProfileContext): Container {
     return new Container()
         .use(coreModule, { app: ctx.app })
+        .use(loggingModule, { logService: ctx.logService })
         .use(commandsModule)
         .use(themeModule, { theme: ctx.theme })
         .use(backendModule, { clipboard: ctx.clipboard })

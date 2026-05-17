@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
+import type { ILogger } from "../../Common/Logging/ILogger.ts";
 
 import type { IEditorOptionsPatch, IEditorOptionsService } from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
@@ -27,6 +28,24 @@ export interface IExtensionHostOptions {
      * Тайм-аут на graceful shutdown через `host.shutdown` перед `SIGTERM`. Default: 1500.
      */
     readonly shutdownTimeoutMs?: number;
+    /**
+     * Логгер для lifecycle-событий host'а (канал `extensions.host`). Подканалы
+     * `extensions.host.rpc` / `.stdout` / `.stderr` берутся из {@link logService}, если передан.
+     */
+    readonly logger?: ILogger;
+    /**
+     * Логгер для trace каждого RPC-сообщения (канал `extensions.host.rpc`).
+     */
+    readonly rpcLogger?: ILogger;
+    /**
+     * Логгер для stdout subprocess'а (канал `extensions.host.stdout`). Если передан —
+     * stdio[1] переключается в `"pipe"`; иначе остаётся `"inherit"`.
+     */
+    readonly stdoutLogger?: ILogger;
+    /**
+     * Логгер для stderr subprocess'а (канал `extensions.host.stderr`).
+     */
+    readonly stderrLogger?: ILogger;
 }
 
 /**
@@ -47,7 +66,11 @@ export interface IExtensionHostOptions {
  */
 export class ExtensionHost extends Disposable {
     private readonly editorOptions: IEditorOptionsService;
-    private readonly options: Required<IExtensionHostOptions>;
+    private readonly options: Required<Pick<IExtensionHostOptions, "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs">>;
+    private readonly logger: ILogger | undefined;
+    private readonly rpcLogger: ILogger | undefined;
+    private readonly stdoutLogger: ILogger | undefined;
+    private readonly stderrLogger: ILogger | undefined;
     private readonly extensions = new Set<string>();
     private subprocess: ChildProcess | null = null;
     private channel: IpcMessageChannel | null = null;
@@ -63,6 +86,10 @@ export class ExtensionHost extends Disposable {
             readyTimeoutMs: options.readyTimeoutMs ?? 5000,
             shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1500,
         };
+        this.logger = options.logger;
+        this.rpcLogger = options.rpcLogger;
+        this.stdoutLogger = options.stdoutLogger;
+        this.stderrLogger = options.stderrLogger;
     }
 
     public async registerExtension(reg: IExtensionRegistration): Promise<IDisposable> {
@@ -70,9 +97,11 @@ export class ExtensionHost extends Disposable {
         if (this.extensions.has(reg.id)) {
             throw new Error(`Extension "${reg.id}" already registered`);
         }
+        this.logger?.debug(`registerExtension(${reg.id})`, { mainPath: reg.mainPath });
         const rpc = await this.ensureSubprocess();
         await rpc.request("host.activateExtension", { id: reg.id, mainPath: reg.mainPath });
         this.extensions.add(reg.id);
+        this.logger?.info(`activated extension "${reg.id}"`);
         return {
             dispose: (): void => {
                 if (!this.extensions.has(reg.id)) return;
@@ -88,8 +117,10 @@ export class ExtensionHost extends Disposable {
         if (rpc === null) return;
         try {
             await rpc.request("host.deactivateExtension", { id });
-        } catch {
+            this.logger?.info(`deactivated extension "${id}"`);
+        } catch (err) {
             // subprocess мог уже умереть — игнорируем.
+            this.logger?.debug(`deactivateExtension(${id}) ignored`, err);
         }
     }
 
@@ -119,19 +150,40 @@ export class ExtensionHost extends Disposable {
             return this.rpc;
         }
         const spec = this.options.spawnArgs();
+        const stdoutMode: "pipe" | "inherit" = this.stdoutLogger !== undefined ? "pipe" : "inherit";
+        const stderrMode: "pipe" | "inherit" = this.stderrLogger !== undefined ? "pipe" : "inherit";
+        this.logger?.debug("spawning extension host subprocess", {
+            command: spec.command,
+            args: spec.args,
+            stdio: ["ignore", stdoutMode, stderrMode, "ipc"],
+        });
         const child = spawn(spec.command, spec.args, {
-            stdio: ["ignore", "inherit", "inherit", "ipc"],
+            stdio: ["ignore", stdoutMode, stderrMode, "ipc"],
             env: spec.env ?? { ...process.env, VEXX_EXTENSION_HOST: "1" },
         });
+        if (child.stdout !== null && this.stdoutLogger !== undefined) {
+            pipeStreamToLogger(child.stdout, this.stdoutLogger, "info");
+        }
+        if (child.stderr !== null && this.stderrLogger !== undefined) {
+            pipeStreamToLogger(child.stderr, this.stderrLogger, "warn");
+        }
+        child.once("exit", (code, signal) => {
+            this.logger?.info("extension host subprocess exited", { code, signal });
+        });
+        child.once("error", (err) => {
+            this.logger?.error("extension host subprocess error", err);
+        });
         const channel = new IpcMessageChannel(child as unknown as IIpcEndpoint);
-        const rpc = new RpcEndpoint(channel);
+        const rpc = new RpcEndpoint(channel, this.rpcLogger);
         this.installHostHandlers(rpc);
 
         this.subprocess = child;
         this.channel = channel;
         this.rpc = rpc;
 
-        this.readyPromise = waitForReady(rpc, child, this.options.readyTimeoutMs);
+        this.readyPromise = waitForReady(rpc, child, this.options.readyTimeoutMs).then(() => {
+            this.logger?.info("extension host ready");
+        });
         await this.readyPromise;
         return rpc;
     }
@@ -268,4 +320,34 @@ function waitForExit(child: ChildProcess): Promise<void> {
 
 function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Линейно-буферизованная подписка на `Readable` (stdout/stderr subprocess'а).
+ * Каждую полную строку (`\n`-delimited) пишем как одну запись лога. Хвост без
+ * `\n` сбрасываем при `end`.
+ */
+function pipeStreamToLogger(stream: NodeJS.ReadableStream, logger: ILogger, level: "info" | "warn"): void {
+    stream.setEncoding("utf8");
+    let buffer = "";
+    stream.on("data", (chunk: string) => {
+        buffer += chunk;
+        let nl = buffer.indexOf("\n");
+        while (nl !== -1) {
+            const line = buffer.slice(0, nl);
+            buffer = buffer.slice(nl + 1);
+            if (line.length > 0) {
+                if (level === "warn") logger.warn(line);
+                else logger.info(line);
+            }
+            nl = buffer.indexOf("\n");
+        }
+    });
+    stream.on("end", () => {
+        if (buffer.length > 0) {
+            if (level === "warn") logger.warn(buffer);
+            else logger.info(buffer);
+            buffer = "";
+        }
+    });
 }

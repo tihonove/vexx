@@ -11,6 +11,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
+const vscode = require("vscode");
 
 function findEditorConfig(startDir) {
     let dir = path.resolve(startDir);
@@ -43,7 +44,7 @@ function parseEditorConfig(text) {
     return result;
 }
 
-function activate(context, vscode) {
+function activate(context) {
     const editorConfigPath = findEditorConfig(process.cwd());
     if (editorConfigPath === null) {
         console.error("[vexx-demo.editorconfig] .editorconfig not found from", process.cwd());

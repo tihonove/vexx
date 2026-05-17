@@ -1,4 +1,5 @@
 import type { IDisposable } from "../../Common/Disposable.ts";
+import type { ILogger } from "../../Common/Logging/ILogger.ts";
 
 import type { IMessageChannel } from "./IMessageChannel.ts";
 
@@ -38,6 +39,7 @@ export type INotificationHandler = (params: unknown) => void;
  */
 export class RpcEndpoint implements IDisposable {
     private readonly channel: IMessageChannel;
+    private readonly logger: ILogger | undefined;
     private readonly channelSubscription: IDisposable;
     private readonly pendingRequests = new Map<
         number,
@@ -48,9 +50,11 @@ export class RpcEndpoint implements IDisposable {
     private nextRequestId = 1;
     private disposed = false;
 
-    public constructor(channel: IMessageChannel) {
+    public constructor(channel: IMessageChannel, logger?: ILogger) {
         this.channel = channel;
+        this.logger = logger;
         this.channelSubscription = channel.onMessage((msg) => {
+            this.traceIncoming(msg);
             this.handleIncoming(msg);
         });
     }
@@ -63,6 +67,7 @@ export class RpcEndpoint implements IDisposable {
         return new Promise<unknown>((resolve, reject) => {
             this.pendingRequests.set(id, { resolve, reject });
             const msg: IRequestMessage = { kind: "req", id, method, params };
+            this.logger?.trace(`-> req#${String(id)} ${method}`, params);
             this.channel.postMessage(msg);
         });
     }
@@ -70,6 +75,7 @@ export class RpcEndpoint implements IDisposable {
     public notify(method: string, params?: unknown): void {
         if (this.disposed) return;
         const msg: INotificationMessage = { kind: "notif", method, params };
+        this.logger?.trace(`-> notif ${method}`, params);
         this.channel.postMessage(msg);
     }
 
@@ -133,6 +139,7 @@ export class RpcEndpoint implements IDisposable {
                 id: message.id,
                 error: { message: `No handler for method "${message.method}"` },
             };
+            this.logger?.warn(`no handler for req#${String(message.id)} ${message.method}`);
             this.channel.postMessage(response);
             return;
         }
@@ -142,6 +149,7 @@ export class RpcEndpoint implements IDisposable {
                 (result) => {
                     if (this.disposed) return;
                     const response: IResponseMessage = { kind: "res", id: message.id, result };
+                    this.logger?.trace(`-> res#${String(message.id)} ${message.method}`, result);
                     this.channel.postMessage(response);
                 },
                 (reason: unknown) => {
@@ -152,6 +160,7 @@ export class RpcEndpoint implements IDisposable {
                         id: message.id,
                         error: { message: errMessage },
                     };
+                    this.logger?.warn(`-> res#${String(message.id)} ${message.method} ERROR: ${errMessage}`);
                     this.channel.postMessage(response);
                 },
             );
@@ -173,9 +182,41 @@ export class RpcEndpoint implements IDisposable {
         if (handler === undefined) return;
         try {
             handler(message.params);
-        } catch {
+        } catch (err) {
             // Notifications не имеют ответа — глотаем исключения молча
             // (в Phase 1 изоляция упрощённая).
+            this.logger?.warn(`notification handler for "${message.method}" threw`, err);
+        }
+    }
+
+    private traceIncoming(raw: unknown): void {
+        if (this.logger === undefined) return;
+        if (typeof raw !== "object" || raw === null) return;
+        const message = raw as Partial<IProtocolMessage> & { kind?: string };
+        switch (message.kind) {
+            case "req":
+                this.logger.trace(
+                    `<- req#${String((message as IRequestMessage).id)} ${(message as IRequestMessage).method}`,
+                    (message as IRequestMessage).params,
+                );
+                return;
+            case "res": {
+                const m = message as IResponseMessage;
+                if (m.error !== undefined) {
+                    this.logger.trace(`<- res#${String(m.id)} ERROR: ${m.error.message}`);
+                } else {
+                    this.logger.trace(`<- res#${String(m.id)}`, m.result);
+                }
+                return;
+            }
+            case "notif":
+                this.logger.trace(
+                    `<- notif ${(message as INotificationMessage).method}`,
+                    (message as INotificationMessage).params,
+                );
+                return;
+            default:
+                return;
         }
     }
 }
