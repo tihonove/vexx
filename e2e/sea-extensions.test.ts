@@ -12,6 +12,8 @@ import { VexxSession } from "./helpers/runVexx.ts";
 const here = fileURLToPath(new URL(".", import.meta.url));
 const fixturePath = resolve(here, "fixtures", "sample.hello");
 const userDataPath = resolve(here, "fixtures", "user-data-with-hello");
+const tabbedFixturePath = resolve(here, "fixtures", "tabbed.txt");
+const tabSetterUserDataPath = resolve(here, "fixtures", "user-data-with-tab-setter");
 
 const KEYWORD_FG = packRgb(0x56, 0x9c, 0xd6); // keyword.control — Dark+ blue
 const STRING_FG = packRgb(0xce, 0x91, 0x78); // string — Dark+ orange
@@ -93,6 +95,31 @@ describe("SEA binary — user extensions", () => {
             expect(helloPos).not.toBeNull();
             const helloCell = screen.cellAt(helloPos!.x, helloPos!.y);
             expect(helloCell.fg).not.toBe(KEYWORD_FG);
+        },
+    );
+
+    itLinuxOnly(
+        "user extension с main self-spawn'ит subprocess и проставляет tabSize",
+        async () => {
+            // tab-setter ставит tabSize=7 / insertSpaces=false на активный
+            // редактор через `vscode.window.activeTextEditor.options`. RPC от
+            // subprocess'а до host'а должен сработать в течение boot'а.
+            //
+            // Открываем файл с tab-символом в строке "\tindented". При
+            // tabSize=7 видимая позиция "indented" — столбец 7 (после
+            // gutter'а с line numbers).
+            session = await VexxSession.start({
+                args: ["--user-data-dir", tabSetterUserDataPath, tabbedFixturePath],
+            });
+            const screen = await session.waitFor((s) => s.findText("indented") !== null);
+            const indentedRow = locateRow(screen, "indented");
+            const indentedPos = screen.findText("indented")!;
+            const endPos = screen.findText("end");
+            expect(endPos).not.toBeNull();
+            const indent = indentedPos.x - endPos!.x;
+            // tab at column 0 with tabSize=7 → 'indented' starts at column 7
+            expect(indent).toBe(7);
+            expect(indentedRow).toBe(indentedPos.y);
         },
     );
 });

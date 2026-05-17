@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
@@ -10,6 +11,23 @@ import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistr
 import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import { ExtensionHost } from "../Extensions/Host/ExtensionHost.ts";
 import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
+
+const SUBPROCESS_ENTRY = fileURLToPath(
+    new URL("../Extensions/Host/__fixtures__/subprocessEntry.ts", import.meta.url),
+);
+
+/**
+ * Возвращает `spawnArgs`-фабрику для тестового запуска subprocess'а — вместо
+ * `main.ts` запускает {@link SUBPROCESS_ENTRY} через `tsx` loader. Это нужно,
+ * т.к. в vitest `process.argv[1]` указывает на vitest CLI, а не на `main.ts`.
+ */
+export function subprocessSpawnArgsForTests(): () => { command: string; args: string[]; env?: NodeJS.ProcessEnv } {
+    return () => ({
+        command: process.execPath,
+        args: ["--import", "tsx/esm", SUBPROCESS_ENTRY],
+        env: { ...process.env },
+    });
+}
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -59,7 +77,7 @@ export async function createExtensionTestHarness(
     group.mount();
 
     const adapter = new EditorOptionsServiceAdapter(group);
-    const host = new ExtensionHost(adapter);
+    const host = new ExtensionHost(adapter, { spawnArgs: subprocessSpawnArgsForTests() });
 
     const writeFile = (name: string, content: string): string => {
         const fp = path.join(tmpDir, name);
@@ -82,12 +100,14 @@ export async function createExtensionTestHarness(
 
     for (const reg of options.extensions ?? []) {
         await host.registerExtension(reg);
-        // Дожидаемся хотя бы одного RPC round-trip после активации.
-        await flushRpc();
     }
 
     const dispose = async (): Promise<void> => {
         host.dispose();
+        // ExtensionHost.dispose стартует асинхронный shutdownSubprocess(); ждём
+        // короткое окно, чтобы дать ему успеть отправить host.shutdown и
+        // дочерний процесс корректно завершился.
+        await new Promise((resolve) => setTimeout(resolve, 100));
         group.dispose();
         try {
             fs.rmSync(tmpDir, { recursive: true, force: true });

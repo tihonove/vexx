@@ -1,44 +1,68 @@
+import { spawn, type ChildProcess } from "node:child_process";
+import { createRequire } from "node:module";
+
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
 
-import { ExtensionRuntime } from "./ExtensionRuntime.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService } from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
-import type { IMessageChannel } from "./IMessageChannel.ts";
-import { createInProcessChannelPair } from "./InProcessChannelPair.ts";
+import type { IIpcEndpoint } from "./IpcMessageChannel.ts";
+import { IpcMessageChannel } from "./IpcMessageChannel.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
 
 export const ExtensionHostDIToken = token<ExtensionHost>("ExtensionHost");
 
-interface ActiveExtension {
-    readonly id: string;
-    readonly runtime: ExtensionRuntime;
-    readonly hostChannel: IMessageChannel;
-    readonly runtimeChannel: IMessageChannel;
-    readonly hostRpc: RpcEndpoint;
+export interface IExtensionHostOptions {
+    /**
+     * Команда и аргументы для запуска subprocess'а. По умолчанию вычисляется
+     * автоматически (`process.execPath` + `process.execArgv` + main script).
+     * Перекрывается в тестах.
+     */
+    readonly spawnArgs?: () => { command: string; args: string[]; env?: NodeJS.ProcessEnv };
+    /**
+     * Тайм-аут на ожидание `host.ready` от subprocess'а, мс. Default: 5000.
+     */
+    readonly readyTimeoutMs?: number;
+    /**
+     * Тайм-аут на graceful shutdown через `host.shutdown` перед `SIGTERM`. Default: 1500.
+     */
+    readonly shutdownTimeoutMs?: number;
 }
 
 /**
- * Host-сторона: владеет каналами, регистрирует request handlers поверх
- * {@link RpcEndpoint}, инстанцирует {@link ExtensionRuntime} per extension.
+ * Host-сторона extension subsystem'ы. Форкает один subprocess (через
+ * `child_process.spawn(process.execPath, ..., { stdio: [...,'ipc'] })`) и
+ * управляет жизненным циклом расширений через RPC поверх Node IPC-канала.
  *
- * В Phase 1 каждое расширение получает свой in-process channel pair; при
- * переходе на self-spawn здесь будет `child_process.fork()` + `node:Stream`
- * вместо `createInProcessChannelPair()`.
+ * Subprocess — это тот же бинарь / тот же main.ts с env-флагом
+ * `VEXX_EXTENSION_HOST=1`; ранний branch в `main.ts` уводит управление в
+ * `runExtensionHostSubprocess()`.
  *
- * API:
- * - `registerExtension(reg)` — создаёт пару каналов, поднимает runtime,
- *   ждёт `activate()`. Возвращает `IDisposable` для unload.
- * - `dispose()` — деактивирует все расширения, рвёт каналы.
+ * Lifecycle:
+ * - `registerExtension(reg)` — лениво поднимает subprocess (если ещё не) и
+ *   шлёт `host.activateExtension`. Бросает, если активация не удалась.
+ * - `unregisterExtension(id)` — `host.deactivateExtension`.
+ * - `dispose()` — `host.shutdown` (best effort) → ждём exit → SIGTERM →
+ *   SIGKILL fallback.
  */
 export class ExtensionHost extends Disposable {
     private readonly editorOptions: IEditorOptionsService;
-    private readonly extensions = new Map<string, ActiveExtension>();
+    private readonly options: Required<IExtensionHostOptions>;
+    private readonly extensions = new Set<string>();
+    private subprocess: ChildProcess | null = null;
+    private channel: IpcMessageChannel | null = null;
+    private rpc: RpcEndpoint | null = null;
+    private readyPromise: Promise<void> | null = null;
     private hostDisposed = false;
 
-    public constructor(editorOptions: IEditorOptionsService) {
+    public constructor(editorOptions: IEditorOptionsService, options: IExtensionHostOptions = {}) {
         super();
         this.editorOptions = editorOptions;
+        this.options = {
+            spawnArgs: options.spawnArgs ?? defaultSpawnArgs,
+            readyTimeoutMs: options.readyTimeoutMs ?? 5000,
+            shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1500,
+        };
     }
 
     public async registerExtension(reg: IExtensionRegistration): Promise<IDisposable> {
@@ -46,23 +70,9 @@ export class ExtensionHost extends Disposable {
         if (this.extensions.has(reg.id)) {
             throw new Error(`Extension "${reg.id}" already registered`);
         }
-
-        const [hostChannel, runtimeChannel] = createInProcessChannelPair();
-        const hostRpc = new RpcEndpoint(hostChannel);
-        this.installHostHandlers(hostRpc);
-
-        const runtime = new ExtensionRuntime(runtimeChannel, reg.entry);
-        const active: ActiveExtension = { id: reg.id, runtime, hostChannel, runtimeChannel, hostRpc };
-        this.extensions.set(reg.id, active);
-
-        try {
-            await runtime.activate();
-        } catch (error) {
-            this.extensions.delete(reg.id);
-            await this.teardownExtension(active);
-            throw error;
-        }
-
+        const rpc = await this.ensureSubprocess();
+        await rpc.request("host.activateExtension", { id: reg.id, mainPath: reg.mainPath });
+        this.extensions.add(reg.id);
         return {
             dispose: (): void => {
                 if (!this.extensions.has(reg.id)) return;
@@ -72,10 +82,15 @@ export class ExtensionHost extends Disposable {
     }
 
     public async unregisterExtension(id: string): Promise<void> {
-        const active = this.extensions.get(id);
-        if (active === undefined) return;
+        if (!this.extensions.has(id)) return;
         this.extensions.delete(id);
-        await this.teardownExtension(active);
+        const rpc = this.rpc;
+        if (rpc === null) return;
+        try {
+            await rpc.request("host.deactivateExtension", { id });
+        } catch {
+            // subprocess мог уже умереть — игнорируем.
+        }
     }
 
     public hasExtension(id: string): boolean {
@@ -89,23 +104,36 @@ export class ExtensionHost extends Disposable {
     public override dispose(): void {
         if (this.hostDisposed) return;
         this.hostDisposed = true;
-        const all = [...this.extensions.values()];
         this.extensions.clear();
-        for (const active of all) {
-            void this.teardownExtension(active);
-        }
+        void this.shutdownSubprocess();
         super.dispose();
     }
 
-    private async teardownExtension(active: ActiveExtension): Promise<void> {
-        try {
-            await active.runtime.deactivate();
-        } finally {
-            active.runtime.dispose();
-            active.hostRpc.dispose();
-            active.hostChannel.dispose();
-            active.runtimeChannel.dispose();
+    /**
+     * Ленивая инициализация subprocess'а. Идемпотентна — параллельные вызовы
+     * получают одну и ту же `readyPromise`.
+     */
+    private async ensureSubprocess(): Promise<RpcEndpoint> {
+        if (this.rpc !== null && this.readyPromise !== null) {
+            await this.readyPromise;
+            return this.rpc;
         }
+        const spec = this.options.spawnArgs();
+        const child = spawn(spec.command, spec.args, {
+            stdio: ["ignore", "inherit", "inherit", "ipc"],
+            env: spec.env ?? { ...process.env, VEXX_EXTENSION_HOST: "1" },
+        });
+        const channel = new IpcMessageChannel(child as unknown as IIpcEndpoint);
+        const rpc = new RpcEndpoint(channel);
+        this.installHostHandlers(rpc);
+
+        this.subprocess = child;
+        this.channel = channel;
+        this.rpc = rpc;
+
+        this.readyPromise = waitForReady(rpc, child, this.options.readyTimeoutMs);
+        await this.readyPromise;
+        return rpc;
     }
 
     private installHostHandlers(rpc: RpcEndpoint): void {
@@ -117,6 +145,47 @@ export class ExtensionHost extends Disposable {
         rpc.handleRequest("editor.getOptions", (): unknown => {
             return this.editorOptions.getActiveEditorOptions();
         });
+    }
+
+    private async shutdownSubprocess(): Promise<void> {
+        const rpc = this.rpc;
+        const channel = this.channel;
+        const child = this.subprocess;
+        this.rpc = null;
+        this.channel = null;
+        this.subprocess = null;
+        this.readyPromise = null;
+        if (child === null) {
+            rpc?.dispose();
+            channel?.dispose();
+            return;
+        }
+        const exit = waitForExit(child);
+        if (rpc !== null) {
+            try {
+                await Promise.race([rpc.request("host.shutdown"), sleep(this.options.shutdownTimeoutMs)]);
+            } catch {
+                // ignore
+            }
+        }
+        if (child.exitCode === null && !child.killed) {
+            try {
+                child.kill("SIGTERM");
+            } catch {
+                // ignore
+            }
+            await Promise.race([exit, sleep(500)]);
+        }
+        if (child.exitCode === null && !child.killed) {
+            try {
+                child.kill("SIGKILL");
+            } catch {
+                // ignore
+            }
+            await Promise.race([exit, sleep(500)]);
+        }
+        rpc?.dispose();
+        channel?.dispose();
     }
 }
 
@@ -131,4 +200,70 @@ function sanitizeOptionsPatch(raw: unknown): IEditorOptionsPatch {
         patch.insertSpaces = obj.insertSpaces;
     }
     return patch;
+}
+
+function defaultSpawnArgs(): { command: string; args: string[] } {
+    if (detectIsSea()) {
+        // В SEA-режиме сам бинарь = `process.execPath`; main script отсутствует.
+        return { command: process.execPath, args: [] };
+    }
+    const mainScript = process.argv[1];
+    if (typeof mainScript !== "string" || mainScript === "") {
+        throw new Error("ExtensionHost: cannot determine main script for dev subprocess");
+    }
+    return { command: process.execPath, args: [...process.execArgv, mainScript] };
+}
+
+/**
+ * `node:sea` доступен только через `require()` внутри SEA-сборки — статический
+ * ESM-импорт падает с `ERR_UNKNOWN_BUILTIN_MODULE` даже в работающем SEA exe.
+ * См. `Common/Assets/createDefaultAssetAccess.ts` за тот же паттерн.
+ */
+function detectIsSea(): boolean {
+    try {
+        const req = createRequire("file:///");
+        const sea = req("node:sea") as { isSea(): boolean };
+        return sea.isSea();
+    } catch {
+        return false;
+    }
+}
+
+function waitForReady(rpc: RpcEndpoint, child: ChildProcess, timeoutMs: number): Promise<void> {
+    return new Promise((resolve, reject) => {
+        const handle = rpc.handleNotification("host.ready", () => {
+            handle.dispose();
+            cleanup();
+            resolve();
+        });
+        const onExit = (code: number | null): void => {
+            handle.dispose();
+            cleanup();
+            reject(new Error(`extension host subprocess exited before ready (code ${String(code)})`));
+        };
+        const timer = setTimeout(() => {
+            handle.dispose();
+            cleanup();
+            reject(new Error(`extension host subprocess did not become ready in ${String(timeoutMs)}ms`));
+        }, timeoutMs);
+        const cleanup = (): void => {
+            child.off("exit", onExit);
+            clearTimeout(timer);
+        };
+        child.once("exit", onExit);
+    });
+}
+
+function waitForExit(child: ChildProcess): Promise<void> {
+    return new Promise((resolve) => {
+        if (child.exitCode !== null || child.killed) {
+            resolve();
+            return;
+        }
+        child.once("exit", () => resolve());
+    });
+}
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }

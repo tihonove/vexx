@@ -18,6 +18,12 @@
 - [ ] Снять зависимость от точной фразы из комментария (`fixture used`) — заменить на стабильный маркер в фикстуре.
 - [ ] **e2e-cross-platform**: `renders fixture text on screen` и `applies syntax highlighting` пропускаются на Windows и macOS. На Windows ConPTY инжектирует `CSI K` / clearing sequences после resize, стирая строки которые рендерер уже вывел; `stdout.on("resize")` внутри ConPTY-процесса ненадёжен → delta-рендерер не знает что нужен полный redraw. Нужно либо добавить в `NodeTerminalBackend` принудительный механизм полного сброса при потере синхронизации (watchdog по неизменному грид-хешу?), либо перейти на Inspector-протокол (Phase 2) для e2e вместо PTY-парсинга.
 
+**Покрытие расширений (Phase 8 self-spawn):**
+- ✅ `boots with --user-data-dir and renders hello-lang fixture` — декларативное расширение (грамматика).
+- ✅ `user extension grammar applies syntax highlighting with --user-data-dir` — token colors через grammar.
+- ✅ `without --user-data-dir hello-lang grammar is not applied` — негативный кейс.
+- ✅ `user extension с main self-spawn'ит subprocess и проставляет tabSize` — SEA-бинарь форкает себя через `process.env.VEXX_EXTENSION_HOST=1`, subprocess исполняет `exports.activate()` user-расширения (`e2e/fixtures/user-data-with-tab-setter/extensions/tab-setter/extension.js`), которое через `vscode.window.activeTextEditor.options = { tabSize: 7, ... }` шлёт RPC обратно. Тест проверяет, что tab в открытом файле визуально расширяется до 7 столбцов.
+
 ## Phase 2 — Inspector-протокол (draft)
 
 Цель: «как в браузере с дебажным портом» — отдельный сервер на бинаре по флагу `--inspect-tui[=host:port]`, который умеет отдавать дерево `TUIElement`, текущий грид и стримить события.

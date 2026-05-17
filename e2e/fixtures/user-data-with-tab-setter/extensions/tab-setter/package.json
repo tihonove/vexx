@@ -1,0 +1,11 @@
+{
+    "name": "tab-setter",
+    "displayName": "Tab Setter",
+    "description": "E2E test extension: sets unique tabSize=7 / insertSpaces=false on the active editor at activation time.",
+    "version": "0.0.1",
+    "publisher": "test",
+    "main": "./extension.js",
+    "engines": {
+        "vscode": "^1.0.0"
+    }
+}

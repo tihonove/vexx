@@ -84,26 +84,35 @@
 Сделано в Phase 1.5 (in-process MVP):
 
 - `src/Extensions/Api/vscode.d.ts` — полная копия `vscode.d.ts` из microsoft/vscode, line-commented. Активной оставлена минимальная поверхность: `version`, `Disposable`, `Event<T>`, `TextEditorOptions { tabSize, insertSpaces }`, `TextEditor.options`, `window.activeTextEditor`, `ExtensionContext`. `tsconfig paths` маршрутизирует `import type * as vscode from "vscode"` сюда.
-- `src/Extensions/Host/IMessageChannel.ts` + `InProcessChannelPair.ts` — абстракция «канала сообщений» с двумя реализациями (сейчас только in-process, в будущем pipe/MessagePort/IPC). Сообщения проходят через `JSON.stringify`/`parse`, что эмулирует structural cloning и ловит мутации общих объектов уже сейчас.
+- `src/Extensions/Host/IMessageChannel.ts` + `InProcessChannelPair.ts` — абстракция «канала сообщений» с двумя реализациями (in-process для unit-тестов RPC + IPC поверх `child_process` для реального хоста).
 - `src/Extensions/Host/RpcEndpoint.ts` — request/response/notification поверх `IMessageChannel`. Парные endpoints на host- и runtime-стороне.
 - `src/Extensions/Host/IEditorOptionsService.ts` + `EditorOptionsServiceAdapter.ts` — host-сервис, через который runtime меняет настройки активного редактора. Адаптер живёт в Extensions, чтобы `EditorController` ничего не знал про расширения.
 - `src/Controllers/EditorController.ts::setIndentOptions` — публичный seam; выключает auto-detect indent при явной установке.
-- `src/Extensions/Host/IExtensionEntry.ts` — Phase 1 сигнатура `activate(context, api: typeof vscode)`. Phase 8: вернётся к каноническому `activate(context)` с импортом `vscode` после self-spawn.
-- `src/Extensions/Host/ExtensionRuntime.ts` — runtime-сторона: строит минимальный `vscode` namespace (с прокси на `editor.options`, который шлёт `editor.setOptions` через RPC) и вызывает `entry.activate(ctx, api)`.
-- `src/Extensions/Host/ExtensionHost.ts` — host-сторона: `registerExtension/unregisterExtension/dispose`, создаёт пару каналов на расширение, регистрирует RPC-обработчики `editor.setOptions/getOptions`.
-- `src/Controllers/Modules/ExtensionHostModule.ts` — DI binding; `main.ts` поднимает host (пока пустой — `main` builtin-расширений не исполняется).
-- `src/TestUtils/ExtensionTestHarness.ts` — `createExtensionTestHarness({ initialFile?, extensions? })` поднимает `EditorGroupController` + `ExtensionHost` поверх `TestApp`/`MockTerminalBackend`. Расширения регистрируются sequentially.
-- Тесты: `InProcessChannelPair.test.ts` (6), `RpcEndpoint.test.ts` (7), `ExtensionHost.test.ts` (7), `ExtensionHost.Indent.test.ts` (3). Фикстуры в `src/Extensions/Host/__fixtures__/`.
+- `src/Controllers/Modules/ExtensionHostModule.ts` — DI binding.
+
+Сделано в Phase 8 (real subprocess host):
+
+- `src/Extensions/Host/IpcMessageChannel.ts` — `IMessageChannel` поверх Node IPC (`process` / `ChildProcess` с `stdio: ['ignore','inherit','inherit','ipc']`). Транспорт абстрагирован через `IIpcEndpoint`, что делает его тестируемым без реального fork'а.
+- `src/Extensions/Host/ExtensionHostSubprocess.ts` — точка входа subprocess'а: поднимает `IpcMessageChannel(process)` + `RpcEndpoint`, патчит `Module._cache["vscode"]` через `installVscodeStub`, обрабатывает RPC `host.activateExtension({ id, mainPath })` / `host.deactivateExtension` / `host.shutdown`, шлёт `host.ready` notification по готовности.
+- `src/Extensions/Host/VscodeNamespace.ts` — `buildVscodeNamespace(rpc)`: минимальный канонический namespace `vscode` (`version`, `Disposable`, `window.activeTextEditor` с Proxy на `options`), используется и subprocess'ом, и in-process тестами.
+- `src/Extensions/Host/ExtensionHost.ts` — host-сторона: лениво форкает один subprocess (`spawn(process.execPath, ..., env { VEXX_EXTENSION_HOST: "1" })`), регистрирует RPC `editor.setOptions/getOptions`. `defaultSpawnArgs()` различает SEA (`process.execPath` без args) и dev (`process.execPath + execArgv + main script`). `dispose()` делает graceful `host.shutdown` → `SIGTERM` → `SIGKILL` fallback.
+- `src/main.ts` — ранний branch `if (process.env.VEXX_EXTENSION_HOST === "1") { await runExtensionHostSubprocess(); }` до CLI/TUI. Активация user-расширений через `extensionHost.registerExtension({ id, manifest, mainPath })` — без `createRequire` в host-процессе.
+- `IExtensionRegistration` теперь содержит `mainPath: string` вместо `entry: IExtensionEntry`. Канонический контракт: `exports.activate(context)` / `exports.deactivate()` CJS-модуля, который `require("vscode")` получает host-backed namespace.
+- `src/TestUtils/ExtensionTestHarness.ts` — `subprocessSpawnArgsForTests()`: запускает `node --import tsx/esm src/Extensions/Host/__fixtures__/subprocessEntry.ts` (в vitest `process.argv[1]` указывает на vitest CLI, не `main.ts`).
+- E2E: `e2e/fixtures/user-data-with-tab-setter/extensions/tab-setter/extension.js` (`exports.activate` ставит `tabSize=7`), `e2e/sea-extensions.test.ts > "user extension с main self-spawn'ит subprocess..."` проверяет реальный SEA бинарь.
+- Тесты: `IpcMessageChannel.test.ts` (7), `IpcMessageChannel.RoundTrip.test.ts` (3, реальный subprocess), `ExtensionHost.test.ts` (5, subprocess), `ExtensionHost.Indent.test.ts` (3, subprocess), `InProcessChannelPair.test.ts` (6), `RpcEndpoint.test.ts` (7).
 
 Остаётся:
 
-- [ ] Self-spawn: `main` field → `child_process.fork()` extension host subprocess.
-- [ ] Канал поверх `node:stream`/IPC между host и subprocess.
-- [ ] Стаб `Module._cache["vscode"]` в subprocess → канонический `import * as vscode from "vscode"` в расширениях; убрать `api` 2-м аргументом.
-- [ ] `activationEvents` triggers — вызов `activate(context)` в нужный момент.
+- [x] Self-spawn: `main` field → `child_process.spawn(process.execPath)` extension host subprocess.
+- [x] Канал поверх Node IPC (`stdio: 'ipc'`) между host и subprocess.
+- [x] Стаб `Module._cache["vscode"]` в subprocess → канонический `require("vscode")` в расширениях; `IExtensionEntry` upgrade на `activate(context)`.
+- [ ] `activationEvents` triggers — вызов `activate(context)` в нужный момент (сейчас всегда eager после `openFile`).
 - [ ] Расширение всего vscode-API: `commands`, `workspace`, `languages`, `window` (за пределами `activeTextEditor.options`).
 - [ ] Изоляция исключений: упавшее расширение не валит host (сейчас уже не валит host благодаря RPC + try/catch, но diagnostics ещё нет).
 - [ ] Маршрутизация ошибок RPC обратно в `editor.options =`, чтобы fire-and-forget не глотал.
+- [ ] ESM-расширения (`import * as vscode from "vscode"` через ESM loader hooks).
+- [ ] Restart subprocess'а при крэше (сейчас при exit'е extension host'а просто все RPC падают).
 
 ## Phase 9 — Внешние расширения
 

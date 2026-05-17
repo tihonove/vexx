@@ -1,65 +1,15 @@
 import type * as vscode from "vscode";
 
-import type { IDisposable } from "../../Common/Disposable.ts";
-
-import type { IExtensionEntry } from "./IExtensionEntry.ts";
-import type { IMessageChannel } from "./IMessageChannel.ts";
-import { RpcEndpoint } from "./RpcEndpoint.ts";
+import type { RpcEndpoint } from "./RpcEndpoint.ts";
 
 /**
- * Side-of-extension runtime: исполняется «в адресном пространстве» расширения
- * (in-process в Phase 1, в дочернем процессе позже). Принимает канал к хосту,
- * строит минимальный объект `vscode` и вызывает `entry.activate(context, api)`.
+ * Строит минимальный объект `vscode`, который раздаётся расширениям
+ * (in-process в тестах или внутри subprocess через `Module._cache`).
  *
- * Все обращения расширения к `vscode.*` идут через {@link RpcEndpoint}.request
- * — никакой прямой ссылки на host-сервисы у runtime нет.
+ * Все мутирующие действия проксируются хосту как RPC-запросы; никакой
+ * прямой ссылки на host-сервисы у `vscode`-неймспейса нет.
  */
-export class ExtensionRuntime implements IDisposable {
-    private readonly rpc: RpcEndpoint;
-    private readonly entry: IExtensionEntry;
-    private readonly context: vscode.ExtensionContext;
-    private readonly api: typeof vscode;
-    private disposed = false;
-
-    public constructor(channel: IMessageChannel, entry: IExtensionEntry) {
-        this.rpc = new RpcEndpoint(channel);
-        this.entry = entry;
-        this.context = { subscriptions: [] };
-        this.api = buildVscodeNamespace(this.rpc);
-    }
-
-    public async activate(): Promise<void> {
-        await this.entry.activate(this.context, this.api);
-    }
-
-    public async deactivate(): Promise<void> {
-        if (this.disposed) return;
-        try {
-            await this.entry.deactivate?.();
-        } finally {
-            for (const sub of this.context.subscriptions.splice(0).reverse()) {
-                try {
-                    sub.dispose();
-                } catch {
-                    // Phase 1: глотаем
-                }
-            }
-        }
-    }
-
-    public dispose(): void {
-        if (this.disposed) return;
-        this.disposed = true;
-        this.rpc.dispose();
-    }
-}
-
-/**
- * Строит минимальную реализацию `vscode` для Phase 1: только
- * `window.activeTextEditor.options` + `Disposable`. Все мутации `options`
- * отправляются хосту как RPC-запросы.
- */
-function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
+export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
     class DisposableImpl {
         private readonly callOnDispose: () => unknown;
         public constructor(callOnDispose: () => unknown) {
@@ -92,7 +42,7 @@ function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
                 target.options = { ...target.options, ...patch };
                 if (Object.keys(normalized).length > 0) {
                     // Fire-and-forget; ошибки логически принадлежат расширению,
-                    // но в Phase 1 не маршрутизируются обратно — добавим в Phase 8.
+                    // но в Phase 1 не маршрутизируются обратно — добавим в Phase 8+.
                     void rpc.request("editor.setOptions", normalized);
                 }
                 return true;

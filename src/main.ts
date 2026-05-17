@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import { createRequire } from "node:module";
 import * as os from "node:os";
 import * as path from "node:path";
 
@@ -19,7 +18,8 @@ import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry
 import { scanExtensions } from "./Extensions/ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
-import type { IExtensionEntry, IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.ts";
+import { runExtensionHostSubprocess } from "./Extensions/Host/ExtensionHostSubprocess.ts";
+import type { IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
@@ -27,6 +27,20 @@ import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
 import { WorkbenchTheme } from "./Theme/WorkbenchTheme.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
+// ── Subprocess branch ─────────────────────────────────────
+// Если форкнул себя ExtensionHost'ом — уходим в subprocess entry до любых
+// TUI/CLI инициализаций. Сигнал — env VEXX_EXTENSION_HOST=1, выставленный
+// `ExtensionHost.ensureSubprocess()`.
+
+if (process.env.VEXX_EXTENSION_HOST === "1") {
+    await runExtensionHostSubprocess();
+    // runExtensionHostSubprocess() возвращается, но процесс остаётся живым
+    // на IPC-канале до disconnect/shutdown. Просто не идём в TUI-ветку.
+} else {
+    await runEditor();
+}
+
+async function runEditor(): Promise<void> {
 // ── CLI ────────────────────────────────────────────────────
 
 let cli;
@@ -149,22 +163,15 @@ for (const p of resolvedPaths) {
 }
 appController.focusEditor();
 
-// Активируем пользовательские расширения с `manifest.main` — загружаем
-// через createRequire (CJS), что работает как в tsx/dev, так и в SEA-бинарнике.
-// ESM dynamic import() в SEA не работает для внешних файлов — Node перехватывает
-// file:// URL как builtin-модули. Builtin-расширения пока декларативные.
-// Активация ПОСЛЕ openFile, чтобы activeTextEditor был доступен.
+// Активируем пользовательские расширения с `manifest.main` через extension host.
+// ExtensionHost форкает subprocess и загружает модуль расширения там через
+// `require(mainPath)`. Активация ПОСЛЕ openFile, чтобы activeTextEditor был
+// доступен на момент `activate()`.
 for (const ext of userExtensions) {
     if (typeof ext.manifest.main !== "string" || ext.manifest.main === "") continue;
     const dirName = ext.location.slice(USER_PREFIX.length).replace(/\/$/, "");
     const mainPath = path.resolve(userDataPaths.extensionsDir, dirName, ext.manifest.main);
     try {
-        const extRequire = createRequire(mainPath);
-        const mod = extRequire(mainPath) as Partial<IExtensionEntry>;
-        if (typeof mod.activate !== "function") {
-            console.error(`[extensions] ${ext.id}: main "${ext.manifest.main}" has no activate()`);
-            continue;
-        }
         const reg: IExtensionRegistration = {
             id: ext.id,
             manifest: {
@@ -172,11 +179,12 @@ for (const ext of userExtensions) {
                 publisher: ext.manifest.publisher,
                 version: ext.manifest.version,
             },
-            entry: mod as IExtensionEntry,
+            mainPath,
         };
         await extensionHost.registerExtension(reg);
     } catch (err) {
         console.error(`[extensions] ${ext.id}: failed to activate`, err);
     }
+}
 }
 
