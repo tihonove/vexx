@@ -24,7 +24,7 @@ describe("ExtensionHost — indent options API (subprocess)", () => {
         try {
             const editor = harness.group.getActiveEditor();
             expect(editor).not.toBeNull();
-            expect(editor?.viewState.tabSize).toBe(2);
+            expect(editor?.viewState.tabSize).toBe(22);
             expect(editor?.viewState.insertSpaces).toBe(true);
         } finally {
             await harness.dispose();

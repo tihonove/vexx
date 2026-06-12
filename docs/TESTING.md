@@ -31,25 +31,15 @@
 - Не проверяем внутреннее состояние — только наблюдаемое поведение через DOM
 
 ### Как создаём тестовое окружение
-Собираем DI-контейнер как в проде, создаём `TestApp` из `controller.view`:
+Используем тестовый профиль `createTestContainer()` (см. [DI.md](DI.md#профили)) — не собираем контейнер руками:
 
 ```ts
-function createTestAppController(size: Size = new Size(80, 24)) {
-    const container = new Container();
-    container
-        .bind(CommandRegistryDIToken, () => new CommandRegistry())
-        .bind(KeybindingRegistryDIToken, () => new KeybindingRegistry())
-        .bind(ServiceAccessorDIToken, (): ServiceAccessor => container)
-        .bind(EditorControllerDIToken, EditorController)
-        .bind(AppControllerDIToken, AppController);
+const { container, bindApp } = createTestContainer();
+const controller = container.get(AppControllerDIToken);
+controller.mount();
 
-    const controller = container.get(AppControllerDIToken);
-    controller.mount();
-    const testApp = TestApp.create(controller.view, size);
-    container.bind(TuiApplicationDIToken, () => testApp.app);
-
-    return { testApp, controller };
-}
+const testApp = TestApp.create(controller.view, size);
+bindApp(testApp.app);
 ```
 
 ### Пример: проверяем набор текста через DOM
@@ -205,3 +195,12 @@ expectScreen(backend, screen`
     +----+
 `);
 ```
+
+### ExtensionTestHarness (`TestUtils/ExtensionTestHarness.ts`)
+Для тестов extension host'а: `createExtensionTestHarness({ initialFile?, extensions? })` поднимает реальный `EditorGroupController` + `ExtensionHost` поверх `TestApp`. Subprocess форкается через `subprocessSpawnArgsForTests()`; тестовые расширения — `*.cjs`-файлы с `exports.activate`. Unit-тесты RPC без subprocess'а используют `createInProcessChannelPair()`.
+
+---
+
+## E2E
+
+`npm run test:e2e` (отдельный конфиг `vitest.e2e.config.ts`) собирает SEA-бинарь и гоняет его через `node-pty` + ANSI-парсер. Сьюты и helpers — в `e2e/`. Детали и roadmap — [TODO/E2E.md](TODO/E2E.md).

@@ -1,6 +1,6 @@
 # Подсветка синтаксиса
 
-**Статус**: каркас готов, есть встроенный заглушечный токенайзер.
+**Статус**: TextMate-движок работает (vscode-textmate + oniguruma); остались scope-селекторы, async/background токенизация, hot-swap.
 
 Архитектура повторяет VS Code:
 
@@ -29,33 +29,9 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 ## Подзадачи
 
 ### [x] Полный TextMate-движок
-Подключить настоящий TextMate-парсер вместо `WordTokenizer`. Грамматика на YAML/plist, состояние = stack of rules. Принимать `.tmLanguage.json` файлы.
+Подключён настоящий TextMate-парсер (`vscode-textmate` + `vscode-oniguruma`): адаптер в `src/Editor/Tokenization/textmate/`, грамматики поставляются builtin-расширениями (см. [Extensions.md](Extensions.md)), регистрация в `main.ts` с fallback на `WordTokenizer`/`PlainTextTokenizer`, защита от ReDoS (строки >20K — один root-токен). В production пакуется в `dist/vexx.bundle` через `IAssetAccess`. Детали: [ARCHITECTURE.md](../ARCHITECTURE.md) → Editor/Tokenization.
 
-**Что сделано:**
-- Зависимости: `vscode-textmate` + `vscode-oniguruma` (MIT, без нативных биндингов).
-- Адаптер: `src/Editor/Tokenization/textmate/` — `OnigLib`, `TextMateState`, `TextMateTokenizationSupport`, `TextMateGrammarLoader`.
-- Встроенные языки и маппинг расширений поставляются builtin-расширениями из `src/Extensions/builtin/` (см. [Extensions.md](Extensions.md)); резолвит `LanguageRegistry implements ILanguageService`.
-- Регистрация в `main.ts` через `TextMateGrammarLoader.loadSupport(scope)` для всех `BUILTIN_LANGUAGES`. Async-загрузка дожидается `await grammarsLoading` до открытия первого файла. На ошибку грамматики — fallback на `WordTokenizer`/`PlainTextTokenizer`.
-- Защита от ReDoS: строки длиннее 20K символов отдаются одним root-токеном без вызова oniguruma.
-- Тесты: 20 учебных тестов на сам `vscode-textmate` (Registry, tokenizeLine, multiline state, tokenizeLine2, jsdoc injections) + 7 на адаптер + 15 на language detection.
-
-**Открытые вопросы:**
-- ✅ Стратегия загрузки `onig.wasm` и `.tmLanguage.json` в production-сборке: всё пакуется в `dist/vexx.bundle` (custom mini-archive) и читается через `IAssetAccess` из `node:sea` ассетов. В dev-режиме — напрямую из `src/Extensions/builtin/` и `node_modules/vscode-oniguruma`. См. `Common/Assets/` в [docs/ARCHITECTURE.md](../ARCHITECTURE.md).
-- Бинарный API `tokenizeLine2` (быстрее, но требует переделки рендера на работу с metadata) — пока не используется.
-
-### [ ] Полный TextMate-движок (заархивированный план)
-
-**План реализации:**
-1. **Зависимости.** `vscode-textmate` + WASM-движок regex (`vscode-oniguruma` или `onigasm`). Оба — npm-пакеты, MIT, без нативных биндингов. Проверить размер бандла WASM (~300 КБ); для CLI/SEA — норм.
-2. **Адаптер.** `src/Editor/Tokenization/textmate/TextMateTokenizationSupport.ts` реализует наш `ITokenizationSupport` поверх `vscode-textmate` `IGrammar.tokenizeLine()` (binary `tokenizeLine2()` быстрее, но придётся декодировать metadata; для старта — обычный API со scope-стеками).
-3. **State.** У `vscode-textmate` есть `StateStack` (immutable). Наш `IState` требует `clone()`/`equals()` — обернуть `StateStack` в адаптер. `equals` есть из коробки, `clone` бесплатный (immutable).
-4. **Загрузчик грамматик.** `Registry({ loadGrammar(scopeName) → tmLanguage.json })`. Для встроенных языков — bundled `.tmLanguage.json` (взять из VS Code-репо). Маппинг `languageId → scopeName`.
-5. **Где регистрировать.** В `main.ts` рядом с текущим `WordTokenizer`, через async `registry.loadGrammar()` → `TokenizationRegistry.register(languageId, support)`. Регистрация вызовет `onDidChange` — см. ниже про hot-swap.
-6. **Тесты.** Снапшот-тесты на короткие фрагменты JS/TS/JSON: input → массив `{startIndex, scopes}`. Стили не сравнивать (это уже в `TokenThemeResolver`).
-
-**Граничные случаи:**
-- Очень длинные строки: у `vscode-textmate` есть таймаут / лимит. Прокинуть лимит в `tokenizeLine` и при превышении возвращать один токен `["text"]` для строки.
-- `endState` после splice: `DocumentTokenStore` уже хранит endStates по соседям и вызывает `equals` для convergence — TextMate stack тут просто другой объект, особых хуков не нужно.
+Открытый вопрос: бинарный API `tokenizeLine2` (быстрее, но требует переделки рендера на работу с metadata) — пока не используется.
 
 ### [ ] Полный TextMate scope selector matcher
 Сейчас `TokenThemeResolver` поддерживает только longest-prefix scope match по dot-сегментам. Добавить:

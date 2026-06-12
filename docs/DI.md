@@ -157,6 +157,11 @@ const container = new Container()
 | `tokenizationModule` | `{ tokenizationRegistry, tokenStyleResolver, languageService }` | Соответствующие токены. Реализации передаются снаружи. |
 | `backendModule` | `{ clipboard }` | `Clipboard` |
 | `backendModuleDefault` | — | `Clipboard` с `InMemoryClipboard` по умолчанию |
+| `configurationModule` | `{ configurationService }` | `IConfigurationService` (готовый экземпляр из `loadConfiguration(paths)`) |
+| `configurationModuleDefault` | — | `IConfigurationService` с `NULL_CONFIGURATION_SERVICE` (тесты и demo) |
+| `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
+| `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
+| `extensionHostModule` | — | `ExtensionHost` (+ `EditorOptionsServiceAdapter` поверх `EditorGroupController`) |
 | `controllersModule` | — | `EditorGroupController`, `StatusBarController`, `AppController` |
 
 ### Профили

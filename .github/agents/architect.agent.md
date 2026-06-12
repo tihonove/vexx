@@ -15,11 +15,9 @@ Before every conversation, read these files to understand the current state:
 
 The project is a terminal-based text editor (VS Code clone) built from scratch in TypeScript/Node.js with zero heavy frameworks.
 
-## Layer Stack (top → bottom)
+## Layer Stack
 
-```
-App → Controllers → Editor → TUIDom → { Input, Rendering, Backend } → Common
-```
+The current layer stack and dependency rules live ONLY in `docs/ARCHITECTURE.md` («Правила зависимостей») — do not rely on copies. Dependencies point top → bottom; violations are an architectural smell.
 
 ## What You Do
 

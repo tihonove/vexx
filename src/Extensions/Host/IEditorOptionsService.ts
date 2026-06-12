@@ -13,6 +13,8 @@ export interface IEditorOptionsPatch {
     readonly insertSpaces?: boolean;
 }
 
+import type { IDisposable } from "../../Common/Disposable.ts";
+
 /**
  * Тонкий «port» поверх {@link EditorGroupController}, нужный
  * {@link ExtensionHost} для применения изменений `TextEditor.options`
@@ -22,4 +24,6 @@ export interface IEditorOptionsPatch {
 export interface IEditorOptionsService {
     getActiveEditorOptions(): IEditorOptionsState | null;
     setActiveEditorOptions(patch: IEditorOptionsPatch): void;
+    getActiveEditorFilePath(): string | null;
+    onActiveEditorChanged(cb: (filePath: string | null) => void): IDisposable;
 }

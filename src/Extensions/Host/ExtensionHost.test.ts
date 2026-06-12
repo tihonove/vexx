@@ -22,6 +22,12 @@ class FakeOptionsService implements IEditorOptionsService {
         this.patches.push(patch);
         this.state = { ...(this.state ?? { tabSize: 4, insertSpaces: true }), ...patch };
     }
+    public getActiveEditorFilePath(): string | null {
+        return null;
+    }
+    public onActiveEditorChanged(_cb: (filePath: string | null) => void): { dispose(): void } {
+        return { dispose: () => {} };
+    }
 }
 
 function makeReg(id: string, mainFile: string): IExtensionRegistration {

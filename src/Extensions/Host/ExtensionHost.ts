@@ -183,6 +183,9 @@ export class ExtensionHost extends Disposable {
 
         this.readyPromise = waitForReady(rpc, child, this.options.readyTimeoutMs).then(() => {
             this.logger?.info("extension host ready");
+            // Send initial active editor state so that window.activeTextEditor
+            // is correct before the first host.activateExtension call.
+            rpc.notify("editor.activeEditorChanged", { fileName: this.editorOptions.getActiveEditorFilePath() });
         });
         await this.readyPromise;
         return rpc;
@@ -197,6 +200,11 @@ export class ExtensionHost extends Disposable {
         rpc.handleRequest("editor.getOptions", (): unknown => {
             return this.editorOptions.getActiveEditorOptions();
         });
+        this.register(
+            this.editorOptions.onActiveEditorChanged((filePath) => {
+                rpc.notify("editor.activeEditorChanged", { fileName: filePath });
+            }),
+        );
     }
 
     private async shutdownSubprocess(): Promise<void> {

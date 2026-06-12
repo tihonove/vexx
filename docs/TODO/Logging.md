@@ -7,22 +7,10 @@
 
 ## План по фазам
 
-- [x] **Phase 1 — Infrastructure**
-  `LogLevel`, `ILogger`, `ILogService`, `LogService`, `NullLogService`, `RingBufferSink`, `FileSink` + полное тестовое покрытие.
-
-- [x] **Phase 2 — DI + Bootstrap**
-  Токен `ILogServiceDIToken`, модули `loggingModule` / `loggingModuleDefault`. В `main.ts`:
-  поднять `LogService`, всегда добавить `RingBufferSink`, добавить `FileSink(./vexx.log, truncate)` только при `!isSeaBinary()`,
-  пробросить `logService` в Production-профиль; Test-профиль использует `NULL_LOG_SERVICE`.
-
-- [x] **Phase 3 — console.* migration (runtime)**
-  Заменить `console.warn/error` в `mergeExtensions`, `ConfigurationService`, `ExtensionScanner`, `ExtensionTokenizationContributor`, активация расширений в `main.ts` на каналы
-  `extensions` / `configuration`. CLI-ветка до bootstrap (parse args / usage) намеренно оставлена на `console`.
-
-- [x] **Phase 3.5 — Extension host RPC tracing**
-  `RpcEndpoint` принимает опциональный `ILogger` и трейсит каждое отправленное/полученное сообщение (`-> req#N`, `<- res#N`, `-> notif`, `<- notif`).
-  `ExtensionHost` берёт из DI каналы `extensions.host` (lifecycle), `extensions.host.rpc`, `extensions.host.stdout`, `extensions.host.stderr`.
-  При наличии stdout/stderr-логгеров stdio subprocess'а переключается с `"inherit"` на `"pipe"` и форвардится в каналы построчно — `console.log` внутри расширения больше не ломает альтернативный экран.
+- [x] **Phase 1 — Infrastructure** — `ILogService`/`ILogger`/sinks готовы. Детали: [ARCHITECTURE.md](../ARCHITECTURE.md) → Common/Logging.
+- [x] **Phase 2 — DI + Bootstrap** — `loggingModule(Default)`, интеграция в `main.ts` и профили. Детали: там же.
+- [x] **Phase 3 — console.* migration (runtime)** — runtime переведён на каналы `extensions`/`configuration`; CLI-ветка до bootstrap намеренно оставлена на `console`.
+- [x] **Phase 3.5 — Extension host RPC tracing** — `RpcEndpoint` трейсит сообщения, каналы `extensions.host.*`, stdio subprocess'а пайпится в логи (console.log в расширении не ломает альтернативный экран).
 
 - [ ] **Phase 4 — Output UI**
   TUI-виджет (вкладка/панель) поверх `RingBufferSink`: список каналов, live-tail через `onDidAppend`, фильтры по уровню/каналу,

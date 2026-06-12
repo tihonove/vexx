@@ -1,7 +1,7 @@
 // Vexx demo extension: реализует минимальную поддержку .editorconfig.
-// Ищет ближайший .editorconfig вверх от process.cwd(), парсит секцию [*]
-// и применяет indent_style / indent_size / tab_width к активному редактору
-// через vscode.window.activeTextEditor.options.
+// Ищет ближайший .editorconfig вверх по дереву от директории открытого файла
+// (editor.document.fileName) и применяет indent_style / indent_size / tab_width
+// через vscode.window.onDidChangeActiveTextEditor.
 //
 // CJS-формат (.cjs) используется намеренно: SEA-бинарник Vexx загружает
 // пользовательские расширения через createRequire(), который работает только
@@ -44,22 +44,27 @@ function parseEditorConfig(text) {
     return result;
 }
 
-function activate(context) {
-    const editorConfigPath = findEditorConfig(process.cwd());
+function applyEditorConfig(editor, out) {
+    if (editor === undefined) return;
+
+    const fileName = editor.document.fileName;
+    const startDir = path.dirname(fileName);
+    const editorConfigPath = findEditorConfig(startDir);
     if (editorConfigPath === null) {
-        console.error("[vexx-demo.editorconfig] .editorconfig not found from", process.cwd());
+        out.appendLine("[vexx-demo.editorconfig] .editorconfig not found from " + startDir);
         return;
     }
+
     let cfg;
     try {
         cfg = parseEditorConfig(fs.readFileSync(editorConfigPath, "utf-8"));
     } catch (err) {
-        console.error("[vexx-demo.editorconfig] failed to read", editorConfigPath, err);
+        out.appendLine("[vexx-demo.editorconfig] failed to read " + editorConfigPath + ": " + err);
         return;
     }
 
     const patch = {};
-    const size = cfg.indent_size ?? cfg.tab_width;
+    const size = cfg.indent_size !== undefined ? cfg.indent_size : cfg.tab_width;
     if (size !== undefined) {
         const n = Number.parseInt(size, 10);
         if (Number.isFinite(n) && n > 0) patch.tabSize = n;
@@ -68,18 +73,26 @@ function activate(context) {
     else if (cfg.indent_style === "tab") patch.insertSpaces = false;
 
     if (Object.keys(patch).length === 0) {
-        console.error("[vexx-demo.editorconfig] no applicable keys in", editorConfigPath);
-        return;
-    }
-
-    const editor = vscode.window.activeTextEditor;
-    if (editor === undefined) {
-        console.error("[vexx-demo.editorconfig] no active editor");
+        out.appendLine("[vexx-demo.editorconfig] no applicable keys in " + editorConfigPath);
         return;
     }
 
     editor.options = patch;
-    console.error("[vexx-demo.editorconfig] applied", patch, "from", editorConfigPath);
+    out.appendLine("[vexx-demo.editorconfig] applied " + JSON.stringify(patch) + " from " + editorConfigPath + " for " + fileName);
+}
+
+function activate(context) {
+    const out = vscode.window.createOutputChannel("EditorConfig");
+    context.subscriptions.push(out);
+
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(function (editor) {
+            applyEditorConfig(editor, out);
+        }),
+    );
+
+    // Применяем к уже открытому редактору (если есть)
+    applyEditorConfig(vscode.window.activeTextEditor, out);
 }
 
 function deactivate() {

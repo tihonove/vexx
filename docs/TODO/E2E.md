@@ -1,28 +1,14 @@
 # E2E и Inspector-протокол
 
-## Phase 1 — E2E против собранного SEA-бинаря
+## Phase 1 — [x] E2E против собранного SEA-бинаря
 
-**Сделано:**
-- `vitest.e2e.config.ts` — отдельный конфиг (testTimeout 60s, hookTimeout 180s, без coverage, `fileParallelism: false`).
-- `npm run test:e2e` — запуск e2e отдельно от `npm test`.
-- `e2e/helpers/buildOnce.ts` — лениво и единожды собирает SEA-бинарь (`npm run build:sea`).
-- `e2e/helpers/runVexx.ts` — `VexxSession` поверх `node-pty` (`waitFor`, `dispose` с Ctrl+C → SIGTERM → SIGKILL).
-- `e2e/helpers/AnsiScreen.ts` — минимальный ANSI-парсер ровно под то, что эмитит `TerminalRenderer` + `NodeTerminalBackend.renderFrame` (CUP, SGR truecolor, DEC private modes, 2J).
-- `e2e/fixtures/sample.ts` — короткий TS-файл с комментарием, `const`, числом и строкой.
-- `e2e/sea-startup.test.ts` — три кейса: boot+чистый выход, текст файла, цвета токенов из Dark+ (KEYWORD_FG, COMMENT_FG, NUMBER_FG).
-- `node-pty` добавлен в `devDependencies`.
+- [x] Сделано: `vitest.e2e.config.ts` + `npm run test:e2e`; helpers (`buildOnce`, `VexxSession` поверх `node-pty`, `AnsiScreen`-парсер); сьюты `sea-startup` / `sea-assets` / `sea-extensions` — см. `e2e/`. Покрыт и Phase 8 self-spawn: грамматика user-расширения, негативный кейс без `--user-data-dir`, subprocess через `exports.activate()` с проставлением `tabSize` по RPC.
 
 **Открыто (Phase 1.x):**
 - [ ] CI: документировать build-essential / python3 для нативной сборки `node-pty`. Возможна замена на `@homebridge/node-pty-prebuilt-multiarch` при проблемах.
 - [ ] Расширить кейсы: открытие директории как workspace + проверка, что fixture виден в файловом дереве.
 - [ ] Снять зависимость от точной фразы из комментария (`fixture used`) — заменить на стабильный маркер в фикстуре.
 - [ ] **e2e-cross-platform**: `renders fixture text on screen` и `applies syntax highlighting` пропускаются на Windows и macOS. На Windows ConPTY инжектирует `CSI K` / clearing sequences после resize, стирая строки которые рендерер уже вывел; `stdout.on("resize")` внутри ConPTY-процесса ненадёжен → delta-рендерер не знает что нужен полный redraw. Нужно либо добавить в `NodeTerminalBackend` принудительный механизм полного сброса при потере синхронизации (watchdog по неизменному грид-хешу?), либо перейти на Inspector-протокол (Phase 2) для e2e вместо PTY-парсинга.
-
-**Покрытие расширений (Phase 8 self-spawn):**
-- ✅ `boots with --user-data-dir and renders hello-lang fixture` — декларативное расширение (грамматика).
-- ✅ `user extension grammar applies syntax highlighting with --user-data-dir` — token colors через grammar.
-- ✅ `without --user-data-dir hello-lang grammar is not applied` — негативный кейс.
-- ✅ `user extension с main self-spawn'ит subprocess и проставляет tabSize` — SEA-бинарь форкает себя через `process.env.VEXX_EXTENSION_HOST=1`, subprocess исполняет `exports.activate()` user-расширения (`e2e/fixtures/user-data-with-tab-setter/extensions/tab-setter/extension.js`), которое через `vscode.window.activeTextEditor.options = { tabSize: 7, ... }` шлёт RPC обратно. Тест проверяет, что tab в открытом файле визуально расширяется до 7 столбцов.
 
 ## Phase 2 — Inspector-протокол (draft)
 

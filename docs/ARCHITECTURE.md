@@ -5,12 +5,16 @@
 Проект организован в виде стека слоёв. Каждый слой зависит только от нижележащих.
 
 1. **App** (main.ts) — точка входа, bootstrap (CLI → user data paths → configuration → asset access → extensions → DI)
-2. **Controllers** — контроллеры с lifecycle (constructor → mount → activate → dispose), оркестрация UI и бизнес-логики
-3. **Configuration** — настройки пользователя (JSONC, профили, слои default/user/profile)
-4. **Editor** — модель текстового редактора + мост к TUIDom
-5. **TUIDom** — TUI-фреймворк (аналог браузерного DOM): дерево элементов, события, виджеты
-6. **Input**, **Rendering**, **Backend** — платформенный слой: парсинг ввода, отрисовка, терминальный I/O
-7. **Common** — общие примитивы и утилиты
+2. **Extensions** — VS Code-совместимые расширения: манифесты, грамматики, extension host (subprocess + RPC)
+3. **Controllers** — контроллеры с lifecycle (constructor → mount → activate → dispose), оркестрация UI и бизнес-логики
+4. **Configuration** — настройки пользователя (JSONC, профили, слои default/user/profile)
+5. **Theme** — темизация (VS Code-совместимые theme files); на одном уровне с Controllers, подключается к Editor через интерфейсы
+6. **Editor** — модель текстового редактора + мост к TUIDom
+7. **TUIDom** — TUI-фреймворк (аналог браузерного DOM): дерево элементов, события, виджеты
+8. **Input**, **Rendering**, **Backend** — платформенный слой: парсинг ввода, отрисовка, терминальный I/O
+9. **Common** — общие примитивы и утилиты
+
+Точная схема зависимостей (включая исключения) — в разделе [Правила зависимостей](#правила-зависимостей).
 
 ## Каталоги src/
 
@@ -183,9 +187,7 @@ item.onActivate = () => this.openMenu(index);
 - **`main.ts`** содержит ранний branch на env-флаг (до CLI/TUI/loadConfiguration): subprocess уходит в `runExtensionHostSubprocess()` и живёт на IPC-канале до `host.shutdown` или `disconnect`; обычный запуск идёт в `runEditor()`.
 - **`Extensions/Api/vscode.d.ts`** — копия `vscode.d.ts` из microsoft/vscode, всё line-commented кроме минимальной активной поверхности. `tsconfig paths` маршрутизирует `import type * as vscode from "vscode"` сюда.
 
-Зависимости: `Extensions/Host` → `Controllers` (через `EditorGroupController` в адаптере) → `Editor` → … . Сам `EditorController` экспонирует только seam `setIndentOptions({ tabSize?, insertSpaces? })`; auto-detect indent выключается при явной установке.
-
-Зависимости: Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Controllers (только `Extensions/Host` — через `EditorGroupController`), Common.
+Зависимости: Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Common; подмодуль `Extensions/Host` дополнительно → Controllers (через `EditorGroupController`-адаптер). Сам `EditorController` экспонирует только seam `setIndentOptions({ tabSize?, insertSpaces? })`; auto-detect indent выключается при явной установке.
 
 ### Configuration/
 Сервис пользовательских настроек, аналог `IConfigurationService` из VS Code (урезанный). Источники: хардкод-дефолты приложения, `~/.vexx/user-data/User/settings.json` (default-профиль) и `~/.vexx/user-data/User/profiles/<name>/settings.json` (именованный профиль). Формат — JSONC (`jsonc-parser` от Microsoft), битый файл логируется и заменяется на пустую модель — bootstrap не падает.

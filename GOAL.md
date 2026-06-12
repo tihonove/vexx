@@ -1,5 +1,3 @@
-Вот проект файла, который зафиксирует наши договоренности и заставит нейронку следовать выбранному курсу:
-
 Project Goal: High-Performance TUI Engine (VS Code Clone)
 🎯 Objective
 Build a terminal-based text editor from scratch using Node.js & TypeScript. The ultimate goal is to create a console-based VS Code clone capable of running original VS Code extensions via an RPC-based Extension Host.
@@ -33,7 +31,7 @@ Monolithic Awareness: Every element is "visibility-aware". If its box is outside
 4. Text Handling
 Editor Core: The text editor is a specialized UIElement that manages its own internal rendering (not using child UIElements for lines) for performance.
 
-Storage: Data must be stored using a Piece Table (or similar) to support massive files and O(1) undo/redo.
+Storage: Data must be stored using a Piece Table (or similar) to support massive files and O(1) undo/redo. (Текущее состояние — `string[]` в `src/Editor/TextDocument.ts`; план перехода: `docs/TODO/PieceTree.md`.)
 
 UITextElement: A dedicated element for UI labels with Word Wrap support, where height is calculated based on maxWidth constraints.
 

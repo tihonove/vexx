@@ -69,6 +69,10 @@ export class EditorController extends Disposable implements IController {
         return this.filePath ? path.basename(this.filePath) : null;
     }
 
+    public get absoluteFilePath(): string | null {
+        return this.filePath;
+    }
+
     public constructor(
         themeService: ThemeService,
         tokenizationRegistry: TokenizationRegistry,

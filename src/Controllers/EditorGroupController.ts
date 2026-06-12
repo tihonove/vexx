@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
 import { token } from "../Common/DiContainer.ts";
-import { Disposable } from "../Common/Disposable.ts";
+import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
@@ -39,9 +39,20 @@ export class EditorGroupController extends Disposable implements IController {
     private tokenStyleResolver: ITokenStyleResolver;
     private languageService: ILanguageService;
     private configurationService: IConfigurationService;
+    private activeEditorListeners: ((editor: EditorController | null) => void)[] = [];
 
     public onRequestConfirmClose?: (index: number) => void;
     public onEditorCreate?: (controller: EditorController) => void;
+
+    public onActiveEditorChanged(cb: (editor: EditorController | null) => void): IDisposable {
+        this.activeEditorListeners.push(cb);
+        return {
+            dispose: () => {
+                const idx = this.activeEditorListeners.indexOf(cb);
+                if (idx >= 0) this.activeEditorListeners.splice(idx, 1);
+            },
+        };
+    }
 
     public constructor(
         themeService: ThemeService,
@@ -120,6 +131,7 @@ export class EditorGroupController extends Disposable implements IController {
         this.view.setContent(editor.view);
         this.syncTabs();
         if (focus) this.focusEditor();
+        this.fireActiveEditorChanged(editor);
     }
 
     public closeTab(index: number): void {
@@ -132,11 +144,13 @@ export class EditorGroupController extends Disposable implements IController {
         if (this.editors.length === 0) {
             this.activeIndexValue = -1;
             this.view.setContent(null);
+            this.fireActiveEditorChanged(null);
         } else if (index <= this.activeIndexValue) {
             this.activeIndexValue = Math.max(0, this.activeIndexValue - 1);
             const activeEditor = this.editors[this.activeIndexValue];
             this.view.setContent(activeEditor.view);
             this.focusEditor();
+            this.fireActiveEditorChanged(activeEditor);
         }
 
         this.syncTabs();
@@ -212,5 +226,11 @@ export class EditorGroupController extends Disposable implements IController {
 
         this.view.tabStrip.setTabs(tabs);
         this.view.tabStrip.activeIndex = this.activeIndexValue;
+    }
+
+    private fireActiveEditorChanged(editor: EditorController | null): void {
+        for (const cb of this.activeEditorListeners) {
+            cb(editor);
+        }
     }
 }

@@ -47,12 +47,35 @@ declare module "vscode" {
     }
 
     /**
-     * Минимальный `TextEditor` — только мутабельные `options`. Прочие свойства
-     * (`document`, `selection`, `selections`, `visibleRanges`, `viewColumn`, ...)
+     * Минимальный `TextDocument` — только `fileName`. Прочие свойства
+     * (`uri`, `languageId`, `version`, `getText()`, ...) добавим позже.
+     */
+    export interface TextDocument {
+        readonly fileName: string;
+    }
+
+    /**
+     * Минимальный `TextEditor` — мутабельные `options` и `document`.
+     * Прочие свойства (`selection`, `selections`, `visibleRanges`, `viewColumn`, ...)
      * добавим позже.
      */
     export interface TextEditor {
+        readonly document: TextDocument;
         options: TextEditorOptions;
+    }
+
+    /**
+     * Минимальный `OutputChannel` — заглушка для Phase 1.
+     */
+    export interface OutputChannel {
+        readonly name: string;
+        append(value: string): void;
+        appendLine(value: string): void;
+        replace(value: string): void;
+        clear(): void;
+        show(preserveFocus?: boolean): void;
+        hide(): void;
+        dispose(): void;
     }
 
     /**
@@ -60,11 +83,23 @@ declare module "vscode" {
      */
     export namespace window {
         /**
-         * Активный текстовый редактор (если есть). Назначение поля
+         * Активный текстовый редактор (если есть). Возвращает `undefined`,
+         * когда ни один файл не открыт. Назначение поля
          * `activeTextEditor.options = {...}` применяется хостом к view-state'у
          * активного `EditorController`.
          */
         export const activeTextEditor: TextEditor | undefined;
+
+        /**
+         * Событие смены активного редактора. Fires whenever the active text
+         * editor changes, including when it becomes undefined.
+         */
+        export const onDidChangeActiveTextEditor: Event<TextEditor | undefined>;
+
+        /**
+         * Создаёт output channel. В Phase 1 — заглушка (вывод игнорируется).
+         */
+        export function createOutputChannel(name: string): OutputChannel;
     }
 
     /**
