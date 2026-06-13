@@ -1,0 +1,49 @@
+name: Nightly
+
+# Ночная сборка по принципу "плавающего тега" (как в yazi):
+# тег `nightly` всегда указывает на свежий коммит, поэтому URL на
+# скачивание артефактов остаётся неизменным.
+on:
+  schedule:
+    # Каждую ночь в 03:00 UTC.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  # Та же переиспользуемая сборка, что и у стабильного релиза.
+  build:
+    uses: ./.github/workflows/build.yml
+
+  nightly:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Publish nightly release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          short_sha="$(git rev-parse --short HEAD)"
+
+          # Удаляем предыдущий nightly-релиз вместе с его тегом.
+          # `|| true` — на случай самого первого запуска, когда релиза ещё нет.
+          gh release delete nightly --cleanup-tag --yes || true
+
+          # Создаём новый prerelease с тем же плавающим тегом `nightly`,
+          # нацеленным на текущий коммит. Тег создаётся заново на этом коммите.
+          gh release create nightly \
+            --prerelease \
+            --target "$GITHUB_SHA" \
+            --title "Nightly ($short_sha)" \
+            --notes "Ночная сборка из коммита $short_sha ($(date -u +'%Y-%m-%d %H:%M') UTC)." \
+            artifacts/*

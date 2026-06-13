@@ -1,0 +1,45 @@
+name: Bump Version
+
+# Поднимает версию в package.json, коммитит и пушит тег vX.Y.Z.
+# Пуш тега, в свою очередь, триггерит release.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: "Version bump type"
+        required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        # with:
+        #   # Нужен PAT (не дефолтный GITHUB_TOKEN), иначе пуш тега
+        #   # не запустит release.yml (защита от рекурсии воркфлоу).
+        #   token: ${{ secrets.PAT }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Configure Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump version
+        run: |
+          npm version ${{ github.event.inputs.bump_type }} -m "chore(release): %s"
+
+      - name: Push commit and tag
+        run: git push origin HEAD --follow-tags

@@ -1,6 +1,10 @@
 name: Build SEA
 
+# Переиспользуемая сборка бинарников (SEA) под все платформы.
+# Вызывается из release.yml и nightly.yml через `workflow_call`,
+# а также может быть запущена вручную через `workflow_dispatch`.
 on:
+  workflow_call:
   workflow_dispatch:
 
 jobs:
@@ -9,13 +13,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact: vexx-linux-x64
+            asset: vexx-linux-x64
             binary: dist/vexx
           - os: macos-latest
-            artifact: vexx-macos-arm64
+            asset: vexx-macos-arm64
             binary: dist/vexx
           - os: windows-latest
-            artifact: vexx-windows-x64
+            asset: vexx-windows-x64.exe
             binary: dist/vexx.exe
 
     runs-on: ${{ matrix.os }}
@@ -31,7 +35,15 @@ jobs:
 
       - run: npm run build:sea
 
+      # Переименовываем в платформо-зависимое имя ассета, чтобы:
+      #  - файлы не конфликтовали при заливке в один релиз;
+      #  - URL на скачивание был стабильным (важно для nightly).
+      - name: Rename binary
+        shell: bash
+        run: mv "${{ matrix.binary }}" "${{ matrix.asset }}"
+
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.binary }}
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}
+          if-no-files-found: error

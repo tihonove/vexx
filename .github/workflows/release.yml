@@ -1,0 +1,44 @@
+name: Release
+
+# Стабильный (версионный) релиз: триггерится пушем тега вида v1.2.3.
+# Тег обычно создаётся через bump-version.yml.
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  # Собираем бинарники переиспользуемым воркфлоу.
+  build:
+    uses: ./.github/workflows/build.yml
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # git-cliff нужна полная история, чтобы построить changelog.
+          fetch-depth: 0
+
+      - name: Generate Changelog
+        id: cliff
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --latest --strip all
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Vexx ${{ github.ref_name }}
+          body: ${{ steps.cliff.outputs.content }}
+          files: artifacts/*
