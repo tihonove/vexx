@@ -19,7 +19,6 @@
     "story": "tsx src/StoryRunner/run.ts",
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",
-    "deploy:dotfiles": "node scripts/deploy-to-dotfiles.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
