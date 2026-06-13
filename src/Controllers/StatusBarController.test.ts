@@ -62,6 +62,31 @@ describe("StatusBarController", () => {
         expect(items).toContainEqual({ text: "[Modified]" });
     });
 
+    it("shows the chord hint and clears it with null", () => {
+        const { statusBarController } = createStatusBarController();
+        statusBarController.mount();
+
+        statusBarController.setChordHint("(Ctrl+K) was pressed. Waiting for next key…");
+        expect(statusBarController.view.getItems()).toContainEqual({
+            text: "(Ctrl+K) was pressed. Waiting for next key…",
+        });
+
+        statusBarController.setChordHint(null);
+        expect(statusBarController.view.getItems()).toEqual([]);
+    });
+
+    it("keeps the chord hint alongside the file name", () => {
+        const { statusBarController, editorGroupController } = createStatusBarController();
+        statusBarController.mount();
+        editorGroupController.openFile("/tmp/test-statusbar-chord.txt");
+
+        statusBarController.setChordHint("(Ctrl+K) waiting…");
+
+        const items = statusBarController.view.getItems();
+        expect(items).toContainEqual({ text: "(Ctrl+K) waiting…" });
+        expect(items).toContainEqual({ text: "test-statusbar-chord.txt" });
+    });
+
     it("clears [Modified] after save", () => {
         const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();

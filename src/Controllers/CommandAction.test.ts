@@ -5,7 +5,14 @@ import { Container, token } from "../Common/DiContainer.ts";
 import type { CommandAction } from "./CommandAction.ts";
 import { registerAction } from "./CommandAction.ts";
 import { CommandRegistry } from "./CommandRegistry.ts";
-import { KeybindingRegistry, parseKeybinding } from "./KeybindingRegistry.ts";
+import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
+import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+
+// Maps the structured resolveKey result to a command id (or undefined).
+function resolve(keybindings: KeybindingRegistry, event: KeyboardEventLike): string | undefined {
+    const res = keybindings.resolveKey(event);
+    return res.kind === "command" ? res.commandId : undefined;
+}
 
 describe("registerAction", () => {
     it("registers command handler in CommandRegistry", () => {
@@ -70,7 +77,7 @@ describe("registerAction", () => {
 
         registerAction(commands, keybindings, accessor, action);
 
-        const resolved = keybindings.resolve({
+        const resolved = resolve(keybindings, {
             key: "s",
             ctrlKey: true,
             shiftKey: false,
@@ -93,7 +100,7 @@ describe("registerAction", () => {
 
         registerAction(commands, keybindings, accessor, action);
 
-        const resolvedCtrlS = keybindings.resolve({
+        const resolvedCtrlS = resolve(keybindings, {
             key: "s",
             ctrlKey: true,
             shiftKey: false,
@@ -102,7 +109,7 @@ describe("registerAction", () => {
         });
         expect(resolvedCtrlS).toBe("test.action");
 
-        const resolvedCtrlPageDown = keybindings.resolve({
+        const resolvedCtrlPageDown = resolve(keybindings, {
             key: "PageDown",
             ctrlKey: true,
             shiftKey: false,
@@ -110,6 +117,38 @@ describe("registerAction", () => {
             metaKey: false,
         });
         expect(resolvedCtrlPageDown).toBe("test.action");
+    });
+
+    it("registers a chord binding that resolves across two key presses", () => {
+        const commands = new CommandRegistry();
+        const keybindings = new KeybindingRegistry();
+        const accessor = new Container();
+        const action: CommandAction = {
+            id: "test.action",
+            title: "Test Action",
+            keybindings: [parseChord("ctrl+k s")],
+            run: vi.fn(),
+        };
+
+        registerAction(commands, keybindings, accessor, action);
+
+        const first = keybindings.resolveKey({
+            key: "k",
+            ctrlKey: true,
+            shiftKey: false,
+            altKey: false,
+            metaKey: false,
+        });
+        expect(first.kind).toBe("chord");
+
+        const second = keybindings.resolveKey({
+            key: "s",
+            ctrlKey: false,
+            shiftKey: false,
+            altKey: false,
+            metaKey: false,
+        });
+        expect(second).toEqual({ kind: "command", commandId: "test.action" });
     });
 
     it("does not register keybinding when not specified", () => {
@@ -124,7 +163,7 @@ describe("registerAction", () => {
 
         registerAction(commands, keybindings, accessor, action);
 
-        const resolved = keybindings.resolve({
+        const resolved = resolve(keybindings, {
             key: "s",
             ctrlKey: true,
             shiftKey: false,
@@ -149,7 +188,7 @@ describe("registerAction", () => {
         disposable.dispose();
 
         expect(commands.has("test.action")).toBe(false);
-        const resolved = keybindings.resolve({
+        const resolved = resolve(keybindings, {
             key: "s",
             ctrlKey: true,
             shiftKey: false,

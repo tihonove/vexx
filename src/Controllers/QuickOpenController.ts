@@ -8,7 +8,10 @@ import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
 import type { CommandRegistry } from "./CommandRegistry.ts";
+import type { ContextKeyService } from "./ContextKeyService.ts";
 import type { FileSearchResult, FileSearchService } from "./FileSearchService.ts";
+import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
+import { formatKeybinding } from "./KeybindingRegistry.ts";
 
 type OpenMode = "files" | "commands";
 
@@ -23,16 +26,25 @@ export class QuickOpenController extends Disposable {
 
     private readonly fileSearch: FileSearchService;
     private readonly commands: CommandRegistry;
+    private readonly keybindings: KeybindingRegistry;
+    private readonly contextKeys: ContextKeyService;
     private hostBody: BodyElement | null = null;
     private quickOpenSession: OverlaySessionHandle | null = null;
     private currentMode: OpenMode = "files";
 
     public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
 
-    public constructor(fileSearch: FileSearchService, commands: CommandRegistry) {
+    public constructor(
+        fileSearch: FileSearchService,
+        commands: CommandRegistry,
+        keybindings: KeybindingRegistry,
+        contextKeys: ContextKeyService,
+    ) {
         super();
         this.fileSearch = fileSearch;
         this.commands = commands;
+        this.keybindings = keybindings;
+        this.contextKeys = contextKeys;
         this.view = new QuickPickElement();
         this.view.maxVisibleItems = 10;
 
@@ -166,12 +178,14 @@ export class QuickOpenController extends Disposable {
 
         const matched = filterLower === "" ? all : all.filter((cmd) => cmd.title.toLowerCase().includes(filterLower));
 
-        return matched.map(
-            (cmd): QuickPickItemWithMeta => ({
+        return matched.map((cmd): QuickPickItemWithMeta => {
+            const chord = this.keybindings.getKeybindingForCommand(cmd.id, this.contextKeys);
+            return {
                 label: cmd.title,
                 commandId: cmd.id,
-            }),
-        );
+                shortcut: chord ? formatKeybinding(chord) : undefined,
+            };
+        });
     }
 
     private updatePosition(): void {

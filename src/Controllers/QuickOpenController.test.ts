@@ -7,7 +7,9 @@ import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 
 import { CommandRegistry } from "./CommandRegistry.ts";
+import { ContextKeyService } from "./ContextKeyService.ts";
 import type { FileSearchEntry, FileSearchResult, FileSearchService } from "./FileSearchService.ts";
+import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -34,19 +36,23 @@ function makeFileSearchStub(results: FileSearchResult[] = []): FileSearchService
 function createController(fileResults: FileSearchResult[] = []): {
     controller: QuickOpenController;
     commands: CommandRegistry;
+    keybindings: KeybindingRegistry;
+    contextKeys: ContextKeyService;
     body: BodyElement;
     testApp: TestApp;
     fileSearch: FileSearchService;
 } {
     const commands = new CommandRegistry();
+    const keybindings = new KeybindingRegistry();
+    const contextKeys = new ContextKeyService();
     const fileSearch = makeFileSearchStub(fileResults);
-    const controller = new QuickOpenController(fileSearch, commands);
+    const controller = new QuickOpenController(fileSearch, commands, keybindings, contextKeys);
 
     const body = new BodyElement();
     const testApp = TestApp.create(body, new Size(80, 24));
     controller.setHostView(body);
 
-    return { controller, commands, body, testApp, fileSearch };
+    return { controller, commands, keybindings, contextKeys, body, testApp, fileSearch };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -223,6 +229,53 @@ describe("QuickOpenController — commands mode", () => {
         expect(labels).not.toContain("cmd.hidden");
     });
 
+    it("shows the keybinding shortcut for a command", () => {
+        const { controller, commands, keybindings } = createController();
+        commands.register("cmd.save", () => {}, "File: Save");
+        keybindings.register(parseKeybinding("ctrl+s"), "cmd.save");
+        controller.open("commands");
+        const item = controller.view.items.find((i) => i.label === "File: Save");
+        expect(item?.shortcut).toBe("Ctrl+S");
+    });
+
+    it("renders chord bindings as a space-separated sequence", () => {
+        const { controller, commands, keybindings } = createController();
+        commands.register("cmd.save", () => {}, "File: Save");
+        keybindings.register(parseChord("ctrl+k s"), "cmd.save");
+        controller.open("commands");
+        const item = controller.view.items.find((i) => i.label === "File: Save");
+        expect(item?.shortcut).toBe("Ctrl+K S");
+    });
+
+    it("shows no shortcut when the command has no binding", () => {
+        const { controller, commands } = createController();
+        commands.register("cmd.x", () => {}, "Do X");
+        controller.open("commands");
+        const item = controller.view.items.find((i) => i.label === "Do X");
+        expect(item?.shortcut).toBeUndefined();
+    });
+
+    it("with multiple bindings shows the first registered", () => {
+        const { controller, commands, keybindings } = createController();
+        commands.register("cmd.save", () => {}, "File: Save");
+        keybindings.register(parseKeybinding("ctrl+s"), "cmd.save");
+        keybindings.register(parseChord("ctrl+k s"), "cmd.save");
+        controller.open("commands");
+        const item = controller.view.items.find((i) => i.label === "File: Save");
+        expect(item?.shortcut).toBe("Ctrl+S");
+    });
+
+    it("with when-conditioned bindings shows the one matching the current context", () => {
+        const { controller, commands, keybindings, contextKeys } = createController();
+        commands.register("cmd.go", () => {}, "Go");
+        keybindings.register(parseKeybinding("ctrl+s"), "cmd.go", "textInputFocus");
+        keybindings.register(parseKeybinding("ctrl+l"), "cmd.go", "listFocus");
+        contextKeys.set("listFocus", true);
+        controller.open("commands");
+        const item = controller.view.items.find((i) => i.label === "Go");
+        expect(item?.shortcut).toBe("Ctrl+L");
+    });
+
     it("typing after '>' filters commands by title (case-insensitive)", () => {
         const { controller, commands } = createController();
         commands.register("cmd.save", () => {}, "File: Save");
@@ -295,7 +348,7 @@ describe("QuickOpenController — position and size", () => {
     it("open() sets smaller pickerW on narrow screen", () => {
         const commands = new CommandRegistry();
         const fileSearch = makeFileSearchStub();
-        const ctrl = new QuickOpenController(fileSearch, commands);
+        const ctrl = new QuickOpenController(fileSearch, commands, new KeybindingRegistry(), new ContextKeyService());
         const body = new BodyElement();
         const testApp = TestApp.create(body, new Size(50, 24));
         ctrl.setHostView(body);

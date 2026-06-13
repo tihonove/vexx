@@ -193,6 +193,128 @@ describe("AppController integration", () => {
     });
 });
 
+describe("AppController — chords", () => {
+    function statusTexts(testApp: TestApp): string[] {
+        const statusBar = testApp.querySelector("StatusBarElement") as StatusBarElement;
+        return statusBar.getItems().map((i) => i.text);
+    }
+
+    function editorText(testApp: TestApp): string {
+        return (testApp.querySelector("EditorElement") as EditorElement).viewState.document.getText();
+    }
+
+    it("Ctrl+K then S runs the chord-bound save without leaking 's' into the editor", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        controller.openFile("/tmp/chord-save.txt");
+        controller.focusEditor();
+        const executeSpy = vi.spyOn(commandRegistry, "execute");
+
+        testApp.sendKey("Ctrl+K");
+        // First part does not execute the command yet…
+        expect(executeSpy).not.toHaveBeenCalledWith("workbench.action.files.save");
+        // …and a waiting hint is shown in the status bar.
+        expect(statusTexts(testApp).some((t) => t.includes("Waiting"))).toBe(true);
+
+        testApp.sendKey("s");
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.save");
+        // The continuation key must NOT be typed into the editor.
+        expect(editorText(testApp)).toBe("");
+    });
+
+    it("a continuation key that matches no command is swallowed, not typed", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        controller.openFile("/tmp/chord-swallow.txt");
+        controller.focusEditor();
+        const executeSpy = vi.spyOn(commandRegistry, "execute");
+
+        testApp.sendKey("Ctrl+K");
+        testApp.sendKey("x"); // not part of any chord
+
+        expect(executeSpy).not.toHaveBeenCalledWith("workbench.action.files.save");
+        expect(statusTexts(testApp).some((t) => t.includes("Waiting"))).toBe(false);
+        expect(editorText(testApp)).toBe(""); // 'x' did not leak
+    });
+
+    it("reports the unmatched combination in the status bar when a chord is not completed", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/chord-notfound.txt");
+        controller.focusEditor();
+
+        testApp.sendKey("Ctrl+K");
+        testApp.sendKey("x");
+
+        expect(statusTexts(testApp).some((t) => t.includes("(Ctrl+K X) is not a command"))).toBe(true);
+    });
+
+    it("the 'not a command' message auto-clears after the timeout", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/chord-notfound-clear.txt");
+        controller.focusEditor();
+
+        vi.useFakeTimers();
+        try {
+            testApp.sendKey("Ctrl+K");
+            testApp.sendKey("x");
+            expect(statusTexts(testApp).some((t) => t.includes("is not a command"))).toBe(true);
+
+            vi.advanceTimersByTime(4000);
+            expect(statusTexts(testApp).some((t) => t.includes("is not a command"))).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("Ctrl+K then Ctrl+S breaks the chord and is consumed (no save, no leak)", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        controller.openFile("/tmp/chord-ctrls.txt");
+        controller.focusEditor();
+        const executeSpy = vi.spyOn(commandRegistry, "execute");
+
+        testApp.sendKey("Ctrl+K");
+        testApp.sendKey("Ctrl+S");
+
+        expect(executeSpy).not.toHaveBeenCalledWith("workbench.action.files.save");
+        expect(editorText(testApp)).toBe("");
+    });
+
+    it("resolves the chord through the full Kitty key lifecycle (down/up incl. release)", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        controller.openFile("/tmp/chord-kitty.txt");
+        controller.focusEditor();
+        const executeSpy = vi.spyOn(commandRegistry, "execute");
+
+        // Real terminal (Kitty protocol) sends CSI-u with explicit key releases.
+        testApp.backend.sendRaw("\x1b[107;5u"); // Ctrl+K down
+        testApp.backend.sendRaw("\x1b[107;5:3u"); // Ctrl+K up
+        testApp.backend.sendRaw("\x1b[115u"); // s down
+        testApp.backend.sendRaw("\x1b[115;1:3u"); // s up
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.save");
+        expect(editorText(testApp)).toBe(""); // 's' did not leak
+    });
+
+    it("cancels the pending chord after the timeout", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        controller.focusEditor();
+
+        vi.useFakeTimers();
+        try {
+            testApp.sendKey("Ctrl+K");
+            expect(statusTexts(testApp).some((t) => t.includes("Waiting"))).toBe(true);
+
+            vi.advanceTimersByTime(5000);
+            expect(statusTexts(testApp).some((t) => t.includes("Waiting"))).toBe(false);
+
+            // Pending state was reset: 's' alone no longer completes the chord.
+            const executeSpy = vi.spyOn(commandRegistry, "execute");
+            testApp.sendKey("s");
+            expect(executeSpy).not.toHaveBeenCalledWith("workbench.action.files.save");
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});
+
 describe("AppController — Quick Open", () => {
     it("Ctrl+P opens QuickPickElement (picker is visible)", () => {
         const { testApp, controller } = createTestAppController();

@@ -18,6 +18,7 @@ export class StatusBarController extends Disposable implements IController {
 
     public readonly view: StatusBarElement;
     private editorGroupController: EditorGroupController;
+    private chordHint: string | null = null;
 
     public constructor(editorGroupController: EditorGroupController, themeService: ThemeService) {
         super();
@@ -45,8 +46,22 @@ export class StatusBarController extends Disposable implements IController {
         this.view.style = { fg, bg };
     }
 
+    /**
+     * Sets (or clears, with null) a transient hint shown while a chord is in
+     * progress, e.g. "(Ctrl+K) was pressed. Waiting for next key…".
+     */
+    public setChordHint(text: string | null): void {
+        this.chordHint = text;
+        this.update();
+    }
+
     public update(): void {
         const items: StatusBarItem[] = [];
+
+        if (this.chordHint !== null) {
+            items.push({ text: this.chordHint });
+        }
+
         const activeEditor = this.editorGroupController.getActiveEditor();
 
         if (activeEditor?.fileName) {

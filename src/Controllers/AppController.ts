@@ -2,6 +2,9 @@ import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
+import type { ILogService } from "../Common/Logging/ILogService.ts";
+import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
+import type { ILogger } from "../Common/Logging/ILogger.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -88,8 +91,8 @@ import { FileSearchService } from "./FileSearchService.ts";
 import { FileTreeController } from "./FileTreeController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
-import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
-import { KeybindingRegistryDIToken, parseKeybinding } from "./KeybindingRegistry.ts";
+import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
+import { formatKeybinding, KeybindingRegistryDIToken, parseKeybinding } from "./KeybindingRegistry.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
@@ -164,6 +167,30 @@ const builtinActions = [
     inputDeleteWordRightAction,
 ];
 
+// How long to wait for the next chord part before cancelling (matches VS Code).
+const CHORD_TIMEOUT_MS = 5000;
+
+// How long the "… is not a command" status message lingers after a broken chord.
+const CHORD_NOT_FOUND_MS = 4000;
+
+// Modifier keys that arrive as standalone keydowns (Kitty protocol). They must
+// not break or advance an in-progress chord.
+const modifierKeyNames = new Set(["Control", "Shift", "Alt", "Meta", "Hyper", "Super", "AltGraph", "CapsLock"]);
+
+function isModifierKey(key: string): boolean {
+    return modifierKeyNames.has(key);
+}
+
+function eventToKeybinding(event: TUIKeyboardEvent): Keybinding {
+    return {
+        key: event.key,
+        ctrlKey: event.ctrlKey,
+        shiftKey: event.shiftKey,
+        altKey: event.altKey,
+        metaKey: event.metaKey,
+    };
+}
+
 export class AppController extends Disposable implements IController {
     public static dependencies = [
         EditorGroupControllerDIToken,
@@ -174,6 +201,7 @@ export class AppController extends Disposable implements IController {
         ThemeServiceDIToken,
         ContextKeyServiceDIToken,
         InputWidgetControllerDIToken,
+        ILogServiceDIToken,
     ] as const;
     public readonly view: BodyElement;
     public readonly workbenchLayout: WorkbenchLayoutElement;
@@ -190,6 +218,10 @@ export class AppController extends Disposable implements IController {
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
     private inputWidgetController: InputWidgetController;
+    private chordTimer: ReturnType<typeof setTimeout> | null = null;
+    private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
+    private swallowNextKeyPress = false;
+    private logger: ILogger;
 
     public constructor(
         editorGroupController: EditorGroupController,
@@ -200,12 +232,16 @@ export class AppController extends Disposable implements IController {
         themeService: ThemeService,
         contextKeys: ContextKeyService,
         inputWidgetController: InputWidgetController,
+        logService: ILogService,
     ) {
         super();
+        this.logger = logService.createLogger("input.keybindings");
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
         this.fileSearchService = this.register(new FileSearchService());
-        this.quickOpenController = this.register(new QuickOpenController(this.fileSearchService, commands));
+        this.quickOpenController = this.register(
+            new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
+        );
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
@@ -220,6 +256,12 @@ export class AppController extends Disposable implements IController {
         this.view.setStatusBar(this.statusBarController.view);
 
         this.quickOpenController.setHostView(this.view);
+        this.register({
+            dispose: () => {
+                this.clearChordTimeout();
+                this.clearNotFoundTimer();
+            },
+        });
         this.register(
             commands.register("workbench.openFile", (absolutePath: unknown) => {
                 this.editorGroupController.openFile(absolutePath as string);
@@ -335,6 +377,11 @@ export class AppController extends Disposable implements IController {
     }
 
     public mount(): void {
+        // Capture-phase listeners run before the focused widget (the target),
+        // so while a chord is in progress they can swallow keys entirely —
+        // keeping them out of the editor whether or not they match a command.
+        this.view.addEventListener("keydown", this.handleKeyDownCapture, { capture: true });
+        this.view.addEventListener("keypress", this.handleKeyPressCapture, { capture: true });
         this.view.addEventListener("keydown", this.handleKeyDown);
         this.view.addEventListener("keypress", this.handleKeyPress);
         this.view.addEventListener("focus", this.handleFocusChange, { capture: true });
@@ -399,20 +446,138 @@ export class AppController extends Disposable implements IController {
         };
     }
 
+    // Capture phase: while a chord is in progress, intercept the next key
+    // before it reaches the focused widget and swallow it entirely — so the
+    // continuation key never leaks into the editor, matched or not.
+    private handleKeyDownCapture = (event: TUIKeyboardEvent): void => {
+        if (this.keybindings.pendingLength === 0) return; // not in a chord — let the bubble handler run
+        if (isModifierKey(event.key)) return; // holding a modifier must not break the chord
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this.dispatchKey(event);
+    };
+
+    private handleKeyPressCapture = (event: TUIKeyboardEvent): void => {
+        if (!this.swallowNextKeyPress) return;
+        this.swallowNextKeyPress = false;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+    };
+
+    // Bubble phase: only reached when no chord is pending (otherwise the capture
+    // handler stops propagation). Handles ordinary bindings and chord starts.
     private handleKeyDown = (event: TUIKeyboardEvent): void => {
-        this.updateContextKeys();
-        const commandId = this.keybindings.resolve(event, this.contextKeys);
-        if (commandId && this.commands.has(commandId)) {
+        if (this.dispatchKey(event)) {
             event.preventDefault();
-            this.commands.execute(commandId);
         }
     };
+
+    /**
+     * Resolves a key against the keybinding registry and applies the outcome
+     * (run command, enter/cancel chord mode, update the status-bar hint).
+     * Returns true if the key was consumed (caller should preventDefault).
+     */
+    private dispatchKey(event: TUIKeyboardEvent): boolean {
+        this.updateContextKeys();
+        this.clearChordTimeout();
+        this.clearNotFoundTimer();
+        this.swallowNextKeyPress = false;
+        const pendingBefore = this.keybindings.pendingLength;
+        // Capture the chord prefix BEFORE resolving (resolveKey clears it on a break).
+        const prefix = pendingBefore > 0 ? this.keybindings.getPendingChord(this.contextKeys) : [];
+        const res = this.keybindings.resolveKey(event, this.contextKeys);
+
+        this.logger.debug("keydown", {
+            key: event.key,
+            code: event.code,
+            ctrl: event.ctrlKey,
+            shift: event.shiftKey,
+            alt: event.altKey,
+            meta: event.metaKey,
+            pendingBefore,
+            result: res.kind,
+            commandId: res.kind === "command" ? res.commandId : undefined,
+            chord: res.kind === "chord" ? formatKeybinding(res.chord) : undefined,
+        });
+
+        if (res.kind === "chord") {
+            // Prefix key of a chord — swallow its keypress and wait for the next.
+            this.swallowNextKeyPress = true;
+            this.statusBarController.setChordHint(`(${formatKeybinding(res.chord)}) was pressed. Waiting for next key…`);
+            this.startChordTimeout();
+            return true;
+        }
+
+        // A continuation key (command or none) ends chord mode; its keypress
+        // must be swallowed too so a broken chord does not leak into the editor.
+        const wasInChord = pendingBefore > 0;
+        if (wasInChord) this.swallowNextKeyPress = true;
+
+        if (res.kind === "command" && this.commands.has(res.commandId)) {
+            this.statusBarController.setChordHint(null);
+            this.commands.execute(res.commandId);
+            return true;
+        }
+
+        if (wasInChord) {
+            // Broken chord: report the unmatched combination, like VS Code.
+            const combo = formatKeybinding([...prefix, eventToKeybinding(event)]);
+            this.showChordNotFound(combo);
+            return true; // consumed (no command, no leak)
+        }
+
+        this.statusBarController.setChordHint(null);
+        return false;
+    }
+
+    private showChordNotFound(combo: string): void {
+        this.statusBarController.setChordHint(`(${combo}) is not a command`);
+        this.notFoundTimer = setTimeout(() => {
+            this.notFoundTimer = null;
+            this.statusBarController.setChordHint(null);
+        }, CHORD_NOT_FOUND_MS);
+    }
+
+    private clearNotFoundTimer(): void {
+        if (this.notFoundTimer !== null) {
+            clearTimeout(this.notFoundTimer);
+            this.notFoundTimer = null;
+        }
+    }
+
+    private startChordTimeout(): void {
+        this.chordTimer = setTimeout(() => {
+            this.chordTimer = null;
+            this.keybindings.resetPending();
+            this.swallowNextKeyPress = false;
+            this.statusBarController.setChordHint(null);
+        }, CHORD_TIMEOUT_MS);
+    }
+
+    private clearChordTimeout(): void {
+        if (this.chordTimer !== null) {
+            clearTimeout(this.chordTimer);
+            this.chordTimer = null;
+        }
+    }
+
+    private cancelPendingChord(): void {
+        if (this.keybindings.pendingLength > 0) {
+            this.logger.debug("chord cancelled (focus change / timeout)");
+        }
+        this.clearChordTimeout();
+        this.clearNotFoundTimer();
+        this.keybindings.resetPending();
+        this.swallowNextKeyPress = false;
+        this.statusBarController.setChordHint(null);
+    }
 
     private handleKeyPress = (): void => {
         this.statusBarController.update();
     };
 
     private handleFocusChange = (_event: TUIFocusEvent): void => {
+        this.cancelPendingChord();
         this.updateContextKeys();
     };
 

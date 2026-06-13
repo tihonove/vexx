@@ -18,6 +18,13 @@ function makeEvent(overrides: Partial<KeyboardEventLike> & { key: string }): Key
     };
 }
 
+// Thin adapter: maps the structured resolveKey result to the command id (or
+// undefined) so these single-combination tests stay focused on matching logic.
+function resolve(registry: KeybindingRegistry, event: KeyboardEventLike, ctx?: ContextKeyService): string | undefined {
+    const res = registry.resolveKey(event, ctx);
+    return res.kind === "command" ? res.commandId : undefined;
+}
+
 describe("parseKeybinding", () => {
     it("parses a single letter key", () => {
         expect(parseKeybinding("a")).toEqual({
@@ -107,7 +114,7 @@ describe("KeybindingRegistry", () => {
         const registry = new KeybindingRegistry();
         registry.register(kb("ctrl+s"), "workbench.action.files.save");
 
-        const result = registry.resolve(makeEvent({ key: "s", ctrlKey: true }));
+        const result = resolve(registry, makeEvent({ key: "s", ctrlKey: true }));
 
         expect(result).toBe("workbench.action.files.save");
     });
@@ -116,7 +123,7 @@ describe("KeybindingRegistry", () => {
         const registry = new KeybindingRegistry();
         registry.register(kb("ctrl+s"), "workbench.action.files.save");
 
-        const result = registry.resolve(makeEvent({ key: "q", ctrlKey: true }));
+        const result = resolve(registry, makeEvent({ key: "q", ctrlKey: true }));
 
         expect(result).toBeUndefined();
     });
@@ -125,8 +132,8 @@ describe("KeybindingRegistry", () => {
         const registry = new KeybindingRegistry();
         registry.register(kb("ctrl+s"), "save");
 
-        expect(registry.resolve(makeEvent({ key: "s" }))).toBeUndefined();
-        expect(registry.resolve(makeEvent({ key: "s", ctrlKey: true, shiftKey: true }))).toBeUndefined();
+        expect(resolve(registry, makeEvent({ key: "s" }))).toBeUndefined();
+        expect(resolve(registry, makeEvent({ key: "s", ctrlKey: true, shiftKey: true }))).toBeUndefined();
     });
 
     it("last registered wins on conflict", () => {
@@ -134,7 +141,7 @@ describe("KeybindingRegistry", () => {
         registry.register(kb("ctrl+s"), "first");
         registry.register(kb("ctrl+s"), "second");
 
-        const result = registry.resolve(makeEvent({ key: "s", ctrlKey: true }));
+        const result = resolve(registry, makeEvent({ key: "s", ctrlKey: true }));
 
         expect(result).toBe("second");
     });
@@ -143,7 +150,7 @@ describe("KeybindingRegistry", () => {
         const registry = new KeybindingRegistry();
         registry.register(kb("ctrl+s"), "save");
 
-        const result = registry.resolve(makeEvent({ key: "S", ctrlKey: true }));
+        const result = resolve(registry, makeEvent({ key: "S", ctrlKey: true }));
 
         expect(result).toBe("save");
     });
@@ -154,7 +161,7 @@ describe("KeybindingRegistry", () => {
             registry.register(kb("ctrl+s"), "workbench.action.files.save");
 
             // Ctrl+с (Russian layout) with Kitty alternate-keys flag sends baseLayoutKey=115 ('s') → code='KeyS'
-            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS", ctrlKey: true }));
+            const result = resolve(registry, makeEvent({ key: "\u0441", code: "KeyS", ctrlKey: true }));
 
             expect(result).toBe("workbench.action.files.save");
         });
@@ -163,7 +170,7 @@ describe("KeybindingRegistry", () => {
             const registry = new KeybindingRegistry();
             registry.register(kb("meta+s"), "save");
 
-            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS", metaKey: true }));
+            const result = resolve(registry, makeEvent({ key: "\u0441", code: "KeyS", metaKey: true }));
 
             expect(result).toBe("save");
         });
@@ -173,7 +180,7 @@ describe("KeybindingRegistry", () => {
             registry.register(kb("alt+s"), "do-something");
 
             // alt+с with code=KeyS — should NOT match, alt shortcuts are layout-sensitive
-            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS", altKey: true }));
+            const result = resolve(registry, makeEvent({ key: "\u0441", code: "KeyS", altKey: true }));
 
             expect(result).toBeUndefined();
         });
@@ -183,7 +190,7 @@ describe("KeybindingRegistry", () => {
             registry.register(kb("ctrl+s"), "save");
 
             // code matches but no ctrl pressed
-            const result = registry.resolve(makeEvent({ key: "\u0441", code: "KeyS" }));
+            const result = resolve(registry, makeEvent({ key: "\u0441", code: "KeyS" }));
 
             expect(result).toBeUndefined();
         });
@@ -192,7 +199,7 @@ describe("KeybindingRegistry", () => {
             const registry = new KeybindingRegistry();
             registry.register(kb("ctrl+s"), "save");
 
-            const result = registry.resolve(makeEvent({ key: "s", code: "KeyS", ctrlKey: true }));
+            const result = resolve(registry, makeEvent({ key: "s", code: "KeyS", ctrlKey: true }));
 
             expect(result).toBe("save");
         });
@@ -202,7 +209,7 @@ describe("KeybindingRegistry", () => {
         const registry = new KeybindingRegistry();
         registry.register(kb("ctrl+enter"), "exec");
 
-        const result = registry.resolve(makeEvent({ key: "Enter", ctrlKey: true }));
+        const result = resolve(registry, makeEvent({ key: "Enter", ctrlKey: true }));
 
         expect(result).toBe("exec");
     });
@@ -213,7 +220,7 @@ describe("KeybindingRegistry", () => {
 
         disposable.dispose();
 
-        expect(registry.resolve(makeEvent({ key: "s", ctrlKey: true }))).toBeUndefined();
+        expect(resolve(registry, makeEvent({ key: "s", ctrlKey: true }))).toBeUndefined();
     });
 
     it("dispose() clears all bindings", () => {
@@ -223,8 +230,8 @@ describe("KeybindingRegistry", () => {
 
         registry.dispose();
 
-        expect(registry.resolve(makeEvent({ key: "s", ctrlKey: true }))).toBeUndefined();
-        expect(registry.resolve(makeEvent({ key: "q", ctrlKey: true }))).toBeUndefined();
+        expect(resolve(registry, makeEvent({ key: "s", ctrlKey: true }))).toBeUndefined();
+        expect(resolve(registry, makeEvent({ key: "q", ctrlKey: true }))).toBeUndefined();
     });
 
     describe("when-context", () => {
@@ -234,7 +241,7 @@ describe("KeybindingRegistry", () => {
             ctx.set("textInputFocus", true);
             registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
 
-            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("cursorPageDown");
+            expect(resolve(registry, makeEvent({ key: "PageDown" }), ctx)).toBe("cursorPageDown");
         });
 
         it("skips binding when when-condition is false", () => {
@@ -242,7 +249,7 @@ describe("KeybindingRegistry", () => {
             const ctx = new ContextKeyService();
             registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
 
-            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBeUndefined();
+            expect(resolve(registry, makeEvent({ key: "PageDown" }), ctx)).toBeUndefined();
         });
 
         it("selects correct binding among multiple with different when-conditions", () => {
@@ -252,11 +259,11 @@ describe("KeybindingRegistry", () => {
             registry.register(kb("pagedown"), "list.focusPageDown", "listFocus");
 
             ctx.set("listFocus", true);
-            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("list.focusPageDown");
+            expect(resolve(registry, makeEvent({ key: "PageDown" }), ctx)).toBe("list.focusPageDown");
 
             ctx.reset("listFocus");
             ctx.set("textInputFocus", true);
-            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("cursorPageDown");
+            expect(resolve(registry, makeEvent({ key: "PageDown" }), ctx)).toBe("cursorPageDown");
         });
 
         it("falls through to binding without when if no when-conditioned matches", () => {
@@ -265,14 +272,14 @@ describe("KeybindingRegistry", () => {
             registry.register(kb("pagedown"), "fallback");
             registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
 
-            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("fallback");
+            expect(resolve(registry, makeEvent({ key: "PageDown" }), ctx)).toBe("fallback");
         });
 
         it("skips when-conditioned binding if no contextKeys provided", () => {
             const registry = new KeybindingRegistry();
             registry.register(kb("pagedown"), "cursorPageDown", "textInputFocus");
 
-            expect(registry.resolve(makeEvent({ key: "PageDown" }))).toBeUndefined();
+            expect(resolve(registry, makeEvent({ key: "PageDown" }))).toBeUndefined();
         });
 
         it("supports complex when-expressions", () => {
@@ -281,10 +288,10 @@ describe("KeybindingRegistry", () => {
             registry.register(kb("pagedown"), "combined", "textInputFocus && !listFocus");
 
             ctx.set("textInputFocus", true);
-            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBe("combined");
+            expect(resolve(registry, makeEvent({ key: "PageDown" }), ctx)).toBe("combined");
 
             ctx.set("listFocus", true);
-            expect(registry.resolve(makeEvent({ key: "PageDown" }), ctx)).toBeUndefined();
+            expect(resolve(registry, makeEvent({ key: "PageDown" }), ctx)).toBeUndefined();
         });
     });
 });

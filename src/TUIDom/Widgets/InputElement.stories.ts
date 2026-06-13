@@ -88,10 +88,14 @@ function mountInputKeybindings(ctx: StoryContext, input: InputElement): void {
     ctx.body.addEventListener("blur", updateContext, { capture: true });
 
     ctx.body.addEventListener("keydown", (e: TUIKeyboardEvent) => {
-        const commandId = keybindings.resolve(e, contextKeys);
-        if (commandId && commands.has(commandId)) {
+        const res = keybindings.resolveKey(e, contextKeys);
+        if (res.kind === "chord") {
             e.preventDefault();
-            commands.execute(commandId);
+            return;
+        }
+        if (res.kind === "command" && commands.has(res.commandId)) {
+            e.preventDefault();
+            commands.execute(res.commandId);
         }
     });
 }
