@@ -1,3 +1,7 @@
 node_modules
 dist
 vexx.log
+coverage/.tmp
+coverage/lcov-report
+coverage/coverage-summary.json
+coverage/lcov.info

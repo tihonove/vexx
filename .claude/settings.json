@@ -28,7 +28,8 @@
       "Bash(npm run *)",
       "Bash(cp /tmp/diag.test.ts ./diag.test.ts && npx vitest run ./diag.test.ts --reporter=verbose 2>&1 | tr -d '\\\\000' | sed 's/\\\\x1b/ESC/g' | grep -iE \"LEGACY|KITTY|down|up|key\" | head -40; rm -f ./diag.test.ts)",
       "Bash(npx tsc *)",
-      "Bash(echo \"=== exit $? ===\")"
+      "Bash(echo \"=== exit $? ===\")",
+      "Bash(node -e ' *)"
     ],
     "additionalDirectories": [
       "/tmp"

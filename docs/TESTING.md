@@ -204,3 +204,30 @@ expectScreen(backend, screen`
 ## E2E
 
 `npm run test:e2e` (отдельный конфиг `vitest.e2e.config.ts`) собирает SEA-бинарь и гоняет его через `node-pty` + ANSI-парсер. Сьюты и helpers — в `e2e/`. Детали и roadmap — [TODO/E2E.md](TODO/E2E.md).
+
+---
+
+## Покрытие (Coverage)
+
+```bash
+npm run test:coverage      # = vitest run --coverage
+```
+
+В отчёте включён `skipFull: true` — показываются **только недопокрытые** файлы (полностью покрытые скрыты). Конфиг — [vitest.config.ts](../vitest.config.ts).
+
+### Политика: покрываем весь новый код
+
+Цель — 100% покрытия по всему, что реально исполняется. Это закреплено **храповиком** `coverage.thresholds` с `autoUpdate: true`:
+- если покрытие падает ниже зафиксированной планки — прогон/CI **краснеет**;
+- если покрытие выросло — vitest сам поднимает числа порогов в конфиге (коммить их).
+
+Бэклог недопокрытого реального кода — [TODO/Coverage.md](TODO/Coverage.md).
+
+### Что и почему исключаем из метрики
+
+Исключения (`coverage.exclude`) добавляем **только** если файл попадает в одну из категорий:
+
+1. **Чистые типы** — интерфейсы `I*.ts`, `*.d.ts`, barrel-`index.ts`. Исполнять нечего; чистый интерфейс добавляем в **явный список** exclude (глоб `I*.ts` НЕ используем — см. ниже).
+2. **Непокрываемое юнит-тестами** — реальный tty (`NodeTerminalBackend`), subprocess-точка входа (`ExtensionHostSubprocess`), SEA-детект (`IsSea`, `createDefaultAssetAccess`), RPC-стаб в subprocess (`VscodeNamespace`), DI-проводка (`Controllers/Modules/**`), null-object заглушки. Это проверяется e2e (`vitest.e2e.config.ts`), а не юнит-тестами.
+
+**Важно:** реальную логику в файлах с префиксом `I*` (например хелперы `createRange` в `IRange.ts`, `NULL_STATE` в `IState.ts`, `isScrollable` в `IScrollable.ts`) **не прячем** — её покрываем. Поэтому интерфейсы исключаем поимённо, а не глобом `src/**/I*.ts`.

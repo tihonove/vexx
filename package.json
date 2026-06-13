@@ -20,6 +20,7 @@
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "typecheck": "tsc --noEmit",
