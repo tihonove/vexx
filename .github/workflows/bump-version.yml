@@ -23,10 +23,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        # with:
-        #   # Нужен PAT (не дефолтный GITHUB_TOKEN), иначе пуш тега
-        #   # не запустит release.yml (защита от рекурсии воркфлоу).
-        #   token: ${{ secrets.PAT }}
+        with:
+          # Нужен PAT (не дефолтный GITHUB_TOKEN), иначе пуш тега
+          # не запустит release.yml (защита от рекурсии воркфлоу).
+          token: ${{ secrets.GITHUB_PAT }}
 
       - uses: actions/setup-node@v4
         with:
