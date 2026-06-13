@@ -26,7 +26,7 @@ jobs:
         with:
           # Нужен PAT (не дефолтный GITHUB_TOKEN), иначе пуш тега
           # не запустит release.yml (защита от рекурсии воркфлоу).
-          token: ${{ secrets.GITHUB_PAT }}
+          token: ${{ secrets.REPOSITORY_PAT }}
 
       - uses: actions/setup-node@v4
         with:
