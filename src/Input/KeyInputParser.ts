@@ -1,7 +1,7 @@
 import { convertTokenToKeyPressEvent } from "./convertToken.ts";
 import { createKeyPressEvent, type KeyPressEvent } from "./KeyEvent.ts";
 import { parseInput } from "./parseInput.ts";
-import type { MouseToken, OscToken } from "./RawTerminalToken.ts";
+import type { DeviceReportToken, MouseToken, OscToken } from "./RawTerminalToken.ts";
 import { tokenize } from "./tokenize.ts";
 
 /**
@@ -59,23 +59,31 @@ export class KeyInputParser {
     /**
      * Parse raw terminal input, returning both keyboard events and mouse tokens.
      */
-    public parseWithMouse(data: string): { keys: KeyPressEvent[]; mouse: MouseToken[]; osc: OscToken[] } {
+    public parseWithMouse(data: string): {
+        keys: KeyPressEvent[];
+        mouse: MouseToken[];
+        osc: OscToken[];
+        deviceReports: DeviceReportToken[];
+    } {
         const tokens = tokenize(data);
         const mouseTokens: MouseToken[] = [];
         const keyEvents: KeyPressEvent[] = [];
         const oscTokens: OscToken[] = [];
+        const deviceReports: DeviceReportToken[] = [];
 
         for (const token of tokens) {
             if (token.kind === "mouse") {
                 mouseTokens.push(token);
             } else if (token.kind === "osc") {
                 oscTokens.push(token);
+            } else if (token.kind === "device-report") {
+                deviceReports.push(token);
             } else {
                 keyEvents.push(convertTokenToKeyPressEvent(token));
             }
         }
 
-        return { keys: this.processKeyEvents(keyEvents), mouse: mouseTokens, osc: oscTokens };
+        return { keys: this.processKeyEvents(keyEvents), mouse: mouseTokens, osc: oscTokens, deviceReports };
     }
 
     private processKeyEvents(rawEvents: KeyPressEvent[]): KeyPressEvent[] {

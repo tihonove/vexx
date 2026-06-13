@@ -1,5 +1,7 @@
+import type { ITerminalBackend } from "../../Backend/ITerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
+import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService.ts";
 import type { ILogService } from "../../Common/Logging/ILogService.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
@@ -17,15 +19,19 @@ import { extensionHostModule } from "./ExtensionHostModule.ts";
 import { loggingModule } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
+import { keybindingsModule } from "./KeybindingsModule.ts";
 
 export interface ProductionProfileContext {
     app: TuiApplication;
+    backend: ITerminalBackend;
     theme: WorkbenchTheme;
     clipboard: IClipboard;
     tokenizationRegistry: TokenizationRegistry;
     tokenStyleResolver: ITokenStyleResolver;
     languageService: ILanguageService;
     configurationService: IConfigurationService;
+    userKeybindings: readonly IUserKeybindingRule[];
     logService: ILogService;
 }
 
@@ -46,6 +52,8 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
             languageService: ctx.languageService,
         })
         .use(configurationModule, { configurationService: ctx.configurationService })
+        .use(terminalEnvironmentModule, { backend: ctx.backend })
+        .use(keybindingsModule, { rules: ctx.userKeybindings })
         .use(controllersModule)
         .use(extensionHostModule);
 }

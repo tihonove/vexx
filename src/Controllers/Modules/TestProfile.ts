@@ -1,3 +1,4 @@
+import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -15,6 +16,8 @@ import { coreModuleLate } from "./CoreModule.ts";
 import { loggingModuleDefault } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
+import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 
 /**
  * Тестовый контейнер. Возвращает контейнер с подключёнными NULL-стабами для
@@ -45,6 +48,8 @@ export function createTestContainer(): TestContainerHandle {
             languageService: NULL_LANGUAGE_SERVICE,
         })
         .use(configurationModuleDefault)
+        .use(terminalEnvironmentModule, { backend: new MockTerminalBackend() })
+        .use(keybindingsModuleDefault)
         .use(controllersModule);
 
     return {

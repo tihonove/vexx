@@ -22,6 +22,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     private mouseCallbacks: ((event: MouseToken) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private oscResponseCallbacks: ((code: number, data: string) => void)[] = [];
+    private keyboardProbeCallbacks: ((supported: boolean) => void)[] = [];
     private cells: (string | null)[][];
     private bgs: number[][];
     private fgs: number[][];
@@ -63,6 +64,10 @@ export class MockTerminalBackend implements ITerminalBackend {
 
     public onOscResponse(callback: (code: number, data: string) => void): void {
         this.oscResponseCallbacks.push(callback);
+    }
+
+    public probeKeyboardProtocol(onResult: (supported: boolean) => void): void {
+        this.keyboardProbeCallbacks.push(onResult);
     }
 
     public cursorPosition: Point = new Point(0, 0);
@@ -129,6 +134,18 @@ export class MockTerminalBackend implements ITerminalBackend {
     public simulateOscResponse(code: number, data: string): void {
         for (const cb of this.oscResponseCallbacks) {
             cb(code, data);
+        }
+    }
+
+    /**
+     * Resolve a pending keyboard-protocol probe (test helper) — simulates the terminal
+     * answering (or not) the Kitty keyboard-protocol query.
+     */
+    public resolveKeyboardProtocol(supported: boolean): void {
+        const callbacks = this.keyboardProbeCallbacks;
+        this.keyboardProbeCallbacks = [];
+        for (const cb of callbacks) {
+            cb(supported);
         }
     }
 

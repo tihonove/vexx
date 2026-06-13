@@ -15,6 +15,7 @@ import { RingBufferSink } from "./Common/Logging/sinks/RingBufferSink.ts";
 import { OscClipboard } from "./Common/OscClipboard.ts";
 import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
+import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
@@ -36,6 +37,7 @@ import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 // TUI/CLI инициализаций. Сигнал — env VEXX_EXTENSION_HOST=1, выставленный
 // `ExtensionHost.ensureSubprocess()`.
 
+/* v8 ignore next */
 if (process.env.VEXX_EXTENSION_HOST === "1") {
     runExtensionHostSubprocess();
     // runExtensionHostSubprocess() возвращается, но процесс остаётся живым
@@ -96,6 +98,7 @@ async function runEditor(): Promise<void> {
         homedir: os.homedir(),
     });
     const configurationService = await loadConfiguration(userDataPaths, configurationLogger);
+    const userKeybindings = await loadUserKeybindings(userDataPaths.keybindingsFile, configurationLogger);
 
     // ── Backend / Theme ────────────────────────────────────────
 
@@ -153,12 +156,14 @@ async function runEditor(): Promise<void> {
     // ── Bootstrap через DI-контейнер ────────────────────────────
     const container = createProductionContainer({
         app: application,
+        backend,
         theme: initialTheme,
         clipboard,
         tokenizationRegistry,
         tokenStyleResolver: new TokenThemeResolver(initialTheme.tokenTheme),
         languageService: languageRegistry,
         configurationService,
+        userKeybindings,
         logService,
     });
 

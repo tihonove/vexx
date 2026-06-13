@@ -31,6 +31,21 @@ export interface ContextKeyTypes {
     // listDoubleSelection: boolean;
     // listMultiSelection: boolean;
 
+    // -- Terminal environment contexts (see TerminalEnvironmentService) --
+    /** "legacy" | "csi-u" | "kitty" — use as `tier == 'kitty'`. */
+    tier: string;
+    /** "mac" | "linux" | "windows" — use as `os == 'mac'`. */
+    os: string;
+    cap_extendedKeys: boolean;
+    cap_osc52: boolean;
+    cap_truecolor: boolean;
+    cap_kittyGraphics: boolean;
+    cap_mouseSgr: boolean;
+    /** Built-in modes. Custom modes are registered dynamically as `mode_<name>`. */
+    mode_local: boolean;
+    mode_ssh: boolean;
+    mode_tmux: boolean;
+
     // -- Mode contexts --
     // inSnippetMode: boolean;
     // inQuickOpen: boolean;
@@ -108,9 +123,9 @@ export interface ContextKeyTypes {
     // inSearchEditor: boolean;
 
     // -- OS contexts --
-    // isLinux: boolean;
-    // isMac: boolean;
-    // isWindows: boolean;
+    isLinux: boolean;
+    isMac: boolean;
+    isWindows: boolean;
     // isWeb: boolean;
 
     // -- Workspace contexts --
@@ -152,6 +167,18 @@ export const allContextKeys: ContextKey[] = [
     // "listHasSelectionOrFocus",
     // "listDoubleSelection",
     // "listMultiSelection",
+
+    // -- Terminal environment contexts --
+    "tier",
+    "os",
+    "cap_extendedKeys",
+    "cap_osc52",
+    "cap_truecolor",
+    "cap_kittyGraphics",
+    "cap_mouseSgr",
+    "mode_local",
+    "mode_ssh",
+    "mode_tmux",
 
     // -- Mode contexts --
     // "inSnippetMode",
@@ -230,9 +257,9 @@ export const allContextKeys: ContextKey[] = [
     // "inSearchEditor",
 
     // -- OS contexts --
-    // "isLinux",
-    // "isMac",
-    // "isWindows",
+    "isLinux",
+    "isMac",
+    "isWindows",
     // "isWeb",
 
     // -- Workspace contexts --
@@ -247,3 +274,24 @@ export const allContextKeys: ContextKey[] = [
     // "activePanel",
     // "activeAuxiliary",
 ];
+
+/**
+ * Dynamically registered context-key names (not in the typed {@link ContextKeyTypes}).
+ * Used for user-defined custom modes (`mode_<name>`) declared in config — they must be
+ * known to the `when`-evaluator before any binding referencing them is evaluated.
+ */
+const dynamicContextKeys: string[] = [];
+
+/** Register extra context-key identifiers (e.g. custom-mode `mode_<name>`). Idempotent. */
+export function registerContextKeys(names: readonly string[]): void {
+    for (const name of names) {
+        if (!(allContextKeys as readonly string[]).includes(name) && !dynamicContextKeys.includes(name)) {
+            dynamicContextKeys.push(name);
+        }
+    }
+}
+
+/** All context-key identifiers known to the `when`-evaluator (built-in + dynamic). */
+export function getAllContextKeyNames(): string[] {
+    return [...allContextKeys, ...dynamicContextKeys];
+}

@@ -137,6 +137,21 @@ export function formatKeybinding(chord: KeybindingChord): string {
     return chord.map(formatPart).join(" ");
 }
 
+/** Structural equality of two chords (used for `-command` unbind matching). */
+function chordsEqual(a: KeybindingChord, b: KeybindingChord): boolean {
+    if (a.length !== b.length) return false;
+    return a.every((part, i) => {
+        const other = b[i];
+        return (
+            part.key.toLowerCase() === other.key.toLowerCase() &&
+            part.ctrlKey === other.ctrlKey &&
+            part.shiftKey === other.shiftKey &&
+            part.altKey === other.altKey &&
+            part.metaKey === other.metaKey
+        );
+    });
+}
+
 function matchesBinding(event: KeyboardEventLike, binding: Keybinding): boolean {
     const modifiersMatch =
         event.ctrlKey === binding.ctrlKey &&
@@ -176,6 +191,19 @@ export class KeybindingRegistry implements IDisposable {
                 if (index !== -1) this.entries.splice(index, 1);
             },
         };
+    }
+
+    /**
+     * Removes registered bindings for a command (VS Code `-command` unbind).
+     * With a `chord`, only the entry matching that exact combination is removed;
+     * without one, every binding for the command is removed.
+     */
+    public removeBindings(commandId: string, chord?: KeybindingChord): void {
+        this.entries = this.entries.filter((entry) => {
+            if (entry.commandId !== commandId) return true;
+            if (chord && !chordsEqual(entry.chord, chord)) return true;
+            return false;
+        });
     }
 
     /**

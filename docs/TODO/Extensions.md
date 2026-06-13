@@ -57,7 +57,7 @@
 - [ ] `contributes.configurationDefaults` — оверрайды для language-specific.
 - [ ] Live-reload settings.json через fs.watch + эмит `onDidChangeConfiguration` (сейчас no-op).
 - [ ] Workspace-слой (`.vexx/settings.json` в корне проекта).
-- [ ] Парсинг и применение `keybindings.json` (сейчас файл может существовать, но игнорируется).
+- [x] Парсинг и применение `keybindings.json` (`Configuration/KeybindingsService.ts` → `AppController.applyUserKeybindings`; VS Code-семантика `-command` для unbind, `when` с tier/cap/mode/os).
 
 ## Phase 7 — Активация и lifecycle
 

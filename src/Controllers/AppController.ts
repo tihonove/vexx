@@ -79,9 +79,12 @@ import {
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
+import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
+
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { registerContextKeys } from "./ContextKeys.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
@@ -92,10 +95,13 @@ import { FileTreeController } from "./FileTreeController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
-import { formatKeybinding, KeybindingRegistryDIToken, parseKeybinding } from "./KeybindingRegistry.ts";
+import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
+import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
@@ -202,6 +208,8 @@ export class AppController extends Disposable implements IController {
         ContextKeyServiceDIToken,
         InputWidgetControllerDIToken,
         ILogServiceDIToken,
+        TerminalEnvironmentServiceDIToken,
+        UserKeybindingsDIToken,
     ] as const;
     public readonly view: BodyElement;
     public readonly workbenchLayout: WorkbenchLayoutElement;
@@ -218,6 +226,7 @@ export class AppController extends Disposable implements IController {
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
     private inputWidgetController: InputWidgetController;
+    private terminalEnv: TerminalEnvironmentService;
     private chordTimer: ReturnType<typeof setTimeout> | null = null;
     private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
     private swallowNextKeyPress = false;
@@ -233,9 +242,12 @@ export class AppController extends Disposable implements IController {
         contextKeys: ContextKeyService,
         inputWidgetController: InputWidgetController,
         logService: ILogService,
+        terminalEnv: TerminalEnvironmentService,
+        userKeybindings: readonly IUserKeybindingRule[],
     ) {
         super();
         this.logger = logService.createLogger("input.keybindings");
+        this.terminalEnv = terminalEnv;
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
         this.fileSearchService = this.register(new FileSearchService());
@@ -247,6 +259,16 @@ export class AppController extends Disposable implements IController {
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
         this.inputWidgetController = inputWidgetController;
+
+        // Make custom-mode names (mode_<name>) valid `when` identifiers, then keep context
+        // keys + status bar in sync when the environment changes (detection finalize / mode toggle).
+        registerContextKeys(this.terminalEnv.getKnownModeNames().map((n) => `mode_${n}`));
+        this.register(
+            this.terminalEnv.onDidChange(() => {
+                this.updateContextKeys();
+                this.statusBarController.update();
+            }),
+        );
 
         this.workbenchLayout = new WorkbenchLayoutElement();
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
@@ -334,6 +356,10 @@ export class AppController extends Disposable implements IController {
             }),
         );
 
+        // Apply user keybindings AFTER all defaults so they take precedence (the registry
+        // resolves the last-registered matching binding) and so `-command` unbinds can remove defaults.
+        this.applyUserKeybindings(userKeybindings);
+
         this.setupMenu();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -416,6 +442,12 @@ export class AppController extends Disposable implements IController {
     }
 
     public async activate(): Promise<void> {
+        // Terminal tier/modes are already detected synchronously (env vars) in the env
+        // service constructor, so context keys are correct from the first keypress —
+        // push them now. Then kick off the fire-and-forget keyboard-protocol probe; if it
+        // confirms richer support it upgrades the tier via onDidChange. Nothing blocks here.
+        this.updateContextKeys();
+        this.terminalEnv.detect();
         await this.editorGroupController.activate();
         await this.fileTreeController.activate();
         await this.statusBarController.activate();
@@ -581,6 +613,22 @@ export class AppController extends Disposable implements IController {
         this.updateContextKeys();
     };
 
+    /**
+     * Applies user `keybindings.json` rules. A `-command` rule unbinds (the exact key, or all
+     * bindings for the command if no key); other rules add a binding that wins over defaults.
+     * `when` may reference tier / cap_* / mode_* / os.
+     */
+    private applyUserKeybindings(rules: readonly IUserKeybindingRule[]): void {
+        for (const rule of rules) {
+            if (rule.command.startsWith("-")) {
+                const commandId = rule.command.slice(1);
+                this.keybindings.removeBindings(commandId, rule.key ? parseChord(rule.key) : undefined);
+            } else {
+                this.register(this.keybindings.register(parseChord(rule.key), rule.command, rule.when));
+            }
+        }
+    }
+
     private updateContextKeys(): void {
         const active = this.view.focusManager?.activeElement ?? null;
         const editorCount = this.editorGroupController.editorCount;
@@ -591,6 +639,23 @@ export class AppController extends Disposable implements IController {
         this.inputWidgetController.setActive(active instanceof InputElement ? active : null);
         this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
+
+        // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
+        // but mode can be force-toggled at runtime, so refresh alongside focus context.
+        const env = this.terminalEnv;
+        this.contextKeys.set("tier", env.tier);
+        this.contextKeys.set("os", env.os);
+        this.contextKeys.set("isMac", env.os === "mac");
+        this.contextKeys.set("isLinux", env.os === "linux");
+        this.contextKeys.set("isWindows", env.os === "windows");
+        this.contextKeys.set("cap_extendedKeys", env.hasCapability("extended-keys"));
+        this.contextKeys.set("cap_osc52", env.hasCapability("osc52"));
+        this.contextKeys.set("cap_truecolor", env.hasCapability("truecolor"));
+        this.contextKeys.set("cap_kittyGraphics", env.hasCapability("kitty-graphics"));
+        this.contextKeys.set("cap_mouseSgr", env.hasCapability("mouse-sgr"));
+        for (const name of env.getKnownModeNames()) {
+            this.contextKeys.setRaw(`mode_${name}`, env.isModeActive(name));
+        }
     }
 
     private setupMenu(): void {

@@ -121,6 +121,22 @@ export interface OscToken {
     readonly raw: string;
 }
 
+// ─── Device-report tokens ───
+
+/**
+ * A private-mode CSI response to one of our capability probes — NOT a key event.
+ *  - "kitty-flags": reply to the Kitty keyboard-protocol query `CSI ? u` → `CSI ? <flags> u`.
+ *  - "da1":         reply to Primary Device Attributes `CSI c` → `CSI ? <attrs> c`.
+ * These begin with the private marker `?`, which never appears in a real key event.
+ */
+export interface DeviceReportToken {
+    readonly kind: "device-report";
+    readonly report: "kitty-flags" | "da1";
+    /** Raw parameter bytes including the leading `?` (e.g. "?15" or "?62;1;6"). */
+    readonly params: string;
+    readonly raw: string;
+}
+
 // ─── Mouse tokens ───
 
 export type MouseButton = "left" | "middle" | "right" | "none";
@@ -155,7 +171,8 @@ export type RawTerminalToken =
     | CtrlCharToken
     | UnknownByteToken
     | MouseToken
-    | OscToken;
+    | OscToken
+    | DeviceReportToken;
 
 export type RawKeyToken =
     | CsiUToken

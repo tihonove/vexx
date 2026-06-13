@@ -24,6 +24,14 @@ export interface ITerminalBackend {
     onOscResponse(callback: (code: number, data: string) => void): void;
 
     /**
+     * Asynchronously probe whether the terminal supports the Kitty keyboard protocol.
+     * The request/response escape-sequence dance is fully encapsulated by the backend;
+     * `onResult` fires exactly once with the answer (or `false` if the terminal doesn't
+     * reply within the probe window). Fire-and-forget — callers must not block on it.
+     */
+    probeKeyboardProtocol(onResult: (supported: boolean) => void): void;
+
+    /**
      * Render a frame: receive the current grid and cursor position.
      * The backend decides how to output it (ANSI diffing, simple copy, etc.).
      */

@@ -2,6 +2,7 @@ import type {
     CsiLetterToken,
     CsiTildeToken,
     CsiUToken,
+    DeviceReportToken,
     MouseToken,
     OscToken,
     RawTerminalToken,
@@ -438,7 +439,7 @@ export function inferCode(key: string): string {
 // ─── CSI parser ───
 
 interface CSITokenResult {
-    token: CsiUToken | CsiLetterToken | CsiTildeToken | MouseToken;
+    token: CsiUToken | CsiLetterToken | CsiTildeToken | MouseToken | DeviceReportToken;
     nextIndex: number;
 }
 
@@ -472,6 +473,21 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
 
     // Split semicolon-separated parameters, keeping raw strings for sub-parameter parsing
     const paramStrings = params ? params.split(";") : [];
+
+    // ── Device reports (responses to our capability probes) ──
+    // CSI ? <flags> u  → Kitty keyboard-protocol flags; CSI ? <attrs> c → Primary Device Attributes.
+    // The private marker '?' never appears in a real key event, so it's a safe discriminator —
+    // without this, `CSI ?15 u` would be misparsed as a phantom keypress and `CSI ?…c` would
+    // corrupt the stream. Surface them for the terminal-environment detector instead.
+    if (params.startsWith("?") && (finalByte === "u" || finalByte === "c")) {
+        const token: DeviceReportToken = {
+            kind: "device-report",
+            report: finalByte === "u" ? "kitty-flags" : "da1",
+            params,
+            raw,
+        };
+        return { token, nextIndex };
+    }
 
     // ── Kitty Keyboard Protocol: CSI <codepoint[:shifted[:base]]> ; <mod[:eventtype]> [; <text>] u ──
     if (finalByte === "u") {

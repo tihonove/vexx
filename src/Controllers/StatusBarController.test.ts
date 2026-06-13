@@ -27,11 +27,12 @@ describe("StatusBarController", () => {
         expect(statusBarController.view.constructor.name).toBe("StatusBarElement");
     });
 
-    it("shows no items when no file is open", () => {
+    it("shows only the terminal-environment segment when no file is open", () => {
         const { statusBarController } = createStatusBarController();
         statusBarController.mount();
 
-        expect(statusBarController.view.getItems()).toEqual([]);
+        // Test env has no probe → legacy tier, no non-local modes.
+        expect(statusBarController.view.getItems()).toEqual([{ text: "legacy" }]);
     });
 
     it("shows file name after update when file is opened", () => {
@@ -42,7 +43,13 @@ describe("StatusBarController", () => {
         statusBarController.update();
 
         const items = statusBarController.view.getItems();
-        expect(items).toEqual([{ text: "test-statusbar-file.txt" }]);
+        expect(items).toEqual([{ text: "legacy" }, { text: "test-statusbar-file.txt" }]);
+    });
+
+    it("shows the terminal tier as the first segment", () => {
+        const { statusBarController } = createStatusBarController();
+        statusBarController.mount();
+        expect(statusBarController.view.getItems()[0]).toEqual({ text: "legacy" });
     });
 
     it("shows [Modified] after text is edited", () => {
@@ -72,7 +79,7 @@ describe("StatusBarController", () => {
         });
 
         statusBarController.setChordHint(null);
-        expect(statusBarController.view.getItems()).toEqual([]);
+        expect(statusBarController.view.getItems()).toEqual([{ text: "legacy" }]);
     });
 
     it("keeps the chord hint alongside the file name", () => {
@@ -104,6 +111,6 @@ describe("StatusBarController", () => {
         statusBarController.update();
 
         const items = statusBarController.view.getItems();
-        expect(items).toEqual([{ text: "test-statusbar-save.txt" }]);
+        expect(items).toEqual([{ text: "legacy" }, { text: "test-statusbar-save.txt" }]);
     });
 });

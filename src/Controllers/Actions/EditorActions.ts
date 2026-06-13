@@ -1,6 +1,6 @@
 import type { CommandAction } from "../CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
 
 // ─── Basic Cursor Movement ──────────────────────────────────
 
@@ -170,10 +170,17 @@ export const cursorBottomSelectAction: CommandAction = {
 
 // ─── Word Navigation ────────────────────────────────────────
 
+// Word motions keep the canonical VS Code combo on every tier; on `legacy` (where the
+// terminal often can't disambiguate Ctrl/Ctrl+Shift+Arrow) we add single-key and leader-chord
+// fallbacks so the function is still reachable — breadth preserved, ergonomics degrade gracefully.
 export const cursorWordLeftAction: CommandAction = {
     id: "cursorWordLeft",
     title: "Cursor Word Left",
     keybinding: parseKeybinding("ctrl+left"),
+    keybindings: [
+        { keys: parseKeybinding("alt+left"), when: "tier == 'legacy'" },
+        { keys: parseChord("ctrl+k left"), when: "tier == 'legacy'" },
+    ],
     when: "textInputFocus",
     run(accessor) {
         accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordLeft();
@@ -184,6 +191,7 @@ export const cursorWordLeftSelectAction: CommandAction = {
     id: "cursorWordLeftSelect",
     title: "Cursor Word Left Select",
     keybinding: parseKeybinding("ctrl+shift+left"),
+    keybindings: [{ keys: parseChord("ctrl+k shift+left"), when: "tier == 'legacy'" }],
     when: "textInputFocus",
     run(accessor) {
         accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordLeft(true);
@@ -194,6 +202,10 @@ export const cursorWordRightAction: CommandAction = {
     id: "cursorWordRight",
     title: "Cursor Word Right",
     keybinding: parseKeybinding("ctrl+right"),
+    keybindings: [
+        { keys: parseKeybinding("alt+right"), when: "tier == 'legacy'" },
+        { keys: parseChord("ctrl+k right"), when: "tier == 'legacy'" },
+    ],
     when: "textInputFocus",
     run(accessor) {
         accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordRight();
@@ -204,6 +216,7 @@ export const cursorWordRightSelectAction: CommandAction = {
     id: "cursorWordRightSelect",
     title: "Cursor Word Right Select",
     keybinding: parseKeybinding("ctrl+shift+right"),
+    keybindings: [{ keys: parseChord("ctrl+k shift+right"), when: "tier == 'legacy'" }],
     when: "textInputFocus",
     run(accessor) {
         accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordRight(true);

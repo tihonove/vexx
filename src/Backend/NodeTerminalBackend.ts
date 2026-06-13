@@ -1,4 +1,5 @@
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { isInsideTmux } from "../Common/TerminalEnv.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
 import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../Input/mouseTracking.ts";
@@ -17,8 +18,19 @@ import type { ITerminalBackend } from "./ITerminalBackend.ts";
  * shortcuts like Ctrl+S regardless of the active keyboard layout (e.g. Russian).
  * See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
  */
+/* v8 ignore next */
 const KITTY_ENABLE = "\x1b[>15u";
 const KITTY_DISABLE = "\x1b[<u";
+
+/**
+ * Keyboard-protocol probe: query current Kitty flags (`CSI ? u`) immediately followed by
+ * Primary Device Attributes (`CSI c`). Only Kitty-capable terminals answer the first; every
+ * terminal answers DA1, so the DA1 reply is the "all replies are in" sentinel. The timeout
+ * bounds the negative case (no reply at all → not supported).
+ */
+const KITTY_FLAGS_QUERY = "\x1b[?u";
+const DA1_QUERY = "\x1b[c";
+const KEYBOARD_PROBE_TIMEOUT_MS = 200;
 
 /**
  * Wrap an escape sequence for TMUX DCS passthrough.
@@ -39,13 +51,6 @@ function wrapForTmux(sequence: string): string {
 }
 
 /**
- * Detect whether we are running inside a TMUX session.
- */
-function isInsideTmux(): boolean {
-    return process.env.TMUX != null && process.env.TMUX !== "";
-}
-
-/**
  * Real terminal backend: reads from process.stdin, writes to process.stdout.
  * Handles alternate screen, raw mode, cursor visibility, signal cleanup.
  * Enables Kitty Keyboard Protocol with TMUX passthrough support.
@@ -55,6 +60,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private mouseCallbacks: ((event: MouseToken) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private oscResponseCallbacks: ((code: number, data: string) => void)[] = [];
+    private deviceReportCallbacks: ((report: "kitty-flags" | "da1", params: string) => void)[] = [];
     private stdin: NodeJS.ReadStream;
     private stdout: NodeJS.WriteStream;
     private onDataHandler: ((chunk: string) => void) | null = null;
@@ -110,6 +116,25 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
     public onOscResponse(callback: (code: number, data: string) => void): void {
         this.oscResponseCallbacks.push(callback);
+    }
+
+    public probeKeyboardProtocol(onResult: (supported: boolean) => void): void {
+        let settled = false;
+        let supported = false;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        const finish = (): void => {
+            if (settled) return;
+            settled = true;
+            if (timer !== null) clearTimeout(timer);
+            onResult(supported);
+        };
+        this.deviceReportCallbacks.push((report) => {
+            if (settled) return;
+            if (report === "kitty-flags") supported = true;
+            else finish(); // DA1 reply = all replies are in
+        });
+        this.writePassthrough(KITTY_FLAGS_QUERY + DA1_QUERY);
+        timer = setTimeout(finish, KEYBOARD_PROBE_TIMEOUT_MS);
     }
 
     /** Emit resize only if dimensions actually changed */
@@ -182,6 +207,11 @@ export class NodeTerminalBackend implements ITerminalBackend {
             for (const oscToken of result.osc) {
                 for (const cb of this.oscResponseCallbacks) {
                     cb(oscToken.code, oscToken.data);
+                }
+            }
+            for (const report of result.deviceReports) {
+                for (const cb of this.deviceReportCallbacks) {
+                    cb(report.report, report.params);
                 }
             }
         };

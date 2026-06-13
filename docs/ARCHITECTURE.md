@@ -240,6 +240,9 @@ item.onActivate = () => this.openMenu(index);
 - ID команд, которые отражают поведение VS Code Workbench/Editor, именуются в стиле VS Code (например `workbench.action.nextEditorInGroup`, `workbench.action.closeActiveEditor`).
 - Доступность кейбиндингов определяется typed when-контекстами из `ContextKeys.ts` и вычисляется через `ContextKeyService`.
 - Фокусные и UI-состояния (например `textInputFocus`, `editorGroupHasEditors`, `editorTabsMultiple`) обновляются в `AppController.updateContextKeys()`.
+- Кейбинды адаптируются к терминалу по трём осям — capability (флаги), **tier** (`legacy < csi-u < kitty`, пресет флагов) и **mode** (`local`/`ssh`/`tmux` + кастомные). Они доступны в when-клаузах как `tier == 'kitty'`, `cap_osc52`, `mode_ssh`, `os == 'mac'`. Default-бинды задают tier-зависимые fallback'и через per-binding `when` в `CommandAction.keybindings` (`{ keys, when }`); пользовательские бинды — через `keybindings.json` (загрузчик в `Configuration/KeybindingsService.ts`, применение — `AppController.applyUserKeybindings`, VS Code-семантика `-command` для unbind).
+
+Подкаталог **`Controllers/TerminalEnvironment/`** — детект окружения: `TerminalEnvironmentService` резолвит tier/capabilities/modes/OS **синхронно** из переменных окружения (`$TERM`/`$COLORTERM`/`$TMUX`/`$SSH_*`/флаги вроде `$KITTY_WINDOW_ID`) — старт не блокируется. Дополнительно `detect()` запускает **fire-and-forget** пробу клавиатурного протокола: метод `ITerminalBackend.probeKeyboardProtocol(onResult)` инкапсулирует весь обмен escape-последовательностями (Kitty-флаги `ESC[?u` + DA1 `ESC[c`; ответы приходят как `device-report` токены из `Input/tokenize.ts`) — наружу торчит только булев результат. Проба может лишь **повысить** `extended-keys` (внутри tmux/ssh, где `$TERM` маскируется), после чего летит `onDidChange`; никто её не ждёт. Чистая модель/резолверы — `TerminalEnvironmentModel.ts`. Сервис зависит от `ITerminalBackend` (через `TerminalBackendDIToken`) и `IConfigurationService`; конфиг-секция `terminal.*` форсит tier/capabilities/modes.
 
 Зависимости контроллеров объявляются через `static dependencies` и резолвятся DI-контейнером из `Common/DiContainer.ts` при старте приложения. Подробности — [docs/DI.md](DI.md).
 
@@ -278,7 +281,7 @@ App → Extensions → Controllers → Editor → TUIDom → { Input, Rendering,
 - **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme и Extensions — связь через интерфейсы (`ITokenStyleResolver`, `ILanguageService`)
 - **Theme/Tokenization** реализует `ITokenStyleResolver` из `Editor/Tokenization`
 - **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик. Подмодуль **`Extensions/Host`** дополнительно зависит от `Controllers` (через `EditorGroupController`-адаптер) — единственное место, где Extensions поднимается выше Controllers.
-- **Controllers** зависит от Editor, TUIDom, Theme, Common
+- **Controllers** зависит от Editor, TUIDom, Theme, Configuration, Common и от интерфейса `Backend` (`ITerminalBackend` через `TerminalBackendDIToken` — `TerminalEnvironmentService` пробит терминал; Backend ниже по стеку)
 - **App** (main.ts) зависит от всех слоёв и оркеструет загрузку builtin-расширений до bootstrap DI
 
 ### DI-контейнер: границы использования

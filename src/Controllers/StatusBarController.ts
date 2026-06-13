@@ -10,23 +10,40 @@ import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import type { IController } from "./IController.ts";
+import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 
 export const StatusBarControllerDIToken = token<StatusBarController>("StatusBarController");
 
 export class StatusBarController extends Disposable implements IController {
-    public static dependencies = [EditorGroupControllerDIToken, ThemeServiceDIToken] as const;
+    public static dependencies = [
+        EditorGroupControllerDIToken,
+        ThemeServiceDIToken,
+        TerminalEnvironmentServiceDIToken,
+    ] as const;
 
     public readonly view: StatusBarElement;
     private editorGroupController: EditorGroupController;
+    private terminalEnv: TerminalEnvironmentService;
     private chordHint: string | null = null;
 
-    public constructor(editorGroupController: EditorGroupController, themeService: ThemeService) {
+    public constructor(
+        editorGroupController: EditorGroupController,
+        themeService: ThemeService,
+        terminalEnv: TerminalEnvironmentService,
+    ) {
         super();
         this.editorGroupController = editorGroupController;
+        this.terminalEnv = terminalEnv;
         this.view = new StatusBarElement();
         this.register(
             themeService.onThemeChange((theme) => {
                 this.applyTheme(theme);
+            }),
+        );
+        this.register(
+            this.terminalEnv.onDidChange(() => {
+                this.update();
             }),
         );
     }
@@ -58,6 +75,8 @@ export class StatusBarController extends Disposable implements IController {
     public update(): void {
         const items: StatusBarItem[] = [];
 
+        items.push({ text: this.terminalEnvSegment() });
+
         if (this.chordHint !== null) {
             items.push({ text: this.chordHint });
         }
@@ -73,5 +92,16 @@ export class StatusBarController extends Disposable implements IController {
         }
 
         this.view.setItems(items);
+    }
+
+    /**
+     * Compact terminal-environment indicator: the tier, plus any active modes
+     * beyond the implicit `local` (e.g. "kitty", "csi-u · ssh,tmux"). Nudges the
+     * user toward a more capable terminal by surfacing the current tier.
+     */
+    private terminalEnvSegment(): string {
+        const modes = [...this.terminalEnv.getActiveModes()].filter((m) => m !== "local").sort();
+        const suffix = modes.length > 0 ? ` · ${modes.join(",")}` : "";
+        return `${this.terminalEnv.tier}${suffix}`;
     }
 }

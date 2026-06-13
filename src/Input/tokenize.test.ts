@@ -467,4 +467,39 @@ describe("tokenize", () => {
         expect(tokens[0]).toMatchObject({ kind: "osc", code: 52 });
         expect(tokens[1]).toMatchObject({ kind: "char", char: "a" });
     });
+
+    // ─── Device reports (capability-probe responses) ───
+
+    it("parses a Kitty keyboard-flags report (CSI ? flags u) as device-report, not a keypress", () => {
+        const tokens = tokenize("\x1b[?15u");
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({ kind: "device-report", report: "kitty-flags", params: "?15" });
+    });
+
+    it("parses a DA1 report (CSI ? attrs c) as device-report", () => {
+        const tokens = tokenize("\x1b[?62;1;6c");
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({ kind: "device-report", report: "da1", params: "?62;1;6" });
+    });
+
+    it("parses a Kitty-flags report immediately followed by DA1 (the paired probe reply)", () => {
+        const tokens = tokenize("\x1b[?15u\x1b[?62;1;6c");
+        expect(tokens).toHaveLength(2);
+        expect(tokens[0]).toMatchObject({ kind: "device-report", report: "kitty-flags", params: "?15" });
+        expect(tokens[1]).toMatchObject({ kind: "device-report", report: "da1", params: "?62;1;6" });
+    });
+
+    it("still parses an ordinary Kitty CSI u key event (no private marker)", () => {
+        // 's' = codepoint 115; ensure the device-report guard doesn't swallow real key events.
+        const tokens = tokenize("\x1b[115u");
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({ kind: "csi-u", codepoint: 115 });
+    });
+
+    it("parses a device-report followed by regular input", () => {
+        const tokens = tokenize("\x1b[?15ua");
+        expect(tokens).toHaveLength(2);
+        expect(tokens[0]).toMatchObject({ kind: "device-report", report: "kitty-flags" });
+        expect(tokens[1]).toMatchObject({ kind: "char", char: "a" });
+    });
 });

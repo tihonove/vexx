@@ -13,5 +13,15 @@ export function getDefaultConfiguration(): Readonly<Record<string, unknown>> {
             insertSpaces: true,
             // detectIndentation: true — добавим, когда EditorController станет читать из конфига.
         },
+        terminal: {
+            // Tier override: "auto" (detect) | "legacy" | "csi-u" | "kitty".
+            tier: "auto",
+            // Capability force-overrides, e.g. { osc52: false }. Empty = use detection.
+            capabilities: {},
+            // Force modes on/off, e.g. { ssh: true }. Wins over auto-detection.
+            modes: {},
+            // Declare custom manual-only modes, e.g. { presentation: {} } — usable in `when`.
+            customModes: {},
+        },
     };
 }

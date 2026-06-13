@@ -2,17 +2,31 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Container, token } from "../Common/DiContainer.ts";
 
+import { ContextKeyService } from "./ContextKeyService.ts";
 import type { CommandAction } from "./CommandAction.ts";
-import { registerAction } from "./CommandAction.ts";
+import { combineWhen, registerAction } from "./CommandAction.ts";
 import { CommandRegistry } from "./CommandRegistry.ts";
 import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
 import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
 
 // Maps the structured resolveKey result to a command id (or undefined).
-function resolve(keybindings: KeybindingRegistry, event: KeyboardEventLike): string | undefined {
-    const res = keybindings.resolveKey(event);
+function resolve(
+    keybindings: KeybindingRegistry,
+    event: KeyboardEventLike,
+    contextKeys?: ContextKeyService,
+): string | undefined {
+    const res = keybindings.resolveKey(event, contextKeys);
     return res.kind === "command" ? res.commandId : undefined;
 }
+
+const KEY = (key: string, mods: Partial<KeyboardEventLike> = {}): KeyboardEventLike => ({
+    key,
+    ctrlKey: false,
+    shiftKey: false,
+    altKey: false,
+    metaKey: false,
+    ...mods,
+});
 
 describe("registerAction", () => {
     it("registers command handler in CommandRegistry", () => {
@@ -196,6 +210,60 @@ describe("registerAction", () => {
             metaKey: false,
         });
         expect(resolved).toBeUndefined();
+    });
+
+    it("a conditional binding only resolves when its per-binding when passes", () => {
+        const commands = new CommandRegistry();
+        const keybindings = new KeybindingRegistry();
+        const accessor = new Container();
+        const ctx = new ContextKeyService();
+        const action: CommandAction = {
+            id: "wordRight",
+            title: "Word Right",
+            keybinding: parseKeybinding("ctrl+right"),
+            keybindings: [{ keys: parseKeybinding("alt+right"), when: "tier == 'legacy'" }],
+            run: vi.fn(),
+        };
+        registerAction(commands, keybindings, accessor, action);
+
+        // alt+right is gated on legacy.
+        ctx.set("tier", "kitty");
+        expect(resolve(keybindings, KEY("ArrowRight", { altKey: true }), ctx)).toBeUndefined();
+        ctx.set("tier", "legacy");
+        expect(resolve(keybindings, KEY("ArrowRight", { altKey: true }), ctx)).toBe("wordRight");
+
+        // The unconditional ctrl+right works on every tier.
+        ctx.set("tier", "kitty");
+        expect(resolve(keybindings, KEY("ArrowRight", { ctrlKey: true }), ctx)).toBe("wordRight");
+    });
+
+    it("AND-combines action-wide when with per-binding when", () => {
+        const commands = new CommandRegistry();
+        const keybindings = new KeybindingRegistry();
+        const accessor = new Container();
+        const ctx = new ContextKeyService();
+        const action: CommandAction = {
+            id: "scoped",
+            title: "Scoped",
+            when: "textInputFocus",
+            keybindings: [{ keys: parseKeybinding("alt+right"), when: "tier == 'legacy'" }],
+            run: vi.fn(),
+        };
+        registerAction(commands, keybindings, accessor, action);
+
+        ctx.set("tier", "legacy");
+        ctx.set("textInputFocus", false);
+        expect(resolve(keybindings, KEY("ArrowRight", { altKey: true }), ctx)).toBeUndefined();
+
+        ctx.set("textInputFocus", true);
+        expect(resolve(keybindings, KEY("ArrowRight", { altKey: true }), ctx)).toBe("scoped");
+    });
+
+    it("combineWhen joins both clauses, or returns whichever is present", () => {
+        expect(combineWhen("a", "b")).toBe("(a) && (b)");
+        expect(combineWhen("a", undefined)).toBe("a");
+        expect(combineWhen(undefined, "b")).toBe("b");
+        expect(combineWhen(undefined, undefined)).toBeUndefined();
     });
 
     it("run can access services via accessor", () => {
