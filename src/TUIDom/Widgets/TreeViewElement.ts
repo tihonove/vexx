@@ -179,7 +179,9 @@ export class TreeViewElement<T> extends ScrollableElement {
                     continue;
                 }
                 const slot = dl.graphemeAtColumn(col);
+                /* v8 ignore start -- defensive: graphemeAtColumn is non-null whenever charAtColumn already returned a non-empty char */
                 const w = slot ? slot.displayWidth : 1;
+                /* v8 ignore stop */
                 let fg = rowFg;
 
                 // Color the icon character
@@ -246,7 +248,9 @@ export class TreeViewElement<T> extends ScrollableElement {
         if (!this.expandedKeys.has(key)) return;
 
         const node = this.findElementByKey(key);
+        /* v8 ignore start -- unreachable: findElementByKey always resolves an expanded key (see its own v8-ignore note) */
         if (node === null) return;
+        /* v8 ignore stop */
 
         const children = await this.provider.getChildren(node);
         this.childrenCache.set(key, children);
@@ -294,9 +298,11 @@ export class TreeViewElement<T> extends ScrollableElement {
 
             if (this.expandedKeys.has(key)) {
                 const cachedChildren = this.childrenCache.get(key);
+                /* v8 ignore start -- defensive: an expanded key always has its children cached (cache and expandedKeys stay in sync) */
                 if (cachedChildren) {
                     this.appendChildren(cachedChildren, depth + 1, key);
                 }
+                /* v8 ignore stop */
             }
         }
     }
@@ -440,9 +446,11 @@ export class TreeViewElement<T> extends ScrollableElement {
             await this.toggleExpand(node.element);
         } else if (node.parentKey !== null) {
             const parentIdx = this.flatNodes.findIndex((n) => this.provider.getKey(n.element) === node.parentKey);
+            /* v8 ignore start -- defensive: a visible child's parent is always present in the flat list */
             if (parentIdx >= 0) {
                 this.setSelectedIndex(parentIdx);
             }
+            /* v8 ignore stop */
         }
     }
 
