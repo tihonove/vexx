@@ -27,7 +27,7 @@
       "Bash(npx vitest *)",
       "Bash(npm run *)",
       "Bash(npx tsc *)",
-      "Bash(node -e ' *)",
+      "Bash(node -e ' *)"
     ],
     "defaultMode": "bypassPermissions",
     "additionalDirectories": [
