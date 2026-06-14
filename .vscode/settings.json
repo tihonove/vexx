@@ -1,4 +1,6 @@
 {
+    "claudeCode.allowDangerouslySkipPermissions": true,
+    "claudeCode.initialPermissionMode": "bypassPermissions",
     "chat.tools.terminal.autoApprove": {
         "npm install": true,
         "npx vitest": true,
