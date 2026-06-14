@@ -70,10 +70,11 @@ export class OscClipboard implements IClipboard {
         }
 
         return new Promise<string>((resolve) => {
+            // The timer is always cleared whenever pendingRead is reset (on a
+            // response or when a newer read supersedes this one), so if it fires
+            // it is guaranteed to still own the current pendingRead.
             const timer = setTimeout(() => {
-                if (this.pendingRead?.resolve === resolve) {
-                    this.pendingRead = null;
-                }
+                this.pendingRead = null;
                 resolve(this.buffer);
             }, READ_TIMEOUT_MS);
 

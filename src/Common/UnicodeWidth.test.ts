@@ -230,6 +230,35 @@ describe("getCharDisplayWidth", () => {
         });
     });
 
+    describe("emoji Emoji_Presentation sub-ranges", () => {
+        // Each entry covers one explicit Emoji_Presentation=Yes sub-range in
+        // isWide(). Both endpoints are checked to pin down range boundaries.
+        const ranges: Array<[number, number, string]> = [
+            [0x1f337, 0x1f37c, "food / plants"],
+            [0x1f3a0, 0x1f3ca, "entertainment"],
+            [0x1f3cf, 0x1f3d3, "sports"],
+            [0x1f3e0, 0x1f3f0, "buildings"],
+            [0x1f4ff, 0x1f53d, "more objects"],
+            [0x1f550, 0x1f567, "clocks"],
+            [0x1f595, 0x1f596, "hand gestures"],
+            [0x1f6d5, 0x1f6d7, "transport/map"],
+            [0x1f6dd, 0x1f6df, "transport/map"],
+            [0x1f6eb, 0x1f6ec, "transport/map"],
+            [0x1f6f4, 0x1f6fc, "transport/map"],
+        ];
+
+        for (const [start, end, label] of ranges) {
+            it(`returns 2 across ${label} (U+${start.toString(16).toUpperCase()}..U+${end.toString(16).toUpperCase()})`, () => {
+                expect(getCharDisplayWidth(start)).toBe(2);
+                expect(getCharDisplayWidth(end)).toBe(2);
+            });
+        }
+
+        it("returns 2 for MAN DANCING (U+1F57A)", () => {
+            expect(getCharDisplayWidth(0x1f57a)).toBe(2);
+        });
+    });
+
     describe("Zero-width characters", () => {
         it("returns 0 for ZWJ (U+200D)", () => {
             expect(getCharDisplayWidth(0x200d)).toBe(0);
@@ -355,6 +384,12 @@ describe("getGraphemeDisplayWidth", () => {
 
     it("returns 1 for a base + combining mark cluster", () => {
         expect(getGraphemeDisplayWidth("e\u0301")).toBe(1); // e + ◌́
+    });
+
+    it("returns 1 for a cluster that is entirely zero-width", () => {
+        // A lone combining mark has no base: every code point is zero-width,
+        // so the result falls back to 1 because the cluster is non-empty.
+        expect(getGraphemeDisplayWidth("́")).toBe(1);
     });
 
     it("returns 2 for ZWJ emoji sequence", () => {

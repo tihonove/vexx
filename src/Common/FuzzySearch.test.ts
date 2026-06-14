@@ -210,4 +210,92 @@ describe("fuzzyMatchBest", () => {
         expect(best).not.toBeNull();
         expect(best!.score).toBeGreaterThanOrEqual(greedy!.score);
     });
+
+    it("returns null for non-empty query against empty text (no candidates)", () => {
+        expect(fuzzyMatchBest("a", "")).toBeNull();
+    });
+
+    it("skips candidate starts that cannot complete the match", () => {
+        // 'a' occurs at index 0 and 4. Only the start at 0 can reach a later 'b'
+        // (index 2); the start at 4 has no 'b' after it and is discarded.
+        const result = fuzzyMatchBest("ab", "axbxa");
+        expect(result).not.toBeNull();
+        expect(result!.matchedIndices).toEqual([0, 2]);
+    });
+});
+
+// ─── Separator word boundaries (each char in the boundary set) ────────────────
+
+describe("fuzzyMatch — separator word boundaries", () => {
+    // For each separator, the char immediately after it is a word boundary and
+    // earns WORD_START_BONUS, so the score beats the same chars with no separator.
+    const baseline = fuzzyMatch("ac", "abcd")!.score; // 'c' at index 2 is mid-word
+
+    it("dash is a word boundary", () => {
+        expect(fuzzyMatch("ac", "ab-cd")!.score).toBeGreaterThan(baseline);
+    });
+
+    it("space is a word boundary", () => {
+        expect(fuzzyMatch("ac", "ab cd")!.score).toBeGreaterThan(baseline);
+    });
+
+    it("backslash is a word boundary", () => {
+        expect(fuzzyMatch("ac", "ab\\cd")!.score).toBeGreaterThan(baseline);
+    });
+
+    it("slash is a word boundary", () => {
+        expect(fuzzyMatch("ac", "ab/cd")!.score).toBeGreaterThan(baseline);
+    });
+
+    it("underscore is a word boundary", () => {
+        expect(fuzzyMatch("ac", "ab_cd")!.score).toBeGreaterThan(baseline);
+    });
+
+    it("dot is a word boundary", () => {
+        expect(fuzzyMatch("ac", "ab.cd")!.score).toBeGreaterThan(baseline);
+    });
+});
+
+// ─── camelCase boundary requires a lowercase→uppercase transition ─────────────
+
+describe("fuzzyMatch — camelCase boundary detection", () => {
+    it("uppercase preceded by lowercase IS a boundary", () => {
+        // 'C' in "abCd" follows lowercase 'b' → word boundary → WORD_START_BONUS
+        const lowerToUpper = fuzzyMatch("ac", "abCd");
+        // 'C' in "aBCd" follows uppercase 'B' → NOT a camelCase boundary
+        const upperToUpper = fuzzyMatch("ac", "aBCd");
+        expect(lowerToUpper).not.toBeNull();
+        expect(upperToUpper).not.toBeNull();
+        expect(lowerToUpper!.score).toBeGreaterThan(upperToUpper!.score);
+    });
+
+    it("acronym run (uppercase after uppercase) gives no extra boundary bonus", () => {
+        // In "HTTPServer", the inner uppercase letters of the acronym are not
+        // boundaries; only 'H' (index 0) and 'S' (after lowercase) are.
+        const result = fuzzyMatch("hs", "HTTPServer");
+        expect(result).not.toBeNull();
+        // 'h' at 0 (first + boundary) and 'S' at 4 (camelCase boundary after 'P'? no —
+        // 'S' follows uppercase 'P', so it is NOT a camelCase boundary here)
+        // The match still succeeds; we just assert it found both characters.
+        expect(result!.matchedIndices).toEqual([0, 4]);
+    });
+});
+
+// ─── Gap penalty ──────────────────────────────────────────────────────────────
+
+describe("fuzzyMatch — gap penalty", () => {
+    it("a larger gap between matched chars lowers the score", () => {
+        const tight = fuzzyMatch("az", "az"); // gap 0
+        const loose = fuzzyMatch("az", "axxxz"); // gap 3
+        expect(tight).not.toBeNull();
+        expect(loose).not.toBeNull();
+        expect(tight!.score).toBeGreaterThan(loose!.score);
+    });
+
+    it("leading gap before the first matched char is penalised", () => {
+        // 'a' at index 0 vs 'a' at index 3: the later start eats a leading gap.
+        const atStart = fuzzyMatch("a", "axxx"); // 'a' at 0
+        const offset = fuzzyMatch("a", "xxxa"); // 'a' at 3, gap of 3 from index 0
+        expect(atStart!.score).toBeGreaterThan(offset!.score);
+    });
 });

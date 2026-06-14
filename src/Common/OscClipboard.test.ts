@@ -48,6 +48,26 @@ describe("OscClipboard", () => {
         expect(await clipboard.readText()).toBe(text);
     });
 
+    it("encodes an empty string to an empty base64 payload", async () => {
+        const writeFn = vi.fn();
+        const clipboard = new OscClipboard(writeFn);
+        await clipboard.writeText("");
+        expect(writeFn).toHaveBeenCalledWith("\x1b]52;c;\x07");
+        expect(await clipboard.readText()).toBe("");
+    });
+
+    it("writeText resolves its promise", async () => {
+        const clipboard = new OscClipboard(vi.fn());
+        await expect(clipboard.writeText("x")).resolves.toBeUndefined();
+    });
+
+    it("readText does not send an OSC query when no subscribeFn is provided", async () => {
+        const writeFn = vi.fn();
+        const clipboard = new OscClipboard(writeFn);
+        await clipboard.readText();
+        expect(writeFn).not.toHaveBeenCalled();
+    });
+
     describe("with subscribeFn (OSC 52 read)", () => {
         it("readText sends OSC 52 query", async () => {
             const writeFn = vi.fn();
@@ -136,6 +156,67 @@ describe("OscClipboard", () => {
             // No semicolon → whole payload is treated as base64.
             subscriber!(52, Buffer.from("direct", "utf8").toString("base64"));
             expect(await promise).toBe("direct");
+        });
+
+        it("ignores an unsolicited OSC 52 response when no read is pending", async () => {
+            const writeFn = vi.fn();
+            let subscriber: ((code: number, data: string) => void) | null = null;
+            const clipboard = new OscClipboard(writeFn, (cb) => {
+                subscriber = cb;
+            });
+
+            // Terminal pushes a selection update without us querying for it.
+            subscriber!(52, "c;" + Buffer.from("unsolicited", "utf8").toString("base64"));
+
+            // Buffer must stay empty: the response is dropped, not stored.
+            const promise = clipboard.readText();
+            subscriber!(52, "c;" + Buffer.from("real", "utf8").toString("base64"));
+            expect(await promise).toBe("real");
+        });
+
+        it("stores the terminal response in the buffer for later reads", async () => {
+            vi.useFakeTimers();
+            const writeFn = vi.fn();
+            let subscriber: ((code: number, data: string) => void) | null = null;
+            const clipboard = new OscClipboard(writeFn, (cb) => {
+                subscriber = cb;
+            });
+
+            const first = clipboard.readText();
+            subscriber!(52, "c;" + Buffer.from("from terminal", "utf8").toString("base64"));
+            expect(await first).toBe("from terminal");
+
+            // A second read that times out should fall back to the cached terminal value.
+            const second = clipboard.readText();
+            vi.advanceTimersByTime(5000);
+            expect(await second).toBe("from terminal");
+            vi.useRealTimers();
+        });
+
+        it("a terminal response overrides the previously written buffer", async () => {
+            const writeFn = vi.fn();
+            let subscriber: ((code: number, data: string) => void) | null = null;
+            const clipboard = new OscClipboard(writeFn, (cb) => {
+                subscriber = cb;
+            });
+
+            await clipboard.writeText("local");
+            const promise = clipboard.readText();
+            subscriber!(52, "c;" + Buffer.from("terminal", "utf8").toString("base64"));
+            expect(await promise).toBe("terminal");
+        });
+
+        it("decodes an empty base64 payload from the terminal as an empty string", async () => {
+            const writeFn = vi.fn();
+            let subscriber: ((code: number, data: string) => void) | null = null;
+            const clipboard = new OscClipboard(writeFn, (cb) => {
+                subscriber = cb;
+            });
+
+            await clipboard.writeText("local");
+            const promise = clipboard.readText();
+            subscriber!(52, "c;");
+            expect(await promise).toBe("");
         });
 
         it("second readText cancels the first", async () => {
