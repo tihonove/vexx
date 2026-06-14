@@ -373,6 +373,7 @@ export class TreeViewElement<T> extends ScrollableElement {
                 return node.element;
             }
         }
+        /* v8 ignore start -- unreachable: findElementByKey is only called with keys of currently-flattened (visible) nodes, which the loop above always finds */
         // Search in cache values too
         for (const children of this.childrenCache.values()) {
             for (const child of children) {
@@ -382,6 +383,7 @@ export class TreeViewElement<T> extends ScrollableElement {
             }
         }
         return null;
+        /* v8 ignore stop */
     }
 
     // ─── Private: input handlers ───

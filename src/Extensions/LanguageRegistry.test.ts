@@ -45,6 +45,32 @@ describe("LanguageRegistry", () => {
         expect(registry.getLanguageIdForResource("/p/tsconfig.json")).toBeUndefined();
     });
 
+    it("escapes regex-special characters in filenamePatterns (literal '+' match)", () => {
+        const registry = new LanguageRegistry();
+        // '+' is a regex quantifier; it must be matched literally, not as "one or more".
+        registry.register(makeExt("p", [{ id: "plusfile", filenamePatterns: ["c++.*"] }]));
+
+        expect(registry.getLanguageIdForResource("/p/c++.txt")).toBe("plusfile");
+        // 'cc.txt' would match if '+' were treated as a quantifier — it must NOT.
+        expect(registry.getLanguageIdForResource("/p/cc.txt")).toBeUndefined();
+    });
+
+    it("records firstLine from a language contribution", () => {
+        const registry = new LanguageRegistry();
+        registry.register(makeExt("sh", [{ id: "shellscript", extensions: [".sh"], firstLine: "^#!.*\\bsh\\b" }]));
+
+        expect(registry.getLanguage("shellscript")?.firstLine).toBe("^#!.*\\bsh\\b");
+    });
+
+    it("register() with empty languages list returns a no-op disposable", () => {
+        const registry = new LanguageRegistry();
+        const disposable = registry.register(makeExt("nolang", []));
+
+        // No languages registered, and disposing the no-op must not throw.
+        expect(registry.allLanguages()).toEqual([]);
+        expect(() => disposable.dispose()).not.toThrow();
+    });
+
     it("matches по extension case-insensitive", () => {
         const registry = new LanguageRegistry();
         registry.register(makeExt("ts", [{ id: "typescript", extensions: [".ts"] }]));

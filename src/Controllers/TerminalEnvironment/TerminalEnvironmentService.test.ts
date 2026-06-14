@@ -152,5 +152,32 @@ describe("TerminalEnvironmentService", () => {
                 expect.arrayContaining(["local", "ssh", "tmux", "presentation", "ci"]),
             );
         });
+
+        it("getActiveModes adds a forced-on mode and removes a forced-off base mode", () => {
+            process.env.TMUX = "/tmp/x,1,0"; // tmux is a base mode
+            const service = new TerminalEnvironmentService(new MockTerminalBackend(), configFrom());
+
+            // Force a non-base mode ON and force the base "tmux" mode OFF at runtime.
+            service.setMode("presentation", true);
+            service.setMode("tmux", false);
+
+            const active = service.getActiveModes();
+            expect(active.has("local")).toBe(true); // base mode untouched
+            expect(active.has("presentation")).toBe(true); // forced-on (line 106 branch)
+            expect(active.has("tmux")).toBe(false); // forced-off base mode removed (line 107 branch)
+        });
+    });
+
+    describe("dispose", () => {
+        it("clears listeners so later changes notify nobody", () => {
+            const service = new TerminalEnvironmentService(new MockTerminalBackend(), configFrom());
+            let fired = 0;
+            service.onDidChange(() => fired++);
+
+            service.dispose();
+
+            service.setMode("presentation", true);
+            expect(fired).toBe(0);
+        });
     });
 });

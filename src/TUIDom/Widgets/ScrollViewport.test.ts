@@ -232,6 +232,50 @@ describe("ScrollViewport", () => {
         expect(viewport.scrollLeft).toBe(0); // contentWidth=8, viewportWidth=10 → max=0
     });
 
+    it("reports child contentWidth as max intrinsic width", () => {
+        const { viewport, child } = createViewport(10, 5, 20);
+        expect(viewport.getMaxIntrinsicWidth(0)).toBe(child.contentWidth);
+    });
+
+    it("reports child contentHeight as max intrinsic height", () => {
+        const { viewport } = createViewport(10, 5, 42);
+        expect(viewport.getMaxIntrinsicHeight(0)).toBe(42);
+    });
+
+    it("exposes the wrapped content child via getChild", () => {
+        const { viewport, child } = createViewport(10, 5, 20);
+        expect(viewport.getChild()).toBe(child);
+    });
+
+    it("clamps vertical scroll so content cannot scroll past its end", () => {
+        const { viewport } = createViewport(10, 4, 20); // content 20 rows, viewport 4
+        viewport.globalPosition = new Point(0, 0);
+        viewport.performLayout(BoxConstraints.tight(new Size(10, 4)));
+
+        viewport.scrollTo(0, 9999);
+        expect(viewport.scrollTop).toBe(16); // 20 - 4
+    });
+
+    it("clamps horizontal scroll when content wider than viewport", () => {
+        // contentWidth = "Line 001".length = 8, viewport width = 5 → max scrollLeft = 3
+        const { viewport } = createViewport(5, 3, 20);
+        viewport.globalPosition = new Point(0, 0);
+        viewport.performLayout(BoxConstraints.tight(new Size(5, 3)));
+
+        viewport.scrollTo(9999, 0);
+        expect(viewport.scrollLeft).toBe(3); // 8 - 5
+    });
+
+    it("scrollBy past the end stays clamped at the maximum", () => {
+        const { viewport } = createViewport(10, 4, 20);
+        viewport.globalPosition = new Point(0, 0);
+        viewport.performLayout(BoxConstraints.tight(new Size(10, 4)));
+
+        viewport.scrollBy(0, 100);
+        viewport.scrollBy(0, 100);
+        expect(viewport.scrollTop).toBe(16); // never exceeds 20 - 4
+    });
+
     it("scrollBy adjusts relative to current position", () => {
         const { viewport } = createViewport(10, 3, 20);
         viewport.globalPosition = new Point(0, 0);

@@ -35,4 +35,13 @@ describe("LogLevel", () => {
         expect(parseLogLevel("verbose")).toBeUndefined();
         expect(parseLogLevel("")).toBeUndefined();
     });
+
+    it("parseLogLevel parses off/trace/error (case-insensitive)", () => {
+        expect(parseLogLevel("off")).toBe(LogLevel.Off);
+        expect(parseLogLevel("OFF")).toBe(LogLevel.Off);
+        expect(parseLogLevel("trace")).toBe(LogLevel.Trace);
+        expect(parseLogLevel("TRACE")).toBe(LogLevel.Trace);
+        expect(parseLogLevel("error")).toBe(LogLevel.Error);
+        expect(parseLogLevel("ERROR")).toBe(LogLevel.Error);
+    });
 });

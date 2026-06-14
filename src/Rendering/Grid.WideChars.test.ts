@@ -117,6 +117,43 @@ describe("Grid — wide character support", () => {
         });
     });
 
+    describe("wide char whose continuation lands on another wide-char head (setCell lines 98-101)", () => {
+        it("clears the orphaned continuation of the displaced wide char", () => {
+            const grid = new Grid(new Size(10, 1));
+            // Wide char B occupies head=3, continuation=4.
+            grid.setCell(new Point(3, 0), "字", DEFAULT_COLOR, DEFAULT_COLOR, 0, 2);
+            expect(grid.getCellAt(4, 0).width).toBe(0);
+
+            // Wide char A at head=2; its continuation falls on x=3 — which is the
+            // head of B. The continuation of B (x=4) must be reset to a space.
+            grid.setCell(new Point(2, 0), "漢", DEFAULT_COLOR, DEFAULT_COLOR, 0, 2);
+
+            expect(grid.getCellAt(2, 0).char).toBe("漢");
+            expect(grid.getCellAt(2, 0).width).toBe(2);
+            // x=3 became the continuation of A.
+            expect(grid.getCellAt(3, 0).width).toBe(0);
+            // Orphaned continuation of B cleaned up.
+            expect(grid.getCellAt(4, 0).char).toBe(" ");
+            expect(grid.getCellAt(4, 0).width).toBe(1);
+        });
+    });
+
+    describe("updateCell wide char displacing another wide-char head (lines 151-154)", () => {
+        it("clears the orphaned continuation via updateCell", () => {
+            const grid = new Grid(new Size(10, 1));
+            grid.updateCell(new Point(3, 0), { char: "字", width: 2 });
+            expect(grid.getCellAt(4, 0).width).toBe(0);
+
+            grid.updateCell(new Point(2, 0), { char: "漢", width: 2 });
+
+            expect(grid.getCellAt(2, 0).char).toBe("漢");
+            expect(grid.getCellAt(2, 0).width).toBe(2);
+            expect(grid.getCellAt(3, 0).width).toBe(0);
+            expect(grid.getCellAt(4, 0).char).toBe(" ");
+            expect(grid.getCellAt(4, 0).width).toBe(1);
+        });
+    });
+
     describe("cellEqualsAt with width", () => {
         it("cells with different width are not equal", () => {
             const a = new Grid(new Size(4, 1));

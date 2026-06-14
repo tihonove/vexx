@@ -11,6 +11,7 @@ import { RenderContext } from "../TUIElement.ts";
 import { EditorTabItemElement } from "./EditorTabItemElement.ts";
 
 const tsIcon = getFileIcon("file.ts");
+const jsIcon = getFileIcon("app.js");
 
 function renderTab(tab: EditorTabItemElement, width?: number): { backend: MockTerminalBackend; text: string } {
     const intrinsicWidth = width ?? tab.getMaxIntrinsicWidth(1);
@@ -135,6 +136,46 @@ describe("EditorTabItemElement", () => {
             expect(tab.isLayoutDirty).toBe(false);
             tab.setModified(false);
             expect(tab.isLayoutDirty).toBe(false);
+        });
+
+        it("getIcon returns the current icon and setIcon replaces it", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            expect(tab.getIcon()).toBe(tsIcon.icon);
+
+            tab.setIcon(jsIcon.icon, jsIcon.color);
+            expect(tab.getIcon()).toBe(jsIcon.icon);
+
+            const { text } = renderTab(tab);
+            expect(text).toContain(jsIcon.icon);
+            expect(text).not.toContain(tsIcon.icon);
+        });
+
+        it("setPaddingLeft changes the left padding and grows the rendered width", () => {
+            const tab = new EditorTabItemElement("a.ts", tsIcon.icon, tsIcon.color, {
+                paddingLeft: 1,
+                paddingRight: 1,
+            });
+            const before = tab.getMaxIntrinsicWidth(1);
+            tab.setPaddingLeft(3);
+            expect(tab.getPaddingLeft()).toBe(3);
+            expect(tab.getMaxIntrinsicWidth(1)).toBe(before + 2);
+
+            const { text } = renderTab(tab);
+            expect(text.startsWith("   ")).toBe(true);
+        });
+
+        it("setPaddingRight changes the right padding and grows the rendered width", () => {
+            const tab = new EditorTabItemElement("a.ts", tsIcon.icon, tsIcon.color, {
+                paddingLeft: 1,
+                paddingRight: 1,
+            });
+            const before = tab.getMaxIntrinsicWidth(1);
+            tab.setPaddingRight(3);
+            expect(tab.getPaddingRight()).toBe(3);
+            expect(tab.getMaxIntrinsicWidth(1)).toBe(before + 2);
+
+            const { text } = renderTab(tab);
+            expect(text.endsWith("   ")).toBe(true);
         });
     });
 

@@ -641,7 +641,9 @@ function decodeMouseButton(cb: number, isRelease: boolean): { button: MouseButto
 
     if (isScroll) {
         const scrollActions: MouseAction[] = ["scroll-up", "scroll-down", "scroll-left", "scroll-right"];
+        /* v8 ignore start -- the ?? fallback is unreachable: lowBits is cb&3 ∈ {0..3} and scrollActions has exactly 4 entries */
         return { button: "none", action: scrollActions[lowBits] ?? "scroll-up" };
+        /* v8 ignore stop */
     }
 
     const buttons: MouseButton[] = ["left", "middle", "right"];

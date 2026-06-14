@@ -55,4 +55,30 @@ describe("FsAssetAccess", () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
         await expect(assets.read("Extensions/../escape")).rejects.toThrow();
     });
+
+    it("listEntries без trailing / бросает", async () => {
+        const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
+        await expect(assets.listEntries("Extensions/builtin")).rejects.toThrow(/must end with/);
+    });
+
+    it("listEntries возвращает [] для несуществующего каталога", async () => {
+        const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
+        expect(await assets.listEntries("Extensions/builtin/nope/")).toEqual([]);
+    });
+
+    it("listEntries по пустому prefix бросает, если нет mapping для \"\"", async () => {
+        const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
+        await expect(assets.listEntries("")).rejects.toThrow(/empty virtual prefix/);
+    });
+
+    it("listEntries по пустому prefix читает root, если он замаплен на \"\"", async () => {
+        const assets = new FsAssetAccess({ "": join(root, "ext") });
+        const entries = (await assets.listEntries("")).map((e) => e.name).sort();
+        expect(entries).toEqual(["ts"]);
+    });
+
+    it("listEntries бросает, если префикс не покрыт ни одним mapping", async () => {
+        const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
+        await expect(assets.listEntries("Other/dir/")).rejects.toThrow(/No FS mapping for virtual prefix/);
+    });
 });

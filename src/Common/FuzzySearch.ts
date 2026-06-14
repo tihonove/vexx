@@ -134,6 +134,7 @@ function fuzzyMatchFrom(query: string, text: string, startAt: number): FuzzyMatc
     const qLower = query.toLowerCase();
     const tLower = text.toLowerCase();
 
+    /* v8 ignore next -- defensive: the only caller passes startAt positions where text[startAt] already equals query[0] */
     if (tLower[startAt] !== qLower[0]) return null;
 
     const matchedIndices: number[] = [startAt];

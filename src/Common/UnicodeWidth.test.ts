@@ -109,6 +109,125 @@ describe("getCharDisplayWidth", () => {
             expect(getCharDisplayWidth(0x20d0)).toBe(0);
             expect(getCharDisplayWidth(0x20ff)).toBe(0);
         });
+
+        it("returns 0 for Combining Grapheme Joiner (U+034F)", () => {
+            expect(getCharDisplayWidth(0x034f)).toBe(0);
+        });
+
+        it("returns 0 for Combining Diacritical Marks Extended (U+1AB0..U+1AFF)", () => {
+            expect(getCharDisplayWidth(0x1ab0)).toBe(0);
+            expect(getCharDisplayWidth(0x1aff)).toBe(0);
+        });
+
+        it("returns 0 for Combining Diacritical Marks Supplement (U+1DC0..U+1DFF)", () => {
+            expect(getCharDisplayWidth(0x1dc0)).toBe(0);
+            expect(getCharDisplayWidth(0x1dff)).toBe(0);
+        });
+
+        it("returns 0 for Combining Half Marks (U+FE20..U+FE2F)", () => {
+            expect(getCharDisplayWidth(0xfe20)).toBe(0);
+            expect(getCharDisplayWidth(0xfe2f)).toBe(0);
+        });
+    });
+
+    describe("script-specific combining marks", () => {
+        it("returns 0 for Thai combining marks", () => {
+            expect(getCharDisplayWidth(0x0e31)).toBe(0);
+            expect(getCharDisplayWidth(0x0e3a)).toBe(0);
+            expect(getCharDisplayWidth(0x0e47)).toBe(0);
+            expect(getCharDisplayWidth(0x0e4e)).toBe(0);
+        });
+
+        it("returns 0 for Hebrew points", () => {
+            expect(getCharDisplayWidth(0x0591)).toBe(0);
+            expect(getCharDisplayWidth(0x05bd)).toBe(0);
+            expect(getCharDisplayWidth(0x05bf)).toBe(0);
+            expect(getCharDisplayWidth(0x05c1)).toBe(0);
+            expect(getCharDisplayWidth(0x05c4)).toBe(0);
+            expect(getCharDisplayWidth(0x05c7)).toBe(0);
+        });
+
+        it("returns 0 for Arabic combining marks", () => {
+            expect(getCharDisplayWidth(0x0610)).toBe(0);
+            expect(getCharDisplayWidth(0x061a)).toBe(0);
+            expect(getCharDisplayWidth(0x064b)).toBe(0);
+            expect(getCharDisplayWidth(0x065f)).toBe(0);
+            expect(getCharDisplayWidth(0x0670)).toBe(0);
+            expect(getCharDisplayWidth(0x06d6)).toBe(0);
+            expect(getCharDisplayWidth(0x06df)).toBe(0);
+            expect(getCharDisplayWidth(0x06e7)).toBe(0);
+            expect(getCharDisplayWidth(0x06ea)).toBe(0);
+        });
+
+        it("returns 0 for Devanagari combining marks", () => {
+            expect(getCharDisplayWidth(0x0900)).toBe(0);
+            expect(getCharDisplayWidth(0x093a)).toBe(0);
+            expect(getCharDisplayWidth(0x094f)).toBe(0);
+            expect(getCharDisplayWidth(0x0951)).toBe(0);
+            expect(getCharDisplayWidth(0x0957)).toBe(0);
+        });
+
+        it("returns 0 for Hangul Jamo medial/final (U+1160..U+11FF)", () => {
+            expect(getCharDisplayWidth(0x1160)).toBe(0);
+            expect(getCharDisplayWidth(0x11ff)).toBe(0);
+        });
+
+        it("returns 0 for variation selectors supplement (U+E0100..U+E01EF)", () => {
+            expect(getCharDisplayWidth(0xe0100)).toBe(0);
+            expect(getCharDisplayWidth(0xe01ef)).toBe(0);
+        });
+
+        it("returns 0 for Word Joiner (U+2060)", () => {
+            expect(getCharDisplayWidth(0x2060)).toBe(0);
+        });
+    });
+
+    describe("more wide ranges", () => {
+        it("returns 2 for CJK Radicals Supplement / Kangxi", () => {
+            expect(getCharDisplayWidth(0x2e80)).toBe(2);
+            expect(getCharDisplayWidth(0x2fdf)).toBe(2);
+        });
+
+        it("returns 2 for CJK Symbols and Punctuation", () => {
+            expect(getCharDisplayWidth(0x2ff0)).toBe(2);
+            expect(getCharDisplayWidth(0x303e)).toBe(2);
+        });
+
+        it("returns 2 for Bopomofo / Kanbun block", () => {
+            expect(getCharDisplayWidth(0x3040)).toBe(2);
+            expect(getCharDisplayWidth(0x33bf)).toBe(2);
+            expect(getCharDisplayWidth(0x33c0)).toBe(2);
+            expect(getCharDisplayWidth(0x4dbf)).toBe(2);
+        });
+
+        it("returns 2 for Yi Syllables", () => {
+            expect(getCharDisplayWidth(0xa000)).toBe(2);
+            expect(getCharDisplayWidth(0xa4cf)).toBe(2);
+        });
+
+        it("returns 2 for Vertical Forms and CJK Compatibility Forms", () => {
+            expect(getCharDisplayWidth(0xfe10)).toBe(2);
+            expect(getCharDisplayWidth(0xfe19)).toBe(2);
+            expect(getCharDisplayWidth(0xfe30)).toBe(2);
+            expect(getCharDisplayWidth(0xfe6f)).toBe(2);
+        });
+
+        it("returns 2 for the upper end of the SIP CJK extensions", () => {
+            expect(getCharDisplayWidth(0x3134f)).toBe(2);
+        });
+
+        it("returns 2 for assorted emoji blocks", () => {
+            expect(getCharDisplayWidth(0x1f32d)).toBe(2); // hot dog
+            expect(getCharDisplayWidth(0x1f3f4)).toBe(2); // black flag
+            expect(getCharDisplayWidth(0x1f440)).toBe(2); // eyes
+            expect(getCharDisplayWidth(0x1f54b)).toBe(2); // kaaba
+            expect(getCharDisplayWidth(0x1f5a4)).toBe(2); // black heart
+            expect(getCharDisplayWidth(0x1f6d0)).toBe(2); // place of worship
+            expect(getCharDisplayWidth(0x1fa00)).toBe(2); // chess pawn block
+            expect(getCharDisplayWidth(0x1fa70)).toBe(2); // ballet shoes block
+            expect(getCharDisplayWidth(0x2700)).toBe(2); // dingbats
+            expect(getCharDisplayWidth(0x1f100)).toBe(2); // enclosed alphanumeric supplement
+        });
     });
 
     describe("Zero-width characters", () => {

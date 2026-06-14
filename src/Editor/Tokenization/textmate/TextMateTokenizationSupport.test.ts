@@ -5,6 +5,8 @@ import { createDevAssetAccess } from "../../../Common/Assets/createDefaultAssetA
 import { scanBuiltinExtensions } from "../../../Extensions/ExtensionScanner.ts";
 import type { IExtension } from "../../../Extensions/IExtension.ts";
 
+import { NULL_STATE } from "../IState.ts";
+
 import type { IGrammarRecord } from "./TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "./TextMateGrammarLoader.ts";
 import { TextMateState } from "./TextMateState.ts";
@@ -93,6 +95,14 @@ describe("TextMateTokenizationSupport", () => {
 
         expect(result.tokens.tokens).toEqual([{ startIndex: 0, scopes: ["source.js"] }]);
         expect(result.endState).toBe(initial);
+    });
+
+    it("бросает при несовместимом IState (не TextMateState) — line 40", async () => {
+        const loader = await createLoader();
+        const support = await loader.loadSupport("source.js");
+        if (!support) throw new Error("source.js not loaded");
+
+        expect(() => support.tokenizeLine("const x = 1;", NULL_STATE)).toThrow(/incompatible IState/);
     });
 
     it("loader.loadSupport для неизвестного scope возвращает null", async () => {

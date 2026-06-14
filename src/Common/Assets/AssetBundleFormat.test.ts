@@ -42,10 +42,18 @@ describe("AssetBundleFormat", () => {
         expect(() => readBundleHeader(bundle)).toThrow(/magic mismatch/);
     });
 
-    it("rejects truncated bundles", () => {
+    it("rejects bundles smaller than magic+headerLen", () => {
         const bundle = packBundle([{ virtualPath: "x", data: bytesOf("y") }]);
-        const truncated = bundle.subarray(0, 10);
-        expect(() => readBundleHeader(truncated)).toThrow();
+        const truncated = bundle.subarray(0, 10); // < 8 magic + 4 headerLen
+        expect(() => readBundleHeader(truncated)).toThrow(/too small/);
+    });
+
+    it("rejects bundles whose declared header length exceeds the buffer", () => {
+        const bundle = packBundle([{ virtualPath: "x", data: bytesOf("y") }]);
+        // Pass the magic + headerLen-size check, but cut off mid-header so
+        // headerEnd > buffer.length (hits the "header length exceeds buffer" guard).
+        const truncated = bundle.subarray(0, 14);
+        expect(() => readBundleHeader(truncated)).toThrow(/truncated: header length exceeds buffer/);
     });
 
     it("rejects duplicate paths", () => {

@@ -108,8 +108,24 @@ describe("EditorEditActions — deletion mutates the real document", () => {
         const commands = new CommandRegistry();
         const accessor = new Container();
         accessor.bind(EditorGroupControllerDIToken, () => ctrl);
-        registerAction(commands, new KeybindingRegistry(), accessor, deleteLeftAction);
-        expect(() => commands.execute(deleteLeftAction.id)).not.toThrow();
+        // Cover the `if (editor)` false branch of every delete action (lines 27-53).
+        for (const action of [deleteLeftAction, deleteRightAction, deleteWordLeftAction, deleteWordRightAction]) {
+            registerAction(commands, new KeybindingRegistry(), accessor, action);
+            expect(() => commands.execute(action.id)).not.toThrow();
+        }
+    });
+
+    it("deleteWordLeft / deleteWordRight are no-ops at the document edges", () => {
+        const { editor, exec } = openEditor("word");
+        // deleteWordLeft at column 0 — nothing to the left.
+        editor.viewState.selections = [createCursorSelection(0, 0)];
+        exec(deleteWordLeftAction);
+        expect(editor.getText()).toBe("word");
+
+        // deleteWordRight at end of document — nothing to the right.
+        editor.viewState.selections = [createCursorSelection(0, 4)];
+        exec(deleteWordRightAction);
+        expect(editor.getText()).toBe("word");
     });
 });
 

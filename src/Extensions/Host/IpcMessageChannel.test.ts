@@ -145,4 +145,38 @@ describe("IpcMessageChannel", () => {
         chA.dispose();
         chB.dispose();
     });
+
+    it("после исключения в send канал помечается мёртвым: следующий postMessage не вызывает send", () => {
+        const [a] = pair();
+        const ch = new IpcMessageChannel(a);
+        a.send = (): boolean => {
+            throw new Error("EPIPE");
+        };
+        // Первый postMessage ловит исключение и помечает alive=false.
+        ch.postMessage("first");
+
+        // Теперь send не должен вызываться вовсе (канал мёртв).
+        const sendSpy = vi.fn((): boolean => true);
+        a.send = sendSpy;
+        ch.postMessage("second");
+        expect(sendSpy).not.toHaveBeenCalled();
+        ch.dispose();
+    });
+
+    it("onMessage после dispose возвращает no-op disposable и не подписывает (line 65)", async () => {
+        const [a, b] = pair();
+        const chA = new IpcMessageChannel(a);
+        const chB = new IpcMessageChannel(b);
+        chB.dispose();
+
+        const received: unknown[] = [];
+        const sub = chB.onMessage((m) => received.push(m));
+        // Disposable безопасно вызывается и ничего не ломает.
+        expect(() => sub.dispose()).not.toThrow();
+
+        chA.postMessage("hi");
+        await Promise.resolve();
+        expect(received).toEqual([]);
+        chA.dispose();
+    });
 });

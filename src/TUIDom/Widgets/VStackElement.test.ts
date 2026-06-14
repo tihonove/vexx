@@ -264,4 +264,52 @@ describe("VStackElement", () => {
 
         expect(vstack.isLayoutDirty).toBe(true);
     });
+
+    describe("replaceChildren", () => {
+        it("unparents children that are removed and parents the new ones", () => {
+            const { vstack } = createVStack(10, 6);
+            const removed = new BoxElement();
+            const kept = new BoxElement();
+            removed.layoutStyle = { width: "fill", height: 3 };
+            kept.layoutStyle = { width: "fill", height: 3 };
+            vstack.addChild(removed, { width: "fill", height: 3 });
+            vstack.addChild(kept, { width: "fill", height: 3 });
+
+            const added = new BoxElement();
+            added.layoutStyle = { width: "fill", height: 3 };
+
+            // `kept` stays, `removed` drops out, `added` is new.
+            vstack.replaceChildren([kept, added]);
+
+            expect(removed.getParent()).toBeNull();
+            expect(kept.getParent()).toBe(vstack);
+            expect(added.getParent()).toBe(vstack);
+            expect(vstack.getChildren()).toEqual([kept, added]);
+        });
+
+        it("renders the replacement children in order", () => {
+            const { vstack, backend, termScreen } = createVStack(8, 4);
+            const original = new BoxElement();
+            original.layoutStyle = { width: "fill", height: 4 };
+            vstack.addChild(original, { width: "fill", height: 4 });
+
+            const top = new BoxElement();
+            const bottom = new BoxElement();
+            top.layoutStyle = { width: "fill", height: 2 };
+            bottom.layoutStyle = { width: "fill", height: 2 };
+            vstack.replaceChildren([top, bottom]);
+
+            renderVStack(vstack, termScreen, backend);
+
+            expectScreen(
+                backend,
+                screen`
+                    +------+
+                    +------+
+                    +------+
+                    +------+
+                `,
+            );
+        });
+    });
 });

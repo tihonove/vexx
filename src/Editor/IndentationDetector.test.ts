@@ -74,4 +74,23 @@ describe("detectIndentation", () => {
         const doc = makeDoc(["", "", ""]);
         expect(detectIndentation(doc)).toBeNull();
     });
+
+    it("clamps an oversized detected tab size down to 8", () => {
+        // Every indented line uses 9 leading spaces → GCD is 9, which exceeds the
+        // allowed maximum and must be clamped to 8 (IndentationDetector.ts:59).
+        const doc = makeDoc(["a", "         x", "         y", "         z"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+        expect(result!.tabSize).toBe(8);
+    });
+
+    it("clamps the detected tab size up to at least 1", () => {
+        // GCD of {3,5,7} is 1 → already within range, so tabSize is exactly 1.
+        const doc = makeDoc(["a", "   x", "     y", "       z"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+        expect(result!.tabSize).toBe(1);
+    });
 });

@@ -190,6 +190,53 @@ describe("WorkbenchLayoutElement", () => {
         });
     });
 
+    describe("setCenterContent replaces previous content", () => {
+        it("replaces center content and unparents old one", () => {
+            const layout = new WorkbenchLayoutElement();
+            const center1 = createPanel();
+            const center2 = createPanel();
+
+            layout.setCenterContent(center1);
+            expect(center1.getParent()).toBe(layout);
+
+            layout.setCenterContent(center2);
+            expect(center1.getParent()).toBeNull();
+            expect(center2.getParent()).toBe(layout);
+            expect(layout.getCenterContent()).toBe(center2);
+        });
+
+        it("clears center content when set to null and unparents the old one", () => {
+            const layout = new WorkbenchLayoutElement();
+            const center = createPanel();
+
+            layout.setCenterContent(center);
+            layout.setCenterContent(null);
+
+            expect(center.getParent()).toBeNull();
+            expect(layout.getCenterContent()).toBeNull();
+        });
+    });
+
+    describe("accessors", () => {
+        it("getLeftPanel returns the configured left panel", () => {
+            const layout = new WorkbenchLayoutElement();
+            const leftPanel = createPanel();
+            expect(layout.getLeftPanel()).toBeNull();
+
+            layout.setLeftPanel(leftPanel);
+            expect(layout.getLeftPanel()).toBe(leftPanel);
+        });
+
+        it("getCenterContent returns the configured center content", () => {
+            const layout = new WorkbenchLayoutElement();
+            const center = createPanel();
+            expect(layout.getCenterContent()).toBeNull();
+
+            layout.setCenterContent(center);
+            expect(layout.getCenterContent()).toBe(center);
+        });
+    });
+
     describe("left panel width clamped to container width", () => {
         it("clamps left panel width to container width", () => {
             const layout = new WorkbenchLayoutElement();

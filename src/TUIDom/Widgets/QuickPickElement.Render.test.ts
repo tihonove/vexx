@@ -158,6 +158,15 @@ describe("QuickPickElement — items", () => {
         expect(row).toContain("recent");
     });
 
+    it("renders hint text on the right side", () => {
+        const picker = new QuickPickElement();
+        picker.items = [{ label: "Bind", hint: "Configure Binding" }];
+        const backend = renderPicker(picker, 40);
+        const row = backend.getTextAt(new Point(0, 3), 40);
+        expect(row).toContain("Bind");
+        expect(row).toContain("Configure Binding");
+    });
+
     it("renders icon column when any item has an icon", () => {
         const picker = new QuickPickElement();
         picker.items = [{ icon: "A", label: "Alpha" }, { label: "Beta" }];
@@ -360,5 +369,18 @@ describe("QuickPickElement — layout width", () => {
         const picker = new QuickPickElement();
         picker.preferredWidth = 75;
         expect(picker.getMaxIntrinsicWidth(0)).toBe(75);
+    });
+
+    it("getMinIntrinsicWidth is a fixed minimum of 20 columns", () => {
+        const picker = new QuickPickElement();
+        picker.preferredWidth = 75;
+        expect(picker.getMinIntrinsicWidth(0)).toBe(20);
+    });
+
+    it("getMaxIntrinsicHeight matches getMinIntrinsicHeight (self-sizing)", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(3);
+        expect(picker.getMaxIntrinsicHeight(40)).toBe(7); // 4 + 3
+        expect(picker.getMaxIntrinsicHeight(40)).toBe(picker.getMinIntrinsicHeight(40));
     });
 });

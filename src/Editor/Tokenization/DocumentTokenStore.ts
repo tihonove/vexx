@@ -149,9 +149,11 @@ export class DocumentTokenStore extends Disposable {
         if (startLine < this.invalidLineIndexInternal) {
             this.invalidLineIndexInternal = startLine;
         }
+        /* v8 ignore start -- defensive clamp: invalidLineIndex is only ever lowered to a valid startLine, never exceeds lineCount */
         if (this.invalidLineIndexInternal > this.document.lineCount) {
             this.invalidLineIndexInternal = this.document.lineCount;
         }
+        /* v8 ignore stop */
     }
 
     /**

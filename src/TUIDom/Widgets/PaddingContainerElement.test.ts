@@ -1,15 +1,31 @@
 import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { ROOT_RESOLVED_STYLE } from "../Styles/TUIStyle.ts";
-import { RenderContext } from "../TUIElement.ts";
+import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { BoxElement } from "./BoxElement.ts";
 import { PaddingContainerElement } from "./PaddingContainerElement.ts";
+
+/** Child with distinct, known intrinsic sizes so we can verify padding math. */
+class IntrinsicStub extends TUIElement {
+    public override getMinIntrinsicWidth(_height: number): number {
+        return 10;
+    }
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return 20;
+    }
+    public override getMinIntrinsicHeight(_width: number): number {
+        return 4;
+    }
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return 8;
+    }
+}
 
 function layoutAndRender(element: PaddingContainerElement, width: number, height: number): MockTerminalBackend {
     const size = new Size(width, height);
@@ -97,6 +113,101 @@ describe("PaddingContainerElement", () => {
 
         expect(box.layoutSize.width).toBe(0);
         expect(box.layoutSize.height).toBe(0);
+    });
+
+    it("offsets and sizes the child using all four asymmetric paddings", () => {
+        const child = new TUIElement();
+        // Distinct padding per side so each of top/right/bottom/left is exercised.
+        const padded = new PaddingContainerElement(child, { top: 2, right: 4, bottom: 1, left: 3 });
+
+        padded.globalPosition = new Point(7, 9);
+        padded.performLayout(BoxConstraints.tight(new Size(20, 10)));
+
+        // child is offset by (left, top) from the container's global position
+        expect(child.localPosition).toEqual(new Offset(3, 2));
+        expect(child.globalPosition).toEqual(new Point(10, 11)); // (7+3, 9+2)
+        // child sized to (width - left - right, height - top - bottom)
+        expect(child.layoutSize).toEqual(new Size(13, 7)); // (20-3-4, 10-2-1)
+    });
+
+    describe("intrinsic sizes", () => {
+        it("adds horizontal padding to child's min/max intrinsic width", () => {
+            const child = new IntrinsicStub();
+            const padded = new PaddingContainerElement(child, { left: 3, right: 2, top: 1, bottom: 1 });
+
+            // child min width 10 + left 3 + right 2
+            expect(padded.getMinIntrinsicWidth(20)).toBe(15);
+            // child max width 20 + left 3 + right 2
+            expect(padded.getMaxIntrinsicWidth(20)).toBe(25);
+        });
+
+        it("adds vertical padding to child's min/max intrinsic height", () => {
+            const child = new IntrinsicStub();
+            const padded = new PaddingContainerElement(child, { left: 3, right: 2, top: 2, bottom: 1 });
+
+            // child min height 4 + top 2 + bottom 1
+            expect(padded.getMinIntrinsicHeight(40)).toBe(7);
+            // child max height 8 + top 2 + bottom 1
+            expect(padded.getMaxIntrinsicHeight(40)).toBe(11);
+        });
+
+        it("returns only horizontal padding for width when child is null", () => {
+            const padded = new PaddingContainerElement(null, { left: 4, right: 3, top: 5, bottom: 6 });
+
+            expect(padded.getMinIntrinsicWidth(10)).toBe(7); // 4 + 3
+            expect(padded.getMaxIntrinsicWidth(10)).toBe(7);
+        });
+
+        it("returns only vertical padding for height when child is null", () => {
+            const padded = new PaddingContainerElement(null, { left: 4, right: 3, top: 5, bottom: 6 });
+
+            expect(padded.getMinIntrinsicHeight(10)).toBe(11); // 5 + 6
+            expect(padded.getMaxIntrinsicHeight(10)).toBe(11);
+        });
+
+        it("returns zero intrinsic sizes for null child with no padding", () => {
+            const padded = new PaddingContainerElement(null);
+
+            expect(padded.getMinIntrinsicWidth(10)).toBe(0);
+            expect(padded.getMaxIntrinsicWidth(10)).toBe(0);
+            expect(padded.getMinIntrinsicHeight(10)).toBe(0);
+            expect(padded.getMaxIntrinsicHeight(10)).toBe(0);
+        });
+    });
+
+    describe("padding getters and setters", () => {
+        it("exposes initial padding via getters", () => {
+            const padded = new PaddingContainerElement(null, { top: 1, right: 2, bottom: 3, left: 4 });
+
+            expect(padded.getPaddingTop()).toBe(1);
+            expect(padded.getPaddingRight()).toBe(2);
+            expect(padded.getPaddingBottom()).toBe(3);
+            expect(padded.getPaddingLeft()).toBe(4);
+        });
+
+        it("reflects updates made through setters", () => {
+            const padded = new PaddingContainerElement(null);
+
+            padded.setPaddingTop(5);
+            padded.setPaddingRight(6);
+            padded.setPaddingBottom(7);
+            padded.setPaddingLeft(8);
+
+            expect(padded.getPaddingTop()).toBe(5);
+            expect(padded.getPaddingRight()).toBe(6);
+            expect(padded.getPaddingBottom()).toBe(7);
+            expect(padded.getPaddingLeft()).toBe(8);
+        });
+
+        it("setting padding changes intrinsic width", () => {
+            const child = new IntrinsicStub();
+            const padded = new PaddingContainerElement(child);
+
+            expect(padded.getMaxIntrinsicWidth(10)).toBe(20); // no padding yet
+            padded.setPaddingLeft(5);
+            padded.setPaddingRight(5);
+            expect(padded.getMaxIntrinsicWidth(10)).toBe(30);
+        });
     });
 
     it("renders padding cells with explicit bg color, not transparent", () => {

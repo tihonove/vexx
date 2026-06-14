@@ -572,6 +572,102 @@ describe("MouseEventDispatcher — wheel", () => {
     });
 });
 
+describe("MouseEventDispatcher — null target (empty space)", () => {
+    // A root that hit-tests as if mouse is over empty space: elementFromPoint always null.
+    class EmptyRoot extends ContainerElement {
+        public override elementFromPoint(_point: Point): TUIElement | null {
+            return null;
+        }
+    }
+
+    it("press over empty space dispatches nothing and does not crash", () => {
+        const root = new EmptyRoot();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const downs = collected(root, "mousedown");
+        const dispatcher = new MouseEventDispatcher();
+
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 5, y: 5 }), root);
+
+        expect(downs).toHaveLength(0);
+    });
+
+    it("release over empty space dispatches nothing", () => {
+        const root = new EmptyRoot();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const ups = collected(root, "mouseup");
+        const clicks = collected(root, "click");
+        const dispatcher = new MouseEventDispatcher();
+
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 5, y: 5 }), root);
+
+        expect(ups).toHaveLength(0);
+        expect(clicks).toHaveLength(0);
+    });
+
+    it("scroll over empty space dispatches nothing", () => {
+        const root = new EmptyRoot();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const wheels = collected(root, "wheel");
+        const dispatcher = new MouseEventDispatcher();
+
+        dispatcher.handleMouseToken(makeToken({ action: "scroll-up", x: 5, y: 5 }), root);
+
+        expect(wheels).toHaveLength(0);
+    });
+
+    it("move into empty space leaves the previously hovered element", () => {
+        // Real root with one child; first move enters child, second move hits empty space (null).
+        const root = new ContainerElement();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const child = new TUIElement();
+        layoutElement(child, new Point(10, 5), new Size(20, 10));
+        root.addChild(child);
+
+        const enters = collected(child, "mouseenter");
+        const leaves = collected(child, "mouseleave");
+        const moves = collected(child, "mousemove");
+        const dispatcher = new MouseEventDispatcher();
+
+        // Enter child
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 16, y: 9 }), root);
+        // Move outside any element (root is a ContainerElement; point outside its bounds → null)
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 200, y: 200 }), root);
+
+        expect(enters).toHaveLength(1);
+        expect(leaves).toHaveLength(1);
+        // mousemove only fires when there is a hovered target — the empty-space move fires none
+        expect(moves).toHaveLength(1);
+    });
+
+    it("move from empty space into an element enters it without a prior leave", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const child = new TUIElement();
+        layoutElement(child, new Point(10, 5), new Size(20, 10));
+        root.addChild(child);
+
+        const enters = collected(child, "mouseenter");
+        const dispatcher = new MouseEventDispatcher();
+
+        // Start in empty space (no hovered element yet, oldHovered = null)
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 200, y: 200 }), root);
+        // Then enter the child
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 16, y: 9 }), root);
+
+        expect(enters).toHaveLength(1);
+    });
+});
+
 describe("MouseEventDispatcher — modifiers", () => {
     it("passes shiftKey through to event", () => {
         const root = new TUIElement();
@@ -658,5 +754,102 @@ describe("MouseEventDispatcher — localX/localY", () => {
 
         expect(clicks[0].localX).toBe(2); // 12 - 10
         expect(clicks[0].localY).toBe(2); // 7 - 5
+    });
+});
+
+describe("MouseEventDispatcher — null-target no-ops (explicit)", () => {
+    class EmptyRoot extends ContainerElement {
+        public override elementFromPoint(_point: Point): TUIElement | null {
+            return null;
+        }
+    }
+
+    it("move over empty space dispatches no mousemove and does not crash", () => {
+        const root = new EmptyRoot();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const moves = collected(root, "mousemove");
+        const dispatcher = new MouseEventDispatcher();
+
+        expect(() => {
+            dispatcher.handleMouseToken(makeToken({ action: "move", x: 5, y: 5 }), root);
+        }).not.toThrow();
+
+        // newHovered is null → the `if (newHovered)` guard skips the mousemove dispatch.
+        expect(moves).toHaveLength(0);
+    });
+
+    it("press then release over empty space never produces a click", () => {
+        const root = new EmptyRoot();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const downs = collected(root, "mousedown");
+        const ups = collected(root, "mouseup");
+        const clicks = collected(root, "click");
+        const dispatcher = new MouseEventDispatcher();
+
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 5, y: 5 }), root);
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 5, y: 5 }), root);
+
+        expect(downs).toHaveLength(0);
+        expect(ups).toHaveLength(0);
+        expect(clicks).toHaveLength(0);
+    });
+});
+
+describe("MouseEventDispatcher — nested enter/leave ancestor walk (explicit)", () => {
+    function buildTree() {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        // Two sibling panels, each with one child, so moving between them
+        // exercises both the leave-walk (old branch) and enter-walk (new branch)
+        // up to their common ancestor (root).
+        const panelA = new ContainerElement();
+        layoutElement(panelA, new Point(0, 0), new Size(30, 24));
+        root.addChild(panelA);
+        const childA = new TUIElement();
+        layoutElement(childA, new Point(2, 2), new Size(10, 5));
+        panelA.addChild(childA);
+
+        const panelB = new ContainerElement();
+        layoutElement(panelB, new Point(40, 0), new Size(30, 24));
+        root.addChild(panelB);
+        const childB = new TUIElement();
+        layoutElement(childB, new Point(42, 2), new Size(10, 5));
+        panelB.addChild(childB);
+
+        return { root, panelA, childA, panelB, childB };
+    }
+
+    it("moving between two nested branches leaves the old branch and enters the new one", () => {
+        const { root, panelA, childA, panelB, childB } = buildTree();
+        const dispatcher = new MouseEventDispatcher();
+
+        // Enter childA (inside panelA)
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 4, y: 4 }), root);
+
+        const aLeaves = collected(childA, "mouseleave");
+        const panelALeaves = collected(panelA, "mouseleave");
+        const bEnters = collected(childB, "mouseenter");
+        const panelBEnters = collected(panelB, "mouseenter");
+        const rootLeaves = collected(root, "mouseleave");
+        const rootEnters = collected(root, "mouseenter");
+
+        // Move to childB (inside panelB) — crosses to the sibling branch.
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 44, y: 4 }), root);
+
+        // Old branch (childA, panelA) is left because they are not ancestors of childB.
+        expect(aLeaves).toHaveLength(1);
+        expect(panelALeaves).toHaveLength(1);
+        // New branch (panelB, childB) is entered.
+        expect(panelBEnters).toHaveLength(1);
+        expect(bEnters).toHaveLength(1);
+        // Common ancestor (root) is neither left nor re-entered.
+        expect(rootLeaves).toHaveLength(0);
+        expect(rootEnters).toHaveLength(0);
     });
 });

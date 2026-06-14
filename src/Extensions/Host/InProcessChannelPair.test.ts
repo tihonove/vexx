@@ -81,4 +81,17 @@ describe("InProcessChannelPair", () => {
         await Promise.resolve();
         expect(received).toEqual([]);
     });
+
+    it("onMessage on an already-disposed channel returns a no-op subscription", async () => {
+        const [a, b] = createInProcessChannelPair();
+        b.dispose();
+        const received: unknown[] = [];
+        // Subscribing after dispose must not register the listener…
+        const sub = b.onMessage((m) => received.push(m));
+        a.postMessage("hello");
+        await Promise.resolve();
+        expect(received).toEqual([]);
+        // …and disposing the returned subscription must be safe.
+        expect(() => sub.dispose()).not.toThrow();
+    });
 });

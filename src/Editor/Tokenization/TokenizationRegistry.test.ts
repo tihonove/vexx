@@ -50,4 +50,30 @@ describe("TokenizationRegistry", () => {
         reg.register("typescript", makeStubSupport());
         expect(seen).toEqual(["javascript", "typescript"]);
     });
+
+    it("disposing an onDidChange listener stops further notifications", () => {
+        const reg = new TokenizationRegistry();
+        const seen: string[] = [];
+        const handle = reg.onDidChange((langId) => seen.push(langId));
+
+        reg.register("javascript", makeStubSupport());
+        handle.dispose();
+        reg.register("typescript", makeStubSupport());
+
+        expect(seen).toEqual(["javascript"]);
+    });
+
+    it("disposing one listener leaves other listeners active", () => {
+        const reg = new TokenizationRegistry();
+        const a: string[] = [];
+        const b: string[] = [];
+        const handleA = reg.onDidChange((id) => a.push(id));
+        reg.onDidChange((id) => b.push(id));
+
+        handleA.dispose();
+        reg.register("css", makeStubSupport());
+
+        expect(a).toEqual([]);
+        expect(b).toEqual(["css"]);
+    });
 });

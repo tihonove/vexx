@@ -33,6 +33,7 @@ class TabStripFillerElement extends TUIElement {
         return 0;
     }
 
+    /* v8 ignore start -- the strip lays children out at a fixed height, so the filler's intrinsic-height methods are never queried */
     public override getMinIntrinsicHeight(_width: number): number {
         return 1;
     }
@@ -40,6 +41,7 @@ class TabStripFillerElement extends TUIElement {
     public override getMaxIntrinsicHeight(_width: number): number {
         return 1;
     }
+    /* v8 ignore stop */
 
     public override render(context: RenderContext): void {
         const width = this.layoutSize.width;

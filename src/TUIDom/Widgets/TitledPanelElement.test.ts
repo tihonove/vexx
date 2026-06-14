@@ -1,0 +1,73 @@
+import { describe, expect, it } from "vitest";
+
+import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { RenderContext } from "../TUIElement.ts";
+
+import { BoxElement } from "./BoxElement.ts";
+import { TitledPanelElement } from "./TitledPanelElement.ts";
+
+function renderPanel(
+    panel: TitledPanelElement,
+    width: number,
+    height: number,
+): { backend: MockTerminalBackend; text: (x: number, y: number, len: number) => string } {
+    const size = new Size(width, height);
+    const backend = new MockTerminalBackend(size);
+    const termScreen = new TerminalScreen(size);
+    panel.globalPosition = new Point(0, 0);
+    panel.performLayout(BoxConstraints.tight(size));
+    panel.performStyleResolution(panel.resolvedStyle);
+    panel.render(new RenderContext(termScreen));
+    termScreen.flush(backend);
+    return {
+        backend,
+        text: (x: number, y: number, len: number) => backend.getTextAt(new Point(x, y), len),
+    };
+}
+
+describe("TitledPanelElement", () => {
+    describe("title accessors", () => {
+        it("exposes the title via getTitle()", () => {
+            const panel = new TitledPanelElement("Explorer", new BoxElement());
+            expect(panel.getTitle()).toBe("Explorer");
+        });
+
+        it("updates the title via setTitle() and renders the new value", () => {
+            const panel = new TitledPanelElement("Old", new BoxElement());
+            panel.setTitle("New");
+            expect(panel.getTitle()).toBe("New");
+
+            // Default titlePaddingLeft = 1, so the title starts at column 1.
+            const { text } = renderPanel(panel, 10, 3);
+            expect(text(1, 0, 3)).toBe("New");
+        });
+    });
+
+    describe("rendering", () => {
+        it("draws the title on row 0 with the configured left padding", () => {
+            const panel = new TitledPanelElement("Hi", new BoxElement(), { titlePaddingLeft: 2 });
+            const { text } = renderPanel(panel, 10, 3);
+
+            // Two leading padding spaces, then the title.
+            expect(text(0, 0, 4)).toBe("  Hi");
+        });
+
+        it("lays out and renders the child one row below the title", () => {
+            const child = new BoxElement();
+            const panel = new TitledPanelElement("Files", child);
+
+            const { text } = renderPanel(panel, 6, 4);
+
+            // Child occupies rows 1..3 (full width, height = container - 1 = 3).
+            expect(child.localPosition).toEqual(new Offset(0, 1));
+            expect(child.globalPosition).toEqual(new Point(0, 1));
+            expect(child.layoutSize).toEqual(new Size(6, 3));
+
+            // BoxElement draws a border box starting on the child's first row.
+            expect(text(0, 1, 6)).toBe("+----+");
+            expect(text(0, 3, 6)).toBe("+----+");
+        });
+    });
+});

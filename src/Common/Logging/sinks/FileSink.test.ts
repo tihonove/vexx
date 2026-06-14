@@ -2,12 +2,29 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { LogEntry } from "../ILogService.ts";
 import { LogLevel } from "../LogLevel.ts";
 
 import { FileSink } from "./FileSink.ts";
+
+// Controls whether the mocked createWriteStream throws. Off by default so every
+// other test exercises the real filesystem.
+const createWriteStreamControl = { throwOnCreate: false };
+
+vi.mock("node:fs", async (importActual) => {
+    const actual = await importActual<typeof import("node:fs")>();
+    return {
+        ...actual,
+        createWriteStream: (...args: Parameters<typeof actual.createWriteStream>) => {
+            if (createWriteStreamControl.throwOnCreate) {
+                throw new Error("EACCES");
+            }
+            return actual.createWriteStream(...args);
+        },
+    };
+});
 
 function entry(overrides: Partial<LogEntry> = {}): LogEntry {
     return {
@@ -117,5 +134,35 @@ describe("FileSink", () => {
         expect(() => {
             sink.dispose();
         }).not.toThrow();
+    });
+
+    it("falls back to String() for non-serializable (circular) args", async () => {
+        const circular: Record<string, unknown> = {};
+        circular.self = circular; // JSON.stringify throws on this
+        const sink = new FileSink(file);
+        sink.append(entry({ message: "circ", args: [circular] }));
+        await flushAndDispose(sink);
+
+        const content = fs.readFileSync(file, "utf8");
+        // String({}) → "[object Object]", proving the JSON.stringify fallback ran.
+        expect(content).toContain("circ\t[object Object]\n");
+    });
+
+    it("silently sets stream=null when createWriteStream throws", () => {
+        createWriteStreamControl.throwOnCreate = true;
+        try {
+            const sink = new FileSink(file);
+            // With stream === null, append is a no-op and must not throw.
+            expect(() => {
+                sink.append(entry({ message: "ignored" }));
+            }).not.toThrow();
+            expect(() => {
+                sink.dispose();
+            }).not.toThrow();
+            // File never created because createWriteStream threw.
+            expect(fs.existsSync(file)).toBe(false);
+        } finally {
+            createWriteStreamControl.throwOnCreate = false;
+        }
     });
 });

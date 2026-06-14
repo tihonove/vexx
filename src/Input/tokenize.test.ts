@@ -256,6 +256,27 @@ describe("tokenize", () => {
         ]);
     });
 
+    it("maps Kitty functional codepoint 57362 to Pause (line 200)", () => {
+        const tokens = tokenize("\x1b[57362u");
+        expect(tokens).toMatchObject([
+            {
+                kind: "csi-u",
+                codepoint: 57362,
+                key: "Pause",
+            },
+        ]);
+    });
+
+    it("maps Kitty functional codepoint 57361 to PrintScreen", () => {
+        const tokens = tokenize("\x1b[57361u");
+        expect(tokens).toMatchObject([{ kind: "csi-u", codepoint: 57361, key: "PrintScreen" }]);
+    });
+
+    it("maps Kitty functional codepoint 57363 to ContextMenu", () => {
+        const tokens = tokenize("\x1b[57363u");
+        expect(tokens).toMatchObject([{ kind: "csi-u", codepoint: 57363, key: "ContextMenu" }]);
+    });
+
     it("tokenizes CSI u Ctrl+a (\\x1b[97;5u) with modifiers", () => {
         const tokens = tokenize("\x1b[97;5u");
         expect(tokens).toMatchObject([
@@ -501,5 +522,36 @@ describe("tokenize", () => {
         expect(tokens).toHaveLength(2);
         expect(tokens[0]).toMatchObject({ kind: "device-report", report: "kitty-flags" });
         expect(tokens[1]).toMatchObject({ kind: "char", char: "a" });
+    });
+
+    // ─── Fallback / edge-case control bytes ───
+
+    it("ESC followed by an unknown low byte (NUL) → standalone-esc, then the byte itself", () => {
+        // next byte 0x00 is below the ESC+printable/control ranges → final else branch.
+        const tokens = tokenize("\x1b\x00");
+        expect(tokens).toHaveLength(2);
+        expect(tokens[0]).toEqual({ kind: "standalone-esc", raw: "\x1b" });
+        // 0x00 is then tokenized on its own as Ctrl+Space.
+        expect(tokens[1]).toEqual({ kind: "ctrl-char", letter: " ", raw: "\x00" });
+    });
+
+    it("unknown control byte 0x1c (FS) → unknown-byte token", () => {
+        const tokens = tokenize("\x1c");
+        expect(tokens).toEqual([{ kind: "unknown-byte", byte: 0x1c, raw: "\x1c" }]);
+    });
+
+    it("CSI with an intermediate byte (0x20–0x2f) before the final byte is consumed", () => {
+        // ESC [ <SP> A : the space (0x20) is a CSI intermediate byte, 'A' is the final byte.
+        const tokens = tokenize("\x1b[ A");
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({ kind: "csi-letter", key: "ArrowUp", finalByte: "A", raw: "\x1b[ A" });
+    });
+
+    it("unrecognized CSI final byte → parseCSI returns null, ESC emitted standalone", () => {
+        // 'X' is a valid CSI final byte range but not in any key/mouse map → null.
+        const tokens = tokenize("\x1b[1X");
+        expect(tokens[0]).toEqual({ kind: "standalone-esc", raw: "\x1b" });
+        // The remaining '[', '1', 'X' fall through as ordinary chars.
+        expect(tokens.map((t) => t.kind)).toEqual(["standalone-esc", "char", "char", "char"]);
     });
 });

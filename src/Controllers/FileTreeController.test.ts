@@ -80,6 +80,55 @@ describe("FileTreeController", () => {
         expect(output).toContain("main.ts");
     });
 
+    it("activating a directory node does not open an editor", () => {
+        const activated: string[] = [];
+        controller.onFileActivate = (filePath) => {
+            activated.push(filePath);
+        };
+
+        // First item is the "src" directory (confirmed by other tests).
+        app.sendKey("Enter");
+        app.render();
+
+        // Directories never fire onFileActivate — they toggle/expand instead.
+        expect(activated).toEqual([]);
+    });
+
+    it("a file node activated via Enter opens, a directory activated via Enter does not", () => {
+        const activated: string[] = [];
+        controller.onFileActivate = (filePath) => {
+            activated.push(filePath);
+        };
+
+        // src directory is first/selected — Enter must not open it.
+        app.sendKey("Enter");
+        app.render();
+        expect(activated).toEqual([]);
+
+        // Move to README.md (a file) — Enter must open it.
+        app.sendKey("ArrowDown");
+        app.render();
+        app.sendKey("Enter");
+        app.render();
+        expect(activated).toEqual([path.join(tmpDir, "README.md")]);
+    });
+
+    it("activating a file node fires onFileActivate with its path", () => {
+        const activated: string[] = [];
+        controller.onFileActivate = (filePath) => {
+            activated.push(filePath);
+        };
+
+        // Move from "src" (dir) down to "README.md" (file), then activate.
+        app.sendKey("ArrowDown");
+        app.render();
+        app.sendKey("Enter");
+        app.render();
+
+        expect(activated).toHaveLength(1);
+        expect(activated[0]).toBe(path.join(tmpDir, "README.md"));
+    });
+
     it("cleans up on dispose", () => {
         controller.dispose();
         // No error thrown — test passes

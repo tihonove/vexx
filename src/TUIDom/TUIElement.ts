@@ -79,10 +79,12 @@ export class RenderContext {
         let col = 0;
         while (col < maxWidth) {
             const char = dl.charAtColumn(col);
+            /* v8 ignore start -- unreachable: the loop always advances col past a wide char's continuation cell, so charAtColumn never returns "" here */
             if (char === "") {
                 col++;
                 continue;
             }
+            /* v8 ignore stop */
             const slot = dl.graphemeAtColumn(col);
             const w = slot ? slot.displayWidth : 1;
             const slotStyle = slot && options?.getStyle ? options.getStyle(slot.offset) : undefined;

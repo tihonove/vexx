@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { TUIElement } from "../TUIElement.ts";
 
-import { BLUEPRINT_TYPE, isBlueprint, jsx, jsxs } from "./jsx-runtime.ts";
+import { BLUEPRINT_TYPE, Fragment, isBlueprint, jsx, jsxDEV, jsxs } from "./jsx-runtime.ts";
 
 function DummyComponent(_props: { text: string }): TUIElement {
     return new TUIElement();
@@ -55,6 +55,30 @@ describe("jsx-runtime", () => {
     describe("jsxs", () => {
         it("is the same function as jsx", () => {
             expect(jsxs).toBe(jsx);
+        });
+    });
+
+    describe("jsxDEV", () => {
+        it("is the same function as jsx", () => {
+            expect(jsxDEV).toBe(jsx);
+        });
+    });
+
+    describe("Fragment", () => {
+        it("throws because fragments are not supported", () => {
+            expect(() => Fragment({})).toThrow("Fragment is not supported yet");
+        });
+
+        it("throws even when given children", () => {
+            const child = jsx(DummyComponent, { text: "child" });
+            expect(() => Fragment({ children: [child] })).toThrow("Fragment is not supported yet");
+        });
+
+        it("throws when rendered via the jsx runtime as a component type", () => {
+            // The compiler lowers `<>...</>` to a jsx() call with Fragment as the type.
+            // Building the blueprint is fine, but instantiating it must throw.
+            const bp = jsx(Fragment as never, { children: [] });
+            expect(() => bp.type(bp.props)).toThrow("Fragment is not supported yet");
         });
     });
 

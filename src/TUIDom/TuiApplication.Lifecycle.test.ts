@@ -1,0 +1,161 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
+import type { MouseToken } from "../Input/RawTerminalToken.ts";
+
+import { TUIElement } from "./TUIElement.ts";
+import { TuiApplication } from "./TuiApplication.ts";
+import { BodyElement } from "./Widgets/BodyElement.ts";
+import { InputElement } from "./Widgets/InputElement.ts";
+
+// Container exposing two focusable child inputs for focus-cycling tests.
+class TwoInputContainer extends TUIElement {
+    public readonly first = new InputElement();
+    public readonly second = new InputElement();
+
+    public constructor() {
+        super();
+        this.first.setParent(this);
+        this.second.setParent(this);
+    }
+
+    public override getChildren(): readonly TUIElement[] {
+        return [this.first, this.second];
+    }
+}
+
+function pressMouse(x: number, y: number): MouseToken {
+    return {
+        kind: "mouse",
+        button: "left",
+        action: "press",
+        x,
+        y,
+        shiftKey: false,
+        altKey: false,
+        ctrlKey: false,
+        raw: "",
+    };
+}
+
+describe("TuiApplication — input routing", () => {
+    it("routes key input to the focused element, mutating its state", () => {
+        const backend = new MockTerminalBackend(new Size(20, 1));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const input = new InputElement();
+        body.setContent(input);
+        app.root = body;
+        app.run();
+
+        input.focus();
+        expect(input.isFocused).toBe(true);
+
+        backend.sendKey("h");
+        backend.sendKey("i");
+
+        expect(input.inputState.value).toBe("hi");
+        // Rendered text reflects the typed value.
+        expect(backend.getTextAt(new Point(0, 0), 2)).toBe("hi");
+    });
+
+    it("falls back to root dispatch when nothing is focused", () => {
+        const backend = new MockTerminalBackend(new Size(20, 1));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const handler = vi.fn();
+        body.addEventListener("keydown", handler);
+        app.root = body;
+        app.run();
+
+        backend.sendKey("a");
+
+        expect(handler).toHaveBeenCalled();
+    });
+
+    it("cycles focus forward on Tab when not prevented", () => {
+        const backend = new MockTerminalBackend(new Size(40, 3));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const container = new TwoInputContainer();
+        body.setContent(container);
+        app.root = body;
+        app.run();
+
+        container.first.focus();
+        expect(container.first.isFocused).toBe(true);
+
+        backend.sendKey("Tab");
+
+        // Focus cycles forward to the second focusable input.
+        expect(container.second.isFocused).toBe(true);
+        expect(container.first.isFocused).toBe(false);
+    });
+});
+
+// A focusable leaf that relies on the base-class default action (focus on mousedown).
+class FocusableLeaf extends TUIElement {
+    public constructor() {
+        super();
+        this.tabIndex = 0;
+    }
+}
+
+describe("TuiApplication — mouse routing", () => {
+    it("dispatches a mouse press and focuses the clicked focusable element", () => {
+        const backend = new MockTerminalBackend(new Size(20, 1));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const leaf = new FocusableLeaf();
+        body.setContent(leaf);
+        app.root = body;
+        app.run();
+
+        expect(leaf.isFocused).toBe(false);
+
+        // Click within the leaf's area (row 0). Mouse coords are 1-based.
+        backend.simulateMouse(pressMouse(1, 1));
+
+        expect(leaf.isFocused).toBe(true);
+    });
+});
+
+describe("TuiApplication — resize", () => {
+    it("marks the root dirty and re-lays-out on resize", () => {
+        const backend = new MockTerminalBackend(new Size(10, 3));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const input = new InputElement();
+        body.setContent(input);
+        app.root = body;
+        app.run();
+
+        backend.resize(new Size(30, 5));
+
+        expect(app.screen.width).toBe(30);
+        expect(app.screen.height).toBe(5);
+        // Root re-laid-out to the new screen size.
+        expect(body.layoutSize.width).toBe(30);
+        expect(body.layoutSize.height).toBe(5);
+    });
+});
+
+describe("TuiApplication — render guard", () => {
+    it("does not render when root is null", () => {
+        const backend = new MockTerminalBackend(new Size(10, 3));
+        const renderSpy = vi.spyOn(backend, "renderFrame");
+        const app = new TuiApplication(backend);
+
+        // No root set.
+        app.run();
+
+        // renderFrame() returns early because root is null → backend never drawn.
+        expect(renderSpy).not.toHaveBeenCalled();
+    });
+});

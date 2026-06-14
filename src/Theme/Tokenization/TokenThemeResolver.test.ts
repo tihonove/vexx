@@ -90,4 +90,36 @@ describe("TokenThemeResolver", () => {
         const b = resolver.resolve(["source", "keyword"]);
         expect(a).toBe(b);
     });
+
+    it("returns the empty style for an empty scope stack (line 92)", () => {
+        const resolver = new TokenThemeResolver(theme([{ scope: "keyword", settings: { foreground: "#ff0000" } }]));
+        const result = resolver.resolve([]);
+        expect(result.fg).toBeUndefined();
+        expect(result.bold).toBe(false);
+    });
+
+    it("expands a comma-separated string scope into multiple selectors (line 28 / 57-59)", () => {
+        const resolver = new TokenThemeResolver(
+            theme([{ scope: "keyword, constant.numeric", settings: { foreground: "#00ff00" } }]),
+        );
+        expect(resolver.resolve(["source", "keyword.control"]).fg).toBe(GREEN);
+        expect(resolver.resolve(["source", "constant.numeric.hex"]).fg).toBe(GREEN);
+    });
+
+    it("a rule with no scope acts as a default that matches every scope (line 42)", () => {
+        const resolver = new TokenThemeResolver(
+            theme([
+                { settings: { foreground: "#ff0000" } }, // default rule, scope undefined → ""
+                { scope: "keyword", settings: { background: "#0000ff" } },
+            ]),
+        );
+        // keyword gets its specific background AND inherits the default foreground.
+        const kw = resolver.resolve(["source", "keyword"]);
+        expect(kw.bg).toBe(BLUE);
+        expect(kw.fg).toBe(RED);
+
+        // An otherwise-unmatched scope still picks up the default foreground.
+        const other = resolver.resolve(["source", "variable.other"]);
+        expect(other.fg).toBe(RED);
+    });
 });

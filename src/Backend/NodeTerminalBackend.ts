@@ -18,7 +18,6 @@ import type { ITerminalBackend } from "./ITerminalBackend.ts";
  * shortcuts like Ctrl+S regardless of the active keyboard layout (e.g. Russian).
  * See: https://sw.kovidgoyal.net/kitty/keyboard-protocol/
  */
-/* v8 ignore next */
 const KITTY_ENABLE = "\x1b[>15u";
 const KITTY_DISABLE = "\x1b[<u";
 

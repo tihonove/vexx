@@ -91,4 +91,21 @@ describe("ListActions — when the focused element is not a tree", () => {
         expect(() => commands.execute(listFocusPageDownAction.id)).not.toThrow();
         expect(selected).not.toHaveBeenCalled();
     });
+
+    it("list.focusPageUp is a safe no-op (line 28 guard)", async () => {
+        const tree = new TreeViewElement(provider(ITEMS));
+        const app = TestApp.createWithContent(tree, new Size(40, 10));
+        await tree.refresh();
+        app.render();
+        const selected = vi.fn();
+        tree.onSelect = selected;
+
+        const accessor = new Container();
+        accessor.bind(TuiApplicationDIToken, () => app.app);
+        const commands = new CommandRegistry();
+        registerAction(commands, new KeybindingRegistry(), accessor, listFocusPageUpAction);
+
+        expect(() => commands.execute(listFocusPageUpAction.id)).not.toThrow();
+        expect(selected).not.toHaveBeenCalled();
+    });
 });

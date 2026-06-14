@@ -125,6 +125,19 @@ describe("OscClipboard", () => {
             vi.useRealTimers();
         });
 
+        it("readText parses a response without the 'c;' selection prefix (base64 taken directly)", async () => {
+            const writeFn = vi.fn();
+            let subscriber: ((code: number, data: string) => void) | null = null;
+            const clipboard = new OscClipboard(writeFn, (cb) => {
+                subscriber = cb;
+            });
+
+            const promise = clipboard.readText();
+            // No semicolon → whole payload is treated as base64.
+            subscriber!(52, Buffer.from("direct", "utf8").toString("base64"));
+            expect(await promise).toBe("direct");
+        });
+
         it("second readText cancels the first", async () => {
             const writeFn = vi.fn();
             let subscriber: ((code: number, data: string) => void) | null = null;

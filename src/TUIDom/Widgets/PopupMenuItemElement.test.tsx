@@ -7,7 +7,7 @@ import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { PopupMenuItemConfig } from "./PopupMenuItemElement.tsx";
-import { PopupMenuItemElement } from "./PopupMenuItemElement.tsx";
+import { PopupMenuItemElement, PopupMenuSeparatorElement } from "./PopupMenuItemElement.tsx";
 
 function renderItem(item: PopupMenuItemElement, width?: number): string {
     const intrinsicWidth = width ?? item.getMaxIntrinsicWidth(1);
@@ -23,6 +23,7 @@ function renderItem(item: PopupMenuItemElement, width?: number): string {
 
 const simpleConfig: PopupMenuItemConfig = { hasIconColumn: false, hasShortcuts: false };
 const shortcutConfig: PopupMenuItemConfig = { hasIconColumn: false, hasShortcuts: true };
+const iconConfig: PopupMenuItemConfig = { hasIconColumn: true, hasShortcuts: false };
 
 function fireClickOn(el: TUIElement): void {
     el.dispatchEvent(new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
@@ -104,5 +105,74 @@ describe("PopupMenuItemElement", () => {
 
             expect(handler).toHaveBeenCalledOnce();
         });
+    });
+
+    describe("selected state", () => {
+        it("selected getter reflects the assigned value", () => {
+            const item = new PopupMenuItemElement("Cut", simpleConfig);
+            expect(item.selected).toBe(false);
+            item.selected = true;
+            expect(item.selected).toBe(true);
+            item.selected = false;
+            expect(item.selected).toBe(false);
+        });
+
+        it("a selected item still renders its label (highlight describe() branch)", () => {
+            const item = new PopupMenuItemElement("Cut", simpleConfig);
+            item.selected = true;
+            const text = renderItem(item);
+            expect(text).toContain("Cut");
+        });
+
+        it("setting selected to the same value is a no-op for the getter", () => {
+            const item = new PopupMenuItemElement("Cut", simpleConfig);
+            item.selected = true;
+            item.selected = true; // no-op early-return branch
+            expect(item.selected).toBe(true);
+
+            const text = renderItem(item);
+            expect(text).toContain("Cut");
+        });
+    });
+
+    describe("icon column", () => {
+        it("renders the icon followed by a space in the icon column", () => {
+            const item = new PopupMenuItemElement("Open", iconConfig, undefined, "*");
+            const text = renderItem(item);
+            // Icon column is 2 wide: "* " then a leading content space, then the label.
+            expect(text.startsWith("* ")).toBe(true);
+            expect(text).toContain("Open");
+        });
+
+        it("renders a blank icon column when no icon is provided", () => {
+            const item = new PopupMenuItemElement("Open", iconConfig);
+            const text = renderItem(item);
+            // The 2-wide icon column is spaces.
+            expect(text.startsWith("  ")).toBe(true);
+            expect(text).toContain("Open");
+        });
+    });
+});
+
+describe("PopupMenuSeparatorElement", () => {
+    it("has zero intrinsic width and unit height", () => {
+        const sep = new PopupMenuSeparatorElement();
+        expect(sep.getMinIntrinsicWidth(1)).toBe(0);
+        expect(sep.getMaxIntrinsicWidth(1)).toBe(0);
+        expect(sep.getMinIntrinsicHeight(10)).toBe(1);
+        expect(sep.getMaxIntrinsicHeight(10)).toBe(1);
+    });
+
+    it("renders a horizontal rule across its full width", () => {
+        const sep = new PopupMenuSeparatorElement();
+        const size = new Size(6, 1);
+        const backend = new MockTerminalBackend(size);
+        const termScreen = new TerminalScreen(size);
+        sep.globalPosition = new Point(0, 0);
+        sep.performLayout(BoxConstraints.tight(size));
+        sep.render(new RenderContext(termScreen));
+        termScreen.flush(backend);
+
+        expect(backend.getTextAt(new Point(0, 0), 6)).toBe("──────");
     });
 });

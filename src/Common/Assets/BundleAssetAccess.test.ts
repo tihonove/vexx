@@ -62,4 +62,20 @@ describe("BundleAssetAccess", () => {
         const access = new BundleAssetAccess(makeBundle());
         await expect(access.listEntries("Extensions/builtin")).rejects.toThrow();
     });
+
+    it("exists() возвращает false для невалидного виртуального пути", async () => {
+        const access = new BundleAssetAccess(makeBundle());
+        // validateVirtualPath бросает на абсолютном пути → exists ловит и возвращает false.
+        expect(await access.exists("/abs/path")).toBe(false);
+        expect(await access.exists("")).toBe(false);
+    });
+
+    it("бросает при конфликте имени (файл и каталог одновременно)", () => {
+        // "a" присутствует как файл и как сегмент-каталог "a/b" → конфликт в индексе.
+        const conflicting = packBundle([
+            { virtualPath: "a", data: enc.encode("file") },
+            { virtualPath: "a/b", data: enc.encode("under-dir") },
+        ]);
+        expect(() => new BundleAssetAccess(conflicting)).toThrow(/path conflict/);
+    });
 });

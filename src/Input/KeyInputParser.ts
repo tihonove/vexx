@@ -106,8 +106,10 @@ export class KeyInputParser {
                     );
                 }
             } else if (event.type === "keypress") {
+                /* v8 ignore start -- unreachable: no token converter emits a synthetic "keypress"; processKeyEvents only ever sees keydown/keyup */
                 this.pressedKeys.add(event.code);
                 result.push(event);
+                /* v8 ignore stop */
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             } else if (event.type === "keyup") {
                 if (!modifierKeyValues.has(event.key) && !this.pressedKeys.has(event.code)) {
@@ -125,7 +127,9 @@ export class KeyInputParser {
                 this.pressedKeys.delete(event.code);
                 result.push(event);
             } else {
+                /* v8 ignore start -- unreachable: event.type is a closed union (keydown|keypress|keyup), all handled above */
                 result.push(event);
+                /* v8 ignore stop */
             }
         }
 

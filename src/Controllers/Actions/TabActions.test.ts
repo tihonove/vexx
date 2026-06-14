@@ -94,4 +94,62 @@ describe("TabActions", () => {
 
         expect(closeTab).toHaveBeenCalledWith(1);
     });
+
+    it("closeActiveEditor routes a modified editor through the confirm-close dialog", () => {
+        const closeTab = vi.fn();
+        const onRequestConfirmClose = vi.fn();
+        const group: GroupStub = {
+            activeIndex: 2,
+            editorCount: 3,
+            activateTab: vi.fn(),
+            closeTab,
+            getActiveEditor: () => ({ isModified: true }),
+            onRequestConfirmClose,
+        };
+
+        const { commands, keybindings, accessor } = setupActionTest(group);
+        registerAction(commands, keybindings, accessor, closeActiveEditorAction);
+
+        commands.execute("workbench.action.closeActiveEditor");
+
+        expect(onRequestConfirmClose).toHaveBeenCalledWith(2);
+        expect(closeTab).not.toHaveBeenCalled();
+    });
+
+    it("closeActiveEditor closes directly when modified but no confirm handler is wired", () => {
+        const closeTab = vi.fn();
+        const group: GroupStub = {
+            activeIndex: 0,
+            editorCount: 1,
+            activateTab: vi.fn(),
+            closeTab,
+            getActiveEditor: () => ({ isModified: true }),
+            // onRequestConfirmClose intentionally absent → else branch.
+        };
+
+        const { commands, keybindings, accessor } = setupActionTest(group);
+        registerAction(commands, keybindings, accessor, closeActiveEditorAction);
+
+        commands.execute("workbench.action.closeActiveEditor");
+
+        expect(closeTab).toHaveBeenCalledWith(0);
+    });
+
+    it("closeActiveEditor is a no-op when the group is empty", () => {
+        const closeTab = vi.fn();
+        const group: GroupStub = {
+            activeIndex: -1,
+            editorCount: 0,
+            activateTab: vi.fn(),
+            closeTab,
+            getActiveEditor: () => null,
+        };
+
+        const { commands, keybindings, accessor } = setupActionTest(group);
+        registerAction(commands, keybindings, accessor, closeActiveEditorAction);
+
+        commands.execute("workbench.action.closeActiveEditor");
+
+        expect(closeTab).not.toHaveBeenCalled();
+    });
 });

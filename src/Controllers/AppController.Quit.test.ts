@@ -158,4 +158,124 @@ describe("AppController quit with save dialog", () => {
 
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
+
+    it("Save on the first dialog proceeds to the next file's dialog before quitting", () => {
+        const { testApp, controller, accessor } = createTestContext();
+        controller.openFile("/tmp/quit-seq-save-a.txt");
+        controller.focusEditor();
+        testApp.sendKey("x");
+        controller.openFile("/tmp/quit-seq-save-b.txt");
+        controller.focusEditor();
+        testApp.sendKey("y");
+
+        controller.requestQuit(accessor);
+
+        // First dialog: Save → saves file, advances to second dialog (no quit yet).
+        const firstDialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        firstDialog.onSave?.();
+        expect(exitSpy).not.toHaveBeenCalled();
+
+        // A second dialog is shown for the remaining unsaved file.
+        const secondDialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        expect(secondDialog).not.toBeNull();
+
+        // Save on the last file → quit.
+        secondDialog.onSave?.();
+        expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it("mixes Save then Don't Save across the sequence and quits at the end", () => {
+        const { testApp, controller, accessor } = createTestContext();
+        controller.openFile("/tmp/quit-seq-mix-a.txt");
+        controller.focusEditor();
+        testApp.sendKey("x");
+        controller.openFile("/tmp/quit-seq-mix-b.txt");
+        controller.focusEditor();
+        testApp.sendKey("y");
+
+        controller.requestQuit(accessor);
+
+        const first = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        first.onSave?.();
+        expect(exitSpy).not.toHaveBeenCalled();
+
+        const second = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        second.onDontSave?.();
+        expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+});
+
+describe("AppController close-tab confirm flow", () => {
+    it("closing a modified tab shows the confirm dialog (no immediate close)", () => {
+        const { testApp, controller } = createTestContext();
+        controller.openFile("/tmp/close-confirm-a.txt");
+        controller.openFile("/tmp/close-confirm-b.txt");
+        controller.focusEditor();
+        testApp.sendKey("z"); // modify the active tab
+
+        testApp.sendKey("Ctrl+W");
+
+        expect(testApp.querySelector("ConfirmSaveDialogElement")).not.toBeNull();
+        // Both tabs still present — close was deferred to the dialog.
+        const tabStrip = testApp.querySelector("EditorTabStripElement");
+        expect(tabStrip).not.toBeNull();
+    });
+
+    it("Don't Save on the close-tab dialog closes the tab", () => {
+        const { testApp, controller } = createTestContext();
+        controller.openFile("/tmp/close-confirm-c.txt");
+        controller.openFile("/tmp/close-confirm-d.txt");
+        controller.focusEditor();
+        testApp.sendKey("z");
+
+        const tabStrip = testApp.querySelector("EditorTabStripElement") as unknown as {
+            getItemElements: () => readonly unknown[];
+        };
+        expect(tabStrip.getItemElements()).toHaveLength(2);
+
+        testApp.sendKey("Ctrl+W");
+        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        dialog.onDontSave?.();
+        testApp.render();
+
+        expect(tabStrip.getItemElements()).toHaveLength(1);
+    });
+
+    it("Save on the close-tab dialog saves and closes the tab", () => {
+        const { testApp, controller } = createTestContext();
+        controller.openFile("/tmp/close-confirm-e.txt");
+        controller.openFile("/tmp/close-confirm-f.txt");
+        controller.focusEditor();
+        testApp.sendKey("z");
+
+        const tabStrip = testApp.querySelector("EditorTabStripElement") as unknown as {
+            getItemElements: () => readonly unknown[];
+        };
+
+        testApp.sendKey("Ctrl+W");
+        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        dialog.onSave?.();
+        testApp.render();
+
+        expect(tabStrip.getItemElements()).toHaveLength(1);
+    });
+
+    it("Cancel on the close-tab dialog keeps the tab open", () => {
+        const { testApp, controller } = createTestContext();
+        controller.openFile("/tmp/close-confirm-g.txt");
+        controller.openFile("/tmp/close-confirm-h.txt");
+        controller.focusEditor();
+        testApp.sendKey("z");
+
+        const tabStrip = testApp.querySelector("EditorTabStripElement") as unknown as {
+            getItemElements: () => readonly unknown[];
+        };
+
+        testApp.sendKey("Ctrl+W");
+        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        dialog.onCancel?.();
+        testApp.render();
+
+        expect(tabStrip.getItemElements()).toHaveLength(2);
+    });
 });

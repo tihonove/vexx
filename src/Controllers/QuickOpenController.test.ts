@@ -167,6 +167,60 @@ describe("QuickOpenController — files mode", () => {
         expect(item.labelMatchRanges).toEqual([[0, 3]]);
     });
 
+    it("match indices in the directory portion map to description highlight ranges", () => {
+        // relativePath = "src/App.ts", basename = "App.ts" (basenameOffset=4).
+        // indices [0,1,2] are all < 4 → directory ("src") → merged range [0,3].
+        const results: FileSearchResult[] = [
+            {
+                entry: makeFileEntry("src/App.ts"),
+                score: 100,
+                matchedIndices: [0, 1, 2],
+            },
+        ];
+        const { controller } = createController(results);
+        controller.open("files");
+        const item = controller.view.items[0];
+        expect(item.descriptionMatchRanges).toEqual([[0, 3]]);
+        // Nothing matched inside the basename.
+        expect(item.labelMatchRanges).toEqual([]);
+    });
+
+    it("non-adjacent directory matches produce separate description ranges", () => {
+        // relativePath = "src/App.ts" → directory chars at offsets 0..2 ("src").
+        // indices [0, 2] are non-adjacent → two separate ranges.
+        const results: FileSearchResult[] = [
+            {
+                entry: makeFileEntry("src/App.ts"),
+                score: 100,
+                matchedIndices: [0, 2],
+            },
+        ];
+        const { controller } = createController(results);
+        controller.open("files");
+        const item = controller.view.items[0];
+        expect(item.descriptionMatchRanges).toEqual([
+            [0, 1],
+            [2, 3],
+        ]);
+    });
+
+    it("matches spanning directory and basename split into both range sets", () => {
+        // relativePath = "src/App.ts" (length 10), basename "App.ts" offset=4.
+        // indices [2,3] → directory range [2,3]; indices [4,5] → label range [0,2].
+        const results: FileSearchResult[] = [
+            {
+                entry: makeFileEntry("src/App.ts"),
+                score: 100,
+                matchedIndices: [2, 3, 4, 5],
+            },
+        ];
+        const { controller } = createController(results);
+        controller.open("files");
+        const item = controller.view.items[0];
+        expect(item.descriptionMatchRanges).toEqual([[2, 4]]);
+        expect(item.labelMatchRanges).toEqual([[0, 2]]);
+    });
+
     it("onAccept calls onExecuteCommand with workbench.openFile and absolutePath", async () => {
         const results = [makeSearchResult("src/main.ts", [])];
         const { controller } = createController(results);

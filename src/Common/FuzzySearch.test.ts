@@ -193,6 +193,16 @@ describe("fuzzyMatchBest", () => {
         expect(fuzzyMatchBest("", "anything")).toEqual({ score: 0, matchedIndices: [] });
     });
 
+    it("caps candidate start positions at 8 occurrences of the first char", () => {
+        // 12 'a's followed by a 'z'. fuzzyMatchBest only scans the first 8 'a'
+        // start positions; the 'z' lives past all of them, so it must still match.
+        const result = fuzzyMatchBest("az", "aaaaaaaaaaaaz");
+        expect(result).not.toBeNull();
+        expect(result!.matchedIndices).toHaveLength(2);
+        // Last matched index is the 'z' at position 12.
+        expect(result!.matchedIndices[1]).toBe(12);
+    });
+
     it("produces higher or equal score than greedy fuzzyMatch", () => {
         // fuzzyMatchBest tries multiple start positions and picks the best
         const greedy = fuzzyMatch("ac", "abstract_class");

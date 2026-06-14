@@ -5,8 +5,9 @@ import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { TUIElement } from "../TUIElement.ts";
 
 import type { ComponentType } from "./jsx-runtime.ts";
+import type { JsxChild } from "./jsx-runtime.ts";
 import { jsx } from "./jsx-runtime.ts";
-import { getElementType, reconcile } from "./reconcile.ts";
+import { getElementType, normalizeChildren, reconcile, reconcileChildren } from "./reconcile.ts";
 
 class FakeLabel extends TUIElement {
     public text = "";
@@ -114,6 +115,49 @@ describe("reconcile", () => {
         });
     });
 
+    describe("update path on re-reconcile", () => {
+        it("calls type.update on the existing element with new props (no new instance)", () => {
+            const created: TUIElement[] = [];
+            const updated: Array<{ el: TUIElement; text: string }> = [];
+
+            const Tracked: ComponentType<{ text: string }> = (props): FakeLabel => {
+                const el = new FakeLabel();
+                el.text = props.text;
+                created.push(el);
+                return el;
+            };
+            Tracked.update = (el, props): void => {
+                (el as FakeLabel).text = props.text;
+                updated.push({ el, text: props.text });
+            };
+
+            const el1 = reconcile(null, jsx(Tracked, { text: "a" }));
+            const el2 = reconcile(el1, jsx(Tracked, { text: "b" }));
+
+            // Reused, not recreated: only one constructor call.
+            expect(el2).toBe(el1);
+            expect(created).toHaveLength(1);
+            // update ran exactly once, on the reused element, with the new props.
+            expect(updated).toEqual([{ el: el1, text: "b" }]);
+            expect((el1 as FakeLabel).text).toBe("b");
+        });
+
+        it("reuses the element even when the component has no update hook", () => {
+            const NoUpdate: ComponentType<{ text: string }> = (props): FakeLabel => {
+                const el = new FakeLabel();
+                el.text = props.text;
+                return el;
+            };
+
+            const el1 = reconcile(null, jsx(NoUpdate, { text: "x" }));
+            const el2 = reconcile(el1, jsx(NoUpdate, { text: "y" }));
+
+            // Same instance reused; without an update hook the text stays as first render.
+            expect(el2).toBe(el1);
+            expect((el2 as FakeLabel).text).toBe("x");
+        });
+    });
+
     describe("event handler reconciliation", () => {
         function fireClick(el: TUIElement): void {
             const event = new TUIMouseEvent("click", {
@@ -196,5 +240,77 @@ describe("reconcile", () => {
 
             expect(handler).toHaveBeenCalledOnce();
         });
+    });
+});
+
+describe("normalizeChildren", () => {
+    it("returns an empty array for null / undefined / false", () => {
+        expect(normalizeChildren(null)).toEqual([]);
+        expect(normalizeChildren(undefined)).toEqual([]);
+        expect(normalizeChildren(false)).toEqual([]);
+    });
+
+    it("wraps a single child into a one-element array", () => {
+        const child = jsx(LabelComponent, { text: "solo" });
+        expect(normalizeChildren(child)).toEqual([child]);
+    });
+
+    it("filters out null, undefined and false entries from a children array", () => {
+        const a = jsx(LabelComponent, { text: "a" });
+        const b = jsx(LabelComponent, { text: "b" });
+        const children: JsxChild[] = [a, null, b, undefined, false];
+
+        const result = normalizeChildren(children);
+
+        expect(result).toEqual([a, b]);
+        expect(result).toHaveLength(2);
+    });
+
+    it("keeps live TUIElement children in an array intact", () => {
+        const live = new TUIElement();
+        const bp = jsx(LabelComponent, { text: "x" });
+        const result = normalizeChildren([null, live, false, bp]);
+
+        expect(result).toEqual([live, bp]);
+    });
+});
+
+describe("reconcileChildren", () => {
+    it("creates an element for each node when there is no existing list", () => {
+        const nodes = [jsx(LabelComponent, { text: "one" }), jsx(LabelComponent, { text: "two" })];
+
+        const result = reconcileChildren([], nodes);
+
+        expect(result).toHaveLength(2);
+        expect((result[0] as FakeLabel).text).toBe("one");
+        expect((result[1] as FakeLabel).text).toBe("two");
+    });
+
+    it("reuses existing children positionally and updates their props", () => {
+        const first = reconcileChildren([], [jsx(LabelComponent, { text: "a" }), jsx(LabelComponent, { text: "b" })]);
+
+        const second = reconcileChildren(first, [
+            jsx(LabelComponent, { text: "a2" }),
+            jsx(LabelComponent, { text: "b2" }),
+        ]);
+
+        expect(second[0]).toBe(first[0]);
+        expect(second[1]).toBe(first[1]);
+        expect((second[0] as FakeLabel).text).toBe("a2");
+        expect((second[1] as FakeLabel).text).toBe("b2");
+    });
+
+    it("creates extra children when the node list grows beyond the existing list", () => {
+        const first = reconcileChildren([], [jsx(LabelComponent, { text: "a" })]);
+
+        const second = reconcileChildren(first, [
+            jsx(LabelComponent, { text: "a2" }),
+            jsx(LabelComponent, { text: "new" }),
+        ]);
+
+        expect(second).toHaveLength(2);
+        expect(second[0]).toBe(first[0]);
+        expect(second[1]).not.toBe(first[0]);
+        expect((second[1] as FakeLabel).text).toBe("new");
     });
 });

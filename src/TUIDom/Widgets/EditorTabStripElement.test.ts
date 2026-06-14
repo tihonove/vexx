@@ -180,5 +180,50 @@ describe("EditorTabStripElement", () => {
             expect(strip.getMinIntrinsicHeight(100)).toBe(1);
             expect(strip.getMaxIntrinsicHeight(100)).toBe(1);
         });
+
+        it("width delegates to the inner hflex (filler contributes zero width)", () => {
+            const empty = new EditorTabStripElement();
+            // With only the fill filler, intrinsic width collapses to 0.
+            expect(empty.getMinIntrinsicWidth(1)).toBe(0);
+            expect(empty.getMaxIntrinsicWidth(1)).toBe(0);
+        });
+
+        it("intrinsic width grows by the sum of the tab item widths", () => {
+            const strip = new EditorTabStripElement();
+            strip.setTabs(makeTabs("a.ts", "b.ts"));
+
+            const items = strip.getItemElements();
+            const expected = items[0].getMaxIntrinsicWidth(1) + items[1].getMaxIntrinsicWidth(1);
+
+            expect(strip.getMaxIntrinsicWidth(1)).toBe(expected);
+            expect(strip.getMinIntrinsicWidth(1)).toBe(expected);
+        });
+
+        it("min and max intrinsic width agree and equal the fit tab widths", () => {
+            const strip = new EditorTabStripElement();
+            strip.setTabs(makeTabs("a.ts", "b.ts", "c.ts"));
+
+            const items = strip.getItemElements();
+            const sum =
+                items[0].getMaxIntrinsicWidth(1) + items[1].getMaxIntrinsicWidth(1) + items[2].getMaxIntrinsicWidth(1);
+
+            // Strip width delegates to the inner hflex; the fill filler adds 0.
+            expect(strip.getMinIntrinsicWidth(1)).toBe(sum);
+            expect(strip.getMaxIntrinsicWidth(1)).toBe(sum);
+        });
+
+        it("renders the filler across the remaining width after the tabs", () => {
+            const strip = new EditorTabStripElement();
+            strip.setTabs(makeTabs("a.ts"));
+            strip.activeIndex = 0;
+
+            const items = strip.getItemElements();
+            const tabWidth = items[0].getMaxIntrinsicWidth(1);
+
+            const { text } = renderStrip(strip, 30);
+            // Everything past the single tab is filler spaces.
+            expect(text.length).toBe(30);
+            expect(text.slice(tabWidth)).toBe(" ".repeat(30 - tabWidth));
+        });
     });
 });

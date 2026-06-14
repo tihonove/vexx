@@ -105,6 +105,7 @@ export class DisplayLine {
             }
             col += slot.displayWidth;
         }
+        /* v8 ignore next -- unreachable: column < displayWidth is guaranteed to fall inside some slot, since slots tile [0, displayWidth) */
         return this.rawLength;
     }
 
@@ -122,6 +123,7 @@ export class DisplayLine {
             }
             col += slot.displayWidth;
         }
+        /* v8 ignore next -- unreachable: the guard above bounds column to [0, displayWidth), which always falls inside a slot */
         return undefined;
     }
 
@@ -150,6 +152,7 @@ export class DisplayLine {
             }
             col = slotEnd;
         }
+        /* v8 ignore next -- unreachable: the guard above bounds column to [0, displayWidth), which always falls inside a slot */
         return " ";
     }
 
@@ -174,6 +177,7 @@ export class DisplayLine {
                 return mid;
             }
         }
+        /* v8 ignore next -- unreachable: every offset in [0, rawLength) belongs to exactly one slot, so the binary search always hits */
         return -1;
     }
 }

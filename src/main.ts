@@ -37,7 +37,6 @@ import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 // TUI/CLI инициализаций. Сигнал — env VEXX_EXTENSION_HOST=1, выставленный
 // `ExtensionHost.ensureSubprocess()`.
 
-/* v8 ignore next */
 if (process.env.VEXX_EXTENSION_HOST === "1") {
     runExtensionHostSubprocess();
     // runExtensionHostSubprocess() возвращается, но процесс остаётся живым

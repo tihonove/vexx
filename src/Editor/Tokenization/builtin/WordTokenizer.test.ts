@@ -61,4 +61,26 @@ describe("WordTokenizer", () => {
         const tokens = tokenize("   leading whitespace");
         expect(tokens[0].startIndex).toBe(0);
     });
+
+    it("treats an escaped quote inside a string as part of the string token", () => {
+        // The backslash escapes the inner quote, so the string does not terminate
+        // until the final quote — the whole literal is one string.quoted token.
+        const tokens = tokenize('"a\\"b" x');
+        expect(lastScope(tokens[0].scopes)).toBe("string.quoted");
+
+        // The identifier `x` only appears after the string closes; if the escape
+        // were mishandled the string would have ended early and `x` would shift.
+        const ident = tokens.find((t) => lastScope(t.scopes) === "identifier");
+        expect(ident).toBeDefined();
+        expect(ident!.startIndex).toBe(7);
+    });
+
+    it("skips an escaped backslash without ending the string early", () => {
+        const tokens = tokenize("'a\\\\' 1");
+        expect(lastScope(tokens[0].scopes)).toBe("string.quoted");
+
+        const num = tokens.find((t) => lastScope(t.scopes) === "constant.numeric");
+        expect(num).toBeDefined();
+        expect(num!.startIndex).toBe(6);
+    });
 });

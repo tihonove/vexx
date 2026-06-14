@@ -56,6 +56,20 @@ describe("InputElement — layout", () => {
         input.showBorder = true;
         expect(input.getMaxIntrinsicHeight(20)).toBe(3);
     });
+
+    it("returns correct minIntrinsicWidth (border branch on line 59)", () => {
+        const input = new InputElement();
+        expect(input.getMinIntrinsicWidth(1)).toBe(3);
+        input.showBorder = true;
+        expect(input.getMinIntrinsicWidth(1)).toBe(5);
+    });
+
+    it("returns correct minIntrinsicHeight for both border states", () => {
+        const input = new InputElement();
+        expect(input.getMinIntrinsicHeight(20)).toBe(1);
+        input.showBorder = true;
+        expect(input.getMinIntrinsicHeight(20)).toBe(3);
+    });
 });
 
 describe("InputElement — rendering without border", () => {
@@ -193,6 +207,36 @@ describe("InputElement — horizontal scroll", () => {
         const { backend } = renderInput(input, 6);
         const row = backend.getTextAt(new Point(0, 0), 6);
         expect(row).toContain("A");
+    });
+
+    it("shifts scrollX right when cursor is past the right edge (lines 96-97)", () => {
+        // contentWidth = 4, text 10 chars, cursor at end (offset 10, col 10).
+        // scrollX must become 10 - 4 + 1 = 7 so the tail "HIJ" is visible.
+        const state = new InputState();
+        state.value = "ABCDEFGHIJ";
+        const input = new InputElement(state);
+        const { backend } = renderInput(input, 4);
+        const row = backend.getTextAt(new Point(0, 0), 4);
+        expect(row).toContain("J");
+        expect(row).not.toContain("A");
+    });
+
+    it("scrolls back left when the cursor moves left of scrollX (line 95)", () => {
+        // Same element rendered twice: first with cursor at end (scrollX advances),
+        // then after moving the cursor to the start, which is < scrollX and must reset it.
+        const state = new InputState();
+        state.value = "ABCDEFGHIJ";
+        const input = new InputElement(state);
+
+        // First render: cursor at the end drives scrollX > 0.
+        renderInput(input, 4);
+
+        // Move cursor to the very start; cursorCol (0) is now < scrollX.
+        state.moveCursorToStart();
+        const { backend } = renderInput(input, 4);
+        const row = backend.getTextAt(new Point(0, 0), 4);
+        // Head of the text is revealed again (scrollX reset to 0).
+        expect(row).toBe("ABCD");
     });
 });
 

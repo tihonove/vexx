@@ -312,7 +312,9 @@ export class EditorViewState {
                     newLine = prevVisible;
                     newChar = this.document.getLineLength(prevVisible);
                 } else {
+                    /* v8 ignore start -- unreachable: line 0 is always visible, so previousVisibleLine never returns -1 for a line>0 cursor */
                     return sel;
+                    /* v8 ignore stop */
                 }
             } else {
                 return sel;
@@ -597,7 +599,9 @@ export class EditorViewState {
                         const slot = dl.slots[slotIndex];
                         nextEnd = slot.offset + slot.length;
                     } else {
+                        /* v8 ignore start -- unreachable: Segmenter slots contiguously cover the line, so every in-range offset maps to a slot */
                         nextEnd = Math.min(pos.character + 1, lineLen);
+                        /* v8 ignore stop */
                     }
                     edits.push(createTextEdit(createRange(pos.line, pos.character, pos.line, nextEnd), ""));
                 } else if (pos.line < this.document.lineCount - 1) {
@@ -904,7 +908,9 @@ export class EditorViewState {
                     return false;
                 }
 
+                /* v8 ignore start -- unreachable: reaching here needs editStartLine>endLine, but that case already returned at the "completely after" check */
                 return true;
+                /* v8 ignore stop */
             });
         }
     }

@@ -99,6 +99,7 @@ export function convertTokenToKeyPressEvent(token: RawKeyToken): KeyPressEvent {
         case "unknown-byte":
             return createKeyPressEvent(`<0x${token.byte.toString(16).padStart(2, "0")}>`, token.raw);
 
+        /* v8 ignore next 4 -- exhaustiveness guard: RawKeyToken is a closed union, no other kind is constructible */
         default: {
             const exhaustive: never = token;
             throw new Error(`Unhandled token kind: ${(exhaustive as { kind: string }).kind}`);

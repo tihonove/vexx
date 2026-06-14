@@ -276,4 +276,53 @@ describe("KeyInputParser — browser-like event model", () => {
             expect(events[0]).toMatchObject({ type: "keyup", key: "a", code: "KeyA" });
         });
     });
+
+    // ─── parseWithMouse: splits a mixed chunk into keys / mouse / osc / deviceReports ───
+
+    describe("parseWithMouse", () => {
+        it("splits a mixed input chunk into keys, mouse, osc and device-report buckets", () => {
+            const parser = new KeyInputParser();
+
+            // 'a' (key) + SGR mouse press at col 10 row 5 + OSC 52 clipboard reply +
+            // DA1 device report (CSI ? 62;1;6 c).
+            const mouse = "\x1b[<0;10;5M";
+            const osc = "\x1b]52;c;Zm9v\x07";
+            const da1 = "\x1b[?62;1;6c";
+            const result = parser.parseWithMouse("a" + mouse + osc + da1);
+
+            // 'a' becomes keydown + keypress; the mouse/osc/report are routed elsewhere.
+            expect(result.keys.map((e) => ({ type: e.type, key: e.key }))).toEqual([
+                { type: "keydown", key: "a" },
+                { type: "keypress", key: "a" },
+            ]);
+
+            expect(result.mouse).toHaveLength(1);
+            expect(result.mouse[0]).toMatchObject({ kind: "mouse", action: "press", x: 10, y: 5 });
+
+            expect(result.osc).toHaveLength(1);
+            expect(result.osc[0]).toMatchObject({ kind: "osc", code: 52 });
+
+            expect(result.deviceReports).toHaveLength(1);
+            expect(result.deviceReports[0]).toMatchObject({ kind: "device-report", report: "da1", params: "?62;1;6" });
+        });
+
+        it("returns empty mouse/osc/deviceReports buckets for pure keyboard input", () => {
+            const parser = new KeyInputParser();
+            const result = parser.parseWithMouse("\x1b[B"); // ArrowDown
+
+            expect(result.mouse).toEqual([]);
+            expect(result.osc).toEqual([]);
+            expect(result.deviceReports).toEqual([]);
+            expect(result.keys.map((e) => e.key)).toEqual(["ArrowDown", "ArrowDown"]);
+        });
+
+        it("tracks pressed state across parseWithMouse calls (Kitty press → orphaned-free release)", () => {
+            const parser = new KeyInputParser();
+            parser.parseWithMouse("\x1b[97;1:1u"); // 'a' keydown via parseWithMouse
+            const result = parser.parseWithMouse("\x1b[97;1:3u"); // release — tracked, so plain keyup
+
+            expect(result.keys).toHaveLength(1);
+            expect(result.keys[0]).toMatchObject({ type: "keyup", key: "a" });
+        });
+    });
 });

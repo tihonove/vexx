@@ -146,6 +146,22 @@ describe("LogService — sinks", () => {
         expect(sink.entries.map((e) => e.message)).toEqual(["first"]);
     });
 
+    it("disposing the sink subscription twice is a no-op", () => {
+        const service = new LogService();
+        const sink = recordingSink();
+        const sub = service.addSink(sink);
+
+        sub.dispose();
+        // Second dispose: sink already removed (indexOf < 0) — must not throw or
+        // detach a different sink.
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
+
+        service.createLogger("x").info("after");
+        expect(sink.entries).toHaveLength(0);
+    });
+
     it("a throwing sink does not break other sinks", () => {
         const service = new LogService();
         const bad: ILogSink = {

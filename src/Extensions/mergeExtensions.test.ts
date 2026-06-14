@@ -50,4 +50,14 @@ describe("mergeExtensions", () => {
     it("returns empty list when both inputs are empty", () => {
         expect(mergeExtensions([], [])).toEqual([]);
     });
+
+    it("dedupes within the builtin list, keeping the first occurrence and warning", () => {
+        const logger = createLoggerMock();
+        const first = ext("vscode.css", true);
+        const result = mergeExtensions([first, ext("vscode.css", true)], [], logger);
+
+        expect(result).toHaveLength(1);
+        expect(result[0]).toBe(first);
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("Duplicate builtin extension"));
+    });
 });

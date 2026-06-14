@@ -154,3 +154,73 @@ describe("KeybindingRegistry — chords", () => {
         });
     });
 });
+
+describe("KeybindingRegistry.getPendingChord — fallback to raw events", () => {
+    it("returns empty when no chord is in progress", () => {
+        const registry = new KeybindingRegistry();
+        registry.register(parseChord("ctrl+k s"), "save");
+        expect(registry.getPendingChord()).toEqual([]);
+    });
+
+    it("returns the canonical chord prefix while a chord is pending", () => {
+        const registry = new KeybindingRegistry();
+        registry.register(parseChord("ctrl+k s"), "save");
+
+        registry.resolveKey(makeEvent({ key: "k", ctrlKey: true }));
+        // The pressed part is reported via the registered (canonical) binding.
+        expect(formatKeybinding(registry.getPendingChord())).toBe("Ctrl+K");
+    });
+
+    it("skips a longer entry whose prefix does not match the pending events", () => {
+        const registry = new KeybindingRegistry();
+        // Two distinct chords. We will be mid-way through the second; the first,
+        // though longer, must be skipped because its first part (ctrl+a) does
+        // not match the pending ctrl+k.
+        registry.register(parseChord("ctrl+a ctrl+b ctrl+c"), "unrelated");
+        registry.register(parseChord("ctrl+k s"), "save");
+
+        registry.resolveKey(makeEvent({ key: "k", ctrlKey: true }));
+
+        // Despite the longer "ctrl+a …" entry existing, getPendingChord must
+        // resolve against the matching "ctrl+k s" entry only.
+        expect(formatKeybinding(registry.getPendingChord())).toBe("Ctrl+K");
+    });
+
+    it("falls back to raw pressed events when the matching binding is gone", () => {
+        const registry = new KeybindingRegistry();
+        const binding = registry.register(parseChord("ctrl+k s"), "save");
+
+        // Enter chord mode so pendingEvents holds Ctrl+K…
+        expect(registry.resolveKey(makeEvent({ key: "k", ctrlKey: true })).kind).toBe("chord");
+        expect(registry.pendingLength).toBe(1);
+
+        // …then remove the only binding that explained the pending state.
+        binding.dispose();
+
+        // No registered entry now matches the pending prefix, so getPendingChord
+        // must fall back to reconstructing the chord from the raw events.
+        const chord = registry.getPendingChord();
+        expect(chord).toHaveLength(1);
+        expect(chord[0]).toEqual({
+            key: "k",
+            ctrlKey: true,
+            shiftKey: false,
+            altKey: false,
+            metaKey: false,
+        });
+    });
+
+    it("falls back to raw events when only shorter (non-prefix) entries remain", () => {
+        const registry = new KeybindingRegistry();
+        const chordBinding = registry.register(parseChord("ctrl+k s"), "save");
+        // A shorter, single-part binding that cannot be a prefix of the pending seq.
+        registry.register(parseKeybinding("ctrl+x"), "other");
+
+        registry.resolveKey(makeEvent({ key: "k", ctrlKey: true }));
+        chordBinding.dispose();
+
+        // Only "ctrl+x" (length 1 <= seq length 1) remains: it is skipped by the
+        // length guard, so the raw-events fallback is used.
+        expect(formatKeybinding(registry.getPendingChord())).toBe("Ctrl+K");
+    });
+});

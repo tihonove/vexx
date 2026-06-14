@@ -43,4 +43,33 @@ describe("TerminalScreen", () => {
 
         expect(backend.getTextAt(new Point(2, 1), 1)).toBe(" ");
     });
+
+    describe("cursor position", () => {
+        it("is null by default", () => {
+            const screen = new TerminalScreen(new Size(5, 3));
+            expect(screen.cursorPosition).toBeNull();
+        });
+
+        it("setCursorPosition stores the position", () => {
+            const screen = new TerminalScreen(new Size(5, 3));
+            screen.setCursorPosition(new Point(2, 1));
+            expect(screen.cursorPosition).toEqual(new Point(2, 1));
+        });
+
+        it("clearCursorPosition resets it to null (line 31)", () => {
+            const screen = new TerminalScreen(new Size(5, 3));
+            screen.setCursorPosition(new Point(3, 2));
+            expect(screen.cursorPosition).not.toBeNull();
+
+            screen.clearCursorPosition();
+            expect(screen.cursorPosition).toBeNull();
+        });
+
+        it("clear() also drops the cursor position", () => {
+            const screen = new TerminalScreen(new Size(5, 3));
+            screen.setCursorPosition(new Point(1, 1));
+            screen.clear();
+            expect(screen.cursorPosition).toBeNull();
+        });
+    });
 });

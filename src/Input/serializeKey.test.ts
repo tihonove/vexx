@@ -142,6 +142,40 @@ describe("serializeKey", () => {
         expect(() => serializeKey("Ctrl+Shift+a")).toThrow("unknown key name");
     });
 
+    // ─── Meta modifier ───
+
+    it("Meta+ArrowUp encodes the Meta modifier (mod = 9) in CSI form", () => {
+        // mod = 1 + 8 (Meta) = 9; letter A = ArrowUp.
+        expect(serializeKey("Meta+ArrowUp")).toBe("\x1b[1;9A");
+    });
+
+    it("Meta+Delete encodes the Meta modifier in CSI tilde form", () => {
+        // Delete = 3; mod = 1 + 8 = 9.
+        expect(serializeKey("Meta+Delete")).toBe("\x1b[3;9~");
+    });
+
+    // ─── Alt / Meta prefix parsing on CSI keys (lines 65, 85) ───
+
+    it("Alt+ArrowUp parses the Alt prefix and encodes mod=3 (line 85)", () => {
+        // mod = 1 + 2 (Alt) = 3; ArrowUp letter = A.
+        expect(serializeKey("Alt+ArrowUp")).toBe("\x1b[1;3A");
+    });
+
+    it("Ctrl+Alt+ArrowRight combines Ctrl (line 65) and Alt (line 85), mod=7", () => {
+        // mod = 1 + 2 (Alt) + 4 (Ctrl) = 7; ArrowRight letter = C.
+        expect(serializeKey("Ctrl+Alt+ArrowRight")).toBe("\x1b[1;7C");
+    });
+
+    it("Alt+Delete encodes the Alt modifier on a tilde key", () => {
+        // Delete = 3; mod = 1 + 2 = 3.
+        expect(serializeKey("Alt+Delete")).toBe("\x1b[3;3~");
+    });
+
+    it("Ctrl+Alt+Shift+Meta+ArrowDown combines all four modifiers (mod=15)", () => {
+        // mod = 1 + 2(shift) + 2(alt)? careful: shift +1, alt +2, ctrl +4, meta +8 → 1+1+2+4+8 = 16
+        expect(serializeKey("Ctrl+Alt+Shift+Meta+ArrowDown")).toBe("\x1b[1;16B");
+    });
+
     // ─── Roundtrip with parseInput ───
 
     describe("roundtrip: serializeKey → parseInput", () => {
