@@ -28,6 +28,9 @@ jobs:
         id: cliff
         uses: orhun/git-cliff-action@v4
         with:
+          # Группировка и фильтрация коммитов настроены в cliff.toml (корень репо):
+          # в changelog попадают только пользовательские изменения редактора.
+          config: cliff.toml
           args: --latest --strip all
 
       - name: Download artifacts

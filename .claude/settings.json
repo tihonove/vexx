@@ -28,11 +28,6 @@
       "Bash(npm run *)",
       "Bash(npx tsc *)",
       "Bash(node -e ' *)"
-    ],
-    "defaultMode": "bypassPermissions",
-    "additionalDirectories": [
-      "/tmp"
     ]
-  },
-  "skipDangerousModePermissionPrompt": true
+  }
 }

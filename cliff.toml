@@ -1,0 +1,41 @@
+# Конфиг git-cliff для Vexx.
+# Цель: changelog показывает только пользовательские изменения редактора.
+# Инфраструктура (CI, сборка, тесты, рефакторинг, доки, стиль) из changelog скрыта.
+# Конвенция коммитов, на которую это опирается, описана в AGENTS.md (секция «Коммиты»).
+
+[changelog]
+header = ""
+body = """
+{% for commit in commits | filter(attribute="breaking", value=true) %}\
+{% if loop.first %}### 💥 Breaking Changes
+{% endif %}\
+- {{ commit.message | split(pat="\n") | first | upper_first | trim }}
+{% endfor %}\
+{% for group, commits in commits | group_by(attribute="group") %}\
+{% if group is starting_with("<!--") %}
+### {{ group | striptags | trim | upper_first }}
+{% for commit in commits %}\
+- {{ commit.message | split(pat="\n") | first | upper_first | trim }}
+{% endfor %}\
+{% endif %}\
+{% endfor %}
+"""
+trim = true
+footer = ""
+
+[git]
+conventional_commits = true
+filter_unconventional = true
+protect_breaking_commits = true
+filter_commits = true
+commit_parsers = [
+  { message = "^chore\\(release\\)", skip = true },
+  { message = "^chore\\(deps", skip = true },
+  { message = "^\\w+\\(security\\)", group = "<!-- 0 -->🛡️ Security" },
+  { body = ".*[Ss]ecurity", group = "<!-- 0 -->🛡️ Security" },
+  { message = "^feat", group = "<!-- 1 -->🚀 Features" },
+  { message = "^fix", group = "<!-- 2 -->🐛 Bug Fixes" },
+  { message = "^perf", group = "<!-- 3 -->⚡ Performance" },
+  { message = ".*", skip = true },
+]
+tag_pattern = "v[0-9]*"

@@ -17,5 +17,19 @@
     "jestrunner.enableTestExplorer": true,
     "editor.rulers": [
         120
+    ],
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "text": "Используй Conventional Commits: type(scope): subject. Тип определяет попадание в релизный changelog."
+        },
+        {
+            "text": "feat/fix/perf — ТОЛЬКО для изменений, видимых пользователю редактора. Инфраструктуру (CI, workflow-ы, конфиги, .vscode, .github, билд-скрипты) помечай ci/build/chore, тесты — test, документацию — docs."
+        },
+        {
+            "text": "Рефакторинг — refactor (в changelog не идёт, кроме ломающего refactor!:). Ломающие изменения помечай суффиксом ! или футером BREAKING CHANGE:."
+        },
+        {
+            "text": "Subject: императив, нижний регистр, без точки в конце. Для feat/fix описывай пользовательский эффект, а не внутреннюю реализацию. Подробности — в AGENTS.md, секция «Коммиты»."
+        }
     ]
 }

@@ -66,9 +66,6 @@ export default defineConfig({
         "src/Extensions/Host/VscodeNamespace.ts", // RPC-проводка в subprocess
         "src/Controllers/Modules/**", // DI-проводка (integration/e2e)
         "src/Configuration/NullConfigurationService.ts", // null-object заглушка
-
-        // НЕ исключаем (реальная исполняемая логика): IRange.ts (createRange),
-        // IState.ts (NULL_STATE), TypingUtils.ts (reject), mouseTracking.ts (константы).
       ],
     },
   },
