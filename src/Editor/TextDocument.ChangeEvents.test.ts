@@ -56,4 +56,17 @@ describe("TextDocument change events", () => {
         doc.applyEdits([createInsertEdit(0, 0, "Y")]);
         expect(changes.length).toBe(1);
     });
+
+    it("disposing the same listener twice is a safe no-op", () => {
+        const doc = new TextDocument("a");
+        const changes: IDocumentContentChange[] = [];
+        const handle = doc.onDidChangeContent((c) => changes.push(c));
+
+        handle.dispose();
+        // Second dispose: indexOf returns -1, so the splice is skipped (no throw, no double-remove).
+        expect(() => handle.dispose()).not.toThrow();
+
+        doc.applyEdits([createInsertEdit(0, 0, "X")]);
+        expect(changes.length).toBe(0);
+    });
 });

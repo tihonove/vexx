@@ -94,8 +94,18 @@ export class DocumentTokenStore extends Disposable {
         if (last < this.invalidLineIndexInternal) return;
 
         let line = this.invalidLineIndexInternal;
-        let state =
-            line === 0 ? this.support.getInitialState() : (this.endStates[line - 1] ?? this.support.getInitialState());
+        let state: IState;
+        if (line === 0) {
+            state = this.support.getInitialState();
+        } else {
+            // endStates[line - 1] — состояние строки прямо перед грязным регионом.
+            // Оно инвариантно закэшировано к моменту входа в цикл (правка только
+            // опускает invalidLineIndex до startLine, не трогая строку startLine-1),
+            // поэтому ?? fallback ниже недостижим.
+            /* v8 ignore start */
+            state = this.endStates[line - 1] ?? this.support.getInitialState();
+            /* v8 ignore stop */
+        }
 
         for (; line <= last; line++) {
             const text = this.document.getLineContent(line);

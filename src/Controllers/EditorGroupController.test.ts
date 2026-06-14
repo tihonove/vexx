@@ -4,9 +4,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
+import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
@@ -14,15 +17,31 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
 
-function createEditorGroupController(): EditorGroupController {
+function createEditorGroupController(
+    overrides: {
+        registry?: TokenizationRegistry;
+        languageService?: ILanguageService;
+        configurationService?: IConfigurationService;
+    } = {},
+): EditorGroupController {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
     return new EditorGroupController(
         themeService,
-        new TokenizationRegistry(),
+        overrides.registry ?? new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
-        NULL_LANGUAGE_SERVICE,
-        NULL_CONFIGURATION_SERVICE,
+        overrides.languageService ?? NULL_LANGUAGE_SERVICE,
+        overrides.configurationService ?? NULL_CONFIGURATION_SERVICE,
     );
+}
+
+/** Minimal IConfigurationService that serves a fixed key/value map. */
+function stubConfigurationService(values: Record<string, unknown>): IConfigurationService {
+    return {
+        ...NULL_CONFIGURATION_SERVICE,
+        get<T>(key: string, defaultValue?: T): T | undefined {
+            return key in values ? (values[key] as T) : defaultValue;
+        },
+    };
 }
 
 describe("EditorGroupController", () => {
@@ -251,6 +270,70 @@ describe("EditorGroupController", () => {
 
             expect(ctrl.editorCount).toBe(1);
             expect(ctrl.getActiveEditor()?.fileName).toBe("b.ts");
+        });
+
+        it("onTabClose on a modified editor defers to onRequestConfirmClose instead of closing", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+            const editor = ctrl.getActiveEditor()!;
+            editor.viewState.insertText("y"); // mark modified
+
+            let confirmedIndex = -1;
+            ctrl.onRequestConfirmClose = (index) => {
+                confirmedIndex = index;
+            };
+
+            ctrl.view.tabStrip.onTabClose?.(0);
+
+            expect(confirmedIndex).toBe(0);
+            expect(ctrl.editorCount).toBe(1); // not closed — waiting on confirmation
+        });
+    });
+
+    describe("activate", () => {
+        it("activates every open editor without throwing", async () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a"));
+            ctrl.openFile(writeFile("b.ts", "b"));
+
+            await expect(ctrl.activate()).resolves.toBeUndefined();
+        });
+    });
+
+    describe("applies configuration to new editors", () => {
+        it("seeds indent options from the configuration service", () => {
+            const ctrl = createEditorGroupController({
+                configurationService: stubConfigurationService({
+                    "editor.tabSize": 2,
+                    "editor.insertSpaces": true,
+                }),
+            });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+
+            const editor = ctrl.getActiveEditor()!;
+            expect(editor.viewState.tabSize).toBe(2);
+            expect(editor.viewState.insertSpaces).toBe(true);
+        });
+    });
+
+    describe("language detection", () => {
+        it("picks the registered tokenizer when the language service resolves a language id", () => {
+            const registry = new TokenizationRegistry();
+            registry.register("typescript", new PlainTextTokenizer());
+            const languageService: ILanguageService = {
+                getLanguageIdForResource: () => "typescript",
+            };
+            const ctrl = createEditorGroupController({ registry, languageService });
+            ctrl.mount();
+
+            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+
+            // The file opened successfully through the language-resolved path.
+            expect(ctrl.editorCount).toBe(1);
+            expect(ctrl.getActiveEditor()?.getText()).toBe("const x = 1;");
         });
     });
 });

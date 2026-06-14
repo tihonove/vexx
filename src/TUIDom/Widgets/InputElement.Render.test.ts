@@ -70,6 +70,29 @@ describe("InputElement — layout", () => {
         input.showBorder = true;
         expect(input.getMinIntrinsicHeight(20)).toBe(3);
     });
+
+    it("falls back to max(minWidth, 20) when maxWidth is unbounded (line 72 else branch)", () => {
+        const input = new InputElement();
+        // Non-finite maxWidth → width is max(minWidth, 20). minWidth 10 < 20 ⇒ 20.
+        input.performLayout(new BoxConstraints(10, Infinity, 1, 1));
+        expect(input.layoutSize.width).toBe(20);
+    });
+
+    it("uses minWidth when it exceeds 20 under an unbounded maxWidth", () => {
+        const input = new InputElement();
+        input.performLayout(new BoxConstraints(25, Infinity, 1, 1));
+        expect(input.layoutSize.width).toBe(25);
+    });
+});
+
+describe("InputElement — degenerate content width", () => {
+    it("returns early without drawing when the content area collapses to zero width (line 89)", () => {
+        const input = new InputElement();
+        input.showBorder = true;
+        input.inputState.value = "hi";
+        // Total width 2 with a border ⇒ contentWidth = 2 - 2 = 0 ⇒ render bails out at line 89.
+        expect(() => renderInput(input, 2)).not.toThrow();
+    });
 });
 
 describe("InputElement — rendering without border", () => {

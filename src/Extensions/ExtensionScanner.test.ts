@@ -91,4 +91,16 @@ describe("scanBuiltinExtensions", () => {
     it("rootPrefix без trailing / — ошибка", async () => {
         await expect(scanBuiltinExtensions(assets, "Extensions/builtin")).rejects.toThrow();
     });
+
+    it("пропускает записи верхнего уровня, не являющиеся каталогами", async () => {
+        // Свободный файл прямо под rootPrefix — не каталог расширения,
+        // сканер обязан его пропустить (entry.isDirectory === false).
+        await fs.promises.writeFile(path.join(tempDir, "stray.txt"), "noise");
+        await writeManifest("real-ext", { name: "n", publisher: "p", version: "1.0.0" });
+
+        const result = await scanBuiltinExtensions(assets, ROOT_PREFIX);
+
+        expect(result).toHaveLength(1);
+        expect(result[0].id).toBe("p.n");
+    });
 });

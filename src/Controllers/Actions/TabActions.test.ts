@@ -77,6 +77,23 @@ describe("TabActions", () => {
         expect(activateTab).not.toHaveBeenCalled();
     });
 
+    it("previousEditorInGroup is noop when there is one tab", () => {
+        const activateTab = vi.fn();
+        const group: GroupStub = {
+            activeIndex: 0,
+            editorCount: 1,
+            activateTab,
+            closeTab: vi.fn(),
+        };
+
+        const { commands, keybindings, accessor } = setupActionTest(group);
+        registerAction(commands, keybindings, accessor, previousEditorInGroupAction);
+
+        commands.execute("workbench.action.previousEditorInGroup");
+
+        expect(activateTab).not.toHaveBeenCalled();
+    });
+
     it("closeActiveEditor closes currently active tab", () => {
         const closeTab = vi.fn();
         const group: GroupStub = {

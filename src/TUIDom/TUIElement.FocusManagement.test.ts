@@ -84,4 +84,10 @@ describe("TUIElement focus convenience", () => {
         child2.blur(); // child2 is not focused, should not affect anything
         expect(fm.activeElement).toBe(child1);
     });
+
+    it("blur() is a no-op when the element has no root", () => {
+        const el = new TUIElement();
+        // No root → no focus manager; blur() must short-circuit without throwing.
+        expect(() => el.blur()).not.toThrow();
+    });
 });

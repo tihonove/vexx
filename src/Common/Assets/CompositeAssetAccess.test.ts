@@ -56,6 +56,14 @@ describe("CompositeAssetAccess", () => {
         expect(await c.listEntries("nope/")).toEqual([]);
     });
 
+    it("exists delegates to the matched backend", async () => {
+        const a = new FakeAccess({ "x/file.txt": "data" });
+        const c = new CompositeAssetAccess({ "x/": a });
+        // Путь маршрутизируется в backend "x/" → возвращается его ответ exists().
+        expect(await c.exists("x/file.txt")).toBe(true);
+        expect(await c.exists("x/missing.txt")).toBe(false);
+    });
+
     it("exists returns false instead of throwing for unrouted path", async () => {
         const a = new FakeAccess({});
         const c = new CompositeAssetAccess({ "x/": a });

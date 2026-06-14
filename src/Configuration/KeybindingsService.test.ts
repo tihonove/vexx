@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { loadUserKeybindings } from "./KeybindingsService.ts";
 
@@ -72,5 +72,26 @@ describe("loadUserKeybindings", () => {
         const rules = await loadUserKeybindings(file);
         // jsonc-parser recovers the well-formed object.
         expect(rules).toEqual([{ key: "ctrl+s", command: "save", when: undefined, args: undefined }]);
+    });
+
+    it("logs and returns [] when the file can't be read (non-ENOENT error)", async () => {
+        // A directory path → readFile throws EISDIR, the non-missing-file branch.
+        const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), isEnabled: () => true };
+        const rules = await loadUserKeybindings(dir, logger);
+        expect(rules).toEqual([]);
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to read keybindings file"), expect.anything());
+    });
+
+    it("skips non-object rules and keeps valid ones", async () => {
+        const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), isEnabled: () => true };
+        const file = write(`[
+            42,
+            "not-an-object",
+            null,
+            { "key": "ctrl+x", "command": "cut" }
+        ]`);
+        const rules = await loadUserKeybindings(file, logger);
+        expect(rules).toEqual([{ key: "ctrl+x", command: "cut", when: undefined, args: undefined }]);
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Skipping non-object keybinding rule"));
     });
 });

@@ -86,6 +86,17 @@ describe("FileSink", () => {
         expect(content).toMatch(/Error: boom/);
     });
 
+    it("serializes Error without stack via name and message fallback", async () => {
+        const err = new Error("boom");
+        err.stack = undefined; // форсируем ветку `?? `${name}: ${message}``
+        const sink = new FileSink(file);
+        sink.append(entry({ level: LogLevel.Error, message: "fail", args: [err] }));
+        await flushAndDispose(sink);
+
+        const content = fs.readFileSync(file, "utf8");
+        expect(content).toContain("fail\tError: boom\n");
+    });
+
     it("truncates file on construction with flags=w (default)", async () => {
         fs.writeFileSync(file, "old content\n");
         const sink = new FileSink(file);

@@ -118,4 +118,32 @@ describe("loadConfiguration", () => {
         const cfg = await loadConfiguration(paths());
         expect(cfg.getValue("editor")).toEqual({ tabSize: 4, insertSpaces: true });
     });
+
+    it("onDidChangeConfiguration returns a disposable no-op subscription", async () => {
+        const cfg = await loadConfiguration(paths());
+        const sub = cfg.onDidChangeConfiguration(() => {
+            /* never fired in this iteration */
+        });
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
+    });
+
+    it("logs and falls back to defaults when a settings file can't be read", async () => {
+        const p = paths();
+        // Make settings.json a directory → readFile throws EISDIR (not ENOENT),
+        // exercising the error branch rather than the missing-file branch.
+        fs.mkdirSync(p.settingsFile, { recursive: true });
+        const logger = {
+            trace: vi.fn(),
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+            isEnabled: () => true,
+        };
+        const cfg = await loadConfiguration(p, logger);
+        expect(cfg.get<number>("editor.tabSize")).toBe(4);
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to read settings file"), expect.anything());
+    });
 });

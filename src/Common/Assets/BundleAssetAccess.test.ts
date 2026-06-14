@@ -58,6 +58,13 @@ describe("BundleAssetAccess", () => {
         await expect(access.read("missing.bin")).rejects.toThrow(/not found/);
     });
 
+    it("listEntries по неизвестному префиксу возвращает []", async () => {
+        const access = new BundleAssetAccess(makeBundle());
+        // Префикс валиден (заканчивается на "/"), но в bundle нет таких записей →
+        // childrenByPrefix.get(...) === undefined → пустой список.
+        expect(await access.listEntries("Nonexistent/")).toEqual([]);
+    });
+
     it("listEntries без trailing / бросает", async () => {
         const access = new BundleAssetAccess(makeBundle());
         await expect(access.listEntries("Extensions/builtin")).rejects.toThrow();

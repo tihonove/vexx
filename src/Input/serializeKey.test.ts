@@ -136,6 +136,15 @@ describe("serializeKey", () => {
         expect(serializeKey("Alt+a")).toBe("\x1ba");
     });
 
+    it("serializes Shift+Tab as backtab (CSI Z, line 100)", () => {
+        expect(serializeKey("Shift+Tab")).toBe("\x1b[Z");
+    });
+
+    it("parses a lone Alt prefix on a CSI key (line 85)", () => {
+        // mod = 1 + 2 (Alt) = 3; Home letter = H.
+        expect(serializeKey("Alt+Home")).toBe("\x1b[1;3H");
+    });
+
     // ─── Error handling ───
 
     it("throws on unknown key name", () => {

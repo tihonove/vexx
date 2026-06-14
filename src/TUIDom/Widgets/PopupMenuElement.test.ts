@@ -185,5 +185,40 @@ describe("PopupMenuElement", () => {
             menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
             expect(closed).toBe(true);
         });
+
+        it("Enter on an item without onSelect does nothing (line 199 false branch)", () => {
+            const menu = new PopupMenuElement([{ label: "NoAction" }]);
+            expect(menu.selectedIndex).toBe(0);
+            expect(() => menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }))).not.toThrow();
+        });
+    });
+
+    describe("menu with no selectable entries", () => {
+        function separatorOnlyMenu(): PopupMenuElement {
+            return new PopupMenuElement([{ type: "separator" }, { type: "separator" }]);
+        }
+
+        it("has no valid selection when every entry is a separator", () => {
+            const menu = separatorOnlyMenu();
+            expect(menu.selectedIndex).toBe(-1);
+        });
+
+        it("ArrowDown is a no-op when there is nothing selectable (line 187)", () => {
+            const menu = separatorOnlyMenu();
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
+            expect(menu.selectedIndex).toBe(-1);
+        });
+
+        it("ArrowUp is a no-op when there is nothing selectable (line 187)", () => {
+            const menu = separatorOnlyMenu();
+            menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowUp" }));
+            expect(menu.selectedIndex).toBe(-1);
+        });
+
+        it("Enter does nothing when selectedIndex is negative (line 197)", () => {
+            const menu = separatorOnlyMenu();
+            expect(() => menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }))).not.toThrow();
+            expect(menu.selectedIndex).toBe(-1);
+        });
     });
 });

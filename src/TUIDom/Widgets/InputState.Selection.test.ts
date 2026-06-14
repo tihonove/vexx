@@ -2,6 +2,35 @@ import { describe, expect, it } from "vitest";
 
 import { InputState } from "./InputState.ts";
 
+describe("InputState — selection boundaries without an active selection", () => {
+    // With no anchor set, selectionStart/selectionEnd both collapse to the caret
+    // (the `anchorOffset === null` early returns on lines 38 and 42-43).
+    it("selectionStart equals the cursor offset when nothing is selected", () => {
+        const s = new InputState();
+        s.value = "abc"; // caret at end (offset 3), no anchor
+        expect(s.hasSelection).toBe(false);
+        expect(s.selectionStart).toBe(3);
+    });
+
+    it("selectionEnd equals the cursor offset when nothing is selected", () => {
+        const s = new InputState();
+        s.value = "abc";
+        s.moveCursorToStart(); // caret at 0, still no anchor
+        expect(s.hasSelection).toBe(false);
+        expect(s.selectionEnd).toBe(0);
+    });
+
+    it("collapsing a selection makes start and end meet at the caret again", () => {
+        const s = new InputState();
+        s.value = "abc";
+        s.selectLeft(); // anchor=3, caret=2 → real selection
+        expect(s.hasSelection).toBe(true);
+        s.clearSelection(); // drop the anchor
+        expect(s.selectionStart).toBe(2);
+        expect(s.selectionEnd).toBe(2);
+    });
+});
+
 describe("InputState — selection", () => {
     // ─── selectLeft / selectRight ────────────────────────────────────────────
 

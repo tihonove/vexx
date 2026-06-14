@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
 
@@ -68,6 +69,26 @@ describe("TitledPanelElement", () => {
             // BoxElement draws a border box starting on the child's first row.
             expect(text(0, 1, 6)).toBe("+----+");
             expect(text(0, 3, 6)).toBe("+----+");
+        });
+
+        it("renders the title with the configured panelTitleFg when set", () => {
+            const titleFg = packRgb(10, 200, 30);
+            const panel = new TitledPanelElement("Hi", new BoxElement());
+            panel.style = { panelTitleFg: titleFg };
+
+            const { backend } = renderPanel(panel, 10, 3);
+
+            // Default titlePaddingLeft = 1, so 'H' is at column 1 and uses panelTitleFg.
+            expect(backend.getFgAt(new Point(1, 0))).toBe(titleFg);
+        });
+
+        it("falls back to the default title color when panelTitleFg is not set", () => {
+            const panel = new TitledPanelElement("Hi", new BoxElement());
+
+            const { backend } = renderPanel(panel, 10, 3);
+            const defaultTitleFg = packRgb(130, 130, 130);
+
+            expect(backend.getFgAt(new Point(1, 0))).toBe(defaultTitleFg);
         });
     });
 });

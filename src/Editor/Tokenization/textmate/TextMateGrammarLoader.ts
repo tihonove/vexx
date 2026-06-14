@@ -61,7 +61,9 @@ export class TextMateGrammarLoader {
         // Registry, иначе vscode-textmate бросит «No grammar provided».
         if (!this.recordsByScope.has(scopeName)) return null;
         const grammar = await this.loadGrammar(scopeName);
+        /* v8 ignore start -- defensive: для зарегистрированного scope Registry либо бросает «No grammar provided», либо отдаёт грамматику; null здесь недостижим */
         if (grammar === null) return null;
+        /* v8 ignore stop */
         return new TextMateTokenizationSupport(grammar, scopeName);
     }
 

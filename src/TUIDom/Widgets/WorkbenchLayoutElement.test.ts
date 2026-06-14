@@ -1,12 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { TUIElement } from "../TUIElement.ts";
+import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { WorkbenchLayoutElement } from "./WorkbenchLayoutElement.ts";
 
 function createPanel(): TUIElement {
     return new TUIElement();
+}
+
+/** A panel that paints a single marker char at its top-left, so we can assert it was rendered. */
+class MarkerPanel extends TUIElement {
+    public constructor(private readonly marker: string) {
+        super();
+    }
+
+    public override render(context: RenderContext): void {
+        context.setCell(0, 0, { char: this.marker, fg: 0, bg: 0 });
+    }
 }
 
 describe("WorkbenchLayoutElement", () => {
@@ -252,6 +265,78 @@ describe("WorkbenchLayoutElement", () => {
 
             expect(leftPanel.layoutSize.width).toBe(80);
             expect(center.layoutSize.width).toBe(0);
+        });
+    });
+
+    describe("layout edge cases", () => {
+        it("lays out the left panel even when no center content is set (line 82 false branch)", () => {
+            const layout = new WorkbenchLayoutElement();
+            const left = createPanel();
+
+            layout.setLeftPanel(left);
+            layout.setLeftPanelWidth(20);
+            layout.globalPosition = new Point(0, 0);
+
+            expect(() => layout.performLayout(BoxConstraints.tight(new Size(40, 10)))).not.toThrow();
+            expect(left.layoutSize).toEqual(new Size(20, 10));
+        });
+
+        it("setLeftPanel(null) clears the panel without re-parenting (line 18 false branch)", () => {
+            const layout = new WorkbenchLayoutElement();
+            const left = createPanel();
+
+            layout.setLeftPanel(left);
+            expect(left.getParent()).toBe(layout);
+
+            layout.setLeftPanel(null);
+            expect(left.getParent()).toBeNull();
+            expect(layout.getLeftPanel()).toBeNull();
+        });
+    });
+
+    describe("render", () => {
+        function renderLayout(layout: WorkbenchLayoutElement, size: Size): MockTerminalBackend {
+            const backend = new MockTerminalBackend(size);
+            const termScreen = new TerminalScreen(size);
+            layout.globalPosition = new Point(0, 0);
+            layout.performLayout(BoxConstraints.tight(size));
+            layout.render(new RenderContext(termScreen, new Offset(0, 0), new Rect(new Point(0, 0), size)));
+            termScreen.flush(backend);
+            return backend;
+        }
+
+        it("renders the left panel and center content through the pipeline (lines 92-103)", () => {
+            const layout = new WorkbenchLayoutElement();
+            layout.setLeftPanel(new MarkerPanel("L"));
+            layout.setCenterContent(new MarkerPanel("C"));
+            layout.setLeftPanelWidth(10);
+
+            const backend = renderLayout(layout, new Size(30, 5));
+
+            expect(backend.getTextAt(new Point(0, 0), 1)).toBe("L"); // left panel at x=0
+            expect(backend.getTextAt(new Point(10, 0), 1)).toBe("C"); // center after left panel
+        });
+
+        it("renders only the left panel when there is no center content (line 99 false branch)", () => {
+            const layout = new WorkbenchLayoutElement();
+            layout.setLeftPanel(new MarkerPanel("L"));
+            layout.setLeftPanelWidth(10);
+
+            const backend = renderLayout(layout, new Size(30, 5));
+
+            expect(backend.getTextAt(new Point(0, 0), 1)).toBe("L");
+        });
+
+        it("skips the hidden left panel and renders center at the origin (line 99)", () => {
+            const layout = new WorkbenchLayoutElement();
+            layout.setLeftPanel(new MarkerPanel("L"));
+            layout.setCenterContent(new MarkerPanel("C"));
+            layout.setLeftPanelVisible(false);
+
+            const backend = renderLayout(layout, new Size(30, 5));
+
+            // Left panel suppressed; center occupies x=0.
+            expect(backend.getTextAt(new Point(0, 0), 1)).toBe("C");
         });
     });
 

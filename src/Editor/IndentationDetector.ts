@@ -47,7 +47,9 @@ export function detectIndentation(document: ITextDocument): DetectedIndentation 
     return { insertSpaces: true, tabSize };
 }
 
-function detectTabSize(spaceCounts: Map<number, number>): number {
+// Exported for direct testing: when reached via detectIndentation the map is
+// always non-empty, so the empty-map guard below is otherwise unreachable.
+export function detectTabSize(spaceCounts: Map<number, number>): number {
     // The tab size is the GCD of all observed indentation levels.
     const sizes = [...spaceCounts.keys()];
     if (sizes.length === 0) return 4;

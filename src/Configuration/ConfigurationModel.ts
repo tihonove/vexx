@@ -148,10 +148,6 @@ function collectKeys(node: unknown, prefix: string, out: string[]): void {
     }
     for (const [key, value] of Object.entries(node)) {
         const next = prefix.length === 0 ? key : `${prefix}.${key}`;
-        if (isPlainObject(value)) {
-            collectKeys(value, next, out);
-        } else {
-            out.push(next);
-        }
+        collectKeys(value, next, out);
     }
 }

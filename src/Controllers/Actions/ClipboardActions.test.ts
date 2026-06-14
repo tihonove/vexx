@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
@@ -153,6 +153,32 @@ describe("clipboardPasteAction", () => {
         await exec(clipboardPasteAction);
 
         expect(editor.getText()).toBe("hello world");
+    });
+});
+
+describe("clipboardCutAction defensive delete handling", () => {
+    it("still copies to the clipboard but pushes no undo when the delete is a no-op", async () => {
+        // A real editor with a non-empty selection always produces an undo on
+        // deleteLeft(); this stub forces the defensive `if (undo)` false branch.
+        const clipboard = memoryClipboard();
+        const pushUndo = vi.fn();
+        const editor = {
+            viewState: {
+                getSelectedText: () => "selected",
+                deleteLeft: () => undefined,
+            },
+            pushUndo,
+        };
+        const commands = new CommandRegistry();
+        const accessor = new Container();
+        accessor.bind(EditorGroupControllerDIToken, () => ({ getActiveEditor: () => editor }) as never);
+        accessor.bind(ClipboardDIToken, () => clipboard);
+
+        registerAction(commands, new KeybindingRegistry(), accessor, clipboardCutAction);
+        await commands.execute(clipboardCutAction.id);
+
+        expect(await clipboard.readText()).toBe("selected");
+        expect(pushUndo).not.toHaveBeenCalled();
     });
 });
 

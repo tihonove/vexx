@@ -90,6 +90,25 @@ describe("TerminalEnvironmentService", () => {
             expect(changed).toBe(0);
         });
 
+        it("upgrades the capability without firing onDidChange when a forced tier pins the result", () => {
+            // Probe upgrades extended-keys, but terminal.tier forces the tier, so the
+            // resolved tier equals the current one → the change is swallowed (no emit).
+            const backend = new MockTerminalBackend();
+            const service = new TerminalEnvironmentService(backend, configFrom({ terminal: { tier: "csi-u" } }));
+            let changed = 0;
+            service.onDidChange(() => changed++);
+
+            expect(service.tier).toBe("csi-u");
+            expect(service.hasCapability("extended-keys")).toBe(false);
+
+            service.detect();
+            backend.resolveKeyboardProtocol(true);
+
+            expect(service.hasCapability("extended-keys")).toBe(true);
+            expect(service.tier).toBe("csi-u");
+            expect(changed).toBe(0);
+        });
+
         it("never downgrades — a non-reply keeps an env-detected capability", () => {
             process.env.TERM = "xterm-kitty";
             const backend = new MockTerminalBackend();
@@ -119,6 +138,16 @@ describe("TerminalEnvironmentService", () => {
             );
             expect(service.hasCapability("osc52")).toBe(false);
         });
+
+        it("ignores capability overrides that are unknown or non-boolean", () => {
+            const service = new TerminalEnvironmentService(
+                new MockTerminalBackend(),
+                // `bogus` is not a known capability; `osc52` is, but its value is not a boolean.
+                configFrom({ terminal: { capabilities: { bogus: true, osc52: "nope" } } as never }),
+            );
+            // osc52 keeps its env-derived default (true outside tmux); the bad entries are skipped.
+            expect(service.hasCapability("osc52")).toBe(true);
+        });
     });
 
     describe("modes", () => {
@@ -139,6 +168,18 @@ describe("TerminalEnvironmentService", () => {
 
             expect(service.isModeActive("presentation")).toBe(false);
             service.setMode("presentation", true);
+            expect(service.isModeActive("presentation")).toBe(true);
+            expect(fired).toBe(1);
+        });
+
+        it("setMode is a no-op when the mode already holds the requested value", () => {
+            const service = new TerminalEnvironmentService(new MockTerminalBackend(), configFrom());
+            let fired = 0;
+            service.onDidChange(() => fired++);
+
+            service.setMode("presentation", true); // first toggle fires
+            service.setMode("presentation", true); // same value → early return, no emit
+
             expect(service.isModeActive("presentation")).toBe(true);
             expect(fired).toBe(1);
         });

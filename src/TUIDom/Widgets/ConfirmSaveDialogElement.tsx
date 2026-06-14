@@ -1,7 +1,6 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { CompositeElement } from "../CompositeElement.ts";
-import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { JsxNode } from "../JSX/jsx-runtime.ts";
 
@@ -139,9 +138,8 @@ export class ConfirmSaveDialogElement extends CompositeElement {
         );
     }
 
-    private handleDialogKeydown(event: TUIEventBase): void {
-        if (event.type !== "keydown") return;
-        const keyEvent = event as TUIKeyboardEvent;
+    private handleDialogKeydown(event: TUIKeyboardEvent): void {
+        const keyEvent = event;
 
         const buttons = [this.dontSaveButton, this.cancelButton, this.saveButton];
         const focusedIndex = buttons.findIndex((b) => b.isFocused);

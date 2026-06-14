@@ -83,4 +83,15 @@ describe("WordTokenizer", () => {
         expect(num).toBeDefined();
         expect(num!.startIndex).toBe(6);
     });
+
+    it("treats digits inside an identifier as identifier parts, not numbers", () => {
+        // The trailing/embedded digits are consumed by isIdentPart, so `foo2` and
+        // `bar3baz` are single identifier tokens — no numeric token is emitted.
+        const tokens = tokenize("foo2 bar3baz");
+        expect(tokens[0]).toEqual({ startIndex: 0, scopes: ["source", "identifier"] });
+        const ident = tokens.find((t) => t.startIndex === 5);
+        expect(ident).toBeDefined();
+        expect(lastScope(ident!.scopes)).toBe("identifier");
+        expect(tokens.some((t) => lastScope(t.scopes) === "constant.numeric")).toBe(false);
+    });
 });

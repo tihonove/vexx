@@ -54,6 +54,41 @@ describe("DocumentTokenStore.handleContentChange — invalidLineIndex clamp", ()
     });
 });
 
+describe("DocumentTokenStore.setLineTokens — out-of-range guard", () => {
+    it("ignores line indices below 0 and at/above lineCount", () => {
+        const doc = new TextDocument("a\nb");
+        const store = new DocumentTokenStore(doc, new PlainTextTokenizer());
+        const custom = { tokens: [{ startIndex: 0, scopes: ["custom"] }] };
+
+        // lineCount is 2 → indices -1 and 2 are out of range and must be ignored.
+        store.setLineTokens(-1, custom);
+        store.setLineTokens(2, custom);
+
+        expect(store.getLineTokens(0)).toBeUndefined();
+        expect(store.getLineTokens(1)).toBeUndefined();
+    });
+});
+
+describe("DocumentTokenStore.tokenizeUpTo — resume from a middle line", () => {
+    it("seeds the state from the preceding line's end state when resuming below line 0", () => {
+        const doc = new TextDocument("a\nb\nc\nd\ne");
+        const store = new DocumentTokenStore(doc, new PlainTextTokenizer());
+
+        // Tokenize only [0..1]; the stateless tokenizer never converges here
+        // (cached end states were undefined), so invalidLineIndex lands at 2.
+        store.tokenizeUpTo(1);
+        expect(store.invalidLineIndex).toBe(2);
+        expect(store.getLineTokens(3)).toBeUndefined();
+
+        // Resuming starts the loop at line 2 (> 0), so the initial `state` is taken
+        // from endStates[1] — the `line !== 0` branch of the state selection.
+        store.tokenizeUpTo(3);
+        expect(store.getLineTokens(2)).toBeDefined();
+        expect(store.getLineTokens(3)).toBeDefined();
+        expect(store.invalidLineIndex).toBe(4);
+    });
+});
+
 describe("DocumentTokenStore.emptyLineTokens", () => {
     it("returns a single whole-line token with empty scopes", () => {
         const empty = DocumentTokenStore.emptyLineTokens();

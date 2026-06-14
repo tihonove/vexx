@@ -53,6 +53,9 @@ describe("AppController — Quick Open accept callbacks", () => {
         tmpDir = createTempWorkspace();
         ({ testApp, controller, commands } = createQuickOpenApp(tmpDir));
         await controller.activate();
+        // The file index now builds in the background — wait for it so the picker
+        // has entries when the test opens Quick Open.
+        await controller.fileIndexReady;
         testApp.render();
     });
 

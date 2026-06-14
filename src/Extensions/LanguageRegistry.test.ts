@@ -139,6 +139,18 @@ describe("LanguageRegistry", () => {
         expect(lang?.configurationPath).toBe("Extensions/builtin/typescript-basics/language-configuration.json");
     });
 
+    it("matches filenamePatterns с одиночным wildcard '?'", () => {
+        const registry = new LanguageRegistry();
+        registry.register(makeExt("q", [{ id: "qlang", filenamePatterns: ["file?.txt"] }]));
+
+        // '?' матчит ровно один символ.
+        expect(registry.getLanguageIdForResource("/p/fileA.txt")).toBe("qlang");
+        expect(registry.getLanguageIdForResource("/p/file1.txt")).toBe("qlang");
+        // Ноль или два символа в позиции '?' матчиться не должны.
+        expect(registry.getLanguageIdForResource("/p/file.txt")).toBeUndefined();
+        expect(registry.getLanguageIdForResource("/p/fileAB.txt")).toBeUndefined();
+    });
+
     it("allLanguages() возвращает все зарегистрированные", () => {
         const registry = new LanguageRegistry();
         registry.register(

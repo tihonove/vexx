@@ -50,4 +50,30 @@ describe("EditorOptionsServiceAdapter", () => {
         const adapter = new EditorOptionsServiceAdapter(groupWithNoActiveEditor());
         expect(adapter.getActiveEditorFilePath()).toBeNull();
     });
+
+    it("onActiveEditorChanged() forwards the editor's file path, and null when there is no editor", () => {
+        let registered: ((editor: unknown) => void) | undefined;
+        const groupDisposable = { dispose: vi.fn() };
+        const group = {
+            onActiveEditorChanged: (cb: (editor: unknown) => void) => {
+                registered = cb;
+                return groupDisposable;
+            },
+        } as unknown as EditorGroupController;
+        const adapter = new EditorOptionsServiceAdapter(group);
+
+        const received: (string | null)[] = [];
+        const subscription = adapter.onActiveEditorChanged((filePath) => received.push(filePath));
+
+        // The adapter passes the group's disposable straight through.
+        expect(subscription).toBe(groupDisposable);
+        expect(registered).toBeDefined();
+
+        // Active editor present → its absoluteFilePath is forwarded.
+        registered!({ absoluteFilePath: "/a/b.ts" });
+        // No active editor → null is forwarded.
+        registered!(null);
+
+        expect(received).toEqual(["/a/b.ts", null]);
+    });
 });

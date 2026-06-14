@@ -36,6 +36,18 @@ describe("ConfigurationModel", () => {
             const m = ConfigurationModel.fromRaw({ "files.exclude": ["a", "b"] });
             expect(m.get("files.exclude")).toEqual(["a", "b"]);
         });
+
+        it("deep-merges a dotted key into a colliding nested object", () => {
+            // "a.b" expands onto the already-present `a.b` object instead of
+            // replacing it: both sides are plain objects, so they merge.
+            const m = ConfigurationModel.fromRaw({
+                a: { b: { x: 1 } },
+                "a.b": { y: 2 },
+            });
+            expect(m.get<number>("a.b.x")).toBe(1);
+            expect(m.get<number>("a.b.y")).toBe(2);
+            expect(m.getValue("a.b")).toEqual({ x: 1, y: 2 });
+        });
     });
 
     describe("get / getValue", () => {
@@ -94,6 +106,16 @@ describe("ConfigurationModel", () => {
 
         it("treats arrays as leaves", () => {
             const m = ConfigurationModel.fromRaw({ "files.exclude": ["a"] });
+            expect(m.collectKeys()).toEqual(["files.exclude"]);
+        });
+
+        it("treats primitive leaves at any depth as keys", () => {
+            const m = ConfigurationModel.fromRaw({ top: 1, nested: { value: false } });
+            expect(m.collectKeys().sort()).toEqual(["nested.value", "top"]);
+        });
+
+        it("emits no key for an empty nested object", () => {
+            const m = ConfigurationModel.fromRaw({ editor: {}, "files.exclude": ["a"] });
             expect(m.collectKeys()).toEqual(["files.exclude"]);
         });
     });

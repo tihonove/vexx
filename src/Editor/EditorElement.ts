@@ -473,8 +473,11 @@ function packStyleFlags(style: ResolvedTokenStyle): number {
  * Linear cursor over a sorted token array, optimised for left-to-right
  * scans (which is how the renderer walks columns). Falls back to binary
  * search when the offset rewinds.
+ *
+ * Exported for unit testing: the renderer only ever scans forward, so the
+ * rewind path is unreachable through rendering alone.
  */
-class TokenIndex {
+export class TokenIndex {
     private readonly tokens: readonly IToken[];
     private readonly lineLength: number;
     private cursor = 0;

@@ -90,6 +90,29 @@ describe("ConfirmSaveDialogElement — actions", () => {
     });
 });
 
+describe("ConfirmSaveDialogElement — keydown dispatched directly to the dialog", () => {
+    it("handles ArrowLeft when the dialog itself is the event target", () => {
+        const { dialog, testApp, buttons } = mount();
+        dialog.focusDefault(); // Save (index 2)
+
+        // Dispatch on the dialog directly (target phase) rather than via the focused button.
+        dialog.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowLeft" }));
+
+        expect(testApp.focusedElement).toBe(buttons[1]); // Cancel
+    });
+
+    it("triggers onCancel on Escape dispatched directly to the dialog", () => {
+        const { dialog } = mount();
+        const onCancel = vi.fn();
+        dialog.onCancel = onCancel;
+        dialog.focusDefault();
+
+        dialog.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
+
+        expect(onCancel).toHaveBeenCalledOnce();
+    });
+});
+
 describe("ConfirmSaveDialogElement — filename display", () => {
     it("setFilename updates the rendered filename", () => {
         const { dialog, testApp } = mount("a.ts");

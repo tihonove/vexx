@@ -26,6 +26,7 @@ function makeFileSearchStub(results: FileSearchResult[] = []): FileSearchService
     return {
         search: vi.fn(() => results),
         activate: vi.fn(),
+        refreshIfStale: vi.fn(),
         isIndexed: true,
         onIndexChanged: null,
         dispose: vi.fn(),
@@ -126,6 +127,43 @@ describe("QuickOpenController — files mode", () => {
         const { controller, fileSearch } = createController();
         controller.open("files");
         expect(fileSearch.search).toHaveBeenCalledWith("", 50);
+    });
+
+    it("open('files') kicks a throttled background re-index", () => {
+        const { controller, fileSearch } = createController();
+        controller.open("files");
+        expect(fileSearch.refreshIfStale).toHaveBeenCalled();
+    });
+
+    it("index growing while open re-runs the current query", () => {
+        const { controller, fileSearch } = createController();
+        controller.open("files");
+        controller.view.setQuery("App");
+        (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+        // Simulate the background walk publishing more entries.
+        fileSearch.onIndexChanged?.();
+
+        expect(fileSearch.search).toHaveBeenCalledWith("App", 50);
+    });
+
+    it("switching to command mode stops live file refreshes", () => {
+        const { controller, fileSearch } = createController();
+        controller.open("files");
+        controller.view.onQueryChange?.(">cmd"); // now in command mode
+        (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+        fileSearch.onIndexChanged?.();
+
+        expect(fileSearch.search).not.toHaveBeenCalled();
+    });
+
+    it("close() unsubscribes from index changes", () => {
+        const { controller, fileSearch } = createController();
+        controller.open("files");
+        expect(fileSearch.onIndexChanged).not.toBeNull();
+        controller.close();
+        expect(fileSearch.onIndexChanged).toBeNull();
     });
 
     it("items show basename as label and directory as description", () => {

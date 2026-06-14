@@ -88,6 +88,10 @@ export class QuickOpenController extends Disposable {
         } else {
             this.view.setQuery("");
             this.view.placeholder = "Go to File...";
+            // Kick a throttled background re-index and refresh the list live as
+            // it grows (the index builds in the background, not on a watcher).
+            this.fileSearch.refreshIfStale();
+            this.fileSearch.onIndexChanged = () => this.handleIndexChanged();
         }
 
         this.updatePosition();
@@ -99,10 +103,17 @@ export class QuickOpenController extends Disposable {
 
     public close(): void {
         if (!this.quickOpenSession?.isOpen()) return;
+        this.fileSearch.onIndexChanged = null;
         this.quickOpenSession.close();
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────
+
+    private handleIndexChanged(): void {
+        if (this.currentMode !== "files") return;
+        if (!this.quickOpenSession?.isOpen()) return;
+        this.updateItems(this.view.getQuery());
+    }
 
     private handleQueryChange(query: string): void {
         const isCommandMode = query.startsWith(">");

@@ -461,7 +461,15 @@ export class AppController extends Disposable implements IController {
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
-        this.fileSearchService.activate(dirPath);
+        // Fire-and-forget: the index builds in the background so startup and the
+        // first render are not blocked. `fileIndexReady` exposes completion for
+        // callers (and tests) that need the index populated.
+        void this.fileSearchService.activate(dirPath);
+    }
+
+    /** Resolves when the background file index has finished its initial build. */
+    public get fileIndexReady(): Promise<void> {
+        return this.fileSearchService.ready;
     }
 
     public focusEditor(): void {

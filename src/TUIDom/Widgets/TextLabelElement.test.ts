@@ -5,7 +5,9 @@ import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts"
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
 
-import { TextLabelElement } from "./TextLabelElement.ts";
+import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
+
+import { TextLabel, TextLabelElement } from "./TextLabelElement.ts";
 
 function render(label: TextLabelElement, width: number): MockTerminalBackend {
     const size = new Size(width, 1);
@@ -54,5 +56,38 @@ describe("TextLabelElement", () => {
 
         expect(backend.getTextAt(new Point(0, 0), 3)).toBe("abc");
         expect(backend.getFgAt(new Point(1, 0))).toBe(42);
+    });
+
+    describe("TextLabel JSX adapter", () => {
+        it("falls back to DEFAULT_COLOR when fg/bg are omitted", () => {
+            const label = TextLabel({ text: "hi" });
+            expect(label).toBeInstanceOf(TextLabelElement);
+            expect(label.getText()).toBe("hi");
+
+            const backend = render(label, 2);
+            expect(backend.getTextAt(new Point(0, 0), 2)).toBe("hi");
+            expect(backend.getFgAt(new Point(0, 0))).toBe(DEFAULT_COLOR);
+            expect(backend.getBgAt(new Point(0, 0))).toBe(DEFAULT_COLOR);
+        });
+
+        it("applies explicit colors and per-character styles via props", () => {
+            const label = TextLabel({ text: "ab", fg: 7, bg: 9, charStyles: new Map([[1, { fg: 55 }]]) });
+
+            const backend = render(label, 2);
+            expect(backend.getFgAt(new Point(0, 0))).toBe(7);
+            expect(backend.getBgAt(new Point(0, 0))).toBe(9);
+            expect(backend.getFgAt(new Point(1, 0))).toBe(55);
+        });
+
+        it("update() re-applies props, clearing previous per-character styles", () => {
+            const label = TextLabel({ text: "ab", fg: 7, bg: 9, charStyles: new Map([[1, { fg: 55 }]]) });
+            TextLabel.update(label, { text: "cd" });
+
+            expect(label.getText()).toBe("cd");
+            const backend = render(label, 2);
+            expect(backend.getTextAt(new Point(0, 0), 2)).toBe("cd");
+            // Previous char style at offset 1 was cleared → falls back to default fg.
+            expect(backend.getFgAt(new Point(1, 0))).toBe(DEFAULT_COLOR);
+        });
     });
 });

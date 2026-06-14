@@ -56,6 +56,18 @@ describe("AssetBundleFormat", () => {
         expect(() => readBundleHeader(truncated)).toThrow(/truncated: header length exceeds buffer/);
     });
 
+    it("rejects bundles with an unsupported version", () => {
+        // packBundle всегда пишет version: 1, поэтому собираем буфер вручную:
+        // [magic][headerLen LE][header JSON].
+        const headerJson = enc.encode(JSON.stringify({ version: 2, files: {} }));
+        const magic = new Uint8Array([0x56, 0x45, 0x58, 0x58, 0x42, 0x4e, 0x44, 0x00]);
+        const buf = new Uint8Array(magic.length + 4 + headerJson.length);
+        buf.set(magic, 0);
+        new DataView(buf.buffer).setUint32(magic.length, headerJson.length, /* littleEndian */ true);
+        buf.set(headerJson, magic.length + 4);
+        expect(() => readBundleHeader(buf)).toThrow(/Unsupported bundle version: 2/);
+    });
+
     it("rejects duplicate paths", () => {
         expect(() =>
             packBundle([

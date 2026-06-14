@@ -77,6 +77,27 @@ describe("FsAssetAccess", () => {
         expect(entries).toEqual(["ts"]);
     });
 
+    it("read пропускает не совпавший exact-mapping и берёт следующий", async () => {
+        // Длинный exact-префикс сортируется первым, но не совпадает с путём →
+        // resolveToFs должен его пропустить и взять следующий "/"-mapping.
+        const assets = new FsAssetAccess({
+            "long-exact-file-name.wasm": join(root, "onig.wasm"),
+            "ext/": join(root, "ext"),
+        });
+        expect(await assets.readText("ext/ts/package.json")).toBe('{"name":"ts"}');
+    });
+
+    it("listEntries пропускает exact-mapping (без /) и берёт следующий", async () => {
+        // Тот же случай для resolveDirToFs: exact-mapping не оканчивается на "/" →
+        // пропускается, директория резолвится по "/"-mapping.
+        const assets = new FsAssetAccess({
+            "long-exact-file-name.wasm": join(root, "onig.wasm"),
+            "ext/": join(root, "ext"),
+        });
+        const entries = (await assets.listEntries("ext/ts/")).map((e) => e.name).sort();
+        expect(entries).toEqual(["package.json", "syntaxes"]);
+    });
+
     it("listEntries бросает, если префикс не покрыт ни одним mapping", async () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
         await expect(assets.listEntries("Other/dir/")).rejects.toThrow(/No FS mapping for virtual prefix/);

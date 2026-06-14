@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { detectIndentation } from "./IndentationDetector.ts";
+import { detectIndentation, detectTabSize } from "./IndentationDetector.ts";
 import { TextDocument } from "./TextDocument.ts";
 
 function makeDoc(lines: string[]): TextDocument {
@@ -92,5 +92,13 @@ describe("detectIndentation", () => {
         expect(result).not.toBeNull();
         expect(result!.insertSpaces).toBe(true);
         expect(result!.tabSize).toBe(1);
+    });
+});
+
+describe("detectTabSize", () => {
+    it("falls back to 4 when no space-indent samples were collected", () => {
+        // detectIndentation never calls detectTabSize with an empty map, so this
+        // guard (IndentationDetector.ts:53) is exercised directly.
+        expect(detectTabSize(new Map())).toBe(4);
     });
 });
