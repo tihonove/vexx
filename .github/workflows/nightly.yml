@@ -39,11 +39,22 @@ jobs:
           # `|| true` — на случай самого первого запуска, когда релиза ещё нет.
           gh release delete nightly --cleanup-tag --yes || true
 
-          # Создаём новый prerelease с тем же плавающим тегом `nightly`,
-          # нацеленным на текущий коммит. Тег создаётся заново на этом коммите.
+          # Настраиваем git, чтобы можно было создать аннотированный тег.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Создаём аннотированный тег. В отличие от легковесного тега (который
+          # gh создаёт сам и датирует датой коммита), у аннотированного тега
+          # дата — это момент его создания, т.е. время запуска workflow.
+          # Благодаря этому nightly-релиз всегда оказывается наверху списка,
+          # даже если новых коммитов не было.
+          git tag -fa nightly -m "Nightly build tag"
+          git push origin refs/tags/nightly --force
+
+          # Создаём prerelease. Без `--target` — gh подхватит уже отправленный
+          # аннотированный тег `nightly` с актуальной датой.
           gh release create nightly \
             --prerelease \
-            --target "$GITHUB_SHA" \
             --title "Nightly ($short_sha)" \
             --notes "Ночная сборка из коммита $short_sha ($(date -u +'%Y-%m-%d %H:%M') UTC)." \
             artifacts/*
