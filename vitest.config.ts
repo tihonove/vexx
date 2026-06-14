@@ -21,6 +21,9 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: [
         "src/**/*.test.ts",
+
+        "src/**/*.bench.ts", // перф-бенчмарки, гоняются отдельным test:perf
+        "src/TestUtils/perfFixtures.ts", // фикстуры только для бенчей
         "src/**/*.stories.ts",
         "src/demos/**",
         "src/main.ts",
