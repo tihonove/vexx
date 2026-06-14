@@ -94,4 +94,32 @@ describe("InProcessChannelPair", () => {
         // …and disposing the returned subscription must be safe.
         expect(() => sub.dispose()).not.toThrow();
     });
+
+    it("postMessage on the disposed sending channel is a no-op (line 31)", async () => {
+        const [a, b] = createInProcessChannelPair();
+        const received: unknown[] = [];
+        b.onMessage((m) => received.push(m));
+        a.dispose(); // dispose the *sender*
+        a.postMessage("hello");
+        await Promise.resolve();
+        expect(received).toEqual([]);
+        b.dispose();
+    });
+
+    it("dispose is idempotent (line 60)", () => {
+        const [a, b] = createInProcessChannelPair();
+        a.dispose();
+        expect(() => a.dispose()).not.toThrow();
+        b.dispose();
+    });
+
+    it("disposing the same subscription twice is safe (line 54 index < 0 branch)", () => {
+        const [a, b] = createInProcessChannelPair();
+        const sub = b.onMessage(() => undefined);
+        sub.dispose();
+        // Second dispose: the listener is already gone (indexOf === -1).
+        expect(() => sub.dispose()).not.toThrow();
+        a.dispose();
+        b.dispose();
+    });
 });

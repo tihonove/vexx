@@ -63,6 +63,42 @@ describe("TokenizationRegistry", () => {
         expect(seen).toEqual(["javascript"]);
     });
 
+    it("stale dispose() does not remove a newer registration for the same languageId", () => {
+        const reg = new TokenizationRegistry();
+        const a = makeStubSupport();
+        const b = makeStubSupport();
+        const handleA = reg.register("javascript", a);
+        reg.register("javascript", b);
+
+        handleA.dispose();
+
+        expect(reg.get("javascript")).toBe(b);
+    });
+
+    it("disposing the same register() handle twice is a no-op", () => {
+        const reg = new TokenizationRegistry();
+        const a = makeStubSupport();
+        const handle = reg.register("javascript", a);
+
+        handle.dispose();
+        reg.register("javascript", makeStubSupport());
+        // Second dispose must not touch the re-registered support.
+        expect(() => handle.dispose()).not.toThrow();
+        expect(reg.get("javascript")).toBeDefined();
+    });
+
+    it("disposing an onDidChange listener twice is a no-op", () => {
+        const reg = new TokenizationRegistry();
+        const seen: string[] = [];
+        const handle = reg.onDidChange((id) => seen.push(id));
+
+        handle.dispose();
+        expect(() => handle.dispose()).not.toThrow();
+
+        reg.register("css", makeStubSupport());
+        expect(seen).toEqual([]);
+    });
+
     it("disposing one listener leaves other listeners active", () => {
         const reg = new TokenizationRegistry();
         const a: string[] = [];

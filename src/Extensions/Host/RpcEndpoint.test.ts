@@ -5,6 +5,10 @@ import type { ILogger } from "../../Common/Logging/ILogger.ts";
 import { createInProcessChannelPair } from "./InProcessChannelPair.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
 
+const microtasks = async (turns = 4): Promise<void> => {
+    for (let i = 0; i < turns; i++) await Promise.resolve();
+};
+
 function makeSpyLogger(): ILogger {
     return {
         trace: vi.fn(),
@@ -122,6 +126,132 @@ describe("RpcEndpoint", () => {
         a.dispose();
         await expect(a.request("late")).rejects.toThrow(/disposed; cannot request "late"/);
         chA.dispose();
+    });
+
+    it("notify after dispose is a silent no-op and sends nothing (line 76)", () => {
+        const [chA, chB] = createInProcessChannelPair();
+        const a = new RpcEndpoint(chA);
+        const spy = vi.spyOn(chA, "postMessage");
+        a.dispose();
+        expect(() => a.notify("event", { x: 1 })).not.toThrow();
+        expect(spy).not.toHaveBeenCalled();
+        chA.dispose();
+        chB.dispose();
+    });
+
+    it("disposing a superseded request subscription keeps the live handler (line 86 false branch)", async () => {
+        const { a, b, dispose } = createEndpointPair();
+        const firstSub = b.handleRequest("m", () => "first");
+        b.handleRequest("m", () => "second"); // overwrites "first" in the map
+        // Disposing the superseded subscription must be a no-op: get("m") === second !== first.
+        firstSub.dispose();
+        expect(await a.request("m")).toBe("second");
+        dispose();
+    });
+
+    it("disposing a superseded notification subscription keeps the live handler (line 97 false branch)", async () => {
+        const { a, b, dispose } = createEndpointPair();
+        const received: unknown[] = [];
+        const firstSub = b.handleNotification("evt", () => received.push("first"));
+        b.handleNotification("evt", () => received.push("second")); // overwrites "first"
+        // Disposing the superseded subscription must be a no-op (get(method) !== firstHandler).
+        firstSub.dispose();
+        a.notify("evt", null);
+        await microtasks();
+        expect(received).toEqual(["second"]);
+        dispose();
+    });
+
+    it("ignores a non-object incoming message and does not trace it (lines 117, 194)", async () => {
+        const [chA, chB] = createInProcessChannelPair();
+        const logger = makeSpyLogger();
+        const a = new RpcEndpoint(chA, logger);
+        const b = new RpcEndpoint(chB);
+        // A primitive on the wire must be ignored by both traceIncoming and handleIncoming.
+        chB.postMessage(42);
+        await microtasks();
+        // traceIncoming returned early — nothing logged for the primitive.
+        const traceCalls = (logger.trace as ReturnType<typeof vi.fn>).mock.calls;
+        expect(traceCalls.every((c) => !String(c[0]).includes("42"))).toBe(true);
+        a.dispose();
+        b.dispose();
+        chA.dispose();
+        chB.dispose();
+    });
+
+    it("ignores a response for an unknown request id (line 171)", async () => {
+        const [chA, chB] = createInProcessChannelPair();
+        const a = new RpcEndpoint(chA);
+        const b = new RpcEndpoint(chB);
+        // No pending request with id 9999 — must be silently dropped.
+        expect(() => chB.postMessage({ kind: "res", id: 9999, result: 1 })).not.toThrow();
+        await microtasks();
+        a.dispose();
+        b.dispose();
+        chA.dispose();
+        chB.dispose();
+    });
+
+    it("ignores a notification with no registered handler (line 182)", async () => {
+        const { a, b, dispose } = createEndpointPair();
+        // No handler registered for "unhandled" — handleNotificationMessage returns early.
+        expect(() => a.notify("unhandled", { x: 1 })).not.toThrow();
+        await microtasks();
+        dispose();
+        void b;
+    });
+
+    it("stringifies a non-Error throw from a handler into the response (line 157 false branch)", async () => {
+        const { a, b, dispose } = createEndpointPair();
+        b.handleRequest("strthrow", () => {
+            throw "plain string failure"; // eslint-disable-line @typescript-eslint/no-throw-literal
+        });
+        await expect(a.request("strthrow")).rejects.toThrow("plain string failure");
+        dispose();
+    });
+
+    it("sends no response when a resolving request's endpoint was disposed mid-flight (line 150)", async () => {
+        const [chA, chB] = createInProcessChannelPair();
+        const a = new RpcEndpoint(chA);
+        const b = new RpcEndpoint(chB);
+        let release: (v: unknown) => void = () => undefined;
+        b.handleRequest("slow", () => new Promise((resolve) => (release = resolve)));
+
+        const pending = a.request("slow");
+        void pending.catch(() => undefined); // never resolves once b is gone — swallow
+        await microtasks(); // request reaches b, handler starts and parks
+
+        const responseSpy = vi.spyOn(chB, "postMessage");
+        b.dispose();
+        release("done"); // success callback fires but sees disposed === true
+        await microtasks();
+
+        expect(responseSpy).not.toHaveBeenCalled();
+        a.dispose();
+        chA.dispose();
+        chB.dispose();
+    });
+
+    it("sends no response when a rejecting request's endpoint was disposed mid-flight (line 156)", async () => {
+        const [chA, chB] = createInProcessChannelPair();
+        const a = new RpcEndpoint(chA);
+        const b = new RpcEndpoint(chB);
+        let fail: (reason: unknown) => void = () => undefined;
+        b.handleRequest("slowfail", () => new Promise((_, reject) => (fail = reject)));
+
+        const pending = a.request("slowfail");
+        void pending.catch(() => undefined);
+        await microtasks();
+
+        const responseSpy = vi.spyOn(chB, "postMessage");
+        b.dispose();
+        fail(new Error("too late")); // error callback fires but sees disposed === true
+        await microtasks();
+
+        expect(responseSpy).not.toHaveBeenCalled();
+        a.dispose();
+        chA.dispose();
+        chB.dispose();
     });
 
     describe("traceIncoming logging branches (lines 194-219)", () => {

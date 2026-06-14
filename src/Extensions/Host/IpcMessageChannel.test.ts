@@ -179,4 +179,41 @@ describe("IpcMessageChannel", () => {
         expect(received).toEqual([]);
         chA.dispose();
     });
+
+    it("входящее сообщение после dispose игнорируется (line 41)", () => {
+        // Endpoint, который НЕ снимает листенер на off() — позволяет смоделировать
+        // сообщение, прилетевшее уже после dispose() канала.
+        const messageListeners: ((msg: unknown) => void)[] = [];
+        const endpoint: IIpcEndpoint = {
+            send: () => true,
+            on: (event: string, listener: (...args: never[]) => void): unknown => {
+                if (event === "message") messageListeners.push(listener as (msg: unknown) => void);
+                return undefined;
+            },
+            off: () => undefined, // no-op: листенер «переживает» dispose
+        };
+        const ch = new IpcMessageChannel(endpoint);
+        const received: unknown[] = [];
+        ch.onMessage((m) => received.push(m));
+        ch.dispose();
+        // Симулируем поздно доставленное сообщение от endpoint'а.
+        messageListeners[0]({ late: true });
+        expect(received).toEqual([]);
+    });
+
+    it("dispose идемпотентен (line 77)", () => {
+        const [a] = pair();
+        const ch = new IpcMessageChannel(a);
+        ch.dispose();
+        expect(() => ch.dispose()).not.toThrow();
+    });
+
+    it("повторный dispose подписки безопасен (line 71 ветка index < 0)", () => {
+        const [a] = pair();
+        const ch = new IpcMessageChannel(a);
+        const sub = ch.onMessage(() => undefined);
+        sub.dispose();
+        expect(() => sub.dispose()).not.toThrow();
+        ch.dispose();
+    });
 });
