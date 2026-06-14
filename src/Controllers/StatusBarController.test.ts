@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { EditorElement } from "../Editor/EditorElement.ts";
 
@@ -21,6 +21,31 @@ function createStatusBarController(): {
 }
 
 describe("StatusBarController", () => {
+    let savedEnv: NodeJS.ProcessEnv;
+
+    beforeEach(() => {
+        savedEnv = { ...process.env };
+        // Deterministic ambient environment so the terminal-env segment resolves to
+        // a plain "legacy" tier with no non-local modes, regardless of the host
+        // (e.g. running inside tmux/ssh would otherwise leak "ssh,tmux").
+        delete process.env.TMUX;
+        delete process.env.TMUX_PANE;
+        delete process.env.SSH_CONNECTION;
+        delete process.env.SSH_CLIENT;
+        delete process.env.SSH_TTY;
+        delete process.env.COLORTERM;
+        delete process.env.KITTY_WINDOW_ID;
+        delete process.env.GHOSTTY_RESOURCES_DIR;
+        delete process.env.WEZTERM_PANE;
+        delete process.env.ALACRITTY_WINDOW_ID;
+        delete process.env.TERM_PROGRAM;
+        process.env.TERM = "xterm-256color";
+    });
+
+    afterEach(() => {
+        process.env = savedEnv;
+    });
+
     it("view is a StatusBarElement", () => {
         const { statusBarController } = createStatusBarController();
         expect(statusBarController.view).toBeDefined();
