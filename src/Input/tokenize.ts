@@ -525,7 +525,9 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
         // xterm modifyOtherKeys compatibility:
         // CSI 27;<mod>;<codepoint>~ (e.g. Ctrl+Tab => CSI 27;5;9~)
         if (!keyName && num === 27 && paramStrings.length >= 3) {
+            /* v8 ignore start -- length >= 3 is guaranteed above, so the ?? "0" fallback is unreachable */
             const { codepoint: encodedCodepoint } = parseCodepointParam(paramStrings[2] ?? "0");
+            /* v8 ignore stop */
             const kittyKey = kittyCodepointMap[encodedCodepoint];
             keyName = kittyKey ? kittyKey.key : undefined;
         }
@@ -597,7 +599,9 @@ function parseCSI(data: string, start: number): CSITokenResult | null {
     // ── Cursor / navigation / F1–F4: CSI <1;mod[:eventtype]>? <letter> ──
     const keyName = csiKeyMap[finalByte];
     if (keyName) {
+        /* v8 ignore start -- length >= 2 is checked here, so the inner ?? "" fallback is unreachable */
         const { mod, eventType } = parseModifierParam(paramStrings.length >= 2 ? (paramStrings[1] ?? "") : "");
+        /* v8 ignore stop */
         const mods = decodeModifiers(mod);
         // CSI Z (backtab) implies shiftKey when no explicit modifier
         if (finalByte === "Z" && !mods.shiftKey) {

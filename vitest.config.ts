@@ -12,10 +12,10 @@ export default defineConfig({
       // Цель — покрываем весь новый код; исключения см. ниже + docs/TESTING.md.
       thresholds: {
         autoUpdate: true,
-        statements: 98.44,
-        branches: 93.99,
-        functions: 98.65,
-        lines: 99.26,
+        statements: 98.83,
+        branches: 95.61,
+        functions: 99.06,
+        lines: 99.53,
       },
       reporter: ["text", "lcov", "json-summary", "text-summary"],
       include: ["src/**/*.ts"],
