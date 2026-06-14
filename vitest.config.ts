@@ -12,10 +12,10 @@ export default defineConfig({
       // Цель — покрываем весь новый код; исключения см. ниже + docs/TESTING.md.
       thresholds: {
         autoUpdate: true,
-        statements: 88.72,
-        branches: 81.85,
-        functions: 84.3,
-        lines: 90.78,
+        statements: 92.5,
+        branches: 84.39,
+        functions: 92.7,
+        lines: 94.7,
       },
       reporter: ["text", "lcov", "json-summary", "text-summary"],
       include: ["src/**/*.ts"],
@@ -52,6 +52,7 @@ export default defineConfig({
         "src/Extensions/Host/IMessageChannel.ts",
         "src/Input/RawTerminalToken.ts",
         "src/TUIDom/Widgets/ITreeDataProvider.ts",
+        "src/TUIDom/Widgets/IScrollable.ts", // только интерфейсы (type guards удалены как мёртвые)
         "src/Theme/IEditorTokenTheme.ts",
         "src/Theme/IThemeFile.ts",
         "src/Theme/IVSCodeThemeFile.ts",
@@ -66,8 +67,8 @@ export default defineConfig({
         "src/Controllers/Modules/**", // DI-проводка (integration/e2e)
         "src/Configuration/NullConfigurationService.ts", // null-object заглушка
 
-        // НЕ исключаем (реальная логика, в бэклоге на покрытие — docs/TODO/Coverage.md):
-        // IRange.ts, IState.ts, IScrollable.ts, TypingUtils.ts, mouseTracking.ts
+        // НЕ исключаем (реальная исполняемая логика): IRange.ts (createRange),
+        // IState.ts (NULL_STATE), TypingUtils.ts (reject), mouseTracking.ts (константы).
       ],
     },
   },

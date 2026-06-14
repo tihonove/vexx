@@ -1,5 +1,5 @@
 import type { IPosition } from "./IPosition.ts";
-import { comparePositions, createPosition } from "./IPosition.ts";
+import { createPosition } from "./IPosition.ts";
 
 /**
  * Represents a range in a text document. start <= end (invariant).
@@ -14,18 +14,4 @@ export function createRange(startLine: number, startCharacter: number, endLine: 
         start: createPosition(startLine, startCharacter),
         end: createPosition(endLine, endCharacter),
     };
-}
-
-export function isRangeEmpty(range: IRange): boolean {
-    return range.start.line === range.end.line && range.start.character === range.end.character;
-}
-
-export function rangeContainsPosition(range: IRange, position: IPosition): boolean {
-    if (comparePositions(position, range.start) < 0) {
-        return false;
-    }
-    if (comparePositions(position, range.end) > 0) {
-        return false;
-    }
-    return true;
 }

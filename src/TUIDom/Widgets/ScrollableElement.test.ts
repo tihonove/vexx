@@ -68,6 +68,16 @@ function renderWidget(widget: LargeGridWidget, termScreen: TerminalScreen, backe
 }
 
 describe("ScrollableElement", () => {
+    describe("intrinsic sizing", () => {
+        it("reports zero minimum and content-sized maximum on both axes", () => {
+            const { widget } = createGrid(5, 3, 20, 10);
+            expect(widget.getMinIntrinsicWidth(0)).toBe(0);
+            expect(widget.getMaxIntrinsicWidth(0)).toBe(20);
+            expect(widget.getMinIntrinsicHeight(0)).toBe(0);
+            expect(widget.getMaxIntrinsicHeight(0)).toBe(10);
+        });
+    });
+
     describe("scrollTo", () => {
         it("clamps scrollTop to valid range", () => {
             const { widget, termScreen } = createGrid(5, 3, 20, 10);

@@ -66,7 +66,9 @@ export interface IExtensionHostOptions {
  */
 export class ExtensionHost extends Disposable {
     private readonly editorOptions: IEditorOptionsService;
-    private readonly options: Required<Pick<IExtensionHostOptions, "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs">>;
+    private readonly options: Required<
+        Pick<IExtensionHostOptions, "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs">
+    >;
     private readonly logger: ILogger | undefined;
     private readonly rpcLogger: ILogger | undefined;
     private readonly stdoutLogger: ILogger | undefined;

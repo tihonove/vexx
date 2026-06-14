@@ -1,0 +1,147 @@
+import { describe, expect, it, vi } from "vitest";
+
+import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { TestApp } from "../../TestUtils/TestApp.ts";
+import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
+import { RenderContext } from "../TUIElement.ts";
+
+import { ButtonElement } from "./ButtonElement.ts";
+
+const BUTTON_FG = packRgb(204, 204, 204);
+const BUTTON_BG = packRgb(60, 60, 60);
+const BUTTON_SEL_FG = packRgb(255, 255, 255);
+const BUTTON_SEL_BG = packRgb(0, 120, 215);
+
+function renderStandalone(button: ButtonElement): MockTerminalBackend {
+    const w = button.getMaxIntrinsicWidth(0);
+    const size = new Size(w, 1);
+    const backend = new MockTerminalBackend(size);
+    const termScreen = new TerminalScreen(size);
+    button.globalPosition = new Point(0, 0);
+    button.performLayout(BoxConstraints.tight(size));
+    button.render(new RenderContext(termScreen));
+    termScreen.flush(backend);
+    return backend;
+}
+
+describe("ButtonElement — metadata & layout", () => {
+    it("exposes its label", () => {
+        expect(new ButtonElement("OK").getLabel()).toBe("OK");
+    });
+
+    it("intrinsic width is label length plus 4 brackets/padding", () => {
+        const button = new ButtonElement("OK");
+        expect(button.getMinIntrinsicWidth(1)).toBe(6);
+        expect(button.getMaxIntrinsicWidth(1)).toBe(6);
+    });
+
+    it("intrinsic height is 1", () => {
+        const button = new ButtonElement("OK");
+        expect(button.getMinIntrinsicHeight(10)).toBe(1);
+        expect(button.getMaxIntrinsicHeight(10)).toBe(1);
+    });
+
+    it("lays out to a fixed label-sized box", () => {
+        const button = new ButtonElement("Save");
+        const size = button.performLayout(BoxConstraints.tight(new Size(40, 5)));
+        expect(size).toEqual(new Size("Save".length + 4, 1));
+    });
+});
+
+describe("ButtonElement — rendering", () => {
+    it("renders the label inside brackets with unfocused colors", () => {
+        const backend = renderStandalone(new ButtonElement("OK"));
+        expect(backend.getTextAt(new Point(0, 0), 6)).toBe("[ OK ]");
+        expect(backend.getFgAt(new Point(0, 0))).toBe(BUTTON_FG);
+        expect(backend.getBgAt(new Point(0, 0))).toBe(BUTTON_BG);
+    });
+
+    it("uses selected colors when focused", () => {
+        const button = new ButtonElement("OK");
+        const testApp = TestApp.createWithContent(button, new Size(20, 3));
+        button.focus();
+        testApp.render();
+
+        expect(button.isFocused).toBe(true);
+        const pos = button.globalPosition;
+        expect(testApp.backend.getFgAt(new Point(pos.x, pos.y))).toBe(BUTTON_SEL_FG);
+        expect(testApp.backend.getBgAt(new Point(pos.x, pos.y))).toBe(BUTTON_SEL_BG);
+    });
+});
+
+describe("ButtonElement — activation", () => {
+    it("activates on Enter and prevents default", () => {
+        const button = new ButtonElement("OK");
+        const onActivate = vi.fn();
+        button.onActivate = onActivate;
+
+        const event = new TUIKeyboardEvent("keydown", { key: "Enter" });
+        button.dispatchEvent(event);
+
+        expect(onActivate).toHaveBeenCalledOnce();
+        expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("activates on Space", () => {
+        const button = new ButtonElement("OK");
+        const onActivate = vi.fn();
+        button.onActivate = onActivate;
+
+        button.dispatchEvent(new TUIKeyboardEvent("keydown", { key: " " }));
+
+        expect(onActivate).toHaveBeenCalledOnce();
+    });
+
+    it("ignores other keys", () => {
+        const button = new ButtonElement("OK");
+        const onActivate = vi.fn();
+        button.onActivate = onActivate;
+
+        button.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a" }));
+
+        expect(onActivate).not.toHaveBeenCalled();
+    });
+
+    it("ignores non-keydown events (e.g. keyup)", () => {
+        const button = new ButtonElement("OK");
+        const onActivate = vi.fn();
+        button.onActivate = onActivate;
+
+        button.dispatchEvent(new TUIKeyboardEvent("keyup", { key: "Enter" }));
+
+        expect(onActivate).not.toHaveBeenCalled();
+    });
+
+    it("activates on click", () => {
+        const button = new ButtonElement("OK");
+        const onActivate = vi.fn();
+        button.onActivate = onActivate;
+
+        button.dispatchEvent(
+            new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }),
+        );
+
+        expect(onActivate).toHaveBeenCalledOnce();
+    });
+
+    it("does not activate on click when default is already prevented", () => {
+        const button = new ButtonElement("OK");
+        const onActivate = vi.fn();
+        button.onActivate = onActivate;
+
+        const event = new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 });
+        event.preventDefault();
+        button.dispatchEvent(event);
+
+        expect(onActivate).not.toHaveBeenCalled();
+    });
+
+    it("does not throw on activation without an onActivate handler", () => {
+        const button = new ButtonElement("OK");
+        expect(() => button.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }))).not.toThrow();
+    });
+});
