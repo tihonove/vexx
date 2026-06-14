@@ -142,7 +142,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
 
         await host.registerExtension(makeReg("ext.a"));
 
-        const [command, args] = spawnMock.mock.calls[0] as [string, string[]];
+        const [command, args] = spawnMock.mock.calls[0] as [string, string[], unknown];
         expect(command).toBe(process.execPath);
         expect(args).toContain(process.argv[1]); // dev path: appends the main script
         host.dispose();
@@ -158,7 +158,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
 
         await host.registerExtension(makeReg("ext.a"));
 
-        const [command, args] = spawnMock.mock.calls[0] as [string, string[]];
+        const [command, args] = spawnMock.mock.calls[0] as [string, string[], unknown];
         expect(command).toBe(process.execPath);
         expect(args).toEqual([]);
         host.dispose();
@@ -175,7 +175,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         await host.registerExtension(makeReg("ext.a"));
 
         // Falls through to the dev path (main script appended), proving the catch returned false.
-        const [, args] = spawnMock.mock.calls[0] as [string, string[]];
+        const [, args] = spawnMock.mock.calls[0] as [string, string[], unknown];
         expect(args).toContain(process.argv[1]);
         host.dispose();
         await waitUntil(() => true);
