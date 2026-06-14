@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fuzzyMatch, fuzzyMatchBest } from "./FuzzySearch.ts";
+import { fuzzyMatch, fuzzyMatchBest, fuzzyMatchBestLower, fuzzyMatchLower } from "./FuzzySearch.ts";
 
 // ─── Basic matching ──────────────────────────────────────────────────────────
 
@@ -297,5 +297,42 @@ describe("fuzzyMatch — gap penalty", () => {
         const atStart = fuzzyMatch("a", "axxx"); // 'a' at 0
         const offset = fuzzyMatch("a", "xxxa"); // 'a' at 3, gap of 3 from index 0
         expect(atStart!.score).toBeGreaterThan(offset!.score);
+    });
+});
+
+// ─── Pre-lowercased variants (hot-path core) ─────────────────────────────────
+
+describe("fuzzyMatchLower / fuzzyMatchBestLower — parity with wrappers", () => {
+    const cases: Array<[string, string]> = [
+        ["ac", "AppController"],
+        ["fss", "FileSearchService.ts"],
+        ["src", "src/Controllers/FileSearchService.ts"],
+        ["zz", "AppController"], // no match
+        ["", "anything"], // empty query
+    ];
+
+    it("fuzzyMatchLower matches fuzzyMatch given pre-lowercased inputs", () => {
+        for (const [query, text] of cases) {
+            const viaWrapper = fuzzyMatch(query, text);
+            const viaLower = fuzzyMatchLower(query.toLowerCase(), text, text.toLowerCase());
+            expect(viaLower).toEqual(viaWrapper);
+        }
+    });
+
+    it("fuzzyMatchBestLower matches fuzzyMatchBest given pre-lowercased inputs", () => {
+        for (const [query, text] of cases) {
+            const viaWrapper = fuzzyMatchBest(query, text);
+            const viaLower = fuzzyMatchBestLower(query.toLowerCase(), text, text.toLowerCase());
+            expect(viaLower).toEqual(viaWrapper);
+        }
+    });
+
+    it("scoring still uses original case for camelCase word boundaries", () => {
+        // 'c' should score the word-boundary 'C' in AppController higher than a
+        // mid-word 'c' in a lowercase string of the same length.
+        const camel = fuzzyMatchBestLower("c", "AppController", "appcontroller");
+        const flat = fuzzyMatchBestLower("c", "appxxxxxxxxxx", "appxxxxxxxxxx");
+        expect(camel).not.toBeNull();
+        expect(flat).toBeNull(); // no 'c' in the flat string at all
     });
 });

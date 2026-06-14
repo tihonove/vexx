@@ -15,7 +15,14 @@ import { QuickOpenController } from "./QuickOpenController.ts";
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function makeFileEntry(relativePath: string, absolutePath = `/root/${relativePath}`): FileSearchEntry {
-    return { relativePath, absolutePath };
+    const basename = relativePath.split("/").pop() ?? relativePath;
+    return {
+        relativePath,
+        absolutePath,
+        basename,
+        basenameLower: basename.toLowerCase(),
+        relativePathLower: relativePath.toLowerCase(),
+    };
 }
 
 function makeSearchResult(relativePath: string, matchedIndices: number[] = []): FileSearchResult {
@@ -465,5 +472,99 @@ describe("QuickOpenController — position and size", () => {
         controller.open("files");
         testApp.render();
         expect(controller.view.layoutSize.width).toBe(controller.view.preferredWidth);
+    });
+});
+
+describe("QuickOpenController — file-search debounce", () => {
+    it("first keystroke after idle runs search synchronously (leading edge)", () => {
+        const { controller, fileSearch } = createController();
+        controller.open("files");
+        (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+        controller.view.onQueryChange?.("App");
+
+        expect(fileSearch.search).toHaveBeenCalledTimes(1);
+        expect(fileSearch.search).toHaveBeenLastCalledWith("App", 50);
+    });
+
+    it("a burst of keystrokes coalesces into one leading + one trailing run", () => {
+        vi.useFakeTimers();
+        try {
+            const { controller, fileSearch } = createController();
+            controller.open("files");
+            (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+            controller.view.onQueryChange?.("A"); // leading → runs now
+            controller.view.onQueryChange?.("Ap"); // within cooldown → pending
+            controller.view.onQueryChange?.("App"); // within cooldown → replaces pending
+
+            // Only the leading run has happened so far.
+            expect(fileSearch.search).toHaveBeenCalledTimes(1);
+            expect(fileSearch.search).toHaveBeenLastCalledWith("A", 50);
+
+            vi.runAllTimers(); // trailing fires with the latest query
+
+            expect(fileSearch.search).toHaveBeenCalledTimes(2);
+            expect(fileSearch.search).toHaveBeenLastCalledWith("App", 50);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("no trailing run when nothing changed during the cooldown", () => {
+        vi.useFakeTimers();
+        try {
+            const { controller, fileSearch } = createController();
+            controller.open("files");
+            (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+            controller.view.onQueryChange?.("App"); // leading only
+            vi.runAllTimers();
+
+            expect(fileSearch.search).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("closing cancels a pending trailing run", () => {
+        vi.useFakeTimers();
+        try {
+            const { controller, fileSearch } = createController();
+            controller.open("files");
+            (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+            controller.view.onQueryChange?.("A"); // leading
+            controller.view.onQueryChange?.("Ap"); // pending
+            controller.close();
+
+            vi.runAllTimers();
+
+            // Only the leading run; the trailing one was cancelled on close.
+            expect(fileSearch.search).toHaveBeenCalledTimes(1);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("switching to command mode runs synchronously and drops a pending file search", () => {
+        vi.useFakeTimers();
+        try {
+            const { controller, fileSearch } = createController();
+            controller.open("files");
+            (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+            controller.view.onQueryChange?.("A"); // file leading
+            controller.view.onQueryChange?.("Ap"); // file pending
+            controller.view.onQueryChange?.(">cmd"); // command mode → sync, cancels pending
+
+            vi.runAllTimers();
+
+            // The pending file trailing run was dropped; only the leading file run ran.
+            expect(fileSearch.search).toHaveBeenCalledTimes(1);
+            expect(fileSearch.search).toHaveBeenLastCalledWith("A", 50);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

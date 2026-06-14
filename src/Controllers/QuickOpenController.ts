@@ -15,6 +15,13 @@ import { formatKeybinding } from "./KeybindingRegistry.ts";
 
 type OpenMode = "files" | "commands";
 
+/**
+ * Debounce window for file-mode search. A single keystroke after an idle period
+ * runs synchronously (leading edge); rapid bursts coalesce into one trailing run
+ * so typing stays smooth on huge trees.
+ */
+const SEARCH_DEBOUNCE_MS = 16;
+
 // QuickPickItem extended with routing metadata (not rendered by the widget)
 interface QuickPickItemWithMeta extends QuickPickItem {
     absolutePath?: string;
@@ -31,6 +38,11 @@ export class QuickOpenController extends Disposable {
     private hostBody: BodyElement | null = null;
     private quickOpenSession: OverlaySessionHandle | null = null;
     private currentMode: OpenMode = "files";
+
+    /** Active cooldown timer for the file-search debounce; null when idle. */
+    private searchTimer: ReturnType<typeof setTimeout> | null = null;
+    /** Latest file query awaiting a trailing run, or null if none pending. */
+    private pendingQuery: string | null = null;
 
     public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
 
@@ -103,8 +115,14 @@ export class QuickOpenController extends Disposable {
 
     public close(): void {
         if (!this.quickOpenSession?.isOpen()) return;
+        this.cancelPendingSearch();
         this.fileSearch.onIndexChanged = null;
         this.quickOpenSession.close();
+    }
+
+    public override dispose(): void {
+        this.cancelPendingSearch();
+        super.dispose();
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────
@@ -120,7 +138,44 @@ export class QuickOpenController extends Disposable {
         if (isCommandMode !== (this.currentMode === "commands")) {
             this.currentMode = isCommandMode ? "commands" : "files";
         }
-        this.updateItems(query);
+
+        // Command mode is cheap (small list, substring filter) — run it
+        // synchronously and drop any pending file search.
+        if (this.currentMode === "commands") {
+            this.cancelPendingSearch();
+            this.updateItems(query);
+            return;
+        }
+
+        // File mode: leading + trailing debounce. Idle → run now (leading) and
+        // start a cooldown; within the cooldown → remember the latest query and
+        // let the trailing run pick it up.
+        if (this.searchTimer === null) {
+            this.updateItems(query);
+            this.armSearchTimer();
+        } else {
+            this.pendingQuery = query;
+        }
+    }
+
+    private armSearchTimer(): void {
+        this.searchTimer = setTimeout(() => {
+            this.searchTimer = null;
+            if (this.pendingQuery === null) return;
+            const query = this.pendingQuery;
+            this.pendingQuery = null;
+            this.updateItems(query);
+            // Keep coalescing if the user is still typing.
+            this.armSearchTimer();
+        }, SEARCH_DEBOUNCE_MS);
+    }
+
+    private cancelPendingSearch(): void {
+        if (this.searchTimer !== null) {
+            clearTimeout(this.searchTimer);
+            this.searchTimer = null;
+        }
+        this.pendingQuery = null;
     }
 
     private handleAccept(item: QuickPickItem): void {

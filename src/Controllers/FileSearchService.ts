@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
-import { fuzzyMatchBest } from "../Common/FuzzySearch.ts";
+import { fuzzyMatchBestLower } from "../Common/FuzzySearch.ts";
 
 export const FileSearchServiceDIToken = token<FileSearchService>("FileSearchService");
 
@@ -21,6 +21,12 @@ const STALE_AFTER_MS = 10_000;
 export interface FileSearchEntry {
     relativePath: string;
     absolutePath: string;
+    /** Basename in original case — used for word-boundary scoring and labels. */
+    basename: string;
+    /** Pre-lowercased basename, for allocation-free matching on the hot path. */
+    basenameLower: string;
+    /** Pre-lowercased relative path, for the path-fallback match. */
+    relativePathLower: string;
 }
 
 export interface FileSearchResult {
@@ -99,15 +105,16 @@ export class FileSearchService extends Disposable {
         }
 
         const results: FileSearchResult[] = [];
+        // Lowercase the query once; entries carry pre-lowercased strings so the
+        // hot loop allocates no case-folded strings per keystroke.
+        const queryLower = query.toLowerCase();
 
         for (const entry of this.entries) {
-            const basename = path.posix.basename(entry.relativePath);
-
             // First try matching against the basename only
-            const basenameMatch = fuzzyMatchBest(query, basename);
+            const basenameMatch = fuzzyMatchBestLower(queryLower, entry.basename, entry.basenameLower);
             if (basenameMatch !== null) {
                 // Re-map indices from basename space to relativePath space
-                const offset = entry.relativePath.length - basename.length;
+                const offset = entry.relativePath.length - entry.basename.length;
                 results.push({
                     entry,
                     score: basenameMatch.score + BASENAME_BONUS,
@@ -117,7 +124,7 @@ export class FileSearchService extends Disposable {
             }
 
             // Fall back to matching against the full relative path
-            const pathMatch = fuzzyMatchBest(query, entry.relativePath);
+            const pathMatch = fuzzyMatchBestLower(queryLower, entry.relativePath, entry.relativePathLower);
             if (pathMatch !== null) {
                 results.push({
                     entry,
@@ -187,7 +194,7 @@ export class FileSearchService extends Disposable {
                 if (dirent.isDirectory()) {
                     stack.push(absPath);
                 } else if (dirent.isFile()) {
-                    next.push({ relativePath: this.toRelativePath(root, absPath), absolutePath: absPath });
+                    next.push(this.makeEntry(root, absPath, dirent.name));
                 }
             }
 
@@ -223,10 +230,20 @@ export class FileSearchService extends Disposable {
         this.onIndexChanged?.();
     }
 
-    /** Converts absolute path to a POSIX-style relative path (always uses '/'). */
-    private toRelativePath(rootPath: string, absPath: string): string {
+    /**
+     * Builds a {@link FileSearchEntry}, pre-computing the case-folded basename and
+     * relative path so `search()` does zero string allocation per keystroke.
+     */
+    private makeEntry(rootPath: string, absPath: string, basename: string): FileSearchEntry {
         const rel = path.relative(rootPath, absPath);
         // Normalise to forward slashes on all platforms
-        return rel.split(path.sep).join("/");
+        const relativePath = rel.split(path.sep).join("/");
+        return {
+            relativePath,
+            absolutePath: absPath,
+            basename,
+            basenameLower: basename.toLowerCase(),
+            relativePathLower: relativePath.toLowerCase(),
+        };
     }
 }
