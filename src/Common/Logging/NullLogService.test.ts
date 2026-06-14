@@ -27,11 +27,15 @@ describe("NULL_LOG_SERVICE", () => {
 
     it("addSink returns a disposable no-op", () => {
         const sub = NULL_LOG_SERVICE.addSink({ append: () => {}, dispose: () => {} });
-        expect(() => sub.dispose()).not.toThrow();
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
     });
 
     it("onDidAppend returns a disposable no-op", () => {
         const sub = NULL_LOG_SERVICE.onDidAppend(() => {});
-        expect(() => sub.dispose()).not.toThrow();
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
     });
 });

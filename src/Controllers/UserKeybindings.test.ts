@@ -5,8 +5,8 @@ import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts
 import { AppControllerDIToken } from "./AppController.ts";
 import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
 import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
+import { createTestContainer } from "./Modules/TestProfile.ts";
 
 const KEY = (key: string, mods: Partial<KeyboardEventLike> = {}): KeyboardEventLike => ({
     key,

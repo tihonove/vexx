@@ -4,14 +4,28 @@ import type { ILogger } from "./ILogger.ts";
 import type { ILogService, ILogSink, LogEntry } from "./ILogService.ts";
 import { LogLevel } from "./LogLevel.ts";
 
-const NOOP_DISPOSABLE: IDisposable = { dispose: () => {} };
+const NOOP_DISPOSABLE: IDisposable = {
+    dispose: () => {
+        /* no-op */
+    },
+};
 
 const NULL_LOGGER: ILogger = {
-    trace: () => {},
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
+    trace: () => {
+        /* no-op */
+    },
+    debug: () => {
+        /* no-op */
+    },
+    info: () => {
+        /* no-op */
+    },
+    warn: () => {
+        /* no-op */
+    },
+    error: () => {
+        /* no-op */
+    },
     isEnabled: () => false,
 };
 

@@ -2,9 +2,10 @@ import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
+import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { ILogService } from "../Common/Logging/ILogService.ts";
 import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
-import type { ILogger } from "../Common/Logging/ILogger.ts";
+import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -79,8 +80,6 @@ import {
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
-import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
-
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -535,7 +534,9 @@ export class AppController extends Disposable implements IController {
         if (res.kind === "chord") {
             // Prefix key of a chord — swallow its keypress and wait for the next.
             this.swallowNextKeyPress = true;
-            this.statusBarController.setChordHint(`(${formatKeybinding(res.chord)}) was pressed. Waiting for next key…`);
+            this.statusBarController.setChordHint(
+                `(${formatKeybinding(res.chord)}) was pressed. Waiting for next key…`,
+            );
             this.startChordTimeout();
             return true;
         }

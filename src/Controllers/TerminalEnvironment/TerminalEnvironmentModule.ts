@@ -12,7 +12,10 @@ export interface TerminalEnvironmentModuleContext {
  * Binds the terminal backend (so the env service can probe it) and the
  * TerminalEnvironmentService itself.
  */
-export const terminalEnvironmentModule: ContainerModule<TerminalEnvironmentModuleContext> = (container, { backend }) => {
+export const terminalEnvironmentModule: ContainerModule<TerminalEnvironmentModuleContext> = (
+    container,
+    { backend },
+) => {
     container.bind(TerminalBackendDIToken, () => backend);
     container.bind(TerminalEnvironmentServiceDIToken, TerminalEnvironmentService);
 };

@@ -6,7 +6,7 @@ import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
-import type { IProtocolMessage } from "./RpcEndpoint.ts";
+import type { IProtocolMessage, IRequestMessage } from "./RpcEndpoint.ts";
 
 // `spawn` is the only side effect we need to control; everything else (IPC channel,
 // RPC endpoint) runs for real against the in-memory FakeChild below.
@@ -92,7 +92,11 @@ class FakeEditorOptions implements IEditorOptionsService {
     }
     public onActiveEditorChanged(cb: (p: string | null) => void): IDisposable {
         this.cb = cb;
-        return { dispose: (): void => { this.cb = null; } };
+        return {
+            dispose: (): void => {
+                this.cb = null;
+            },
+        };
     }
     public fireActiveEditorChanged(p: string | null): void {
         this.cb?.(p);
@@ -117,7 +121,9 @@ async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {
 /** Spawn a host whose subprocess becomes ready on the next microtask. */
 function spawnReadyHost(child: FakeChild, editorOptions: FakeEditorOptions, options = {}) {
     spawnMock.mockReturnValue(child as never);
-    queueMicrotask(() => child.emitReady());
+    queueMicrotask(() => {
+        child.emitReady();
+    });
     return new ExtensionHost(editorOptions, { spawnArgs, ...options });
 }
 
@@ -192,7 +198,9 @@ describe("ExtensionHost — registration lifecycle", () => {
         child.autoRespond = false;
         const promise = host.unregisterExtension("ext.a");
         await waitUntil(() => child.sent.some((m) => m.kind === "req" && m.method === "host.deactivateExtension"));
-        const req = child.sent.find((m) => m.kind === "req" && m.method === "host.deactivateExtension")!;
+        const req = child.sent.find(
+            (m): m is IRequestMessage => m.kind === "req" && m.method === "host.deactivateExtension",
+        )!;
         child.receiveFromHostPeer({ kind: "res", id: req.id, error: { message: "boom" } });
 
         await expect(promise).resolves.toBeUndefined();
@@ -253,7 +261,7 @@ describe("ExtensionHost — stdout/stderr piping", () => {
         const stderrLogger = makeLogger();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { stdoutLogger, stderrLogger });
         await host.registerExtension({ id: "ext.a", mainPath: "/a.js" });
-        expect(child.stdout?.encoding).toBe("utf8");
+        expect(child.stdout.encoding).toBe("utf8");
 
         child.stdout.emit("data", "hello\nwor");
         child.stdout.emit("data", "ld\n");
@@ -299,7 +307,9 @@ describe("ExtensionHost — readiness failures", () => {
     it("rejects when the subprocess exits before becoming ready", async () => {
         const child = new FakeChild();
         spawnMock.mockReturnValue(child as never);
-        queueMicrotask(() => child.simulateExit(1));
+        queueMicrotask(() => {
+            child.simulateExit(1);
+        });
         const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs });
 
         await expect(host.registerExtension({ id: "ext.a", mainPath: "/a.js" })).rejects.toThrow(/exited before ready/);
@@ -310,7 +320,9 @@ describe("ExtensionHost — readiness failures", () => {
         spawnMock.mockReturnValue(child as never); // never emits ready
         const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs, readyTimeoutMs: 20 });
 
-        await expect(host.registerExtension({ id: "ext.a", mainPath: "/a.js" })).rejects.toThrow(/did not become ready/);
+        await expect(host.registerExtension({ id: "ext.a", mainPath: "/a.js" })).rejects.toThrow(
+            /did not become ready/,
+        );
     });
 });
 
@@ -356,6 +368,8 @@ describe("ExtensionHost — shutdown", () => {
 
     it("disposes cleanly when no subprocess was ever spawned", () => {
         const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs });
-        expect(() => host.dispose()).not.toThrow();
+        expect(() => {
+            host.dispose();
+        }).not.toThrow();
     });
 });

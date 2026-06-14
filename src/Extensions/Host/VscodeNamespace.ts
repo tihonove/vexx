@@ -77,11 +77,11 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
             thisArgs?: unknown,
             disposables?: vscode.Disposable[],
         ): vscode.Disposable => {
-            const bound =
-                thisArgs != null ? (listener as Function).bind(thisArgs) : listener;
-            activeEditorListeners.push(bound as typeof listener);
+            const bound: (e: vscode.TextEditor | undefined) => unknown =
+                thisArgs != null ? (e) => listener.call(thisArgs, e) : listener;
+            activeEditorListeners.push(bound);
             const disposable = new DisposableImpl(() => {
-                const idx = activeEditorListeners.indexOf(bound as typeof listener);
+                const idx = activeEditorListeners.indexOf(bound);
                 if (idx >= 0) activeEditorListeners.splice(idx, 1);
             });
             if (disposables !== undefined) disposables.push(disposable as unknown as vscode.Disposable);
@@ -91,13 +91,27 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
         createOutputChannel: (name: string): vscode.OutputChannel => {
             return {
                 name,
-                append: () => {},
-                appendLine: () => {},
-                replace: () => {},
-                clear: () => {},
-                show: () => {},
-                hide: () => {},
-                dispose: () => {},
+                append: () => {
+                    /* no-op */
+                },
+                appendLine: () => {
+                    /* no-op */
+                },
+                replace: () => {
+                    /* no-op */
+                },
+                clear: () => {
+                    /* no-op */
+                },
+                show: () => {
+                    /* no-op */
+                },
+                hide: () => {
+                    /* no-op */
+                },
+                dispose: () => {
+                    /* no-op */
+                },
             } as unknown as vscode.OutputChannel;
         },
     };

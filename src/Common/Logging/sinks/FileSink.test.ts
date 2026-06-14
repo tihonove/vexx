@@ -94,20 +94,28 @@ describe("FileSink", () => {
     it("append after dispose is no-op (does not throw)", async () => {
         const sink = new FileSink(file);
         await flushAndDispose(sink);
-        expect(() => sink.append(entry())).not.toThrow();
+        expect(() => {
+            sink.append(entry());
+        }).not.toThrow();
     });
 
     it("does not throw if file path is invalid", () => {
         // На invalid path конструктор может не бросить (createWriteStream ленив),
         // но и не должен падать на append.
         const sink = new FileSink(path.join(dir, "nonexistent-subdir", "x.log"));
-        expect(() => sink.append(entry())).not.toThrow();
-        expect(() => sink.dispose()).not.toThrow();
+        expect(() => {
+            sink.append(entry());
+        }).not.toThrow();
+        expect(() => {
+            sink.dispose();
+        }).not.toThrow();
     });
 
-    it("multiple dispose calls are safe", async () => {
+    it("multiple dispose calls are safe", () => {
         const sink = new FileSink(file);
         sink.dispose();
-        expect(() => sink.dispose()).not.toThrow();
+        expect(() => {
+            sink.dispose();
+        }).not.toThrow();
     });
 });

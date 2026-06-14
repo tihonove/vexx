@@ -1,23 +1,23 @@
 import type { ITerminalBackend } from "../../Backend/ITerminalBackend.ts";
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
-import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { TerminalBackendDIToken } from "../CoreTokens.ts";
 
 import {
     type Capability,
     type CapabilitySet,
-    type OsName,
-    type Tier,
-    TIER_ORDER,
     detectBaseModes,
     detectExtendedKeysHint,
     detectKittyGraphicsHint,
     detectTruecolor,
     emptyCapabilities,
+    type OsName,
     resolveOs,
     resolveTier,
+    type Tier,
+    TIER_ORDER,
 } from "./TerminalEnvironmentModel.ts";
 
 export const TerminalEnvironmentServiceDIToken = token<TerminalEnvironmentService>("TerminalEnvironmentService");

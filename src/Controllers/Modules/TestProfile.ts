@@ -7,17 +7,17 @@ import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";
+import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
 
 import { backendModuleDefault } from "./BackendModule.ts";
 import { commandsModule } from "./CommandsModule.ts";
 import { configurationModuleDefault } from "./ConfigurationModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModuleLate } from "./CoreModule.ts";
+import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 import { loggingModuleDefault } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
-import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
-import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 
 /**
  * Тестовый контейнер. Возвращает контейнер с подключёнными NULL-стабами для

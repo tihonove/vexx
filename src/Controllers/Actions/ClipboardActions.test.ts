@@ -28,9 +28,10 @@ import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from ".
 function memoryClipboard(initial = ""): IClipboard {
     let text = initial;
     return {
-        readText: async () => text,
-        writeText: async (value: string) => {
+        readText: () => Promise.resolve(text),
+        writeText: (value: string) => {
             text = value;
+            return Promise.resolve();
         },
     };
 }

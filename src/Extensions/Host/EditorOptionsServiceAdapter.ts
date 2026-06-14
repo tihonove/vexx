@@ -1,5 +1,5 @@
-import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
 import type { IDisposable } from "../../Common/Disposable.ts";
+import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
 
 import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
 
@@ -34,6 +34,8 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     }
 
     public onActiveEditorChanged(cb: (filePath: string | null) => void): IDisposable {
-        return this.group.onActiveEditorChanged((editor) => cb(editor?.absoluteFilePath ?? null));
+        return this.group.onActiveEditorChanged((editor) => {
+            cb(editor?.absoluteFilePath ?? null);
+        });
     }
 }

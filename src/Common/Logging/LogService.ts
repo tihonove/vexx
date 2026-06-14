@@ -35,14 +35,17 @@ export class LogService implements ILogService {
 
     public getLevel(channel: string): LogLevel {
         // Резолвим каскадом: точное совпадение → родительские сегменты → wildcard → default.
-        if (this.levels.has(channel)) return this.levels.get(channel) as LogLevel;
+        const own = this.levels.get(channel);
+        if (own !== undefined) return own;
         let dot = channel.lastIndexOf(".");
         while (dot > 0) {
             const parent = channel.slice(0, dot);
-            if (this.levels.has(parent)) return this.levels.get(parent) as LogLevel;
+            const parentLevel = this.levels.get(parent);
+            if (parentLevel !== undefined) return parentLevel;
             dot = channel.lastIndexOf(".", dot - 1);
         }
-        if (this.levels.has(WILDCARD)) return this.levels.get(WILDCARD) as LogLevel;
+        const wildcard = this.levels.get(WILDCARD);
+        if (wildcard !== undefined) return wildcard;
         return DEFAULT_LEVEL;
     }
 
@@ -92,13 +95,15 @@ export class LogService implements ILogService {
 }
 
 class ChannelLogger implements ILogger {
+    private readonly service: LogService;
+    private readonly channel: string;
     private cachedLevel: LogLevel = LogLevel.Off;
     private cachedVersion = -1;
 
-    public constructor(
-        private readonly service: LogService,
-        private readonly channel: string,
-    ) {}
+    public constructor(service: LogService, channel: string) {
+        this.service = service;
+        this.channel = channel;
+    }
 
     public isEnabled(level: LogLevel): boolean {
         if (level === LogLevel.Off) return false;

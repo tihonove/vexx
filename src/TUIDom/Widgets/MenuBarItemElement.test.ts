@@ -3,16 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { ROOT_RESOLVED_STYLE } from "../Styles/TUIStyle.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
+import { ROOT_RESOLVED_STYLE } from "../Styles/TUIStyle.ts";
 import { RenderContext } from "../TUIElement.ts";
 
-import {
-    ACTIVE_MENU_BG,
-    MENU_BAR_BG,
-    MenuBarFillerElement,
-    MenuBarItemElement,
-} from "./MenuBarItemElement.tsx";
+import { ACTIVE_MENU_BG, MENU_BAR_BG, MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
 
 function render(element: MenuBarItemElement | MenuBarFillerElement, width?: number): MockTerminalBackend {
     const w = width ?? element.getMaxIntrinsicWidth(0);

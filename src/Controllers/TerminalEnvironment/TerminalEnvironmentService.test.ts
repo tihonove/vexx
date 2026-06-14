@@ -104,7 +104,10 @@ describe("TerminalEnvironmentService", () => {
 
     describe("config overrides", () => {
         it("forces the tier regardless of detection", () => {
-            const service = new TerminalEnvironmentService(new MockTerminalBackend(), configFrom({ terminal: { tier: "kitty" } }));
+            const service = new TerminalEnvironmentService(
+                new MockTerminalBackend(),
+                configFrom({ terminal: { tier: "kitty" } }),
+            );
             expect(service.tier).toBe("kitty");
         });
 
@@ -121,7 +124,10 @@ describe("TerminalEnvironmentService", () => {
     describe("modes", () => {
         it("forces modes off via config and reports active modes", () => {
             process.env.TMUX = "/tmp/x,1,0";
-            const service = new TerminalEnvironmentService(new MockTerminalBackend(), configFrom({ terminal: { modes: { tmux: false } } }));
+            const service = new TerminalEnvironmentService(
+                new MockTerminalBackend(),
+                configFrom({ terminal: { modes: { tmux: false } } }),
+            );
             expect(service.isModeActive("tmux")).toBe(false);
             expect(service.isModeActive("local")).toBe(true);
         });
@@ -142,7 +148,9 @@ describe("TerminalEnvironmentService", () => {
                 new MockTerminalBackend(),
                 configFrom({ terminal: { customModes: { presentation: {}, ci: {} } } }),
             );
-            expect(service.getKnownModeNames()).toEqual(expect.arrayContaining(["local", "ssh", "tmux", "presentation", "ci"]));
+            expect(service.getKnownModeNames()).toEqual(
+                expect.arrayContaining(["local", "ssh", "tmux", "presentation", "ci"]),
+            );
         });
     });
 });
