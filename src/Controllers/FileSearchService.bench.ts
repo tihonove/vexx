@@ -7,8 +7,8 @@ import { FileSearchService } from "./FileSearchService.ts";
 // Бенчмарки построения индекса и поиска по нему.
 // Запуск: `npm run test:perf`.
 //
-// Диагностика: `activate()` синхронно обходит всё дерево (walkSync) и поднимает
-// рекурсивный chokidar-watcher на весь воркспейс — это главный блокер старта.
+// `activate()` строит индекс в фоне чанкованным async-обходом (без блокировки
+// event loop и без рекурсивного watcher'а). Бенч меряет суммарное время обхода.
 // `search()` — линейный O(N) скан с fuzzy-match на каждое нажатие.
 //
 // NB: фикстуры строятся на верхнем уровне модуля, а не в beforeAll — в режиме
@@ -23,9 +23,9 @@ generateFileTree(dir1k, { files: 1_000 });
 const dir10k = createTempDir("vexx-perf-index-10k-");
 generateFileTree(dir10k, { files: 10_000 });
 
-// Готовый индекс для бенчей поиска.
+// Готовый индекс для бенчей поиска (ждём завершения фонового обхода).
 const searchService = new FileSearchService();
-searchService.activate(dir10k);
+await searchService.activate(dir10k);
 
 afterAll(() => {
     searchService.dispose();
@@ -36,17 +36,17 @@ afterAll(() => {
 // ─── Индексация: реальный стартовый расход activate() ────────────────────────
 
 describe("FileSearchService.activate (index build)", () => {
-    // dispose внутри измеряемого участка: walk + старт watcher'а — это стартовый
-    // расход; dispose закрывает watcher, чтобы они не копились между итерациями.
-    bench("activate / index 1000 files", () => {
+    // Меряем полный фоновый обход (await ready). Обход чанкованный и уступает
+    // event loop — bench измеряет суммарное время до готовности индекса.
+    bench("activate / index 1000 files", async () => {
         const service = new FileSearchService();
-        service.activate(dir1k);
+        await service.activate(dir1k);
         service.dispose();
     });
 
-    bench("activate / index 10000 files", () => {
+    bench("activate / index 10000 files", async () => {
         const service = new FileSearchService();
-        service.activate(dir10k);
+        await service.activate(dir10k);
         service.dispose();
     });
 });

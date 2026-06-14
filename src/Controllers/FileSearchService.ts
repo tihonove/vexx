@@ -1,8 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import chokidar, { type FSWatcher } from "chokidar";
-
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { fuzzyMatchBest } from "../Common/FuzzySearch.ts";
@@ -13,6 +11,12 @@ export const EXCLUDED_FS_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);
 
 /** Basename bonus so that a match in the filename beats a match only in the path. */
 const BASENAME_BONUS = 200;
+
+/** Debounce for onIndexChanged so a background walk does not spam subscribers. */
+const NOTIFY_DEBOUNCE_MS = 50;
+
+/** Skip an on-demand re-walk if the index was rebuilt more recently than this. */
+const STALE_AFTER_MS = 10_000;
 
 export interface FileSearchEntry {
     relativePath: string;
@@ -25,83 +29,67 @@ export interface FileSearchResult {
     matchedIndices: readonly number[];
 }
 
+/**
+ * In-memory file index for Quick Open.
+ *
+ * The index is built **in the background**, yielding to the event loop between
+ * directories so the editor stays responsive even on huge trees. There is no
+ * always-on recursive filesystem watcher (it used to starve the render/input
+ * loop); freshness is best-effort via `refreshIfStale()` (called when Quick Open
+ * opens). A just-created file may therefore appear with a small delay.
+ */
 export class FileSearchService extends Disposable {
     public static dependencies = [] as const;
 
     private entries: FileSearchEntry[] = [];
     private rootPath: string | null = null;
-    private watcher: FSWatcher | null = null;
 
+    /** True once an initial background walk has fully completed. */
     public isIndexed = false;
 
-    /** Called whenever files are added or removed (after chokidar events). */
+    /** Fired (debounced) as the index grows or changes. */
     public onIndexChanged: (() => void) | null = null;
 
-    /** Build the initial file index and start watching for changes. */
-    public activate(rootPath: string): void {
+    private isDisposedLocal = false;
+    /** Bumped on every walk; an in-flight walk bails when it sees a newer one. */
+    private walkGeneration = 0;
+    private indexing = false;
+    private lastIndexedAt = 0;
+    private readyPromise: Promise<void> = Promise.resolve();
+    private notifyTimer: ReturnType<typeof setTimeout> | null = null;
+
+    /** Resolves when the current (initial) background walk completes. */
+    public get ready(): Promise<void> {
+        return this.readyPromise;
+    }
+
+    /** Point the index at `rootPath` and start building it in the background. */
+    public activate(rootPath: string): Promise<void> {
         this.rootPath = rootPath;
-        this.entries = this.walkSync(rootPath);
-        this.isIndexed = true;
-
-        const watcher = chokidar.watch(rootPath, {
-            depth: undefined,
-            ignoreInitial: true,
-            ignored: (filePath: string) => {
-                const name = path.basename(filePath);
-                return EXCLUDED_FS_NAMES.has(name);
-            },
-        });
-
-        watcher.on("add", (absPath: string) => {
-            const relativePath = this.toRelative(absPath);
-            if (relativePath !== null) {
-                this.entries.push({ relativePath, absolutePath: absPath });
-                this.onIndexChanged?.();
-            }
-        });
-
-        watcher.on("unlink", (absPath: string) => {
-            const before = this.entries.length;
-            this.entries = this.entries.filter((e) => e.absolutePath !== absPath);
-            if (this.entries.length !== before) {
-                this.onIndexChanged?.();
-            }
-        });
-
-        watcher.on("addDir", (_absPath: string) => {
-            // Directories are not stored in the index; nothing to do.
-        });
-
-        watcher.on("unlinkDir", (absPath: string) => {
-            // Remove all entries under this directory.
-            const prefix = absPath + path.sep;
-            const before = this.entries.length;
-            this.entries = this.entries.filter((e) => !e.absolutePath.startsWith(prefix));
-            if (this.entries.length !== before) {
-                this.onIndexChanged?.();
-            }
-        });
-
-        this.watcher = watcher;
-        this.register({
-            dispose: () => {
-                void watcher.close();
-                this.watcher = null;
-            },
-        });
+        this.readyPromise = this.startIndexing();
+        return this.readyPromise;
     }
 
     /**
-     * Search the index for files matching `query`.
+     * Rebuild the index in the background if it is stale and not already being
+     * built. Cheap to call on every Quick Open; throttled internally.
+     */
+    public refreshIfStale(): void {
+        if (this.rootPath === null || this.isDisposedLocal) return;
+        if (this.indexing) return;
+        if (Date.now() - this.lastIndexedAt < STALE_AFTER_MS) return;
+        this.readyPromise = this.startIndexing();
+    }
+
+    /**
+     * Search the index for files matching `query`. Works on a partial index
+     * while a background walk is still in progress.
      *
      * - Empty query: returns first `maxResults` entries with score 0.
      * - Non-empty query: tries fuzzy match on the basename first (with bonus),
-     *   falls back to matching the full relative path.  Results are sorted by
-     *   score descending.
+     *   falls back to matching the full relative path. Sorted by score desc.
      */
     public search(query: string, maxResults = 50): FileSearchResult[] {
-        if (!this.isIndexed) return [];
-
         if (query === "") {
             return this.entries.slice(0, maxResults).map((entry) => ({
                 entry,
@@ -143,41 +131,96 @@ export class FileSearchService extends Disposable {
         return results.slice(0, maxResults);
     }
 
-    // ─── Private helpers ──────────────────────────────────────────────────────
-
-    private walkSync(dir: string): FileSearchEntry[] {
-        const entries: FileSearchEntry[] = [];
-        this.walkDir(dir, dir, entries);
-        return entries;
+    public override dispose(): void {
+        this.isDisposedLocal = true;
+        if (this.notifyTimer !== null) {
+            clearTimeout(this.notifyTimer);
+            this.notifyTimer = null;
+        }
+        super.dispose();
     }
 
-    private walkDir(rootPath: string, dir: string, out: FileSearchEntry[]): void {
-        let dirents: fs.Dirent[];
-        try {
-            dirents = fs.readdirSync(dir, { withFileTypes: true });
-        } catch {
-            return;
-        }
+    // ─── Private: background indexing ─────────────────────────────────────────
 
-        for (const dirent of dirents) {
-            if (EXCLUDED_FS_NAMES.has(dirent.name)) continue;
+    private startIndexing(): Promise<void> {
+        if (this.rootPath === null) return Promise.resolve();
+        const root = this.rootPath;
+        const generation = ++this.walkGeneration;
+        this.indexing = true;
+        this.isIndexed = false;
 
-            const absPath = path.join(dir, dirent.name);
-
-            if (dirent.isDirectory()) {
-                this.walkDir(rootPath, absPath, out);
-            } else if (dirent.isFile()) {
-                out.push({
-                    relativePath: this.toRelativePath(rootPath, absPath),
-                    absolutePath: absPath,
+        // Defer the first batch so app.run()/the first render happen before the
+        // walk starts consuming the event loop.
+        return new Promise<void>((resolve) => {
+            setImmediate(() => {
+                void this.walk(root, generation).finally(() => {
+                    if (generation === this.walkGeneration) this.indexing = false;
+                    resolve();
                 });
-            }
-        }
+            });
+        });
     }
 
-    private toRelative(absPath: string): string | null {
-        if (this.rootPath === null) return null;
-        return this.toRelativePath(this.rootPath, absPath);
+    private async walk(root: string, generation: number): Promise<void> {
+        const next: FileSearchEntry[] = [];
+        // When the index is empty (initial build) publish `next` immediately so
+        // results grow live. On a refresh keep the old list and swap at the end
+        // to avoid flicker through a partial/empty state.
+        const live = this.entries.length === 0;
+        if (live) this.entries = next;
+
+        const stack: string[] = [root];
+        while (stack.length > 0) {
+            if (this.cancelled(generation)) return;
+
+            const dir = stack.pop() as string;
+            let dirents: fs.Dirent[];
+            try {
+                dirents = await fs.promises.readdir(dir, { withFileTypes: true });
+            } catch {
+                continue;
+            }
+
+            for (const dirent of dirents) {
+                if (EXCLUDED_FS_NAMES.has(dirent.name)) continue;
+                const absPath = path.join(dir, dirent.name);
+                if (dirent.isDirectory()) {
+                    stack.push(absPath);
+                } else if (dirent.isFile()) {
+                    next.push({ relativePath: this.toRelativePath(root, absPath), absolutePath: absPath });
+                }
+            }
+
+            this.scheduleNotify();
+            // Yield to the event loop after each directory.
+            await new Promise<void>((resolve) => setImmediate(resolve));
+        }
+
+        if (this.cancelled(generation)) return;
+        if (!live) this.entries = next;
+        this.isIndexed = true;
+        this.lastIndexedAt = Date.now();
+        this.flushNotify();
+    }
+
+    private cancelled(generation: number): boolean {
+        return this.isDisposedLocal || generation !== this.walkGeneration;
+    }
+
+    private scheduleNotify(): void {
+        if (this.notifyTimer !== null) return;
+        this.notifyTimer = setTimeout(() => {
+            this.notifyTimer = null;
+            this.onIndexChanged?.();
+        }, NOTIFY_DEBOUNCE_MS);
+    }
+
+    private flushNotify(): void {
+        if (this.notifyTimer !== null) {
+            clearTimeout(this.notifyTimer);
+            this.notifyTimer = null;
+        }
+        this.onIndexChanged?.();
     }
 
     /** Converts absolute path to a POSIX-style relative path (always uses '/'). */

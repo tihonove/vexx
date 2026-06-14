@@ -32,9 +32,9 @@ function scoreOf(results: ReturnType<FileSearchService["search"]>, fragment: str
 describe("FileSearchService — integration against real project", () => {
     let service: FileSearchService;
 
-    beforeAll(() => {
+    beforeAll(async () => {
         service = new FileSearchService();
-        service.activate(SRC);
+        await service.activate(SRC);
     });
 
     afterAll(() => {

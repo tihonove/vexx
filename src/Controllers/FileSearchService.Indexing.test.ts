@@ -29,6 +29,10 @@ function mkdir(dir: string, relPath: string): string {
     return fullPath;
 }
 
+function indexedPaths(service: FileSearchService): string[] {
+    return service.search("").map((r) => r.entry.relativePath);
+}
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("FileSearchService — indexing", () => {
@@ -43,85 +47,179 @@ describe("FileSearchService — indexing", () => {
     afterEach(() => {
         service.dispose();
         cleanupDir(tmpDir);
+        vi.useRealTimers();
     });
 
     describe("activate()", () => {
-        it("sets isIndexed to true after activate", () => {
+        it("sets isIndexed to true after the initial walk completes", async () => {
             expect(service.isIndexed).toBe(false);
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
             expect(service.isIndexed).toBe(true);
         });
 
-        it("empty directory yields no results", () => {
-            service.activate(tmpDir);
+        it("activate() returns the same promise as `ready`", async () => {
+            const p = service.activate(tmpDir);
+            await service.ready;
+            await p;
+            expect(service.isIndexed).toBe(true);
+        });
+
+        it("empty directory yields no results", async () => {
+            await service.activate(tmpDir);
             expect(service.search("")).toHaveLength(0);
         });
 
-        it("indexes flat list of files", () => {
+        it("indexes flat list of files", async () => {
             writeFile(tmpDir, "alpha.ts");
             writeFile(tmpDir, "beta.ts");
             writeFile(tmpDir, "gamma.ts");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const results = service.search("");
-            const names = results.map((r) => r.entry.relativePath);
+            const names = indexedPaths(service);
             expect(names).toContain("alpha.ts");
             expect(names).toContain("beta.ts");
             expect(names).toContain("gamma.ts");
         });
 
-        it("indexes files recursively", () => {
+        it("indexes files recursively", async () => {
             writeFile(tmpDir, "src/Controllers/AppController.ts");
             writeFile(tmpDir, "src/Common/DiContainer.ts");
             writeFile(tmpDir, "package.json");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const results = service.search("");
-            const paths = results.map((r) => r.entry.relativePath);
+            const paths = indexedPaths(service);
             expect(paths).toContain("src/Controllers/AppController.ts");
             expect(paths).toContain("src/Common/DiContainer.ts");
             expect(paths).toContain("package.json");
         });
 
-        it("relativePath always uses forward slashes", () => {
+        it("relativePath always uses forward slashes", async () => {
             writeFile(tmpDir, "a/b/c.ts");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const results = service.search("");
-            for (const r of results) {
-                expect(r.entry.relativePath).not.toContain("\\");
+            for (const p of indexedPaths(service)) {
+                expect(p).not.toContain("\\");
             }
         });
 
-        it("relativePath is relative to rootPath (no leading slash)", () => {
+        it("relativePath is relative to rootPath (no leading slash)", async () => {
             writeFile(tmpDir, "src/main.ts");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const results = service.search("");
-            for (const r of results) {
-                expect(r.entry.relativePath.startsWith("/")).toBe(false);
+            for (const p of indexedPaths(service)) {
+                expect(p.startsWith("/")).toBe(false);
             }
         });
 
-        it("absolutePath is an absolute path", () => {
+        it("absolutePath is an absolute path", async () => {
             writeFile(tmpDir, "src/main.ts");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const results = service.search("");
-            for (const r of results) {
+            for (const r of service.search("")) {
                 expect(path.isAbsolute(r.entry.absolutePath)).toBe(true);
             }
         });
 
-        it("does not index directories, only files", () => {
+        it("does not index directories, only files", async () => {
             mkdir(tmpDir, "emptyDir");
             writeFile(tmpDir, "real.ts");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const results = service.search("");
-            const paths = results.map((r) => r.entry.relativePath);
+            const paths = indexedPaths(service);
             expect(paths).not.toContain("emptyDir");
             expect(paths).toContain("real.ts");
+        });
+
+        it("tolerates a non-existent root (resolves, empty index)", async () => {
+            await service.activate(path.join(tmpDir, "does-not-exist"));
+            expect(service.isIndexed).toBe(true);
+            expect(service.search("")).toHaveLength(0);
+        });
+    });
+
+    describe("background / cancellation", () => {
+        it("a dispose before the walk runs cancels indexing", async () => {
+            writeFile(tmpDir, "a.ts");
+            writeFile(tmpDir, "b.ts");
+            const pending = service.activate(tmpDir);
+            service.dispose();
+            await pending;
+
+            expect(service.isIndexed).toBe(false);
+            expect(service.search("")).toHaveLength(0);
+        });
+
+        it("a newer activate supersedes an in-flight one", async () => {
+            writeFile(tmpDir, "a.ts");
+            const first = service.activate(tmpDir);
+            const second = service.activate(tmpDir);
+            await Promise.all([first, second]);
+
+            expect(service.isIndexed).toBe(true);
+            expect(indexedPaths(service)).toContain("a.ts");
+        });
+    });
+
+    describe("refreshIfStale()", () => {
+        it("is a no-op before activate (no root)", () => {
+            expect(() => service.refreshIfStale()).not.toThrow();
+            expect(service.search("")).toHaveLength(0);
+        });
+
+        it("does nothing while the index is still fresh", async () => {
+            writeFile(tmpDir, "a.ts");
+            await service.activate(tmpDir);
+
+            // Add a file but do not advance time — refresh should skip (throttled).
+            writeFile(tmpDir, "b.ts");
+            service.refreshIfStale();
+            await service.ready;
+
+            const paths = indexedPaths(service);
+            expect(paths).toContain("a.ts");
+            expect(paths).not.toContain("b.ts");
+        });
+
+        it("does nothing after dispose", async () => {
+            await service.activate(tmpDir);
+            service.dispose();
+            expect(() => service.refreshIfStale()).not.toThrow();
+        });
+
+        it("re-walks and picks up new files once stale", async () => {
+            writeFile(tmpDir, "a.ts");
+            await service.activate(tmpDir);
+            const base = Date.now();
+
+            writeFile(tmpDir, "b.ts");
+
+            // Jump the clock forward past the staleness window (fake Date only,
+            // leaving setImmediate/setTimeout real so the walk still runs).
+            vi.useFakeTimers({ toFake: ["Date"] });
+            vi.setSystemTime(new Date(base + 60_000));
+
+            service.refreshIfStale();
+            await service.ready;
+
+            const paths = indexedPaths(service);
+            expect(paths).toContain("a.ts");
+            expect(paths).toContain("b.ts");
+        });
+    });
+
+    describe("re-index reflects filesystem changes", () => {
+        it("a removed file is gone after re-activate", async () => {
+            const removed = writeFile(tmpDir, "to-delete.ts");
+            writeFile(tmpDir, "keep.ts");
+            await service.activate(tmpDir);
+            expect(indexedPaths(service)).toContain("to-delete.ts");
+
+            fs.unlinkSync(removed);
+            await service.activate(tmpDir);
+
+            const paths = indexedPaths(service);
+            expect(paths).not.toContain("to-delete.ts");
+            expect(paths).toContain("keep.ts");
         });
     });
 
@@ -132,109 +230,31 @@ describe("FileSearchService — indexing", () => {
             expect(EXCLUDED_FS_NAMES.has(".DS_Store")).toBe(true);
         });
 
-        it("excludes node_modules directory", () => {
+        it("excludes node_modules directory", async () => {
             writeFile(tmpDir, "node_modules/some-pkg/index.js");
             writeFile(tmpDir, "src/main.ts");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const paths = service.search("").map((r) => r.entry.relativePath);
+            const paths = indexedPaths(service);
             expect(paths.some((p) => p.includes("node_modules"))).toBe(false);
             expect(paths).toContain("src/main.ts");
         });
 
-        it("excludes .git directory", () => {
+        it("excludes .git directory", async () => {
             writeFile(tmpDir, ".git/COMMIT_EDITMSG");
             writeFile(tmpDir, "src/main.ts");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const paths = service.search("").map((r) => r.entry.relativePath);
+            const paths = indexedPaths(service);
             expect(paths.some((p) => p.includes(".git"))).toBe(false);
         });
 
-        it("does not exclude files just because they start with a dot", () => {
+        it("does not exclude files just because they start with a dot", async () => {
             writeFile(tmpDir, ".eslintrc.json");
-            service.activate(tmpDir);
+            await service.activate(tmpDir);
 
-            const paths = service.search("").map((r) => r.entry.relativePath);
+            const paths = indexedPaths(service);
             expect(paths).toContain(".eslintrc.json");
         });
-    });
-
-    describe("chokidar file watching", () => {
-        it("calls onIndexChanged when a file is added", async () => {
-            service.activate(tmpDir);
-            const cb = vi.fn();
-            service.onIndexChanged = cb;
-
-            // Wait for chokidar to finish setting up its watchers
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
-            writeFile(tmpDir, "new-file.ts");
-
-            // Wait for debounce + FS event propagation
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            expect(cb).toHaveBeenCalled();
-        }, 5000);
-
-        it("adds new file to search results after fs event", async () => {
-            service.activate(tmpDir);
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
-            writeFile(tmpDir, "later.ts");
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            const paths = service.search("").map((r) => r.entry.relativePath);
-            expect(paths).toContain("later.ts");
-        }, 5000);
-
-        it("calls onIndexChanged when a file is deleted", async () => {
-            const fileToDelete = writeFile(tmpDir, "to-delete.ts");
-            service.activate(tmpDir);
-
-            const cb = vi.fn();
-            service.onIndexChanged = cb;
-
-            // Wait for chokidar to be ready before deleting
-            await new Promise((resolve) => setTimeout(resolve, 500));
-
-            fs.unlinkSync(fileToDelete);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            expect(cb).toHaveBeenCalled();
-        }, 5000);
-
-        it("removes deleted file from search results", async () => {
-            const fileToDelete = writeFile(tmpDir, "to-delete.ts");
-            service.activate(tmpDir);
-
-            // Verify it's in the index before deletion
-            let paths = service.search("").map((r) => r.entry.relativePath);
-            expect(paths).toContain("to-delete.ts");
-
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            fs.unlinkSync(fileToDelete);
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            paths = service.search("").map((r) => r.entry.relativePath);
-            expect(paths).not.toContain("to-delete.ts");
-        }, 5000);
-
-        it("removes all files under a deleted directory", async () => {
-            writeFile(tmpDir, "subdir/a.ts");
-            writeFile(tmpDir, "subdir/b.ts");
-            service.activate(tmpDir);
-
-            let paths = service.search("").map((r) => r.entry.relativePath);
-            expect(paths).toContain("subdir/a.ts");
-
-            await new Promise((resolve) => setTimeout(resolve, 500));
-            fs.rmSync(path.join(tmpDir, "subdir"), { recursive: true });
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-
-            paths = service.search("").map((r) => r.entry.relativePath);
-            expect(paths).not.toContain("subdir/a.ts");
-            expect(paths).not.toContain("subdir/b.ts");
-        }, 5000);
     });
 });
