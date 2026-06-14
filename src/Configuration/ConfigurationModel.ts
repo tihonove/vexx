@@ -143,7 +143,9 @@ function deepMerge(a: ReadonlyTree, b: ReadonlyTree): Record<string, unknown> {
 
 function collectKeys(node: unknown, prefix: string, out: string[]): void {
     if (!isPlainObject(node)) {
+        /* v8 ignore start -- defensive: the top-level call always passes the (object) tree, so a non-object node is only ever reached during recursion with a non-empty prefix; the empty-prefix branch is unreachable */
         if (prefix.length > 0) out.push(prefix);
+        /* v8 ignore stop */
         return;
     }
     for (const [key, value] of Object.entries(node)) {

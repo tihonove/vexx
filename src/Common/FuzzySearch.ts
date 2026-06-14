@@ -133,8 +133,9 @@ function fuzzyMatchFromLower(
     textLower: string,
     startAt: number,
 ): FuzzyMatch | null {
-    /* v8 ignore next -- defensive: the only caller passes startAt positions where textLower[startAt] already equals queryLower[0] */
+    /* v8 ignore start -- defensive: the only caller passes startAt positions where textLower[startAt] already equals queryLower[0] */
     if (textLower[startAt] !== queryLower[0]) return null;
+    /* v8 ignore stop */
 
     const matchedIndices: number[] = [startAt];
     let ti = startAt + 1;

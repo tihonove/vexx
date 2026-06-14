@@ -81,7 +81,9 @@ export class FileTreeController extends Disposable implements IController {
     }
 
     private wireTreeEvents(): void {
+        /* v8 ignore start -- defensive: both callers (mount/setRootPath) only invoke this once tree+provider exist */
         if (!this.tree || !this.provider) return;
+        /* v8 ignore stop */
         const provider = this.provider;
         this.tree.onExpandedChanged = (node, expanded) => {
             if (expanded) {

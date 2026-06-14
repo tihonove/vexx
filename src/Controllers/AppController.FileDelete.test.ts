@@ -157,6 +157,53 @@ describe("File tree context menu — right-click opens context menu", () => {
         expect(screen).toContain("Delete");
     });
 
+    it("selecting Delete runs the delete command and closes the menu", () => {
+        const tree = getTreeElement();
+        tree.focus();
+        testApp.render();
+
+        const alpha = path.join(tmpDir, "alpha.txt");
+        expect(fs.existsSync(alpha)).toBe(true);
+
+        // Right-click row 0 (alpha.txt) to open the context menu.
+        tree.globalPosition = new Point(0, 0);
+        tree.dispatchEvent(
+            new TUIMouseEvent("click", { button: "right", screenX: 2, screenY: 0, localX: 2, localY: 0 }),
+        );
+        testApp.render();
+        expect(testApp.querySelector("PopupMenuElement")).not.toBeNull();
+
+        // The only entry ("Delete") is preselected; Enter activates it.
+        testApp.sendKey("Enter");
+        testApp.render();
+
+        // onSelect deleted the file and tore the popup session down.
+        expect(fs.existsSync(alpha)).toBe(false);
+        expect(testApp.querySelector("PopupMenuElement")).toBeNull();
+    });
+
+    it("right-clicking a second file replaces the existing context menu", () => {
+        const tree = getTreeElement();
+        tree.focus();
+        testApp.render();
+
+        const openMenuAt = (row: number): void => {
+            tree.globalPosition = new Point(0, 0);
+            tree.dispatchEvent(
+                new TUIMouseEvent("click", { button: "right", screenX: 2, screenY: row, localX: 2, localY: row }),
+            );
+            testApp.render();
+        };
+
+        // First right-click opens a menu for row 0…
+        openMenuAt(0);
+        expect(testApp.querySelector("PopupMenuElement")).not.toBeNull();
+
+        // …a second right-click first hides the previous session, then opens a fresh one.
+        openMenuAt(1);
+        expect(testApp.querySelectorAll("PopupMenuElement")).toHaveLength(1);
+    });
+
     it("pressing Escape closes the context menu", () => {
         const tree = getTreeElement();
         tree.focus();

@@ -193,6 +193,21 @@ describe("ExtensionHost — registration lifecycle", () => {
         await expect(host.unregisterExtension("nope")).resolves.toBeUndefined();
     });
 
+    it("registration dispose() is a no-op once the extension is already unregistered", async () => {
+        const child = new FakeChild();
+        const host = spawnReadyHost(child, new FakeEditorOptions());
+        const reg = await host.registerExtension(makeReg("ext.a", "/a.js"));
+
+        await host.unregisterExtension("ext.a");
+        expect(host.hasExtension("ext.a")).toBe(false);
+        const sentBefore = child.sent.length;
+
+        // The disposable returned by registerExtension must not re-trigger a deactivate.
+        reg.dispose();
+        await waitUntil(() => true);
+        expect(child.sent.length).toBe(sentBefore);
+    });
+
     it("swallows errors from the deactivate request", async () => {
         const child = new FakeChild();
         const logger = makeLogger();
@@ -229,6 +244,37 @@ describe("ExtensionHost — editor options RPC handlers", () => {
 
         await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 100));
         expect(editorOptions.lastPatch).toEqual({ tabSize: 2, insertSpaces: false });
+    });
+
+    it("sanitizes a non-object editor.setOptions payload into an empty patch", async () => {
+        const child = new FakeChild();
+        const editorOptions = new FakeEditorOptions();
+        const host = spawnReadyHost(child, editorOptions);
+        await host.registerExtension(makeReg("ext.a", "/a.js"));
+
+        // params is not an object → sanitizeOptionsPatch returns {}
+        child.receiveFromHostPeer({ kind: "req", id: 102, method: "editor.setOptions", params: 42 });
+
+        await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 102));
+        expect(editorOptions.lastPatch).toEqual({});
+    });
+
+    it("drops invalid tabSize / insertSpaces fields from editor.setOptions", async () => {
+        const child = new FakeChild();
+        const editorOptions = new FakeEditorOptions();
+        const host = spawnReadyHost(child, editorOptions);
+        await host.registerExtension(makeReg("ext.a", "/a.js"));
+
+        // tabSize is not a positive finite number and insertSpaces is not a boolean → both dropped.
+        child.receiveFromHostPeer({
+            kind: "req",
+            id: 103,
+            method: "editor.setOptions",
+            params: { tabSize: -1, insertSpaces: "yes" },
+        });
+
+        await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 103));
+        expect(editorOptions.lastPatch).toEqual({});
     });
 
     it("answers editor.getOptions with the current state", async () => {
@@ -280,6 +326,23 @@ describe("ExtensionHost — stdout/stderr piping", () => {
         child.stderr.emit("end"); // flushes the buffered tail
         expect(stderrLogger.warn).toHaveBeenCalledWith("oops");
         expect(stderrLogger.warn).toHaveBeenCalledWith("tail-without-newline");
+    });
+
+    it("skips empty lines and does not log when the buffer is empty at end", async () => {
+        const child = new FakeChild();
+        child.stdout = new FakeStream();
+        const stdoutLogger = makeLogger();
+        const host = spawnReadyHost(child, new FakeEditorOptions(), { stdoutLogger });
+        await host.registerExtension(makeReg("ext.a", "/a.js"));
+
+        // A blank line (leading "\n") produces a zero-length `line` → skipped (line 349 false branch).
+        // The trailing "\n" leaves the buffer empty, so `end` logs nothing (line 357 false branch).
+        child.stdout.emit("data", "\nreal\n");
+        child.stdout.emit("end");
+
+        expect(stdoutLogger.info).toHaveBeenCalledTimes(1);
+        expect(stdoutLogger.info).toHaveBeenCalledWith("real");
+        expect(stdoutLogger.info).not.toHaveBeenCalledWith("");
     });
 });
 

@@ -53,4 +53,14 @@ describe("AppController — user keybindings.json", () => {
         const { keybindings } = appWithRules([{ key: "ctrl+b", command: "user.custom.command" }]);
         expect(resolve(keybindings, KEY("b", { ctrlKey: true }))).toBe("user.custom.command");
     });
+
+    it("an unbind rule with an empty key removes ALL bindings for the command", () => {
+        // The default command can be triggered by ctrl+s (its sole default binding).
+        const before = appWithRules([]);
+        expect(resolve(before.keybindings, KEY("s", { ctrlKey: true }))).toBe("workbench.action.files.save");
+
+        // `-command` with no key (stored as "") unbinds every binding for that command.
+        const after = appWithRules([{ key: "", command: "-workbench.action.files.save" }]);
+        expect(resolve(after.keybindings, KEY("s", { ctrlKey: true }))).toBeUndefined();
+    });
 });

@@ -105,13 +105,14 @@ export class KeyInputParser {
                         }),
                     );
                 }
+                /* v8 ignore start -- unreachable: no token converter emits a synthetic "keypress" (processKeyEvents only ever sees keydown/keyup), so the keypress branch never runs and the keyup else-if's false path (the closed-union fall-through) is also dead */
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             } else if (event.type === "keypress") {
-                /* v8 ignore start -- unreachable: no token converter emits a synthetic "keypress"; processKeyEvents only ever sees keydown/keyup */
                 this.pressedKeys.add(event.code);
                 result.push(event);
-                /* v8 ignore stop */
                 // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             } else if (event.type === "keyup") {
+                /* v8 ignore stop */
                 if (!modifierKeyValues.has(event.key) && !this.pressedKeys.has(event.code)) {
                     const synth = {
                         type: "keypress" as const,

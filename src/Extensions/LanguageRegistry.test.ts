@@ -151,6 +151,33 @@ describe("LanguageRegistry", () => {
         expect(registry.getLanguageIdForResource("/p/fileAB.txt")).toBeUndefined();
     });
 
+    it("повторный dispose contribution'а — no-op (запись уже удалена)", () => {
+        const registry = new LanguageRegistry();
+        const d = registry.register(makeExt("ts", [{ id: "typescript", extensions: [".ts"] }]));
+
+        d.dispose();
+        expect(registry.getLanguage("typescript")).toBeUndefined();
+        // Второй dispose не должен бросать: запись для языка уже удалена (delta<0, entry===undefined).
+        expect(() => {
+            d.dispose();
+        }).not.toThrow();
+        expect(registry.getLanguage("typescript")).toBeUndefined();
+    });
+
+    it("повторный dispose не удаляет строки, которых уже нет в записи", () => {
+        const registry = new LanguageRegistry();
+        // Два расширения держат язык живым разными extensions.
+        const d1 = registry.register(makeExt("a", [{ id: "typescript", extensions: [".ts"] }]));
+        registry.register(makeExt("b", [{ id: "typescript", extensions: [".js"] }]));
+
+        d1.dispose(); // удаляет ".ts", остаётся [".js"]
+        expect(registry.getLanguage("typescript")?.extensions).toEqual([".js"]);
+
+        // Повторный dispose пытается снять уже отсутствующий ".ts" — indexOf вернёт -1, splice не вызывается.
+        d1.dispose();
+        expect(registry.getLanguage("typescript")?.extensions).toEqual([".js"]);
+    });
+
     it("allLanguages() возвращает все зарегистрированные", () => {
         const registry = new LanguageRegistry();
         registry.register(

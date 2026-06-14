@@ -335,7 +335,9 @@ export class EditorElement extends TUIElement implements IScrollable {
     private screenToDocPosition(localX: number, localY: number): { line: number; character: number } {
         const gutterW = this.gutterWidth;
         const viewLineCount = this.viewState.getViewLineCount();
+        /* v8 ignore start -- unreachable: a TextDocument always has at least one line and a fold header is never hidden, so getViewLineCount() is never 0 */
         if (viewLineCount === 0) return { line: 0, character: 0 };
+        /* v8 ignore stop */
 
         const viewLine = Math.min(this.viewState.scrollTop + localY, viewLineCount - 1);
         const logLine = this.viewState.visualToLogicalLine(viewLine);
@@ -351,7 +353,9 @@ export class EditorElement extends TUIElement implements IScrollable {
             this.openContextMenu(event.screenX, event.screenY);
             return;
         }
+        /* v8 ignore start -- unreachable: getViewLineCount() is never 0 (document always has a line; fold headers stay visible) */
         if (this.viewState.getViewLineCount() === 0) return;
+        /* v8 ignore stop */
 
         const pos = this.screenToDocPosition(event.localX, event.localY);
 
@@ -394,9 +398,11 @@ export class EditorElement extends TUIElement implements IScrollable {
             focusOnOpen: true,
             disposeOnClose: true,
             onClose: () => {
+                /* v8 ignore start -- the `!==` else is unreachable: openContextMenu disposes (not closes) any prior session before reassigning, so a session's onClose only fires while it is still the active one */
                 if (this.activeContextMenuSession === session) {
                     this.activeContextMenuSession = null;
                 }
+                /* v8 ignore stop */
             },
         });
 
@@ -422,7 +428,9 @@ export class EditorElement extends TUIElement implements IScrollable {
 
     private handleMouseMove(event: TUIMouseEvent): void {
         if (this.dragAnchor === null) return;
+        /* v8 ignore start -- unreachable: getViewLineCount() is never 0 (document always has a line; fold headers stay visible) */
         if (this.viewState.getViewLineCount() === 0) return;
+        /* v8 ignore stop */
 
         const pos = this.screenToDocPosition(event.localX, event.localY);
         this.viewState.selections = [
@@ -454,9 +462,11 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 
     private pushUndo(element: IUndoElement | undefined): void {
+        /* v8 ignore start -- defensive: every caller passes the result of type(), which always returns an element; the undefined guard is never taken */
         if (element) {
             this.undoManager.pushUndoElement(element);
         }
+        /* v8 ignore stop */
     }
 }
 

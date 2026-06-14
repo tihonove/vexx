@@ -33,7 +33,10 @@ export function screen(strings: TemplateStringsArray, ...values: unknown[]): str
     // Find minimum indentation (ignore empty lines)
     const nonEmptyLines = lines.filter((l) => l.trim().length > 0);
     const minIndent =
-        nonEmptyLines.length > 0 ? Math.min(...nonEmptyLines.map((l) => /^(\s*)/.exec(l)?.[1].length ?? 0)) : 0;
+        nonEmptyLines.length > 0
+            ? /* v8 ignore next -- /^(\s*)/ always matches, so exec never returns null; the ?? 0 fallback is unreachable */
+              Math.min(...nonEmptyLines.map((l) => /^(\s*)/.exec(l)?.[1].length ?? 0))
+            : 0;
 
     // Strip common indent and trailing whitespace per line
     lines = lines.map((l) => l.slice(minIndent).trimEnd());

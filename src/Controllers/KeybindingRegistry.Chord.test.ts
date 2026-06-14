@@ -47,6 +47,13 @@ describe("formatKeybinding", () => {
     it("formats a chord as space-separated parts", () => {
         expect(formatKeybinding(parseChord("ctrl+k ctrl+s"))).toBe("Ctrl+K Ctrl+S");
     });
+
+    it("formats Alt and Meta modifiers", () => {
+        expect(formatKeybinding(parseChord("alt+x"))).toBe("Alt+X");
+        expect(formatKeybinding(parseChord("meta+x"))).toBe("Meta+X");
+        // All four modifiers together, in canonical order.
+        expect(formatKeybinding(parseChord("ctrl+shift+alt+meta+k"))).toBe("Ctrl+Shift+Alt+Meta+K");
+    });
 });
 
 describe("KeybindingRegistry — chords", () => {
@@ -208,6 +215,43 @@ describe("KeybindingRegistry.getPendingChord — fallback to raw events", () => 
             altKey: false,
             metaKey: false,
         });
+    });
+
+    it("skips a longer entry whose when-condition fails while a chord is pending", () => {
+        const registry = new KeybindingRegistry();
+        const ctx = new ContextKeyService();
+        // The actually-active chord the user is walking into (registered first so it
+        // is visited LAST in the backward scan).
+        registry.register(parseChord("ctrl+k s"), "save");
+        // A longer chord sharing the ctrl+k prefix but gated behind a when-clause
+        // that is NOT satisfied. Registered last → visited first; its failing
+        // when-clause must cause it to be skipped before the lookup reaches "save".
+        registry.register(parseChord("ctrl+k ctrl+x s"), "gated", "panelFocus");
+
+        // Enter chord mode with Ctrl+K (panelFocus is unset, so only "save" advances).
+        expect(registry.resolveKey(makeEvent({ key: "k", ctrlKey: true }), ctx).kind).toBe("chord");
+
+        // getPendingChord must skip the gated entry (when fails) and report Ctrl+K
+        // resolved against the "save" chord.
+        expect(formatKeybinding(registry.getPendingChord(ctx))).toBe("Ctrl+K");
+    });
+
+    it("skips a longer entry that diverges on a later part of the pending sequence", () => {
+        const registry = new KeybindingRegistry();
+        // Two 3-part chords sharing only the first part (ctrl+k). We walk two parts
+        // deep into the second; the first entry diverges at part 2 (ctrl+x vs ctrl+y).
+        registry.register(parseChord("ctrl+k ctrl+x s"), "real");
+        // Registered last → visited first in the backward scan; it must be rejected
+        // because its second part (ctrl+y) does not match the pending ctrl+x.
+        registry.register(parseChord("ctrl+k ctrl+y z w"), "diverging");
+
+        expect(registry.resolveKey(makeEvent({ key: "k", ctrlKey: true })).kind).toBe("chord");
+        expect(registry.resolveKey(makeEvent({ key: "x", ctrlKey: true })).kind).toBe("chord");
+        expect(registry.pendingLength).toBe(2);
+
+        // The diverging entry is rejected at its second part; the lookup falls
+        // through to the matching "real" chord and reports its 2-part prefix.
+        expect(formatKeybinding(registry.getPendingChord())).toBe("Ctrl+K Ctrl+X");
     });
 
     it("falls back to raw events when only shorter (non-prefix) entries remain", () => {

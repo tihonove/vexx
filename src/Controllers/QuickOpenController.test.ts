@@ -106,6 +106,15 @@ describe("QuickOpenController — open/close", () => {
         expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
     });
 
+    it("close() on a never-opened picker is a no-op", () => {
+        const { controller, fileSearch } = createController();
+        // Subscribe a marker so we can prove close() short-circuits before touching it.
+        fileSearch.onIndexChanged = () => undefined;
+        controller.close();
+        // Early return: the index subscription is left untouched.
+        expect(fileSearch.onIndexChanged).not.toBeNull();
+    });
+
     it("close() restores focus to previously focused element", () => {
         const { controller, testApp, body } = createController();
         // Put something focusable in the body and focus it first
@@ -152,6 +161,22 @@ describe("QuickOpenController — files mode", () => {
         fileSearch.onIndexChanged?.();
 
         expect(fileSearch.search).toHaveBeenCalledWith("App", 50);
+    });
+
+    it("a late index-changed callback after close does not re-run the search", () => {
+        const { controller, fileSearch } = createController();
+        controller.open("files");
+        // Capture the index-changed handler the controller installed.
+        const handler = fileSearch.onIndexChanged;
+        expect(handler).not.toBeNull();
+
+        controller.close();
+        (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+
+        // Fire the captured callback after the session is closed: handleIndexChanged
+        // must bail out (session not open) and not query the index.
+        handler?.();
+        expect(fileSearch.search).not.toHaveBeenCalled();
     });
 
     it("switching to command mode stops live file refreshes", () => {
@@ -280,6 +305,24 @@ describe("QuickOpenController — files mode", () => {
         });
 
         expect(execSpy).toHaveBeenCalledWith("workbench.openFile", "/root/src/main.ts");
+    });
+
+    it("accepting an item with neither commandId nor path does nothing", async () => {
+        const { controller, body } = createController();
+        const execSpy = vi.fn();
+        controller.onExecuteCommand = execSpy;
+        controller.open("files");
+
+        // A bare item carrying no routing metadata (no commandId, no absolutePath).
+        const bareItem: QuickPickItem = { label: "orphan" };
+        controller.view.onAccept?.(bareItem, 0);
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
+
+        // Neither branch fires: no command executed, picker stays open.
+        expect(execSpy).not.toHaveBeenCalled();
+        expect(body.contextMenuLayer.hasVisibleItems()).toBe(true);
     });
 
     it("accepting file closes the picker", async () => {
@@ -457,6 +500,21 @@ describe("QuickOpenController — position and size", () => {
         expect(ctrl.view.preferredWidth).toBe(46);
         testApp.render();
         expect(ctrl.view.layoutSize.width).toBe(46);
+    });
+
+    it("open() without a host view is a no-op for positioning", () => {
+        // No setHostView() → hostBody is null and there is no overlay session.
+        const commands = new CommandRegistry();
+        const fileSearch = makeFileSearchStub();
+        const ctrl = new QuickOpenController(fileSearch, commands, new KeybindingRegistry(), new ContextKeyService());
+
+        // open() reaches updatePosition, which must early-return without throwing
+        // because there is no host body to measure against.
+        expect(() => {
+            ctrl.open("files");
+        }).not.toThrow();
+        // preferredWidth keeps its default since positioning was skipped (no recompute).
+        expect(ctrl.view.preferredWidth).toBe(60);
     });
 
     it("picker is horizontally centred after layout", () => {

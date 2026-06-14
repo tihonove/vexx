@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { EditorViewState } from "../EditorViewState.ts";
+import { createFoldingRegion } from "../IFoldingRegion.ts";
 import { createLineTokens, createToken } from "../ILineTokens.ts";
 import { createCursorSelection, createSelection } from "../ISelection.ts";
 import { TextDocument } from "../TextDocument.ts";
+import { PlainTextTokenizer } from "../Tokenization/builtin/PlainTextTokenizer.ts";
+import { DocumentTokenStore } from "../Tokenization/DocumentTokenStore.ts";
 
 import { editorState, expectEditorState, parseDSL, renderToDSL } from "./TrackDSL.ts";
 
@@ -469,5 +472,148 @@ describe("TrackDSL", () => {
 
         `;
         expect(result).toBe("");
+    });
+
+    // ─── Track content without the leading separator space ──────
+
+    it("parses track content that omits the leading separator space", () => {
+        // No space after the colon on any track → the `startsWith(" ")` false branch
+        // of every track prefix (text/cursor/select/tokens/folding) is exercised.
+        const dsl = ["text:ab", "cursor:█", "tokens:kk", "folding:v", "text:b", "folding:^"].join("\n");
+        const state = parseDSL(dsl);
+        expect(state.document.getLineContent(0)).toBe("ab");
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+        expect(state.tokenStore?.getLineTokens(0)?.tokens).toEqual([{ startIndex: 0, scopes: ["k"] }]);
+        expect(state.foldedRegions).toHaveLength(1);
+        expect(state.foldedRegions[0]).toEqual({ startLine: 0, endLine: 1, isCollapsed: false });
+    });
+
+    it("parses a select track without the leading separator space", () => {
+        // "select:░░░" → after the prefix the content starts with ░ (no space to strip).
+        const dsl = ["text:hello", "select:░░░"].join("\n");
+        const state = parseDSL(dsl);
+        expect(state.selections).toHaveLength(1);
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 0 });
+        expect(state.selections[0].active).toEqual({ line: 0, character: 3 });
+    });
+
+    // ─── Tokens track beginning with a "no token" space ─────────
+
+    it("parses a tokens track whose first column is empty (leading space = no token)", () => {
+        // Two leading spaces: one is the separator, the second makes track[0] === " ",
+        // so the very first column carries no token (parseTokenTrack's `currentType === ' '`).
+        const dsl = ["text: abc", "tokens:  nn"].join("\n");
+        const state = parseDSL(dsl);
+        expect(state.tokenStore?.getLineTokens(0)?.tokens).toEqual([{ startIndex: 1, scopes: ["n"] }]);
+    });
+
+    // ─── Folding: unmatched end + render before region ──────────
+
+    it("ignores an unmatched folding end (^ with an empty stack)", () => {
+        // A standalone '^' with no preceding 'v'/'>' → the `stack.length > 0` guard fails
+        // and the end is dropped instead of producing a region.
+        const state = parseDSL(["text: a", "folding: ^", "text: b"].join("\n"));
+        expect(state.foldedRegions).toHaveLength(0);
+    });
+
+    it("renders no folding char for a line that sits before any region", () => {
+        // Region spans lines 1..2; line 0 is before it, so renderFoldingChar reaches the
+        // body check with `lineIdx < region.startLine` (the `lineIdx > startLine` false branch)
+        // and returns null.
+        const doc = new TextDocument("a\nb\nc");
+        const state = new EditorViewState(doc);
+        state.setFoldingRegions([createFoldingRegion(1, 2, false)]);
+
+        const rendered = renderToDSL(state);
+        const lines = rendered.split("\n");
+        expect(lines[0]).toBe("text: a");
+        expect(lines[1]).not.toMatch(/^folding:/); // line 0 carries no folding track
+        expect(rendered).toContain("folding: v");
+        expect(rendered).toContain("folding: ^");
+    });
+
+    // ─── Tokens render: last token + token past line content ────
+
+    it("renders a tokens track whose last token runs to the end of the line", () => {
+        // Three tokens; the final one has no following token, so its end is the line length
+        // (the `i + 1 < tokens.length` false branch of renderTokensTrack).
+        const doc = new TextDocument("abcdef");
+        const state = new EditorViewState(doc);
+        const store = new DocumentTokenStore(doc, new PlainTextTokenizer());
+        store.setLineTokens(0, createLineTokens([createToken(0, ["k"]), createToken(2, ["b"]), createToken(4, ["n"])]));
+        state.tokenStore = store;
+
+        const rendered = renderToDSL(state);
+        expect(rendered).toContain("tokens: kkbbnn");
+    });
+
+    it("clips a token whose start runs past the line content length", () => {
+        // The token starts at column 10 but the line only has 3 characters, so the
+        // `c < chars.length` guard fails for every position and nothing is written.
+        const doc = new TextDocument("abc");
+        const state = new EditorViewState(doc);
+        const store = new DocumentTokenStore(doc, new PlainTextTokenizer());
+        store.setLineTokens(0, createLineTokens([createToken(0, ["k"]), createToken(10, ["n"])]));
+        state.tokenStore = store;
+
+        const rendered = renderToDSL(state);
+        const tokensLine = rendered.split("\n").find((l) => l.startsWith("tokens:"));
+        expect(tokensLine).toBe("tokens: kkk");
+    });
+
+    // ─── Select render: line before a multi-line selection ──────
+
+    it("renders no select track for a line above a multi-line selection", () => {
+        // Selection spans lines 1..2; line 0 is above it, exercising the
+        // `range.start.line > lineIdx` true branch (the line is skipped).
+        const doc = new TextDocument("aaaa\nbbbb\ncccc");
+        const state = new EditorViewState(doc, [createSelection(1, 0, 2, 2)]);
+
+        const rendered = renderToDSL(state);
+        const lines = rendered.split("\n");
+        expect(lines[0]).toBe("text: aaaa");
+        expect(lines[1]).not.toMatch(/^select:/);
+    });
+
+    // ─── Unrecognized lines are ignored ─────────────────────────
+
+    it("ignores lines that match no track prefix", () => {
+        // The middle line is neither text/cursor/select/tokens/folding, so it falls through
+        // the whole if/else-if chain (the folding `else if` false branch) and is skipped.
+        const dsl = ["text: hello", "# just a comment line", "text: world"].join("\n");
+        const state = parseDSL(dsl);
+        expect(state.document.lineCount).toBe(2);
+        expect(state.document.getLineContent(0)).toBe("hello");
+        expect(state.document.getLineContent(1)).toBe("world");
+    });
+
+    // ─── Token with empty scopes renders as a space ─────────────
+
+    it("renders a token whose scopes array is empty as a blank column", () => {
+        // scopes[0] is undefined → the `?? \" \"` fallback chooses a space for that token.
+        const doc = new TextDocument("abc");
+        const state = new EditorViewState(doc);
+        const store = new DocumentTokenStore(doc, new PlainTextTokenizer());
+        store.setLineTokens(0, createLineTokens([createToken(0, [])]));
+        state.tokenStore = store;
+
+        const rendered = renderToDSL(state);
+        // The whole line is a single empty-scope token → all spaces → trimmed track,
+        // leaving just the prefix and its separator space.
+        const tokensLine = rendered.split("\n").find((l) => l.startsWith("tokens:"));
+        expect(tokensLine).toBe("tokens: ");
+    });
+
+    // ─── dedent with an internal blank line ─────────────────────
+
+    it("dedents while skipping an internal blank line", () => {
+        // The blank middle line is skipped when computing minIndent (line.trim() === "")
+        // but preserved (as empty) in the output.
+        const result = editorState`
+            text: a
+
+            text: b
+        `;
+        expect(result).toBe("text: a\n\ntext: b");
     });
 });

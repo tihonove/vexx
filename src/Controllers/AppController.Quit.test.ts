@@ -7,6 +7,7 @@ import type { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDial
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";
+import type { EditorGroupController } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 interface TestQuitContext {
@@ -181,6 +182,34 @@ describe("AppController quit with save dialog", () => {
 
         // Save on the last file → quit.
         secondDialog.onSave?.();
+        expect(exitSpy).toHaveBeenCalledWith(0);
+    });
+
+    it("skips indices whose editor vanished mid-sequence and still quits", () => {
+        const { testApp, controller, accessor } = createTestContext();
+        controller.openFile("/tmp/quit-seq-stale-a.txt");
+        controller.focusEditor();
+        testApp.sendKey("x");
+        controller.openFile("/tmp/quit-seq-stale-b.txt");
+        controller.focusEditor();
+        testApp.sendKey("y");
+        controller.openFile("/tmp/quit-seq-stale-c.txt");
+        controller.focusEditor();
+        testApp.sendKey("z");
+
+        // requestQuit snapshots the modified indices [0, 1, 2] and shows the dialog for index 0.
+        controller.requestQuit(accessor);
+        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        expect(exitSpy).not.toHaveBeenCalled();
+
+        // Tabs 1 and 2 disappear before we answer, so their snapshotted indices are now stale.
+        const editorGroup = (controller as unknown as { editorGroupController: EditorGroupController })
+            .editorGroupController;
+        editorGroup.closeTab(2);
+        editorGroup.closeTab(1);
+
+        // Advancing the sequence walks past the now-missing editors and quits at the end.
+        dialog.onDontSave?.();
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 

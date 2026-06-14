@@ -126,9 +126,11 @@ export class InputElement extends TUIElement {
         // Hardware cursor
         if (focused) {
             const cursorX = contentXStart + (cursorCol - this.scrollX);
+            /* v8 ignore start -- scrollX was just adjusted above to keep cursorCol within [scrollX, scrollX+contentWidth), so cursorX is always in bounds here; the false side is unreachable */
             if (cursorX >= contentXStart && cursorX < contentXStart + contentWidth) {
                 context.setCursorPosition(cursorX, contentY);
             }
+            /* v8 ignore stop */
         }
     }
 
@@ -151,12 +153,14 @@ export class InputElement extends TUIElement {
         if (before.length > 0) {
             context.drawText(contentXStart - this.scrollX, contentY, before, { fg: INPUT_FG, bg: INPUT_BG });
         }
+        /* v8 ignore start -- this branch only runs when inputState.hasSelection (selStart !== selEnd), so the slice is always non-empty; the false side is unreachable */
         if (selected.length > 0) {
             context.drawText(contentXStart + selStartCol - this.scrollX, contentY, selected, {
                 fg: INPUT_FG,
                 bg: SELECTION_BG,
             });
         }
+        /* v8 ignore stop */
         // Fill selection background for empty tail columns up to selEndCol (handles wide chars)
         for (let col = selStartCol; col < selEndCol; col++) {
             const x = contentXStart + col - this.scrollX;

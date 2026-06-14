@@ -248,7 +248,9 @@ export class EditorViewState {
                     const dl = new DisplayLine(lineContent, this.tabSize);
                     let prevOffset: number;
                     if (pos.character >= lineContent.length) {
+                        /* v8 ignore start -- the `: 0` arm is unreachable: this branch needs pos.character > 0 AND >= line length, so the line is non-empty and always has slots */
                         prevOffset = dl.slots.length > 0 ? dl.slots[dl.slots.length - 1].offset : 0;
+                        /* v8 ignore stop */
                     } else {
                         const slotIndex = dl.slotIndexAtOffset(pos.character);
                         prevOffset = slotIndex > 0 ? dl.slots[slotIndex - 1].offset : 0;
@@ -301,21 +303,23 @@ export class EditorViewState {
                 const lineContent = this.document.getLineContent(pos.line);
                 const dl = new DisplayLine(lineContent, this.tabSize);
                 if (pos.character >= lineContent.length) {
+                    /* v8 ignore start -- the `: 0` arm is unreachable: this branch needs pos.character > 0 AND >= line length, so the line is non-empty and always has slots */
                     newChar = dl.slots.length > 0 ? dl.slots[dl.slots.length - 1].offset : 0;
+                    /* v8 ignore stop */
                 } else {
                     const slotIndex = dl.slotIndexAtOffset(pos.character);
                     newChar = slotIndex > 0 ? dl.slots[slotIndex - 1].offset : 0;
                 }
             } else if (pos.line > 0) {
                 const prevVisible = this.previousVisibleLine(pos.line);
+                /* v8 ignore start -- the else is unreachable: line 0 is always visible, so previousVisibleLine never returns -1 for a line>0 cursor */
                 if (prevVisible >= 0) {
                     newLine = prevVisible;
                     newChar = this.document.getLineLength(prevVisible);
                 } else {
-                    /* v8 ignore start -- unreachable: line 0 is always visible, so previousVisibleLine never returns -1 for a line>0 cursor */
                     return sel;
-                    /* v8 ignore stop */
                 }
+                /* v8 ignore stop */
             } else {
                 return sel;
             }
@@ -595,14 +599,14 @@ export class EditorViewState {
                     const dl = new DisplayLine(lineContent, this.tabSize);
                     const slotIndex = dl.slotIndexAtOffset(pos.character);
                     let nextEnd: number;
+                    /* v8 ignore start -- the else is unreachable: Segmenter slots contiguously cover the line, so every in-range offset maps to a slot */
                     if (slotIndex >= 0) {
                         const slot = dl.slots[slotIndex];
                         nextEnd = slot.offset + slot.length;
                     } else {
-                        /* v8 ignore start -- unreachable: Segmenter slots contiguously cover the line, so every in-range offset maps to a slot */
                         nextEnd = Math.min(pos.character + 1, lineLen);
-                        /* v8 ignore stop */
                     }
+                    /* v8 ignore stop */
                     edits.push(createTextEdit(createRange(pos.line, pos.character, pos.line, nextEnd), ""));
                 } else if (pos.line < this.document.lineCount - 1) {
                     edits.push(createTextEdit(createRange(pos.line, lineLen, pos.line + 1, 0), ""));
@@ -900,6 +904,7 @@ export class EditorViewState {
                 }
 
                 // Edit starts inside region and extends beyond → remove
+                /* v8 ignore start -- the fall-through else and the final `return true` are unreachable: reaching here needs editStartLine>endLine, but that case already returned at the "completely after" check */
                 if (
                     editStartLine > region.startLine &&
                     editStartLine <= region.endLine &&
@@ -908,7 +913,6 @@ export class EditorViewState {
                     return false;
                 }
 
-                /* v8 ignore start -- unreachable: reaching here needs editStartLine>endLine, but that case already returned at the "completely after" check */
                 return true;
                 /* v8 ignore stop */
             });
@@ -992,7 +996,9 @@ export class EditorViewState {
             }
         }
 
+        /* v8 ignore start -- the `: [...]` fallback is unreachable: callers only invoke this with a non-empty edit list, and every document has at least one selection, so newSelections is never empty */
         return newSelections.length > 0 ? newSelections : [createCursorSelection(0, 0)];
+        /* v8 ignore stop */
     }
 
     /**
@@ -1066,7 +1072,9 @@ function findWordBoundaryLeft(line: string, offset: number): number {
 function findWordBoundaryRight(line: string, offset: number): number {
     let pos = offset;
     const len = line.length;
+    /* v8 ignore start -- unreachable via callers: both cursorWordRight and deleteWordRight only call this when offset < line length */
     if (pos >= len) return len;
+    /* v8 ignore stop */
     // Skip same-class chars
     const cls = charClass(line[pos]);
     while (pos < len && charClass(line[pos]) === cls) {

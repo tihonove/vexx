@@ -237,4 +237,42 @@ describe("PaddingContainerElement", () => {
         expect(backend.getBgAt(new Point(6, 1))).toBe(BG);
         expect(backend.getBgAt(new Point(7, 1))).toBe(BG);
     });
+
+    describe("setChild", () => {
+        it("detaches the previous child when a new one replaces it", () => {
+            const first = new TUIElement();
+            const padded = new PaddingContainerElement(first);
+            expect(first.getParent()).toBe(padded);
+
+            const second = new TUIElement();
+            padded.setChild(second);
+
+            // The old child is detached and the new one adopted.
+            expect(first.getParent()).toBeNull();
+            expect(second.getParent()).toBe(padded);
+            expect(padded.getChildren()).toEqual([second]);
+        });
+
+        it("adopts the first child when none was set initially", () => {
+            // Starts with no child, so setChild takes the no-detach path.
+            const padded = new PaddingContainerElement(null);
+            expect(padded.getChildren()).toEqual([]);
+
+            const child = new TUIElement();
+            padded.setChild(child);
+
+            expect(child.getParent()).toBe(padded);
+            expect(padded.getChildren()).toEqual([child]);
+        });
+
+        it("clears the child to null, detaching it", () => {
+            const child = new TUIElement();
+            const padded = new PaddingContainerElement(child);
+
+            padded.setChild(null);
+
+            expect(child.getParent()).toBeNull();
+            expect(padded.getChildren()).toEqual([]);
+        });
+    });
 });

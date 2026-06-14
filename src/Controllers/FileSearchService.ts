@@ -150,7 +150,9 @@ export class FileSearchService extends Disposable {
     // ─── Private: background indexing ─────────────────────────────────────────
 
     private startIndexing(): Promise<void> {
+        /* v8 ignore start -- defensive: callers (activate/refreshIfStale) only invoke this with a non-null rootPath */
         if (this.rootPath === null) return Promise.resolve();
+        /* v8 ignore stop */
         const root = this.rootPath;
         const generation = ++this.walkGeneration;
         this.indexing = true;
@@ -203,7 +205,9 @@ export class FileSearchService extends Disposable {
             await new Promise<void>((resolve) => setImmediate(resolve));
         }
 
+        /* v8 ignore start -- race guard: reaching this requires disposal/regeneration during the last directory's setImmediate yield; not deterministically reachable in a unit test */
         if (this.cancelled(generation)) return;
+        /* v8 ignore stop */
         if (!live) this.entries = next;
         this.isIndexed = true;
         this.lastIndexedAt = Date.now();

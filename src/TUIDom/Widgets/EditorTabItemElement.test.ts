@@ -226,4 +226,23 @@ describe("EditorTabItemElement", () => {
             expect(onActivate).not.toHaveBeenCalled();
         });
     });
+
+    describe("rendering under tight width", () => {
+        it("omits the space after the icon when the icon fills the last column", () => {
+            // paddingLeft=0, single-cell icon, width=1: the icon lands at the last
+            // column, so the trailing-space branch (x < width) is skipped.
+            const tab = new EditorTabItemElement("file.ts", "I", packRgb(1, 2, 3), { paddingLeft: 0 });
+            const { text } = renderTab(tab, 1);
+            expect(text).toBe("I");
+        });
+
+        it("omits the close button when there is no room left for it", () => {
+            // Width fits the icon + a label char but leaves no room for " ×"
+            // (x + 1 < width is false), so the close button is not drawn.
+            const tab = new EditorTabItemElement("AB", "", packRgb(1, 2, 3), { paddingLeft: 0 });
+            const { text } = renderTab(tab, 2);
+            expect(text).toBe("AB");
+            expect(text).not.toContain("×");
+        });
+    });
 });

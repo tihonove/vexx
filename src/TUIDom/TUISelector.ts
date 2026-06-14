@@ -66,10 +66,12 @@ function queryDescendant(element: TUIElement, selectors: ParsedSelector[], depth
             const found = queryDescendant(child, selectors, depth + 1);
             if (found) return found;
         }
+        /* v8 ignore start -- depth>0 only happens for multi-part selectors (length>1), so the guard is always true; the false side is unreachable */
         if (depth === 0 || selectors.length > 1) {
             const found = queryDescendant(child, selectors, depth);
             if (found) return found;
         }
+        /* v8 ignore stop */
     }
     return null;
 }
@@ -88,8 +90,10 @@ function queryDescendantAll(
                 queryDescendantAll(child, selectors, depth + 1, results);
             }
         }
+        /* v8 ignore start -- depth>0 only happens for multi-part selectors (length>1), so the guard is always true; the false side is unreachable */
         if (depth === 0 || selectors.length > 1) {
             queryDescendantAll(child, selectors, depth, results);
         }
+        /* v8 ignore stop */
     }
 }

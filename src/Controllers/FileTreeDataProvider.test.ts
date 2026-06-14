@@ -92,6 +92,20 @@ describe("FileTreeDataProvider", () => {
             const dirNode = { name: "nope", path: path.join(tmpDir, "nope"), isDirectory: true };
             expect(provider.getChildren(dirNode)).toEqual([]);
         });
+
+        it("orders files after directories for a dir/file/dir name sequence (sort branch 119)", () => {
+            // readdir yields these alphabetically as [a-dir, b-file, c-dir] — a
+            // dir/file/dir sequence that drives the comparator down BOTH the
+            // `-1` (dir before file) and `1` (file after dir) paths.
+            fs.mkdirSync(path.join(tmpDir, "a-dir"));
+            fs.writeFileSync(path.join(tmpDir, "b-file.ts"), "");
+            fs.mkdirSync(path.join(tmpDir, "c-dir"));
+
+            const children = provider.getChildren();
+            // Directories first (sorted), then the file.
+            expect(children.map((c) => c.name)).toEqual(["a-dir", "c-dir", "b-file.ts"]);
+            expect(children.map((c) => c.isDirectory)).toEqual([true, true, false]);
+        });
     });
 
     describe("getKey", () => {
@@ -183,5 +197,94 @@ describe("FileTreeDataProvider", () => {
 
             expect(callback).not.toHaveBeenCalled();
         });
+
+        it("unwatchDirectory on a directory that was never watched is a no-op (branch 76)", () => {
+            expect(() => provider.unwatchDirectory(path.join(tmpDir, "never-watched"))).not.toThrow();
+        });
+    });
+
+    describe("debounce timer lifecycle", () => {
+        /** Wait until a 300ms debounce timer has been scheduled by debouncedNotify. */
+        async function waitForPendingDebounce(spy: ReturnType<typeof vi.spyOn>): Promise<void> {
+            await vi.waitFor(
+                () => {
+                    const scheduled = spy.mock.calls.some((call: unknown[]) => call[1] === 300);
+                    expect(scheduled).toBe(true);
+                },
+                { interval: 10, timeout: 4000 },
+            );
+        }
+
+        it("clears a pending debounce timer when its directory is unwatched (lines 83-84, branch 82)", async () => {
+            const callback = vi.fn();
+            provider.onChange = callback;
+            provider.watchDirectory(tmpDir);
+            // Wait for chokidar to settle before emitting an event.
+            await new Promise((r) => setTimeout(r, 500));
+
+            const setSpy = vi.spyOn(globalThis, "setTimeout");
+            const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+
+            // Trigger a watcher event → debouncedNotify schedules a 300ms timer.
+            fs.writeFileSync(path.join(tmpDir, "trigger.ts"), "");
+            await waitForPendingDebounce(setSpy);
+
+            const clearsBefore = clearSpy.mock.calls.length;
+            // Unwatching while the debounce timer is pending must clear it (lines 83-84).
+            provider.unwatchDirectory(tmpDir);
+            expect(clearSpy.mock.calls.length).toBeGreaterThan(clearsBefore);
+
+            // The cleared timer must never fire onChange.
+            await new Promise((r) => setTimeout(r, 400));
+            expect(callback).not.toHaveBeenCalled();
+
+            setSpy.mockRestore();
+            clearSpy.mockRestore();
+        }, 8000);
+
+        it("clears pending debounce timers on dispose (line 94)", async () => {
+            const callback = vi.fn();
+            provider.onChange = callback;
+            provider.watchDirectory(tmpDir);
+            await new Promise((r) => setTimeout(r, 500));
+
+            const setSpy = vi.spyOn(globalThis, "setTimeout");
+            const clearSpy = vi.spyOn(globalThis, "clearTimeout");
+
+            fs.writeFileSync(path.join(tmpDir, "trigger.ts"), "");
+            await waitForPendingDebounce(setSpy);
+
+            const clearsBefore = clearSpy.mock.calls.length;
+            provider.dispose();
+            // dispose() iterates pending debounce timers and clears them (line 94).
+            expect(clearSpy.mock.calls.length).toBeGreaterThan(clearsBefore);
+
+            await new Promise((r) => setTimeout(r, 400));
+            expect(callback).not.toHaveBeenCalled();
+
+            setSpy.mockRestore();
+            clearSpy.mockRestore();
+        }, 8000);
+
+        it("collapses back-to-back events into one notification (debounce reset, branch 128)", async () => {
+            const callback = vi.fn();
+            provider.onChange = callback;
+            provider.watchDirectory(tmpDir);
+            await new Promise((r) => setTimeout(r, 500));
+
+            // Several rapid events: each subsequent debouncedNotify sees an existing
+            // timer and clears it before re-scheduling (branch 128 true path).
+            fs.writeFileSync(path.join(tmpDir, "one.ts"), "");
+            fs.writeFileSync(path.join(tmpDir, "two.ts"), "");
+            fs.writeFileSync(path.join(tmpDir, "three.ts"), "");
+            await new Promise((r) => setTimeout(r, 100));
+            fs.writeFileSync(path.join(tmpDir, "four.ts"), "");
+            fs.writeFileSync(path.join(tmpDir, "five.ts"), "");
+
+            // Wait past the debounce window for the coalesced notification.
+            await new Promise((r) => setTimeout(r, 800));
+
+            expect(callback).toHaveBeenCalled();
+        }, 8000);
     });
 });

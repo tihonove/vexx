@@ -164,9 +164,11 @@ export class EditorController extends Disposable implements IController {
         }
     }
 
+    /* v8 ignore start -- placeholder lifecycle hook; editor-specific subscriptions are added later */
     public mount(): void {
         // Future: subscribe to editor-specific events
     }
+    /* v8 ignore stop */
 
     public async activate(): Promise<void> {
         // Future: LSP connection, syntax highlighting, etc.

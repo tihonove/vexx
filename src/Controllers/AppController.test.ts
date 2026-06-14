@@ -313,6 +313,50 @@ describe("AppController — chords", () => {
             vi.useRealTimers();
         }
     });
+
+    it("a new keypress clears the pending 'not a command' timer before it fires", () => {
+        const { testApp, controller } = createTestAppController();
+        controller.openFile("/tmp/chord-notfound-reset.txt");
+        controller.focusEditor();
+
+        vi.useFakeTimers();
+        try {
+            // Broken chord arms the auto-clear timer for the "not a command" hint.
+            testApp.sendKey("Ctrl+K");
+            testApp.sendKey("x");
+            expect(statusTexts(testApp).some((t) => t.includes("is not a command"))).toBe(true);
+
+            // The very next key dispatch clears that pending timer (and the hint) eagerly,
+            // so when the original 4s timeout elapses there is no lingering message to reset.
+            testApp.sendKey("a");
+            expect(statusTexts(testApp).some((t) => t.includes("is not a command"))).toBe(false);
+
+            vi.advanceTimersByTime(4000);
+            expect(statusTexts(testApp).some((t) => t.includes("is not a command"))).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("a focus change cancels an in-progress chord and clears the waiting hint", () => {
+        const { testApp, controller, commandRegistry } = createTestAppController();
+        controller.openFile("/tmp/chord-focus-cancel.txt");
+        controller.focusEditor();
+
+        testApp.sendKey("Ctrl+K");
+        expect(statusTexts(testApp).some((t) => t.includes("Waiting"))).toBe(true);
+
+        // Moving focus away while a chord is pending must abort it.
+        const editor = testApp.querySelector("EditorElement") as EditorElement;
+        editor.blur();
+
+        expect(statusTexts(testApp).some((t) => t.includes("Waiting"))).toBe(false);
+
+        // The pending state was reset: 's' alone no longer completes the chord.
+        const executeSpy = vi.spyOn(commandRegistry, "execute");
+        testApp.sendKey("s");
+        expect(executeSpy).not.toHaveBeenCalledWith("workbench.action.files.save");
+    });
 });
 
 describe("AppController — Quick Open", () => {

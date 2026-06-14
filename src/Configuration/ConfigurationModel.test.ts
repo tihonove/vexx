@@ -57,6 +57,18 @@ describe("ConfigurationModel", () => {
             expect(m.get("x")).toBeUndefined();
         });
 
+        it("returns undefined for an empty key", () => {
+            // splitKey("") → [] → get returns undefined (no segments to traverse).
+            const m = ConfigurationModel.fromRaw({ a: 1 });
+            expect(m.get("")).toBeUndefined();
+        });
+
+        it("returns undefined when a path segment descends into a primitive", () => {
+            // "a" is a number, so descending to "a.b" hits a non-object midway.
+            const m = ConfigurationModel.fromRaw({ a: 1 });
+            expect(m.get("a.b")).toBeUndefined();
+        });
+
         it("getValue without argument returns root object", () => {
             const m = ConfigurationModel.fromRaw({ a: 1 });
             expect(m.getValue()).toEqual({ a: 1 });
@@ -91,6 +103,14 @@ describe("ConfigurationModel", () => {
 
         it("returns EMPTY for zero layers", () => {
             expect(ConfigurationModel.merge().get("x")).toBeUndefined();
+        });
+
+        it("returns the sole layer unchanged for a single-layer merge", () => {
+            const only = ConfigurationModel.fromRaw({ "editor.tabSize": 4 });
+            const merged = ConfigurationModel.merge(only);
+            // The single-layer fast path returns the same instance.
+            expect(merged).toBe(only);
+            expect(merged.get("editor.tabSize")).toBe(4);
         });
     });
 

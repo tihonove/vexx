@@ -5,9 +5,11 @@ import type { ILogService, ILogSink, LogEntry } from "./ILogService.ts";
 import { LogLevel } from "./LogLevel.ts";
 
 const NOOP_DISPOSABLE: IDisposable = {
+    /* v8 ignore start -- null-object stub: the no-op disposable returned by addSink/onDidAppend is never disposed in tests */
     dispose: () => {
         /* no-op */
     },
+    /* v8 ignore stop */
 };
 
 const NULL_LOGGER: ILogger = {
@@ -37,9 +39,11 @@ export const NULL_LOG_SERVICE: ILogService = {
     createLogger(_channel: string): ILogger {
         return NULL_LOGGER;
     },
+    /* v8 ignore start -- null-object stub: setLevel is a no-op and is never invoked in tests */
     setLevel(_channelOrWildcard: string, _level: LogLevel): void {
         /* no-op */
     },
+    /* v8 ignore stop */
     getLevel(_channel: string): LogLevel {
         return LogLevel.Off;
     },

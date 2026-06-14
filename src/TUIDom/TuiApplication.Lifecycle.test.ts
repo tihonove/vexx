@@ -159,3 +159,58 @@ describe("TuiApplication — render guard", () => {
         expect(renderSpy).not.toHaveBeenCalled();
     });
 });
+
+describe("TuiApplication — input handlers with no root", () => {
+    // After run() registers the backend callbacks, clearing the root must make
+    // handleInput/handleMouse/handleResize no-op (the `if (this.root)` false side).
+    function runningApp(): { backend: MockTerminalBackend; app: TuiApplication } {
+        const backend = new MockTerminalBackend(new Size(20, 3));
+        const app = new TuiApplication(backend);
+        const body = new BodyElement();
+        body.setContent(new InputElement());
+        app.root = body;
+        app.run();
+        app.root = null;
+        return { backend, app };
+    }
+
+    it("ignores key input when root is null", () => {
+        const { backend } = runningApp();
+        expect(() => backend.sendKey("a")).not.toThrow();
+    });
+
+    it("ignores mouse input when root is null", () => {
+        const { backend } = runningApp();
+        expect(() => backend.simulateMouse(pressMouse(1, 1))).not.toThrow();
+    });
+
+    it("ignores resize when root is null but still swaps the screen", () => {
+        const { backend, app } = runningApp();
+        backend.resize(new Size(30, 5));
+        // Screen is recreated even though there is no root to re-lay-out.
+        expect(app.screen.width).toBe(30);
+        expect(app.screen.height).toBe(5);
+    });
+});
+
+describe("TuiApplication — Tab cycling direction", () => {
+    it("cycles focus backward on Shift+Tab when not prevented", () => {
+        const backend = new MockTerminalBackend(new Size(40, 3));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const container = new TwoInputContainer();
+        body.setContent(container);
+        app.root = body;
+        app.run();
+
+        container.second.focus();
+        expect(container.second.isFocused).toBe(true);
+
+        backend.sendKey("Shift+Tab");
+
+        // Shift+Tab → backward direction wraps to the first input.
+        expect(container.first.isFocused).toBe(true);
+        expect(container.second.isFocused).toBe(false);
+    });
+});

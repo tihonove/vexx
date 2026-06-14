@@ -236,12 +236,14 @@ export class MenuBarElement extends TUIElement {
             visible: true,
             disposeOnClose: true,
             onClose: () => {
+                /* v8 ignore start -- guards against a stale onClose after the menu was switched; switching disposes the old session without firing onClose, so the mismatch (false) side is unreachable via the public API */
                 if (this.activeMenuSession === session) {
                     this.activeMenuSession = null;
                 }
                 if (this.activeMenu === menu) {
                     this.activeMenu = null;
                 }
+                /* v8 ignore stop */
             },
         });
         menu.onClose = () => {

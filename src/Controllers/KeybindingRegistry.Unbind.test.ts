@@ -49,4 +49,33 @@ describe("KeybindingRegistry.removeBindings", () => {
         // The remaining ctrl+s belongs to "other".
         expect(resolve(registry, KEY("s", { ctrlKey: true }))).toBe("other");
     });
+
+    it("keeps a binding whose chord length differs from the unbind chord", () => {
+        const registry = new KeybindingRegistry();
+        // A two-part chord for the same command we try to unbind with a one-part chord.
+        registry.register(parseChord("ctrl+k s"), "save");
+
+        // Unbind targets a single combination → lengths differ → chord is NOT removed.
+        registry.removeBindings("save", parseChord("ctrl+s"));
+
+        // The two-part chord still resolves.
+        expect(registry.resolveKey(KEY("k", { ctrlKey: true })).kind).toBe("chord");
+        expect(resolve(registry, KEY("s"))).toBe("save");
+    });
+});
+
+describe("KeybindingRegistry.register — disposable", () => {
+    it("disposing the same binding twice is a no-op the second time", () => {
+        const registry = new KeybindingRegistry();
+        const binding = registry.register(parseKeybinding("ctrl+s"), "save");
+
+        binding.dispose();
+        expect(resolve(registry, KEY("s", { ctrlKey: true }))).toBeUndefined();
+
+        // Second dispose: the entry is already gone (indexOf === -1), so nothing happens.
+        expect(() => {
+            binding.dispose();
+        }).not.toThrow();
+        expect(resolve(registry, KEY("s", { ctrlKey: true }))).toBeUndefined();
+    });
 });

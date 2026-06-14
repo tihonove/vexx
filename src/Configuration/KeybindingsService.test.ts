@@ -67,6 +67,16 @@ describe("loadUserKeybindings", () => {
         expect(rules).toEqual([]);
     });
 
+    it("returns [] without logging an error for an empty file", async () => {
+        // An empty document parses to `undefined` (not an array): the loader must
+        // treat it as "no rules" silently, without emitting the array-shape error.
+        const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), isEnabled: () => true };
+        const file = write("");
+        const rules = await loadUserKeybindings(file, logger);
+        expect(rules).toEqual([]);
+        expect(logger.error).not.toHaveBeenCalledWith(expect.stringContaining("must be a JSON array"));
+    });
+
     it("is best-effort on broken JSONC (does not throw)", async () => {
         const file = write(`[ { "key": "ctrl+s", "command": "save" } `); // missing closing bracket
         const rules = await loadUserKeybindings(file);

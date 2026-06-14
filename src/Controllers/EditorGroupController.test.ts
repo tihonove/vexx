@@ -22,9 +22,10 @@ function createEditorGroupController(
         registry?: TokenizationRegistry;
         languageService?: ILanguageService;
         configurationService?: IConfigurationService;
+        themeService?: ThemeService;
     } = {},
 ): EditorGroupController {
-    const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+    const themeService = overrides.themeService ?? new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
     return new EditorGroupController(
         themeService,
         overrides.registry ?? new TokenizationRegistry(),
@@ -334,6 +335,106 @@ describe("EditorGroupController", () => {
             // The file opened successfully through the language-resolved path.
             expect(ctrl.editorCount).toBe(1);
             expect(ctrl.getActiveEditor()?.getText()).toBe("const x = 1;");
+        });
+    });
+
+    describe("activateTab without focus", () => {
+        it("switches tabs without moving focus when focus: false", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a"));
+            ctrl.openFile(writeFile("b.ts", "b"));
+
+            ctrl.activateTab(0, { focus: false });
+
+            expect(ctrl.activeIndex).toBe(0);
+            expect(ctrl.getActiveEditor()?.fileName).toBe("a.ts");
+        });
+    });
+
+    describe("closeTab edge cases", () => {
+        it("ignores an out-of-range index", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a"));
+
+            ctrl.closeTab(99);
+
+            expect(ctrl.editorCount).toBe(1);
+            expect(ctrl.activeIndex).toBe(0);
+        });
+
+        it("closing a tab after the active one keeps the active index", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a"));
+            ctrl.openFile(writeFile("b.ts", "b"));
+            ctrl.openFile(writeFile("c.ts", "c"));
+            ctrl.activateTab(0);
+
+            // index 2 is after the active index 0 → active index is untouched.
+            ctrl.closeTab(2);
+
+            expect(ctrl.editorCount).toBe(2);
+            expect(ctrl.activeIndex).toBe(0);
+            expect(ctrl.getActiveEditor()?.fileName).toBe("a.ts");
+        });
+    });
+
+    describe("onActiveEditorChanged subscription", () => {
+        it("fires the listener and stops after dispose", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            const seen: (string | null)[] = [];
+            const subscription = ctrl.onActiveEditorChanged((editor) => {
+                seen.push(editor?.fileName ?? null);
+            });
+
+            ctrl.openFile(writeFile("a.ts", "a"));
+            expect(seen).toEqual(["a.ts"]);
+
+            subscription.dispose();
+            // Disposing again is a no-op (listener already removed).
+            subscription.dispose();
+
+            ctrl.openFile(writeFile("b.ts", "b"));
+            expect(seen).toEqual(["a.ts"]);
+        });
+    });
+
+    describe("applyConfigurationToEditor partial options", () => {
+        it("applies only tabSize when insertSpaces is not configured", () => {
+            const ctrl = createEditorGroupController({
+                configurationService: stubConfigurationService({ "editor.tabSize": 8 }),
+            });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "x"));
+
+            expect(ctrl.getActiveEditor()?.viewState.tabSize).toBe(8);
+        });
+
+        it("applies only insertSpaces when tabSize is not configured", () => {
+            const ctrl = createEditorGroupController({
+                configurationService: stubConfigurationService({ "editor.insertSpaces": false }),
+            });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "x"));
+
+            expect(ctrl.getActiveEditor()?.viewState.insertSpaces).toBe(false);
+        });
+    });
+
+    describe("applyTheme with missing colors", () => {
+        it("does not throw when the theme omits editor foreground/background", () => {
+            const emptyTheme = new WorkbenchTheme("empty", "dark", {}, { rules: [] });
+            const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+            const ctrl = createEditorGroupController({ themeService });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a"));
+
+            // Re-applies the theme with no editor.foreground / editor.background defined.
+            expect(() => themeService.setTheme(emptyTheme)).not.toThrow();
         });
     });
 });

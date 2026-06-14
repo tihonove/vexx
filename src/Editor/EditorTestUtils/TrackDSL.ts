@@ -396,7 +396,9 @@ function parseFoldingTracks(foldingTrackByLine: Map<number, string>): IFoldingRe
             stack.push({ line: lineIdx, collapsed: ch === FOLD_COLLAPSED_START });
         } else if (ch === FOLD_END) {
             if (stack.length > 0) {
+                /* v8 ignore start -- defensive: guarded by `stack.length > 0`, so pop() always returns a value and reject() is unreachable */
                 const start = stack.pop() ?? reject();
+                /* v8 ignore stop */
                 regions.push(createFoldingRegion(start.line, lineIdx, start.collapsed));
             }
         }

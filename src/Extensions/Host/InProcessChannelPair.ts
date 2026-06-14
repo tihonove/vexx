@@ -30,7 +30,9 @@ class InProcessChannel implements IMessageChannel {
     public postMessage(message: unknown): void {
         if (this.disposed) return;
         const peer = this.peer;
+        /* v8 ignore start -- defensive: createInProcessChannelPair always connects both ends and InProcessChannel is not exported, so peer is never null here */
         if (peer === null) return;
+        /* v8 ignore stop */
         // Cериализация-десериализация имитирует структурное копирование, как
         // в реальном IPC: ловит расширения, мутирующие отправленные объекты.
         const serialized = JSON.stringify(message);

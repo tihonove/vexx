@@ -133,6 +133,94 @@ describe("FileTreeController", () => {
         controller.dispose();
         // No error thrown — test passes
     });
+
+    it("exposes the root path via getRootPath/hasRootPath", () => {
+        expect(controller.hasRootPath()).toBe(true);
+        expect(controller.getRootPath()).toBe(tmpDir);
+    });
+
+    it("expanding then collapsing a directory still renders the tree (watch/unwatch)", async () => {
+        // ArrowRight expands "src" (onExpandedChanged → watchDirectory).
+        app.sendKey("ArrowRight");
+        await new Promise((r) => setTimeout(r, 50));
+        app.render();
+        expect(app.backend.screenToString()).toContain("main.ts");
+
+        // ArrowLeft collapses it (onExpandedChanged → unwatchDirectory, line 90).
+        app.sendKey("ArrowLeft");
+        await new Promise((r) => setTimeout(r, 50));
+        app.render();
+
+        const output = app.backend.screenToString();
+        // Collapsed: child is hidden again, root entries remain.
+        expect(output).not.toContain("main.ts");
+        expect(output).toContain("src");
+        expect(output).toContain("README.md");
+    });
+});
+
+describe("FileTreeController — setRootPath after mount", () => {
+    let dirA: string;
+    let dirB: string;
+
+    function makeDir(prefix: string, fileName: string): string {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
+        fs.writeFileSync(path.join(dir, fileName), "");
+        return dir;
+    }
+
+    beforeEach(() => {
+        dirA = makeDir("vexx-ctrl-a-", "alpha.ts");
+        dirB = makeDir("vexx-ctrl-b-", "beta.ts");
+    });
+
+    afterEach(() => {
+        cleanupDir(dirA);
+        cleanupDir(dirB);
+    });
+
+    it("wires events for a root assigned after mount() and reflects the new root", async () => {
+        const controller = new FileTreeController();
+        // mount() first, while there is no tree yet (tree-less mount path).
+        controller.mount();
+        // Assigning the root after mount must wire tree events (line 48 / branch 47).
+        controller.setRootPath(dirB);
+
+        const app = TestApp.createWithContent(controller.view, new Size(30, 10));
+        controller.focus();
+        await controller.activate();
+        app.render();
+
+        const activated: string[] = [];
+        controller.onFileActivate = (filePath) => {
+            activated.push(filePath);
+        };
+
+        // The single file in dirB must be selectable and openable — proving events wired.
+        expect(app.backend.screenToString()).toContain("beta.ts");
+        app.sendKey("Enter");
+        app.render();
+        expect(activated).toEqual([path.join(dirB, "beta.ts")]);
+
+        controller.dispose();
+    });
+
+    it("refresh() is a no-op before a root is assigned and works after", async () => {
+        const controller = new FileTreeController();
+        controller.mount();
+        // No tree yet → refresh() takes the guarded no-op path (branch 74).
+        await expect(controller.refresh()).resolves.toBeUndefined();
+
+        controller.setRootPath(dirA);
+        const app = TestApp.createWithContent(controller.view, new Size(30, 10));
+        await controller.activate();
+        // refresh() with a tree present re-reads the directory.
+        await controller.refresh();
+        app.render();
+        expect(app.backend.screenToString()).toContain("alpha.ts");
+
+        controller.dispose();
+    });
 });
 
 describe("FileTreeController with ThemeService", () => {
@@ -183,6 +271,28 @@ describe("FileTreeController with ThemeService", () => {
         app.render();
 
         expect(app.backend.getBgAt(new Point(0, 0))).toBe(newBg);
+
+        controller.dispose();
+    });
+
+    it("omits sidebar fg/bg style when the theme defines neither (branches 123/124)", async () => {
+        // A theme with no colors at all: sideBar.foreground and sideBar.background are
+        // both undefined, so applyTheme takes the false side of both ternaries.
+        const bareThemeFile = { ...darkPlusTheme, colors: {} };
+        const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(bareThemeFile));
+        const controller = new FileTreeController(themeService);
+        controller.setRootPath(tmpDir);
+        controller.mount();
+
+        const app = TestApp.createWithContent(controller.view, new Size(30, 10));
+        await controller.activate();
+        app.render();
+
+        // No sidebar colors → view.style carries neither fg nor bg.
+        expect(controller.view.style.fg).toBeUndefined();
+        expect(controller.view.style.bg).toBeUndefined();
+        // Still renders its contents.
+        expect(app.backend.screenToString()).toContain("index.ts");
 
         controller.dispose();
     });

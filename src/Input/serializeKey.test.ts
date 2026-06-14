@@ -140,6 +140,16 @@ describe("serializeKey", () => {
         expect(serializeKey("Shift+Tab")).toBe("\x1b[Z");
     });
 
+    it("serializes Meta+ArrowUp (Meta modifier prefix)", () => {
+        // mod = 1 + 8 (meta) = 9
+        expect(serializeKey("Meta+ArrowUp")).toBe("\x1b[1;9A");
+    });
+
+    it("serializes Ctrl+Shift+Alt+Meta+ArrowUp (all modifier prefixes)", () => {
+        // mod = 1 + 1(shift) + 2(alt) + 4(ctrl) + 8(meta) = 16
+        expect(serializeKey("Ctrl+Shift+Alt+Meta+ArrowUp")).toBe("\x1b[1;16A");
+    });
+
     it("parses a lone Alt prefix on a CSI key (line 85)", () => {
         // mod = 1 + 2 (Alt) = 3; Home letter = H.
         expect(serializeKey("Alt+Home")).toBe("\x1b[1;3H");

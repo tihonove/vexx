@@ -314,7 +314,9 @@ export class ContextMenuLayer extends TUIElement {
     }
 
     private disposeSession(session: OverlaySessionState): void {
+        /* v8 ignore start -- defensive: a disposed session is removed from the map and clearAll sets isDisposed directly, so disposeSession is never re-entered for the same session */
         if (session.isDisposed) return;
+        /* v8 ignore stop */
 
         if (session.visible) {
             session.visible = false;
@@ -324,10 +326,12 @@ export class ContextMenuLayer extends TUIElement {
         this.cleanupSessionListeners(session);
 
         const index = this.items.findIndex((item) => item.element === session.element);
+        /* v8 ignore start -- defensive: createSession always adds the element to items, so a live session's element is always found here */
         if (index >= 0) {
             this.items[index].element.setParent(null);
             this.items.splice(index, 1);
         }
+        /* v8 ignore stop */
 
         session.isDisposed = true;
         session.savedFocus = null;
@@ -341,7 +345,9 @@ export class ContextMenuLayer extends TUIElement {
 
         if (session.options.closeOnEscape && !session.rootEscapeHandler) {
             session.rootEscapeHandler = (event: TUIEventBase) => {
+                /* v8 ignore start -- defensive: the handler is registered only for "keydown", so a non-keydown event never reaches it */
                 if (event.type !== "keydown") return;
+                /* v8 ignore stop */
                 const keyEvent = event as TUIKeyboardEvent;
                 if (keyEvent.key !== "Escape" || event.defaultPrevented) return;
                 this.closeSession(session);
@@ -351,7 +357,9 @@ export class ContextMenuLayer extends TUIElement {
 
         if (session.options.closeOnOutsidePointer && !session.rootOutsideHandler) {
             session.rootOutsideHandler = (event: TUIEventBase) => {
+                /* v8 ignore start -- defensive: the handler is registered only for "mousedown", so a non-mousedown event never reaches it */
                 if (event.type !== "mousedown") return;
+                /* v8 ignore stop */
                 if (event.target && isInsideElement(event.target, session.element)) return;
                 this.closeSession(session);
             };

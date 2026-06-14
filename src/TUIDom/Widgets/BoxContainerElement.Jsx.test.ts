@@ -80,4 +80,11 @@ describe("BoxContainer JSX adapter", () => {
         BoxContainer.update(el, { title: "B" });
         expect(el.getChildren()).toEqual([]);
     });
+
+    it("creates a childless box when children is present but normalizes to nothing", () => {
+        // `children: false` is defined (so the children branch runs) yet reconciles
+        // to an empty array → `children[0] ?? null` falls back to null.
+        const el = BoxContainer({ title: "X", children: false });
+        expect(el.getChildren()).toEqual([]);
+    });
 });

@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
+import { DEFAULT_COLOR, packRgb } from "../Rendering/ColorUtils.ts";
+import { Grid } from "../Rendering/Grid.ts";
 
 import { MockTerminalBackend } from "./MockTerminalBackend.ts";
 
@@ -151,6 +153,66 @@ describe("MockTerminalBackend", () => {
         expect(() => {
             backend.setCellAt(new Point(0, 3), "X");
         }).not.toThrow();
+    });
+
+    it("getTextAt returns spaces for out-of-bounds rows and columns", () => {
+        const backend = new MockTerminalBackend(new Size(5, 3));
+        // y out of range
+        expect(backend.getTextAt(new Point(0, 5), 1)).toBe(" ");
+        // x out of range (reading past the right edge)
+        expect(backend.getTextAt(new Point(4, 0), 3)).toBe("   ");
+        // negative x
+        expect(backend.getTextAt(new Point(-1, 0), 1)).toBe(" ");
+    });
+
+    // ─── OSC responses ───
+
+    it("simulateOscResponse invokes registered onOscResponse callbacks", () => {
+        const backend = new MockTerminalBackend();
+        const handler = vi.fn<(code: number, data: string) => void>();
+        backend.onOscResponse(handler);
+
+        backend.simulateOscResponse(11, "rgb:1212/3434/5656");
+
+        expect(handler).toHaveBeenCalledOnce();
+        expect(handler).toHaveBeenCalledWith(11, "rgb:1212/3434/5656");
+    });
+
+    it("simulateOscResponse with no listeners does not throw", () => {
+        const backend = new MockTerminalBackend();
+        expect(() => {
+            backend.simulateOscResponse(10, "data");
+        }).not.toThrow();
+    });
+
+    // ─── Foreground / background colours ───
+
+    it("renderFrame records fg/bg colours readable via getFgAt/getBgAt", () => {
+        const backend = new MockTerminalBackend(new Size(4, 2));
+        const red = packRgb(255, 0, 0);
+        const blue = packRgb(0, 0, 255);
+        const grid = new Grid(new Size(4, 2));
+        grid.setCell(new Point(1, 0), "A", red, blue);
+        backend.renderFrame(grid, new Point(0, 0));
+
+        expect(backend.getFgAt(new Point(1, 0))).toBe(red);
+        expect(backend.getBgAt(new Point(1, 0))).toBe(blue);
+    });
+
+    it("getBgAt returns DEFAULT_COLOR for out-of-bounds positions", () => {
+        const backend = new MockTerminalBackend(new Size(4, 2));
+        expect(backend.getBgAt(new Point(-1, 0))).toBe(DEFAULT_COLOR);
+        expect(backend.getBgAt(new Point(0, -1))).toBe(DEFAULT_COLOR);
+        expect(backend.getBgAt(new Point(4, 0))).toBe(DEFAULT_COLOR);
+        expect(backend.getBgAt(new Point(0, 2))).toBe(DEFAULT_COLOR);
+    });
+
+    it("getFgAt returns DEFAULT_COLOR for out-of-bounds positions", () => {
+        const backend = new MockTerminalBackend(new Size(4, 2));
+        expect(backend.getFgAt(new Point(-1, 0))).toBe(DEFAULT_COLOR);
+        expect(backend.getFgAt(new Point(0, -1))).toBe(DEFAULT_COLOR);
+        expect(backend.getFgAt(new Point(4, 0))).toBe(DEFAULT_COLOR);
+        expect(backend.getFgAt(new Point(0, 2))).toBe(DEFAULT_COLOR);
     });
 
     // ─── Resize ───

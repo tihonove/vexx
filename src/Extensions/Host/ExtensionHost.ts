@@ -116,7 +116,9 @@ export class ExtensionHost extends Disposable {
         if (!this.extensions.has(id)) return;
         this.extensions.delete(id);
         const rpc = this.rpc;
+        /* v8 ignore start -- defensive: an extension can only be in `extensions` after ensureSubprocess set `rpc`; dispose() clears `extensions` before nulling `rpc`, so rpc is never null while the id is still registered */
         if (rpc === null) return;
+        /* v8 ignore stop */
         try {
             await rpc.request("host.deactivateExtension", { id });
             this.logger?.info(`deactivated extension "${id}"`);
@@ -223,7 +225,9 @@ export class ExtensionHost extends Disposable {
             return;
         }
         const exit = waitForExit(child);
+        /* v8 ignore start -- defensive: ensureSubprocess sets `subprocess` and `rpc` together and shutdownSubprocess captures them together, so a non-null child always implies a non-null rpc here */
         if (rpc !== null) {
+            /* v8 ignore stop */
             try {
                 await Promise.race([rpc.request("host.shutdown"), sleep(this.options.shutdownTimeoutMs)]);
             } catch {

@@ -42,6 +42,27 @@ describe("parseSelector", () => {
     });
 });
 
+describe("matchesSingleSelector — tag matching", () => {
+    it("does not match a child whose constructor name differs from the tag", () => {
+        // The selector "Container" requires constructor name Container; a plain
+        // TUIElement leaf must be skipped (tag-mismatch → return false).
+        const root = new Container();
+        const wrongTag = leaf(); // constructor name "TUIElement"
+        root.addChild(wrongTag);
+
+        expect(querySelector(root, "Container")).toBeNull();
+    });
+
+    it("matches purely by role when the selector has no tag", () => {
+        // A role-only selector leaves `tag` undefined, so the tag check short-circuits.
+        const root = new Container();
+        const target = leaf("button");
+        root.addChild(target);
+
+        expect(querySelector(root, "@button")).toBe(target);
+    });
+});
+
 describe("querySelector — multi-part same-depth recursion (line 69)", () => {
     it("descends through a non-matching intermediate container to find the deep descendant", () => {
         // root > wrapper(no role) > panel(@panel) > inner(no role) > target(@button)

@@ -78,7 +78,9 @@ function isZeroWidth(cp: number): boolean {
     if (cp === 0x2060 || cp === 0xfeff) return true;
 
     // CGJ (Combining Grapheme Joiner)
+    /* v8 ignore start -- unreachable: U+034F already matches the Combining Diacritical Marks range (0x0300..0x036f) above */
     if (cp === 0x034f) return true;
+    /* v8 ignore stop */
 
     return false;
 }
@@ -171,7 +173,9 @@ export function getGraphemeDisplayWidth(grapheme: string): number {
 
     let width = 0;
     for (const ch of grapheme) {
+        /* v8 ignore start -- defensive: `ch` from a string for-of is always a non-empty code point, so codePointAt(0) is never undefined */
         const cp = ch.codePointAt(0) ?? 0;
+        /* v8 ignore stop */
         const w = getCharDisplayWidth(cp);
         if (w > width) width = w;
     }
