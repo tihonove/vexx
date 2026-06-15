@@ -53,6 +53,23 @@ describe("KeybindingRegistry — getKeybindingForCommand", () => {
         expect(chord && formatKeybinding(chord)).toBe("Ctrl+S");
     });
 
+    it("shows the tier-specific chord fallback when the tier matches (Show All Commands on legacy)", () => {
+        // Mirrors showCommandsAction: an unconditional Ctrl+Shift+P plus a
+        // chord fallback that only applies on legacy terminals.
+        const registry = new KeybindingRegistry();
+        const ctx = new ContextKeyService();
+        registry.register(parseKeybinding("ctrl+shift+p"), "workbench.action.showCommands");
+        registry.register(parseChord("ctrl+k ctrl+p"), "workbench.action.showCommands", "tier == 'legacy'");
+
+        ctx.set("tier", "legacy");
+        const legacy = registry.getKeybindingForCommand("workbench.action.showCommands", ctx);
+        expect(legacy && formatKeybinding(legacy)).toBe("Ctrl+K Ctrl+P");
+
+        ctx.set("tier", "kitty");
+        const modern = registry.getKeybindingForCommand("workbench.action.showCommands", ctx);
+        expect(modern && formatKeybinding(modern)).toBe("Ctrl+Shift+P");
+    });
+
     it("without a context service, returns the first registered binding", () => {
         const registry = new KeybindingRegistry();
         registry.register(parseKeybinding("ctrl+s"), "go", "textInputFocus");
@@ -62,13 +79,26 @@ describe("KeybindingRegistry — getKeybindingForCommand", () => {
         expect(chord && formatKeybinding(chord)).toBe("Ctrl+S");
     });
 
-    it("prefers an unconditional binding over a later when-conditioned one", () => {
+    it("prefers a matching when-conditioned binding over an earlier unconditional one", () => {
+        // A context-specific binding (e.g. a tier-specific fallback) is the one
+        // actually usable in that context, so it must win over the default for display.
         const registry = new KeybindingRegistry();
         const ctx = new ContextKeyService();
         registry.register(parseKeybinding("ctrl+s"), "go");
         registry.register(parseKeybinding("ctrl+l"), "go", "listFocus");
 
         ctx.set("listFocus", true);
+        const chord = registry.getKeybindingForCommand("go", ctx);
+        expect(chord && formatKeybinding(chord)).toBe("Ctrl+L");
+    });
+
+    it("falls back to the unconditional binding when the when-conditioned one does not match", () => {
+        const registry = new KeybindingRegistry();
+        const ctx = new ContextKeyService();
+        registry.register(parseKeybinding("ctrl+s"), "go");
+        registry.register(parseKeybinding("ctrl+l"), "go", "listFocus");
+
+        // listFocus is not set, so the conditional binding does not apply.
         const chord = registry.getKeybindingForCommand("go", ctx);
         expect(chord && formatKeybinding(chord)).toBe("Ctrl+S");
     });

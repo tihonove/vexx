@@ -297,19 +297,26 @@ export class KeybindingRegistry implements IDisposable {
     }
 
     /**
-     * Returns the chord to display for a command: the first registered binding
-     * whose `when` passes in the current context, else the first registered
-     * binding regardless of `when`.
+     * Returns the chord to display for a command, in priority order:
+     *  1. the first registered binding whose `when` clause passes in the current
+     *     context — a context-specific binding (e.g. a tier-specific fallback)
+     *     is the one actually usable, so it wins over an unconditional default;
+     *  2. else the first registered unconditional binding;
+     *  3. else the first registered binding regardless of `when`.
      */
     public getKeybindingForCommand(commandId: string, contextKeys?: ContextKeyService): KeybindingChord | undefined {
-        let fallback: KeybindingChord | undefined;
+        let unconditional: KeybindingChord | undefined;
+        let firstAny: KeybindingChord | undefined;
         for (const entry of this.entries) {
             if (entry.commandId !== commandId) continue;
-            fallback ??= entry.chord;
-            if (!entry.when) return entry.chord;
-            if (contextKeys?.evaluate(entry.when)) return entry.chord;
+            firstAny ??= entry.chord;
+            if (entry.when) {
+                if (contextKeys?.evaluate(entry.when)) return entry.chord;
+            } else {
+                unconditional ??= entry.chord;
+            }
         }
-        return fallback;
+        return unconditional ?? firstAny;
     }
 
     public dispose(): void {
