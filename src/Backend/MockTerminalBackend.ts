@@ -111,7 +111,24 @@ export class MockTerminalBackend implements ITerminalBackend {
      */
     public sendKey(name: string): void {
         const raw = serializeKey(name);
-        const events = this.inputParser.parse(raw);
+        this.emitKeys(this.inputParser.parse(raw));
+        // serializeKey always produces a complete sequence, so deliver immediately —
+        // a lone ESC ("Escape") would otherwise sit buffered awaiting a continuation.
+        this.flushInput();
+    }
+
+    /**
+     * Force-deliver any partial sequence still buffered in the parser (test analogue of
+     * NodeTerminalBackend's flush timeout). Call after sending split raw chunks if the
+     * final piece left a dangling tail.
+     */
+    public flushInput(): void {
+        if (this.inputParser.hasPending()) {
+            this.emitKeys(this.inputParser.flush().keys);
+        }
+    }
+
+    private emitKeys(events: KeyPressEvent[]): void {
         for (const event of events) {
             for (const cb of this.inputCallbacks) {
                 cb(event);
@@ -154,12 +171,9 @@ export class MockTerminalBackend implements ITerminalBackend {
      * Example: sendRaw('\x1b[A') for arrow up
      */
     public sendRaw(data: string): void {
-        const events = this.inputParser.parse(data);
-        for (const event of events) {
-            for (const cb of this.inputCallbacks) {
-                cb(event);
-            }
-        }
+        // No implicit flush: callers may deliberately send a partial sequence to
+        // simulate stdin packetization (use flushInput() to drain a leftover tail).
+        this.emitKeys(this.inputParser.parse(data));
     }
 
     // ─── Screen assertions ───
