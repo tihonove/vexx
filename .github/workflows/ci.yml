@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -19,6 +22,15 @@ jobs:
       - run: npm install
 
       - run: npm run test:coverage
+
+      # Постим (или обновляем) комментарий с таблицей покрытия и непокрытыми
+      # строками затронутых файлов. always() — чтобы отчёт появился и когда
+      # покрытие упало ниже порога и предыдущий шаг сделал job красным
+      # (reportOnFailure в vitest.config.ts гарантирует, что отчёт всё равно
+      # сгенерирован).
+      - name: Report coverage
+        if: always() && github.event_name == 'pull_request'
+        uses: davelosert/vitest-coverage-report-action@v2
 
   e2e:
     strategy:
