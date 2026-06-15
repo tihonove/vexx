@@ -1,8 +1,38 @@
 import { convertTokenToKeyPressEvent } from "./convertToken.ts";
 import { createKeyPressEvent, type KeyPressEvent } from "./KeyEvent.ts";
-import { parseInput } from "./parseInput.ts";
 import type { DeviceReportToken, MouseToken, OscToken } from "./RawTerminalToken.ts";
-import { tokenize } from "./tokenize.ts";
+import { parseCSI, parseOSC, tokenize } from "./tokenize.ts";
+
+/**
+ * Index where an *incomplete* trailing escape sequence begins, or -1 if `data`
+ * ends on a clean token boundary.
+ *
+ * Over SSH/tmux (and any slow link) a single keypress can be split across two
+ * stdin reads — e.g. Ctrl+Shift+P (`\x1b[112;6u`) arriving as `\x1b[112;6` then
+ * `u`. Without this, the first chunk is mis-tokenized into a lone Escape plus
+ * literal characters and the keybinding silently fails; the user has to press
+ * again. We detect the dangling tail so KeyInputParser can hold it and prepend
+ * it to the next chunk.
+ *
+ * Only a sequence that starts at the *last* ESC and runs to the end can be
+ * incomplete — anything before it is already followed by more bytes.
+ */
+function incompleteTailStart(data: string): number {
+    const esc = data.lastIndexOf("\x1b");
+    if (esc === -1) return -1;
+
+    const next = data.charCodeAt(esc + 1);
+    // Lone trailing ESC: ambiguous (Escape key vs. start of a split sequence) — buffer it.
+    if (Number.isNaN(next)) return esc;
+
+    // CSI / OSC reuse the real parsers, so completeness exactly matches tokenize().
+    if (next === 0x5b) return parseCSI(data, esc) === null ? esc : -1; // ESC [
+    if (next === 0x5d) return parseOSC(data, esc) === null ? esc : -1; // ESC ]
+    if (next === 0x4f) return esc + 2 >= data.length ? esc : -1; // ESC O (SS3) needs its final letter
+
+    // ESC + printable / control / special is complete once the second byte is present (it is).
+    return -1;
+}
 
 /**
  * Set of key values representing modifier keys.
@@ -45,26 +75,65 @@ const modifierKeyValues = new Set([
  *       const events = parser.parse(chunk);
  *   });
  */
+interface InputStreams {
+    keys: KeyPressEvent[];
+    mouse: MouseToken[];
+    osc: OscToken[];
+    deviceReports: DeviceReportToken[];
+}
+
 export class KeyInputParser {
     private readonly pressedKeys = new Set<string>();
+
+    /** Tail of the previous chunk that was cut mid-escape-sequence; "" when none. */
+    private pending = "";
 
     /**
      * Parse a chunk of raw terminal input into browser-like keyboard events.
      */
     public parse(data: string): KeyPressEvent[] {
-        const rawEvents = parseInput(data);
-        return this.processKeyEvents(rawEvents);
+        return this.ingest(data).keys;
     }
 
     /**
      * Parse raw terminal input, returning both keyboard events and mouse tokens.
      */
-    public parseWithMouse(data: string): {
-        keys: KeyPressEvent[];
-        mouse: MouseToken[];
-        osc: OscToken[];
-        deviceReports: DeviceReportToken[];
-    } {
+    public parseWithMouse(data: string): InputStreams {
+        return this.ingest(data);
+    }
+
+    /** True when a partial escape sequence is buffered, awaiting the rest of its bytes. */
+    public hasPending(): boolean {
+        return this.pending !== "";
+    }
+
+    /**
+     * Force-process any buffered partial sequence as-is (a lone ESC becomes the
+     * Escape key). Callers use a short timeout so a real Escape keypress isn't
+     * held hostage waiting for a continuation that never comes.
+     */
+    public flush(): InputStreams {
+        const tail = this.pending;
+        this.pending = "";
+        return tail === "" ? { keys: [], mouse: [], osc: [], deviceReports: [] } : this.tokenizeToStreams(tail);
+    }
+
+    /**
+     * Prepend any buffered tail, then split off a fresh incomplete tail before
+     * tokenizing so a sequence cut across stdin reads is reassembled.
+     */
+    private ingest(data: string): InputStreams {
+        const combined = this.pending + data;
+        const cut = incompleteTailStart(combined);
+        if (cut === -1) {
+            this.pending = "";
+            return this.tokenizeToStreams(combined);
+        }
+        this.pending = combined.slice(cut);
+        return this.tokenizeToStreams(combined.slice(0, cut));
+    }
+
+    private tokenizeToStreams(data: string): InputStreams {
         const tokens = tokenize(data);
         const mouseTokens: MouseToken[] = [];
         const keyEvents: KeyPressEvent[] = [];

@@ -32,6 +32,14 @@ const DA1_QUERY = "\x1b[c";
 const KEYBOARD_PROBE_TIMEOUT_MS = 200;
 
 /**
+ * How long to hold a partial escape sequence that arrived at the end of a stdin read,
+ * waiting for the rest to follow (it does, on a split keypress over SSH/tmux). If nothing
+ * follows, the tail is flushed as-is — a lone ESC then resolves to the Escape key. Mirrors
+ * the classic terminal "escape timeout"; 50ms keeps Escape responsive while absorbing splits.
+ */
+const PARTIAL_INPUT_FLUSH_MS = 50;
+
+/**
  * Wrap an escape sequence for TMUX DCS passthrough.
  *
  * TMUX не понимает произвольные escape-последовательности и глотает их.
@@ -63,6 +71,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private stdin: NodeJS.ReadStream;
     private stdout: NodeJS.WriteStream;
     private onDataHandler: ((chunk: string) => void) | null = null;
+    private partialInputTimer: ReturnType<typeof setTimeout> | null = null;
     private onResizeHandler: (() => void) | null = null;
     private resizeThrottleTimer: ReturnType<typeof setTimeout> | null = null;
     private resizeThrottleMs: number;
@@ -136,6 +145,38 @@ export class NodeTerminalBackend implements ITerminalBackend {
         timer = setTimeout(finish, KEYBOARD_PROBE_TIMEOUT_MS);
     }
 
+    /** Fan a parsed input batch out to the registered callbacks. */
+    private dispatchInput(result: ReturnType<KeyInputParser["parseWithMouse"]>): void {
+        for (const event of result.keys) {
+            for (const cb of this.inputCallbacks) cb(event);
+        }
+        for (const mouseToken of result.mouse) {
+            for (const cb of this.mouseCallbacks) cb(mouseToken);
+        }
+        for (const oscToken of result.osc) {
+            for (const cb of this.oscResponseCallbacks) cb(oscToken.code, oscToken.data);
+        }
+        for (const report of result.deviceReports) {
+            for (const cb of this.deviceReportCallbacks) cb(report.report, report.params);
+        }
+    }
+
+    /** If a partial sequence is buffered, flush it after a short grace period (the rest never came). */
+    private schedulePartialInputFlush(): void {
+        if (!this.inputParser.hasPending()) return;
+        this.partialInputTimer = setTimeout(() => {
+            this.partialInputTimer = null;
+            this.dispatchInput(this.inputParser.flush());
+        }, PARTIAL_INPUT_FLUSH_MS);
+    }
+
+    private clearPartialInputTimer(): void {
+        if (this.partialInputTimer !== null) {
+            clearTimeout(this.partialInputTimer);
+            this.partialInputTimer = null;
+        }
+    }
+
     /** Emit resize only if dimensions actually changed */
     private emitResize(): void {
         const size = this.getSize();
@@ -192,27 +233,11 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
         // Listen for input
         this.onDataHandler = (chunk: string) => {
-            const result = this.inputParser.parseWithMouse(chunk);
-            for (const event of result.keys) {
-                for (const cb of this.inputCallbacks) {
-                    cb(event);
-                }
-            }
-            for (const mouseToken of result.mouse) {
-                for (const cb of this.mouseCallbacks) {
-                    cb(mouseToken);
-                }
-            }
-            for (const oscToken of result.osc) {
-                for (const cb of this.oscResponseCallbacks) {
-                    cb(oscToken.code, oscToken.data);
-                }
-            }
-            for (const report of result.deviceReports) {
-                for (const cb of this.deviceReportCallbacks) {
-                    cb(report.report, report.params);
-                }
-            }
+            // A new chunk supersedes any buffered tail (it gets prepended inside the parser),
+            // so cancel a pending flush; reschedule below if a tail still remains afterward.
+            this.clearPartialInputTimer();
+            this.dispatchInput(this.inputParser.parseWithMouse(chunk));
+            this.schedulePartialInputFlush();
         };
         this.stdin.on("data", this.onDataHandler);
 
@@ -267,6 +292,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
             this.stdin.removeListener("data", this.onDataHandler);
             this.onDataHandler = null;
         }
+        this.clearPartialInputTimer();
 
         // Cancel pending throttle and remove resize listener
         if (this.resizeThrottleTimer !== null) {
