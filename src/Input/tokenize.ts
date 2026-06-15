@@ -446,8 +446,12 @@ interface CSITokenResult {
 /**
  * Parse a CSI sequence starting at data[start] = ESC, data[start+1] = '['.
  * Returns the parsed token and next index, or null if the sequence is not recognized.
+ *
+ * A `null` return also signals an *incomplete* sequence (e.g. the chunk was cut
+ * mid-sequence by stdin packetization) — KeyInputParser relies on this to buffer
+ * the tail until the rest arrives. See KeyInputParser.incompleteTailStart.
  */
-function parseCSI(data: string, start: number): CSITokenResult | null {
+export function parseCSI(data: string, start: number): CSITokenResult | null {
     let i = start + 2; // skip ESC [
 
     // Collect parameter bytes (0x30–0x3f: digits, semicolons, colons, <, =, >, ?)
@@ -674,7 +678,7 @@ interface OSCTokenResult {
  * OSC is terminated by BEL (\x07) or ST (\x1b\\).
  * Returns null if the sequence is not complete.
  */
-function parseOSC(data: string, start: number): OSCTokenResult | null {
+export function parseOSC(data: string, start: number): OSCTokenResult | null {
     let i = start + 2; // skip ESC ]
 
     // Collect OSC body until BEL or ST

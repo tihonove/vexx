@@ -325,4 +325,54 @@ describe("KeyInputParser — browser-like event model", () => {
             expect(result.keys[0]).toMatchObject({ type: "keyup", key: "a" });
         });
     });
+
+    // ─── Escape sequence split across stdin reads (SSH / tmux packetization) ───
+
+    describe("partial escape sequence buffering", () => {
+        it("reassembles a CSI-u keypress split mid-sequence (Ctrl+Shift+P)", () => {
+            const parser = new KeyInputParser();
+
+            // First read ends mid-sequence: nothing is emitted yet, the tail is held.
+            expect(parser.parse("\x1b[112;6")).toEqual([]);
+            expect(parser.hasPending()).toBe(true);
+
+            // Second read completes it → the full Ctrl+Shift+P, not a flood of literal chars.
+            const events = parser.parse("u");
+            expect(parser.hasPending()).toBe(false);
+            expect(events).toEqual([
+                ev("P", "\x1b[112;6u", { ctrlKey: true, shiftKey: true, code: "KeyP" }),
+                ev("P", "\x1b[112;6u", { type: "keypress", ctrlKey: true, shiftKey: true, code: "KeyP" }),
+            ]);
+        });
+
+        it("reassembles a sequence split right after the ESC introducer", () => {
+            const parser = new KeyInputParser();
+            expect(parser.parse("\x1b")).toEqual([]);
+            expect(parser.hasPending()).toBe(true);
+            const events = parser.parse("[B");
+            expect(events.map((e) => e.key)).toEqual(["ArrowDown", "ArrowDown"]);
+        });
+
+        it("emits complete bytes before a dangling tail, buffering only the tail", () => {
+            const parser = new KeyInputParser();
+            const events = parser.parse("a\x1b[112;6");
+            expect(events.map((e) => e.key)).toEqual(["a", "a"]); // keydown + keypress for 'a'
+            expect(parser.hasPending()).toBe(true);
+        });
+
+        it("flush() drains a lone buffered ESC as the Escape key", () => {
+            const parser = new KeyInputParser();
+            expect(parser.parse("\x1b")).toEqual([]);
+            const flushed = parser.flush();
+            expect(flushed.keys.map((e) => e.key)).toEqual(["Escape", "Escape"]);
+            expect(parser.hasPending()).toBe(false);
+        });
+
+        it("does not buffer a complete sequence", () => {
+            const parser = new KeyInputParser();
+            const events = parser.parse("\x1b[B");
+            expect(parser.hasPending()).toBe(false);
+            expect(events.map((e) => e.key)).toEqual(["ArrowDown", "ArrowDown"]);
+        });
+    });
 });

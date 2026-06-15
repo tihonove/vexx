@@ -382,6 +382,21 @@ describe("AppController — Quick Open", () => {
         expect(picker.placeholder).toBe("Show All Commands");
     });
 
+    it("reassembles a key sequence delivered split across two stdin reads", () => {
+        // Over SSH/tmux/slow links a multi-byte key sequence can arrive in two reads.
+        // The parser must buffer the partial first chunk and reassemble it, instead of
+        // mis-tokenizing it as a lone Escape + literal characters (which would lose the
+        // keypress and leak stray chars). Uses the showCommands sequence as a concrete example.
+        const { testApp, controller } = createTestAppController();
+        controller.focusEditor();
+
+        testApp.backend.sendRaw("\x1b[112;6"); // first read — incomplete CSI-u
+        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+
+        testApp.backend.sendRaw("u"); // rest of the same sequence → reassembled
+        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+    });
+
     it("Escape closes Quick Open picker", () => {
         const { testApp, controller } = createTestAppController();
         controller.focusEditor();
