@@ -17,7 +17,7 @@ export default defineConfig({
         functions: 100,
         lines: 100,
       },
-      reporter: ["text", "lcov", "json-summary", "text-summary"],
+      reporter: ["text", "lcov", "json", "json-summary", "text-summary"],
       include: ["src/**/*.ts"],
       exclude: [
         "src/**/*.test.ts",
