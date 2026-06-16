@@ -1,4 +1,5 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
+import { abbreviatePath, truncateEnd } from "../../Common/TextTruncation.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
@@ -308,52 +309,67 @@ export class QuickPickElement extends TUIElement {
             x += 2; // icon char + trailing space
         }
 
-        // ── Right-side text: badge, description, shortcut, hint ───────────────
+        // ── Layout budget ─────────────────────────────────────────────────────
+        // The label (filename) has priority: it is shown in full whenever it
+        // fits, and the description (file path) is shrunk to whatever space is
+        // left so nothing overflows the picker border. The other metadata
+        // fields (badge / shortcut / hint) are short and always shown whole.
+        const contentRight = w - 2; // exclusive, inside right border
+        const avail = Math.max(0, contentRight - x);
+
         interface RightPart {
             text: string;
             fg: number;
         }
-        const rightParts: RightPart[] = [];
+        const metaBefore: RightPart[] = [];
+        const metaAfter: RightPart[] = [];
 
         if (item.badge !== undefined) {
-            rightParts.push({ text: " ★ " + item.badge, fg: BADGE_FG });
+            metaBefore.push({ text: " ★ " + item.badge, fg: BADGE_FG });
         }
-        if (item.description !== undefined) {
-            rightParts.push({
-                text: "  " + item.description,
+        if (item.shortcut !== undefined) {
+            metaAfter.push({ text: "  " + item.shortcut, fg: isSelected ? this.activeSelectionFg : SHORTCUT_FG });
+        }
+        if (item.hint !== undefined) {
+            metaAfter.push({ text: "  " + item.hint, fg: isSelected ? this.activeSelectionFg : HINT_FG });
+        }
+
+        const metaWidth = [...metaBefore, ...metaAfter].reduce(
+            (sum, p) => sum + new DisplayLine(p.text).displayWidth,
+            0,
+        );
+
+        // Space shared between label and description, after fixed metadata.
+        const shared = Math.max(0, avail - metaWidth);
+        const labelNatural = new DisplayLine(item.label).displayWidth;
+
+        // ── Label (priority) ──────────────────────────────────────────────────
+        const labelFits = labelNatural <= shared;
+        const labelText = labelFits ? item.label : truncateEnd(item.label, shared);
+        const labelDraw = labelFits ? labelNatural : new DisplayLine(labelText).displayWidth;
+
+        // ── Description (fills remaining space, abbreviated if needed) ─────────
+        const DESC_SEPARATOR = "  ";
+        const descParts: RightPart[] = [];
+        const descBudget = labelFits ? shared - labelNatural : 0;
+        const dirBudget = descBudget - DESC_SEPARATOR.length;
+        if (item.description !== undefined && item.description !== "" && dirBudget >= 1) {
+            const dir = item.description;
+            const shown = new DisplayLine(dir).displayWidth <= dirBudget ? dir : abbreviatePath(dir, dirBudget);
+            descParts.push({
+                text: DESC_SEPARATOR + shown,
                 fg: isSelected ? this.activeSelectionFg : DESCRIPTION_FG,
             });
         }
-        if (item.shortcut !== undefined) {
-            rightParts.push({
-                text: "  " + item.shortcut,
-                fg: isSelected ? this.activeSelectionFg : SHORTCUT_FG,
-            });
-        }
-        if (item.hint !== undefined) {
-            rightParts.push({
-                text: "  " + item.hint,
-                fg: isSelected ? this.activeSelectionFg : HINT_FG,
-            });
-        }
 
-        // Width of right column (approximate — no wide chars in metadata fields)
-        const rightTotalWidth = rightParts.reduce((sum, p) => sum + new DisplayLine(p.text).displayWidth, 0);
-
-        // ── Label ─────────────────────────────────────────────────────────────
-        const contentRight = w - 2; // exclusive, inside right border
-        const labelMaxWidth = Math.max(0, contentRight - x - rightTotalWidth);
         const matchSet = buildMatchSet(item.labelMatchRanges ?? []);
-        const labelDl = new DisplayLine(item.label);
-        const actualLabelWidth = Math.min(labelMaxWidth, labelDl.displayWidth);
-
         context.drawText(
             x,
             rowY,
-            item.label,
+            labelText,
             { fg: rowFg, bg: rowBg },
             {
-                maxWidth: actualLabelWidth,
+                maxWidth: labelDraw,
                 getStyle: (offset) => {
                     if (matchSet.has(offset)) {
                         return { fg: isSelected ? this.activeSelectionFg : this.matchFg };
@@ -363,7 +379,9 @@ export class QuickPickElement extends TUIElement {
             },
         );
 
-        // ── Right parts (right-aligned) ───────────────────────────────────────
+        // ── Right parts (right-aligned, guaranteed within the border) ─────────
+        const rightParts = [...metaBefore, ...descParts, ...metaAfter];
+        const rightTotalWidth = rightParts.reduce((sum, p) => sum + new DisplayLine(p.text).displayWidth, 0);
         let rx = contentRight - rightTotalWidth;
         for (const part of rightParts) {
             const partWidth = new DisplayLine(part.text).displayWidth;
