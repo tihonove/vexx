@@ -31,6 +31,10 @@ describe("truncateEnd", () => {
         expect(truncateEnd("abcdef", 0)).toBe("");
     });
 
+    it("returns empty string when maxWidth is below a multi-column ellipsis", () => {
+        expect(truncateEnd("abcdef", 2, "...")).toBe("");
+    });
+
     it("clamps wide characters without overflowing", () => {
         // each CJK char is width 2
         const out = truncateEnd("世界世界世界", 5);
@@ -62,6 +66,10 @@ describe("truncateMiddle", () => {
     it("returns empty string when even the ellipsis does not fit", () => {
         expect(truncateMiddle("abcdef", 0)).toBe("");
     });
+
+    it("returns empty string when maxWidth is below a multi-column ellipsis", () => {
+        expect(truncateMiddle("abcdef", 2, "...")).toBe("");
+    });
 });
 
 // ─── abbreviatePath ─────────────────────────────────────────────────────────
@@ -70,6 +78,10 @@ describe("abbreviatePath — fitting paths are untouched", () => {
     it("returns the path unchanged when it fits", () => {
         expect(abbreviatePath("src/components/widgets", 100)).toBe("src/components/widgets");
         expect(abbreviatePath("aa/bb/cc/dd/ee", 14)).toBe("aa/bb/cc/dd/ee");
+    });
+
+    it("returns empty string for non-positive width", () => {
+        expect(abbreviatePath("aa/bb/cc", 0)).toBe("");
     });
 });
 
