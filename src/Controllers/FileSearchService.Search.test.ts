@@ -4,6 +4,8 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { fuzzyMatchBestLower } from "../Common/FuzzySearch.ts";
+
 import { FileSearchService } from "./FileSearchService.ts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -102,11 +104,7 @@ describe("FileSearchService — search()", () => {
         });
 
         it("respects maxResults on non-empty query", async () => {
-            ({ service, tmpDir } = await makeService([
-                "a/Controller1.ts",
-                "b/Controller2.ts",
-                "c/Controller3.ts",
-            ]));
+            ({ service, tmpDir } = await makeService(["a/Controller1.ts", "b/Controller2.ts", "c/Controller3.ts"]));
             const results = service.search("ctrl", 2);
             expect(results.length).toBeLessThanOrEqual(2);
         });
@@ -168,10 +166,7 @@ describe("FileSearchService — search()", () => {
 
     describe("ranking — path search", () => {
         it("finds files when query contains path separator segments", async () => {
-            ({ service, tmpDir } = await makeService([
-                "src/Controllers/AppController.ts",
-                "src/Common/AppConfig.ts",
-            ]));
+            ({ service, tmpDir } = await makeService(["src/Controllers/AppController.ts", "src/Common/AppConfig.ts"]));
             // "ctrl" — 'c'ontrollers matches 'c', 'trl' consecutive
             const results = service.search("ctrl");
             const paths = results.map((r) => r.entry.relativePath);
@@ -216,6 +211,57 @@ describe("FileSearchService — search()", () => {
             const results = service.search("c");
             for (let i = 1; i < results.length; i++) {
                 expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score);
+            }
+        });
+    });
+
+    // ── Bitmask prefilter: soundness ───────────────────────────────────────────
+
+    describe("bitmask prefilter does not change results", () => {
+        const FILES = [
+            "src/Controllers/AppController.ts",
+            "src/Controllers/FileTreeController.ts",
+            "src/Controllers/FileSearchService.ts",
+            "src/Common/DiContainer.ts",
+            "src/Common/FuzzySearch.ts",
+            "package.json",
+            "README.md",
+            "a/b/c/d/e/DeepFile.ts",
+        ];
+
+        // Reference matcher mirroring search() but WITHOUT the bitmask prefilter:
+        // every entry goes through fuzzyMatchBestLower (basename, then full path).
+        function referenceMatchSet(files: string[], query: string): Set<string> {
+            const q = query.toLowerCase();
+            const out = new Set<string>();
+            for (const rel of files) {
+                const relLower = rel.toLowerCase();
+                const base = rel.slice(rel.lastIndexOf("/") + 1);
+                const baseLower = base.toLowerCase();
+                if (
+                    fuzzyMatchBestLower(q, base, baseLower) !== null ||
+                    fuzzyMatchBestLower(q, rel, relLower) !== null
+                ) {
+                    out.add(rel);
+                }
+            }
+            return out;
+        }
+
+        it("returns exactly the entries the raw matcher would, for many queries", async () => {
+            ({ service, tmpDir } = await makeService(FILES));
+            const queries = ["ac", "fc", "fss", "fz", "search", "ctrl", "df", "json", "md", "zzz", "9x", "common"];
+            for (const query of queries) {
+                const got = new Set(service.search(query, 1000).map((r) => r.entry.relativePath));
+                expect(got).toEqual(referenceMatchSet(FILES, query));
+            }
+        });
+
+        it("every returned path contains all query characters (necessary condition)", async () => {
+            ({ service, tmpDir } = await makeService(FILES));
+            for (const r of service.search("fss", 1000)) {
+                const lower = r.entry.relativePath.toLowerCase();
+                for (const ch of "fss") expect(lower.includes(ch)).toBe(true);
             }
         });
     });
