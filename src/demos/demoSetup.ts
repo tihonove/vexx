@@ -28,6 +28,15 @@ export function writePassthrough(sequence: string): void {
     stdout.write(isTmux ? wrapForTmux(sequence) : sequence);
 }
 
+/**
+ * Write a sequence straight to stdout without TMUX passthrough. Use for input-mode
+ * sequences (Kitty keyboard protocol) so tmux manages them per-pane — passthrough would
+ * force the mode onto the outer terminal globally and leak key encoding into other panes.
+ */
+export function writeDirect(sequence: string): void {
+    stdout.write(sequence);
+}
+
 // ── Setup raw mode + Kitty ───────────────────────────────────────
 
 const extraCleanup: (() => void)[] = [];
@@ -38,7 +47,7 @@ export function addCleanup(fn: () => void): void {
 
 export function cleanup(): void {
     for (const fn of extraCleanup) fn();
-    writePassthrough(KITTY_DISABLE);
+    writeDirect(KITTY_DISABLE);
     stdin.setRawMode(false);
 }
 
@@ -68,6 +77,6 @@ stdin.setRawMode(true);
 stdin.setEncoding("utf8");
 stdin.resume();
 
-writePassthrough(KITTY_ENABLE);
+writeDirect(KITTY_ENABLE);
 
 process.on("exit", cleanup);

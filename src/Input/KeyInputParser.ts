@@ -147,6 +147,8 @@ export class KeyInputParser {
                 oscTokens.push(token);
             } else if (token.kind === "device-report") {
                 deviceReports.push(token);
+            } else if (token.kind === "unknown-csi") {
+                // Complete but unrecognized CSI sequence — drop it (never type it as text).
             } else {
                 keyEvents.push(convertTokenToKeyPressEvent(token));
             }

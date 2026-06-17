@@ -359,10 +359,9 @@ describe("parseInput", () => {
     });
 
     it("handles unknown CSI sequence gracefully", () => {
-        // \x1b[99~ — unknown tilde key
+        // \x1b[99~ — unknown but complete tilde sequence: consumed and dropped, no key events.
         const events = parseInput("\x1b[99~");
-        // Falls back to Escape + rest parsed as printable chars
-        expect(events[0].key).toBe("Escape");
+        expect(events).toEqual([]);
     });
 
     it("all default events have type 'keydown'", () => {

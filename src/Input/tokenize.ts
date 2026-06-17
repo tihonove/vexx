@@ -6,6 +6,7 @@ import type {
     MouseToken,
     OscToken,
     RawTerminalToken,
+    UnknownCsiToken,
 } from "./RawTerminalToken.ts";
 import type { MouseAction, MouseButton } from "./RawTerminalToken.ts";
 
@@ -439,7 +440,7 @@ export function inferCode(key: string): string {
 // ─── CSI parser ───
 
 interface CSITokenResult {
-    token: CsiUToken | CsiLetterToken | CsiTildeToken | MouseToken | DeviceReportToken;
+    token: CsiUToken | CsiLetterToken | CsiTildeToken | MouseToken | DeviceReportToken | UnknownCsiToken;
     nextIndex: number;
 }
 
@@ -536,7 +537,9 @@ export function parseCSI(data: string, start: number): CSITokenResult | null {
             keyName = kittyKey ? kittyKey.key : undefined;
         }
 
-        if (!keyName) return null;
+        // Complete tilde sequence (final byte present) but no known key — drop it, don't
+        // re-emit its bytes as literal text.
+        if (!keyName) return { token: { kind: "unknown-csi", raw }, nextIndex };
         const mods = decodeModifiers(mod);
         const token: CsiTildeToken = {
             kind: "csi-tilde",
@@ -598,6 +601,10 @@ export function parseCSI(data: string, start: number): CSITokenResult | null {
             };
             return { token, nextIndex: legacyNextIndex };
         }
+        // Final 'M' present but the 3 coordinate bytes haven't arrived yet — treat as
+        // *incomplete* (null) so KeyInputParser buffers it until the rest of the read lands,
+        // rather than dropping it as an unknown CSI below.
+        return null;
     }
 
     // ── Cursor / navigation / F1–F4: CSI <1;mod[:eventtype]>? <letter> ──
@@ -622,8 +629,10 @@ export function parseCSI(data: string, start: number): CSITokenResult | null {
         return { token, nextIndex };
     }
 
-    // Unknown CSI sequence
-    return null;
+    // Unknown but COMPLETE CSI sequence (valid final byte, no handler matched). Consume and
+    // drop it as a single token so its bytes don't leak into the buffer as literal characters.
+    // (An *incomplete* sequence returns null earlier, so KeyInputParser can buffer the tail.)
+    return { token: { kind: "unknown-csi", raw }, nextIndex };
 }
 
 // ─── Mouse button decoding ───

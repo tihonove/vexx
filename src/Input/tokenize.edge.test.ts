@@ -125,24 +125,25 @@ describe("tokenize — Kitty CSI u parameter fallbacks", () => {
 });
 
 describe("tokenize — malformed tilde and mouse sequences", () => {
-    it("bare CSI ~ with no number is not a known key → standalone-esc (\\x1b[~)", () => {
-        // parseCodepointParam falls back to "0", tildeKeyMap[0] is undefined (tokenize.ts:521).
+    it("bare CSI ~ with no number is a complete unknown sequence → unknown-csi (\\x1b[~)", () => {
+        // parseCodepointParam falls back to "0", tildeKeyMap[0] is undefined; the sequence is
+        // complete (final byte '~') so it is consumed and dropped rather than typed as text.
         const tokens = tokenize("\x1b[~");
-        expect(tokens[0]).toEqual({ kind: "standalone-esc", raw: "\x1b" });
+        expect(tokens).toEqual([{ kind: "unknown-csi", raw: "\x1b[~" }]);
         expect(tokens.some((t) => t.kind === "csi-tilde")).toBe(false);
     });
 
-    it("modifyOtherKeys with an unknown encoded codepoint → standalone-esc (\\x1b[27;5;99~)", () => {
-        // num === 27 but kittyCodepointMap[99] is undefined → keyName stays undefined (tokenize.ts:530).
+    it("modifyOtherKeys with an unknown encoded codepoint → unknown-csi (\\x1b[27;5;99~)", () => {
+        // num === 27 but kittyCodepointMap[99] is undefined → keyName stays undefined; complete → dropped.
         const tokens = tokenize("\x1b[27;5;99~");
-        expect(tokens[0]).toEqual({ kind: "standalone-esc", raw: "\x1b" });
+        expect(tokens).toEqual([{ kind: "unknown-csi", raw: "\x1b[27;5;99~" }]);
         expect(tokens.some((t) => t.kind === "csi-tilde")).toBe(false);
     });
 
-    it("SGR mouse without exactly three parameters is rejected → standalone-esc (\\x1b[<0;10M)", () => {
-        // parts.length !== 3 → the SGR branch falls through (tokenize.ts:550).
+    it("SGR mouse without exactly three parameters is a complete unknown sequence → unknown-csi (\\x1b[<0;10M)", () => {
+        // parts.length !== 3 → the SGR branch falls through; final byte 'M' present → dropped, not typed.
         const tokens = tokenize("\x1b[<0;10M");
-        expect(tokens[0]).toEqual({ kind: "standalone-esc", raw: "\x1b" });
+        expect(tokens).toEqual([{ kind: "unknown-csi", raw: "\x1b[<0;10M" }]);
         expect(tokens.some((t) => t.kind === "mouse")).toBe(false);
     });
 
