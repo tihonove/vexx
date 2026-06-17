@@ -110,6 +110,18 @@ export interface UnknownByteToken {
     readonly raw: string;
 }
 
+/**
+ * A *complete* but unrecognized CSI sequence (ESC `[` … final byte in 0x40–0x7e that
+ * matched no key/mouse/device-report handler). Carries the full raw bytes so the whole
+ * sequence is consumed and dropped rather than leaking its `[…u`-style bytes into the
+ * buffer as literal characters. Distinct from a `null` parse, which means *incomplete*
+ * (a sequence cut across stdin reads, which must be buffered until the rest arrives).
+ */
+export interface UnknownCsiToken {
+    readonly kind: "unknown-csi";
+    readonly raw: string;
+}
+
 // ─── OSC tokens ───
 
 export interface OscToken {
@@ -170,6 +182,7 @@ export type RawTerminalToken =
     | SpecialKeyToken
     | CtrlCharToken
     | UnknownByteToken
+    | UnknownCsiToken
     | MouseToken
     | OscToken
     | DeviceReportToken;

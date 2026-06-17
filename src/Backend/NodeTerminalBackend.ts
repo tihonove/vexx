@@ -60,7 +60,8 @@ function wrapForTmux(sequence: string): string {
 /**
  * Real terminal backend: reads from process.stdin, writes to process.stdout.
  * Handles alternate screen, raw mode, cursor visibility, signal cleanup.
- * Enables Kitty Keyboard Protocol with TMUX passthrough support.
+ * Enables the Kitty Keyboard Protocol; inside tmux the input-mode sequences are sent
+ * directly so tmux manages them per-pane (passthrough is reserved for OSC clipboard).
  */
 export class NodeTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
@@ -97,9 +98,26 @@ export class NodeTerminalBackend implements ITerminalBackend {
 
     /**
      * Write a raw escape sequence to stdout, wrapping in TMUX passthrough if needed.
+     *
+     * ВАЖНО: passthrough применять ТОЛЬКО к последовательностям, которые tmux НЕ понимает
+     * и которые должны дойти до внешнего терминала напрямую (например, OSC 52 — буфер обмена).
+     *
+     * Последовательности режимов ВВОДА (Kitty keyboard protocol `CSI > u`/`CSI < u`/`CSI ? u`,
+     * mouse tracking `?1000/1002/1003/1006`) tmux понимает и отслеживает ПОПАНЕЛЬНО — их нужно
+     * слать напрямую (writeDirect), иначе passthrough включит режим на внешнем терминале глобально,
+     * и кодировка клавиш «протечёт» во все панели tmux (Ctrl+S перестаёт быть префиксом, а в других
+     * вкладках появляются `[115;5u`-подобные символы).
      */
     private writePassthrough(sequence: string): void {
         this.stdout.write(this.isTmux ? wrapForTmux(sequence) : sequence);
+    }
+
+    /**
+     * Write a sequence straight to stdout without TMUX passthrough. Use for input-mode
+     * sequences (Kitty keyboard protocol, mouse tracking) so tmux manages them per-pane.
+     */
+    private writeDirect(sequence: string): void {
+        this.stdout.write(sequence);
     }
 
     /**
@@ -141,7 +159,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
             if (report === "kitty-flags") supported = true;
             else finish(); // DA1 reply = all replies are in
         });
-        this.writePassthrough(KITTY_FLAGS_QUERY + DA1_QUERY);
+        // Direct (not passthrough): the reply must reflect tmux's own Kitty support, per-pane.
+        this.writeDirect(KITTY_FLAGS_QUERY + DA1_QUERY);
         timer = setTimeout(finish, KEYBOARD_PROBE_TIMEOUT_MS);
     }
 
@@ -221,10 +240,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout.write("\x1b[?1049h");
         // Show cursor (will be positioned by the focused element)
         this.stdout.write("\x1b[?25h");
-        // Enable Kitty Keyboard Protocol (with TMUX passthrough if needed)
-        this.writePassthrough(KITTY_ENABLE);
-        // Enable mouse tracking (all-motion mode for hover/enter/leave)
-        this.writePassthrough(MOUSE_TRACKING_ALL_ENABLE);
+        // Enable Kitty Keyboard Protocol — direct, so tmux tracks it per-pane (no passthrough)
+        this.writeDirect(KITTY_ENABLE);
+        // Enable mouse tracking (all-motion mode for hover/enter/leave) — direct, per-pane
+        this.writeDirect(MOUSE_TRACKING_ALL_ENABLE);
 
         // Raw mode for character-by-character input
         this.stdin.setRawMode(true);
@@ -278,10 +297,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
     }
 
     public teardown(): void {
-        // Disable Kitty Keyboard Protocol (with TMUX passthrough if needed)
-        this.writePassthrough(KITTY_DISABLE);
-        // Disable mouse tracking
-        this.writePassthrough(MOUSE_TRACKING_DISABLE);
+        // Disable Kitty Keyboard Protocol — direct (matches the per-pane enable in setup)
+        this.writeDirect(KITTY_DISABLE);
+        // Disable mouse tracking — direct
+        this.writeDirect(MOUSE_TRACKING_DISABLE);
         // Restore cursor
         this.stdout.write("\x1b[?25h");
         // Restore normal screen buffer

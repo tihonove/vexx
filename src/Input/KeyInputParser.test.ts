@@ -316,6 +316,18 @@ describe("KeyInputParser — browser-like event model", () => {
             expect(result.keys.map((e) => e.key)).toEqual(["ArrowDown", "ArrowDown"]);
         });
 
+        it("drops a complete but unrecognized CSI sequence (never typed as a key)", () => {
+            const parser = new KeyInputParser();
+            // '\x1b[1X' is a well-formed CSI with no key/mouse handler → unknown-csi, dropped.
+            const result = parser.parseWithMouse("a\x1b[1Xb");
+
+            expect(result.mouse).toEqual([]);
+            expect(result.osc).toEqual([]);
+            expect(result.deviceReports).toEqual([]);
+            // Only the surrounding 'a' and 'b' survive; the unknown CSI leaves no key events.
+            expect(result.keys.map((e) => e.key)).toEqual(["a", "a", "b", "b"]);
+        });
+
         it("tracks pressed state across parseWithMouse calls (Kitty press → orphaned-free release)", () => {
             const parser = new KeyInputParser();
             parser.parseWithMouse("\x1b[97;1:1u"); // 'a' keydown via parseWithMouse

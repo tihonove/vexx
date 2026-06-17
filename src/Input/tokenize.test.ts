@@ -447,9 +447,9 @@ describe("tokenize", () => {
 
     // ─── Edge cases ───
 
-    it("handles failed CSI parse as standalone-esc followed by printable", () => {
+    it("drops a complete but unrecognized CSI tilde sequence (no text leak)", () => {
         const tokens = tokenize("\x1b[99~");
-        expect(tokens[0]).toMatchObject({ kind: "standalone-esc" });
+        expect(tokens).toEqual([{ kind: "unknown-csi", raw: "\x1b[99~" }]);
     });
 
     it("handles unknown SS3 as standalone-esc", () => {
@@ -547,11 +547,10 @@ describe("tokenize", () => {
         expect(tokens[0]).toMatchObject({ kind: "csi-letter", key: "ArrowUp", finalByte: "A", raw: "\x1b[ A" });
     });
 
-    it("unrecognized CSI final byte → parseCSI returns null, ESC emitted standalone", () => {
-        // 'X' is a valid CSI final byte range but not in any key/mouse map → null.
+    it("unrecognized but complete CSI sequence → consumed and dropped as unknown-csi", () => {
+        // 'X' is a valid CSI final byte but not in any key/mouse map. The whole sequence is
+        // consumed as a single unknown-csi token so its bytes are never typed as literal text.
         const tokens = tokenize("\x1b[1X");
-        expect(tokens[0]).toEqual({ kind: "standalone-esc", raw: "\x1b" });
-        // The remaining '[', '1', 'X' fall through as ordinary chars.
-        expect(tokens.map((t) => t.kind)).toEqual(["standalone-esc", "char", "char", "char"]);
+        expect(tokens).toEqual([{ kind: "unknown-csi", raw: "\x1b[1X" }]);
     });
 });
