@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { fuzzyMatch, fuzzyMatchBest, fuzzyMatchBestLower, fuzzyMatchLower } from "./FuzzySearch.ts";
+import { charMask, fuzzyMatch, fuzzyMatchBest, fuzzyMatchBestLower, fuzzyMatchLower } from "./FuzzySearch.ts";
 
 // ─── Basic matching ──────────────────────────────────────────────────────────
 
@@ -303,7 +303,7 @@ describe("fuzzyMatch — gap penalty", () => {
 // ─── Pre-lowercased variants (hot-path core) ─────────────────────────────────
 
 describe("fuzzyMatchLower / fuzzyMatchBestLower — parity with wrappers", () => {
-    const cases: Array<[string, string]> = [
+    const cases: [string, string][] = [
         ["ac", "AppController"],
         ["fss", "FileSearchService.ts"],
         ["src", "src/Controllers/FileSearchService.ts"],
@@ -334,5 +334,53 @@ describe("fuzzyMatchLower / fuzzyMatchBestLower — parity with wrappers", () =>
         const flat = fuzzyMatchBestLower("c", "appxxxxxxxxxx", "appxxxxxxxxxx");
         expect(camel).not.toBeNull();
         expect(flat).toBeNull(); // no 'c' in the flat string at all
+    });
+});
+
+// ─── charMask (prefilter) ────────────────────────────────────────────────────
+
+describe("charMask — presence prefilter", () => {
+    it("is empty for the empty string", () => {
+        expect(charMask("")).toBe(0);
+    });
+
+    it("a-z map to distinct, collision-free bits", () => {
+        const bits = new Set<number>();
+        for (let c = 97; c <= 122; c++) bits.add(charMask(String.fromCharCode(c)));
+        // 26 letters → 26 distinct single-bit masks
+        expect(bits.size).toBe(26);
+    });
+
+    it("is order- and repetition-independent (set semantics)", () => {
+        expect(charMask("abc")).toBe(charMask("cba"));
+        expect(charMask("aabbc")).toBe(charMask("abc"));
+    });
+
+    it("a query subset is contained in a superset's mask", () => {
+        const text = charMask("filesearchservice");
+        const query = charMask("fss");
+        expect((text & query) === query).toBe(true);
+    });
+
+    it("rejects when the text lacks a query char (necessary condition)", () => {
+        const text = charMask("readme");
+        const query = charMask("readz"); // 'z' absent from text
+        expect((text & query) === query).toBe(false);
+    });
+
+    it("never rejects a real fuzzy match across a sample (soundness)", () => {
+        // For any (query, text) where fuzzyMatch succeeds, the mask filter must
+        // also pass — a real match implies every query char is present.
+        const texts = ["AppController.ts", "src/Common/FuzzySearch.ts", "file_search.test.ts", "a1b2c3"];
+        const queries = ["ac", "fz", "search", "a1c3", "test", "zzz", "9x"];
+        for (const t of texts) {
+            const tMask = charMask(t.toLowerCase());
+            for (const q of queries) {
+                if (fuzzyMatch(q, t) !== null) {
+                    const qMask = charMask(q.toLowerCase());
+                    expect((tMask & qMask) === qMask).toBe(true);
+                }
+            }
+        }
     });
 });

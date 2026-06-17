@@ -127,12 +127,7 @@ export function fuzzyMatchBestLower(queryLower: string, text: string, textLower:
  * Like `fuzzyMatchLower` but forces the first matched index to be `startAt`.
  * Returns null if remaining characters cannot be matched.
  */
-function fuzzyMatchFromLower(
-    queryLower: string,
-    text: string,
-    textLower: string,
-    startAt: number,
-): FuzzyMatch | null {
+function fuzzyMatchFromLower(queryLower: string, text: string, textLower: string, startAt: number): FuzzyMatch | null {
     /* v8 ignore start -- defensive: the only caller passes startAt positions where textLower[startAt] already equals queryLower[0] */
     if (textLower[startAt] !== queryLower[0]) return null;
     /* v8 ignore stop */
@@ -183,4 +178,28 @@ function scoreMatch(text: string, matchedIndices: readonly number[]): number {
     }
 
     return score;
+}
+
+/**
+ * Folds the set of characters present in `textLower` into a 32-bit presence
+ * mask: bit `code & 31` is set for every character code in the string.
+ *
+ * Used as a cheap **necessary-condition prefilter** for fuzzy matching: a fuzzy
+ * match requires every query character to appear in the text, so if
+ * `(textMask & queryMask) !== queryMask` the match is impossible and the
+ * expensive matcher can be skipped. Because distinct characters may fold onto
+ * the same bit (e.g. digits collide with some letters), the filter can let a
+ * non-matching entry through to the matcher — but it can **never** reject a real
+ * match, so results are unchanged. The `a`–`z` range (codes 97–122) maps to bits
+ * 1–26 collision-free, which keeps the common file alphabet well separated.
+ *
+ * Pass an already-lowercased string so the mask is case-insensitive, matching
+ * the case-folding of {@link fuzzyMatchLower}.
+ */
+export function charMask(textLower: string): number {
+    let mask = 0;
+    for (let i = 0; i < textLower.length; i++) {
+        mask |= 1 << (textLower.charCodeAt(i) & 31);
+    }
+    return mask;
 }

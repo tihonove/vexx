@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { charMask } from "../Common/FuzzySearch.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
@@ -16,12 +17,16 @@ import { QuickOpenController } from "./QuickOpenController.ts";
 
 function makeFileEntry(relativePath: string, absolutePath = `/root/${relativePath}`): FileSearchEntry {
     const basename = relativePath.split("/").pop() ?? relativePath;
+    const basenameLower = basename.toLowerCase();
+    const relativePathLower = relativePath.toLowerCase();
     return {
         relativePath,
         absolutePath,
         basename,
-        basenameLower: basename.toLowerCase(),
-        relativePathLower: relativePath.toLowerCase(),
+        basenameLower,
+        relativePathLower,
+        basenameBits: charMask(basenameLower),
+        relativePathBits: charMask(relativePathLower),
     };
 }
 

@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
-import { fuzzyMatchBestLower } from "../Common/FuzzySearch.ts";
+import { charMask, fuzzyMatchBestLower } from "../Common/FuzzySearch.ts";
 
 export const FileSearchServiceDIToken = token<FileSearchService>("FileSearchService");
 
@@ -27,6 +27,10 @@ export interface FileSearchEntry {
     basenameLower: string;
     /** Pre-lowercased relative path, for the path-fallback match. */
     relativePathLower: string;
+    /** Char-presence mask of `basenameLower`, to skip the basename match. */
+    basenameBits: number;
+    /** Char-presence mask of `relativePathLower`; the global match prefilter. */
+    relativePathBits: number;
 }
 
 export interface FileSearchResult {
@@ -108,10 +112,24 @@ export class FileSearchService extends Disposable {
         // Lowercase the query once; entries carry pre-lowercased strings so the
         // hot loop allocates no case-folded strings per keystroke.
         const queryLower = query.toLowerCase();
+        // Char-presence mask of the query, computed once. A fuzzy match needs
+        // every query char present in the text, so an entry whose path lacks any
+        // of them cannot match at all — reject it with one integer AND before
+        // touching the matcher. The path mask covers the basename too (the path
+        // contains it), so it is the necessary condition for either match path.
+        const queryBits = charMask(queryLower);
 
         for (const entry of this.entries) {
-            // First try matching against the basename only
-            const basenameMatch = fuzzyMatchBestLower(queryLower, entry.basename, entry.basenameLower);
+            // Cheap reject: path lacks some query char → neither basename nor
+            // path can match. Skips the expensive matcher for most entries.
+            if ((entry.relativePathBits & queryBits) !== queryBits) continue;
+
+            // First try matching against the basename only, but only when the
+            // basename itself could contain every query char.
+            const basenameMatch =
+                (entry.basenameBits & queryBits) === queryBits
+                    ? fuzzyMatchBestLower(queryLower, entry.basename, entry.basenameLower)
+                    : null;
             if (basenameMatch !== null) {
                 // Re-map indices from basename space to relativePath space
                 const offset = entry.relativePath.length - entry.basename.length;
@@ -242,12 +260,16 @@ export class FileSearchService extends Disposable {
         const rel = path.relative(rootPath, absPath);
         // Normalise to forward slashes on all platforms
         const relativePath = rel.split(path.sep).join("/");
+        const basenameLower = basename.toLowerCase();
+        const relativePathLower = relativePath.toLowerCase();
         return {
             relativePath,
             absolutePath: absPath,
             basename,
-            basenameLower: basename.toLowerCase(),
-            relativePathLower: relativePath.toLowerCase(),
+            basenameLower,
+            relativePathLower,
+            basenameBits: charMask(basenameLower),
+            relativePathBits: charMask(relativePathLower),
         };
     }
 }
