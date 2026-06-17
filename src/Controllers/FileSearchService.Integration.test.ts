@@ -118,13 +118,15 @@ describe("FileSearchService — integration against real project", () => {
     });
 
     describe("ranking on real files", () => {
-        it('"ac": AppController.ts scores higher than other "ac" matches', () => {
+        it('"ac": AppController.ts ties for the top score among "ac" matches', () => {
             const results = service.search("ac");
             expect(results.length).toBeGreaterThan(0);
-            // AppController.ts should be in top-10 — both A and C are word boundaries
-            // (sibling test files share the same score; exact position depends on walk order)
-            const top10 = relativePaths(results.slice(0, 10));
-            expect(top10.some((p) => p.includes("AppController.ts"))).toBe(true);
+            // AppController.ts shares the best score (A and C are both word boundaries).
+            // Its exact slot among same-score siblings (AppController.*.test.ts) depends on
+            // walk order — and grows as such files are added — so assert on score, not position.
+            const appController = results.find((r) => r.entry.relativePath.endsWith("Controllers/AppController.ts"));
+            expect(appController).toBeDefined();
+            expect(appController?.score).toBe(results[0].score);
         });
 
         it('"cr": CommandRegistry.ts scores higher than files with c...r scattered', () => {

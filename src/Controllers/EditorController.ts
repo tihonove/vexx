@@ -5,6 +5,7 @@ import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
+import type { IRange } from "../Editor/IRange.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
@@ -162,6 +163,22 @@ export class EditorController extends Disposable implements IController {
             this.editorViewState.detectIndentation = false;
             this.editor.markDirty();
         }
+    }
+
+    /**
+     * Sets the search-match decorations rendered by the editor and repaints.
+     * `currentIndex` is the active match (highlighted distinctly), or -1.
+     */
+    public setSearchDecorations(matches: IRange[], currentIndex: number): void {
+        this.editorViewState.searchMatches = matches;
+        this.editorViewState.currentSearchMatchIndex = currentIndex;
+        this.editor.markDirty();
+    }
+
+    /** Scrolls a range into view (expanding folds if needed) and repaints. */
+    public revealRange(range: IRange): void {
+        this.editorViewState.revealRange(range);
+        this.editor.markDirty();
     }
 
     /* v8 ignore start -- placeholder lifecycle hook; editor-specific subscriptions are added later */

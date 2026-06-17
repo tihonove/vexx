@@ -69,7 +69,7 @@ export interface ContextKeyTypes {
     // explorerResourceIsFolder: boolean;
 
     // -- Editor widget contexts --
-    // findWidgetVisible: boolean;
+    findWidgetVisible: boolean;
     // suggestWidgetVisible: boolean;
     // suggestWidgetMultipleSuggestions: boolean;
     // renameInputVisible: boolean;
@@ -203,7 +203,7 @@ export const allContextKeys: ContextKey[] = [
     // "explorerResourceIsFolder",
 
     // -- Editor widget contexts --
-    // "findWidgetVisible",
+    "findWidgetVisible",
     // "suggestWidgetVisible",
     // "suggestWidgetMultipleSuggestions",
     // "renameInputVisible",
