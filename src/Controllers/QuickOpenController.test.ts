@@ -198,6 +198,48 @@ describe("QuickOpenController — files mode", () => {
         expect(fileSearch.onIndexChanged).toBeNull();
     });
 
+    it("a background index refresh preserves the cursor mid-navigation", () => {
+        // Reproduces the huge-monorepo bug: while the index streams in, the list
+        // is re-published every ~50ms; the cursor must stay where the user put it.
+        const results = [
+            makeSearchResult("src/a.ts"),
+            makeSearchResult("src/b.ts"),
+            makeSearchResult("src/c.ts"),
+            makeSearchResult("src/d.ts"),
+        ];
+        const { controller, testApp, fileSearch } = createController(results);
+        controller.open("files");
+
+        testApp.sendKey("ArrowDown");
+        testApp.sendKey("ArrowDown");
+        expect(controller.view.selectedIndex).toBe(2);
+
+        // Background walk publishes more entries → onIndexChanged fires.
+        fileSearch.onIndexChanged?.();
+
+        // Cursor preserved (previously it snapped back to 0).
+        expect(controller.view.selectedIndex).toBe(2);
+        expect(controller.view.items[2].label).toBe("c.ts");
+    });
+
+    it("a query change resets the cursor to the top", () => {
+        const results = [
+            makeSearchResult("src/a.ts"),
+            makeSearchResult("src/b.ts"),
+            makeSearchResult("src/c.ts"),
+        ];
+        const { controller, testApp } = createController(results);
+        controller.open("files");
+
+        testApp.sendKey("ArrowDown");
+        testApp.sendKey("ArrowDown");
+        expect(controller.view.selectedIndex).toBe(2);
+
+        // Typing a new query is a real query change → selection resets.
+        controller.view.onQueryChange?.("a");
+        expect(controller.view.selectedIndex).toBe(0);
+    });
+
     it("items show basename as label and directory as description", () => {
         const results = [makeSearchResult("src/Controllers/AppController.ts")];
         const { controller } = createController(results);

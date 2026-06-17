@@ -143,6 +143,42 @@ export class QuickPickElement extends TUIElement {
         this.markDirty();
     }
 
+    /**
+     * Replace the items WITHOUT jumping the cursor back to the top.
+     *
+     * Use this when the list is refreshed for the *same* query (e.g. the file
+     * index grew in the background and produced more results) — resetting the
+     * selection there would yank the cursor away from the user mid-navigation.
+     *
+     * The previously selected item is re-located by identity (label +
+     * description, which uniquely identifies a file row). If it is gone, the
+     * previous index is clamped into the new bounds. The selected row is kept
+     * on-screen.
+     */
+    public refreshItems(value: readonly QuickPickItem[]): void {
+        const previous = this.itemsValue[this.selectedIndexValue];
+        this.itemsValue = value;
+
+        if (value.length === 0) {
+            this.selectedIndexValue = 0;
+            this.scrollOffset = 0;
+            this.markDirty();
+            return;
+        }
+
+        let next = previous ? value.findIndex((item) => sameItem(item, previous)) : -1;
+        if (next < 0) {
+            next = Math.min(this.selectedIndexValue, value.length - 1);
+        }
+        this.selectedIndexValue = Math.max(0, next);
+
+        // Keep the scroll window valid and the selected row visible.
+        const maxScroll = Math.max(0, value.length - this.maxVisibleItems);
+        this.scrollOffset = Math.min(this.scrollOffset, maxScroll);
+        this.ensureVisible(this.selectedIndexValue);
+        this.markDirty();
+    }
+
     public get selectedIndex(): number {
         return this.selectedIndexValue;
     }
@@ -393,6 +429,16 @@ export class QuickPickElement extends TUIElement {
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Identity check used to keep the selection stable across `refreshItems`.
+ * Items are rebuilt as fresh objects on every refresh, so we compare the
+ * fields that uniquely identify a row: `label` + `description` (for file rows
+ * that is basename + directory, i.e. the relative path).
+ */
+function sameItem(a: QuickPickItem, b: QuickPickItem): boolean {
+    return a.label === b.label && a.description === b.description;
+}
 
 /**
  * Expands [start, end) range pairs into a flat Set of matched byte offsets,

@@ -276,6 +276,98 @@ describe("QuickPickElement — typing / onQueryChange", () => {
     });
 });
 
+// ─── refreshItems (preserve selection across background refresh) ──────────────
+
+describe("QuickPickElement — refreshItems preserves selection", () => {
+    it("keeps the cursor on the same item when the list grows at the end", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(5);
+        const app = createApp(picker);
+
+        app.sendKey("ArrowDown");
+        app.sendKey("ArrowDown");
+        app.sendKey("ArrowDown");
+        expect(picker.selectedIndex).toBe(3); // item-4
+
+        // Background index grew: same results plus more appended.
+        picker.refreshItems(makeItems(10));
+
+        // Cursor must NOT snap back to the top.
+        expect(picker.selectedIndex).toBe(3);
+        expect(picker.items[picker.selectedIndex].label).toBe("item-4");
+    });
+
+    it("follows the selected item when it moves to a new index", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(3); // item-1, item-2, item-3
+        const app = createApp(picker);
+
+        app.sendKey("ArrowDown");
+        app.sendKey("ArrowDown");
+        expect(picker.items[picker.selectedIndex].label).toBe("item-3");
+
+        // A higher-ranked result streamed in ahead of the selection.
+        picker.refreshItems([{ label: "new-top" }, ...makeItems(3)]);
+
+        // Still pointing at item-3, now shifted down by one.
+        expect(picker.selectedIndex).toBe(3);
+        expect(picker.items[picker.selectedIndex].label).toBe("item-3");
+    });
+
+    it("clamps to the new bounds when the selected item disappears", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(5);
+        const app = createApp(picker);
+
+        for (let i = 0; i < 4; i++) app.sendKey("ArrowDown");
+        expect(picker.selectedIndex).toBe(4);
+
+        // Results shrank and no longer contain the previously selected label.
+        picker.refreshItems(makeItems(2, "other-"));
+
+        expect(picker.selectedIndex).toBe(1); // clamped to last valid index
+    });
+
+    it("selects the first item when refreshed from an empty list", () => {
+        const picker = new QuickPickElement();
+        picker.items = [];
+        createApp(picker);
+
+        // No previously selected item to preserve → falls back to the top.
+        picker.refreshItems(makeItems(3));
+        expect(picker.selectedIndex).toBe(0);
+    });
+
+    it("resets to 0 when refreshed with an empty list", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(5);
+        const app = createApp(picker);
+
+        app.sendKey("ArrowDown");
+        app.sendKey("ArrowDown");
+        expect(picker.selectedIndex).toBe(2);
+
+        picker.refreshItems([]);
+        expect(picker.selectedIndex).toBe(0);
+    });
+
+    it("keeps the selected row visible after a refresh", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 3;
+        picker.items = makeItems(10);
+        const app = createApp(picker, new Size(40, 7));
+
+        for (let i = 0; i < 6; i++) app.sendKey("ArrowDown");
+        expect(picker.selectedIndex).toBe(6); // item-7
+
+        picker.refreshItems(makeItems(12));
+
+        expect(picker.selectedIndex).toBe(6);
+        app.render();
+        expect(app.backend.screenToString()).toContain("item-7");
+    });
+});
+
 // ─── Focus delegation ─────────────────────────────────────────────────────────
 
 describe("QuickPickElement — focus", () => {

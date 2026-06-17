@@ -130,7 +130,9 @@ export class QuickOpenController extends Disposable {
     private handleIndexChanged(): void {
         if (this.currentMode !== "files") return;
         if (!this.quickOpenSession?.isOpen()) return;
-        this.updateItems(this.view.getQuery());
+        // The list grew in the background for the same query — refresh the
+        // results without resetting the cursor the user is navigating.
+        this.updateItems(this.view.getQuery(), true);
     }
 
     private handleQueryChange(query: string): void {
@@ -192,11 +194,15 @@ export class QuickOpenController extends Disposable {
         });
     }
 
-    private updateItems(query: string): void {
-        if (query.startsWith(">")) {
-            this.view.items = this.buildCommandItems(query.slice(1).trimStart());
+    private updateItems(query: string, preserveSelection = false): void {
+        const items = query.startsWith(">")
+            ? this.buildCommandItems(query.slice(1).trimStart())
+            : this.buildFileItems(this.fileSearch.search(query, 50));
+
+        if (preserveSelection) {
+            this.view.refreshItems(items);
         } else {
-            this.view.items = this.buildFileItems(this.fileSearch.search(query, 50));
+            this.view.items = items;
         }
     }
 
