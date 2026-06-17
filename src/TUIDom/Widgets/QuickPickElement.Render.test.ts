@@ -403,3 +403,49 @@ describe("QuickPickElement — layout width", () => {
         expect(picker.getMaxIntrinsicHeight(40)).toBe(picker.getMinIntrinsicHeight(40));
     });
 });
+
+// ─── Overflow / truncation ────────────────────────────────────────────────────
+
+describe("QuickPickElement — long content does not overflow the border", () => {
+    const WIDTH = 40;
+    const ITEM_ROW_Y = 3;
+
+    function itemRow(picker: QuickPickElement): string {
+        const backend = renderPicker(picker, WIDTH);
+        return backend.getTextAt(new Point(0, ITEM_ROW_Y), WIDTH);
+    }
+
+    it("keeps the right border intact when the path is very deep", () => {
+        const picker = new QuickPickElement();
+        picker.items = [
+            { label: "menu.ts", description: "src/components/widgets/popups/contextmenu/items/deeply/nested" },
+        ];
+        const row = itemRow(picker);
+        // Last column is still the box border, nothing spilled past it.
+        expect(row[WIDTH - 1]).toBe("│");
+        expect(row[0]).toBe("│");
+        // The deep path was abbreviated with an ellipsis.
+        expect(row).toContain("…");
+        // Filename (priority) stays fully visible.
+        expect(row).toContain("menu.ts");
+    });
+
+    it("ellipsizes a filename that is itself too long to fit", () => {
+        const picker = new QuickPickElement();
+        picker.items = [{ label: "ThisIsAnExtremelyLongFileNameThatCannotPossiblyFit.tsx", description: "" }];
+        const row = itemRow(picker);
+        expect(row[WIDTH - 1]).toBe("│");
+        expect(row).toContain("…");
+        // Prefix of the name is preserved.
+        expect(row).toContain("ThisIs");
+    });
+
+    it("shows the full path when it comfortably fits (no ellipsis)", () => {
+        const picker = new QuickPickElement();
+        picker.items = [{ label: "main.ts", description: "src" }];
+        const row = itemRow(picker);
+        expect(row).toContain("main.ts");
+        expect(row).toContain("src");
+        expect(row).not.toContain("…");
+    });
+});

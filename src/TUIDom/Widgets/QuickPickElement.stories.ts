@@ -49,6 +49,16 @@ const FILE_ITEMS: QuickPickItem[] = [
         label: "README.md",
         description: ".",
     },
+    {
+        icon: "\uf15b",
+        label: "ContextMenuItem.tsx",
+        description: "src/components/widgets/popups/contextmenu/items/deeply/nested",
+    },
+    {
+        icon: "\uf15b",
+        label: "ThisIsAnExtremelyLongFileNameThatCannotPossiblyFitInThePicker.tsx",
+        description: "src/very/deeply/nested/directory",
+    },
 ];
 
 const COMMAND_ITEMS: QuickPickItem[] = [
