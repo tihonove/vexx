@@ -271,6 +271,9 @@ item.onActivate = () => this.openMenu(index);
 ### TestUtils/
 Общие утилиты для тестов (визуальные assertions для экрана). `ExtensionTestHarness.createExtensionTestHarness({ initialFile?, extensions? })` поднимает реальный `EditorGroupController` + `ExtensionHost` поверх `TestApp`/`MockTerminalBackend`. `ExtensionHost` форкается через `subprocessSpawnArgsForTests()` — `node --import tsx/esm src/Extensions/Host/__fixtures__/subprocessEntry.ts` (в vitest `process.argv[1]` указывает на vitest CLI, не на `main.ts`). Тестовые расширения лежат рядом — `*.cjs` файлы с `exports.activate = function(ctx) { var vscode = require("vscode"); ... }`.
 
+### Inspector/
+Инспектор TUIDom («браузерный дебаг-порт»): сериализация дерева элементов и протокол поверх WebSocket. `InspectorCore` — transport-agnostic ядро: держит read-only ссылку на приложение через `InspectorTarget { getRoot, getFocused }` и отвечает на методы протокола (`TUIDom.getDocument`); методы — расширяемый реестр. `InspectorServer` — рукописный WebSocket (RFC6455) поверх `node:http`, без runtime-зависимостей. `attachInspector(app)` поднимает порт поверх работающего `TuiApplication`, читая его read-only (сам `TuiApplication` не трогается). Транспорт-агностичность ядра — задел под встроенный in-process инспектор (split-screen): тот же `InspectorCore` без сети.
+
 ## Правила зависимостей
 
 ```
@@ -291,6 +294,7 @@ App → Extensions → Controllers → Editor → TUIDom → { Input, Rendering,
 - **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик. Подмодуль **`Extensions/Host`** дополнительно зависит от `Controllers` (через `EditorGroupController`-адаптер) — единственное место, где Extensions поднимается выше Controllers.
 - **Controllers** зависит от Editor, TUIDom, Theme, Configuration, Common и от интерфейса `Backend` (`ITerminalBackend` через `TerminalBackendDIToken` — `TerminalEnvironmentService` пробит терминал; Backend ниже по стеку)
 - **App** (main.ts) зависит от всех слоёв и оркеструет загрузку builtin-расширений до bootstrap DI
+- **Inspector** зависит от TUIDom (чтение дерева/типов) и Common; транспорт — встроенный `node:http` (рукописный WebSocket, без сторонних зависимостей). Не зависит от Controllers/Editor
 
 ### DI-контейнер: границы использования
 
