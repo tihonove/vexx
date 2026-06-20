@@ -76,6 +76,7 @@ export class QuickOpenController extends Disposable {
         this.quickOpenSession = body.overlayLayer.createSession(this.view, new Point(0, 0), {
             visible: false,
             restoreFocus: true,
+            closeOnOutsidePointer: true,
         });
 
         this.register({

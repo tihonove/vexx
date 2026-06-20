@@ -11,6 +11,7 @@ import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.t
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -79,6 +80,26 @@ describe("FindController", () => {
         expect(find.isVisible()).toBe(true);
         find.close();
         expect(find.isVisible()).toBe(false);
+    });
+
+    it("an outside pointer press does NOT close the widget", () => {
+        // Unlike QuickPick, the find widget is non-modal and stays open when the
+        // user clicks into the editor (so they can keep navigating matches).
+        const { find, testApp } = setup("foo bar foo");
+        find.open();
+        expect(find.isVisible()).toBe(true);
+
+        testApp.root.dispatchEvent(
+            new TUIMouseEvent("mousedown", {
+                screenX: 0,
+                screenY: 0,
+                localX: 0,
+                localY: 0,
+                button: "left",
+            }),
+        );
+
+        expect(find.isVisible()).toBe(true);
     });
 
     it("typing seeds match highlights on the editor", () => {

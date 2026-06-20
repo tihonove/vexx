@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { charMask } from "../Common/FuzzySearch.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
@@ -108,6 +109,27 @@ describe("QuickOpenController — open/close", () => {
         const { controller, body, testApp } = createController();
         controller.open("files");
         testApp.sendKey("Escape");
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("an outside pointer press closes the picker (closeOnOutsidePointer)", () => {
+        const { controller, body } = createController();
+        controller.open("files");
+        expect(body.overlayLayer.hasVisibleItems()).toBe(true);
+
+        // A mousedown whose target is the body (outside the QuickPick widget) closes it.
+        // The press is NOT consumed, so it still passes through to whatever sits below —
+        // matching VS Code's quick-pick dismissal behaviour.
+        body.dispatchEvent(
+            new TUIMouseEvent("mousedown", {
+                screenX: 0,
+                screenY: 0,
+                localX: 0,
+                localY: 0,
+                button: "left",
+            }),
+        );
+
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
