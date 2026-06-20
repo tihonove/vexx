@@ -10,23 +10,9 @@
 - [ ] Снять зависимость от точной фразы из комментария (`fixture used`) — заменить на стабильный маркер в фикстуре.
 - [ ] **e2e-cross-platform**: `renders fixture text on screen` и `applies syntax highlighting` пропускаются на Windows и macOS. На Windows ConPTY инжектирует `CSI K` / clearing sequences после resize, стирая строки которые рендерер уже вывел; `stdout.on("resize")` внутри ConPTY-процесса ненадёжен → delta-рендерер не знает что нужен полный redraw. Нужно либо добавить в `NodeTerminalBackend` принудительный механизм полного сброса при потере синхронизации (watchdog по неизменному грид-хешу?), либо перейти на Inspector-протокол (Phase 2) для e2e вместо PTY-парсинга.
 
-## Phase 2 — Inspector-протокол (draft)
+## Phase 2 — Inspector-протокол
 
-Цель: «как в браузере с дебажным портом» — отдельный сервер на бинаре по флагу `--inspect-tui[=host:port]`, который умеет отдавать дерево `TUIElement`, текущий грид и стримить события.
-
-**План:**
-- [ ] Новый слой `src/Inspector/` (зависит от TUIDom + Common; обратной зависимости нет).
-- [ ] Парсинг CLI-флага `--inspect-tui` в `src/main.ts` — старт `InspectorServer` до `app.run()`.
-- [ ] `InspectorServer`: голый WebSocket поверх `node:http` upgrade (рукописный RFC6455 frame parser, без зависимостей).
-- [ ] JSON-RPC 2.0 namespace `TUIDom.*`:
-    - `TUIDom.getDocument` → дерево `{ id, type, box, style, focus, text? }`
-    - `TUIDom.getGridSnapshot` → плоский `{ width, height, cells: [{char,fg,bg}] }`
-    - `TUIDom.subscribe` (events `nodeAdded` / `nodeRemoved` / `attributeChanged` / `renderTick` / `input`)
-    - `TUIDom.dispatchInput { keys: "Ctrl+P" }` — удалённое управление
-- [ ] Хуки в `TuiApplication`: `onAfterRenderFrame`, `onTreeMutation` — без жёсткой связи с Inspector.
-- [ ] CLI-клиент `npm run inspect`: самохост на TUIDom, дерево слева + грид справа, hot-keys для подсветки bbox элемента.
-- [ ] Обновить `docs/ARCHITECTURE.md` (раздел `Inspector/`, диаграмма зависимостей).
-- [ ] Web-клиент — отдельная фаза 2.2, не сейчас.
+Вынесено в отдельный документ: [Inspector.md](Inspector.md) — там же подготовительный рефакторинг TUIElement-иерархии и выделение основы приложения, на которой поднимается порт инспектора.
 
 ## Команды
 ```bash
