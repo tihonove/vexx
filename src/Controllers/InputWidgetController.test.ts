@@ -267,6 +267,50 @@ function deferredClipboard(text = ""): { clipboard: IClipboard; resolveRead(): v
     };
 }
 
+describe("InputWidgetController — undo/redo", () => {
+    it("undo reverts the last edit group and notifies via onChange", () => {
+        const { controller, input, changes } = setup();
+        input.inputState.insert("a");
+        input.inputState.insert("b"); // coalesced into one undo group
+
+        controller.undo();
+        expect(input.inputState.value).toBe("");
+        expect(changes).toContain("");
+    });
+
+    it("redo re-applies an undone edit", () => {
+        const { controller, input } = setup();
+        input.inputState.insert("a");
+        input.inputState.insert("b");
+        controller.undo();
+
+        controller.redo();
+        expect(input.inputState.value).toBe("ab");
+    });
+
+    it("undo/redo work on an input without an onChange handler", () => {
+        const input = new InputElement(); // no onChange wired
+        input.inputState.insert("x");
+        const controller = new InputWidgetController();
+        controller.setActive(input);
+
+        expect(() => {
+            controller.undo();
+            controller.redo();
+        }).not.toThrow();
+        expect(input.inputState.value).toBe("x");
+    });
+
+    it("undo/redo are safe no-ops when no input is active", () => {
+        const controller = new InputWidgetController();
+        controller.setActive(null);
+        expect(() => {
+            controller.undo();
+            controller.redo();
+        }).not.toThrow();
+    });
+});
+
 describe("InputWidgetController — focus changes during async clipboard ops", () => {
     it("paste does not crash or insert when the input is unfocused during the read", async () => {
         const { controller, input, changes } = setup("ab");
