@@ -75,6 +75,22 @@ export class InputWidgetController {
         this.activeInput.markDirty();
     }
 
+    // ─── Undo / Redo ─────────────────────────────────────────
+
+    public undo(): void {
+        if (!this.activeInput) return;
+        this.activeInput.inputState.undo();
+        this.activeInput.onChange?.(this.activeInput.inputState.value);
+        this.activeInput.markDirty();
+    }
+
+    public redo(): void {
+        if (!this.activeInput) return;
+        this.activeInput.inputState.redo();
+        this.activeInput.onChange?.(this.activeInput.inputState.value);
+        this.activeInput.markDirty();
+    }
+
     // ─── Selection ───────────────────────────────────────────
 
     public selectLeft(): void {
