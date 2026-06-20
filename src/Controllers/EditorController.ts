@@ -66,6 +66,10 @@ export class EditorController extends Disposable implements IController {
         return this.doc.onDidChangeContent(listener);
     }
 
+    public onDidChangeCursorPosition(listener: () => void): IDisposable {
+        return this.editorViewState.onDidChangeCursorPosition(listener);
+    }
+
     public get fileName(): string | null {
         return this.filePath ? path.basename(this.filePath) : null;
     }

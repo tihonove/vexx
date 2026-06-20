@@ -22,6 +22,41 @@ describe("EditorViewState", () => {
         expect(state.selections[0].active).toEqual({ line: 0, character: 3 });
     });
 
+    // ─── Cursor-change emitter ──────────────────────────────
+
+    describe("onDidChangeCursorPosition", () => {
+        it("fires on cursor movement, typing and direct assignment", () => {
+            const doc = new TextDocument("hello");
+            const state = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+            let count = 0;
+            state.onDidChangeCursorPosition(() => count++);
+
+            state.cursorRight();
+            expect(count).toBe(1);
+
+            state.type("x");
+            expect(count).toBe(2);
+
+            state.selections = [createCursorSelection(0, 0)];
+            expect(count).toBe(3);
+        });
+
+        it("stops firing after the listener is disposed", () => {
+            const doc = new TextDocument("hello");
+            const state = new EditorViewState(doc, [createCursorSelection(0, 0)]);
+            let count = 0;
+            const sub = state.onDidChangeCursorPosition(() => count++);
+
+            state.cursorRight();
+            expect(count).toBe(1);
+
+            sub.dispose();
+            sub.dispose(); // idempotent — disposing again is a no-op
+            state.cursorRight();
+            expect(count).toBe(1);
+        });
+    });
+
     // ─── Single Cursor Typing ───────────────────────────────
 
     it("types a single character", () => {

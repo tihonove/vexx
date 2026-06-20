@@ -34,12 +34,14 @@ describe("EditorTabItemElement", () => {
             expect(tab.getMaxIntrinsicWidth(1)).toBe(13);
         });
 
-        it("calculates width with modified indicator", () => {
+        it("calculates width with modified indicator (shared trailing slot)", () => {
             const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color, {
                 modified: true,
             });
-            // [1 pad][icon][space][file.ts][ ●][ ×][1 pad] = 1 + 1 + 1 + 7 + 2 + 2 + 1 = 15
-            expect(tab.getMaxIntrinsicWidth(1)).toBe(15);
+            // The dot replaces the cross in a single trailing slot, so the width
+            // matches an unmodified tab:
+            // [1 pad][icon][space][file.ts][ ●][1 pad] = 1 + 1 + 1 + 7 + 2 + 1 = 13
+            expect(tab.getMaxIntrinsicWidth(1)).toBe(13);
         });
 
         it("calculates width without icon", () => {
@@ -83,12 +85,13 @@ describe("EditorTabItemElement", () => {
             expect(text).toContain("\u00D7");
         });
 
-        it("renders modified indicator when modified", () => {
+        it("renders the modified dot instead of the close cross when modified", () => {
             const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color, {
                 modified: true,
             });
             const { text } = renderTab(tab);
-            expect(text).toContain("\u25CF");
+            expect(text).toContain("\u25CF"); // \u25CF
+            expect(text).not.toContain("\u00D7"); // \u00D7 \u2014 replaced by the dot until hover
         });
 
         it("does not render modified indicator when not modified", () => {
@@ -112,6 +115,54 @@ describe("EditorTabItemElement", () => {
             const { text } = renderTab(tab);
             expect(text.startsWith("  ")).toBe(true);
             expect(text.endsWith("  ")).toBe(true);
+        });
+    });
+
+    describe("hover behaviour", () => {
+        function hover(tab: EditorTabItemElement, type: "mouseenter" | "mouseleave"): void {
+            tab.dispatchEvent(new TUIMouseEvent(type, { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
+        }
+
+        it("swaps the modified dot for the close cross while hovered", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color, { modified: true });
+
+            expect(renderTab(tab).text).toContain("●"); // ● before hover
+
+            hover(tab, "mouseenter");
+            const hovered = renderTab(tab).text;
+            expect(hovered).toContain("×"); // × while hovered
+            expect(hovered).not.toContain("●");
+
+            hover(tab, "mouseleave");
+            expect(renderTab(tab).text).toContain("●"); // ● again after leaving
+        });
+
+        it("keeps the close cross on hover for an unmodified tab", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            hover(tab, "mouseenter");
+            const { text } = renderTab(tab);
+            expect(text).toContain("×");
+            expect(text).not.toContain("●");
+        });
+
+        it("does not repaint on a repeated mouseenter", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            tab.performLayout(BoxConstraints.tight(new Size(20, 1)));
+            hover(tab, "mouseenter");
+            expect(tab.isLayoutDirty).toBe(true);
+
+            tab.performLayout(BoxConstraints.tight(new Size(20, 1)));
+            expect(tab.isLayoutDirty).toBe(false);
+            hover(tab, "mouseenter"); // already hovered → no-op
+            expect(tab.isLayoutDirty).toBe(false);
+        });
+
+        it("does not repaint on a mouseleave when not hovered", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            tab.performLayout(BoxConstraints.tight(new Size(20, 1)));
+            expect(tab.isLayoutDirty).toBe(false);
+            hover(tab, "mouseleave"); // never entered → no-op
+            expect(tab.isLayoutDirty).toBe(false);
         });
     });
 

@@ -13,6 +13,7 @@ export class EditorTabItemElement extends TUIElement {
     private modified: boolean;
     private paddingLeft: number;
     private paddingRight: number;
+    private hovered = false;
 
     public onActivate: (() => void) | null = null;
     public onClose: (() => void) | null = null;
@@ -39,6 +40,18 @@ export class EditorTabItemElement extends TUIElement {
             } else {
                 this.onActivate?.();
             }
+        });
+
+        this.addEventListener("mouseenter", () => {
+            if (this.hovered) return;
+            this.hovered = true;
+            this.markDirty();
+        });
+
+        this.addEventListener("mouseleave", () => {
+            if (!this.hovered) return;
+            this.hovered = false;
+            this.markDirty();
         });
     }
 
@@ -92,11 +105,12 @@ export class EditorTabItemElement extends TUIElement {
     // ─── Content Layout ───
 
     private getContentWidth(): number {
-        // [paddingLeft][icon " "][label][" ●" or " "][" ×"][paddingRight]
+        // [paddingLeft][icon " "][label][" ●/×"][paddingRight]
+        // The trailing slot shows the modified dot OR the close cross — never both —
+        // so the tab width stays stable regardless of modified/hover state.
         const iconPart = this.icon.length > 0 ? this.icon.length + 1 : 0; // icon + space
-        const modifiedPart = this.modified ? 2 : 0; // " ●"
-        const closePart = 2; // " ×"
-        return this.paddingLeft + iconPart + this.label.length + modifiedPart + closePart + this.paddingRight;
+        const trailingPart = 2; // " ●" or " ×"
+        return this.paddingLeft + iconPart + this.label.length + trailingPart + this.paddingRight;
     }
 
     private getCloseButtonStart(): number {
@@ -157,20 +171,14 @@ export class EditorTabItemElement extends TUIElement {
             x += 1;
         }
 
-        // Modified indicator
-        if (this.modified && x + 1 < width) {
-            context.setCell(x, 0, { char: " ", fg: resolved.fg, bg: resolved.bg });
-            x += 1;
-            context.setCell(x, 0, { char: MODIFIED_CHAR, fg: resolved.fg, bg: resolved.bg });
-            x += 1;
-        }
-
-        // Close button: " ×"
+        // Trailing indicator: the modified dot until the tab is hovered, then
+        // the close cross (VSCode behaviour). Clicking the slot always closes.
+        const trailingChar = this.modified && !this.hovered ? MODIFIED_CHAR : CLOSE_CHAR;
         if (x + 1 < width) {
             context.setCell(x, 0, { char: " ", fg: resolved.fg, bg: resolved.bg });
             x += 1;
             context.setCell(x, 0, {
-                char: CLOSE_CHAR,
+                char: trailingChar,
                 fg: resolved.fg,
                 bg: resolved.bg,
                 style: StyleFlags.None,

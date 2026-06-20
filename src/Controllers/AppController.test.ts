@@ -170,16 +170,17 @@ describe("AppController integration", () => {
         expect(testApp.querySelector("StatusBarElement")).not.toBeNull();
     });
 
-    it("statusbar shows file name after openFile", () => {
+    it("statusbar shows the cursor position after openFile", () => {
         const { testApp, controller } = createTestAppController();
         controller.openFile("/tmp/test-app-statusbar.txt");
 
         const statusBar = testApp.querySelector("StatusBarElement") as StatusBarElement;
         const items = statusBar.getItems();
-        expect(items).toContainEqual({ text: "test-app-statusbar.txt" });
+        expect(items).toContainEqual({ text: "Ln 1, Col 1", align: "right" });
+        expect(items).not.toContainEqual({ text: "test-app-statusbar.txt" });
     });
 
-    it("statusbar shows [Modified] after typing", () => {
+    it("statusbar updates the cursor position live after typing", () => {
         const { testApp, controller } = createTestAppController();
         controller.openFile("/tmp/test-app-modified.txt");
         controller.focusEditor();
@@ -188,8 +189,8 @@ describe("AppController integration", () => {
 
         const statusBar = testApp.querySelector("StatusBarElement") as StatusBarElement;
         const items = statusBar.getItems();
-        expect(items).toContainEqual({ text: "test-app-modified.txt" });
-        expect(items).toContainEqual({ text: "[Modified]" });
+        expect(items).toContainEqual({ text: "Ln 1, Col 2", align: "right" });
+        expect(items).not.toContainEqual({ text: "[Modified]" });
     });
 });
 
