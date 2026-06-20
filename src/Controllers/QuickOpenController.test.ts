@@ -73,20 +73,20 @@ function createController(fileResults: FileSearchResult[] = []): {
 describe("QuickOpenController — open/close", () => {
     it("picker is hidden by default", () => {
         const { body } = createController();
-        expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("open() makes picker visible", () => {
         const { controller, body } = createController();
         controller.open("files");
-        expect(body.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("close() hides picker", () => {
         const { controller, body } = createController();
         controller.open("files");
         controller.close();
-        expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("open() sets focus to QuickPickElement", () => {
@@ -98,7 +98,7 @@ describe("QuickOpenController — open/close", () => {
     it("open() when already open calls focus instead of re-opening", () => {
         const { controller, body } = createController();
         controller.open("files");
-        const setVisibleSpy = vi.spyOn(body.contextMenuLayer, "setVisible");
+        const setVisibleSpy = vi.spyOn(body.overlayLayer, "setVisible");
         controller.open("files");
         // setVisible should not be called again (already visible, just focuses)
         expect(setVisibleSpy).not.toHaveBeenCalled();
@@ -108,7 +108,7 @@ describe("QuickOpenController — open/close", () => {
         const { controller, body, testApp } = createController();
         controller.open("files");
         testApp.sendKey("Escape");
-        expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("close() on a never-opened picker is a no-op", () => {
@@ -369,7 +369,7 @@ describe("QuickOpenController — files mode", () => {
 
         // Neither branch fires: no command executed, picker stays open.
         expect(execSpy).not.toHaveBeenCalled();
-        expect(body.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("accepting file closes the picker", async () => {
@@ -381,7 +381,7 @@ describe("QuickOpenController — files mode", () => {
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
-        expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 });
 
@@ -501,7 +501,7 @@ describe("QuickOpenController — commands mode", () => {
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
-        expect(body.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 });
 

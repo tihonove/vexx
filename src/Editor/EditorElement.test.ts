@@ -138,7 +138,7 @@ describe("EditorElement — drag anchor reset on mouseup", () => {
 describe("EditorElement — context menu without a layer", () => {
     it("right-click on a detached editor does not throw when no layer is present", () => {
         // Construct an editor that is NOT mounted into a BodyElement, so
-        // getContextMenuLayer() returns null and openContextMenu bails out.
+        // getOverlayLayer() returns null and openContextMenu bails out.
         const doc = new TextDocument("hello");
         const viewState = new EditorViewState(doc);
         const editor = new EditorElement(viewState);
@@ -166,12 +166,12 @@ describe("EditorElement — context menu onClose wiring", () => {
         editor.contextMenuEntries = [{ label: "Copy" }];
 
         fireMouse(editor, "mousedown", 5, 0, "right");
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
 
         // The menu wires its own onClose to session.close(); firing it tears the popup down.
-        const menu = app.root.contextMenuLayer.getItems()[0].element as PopupMenuElement;
+        const menu = app.root.overlayLayer.getItems()[0].element as PopupMenuElement;
         menu.onClose?.();
 
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 });

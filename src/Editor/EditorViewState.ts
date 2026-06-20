@@ -3,7 +3,9 @@ import { DisplayLine } from "../Common/DisplayLine.ts";
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
 import { detectIndentation } from "./IndentationDetector.ts";
+import type { IPosition } from "./IPosition.ts";
 import { comparePositions } from "./IPosition.ts";
+import type { IRange } from "./IRange.ts";
 import { createRange } from "./IRange.ts";
 import type { ISelection } from "./ISelection.ts";
 import {
@@ -35,6 +37,10 @@ export class EditorViewState {
     public insertSpaces = false;
     public detectIndentation = true;
     public selections: ISelection[];
+    /** Ranges of all current search matches to highlight (set by the find controller). */
+    public searchMatches: IRange[] = [];
+    /** Index into {@link searchMatches} of the active match, or -1 when there is none. */
+    public currentSearchMatchIndex = -1;
     public readonly document: ITextDocument;
     public foldedRegions: IFoldingRegion[] = [];
     /**
@@ -735,8 +741,18 @@ export class EditorViewState {
         for (const region of this.foldedRegions) {
             if (region.isCollapsed && logicalLine > region.startLine && logicalLine <= region.endLine) {
                 region.isCollapsed = false;
+                this.foldsVersion++;
             }
         }
+    }
+
+    /**
+     * Scrolls the viewport so that `range` is brought into view, first expanding
+     * any collapsed fold that hides its start line.
+     */
+    public revealRange(range: IRange): void {
+        this.ensureLineVisible(range.start.line);
+        this.revealPosition(range.start);
     }
 
     /**
@@ -750,11 +766,15 @@ export class EditorViewState {
     // ─── Private ────────────────────────────────────────────
 
     private ensureCursorVisible(): void {
-        if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
         if (this.selections.length === 0) return;
+        this.revealPosition(this.selections[0].active);
+    }
 
-        const primary = this.selections[0];
-        const visualLine = this.logicalToVisualLine(primary.active.line);
+    /** Scrolls the viewport (vertically + horizontally) to bring `pos` into view. */
+    private revealPosition(pos: IPosition): void {
+        if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
+
+        const visualLine = this.logicalToVisualLine(pos.line);
         if (visualLine < 0) return;
 
         if (visualLine < this.scrollTop) {
@@ -763,9 +783,9 @@ export class EditorViewState {
             this.scrollTop = visualLine - this.viewportHeight + 1;
         }
 
-        const lineContent = this.document.getLineContent(primary.active.line);
+        const lineContent = this.document.getLineContent(pos.line);
         const dl = new DisplayLine(lineContent, this.tabSize);
-        const col = dl.offsetToColumn(primary.active.character);
+        const col = dl.offsetToColumn(pos.character);
         if (col < this.scrollLeft) {
             this.scrollLeft = col;
         } else if (col >= this.scrollLeft + this.viewportWidth) {

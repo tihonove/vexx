@@ -3,7 +3,7 @@ import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-export interface ContextMenuLayerItem {
+export interface OverlayLayerItem {
     element: TUIElement;
     position: Point;
     visible: boolean;
@@ -54,8 +54,8 @@ interface OverlaySessionState {
     onClose: (() => void) | null;
 }
 
-export class ContextMenuLayer extends TUIElement {
-    private items: ContextMenuLayerItem[] = [];
+export class OverlayLayer extends TUIElement {
+    private items: OverlayLayerItem[] = [];
     private sessions = new Map<TUIElement, OverlaySessionState>();
 
     public addItem(element: TUIElement, position: Point, visible = false): void {
@@ -215,7 +215,7 @@ export class ContextMenuLayer extends TUIElement {
         this.markDirty();
     }
 
-    public getItems(): readonly ContextMenuLayerItem[] {
+    public getItems(): readonly OverlayLayerItem[] {
         return this.items;
     }
 

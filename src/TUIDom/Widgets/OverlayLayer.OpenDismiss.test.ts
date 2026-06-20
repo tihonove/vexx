@@ -20,10 +20,10 @@ function cornerCells(app: TestApp): { x: number; y: number }[] {
     return found;
 }
 
-describe("ContextMenuLayer — open at point and dismiss", () => {
+describe("OverlayLayer — open at point and dismiss", () => {
     it("renders a session overlay at the requested screen point", () => {
         const app = TestApp.createWithContent(new InputElement(), new Size(30, 12));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const box = new BoxElement();
         layer.createSession(box, new Point(6, 3), { visible: true });
@@ -36,7 +36,7 @@ describe("ContextMenuLayer — open at point and dismiss", () => {
 
     it("removes the overlay from the screen after the session closes", () => {
         const app = TestApp.createWithContent(new InputElement(), new Size(30, 12));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const box = new BoxElement();
         const session = layer.createSession(box, new Point(4, 2), { visible: true });
@@ -53,7 +53,7 @@ describe("ContextMenuLayer — open at point and dismiss", () => {
 
     it("dismisses an open session when Escape reaches the root (closeOnEscape)", () => {
         const app = TestApp.createWithContent(new InputElement(), new Size(30, 12));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const box = new BoxElement();
         const session = layer.createSession(box, new Point(5, 5), {
@@ -71,7 +71,7 @@ describe("ContextMenuLayer — open at point and dismiss", () => {
 
     it("dismisses an open session on an outside pointer press (closeOnOutsidePointer)", () => {
         const app = TestApp.createWithContent(new InputElement(), new Size(30, 12));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const box = new BoxElement();
         const session = layer.createSession(box, new Point(5, 5), {
@@ -96,7 +96,7 @@ describe("ContextMenuLayer — open at point and dismiss", () => {
 
     it("keeps the session open when Escape is not requested to close it", () => {
         const app = TestApp.createWithContent(new InputElement(), new Size(30, 12));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const box = new BoxElement();
         const session = layer.createSession(box, new Point(5, 5), {

@@ -15,7 +15,7 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
@@ -65,6 +65,7 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
+import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
     inputCursorEndAction,
     inputCursorHomeAction,
@@ -91,6 +92,7 @@ import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileSearchService } from "./FileSearchService.ts";
 import { FileTreeController } from "./FileTreeController.ts";
+import { FindController } from "./FindController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
@@ -220,6 +222,7 @@ export class AppController extends Disposable implements IController {
     private fileTreeController: FileTreeController;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
+    private findController: FindController;
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
@@ -253,6 +256,7 @@ export class AppController extends Disposable implements IController {
         this.quickOpenController = this.register(
             new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
         );
+        this.findController = this.register(new FindController(this.editorGroupController));
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
@@ -277,6 +281,9 @@ export class AppController extends Disposable implements IController {
         this.view.setStatusBar(this.statusBarController.view);
 
         this.quickOpenController.setHostView(this.view);
+        this.findController.setHostView();
+        // Find operates on the active editor only — close the widget when it changes.
+        this.register(this.editorGroupController.onActiveEditorChanged(() => this.findController.close()));
         this.register({
             dispose: () => {
                 this.clearChordTimeout();
@@ -318,6 +325,38 @@ export class AppController extends Disposable implements IController {
                 ...showCommandsAction,
                 run: () => {
                     this.quickOpenController.open("commands");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...findAction,
+                run: () => {
+                    this.findController.open();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...nextMatchAction,
+                run: () => {
+                    this.findController.next();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...previousMatchAction,
+                run: () => {
+                    this.findController.prev();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...closeFindWidgetAction,
+                run: () => {
+                    this.findController.close();
                 },
             }),
         );
@@ -654,6 +693,7 @@ export class AppController extends Disposable implements IController {
         this.inputWidgetController.setActive(active instanceof InputElement ? active : null);
         this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
+        this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
 
         // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
         // but mode can be force-toggled at runtime, so refresh alongside focus context.
@@ -800,7 +840,7 @@ export class AppController extends Disposable implements IController {
     ): void {
         if (!this.confirmDialog) {
             this.confirmDialog = new ConfirmSaveDialogElement(filename);
-            this.confirmDialogSession = this.view.contextMenuLayer.createSession(this.confirmDialog, new Point(0, 0), {
+            this.confirmDialogSession = this.view.overlayLayer.createSession(this.confirmDialog, new Point(0, 0), {
                 visible: false,
                 restoreFocus: true,
                 closeOnEscape: true,
@@ -857,7 +897,7 @@ export class AppController extends Disposable implements IController {
         menu.tabIndex = 0;
 
         let session: OverlaySessionHandle | null = null;
-        session = this.view.contextMenuLayer.openPopupSession(
+        session = this.view.overlayLayer.openPopupSession(
             menu,
             { screenX, screenY },
             {

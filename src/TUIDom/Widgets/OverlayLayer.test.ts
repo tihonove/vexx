@@ -8,18 +8,18 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import { BoxElement } from "./BoxElement.ts";
-import { ContextMenuLayer } from "./ContextMenuLayer.ts";
+import { OverlayLayer } from "./OverlayLayer.ts";
 
 function renderLayer(
     layerWidth: number,
     layerHeight: number,
-    setup: (layer: ContextMenuLayer) => void,
+    setup: (layer: OverlayLayer) => void,
 ): MockTerminalBackend {
     const size = new Size(layerWidth, layerHeight);
     const backend = new MockTerminalBackend(size);
     const termScreen = new TerminalScreen(size);
 
-    const layer = new ContextMenuLayer();
+    const layer = new OverlayLayer();
     layer.globalPosition = new Point(0, 0);
     setup(layer);
     layer.performLayout(BoxConstraints.tight(size));
@@ -28,7 +28,7 @@ function renderLayer(
     return backend;
 }
 
-describe("ContextMenuLayer", () => {
+describe("OverlayLayer", () => {
     it("renders nothing when no items", () => {
         const backend = renderLayer(10, 3, () => {
             // noop
@@ -67,7 +67,7 @@ describe("ContextMenuLayer", () => {
         const backend = new MockTerminalBackend(size);
         const termScreen = new TerminalScreen(size);
 
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         layer.globalPosition = new Point(0, 0);
         const box = new BoxElement();
         layer.addItem(box, new Point(0, 0), true);
@@ -82,26 +82,26 @@ describe("ContextMenuLayer", () => {
     });
 
     it("hasVisibleItems returns false when empty", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         expect(layer.hasVisibleItems()).toBe(false);
     });
 
     it("hasVisibleItems returns false when all hidden", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const box = new BoxElement();
         layer.addItem(box, new Point(0, 0), false);
         expect(layer.hasVisibleItems()).toBe(false);
     });
 
     it("hasVisibleItems returns true when any visible", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const box = new BoxElement();
         layer.addItem(box, new Point(0, 0), true);
         expect(layer.hasVisibleItems()).toBe(true);
     });
 
     it("dispatches events to visible item elements directly", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const keys1: string[] = [];
         const keys2: string[] = [];
 
@@ -121,7 +121,7 @@ describe("ContextMenuLayer", () => {
     });
 
     it("removes item", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const box = new BoxElement();
         layer.addItem(box, new Point(0, 0), true);
         layer.removeItem(box);
@@ -130,7 +130,7 @@ describe("ContextMenuLayer", () => {
     });
 
     it("clearAll removes all items", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         layer.addItem(new BoxElement(), new Point(0, 0), true);
         layer.addItem(new BoxElement(), new Point(5, 5), true);
         layer.clearAll();

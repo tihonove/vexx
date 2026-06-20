@@ -7,13 +7,14 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
 import { EditorViewState } from "./EditorViewState.ts";
 import type { ILineTokens, IToken } from "./ILineTokens.ts";
+import type { IRange } from "./IRange.ts";
 import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "./ISelection.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "./Tokenization/ITokenStyleResolver.ts";
@@ -21,10 +22,23 @@ import { NULL_TOKEN_STYLE_RESOLVER } from "./Tokenization/ITokenStyleResolver.ts
 import { UndoManager } from "./UndoManager.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);
+// Find-in-file highlights: all matches get a dim background; the current match a brighter one.
+const FIND_MATCH_BG = packRgb(98, 91, 23);
+const FIND_MATCH_CURRENT_BG = packRgb(168, 109, 0);
 const GUTTER_LEFT_PADDING = 2;
 
 const DEFAULT_LINE_NUMBER_FG = packRgb(133, 133, 133);
 const DEFAULT_LINE_NUMBER_ACTIVE_FG = packRgb(198, 198, 198);
+
+/** Viewport geometry shared by the range-background highlight passes. */
+interface RangeHighlightGeometry {
+    scrollTop: number;
+    scrollLeft: number;
+    visibleLines: number;
+    viewLineCount: number;
+    contentCols: number;
+    gutterW: number;
+}
 
 /**
  * TUI element that renders a text editor backed by EditorViewState.
@@ -259,33 +273,33 @@ export class EditorElement extends TUIElement implements IScrollable {
             }
         }
 
+        // Shared geometry for the range-background highlight passes below.
+        const geometry: RangeHighlightGeometry = {
+            scrollTop,
+            scrollLeft,
+            visibleLines,
+            viewLineCount,
+            contentCols,
+            gutterW,
+        };
+
+        // Highlight all search matches except the current one (drawn under selections).
+        const searchMatches = this.viewState.searchMatches;
+        const currentMatchIndex = this.viewState.currentSearchMatchIndex;
+        for (let i = 0; i < searchMatches.length; i++) {
+            if (i === currentMatchIndex) continue;
+            this.paintRangeBackground(context, searchMatches[i], FIND_MATCH_BG, geometry);
+        }
+
         // Highlight selections
         for (const sel of this.viewState.selections) {
             if (isSelectionCollapsed(sel)) continue;
-            const range = selectionToRange(sel);
+            this.paintRangeBackground(context, selectionToRange(sel), SELECTION_BG, geometry);
+        }
 
-            for (let screenY = 0; screenY < visibleLines; screenY++) {
-                const viewLine = scrollTop + screenY;
-                if (viewLine >= viewLineCount) break;
-
-                const logLine = this.viewState.visualToLogicalLine(viewLine);
-                if (logLine < range.start.line || logLine > range.end.line) continue;
-
-                const lineContent = this.viewState.getViewLine(viewLine);
-                const dl = new DisplayLine(lineContent, this.tabSize);
-                const selStartChar = logLine === range.start.line ? range.start.character : 0;
-                const selEndChar = logLine === range.end.line ? range.end.character : lineContent.length + 1;
-
-                const selStartCol = logLine === range.start.line ? dl.offsetToColumn(selStartChar) : 0;
-                const selEndCol = logLine === range.end.line ? dl.offsetToColumn(selEndChar) : dl.displayWidth + 1;
-
-                const screenXStart = Math.max(0, selStartCol - scrollLeft);
-                const screenXEnd = Math.min(contentCols, selEndCol - scrollLeft);
-
-                for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
-                    context.setCell(gutterW + screenX, screenY, { bg: SELECTION_BG });
-                }
-            }
+        // Highlight the current search match on top (wins over other matches and selection).
+        if (currentMatchIndex >= 0 && currentMatchIndex < searchMatches.length) {
+            this.paintRangeBackground(context, searchMatches[currentMatchIndex], FIND_MATCH_CURRENT_BG, geometry);
         }
 
         // Position hardware cursor at the primary selection's active position
@@ -304,6 +318,41 @@ export class EditorElement extends TUIElement implements IScrollable {
             cursorScreenY < visibleLines
         ) {
             context.setCursorPosition(cursorScreenX, cursorScreenY);
+        }
+    }
+
+    /**
+     * Paints a solid background colour over the cells covered by `range` within
+     * the visible viewport. Only `bg` is set, so the glyph and fg underneath are
+     * preserved. Used by both the selection and search-match highlight passes.
+     */
+    private paintRangeBackground(
+        context: RenderContext,
+        range: IRange,
+        bg: number,
+        geo: RangeHighlightGeometry,
+    ): void {
+        for (let screenY = 0; screenY < geo.visibleLines; screenY++) {
+            const viewLine = geo.scrollTop + screenY;
+            if (viewLine >= geo.viewLineCount) break;
+
+            const logLine = this.viewState.visualToLogicalLine(viewLine);
+            if (logLine < range.start.line || logLine > range.end.line) continue;
+
+            const lineContent = this.viewState.getViewLine(viewLine);
+            const dl = new DisplayLine(lineContent, this.tabSize);
+            const startChar = logLine === range.start.line ? range.start.character : 0;
+            const endChar = logLine === range.end.line ? range.end.character : lineContent.length + 1;
+
+            const startCol = logLine === range.start.line ? dl.offsetToColumn(startChar) : 0;
+            const endCol = logLine === range.end.line ? dl.offsetToColumn(endChar) : dl.displayWidth + 1;
+
+            const screenXStart = Math.max(0, startCol - geo.scrollLeft);
+            const screenXEnd = Math.min(geo.contentCols, endCol - geo.scrollLeft);
+
+            for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
+                context.setCell(geo.gutterW + screenX, screenY, { bg });
+            }
         }
     }
 
@@ -387,7 +436,7 @@ export class EditorElement extends TUIElement implements IScrollable {
 
         const menu = new PopupMenuElement(wrappedEntries);
 
-        const layer = this.getContextMenuLayer();
+        const layer = this.getOverlayLayer();
         if (!layer) return;
 
         let session: OverlaySessionHandle | null = null;
@@ -420,10 +469,10 @@ export class EditorElement extends TUIElement implements IScrollable {
         session.dispose();
     }
 
-    private getContextMenuLayer() {
+    private getOverlayLayer() {
         const root = this.getRoot();
         if (!root) return null;
-        return (root as BodyElement).contextMenuLayer;
+        return (root as BodyElement).overlayLayer;
     }
 
     private handleMouseMove(event: TUIMouseEvent): void {

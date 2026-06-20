@@ -225,8 +225,18 @@ describe("getCharDisplayWidth", () => {
             expect(getCharDisplayWidth(0x1f6d0)).toBe(2); // place of worship
             expect(getCharDisplayWidth(0x1fa00)).toBe(2); // chess pawn block
             expect(getCharDisplayWidth(0x1fa70)).toBe(2); // ballet shoes block
-            expect(getCharDisplayWidth(0x2700)).toBe(2); // dingbats
+            expect(getCharDisplayWidth(0x2705)).toBe(2); // ✅ dingbat (Emoji_Presentation=Yes)
             expect(getCharDisplayWidth(0x1f100)).toBe(2); // enclosed alphanumeric supplement
+        });
+
+        it("returns 1 for narrow Dingbats (Emoji_Presentation=No text symbols)", () => {
+            // The Dingbats block (2700–27BF) is mostly narrow text symbols; only a
+            // handful of code points default to emoji presentation. Regression guard
+            // for the find widget's ✕ close glyph drifting the right border.
+            expect(getCharDisplayWidth(0x2715)).toBe(1); // ✕ MULTIPLICATION X
+            expect(getCharDisplayWidth(0x2713)).toBe(1); // ✓ CHECK MARK
+            expect(getCharDisplayWidth(0x2700)).toBe(1); // ✀ (block start, non-emoji)
+            expect(getCharDisplayWidth(0x274c)).toBe(2); // ❌ stays wide (Emoji_Presentation=Yes)
         });
     });
 
@@ -245,6 +255,16 @@ describe("getCharDisplayWidth", () => {
             [0x1f6dd, 0x1f6df, "transport/map"],
             [0x1f6eb, 0x1f6ec, "transport/map"],
             [0x1f6f4, 0x1f6fc, "transport/map"],
+            // Emoji_Presentation=Yes code points inside the Dingbats block (2700–27BF).
+            [0x2705, 0x2705, "✅ check mark"],
+            [0x270a, 0x270b, "✊✋ fist / hand"],
+            [0x2728, 0x2728, "✨ sparkles"],
+            [0x274c, 0x274c, "❌ cross mark"],
+            [0x274e, 0x274e, "❎ negative cross"],
+            [0x2753, 0x2755, "❓❔❕ question / exclamation"],
+            [0x2757, 0x2757, "❗ heavy exclamation"],
+            [0x2795, 0x2797, "➕➖➗ heavy math"],
+            [0x27b0, 0x27bf, "➰➿ curly loops"],
         ];
 
         for (const [start, end, label] of ranges) {

@@ -211,7 +211,7 @@ describe("EditorElement — context menu separators and close lifecycle", () => 
 
         fireMouseDown(editor, 5, 0, "right");
 
-        const menuEl = app.root.contextMenuLayer.getItems()[0].element as PopupMenuElement;
+        const menuEl = app.root.overlayLayer.getItems()[0].element as PopupMenuElement;
         // The middle entry is a separator and must be preserved verbatim.
         expect(menuEl.entries[1]).toEqual({ type: "separator" });
     });
@@ -224,16 +224,16 @@ describe("EditorElement — context menu separators and close lifecycle", () => 
         editor.contextMenuEntries = [{ label: "Copy" }];
 
         fireMouseDown(editor, 5, 0, "right");
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
 
         // Close by clicking outside → the layer's onClose fires, resetting the
         // active session (the `session === activeContextMenuSession` branch).
         fireMouseDown(editor, 2, 2, "left");
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
 
         // A subsequent right-click opens a brand-new popup.
         fireMouseDown(editor, 6, 1, "right");
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
-        expect(app.root.contextMenuLayer.getItems().length).toBe(1);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
+        expect(app.root.overlayLayer.getItems().length).toBe(1);
     });
 });

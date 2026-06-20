@@ -151,8 +151,19 @@ function isWide(cp: number): boolean {
     if (cp >= 0x1fa00 && cp <= 0x1fa6f) return true;
     // Symbols and Pictographs Extended-B  (added Unicode 14+)
     if (cp >= 0x1fa70 && cp <= 0x1faff) return true;
-    // Dingbats (many are emoji)
-    if (cp >= 0x2700 && cp <= 0x27bf) return true;
+    // Dingbats (2700–27BF) — only the Emoji_Presentation=Yes code points are wide.
+    // The rest (e.g. ✕ U+2715, ✓ U+2713, scissors U+2700) are narrow text symbols.
+    // Source: Unicode 15 emoji-data.txt
+    if (cp === 0x2705) return true; // ✅ WHITE HEAVY CHECK MARK
+    if (cp >= 0x270a && cp <= 0x270b) return true; // ✊ RAISED FIST .. ✋ RAISED HAND
+    if (cp === 0x2728) return true; // ✨ SPARKLES
+    if (cp === 0x274c) return true; // ❌ CROSS MARK
+    if (cp === 0x274e) return true; // ❎ NEGATIVE SQUARED CROSS MARK
+    if (cp >= 0x2753 && cp <= 0x2755) return true; // ❓ .. ❕ question / exclamation ornaments
+    if (cp === 0x2757) return true; // ❗ HEAVY EXCLAMATION MARK SYMBOL
+    if (cp >= 0x2795 && cp <= 0x2797) return true; // ➕ ➖ ➗ heavy plus / minus / division
+    if (cp === 0x27b0) return true; // ➰ CURLY LOOP
+    if (cp === 0x27bf) return true; // ➿ DOUBLE CURLY LOOP
     // Enclosed Alphanumeric Supplement (circled numbers, emoji)
     if (cp >= 0x1f100 && cp <= 0x1f1ff) return true;
 

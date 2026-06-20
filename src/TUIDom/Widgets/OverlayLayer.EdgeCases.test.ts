@@ -7,11 +7,11 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { InputElement } from "./InputElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
-describe("ContextMenuLayer edge cases", () => {
+describe("OverlayLayer edge cases", () => {
     it("removeItem disposes an active session and detaches its listeners", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         menu.tabIndex = 0;
@@ -43,7 +43,7 @@ describe("ContextMenuLayer edge cases", () => {
     it("handle.isDisposed reflects the live session state", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Cut" }]);
         const session = layer.createSession(menu, new Point(1, 1), { visible: false });
@@ -56,7 +56,7 @@ describe("ContextMenuLayer edge cases", () => {
     it("handle.setAnchor repositions the menu using anchor-clamping logic", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(20, 6));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Delete" }]);
         const session = layer.createSession(menu, new Point(0, 0), { visible: true });
@@ -77,7 +77,7 @@ describe("ContextMenuLayer edge cases", () => {
     it("setAnchor is a no-op after the session is disposed", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(20, 6));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Delete" }]);
         const session = layer.createSession(menu, new Point(0, 0), { visible: false });
@@ -91,7 +91,7 @@ describe("ContextMenuLayer edge cases", () => {
     it("clearAll cleans up listeners of open sessions so Escape no longer closes them", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         menu.tabIndex = 0;
@@ -122,7 +122,7 @@ describe("ContextMenuLayer edge cases", () => {
     it("createSession for an element with an existing session disposes the old one first", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
 

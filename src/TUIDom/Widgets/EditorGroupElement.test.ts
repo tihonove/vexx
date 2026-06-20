@@ -68,17 +68,19 @@ describe("EditorGroupElement", () => {
     });
 
     describe("children", () => {
-        it("includes tab strip when no content", () => {
+        it("includes tab strip and overlay layer when no content", () => {
             const group = new EditorGroupElement();
-            expect(group.getChildren()).toHaveLength(1);
+            expect(group.getChildren()).toHaveLength(2);
             expect(group.getChildren()[0]).toBe(group.tabStrip);
+            expect(group.getChildren()[1]).toBe(group.overlayLayer);
         });
 
-        it("includes tab strip and content", () => {
+        it("includes tab strip, content and overlay layer", () => {
             const group = new EditorGroupElement();
             const content = new BoxElement();
             group.setContent(content);
-            expect(group.getChildren()).toHaveLength(2);
+            expect(group.getChildren()).toHaveLength(3);
+            expect(group.getChildren()).toContain(content);
         });
     });
 
@@ -114,7 +116,8 @@ describe("EditorGroupElement", () => {
             group.setContent(null);
 
             expect(group.getContent()).toBeNull();
-            expect(group.getChildren()).toHaveLength(1);
+            expect(group.getChildren()).toHaveLength(2);
+            expect(group.getChildren()).toContain(group.overlayLayer);
         });
     });
 

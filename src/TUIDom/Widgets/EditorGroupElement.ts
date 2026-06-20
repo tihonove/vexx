@@ -1,16 +1,29 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { OverlayLayer } from "./OverlayLayer.ts";
 import { EditorTabStripElement } from "./EditorTabStripElement.ts";
 
 export class EditorGroupElement extends TUIElement {
     public readonly tabStrip: EditorTabStripElement;
     private content: TUIElement | null = null;
+    private readonly overlayLayerValue: OverlayLayer;
 
     public constructor() {
         super();
         this.tabStrip = new EditorTabStripElement();
         this.tabStrip.setParent(this);
+        this.overlayLayerValue = new OverlayLayer();
+        this.overlayLayerValue.setParent(this);
+    }
+
+    /**
+     * Local overlay layer sitting on top of the editor content — hosts the find
+     * widget (and any future editor-group overlay). Positions are relative to the
+     * group; the layer clips its items to the group bounds.
+     */
+    public get overlayLayer(): OverlayLayer {
+        return this.overlayLayerValue;
     }
 
     public getContent(): TUIElement | null {
@@ -31,6 +44,9 @@ export class EditorGroupElement extends TUIElement {
     public override getChildren(): readonly TUIElement[] {
         const children: TUIElement[] = [this.tabStrip];
         if (this.content) children.push(this.content);
+        // Overlay layer last → hit-tested first (clicks on the find widget win
+        // over the editor underneath; clicks elsewhere fall through to content).
+        children.push(this.overlayLayerValue);
         return children;
     }
 
@@ -52,6 +68,12 @@ export class EditorGroupElement extends TUIElement {
             this.content.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y + tabStripHeight);
             this.content.performLayout(BoxConstraints.tight(new Size(containerSize.width, contentHeight)));
         }
+
+        // Overlay layer covers the whole group (tab strip + content); item
+        // positions are relative to the group's top-left.
+        this.overlayLayerValue.localPosition = new Offset(0, 0);
+        this.overlayLayerValue.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
+        this.overlayLayerValue.performLayout(BoxConstraints.tight(containerSize));
 
         return containerSize;
     }
@@ -77,5 +99,8 @@ export class EditorGroupElement extends TUIElement {
                 }
             }
         }
+
+        // Overlay layer (find widget, …) — rendered last, on top of the content.
+        this.overlayLayerValue.render(context);
     }
 }

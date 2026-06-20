@@ -36,7 +36,7 @@ describe("EditorElement — right-click context menu", () => {
 
         fireMouseDown(editor, 5, 0, "right");
 
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("does not show popup when contextMenuEntries is empty", () => {
@@ -44,7 +44,7 @@ describe("EditorElement — right-click context menu", () => {
 
         fireMouseDown(editor, 5, 0, "right");
 
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("popup contains a PopupMenuElement", () => {
@@ -53,7 +53,7 @@ describe("EditorElement — right-click context menu", () => {
 
         fireMouseDown(editor, 5, 0, "right");
 
-        const items = app.root.contextMenuLayer.getItems();
+        const items = app.root.overlayLayer.getItems();
         expect(items.length).toBe(1);
         expect(items[0].element).toBeInstanceOf(PopupMenuElement);
     });
@@ -63,12 +63,12 @@ describe("EditorElement — right-click context menu", () => {
         editor.contextMenuEntries = [{ label: "Copy" }];
 
         fireMouseDown(editor, 5, 0, "right");
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
 
         // Click elsewhere (left-click on the editor at a different position)
         fireMouseDown(editor, 2, 2, "left");
 
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("popup closes when a menu item is selected", () => {
@@ -77,13 +77,13 @@ describe("EditorElement — right-click context menu", () => {
         editor.contextMenuEntries = [{ label: "Copy", onSelect }];
 
         fireMouseDown(editor, 5, 0, "right");
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
 
-        const menuEl = app.root.contextMenuLayer.getItems()[0].element as PopupMenuElement;
+        const menuEl = app.root.overlayLayer.getItems()[0].element as PopupMenuElement;
         const firstEntry = menuEl.entries[0] as { onSelect?: () => void };
         firstEntry.onSelect?.();
 
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("calls the original onSelect handler after closing", () => {
@@ -92,7 +92,7 @@ describe("EditorElement — right-click context menu", () => {
         editor.contextMenuEntries = [{ label: "Copy", onSelect }];
 
         fireMouseDown(editor, 5, 0, "right");
-        const menuEl = app.root.contextMenuLayer.getItems()[0].element as PopupMenuElement;
+        const menuEl = app.root.overlayLayer.getItems()[0].element as PopupMenuElement;
         const firstEntry = menuEl.entries[0] as { onSelect?: () => void };
         firstEntry.onSelect?.();
 
@@ -117,7 +117,7 @@ describe("EditorElement — right-click context menu", () => {
         fireMouseDown(editor, 5, 0, "right");
         fireMouseDown(editor, 10, 0, "right");
 
-        expect(app.root.contextMenuLayer.getItems().length).toBe(1);
+        expect(app.root.overlayLayer.getItems().length).toBe(1);
     });
 
     it("popup is positioned at the click coordinates", () => {
@@ -126,7 +126,7 @@ describe("EditorElement — right-click context menu", () => {
 
         fireMouseDown(editor, 7, 3, "right");
 
-        const item = app.root.contextMenuLayer.getItems()[0];
+        const item = app.root.overlayLayer.getItems()[0];
         expect(item.position.x).toBe(7);
         expect(item.position.y).toBe(3);
     });
