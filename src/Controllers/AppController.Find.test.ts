@@ -1,63 +1,13 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import type { ContextKeyService } from "./ContextKeyService.ts";
-import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import type { EditorController } from "./EditorController.ts";
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
-
-interface FindContext {
-    testApp: TestApp;
-    controller: AppController;
-    contextKeys: ContextKeyService;
-    activeEditor: () => EditorController;
-    tmpDir: string;
-}
-
-function createFindApp(text: string): FindContext {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-find-app-"));
-    const filePath = path.join(tmpDir, "file.txt");
-    fs.writeFileSync(filePath, text);
-
-    const { container, bindApp } = createTestContainer();
-    const controller = container.get(AppControllerDIToken);
-    controller.mount();
-    const testApp = TestApp.create(controller.view, new Size(80, 24));
-    bindApp(testApp.app);
-
-    controller.openFile(filePath);
-    controller.focusEditor();
-    testApp.render();
-
-    const group = container.get(EditorGroupControllerDIToken);
-    return {
-        testApp,
-        controller,
-        contextKeys: container.get(ContextKeyServiceDIToken),
-        activeEditor: () => group.getActiveEditor() as EditorController,
-        tmpDir,
-    };
-}
-
-/** Types each character into the focused find input. */
-function type(testApp: TestApp, text: string): void {
-    for (const ch of text) testApp.sendKey(ch);
-}
+import type { FindContext } from "./AppController.Find.TestUtils.ts";
+import { createFindApp, disposeFindApp, type } from "./AppController.Find.TestUtils.ts";
 
 describe("AppController — find in file", () => {
     let ctx: FindContext;
 
     afterEach(() => {
-        ctx.controller.dispose();
-        fs.rmSync(ctx.tmpDir, { recursive: true, force: true });
+        disposeFindApp(ctx);
     });
 
     it("Ctrl+F opens the find widget and focuses its input", () => {
