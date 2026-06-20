@@ -29,11 +29,11 @@ function mousedown(widget: FindWidgetElement, localX: number, localY = 1): TUIMo
     return event;
 }
 
-// At width 44 with an empty input the right block is just the 6-cell "↑ ↓ ✕" nav
-// (✕ is double-width), so navStart = 44 - 1 - 6 = 37 → prev=37, next=39, close=41.
-const PREV_X = 37;
-const NEXT_X = 39;
-const CLOSE_X = 41;
+// At width 44 with an empty input the right block is just the 5-cell "↑ ↓ ✕" nav
+// (all three glyphs are single-width), so navStart = 44 - 1 - 5 = 38 → prev=38, next=40, close=42.
+const PREV_X = 38;
+const NEXT_X = 40;
+const CLOSE_X = 42;
 
 describe("FindWidgetElement — intrinsic sizing", () => {
     it("reports a fixed min width and preferred-width max width", () => {
