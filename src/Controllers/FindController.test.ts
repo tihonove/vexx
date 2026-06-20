@@ -102,7 +102,7 @@ describe("FindController", () => {
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
     });
 
-    it("right-aligns the widget so its right border sits on the group's last column", () => {
+    it("right-aligns the widget one column shy of the group's edge", () => {
         const { find, group, testApp } = setup("foo bar foo");
         find.open();
         testApp.render();
@@ -113,12 +113,11 @@ describe("FindController", () => {
 
         const charAt = (x: number): string => testApp.backend.getTextAt(new Point(x, borderRow), 1);
 
-        // Top-right corner is flush with the group's last column — no stray gap.
-        expect(charAt(groupWidth - 1)).toBe("┐");
-        // Top-left corner lands exactly widgetW columns to the left.
-        expect(charAt(groupWidth - widgetW)).toBe("┌");
-        // The column just left of the right corner is the horizontal border, not empty.
-        expect(charAt(groupWidth - 2)).toBe("─");
+        // 1-col margin: the group's last column stays empty, the corner sits just inside it.
+        expect(charAt(groupWidth - 1)).toBe(" ");
+        expect(charAt(groupWidth - 2)).toBe("┐");
+        // Top-left corner lands exactly widgetW columns to the left of the corner.
+        expect(charAt(groupWidth - 1 - widgetW)).toBe("┌");
     });
 
     it("seeds the query from a single-line selection on open", () => {

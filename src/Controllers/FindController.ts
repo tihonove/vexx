@@ -165,7 +165,7 @@ export class FindController extends Disposable {
         const groupWidth = group.layoutSize.width;
         const widgetW = Math.min(60, Math.max(28, groupWidth - 2));
         this.view.preferredWidth = widgetW;
-        const px = Math.max(0, groupWidth - widgetW); // right-align: widget's right border sits on the group's last column
+        const px = Math.max(0, groupWidth - widgetW - 1); // right-align with a 1-col margin to the group's edge
         const py = 1; // directly under the tab strip
         this.session?.setPosition(new Point(px, py));
     }
