@@ -1,6 +1,6 @@
 {
   "name": "vscode-tui",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "type": "module",
   "exports": {
     "./jsx-runtime": "./src/TUIDom/JSX/jsx-runtime.ts",
