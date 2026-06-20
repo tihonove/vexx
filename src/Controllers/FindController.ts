@@ -29,10 +29,18 @@ export class FindController extends Disposable {
         super();
         this.editorGroupController = editorGroupController;
         this.view = new FindWidgetElement();
-        this.view.onQueryChange = () => this.recompute(true);
-        this.view.onNext = () => this.next();
-        this.view.onPrev = () => this.prev();
-        this.view.onClose = () => this.close();
+        this.view.onQueryChange = () => {
+            this.recompute();
+        };
+        this.view.onNext = () => {
+            this.next();
+        };
+        this.view.onPrev = () => {
+            this.prev();
+        };
+        this.view.onClose = () => {
+            this.close();
+        };
     }
 
     /** Attaches the widget to the editor group's overlay layer. */
@@ -68,7 +76,7 @@ export class FindController extends Disposable {
             }
         }
 
-        this.recompute(true);
+        this.recompute();
         this.updatePosition();
         this.session?.open();
         this.view.focus();
@@ -106,8 +114,11 @@ export class FindController extends Disposable {
 
     // ─── Private ─────────────────────────────────────────────────────────────
 
-    /** Recomputes matches for the current query and refreshes editor + counter. */
-    private recompute(seedFromCursor: boolean): void {
+    /**
+     * Recomputes matches for the current query, seeds the current index from the
+     * cursor, and refreshes the editor highlights + counter.
+     */
+    private recompute(): void {
         const editor = this.editorGroupController.getActiveEditor();
         if (!editor) {
             this.matches = [];
@@ -120,10 +131,8 @@ export class FindController extends Disposable {
 
         if (this.matches.length === 0) {
             this.currentIndex = -1;
-        } else if (seedFromCursor) {
-            this.currentIndex = this.pickCurrentIndex(this.matches, editor.viewState.selections[0].active);
         } else {
-            this.currentIndex = Math.min(Math.max(this.currentIndex, 0), this.matches.length - 1);
+            this.currentIndex = this.pickCurrentIndex(this.matches, editor.viewState.selections[0].active);
         }
 
         editor.setSearchDecorations(this.matches, this.currentIndex);

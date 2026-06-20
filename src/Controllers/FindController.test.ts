@@ -2,18 +2,18 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { createSelection } from "../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 import type { EditorController } from "./EditorController.ts";
@@ -68,7 +68,7 @@ describe("FindController", () => {
         find.setHostView();
 
         // getActiveEditor() is non-null right after openFile.
-        const editor = group.getActiveEditor() as EditorController;
+        const editor = group.getActiveEditor()!;
         return { find, group, editor, testApp };
     }
 
@@ -129,8 +129,81 @@ describe("FindController", () => {
         find.open();
         typeQuery(find, "zzz");
         expect(editor.viewState.searchMatches).toEqual([]);
-        expect(() => find.next()).not.toThrow();
+        expect(() => {
+            find.next();
+        }).not.toThrow();
         expect(editor.viewState.currentSearchMatchIndex).toBe(-1);
+    });
+
+    it("open() on an already-open widget just refocuses without re-seeding", () => {
+        const { find, editor } = setup("foo bar foo");
+        find.open();
+        typeQuery(find, "foo");
+        find.next(); // current = second match
+        expect(editor.viewState.currentSearchMatchIndex).toBe(1);
+
+        find.open(); // already open — must not reset the query or the current match
+        expect(find.isVisible()).toBe(true);
+        expect(find.view.getQuery()).toBe("foo");
+        expect(editor.viewState.currentSearchMatchIndex).toBe(1);
+    });
+
+    it("wraps the current match to the first when the cursor sits past every match", () => {
+        const { find, editor } = setup("foo bar foo");
+        // Collapsed cursor at end of line — after both matches.
+        editor.viewState.selections = [createSelection(0, 11, 0, 11)];
+        find.open();
+        typeQuery(find, "foo");
+        expect(editor.viewState.currentSearchMatchIndex).toBe(0);
+    });
+
+    it("prev() is a no-op when there are no matches", () => {
+        const { find, editor } = setup("foo bar foo");
+        find.open();
+        typeQuery(find, "zzz");
+        expect(() => {
+            find.prev();
+        }).not.toThrow();
+        expect(editor.viewState.currentSearchMatchIndex).toBe(-1);
+    });
+
+    it("wires the widget callbacks to next / prev / close", () => {
+        const { find, editor } = setup("foo bar foo");
+        find.open();
+        typeQuery(find, "foo");
+
+        find.view.onNext?.();
+        expect(editor.viewState.currentSearchMatchIndex).toBe(1);
+        find.view.onPrev?.();
+        expect(editor.viewState.currentSearchMatchIndex).toBe(0);
+        find.view.onClose?.();
+        expect(find.isVisible()).toBe(false);
+    });
+
+    it("dispose() tears down the overlay session", () => {
+        const { find } = setup("foo bar foo");
+        find.open();
+        expect(find.isVisible()).toBe(true);
+        find.dispose();
+        expect(find.isVisible()).toBe(false);
+    });
+
+    it("isVisible() is false before the host view is attached", () => {
+        const group = makeGroup();
+        const find = new FindController(group);
+        expect(find.isVisible()).toBe(false);
+    });
+
+    it("next() tolerates the active editor disappearing after matches were found", () => {
+        const { find, group } = setup("foo bar foo");
+        find.open();
+        typeQuery(find, "foo");
+
+        // Editor closes (or detaches) while the widget is still open with stale matches.
+        vi.spyOn(group, "getActiveEditor").mockReturnValue(null);
+        expect(() => {
+            find.next();
+        }).not.toThrow();
     });
 
     it("opens without an active editor (empty group)", () => {
@@ -141,8 +214,17 @@ describe("FindController", () => {
         const find = new FindController(group);
         find.setHostView();
 
-        expect(() => find.open()).not.toThrow();
+        expect(() => {
+            find.open();
+        }).not.toThrow();
         expect(find.isVisible()).toBe(true);
-        expect(() => typeQuery(find, "foo")).not.toThrow();
+        expect(() => {
+            typeQuery(find, "foo");
+        }).not.toThrow();
+        // close() with no active editor must still hide the widget (skips cursor restore).
+        expect(() => {
+            find.close();
+        }).not.toThrow();
+        expect(find.isVisible()).toBe(false);
     });
 });
