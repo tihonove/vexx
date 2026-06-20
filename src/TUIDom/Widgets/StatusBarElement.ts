@@ -3,6 +3,8 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface StatusBarItem {
     text: string;
+    /** Side of the bar to render on. Defaults to "left". */
+    align?: "left" | "right";
 }
 
 export class StatusBarElement extends TUIElement {
@@ -18,11 +20,34 @@ export class StatusBarElement extends TUIElement {
     }
 
     public override getMinIntrinsicWidth(_height: number): number {
-        return this.items.map((item) => item.text).join("  ").length;
+        return this.intrinsicWidth();
     }
 
     public override getMaxIntrinsicWidth(_height: number): number {
-        return this.items.map((item) => item.text).join("  ").length;
+        return this.intrinsicWidth();
+    }
+
+    private leftText(): string {
+        return this.items
+            .filter((item) => item.align !== "right")
+            .map((item) => item.text)
+            .join("  ");
+    }
+
+    private rightText(): string {
+        return this.items
+            .filter((item) => item.align === "right")
+            .map((item) => item.text)
+            .join("  ");
+    }
+
+    private intrinsicWidth(): number {
+        const left = this.leftText();
+        const right = this.rightText();
+        if (left.length > 0 && right.length > 0) {
+            return left.length + 2 + right.length;
+        }
+        return left.length + right.length;
     }
 
     public override getMinIntrinsicHeight(_width: number): number {
@@ -42,15 +67,28 @@ export class StatusBarElement extends TUIElement {
         const width = this.layoutSize.width;
         const resolved = this.resolvedStyle;
 
-        const text = this.items.map((item) => item.text).join("  ");
+        const left = this.leftText();
+        const right = this.rightText();
 
+        // Background
         for (let x = 0; x < width; x++) {
-            const char = x < text.length ? text[x] : " ";
-            context.setCell(x, 0, {
-                char,
-                fg: resolved.fg,
-                bg: resolved.bg,
-            });
+            context.setCell(x, 0, { char: " ", fg: resolved.fg, bg: resolved.bg });
+        }
+
+        // Left-aligned items
+        for (let x = 0; x < left.length && x < width; x++) {
+            context.setCell(x, 0, { char: left[x], fg: resolved.fg, bg: resolved.bg });
+        }
+
+        // Right-aligned items, flush to the right edge. Skip any cell that falls
+        // off the left edge (right text wider than the bar) or that a left item
+        // already owns — left items win on overlap. The last cell always lands at
+        // width-1, so an upper-bound check is unnecessary.
+        const rightStart = width - right.length;
+        for (let i = 0; i < right.length; i++) {
+            const x = rightStart + i;
+            if (x < 0 || x < left.length) continue;
+            context.setCell(x, 0, { char: right[i], fg: resolved.fg, bg: resolved.bg });
         }
     }
 }

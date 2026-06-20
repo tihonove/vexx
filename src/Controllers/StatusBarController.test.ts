@@ -60,7 +60,7 @@ describe("StatusBarController", () => {
         expect(statusBarController.view.getItems()).toEqual([{ text: "legacy" }]);
     });
 
-    it("shows file name after update when file is opened", () => {
+    it("shows the cursor position (right-aligned) after a file is opened", () => {
         const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();
 
@@ -68,7 +68,35 @@ describe("StatusBarController", () => {
         statusBarController.update();
 
         const items = statusBarController.view.getItems();
-        expect(items).toEqual([{ text: "legacy" }, { text: "test-statusbar-file.txt" }]);
+        expect(items).toEqual([{ text: "legacy" }, { text: "Ln 1, Col 1", align: "right" }]);
+    });
+
+    it("does not show the file name or a modified badge", () => {
+        const { statusBarController, editorGroupController } = createStatusBarController();
+        statusBarController.mount();
+
+        editorGroupController.openFile("/tmp/test-statusbar-nofile.txt");
+
+        const activeEditor = editorGroupController.getActiveEditor()!;
+        const editorElement = activeEditor.view.querySelector("EditorElement") as EditorElement;
+        editorElement.viewState.type("x");
+        statusBarController.update();
+
+        const items = statusBarController.view.getItems();
+        expect(items).not.toContainEqual({ text: "test-statusbar-nofile.txt" });
+        expect(items).not.toContainEqual({ text: "[Modified]" });
+    });
+
+    it("omits the cursor position when there is no selection", () => {
+        const { statusBarController, editorGroupController } = createStatusBarController();
+        statusBarController.mount();
+        editorGroupController.openFile("/tmp/test-statusbar-nosel.txt");
+
+        const activeEditor = editorGroupController.getActiveEditor()!;
+        activeEditor.viewState.selections = [];
+        statusBarController.update();
+
+        expect(statusBarController.view.getItems()).toEqual([{ text: "legacy" }]);
     });
 
     it("shows the terminal tier as the first segment", () => {
@@ -77,7 +105,7 @@ describe("StatusBarController", () => {
         expect(statusBarController.view.getItems()[0]).toEqual({ text: "legacy" });
     });
 
-    it("shows [Modified] after text is edited", () => {
+    it("updates the cursor column as text is typed", () => {
         const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();
 
@@ -90,8 +118,7 @@ describe("StatusBarController", () => {
         statusBarController.update();
 
         const items = statusBarController.view.getItems();
-        expect(items).toContainEqual({ text: "test-statusbar-mod.txt" });
-        expect(items).toContainEqual({ text: "[Modified]" });
+        expect(items).toContainEqual({ text: "Ln 1, Col 2", align: "right" });
     });
 
     it("shows the chord hint and clears it with null", () => {
@@ -107,7 +134,7 @@ describe("StatusBarController", () => {
         expect(statusBarController.view.getItems()).toEqual([{ text: "legacy" }]);
     });
 
-    it("keeps the chord hint alongside the file name", () => {
+    it("keeps the chord hint alongside the cursor position", () => {
         const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();
         editorGroupController.openFile("/tmp/test-statusbar-chord.txt");
@@ -116,26 +143,21 @@ describe("StatusBarController", () => {
 
         const items = statusBarController.view.getItems();
         expect(items).toContainEqual({ text: "(Ctrl+K) waiting…" });
-        expect(items).toContainEqual({ text: "test-statusbar-chord.txt" });
+        expect(items).toContainEqual({ text: "Ln 1, Col 1", align: "right" });
     });
 
-    it("clears [Modified] after save", () => {
+    it("tracks the cursor live without an explicit update() call", () => {
         const { statusBarController, editorGroupController } = createStatusBarController();
         statusBarController.mount();
 
-        editorGroupController.openFile("/tmp/test-statusbar-save.txt");
+        editorGroupController.openFile("/tmp/test-statusbar-live.txt");
 
         const activeEditor = editorGroupController.getActiveEditor()!;
         const editorElement = activeEditor.view.querySelector("EditorElement") as EditorElement;
-        editorElement.viewState.type("x");
 
-        statusBarController.update();
-        expect(statusBarController.view.getItems()).toContainEqual({ text: "[Modified]" });
+        // No manual statusBarController.update() — the cursor-change subscription drives it.
+        editorElement.viewState.type("abc");
 
-        activeEditor.save();
-        statusBarController.update();
-
-        const items = statusBarController.view.getItems();
-        expect(items).toEqual([{ text: "legacy" }, { text: "test-statusbar-save.txt" }]);
+        expect(statusBarController.view.getItems()).toContainEqual({ text: "Ln 1, Col 4", align: "right" });
     });
 });

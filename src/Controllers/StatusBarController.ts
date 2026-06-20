@@ -1,5 +1,6 @@
 import { token } from "../Common/DiContainer.ts";
-import { Disposable } from "../Common/Disposable.ts";
+import { DisplayLine } from "../Common/DisplayLine.ts";
+import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -7,6 +8,7 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
+import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import type { IController } from "./IController.ts";
@@ -26,6 +28,7 @@ export class StatusBarController extends Disposable implements IController {
     private editorGroupController: EditorGroupController;
     private terminalEnv: TerminalEnvironmentService;
     private chordHint: string | null = null;
+    private cursorSubscription: IDisposable | null = null;
 
     public constructor(
         editorGroupController: EditorGroupController,
@@ -46,11 +49,28 @@ export class StatusBarController extends Disposable implements IController {
                 this.update();
             }),
         );
+        this.register(
+            this.editorGroupController.onActiveEditorChanged((editor) => {
+                this.bindCursorListener(editor);
+                this.update();
+            }),
+        );
+        this.register({ dispose: () => this.cursorSubscription?.dispose() });
     }
 
     public mount(): void {
-        // Initial update
+        // Pick up an editor that became active before this subscription existed.
+        this.bindCursorListener(this.editorGroupController.getActiveEditor());
         this.update();
+    }
+
+    /**
+     * Re-points the cursor-position listener at the currently active editor so
+     * the Ln/Col indicator tracks the live cursor. Disposes the previous one.
+     */
+    private bindCursorListener(editor: EditorController | null): void {
+        this.cursorSubscription?.dispose();
+        this.cursorSubscription = editor?.onDidChangeCursorPosition(() => this.update()) ?? null;
     }
 
     public async activate(): Promise<void> {
@@ -82,16 +102,27 @@ export class StatusBarController extends Disposable implements IController {
         }
 
         const activeEditor = this.editorGroupController.getActiveEditor();
-
-        if (activeEditor?.fileName) {
-            items.push({ text: activeEditor.fileName });
-        }
-
-        if (activeEditor?.isModified) {
-            items.push({ text: "[Modified]" });
+        const position = this.cursorPositionText(activeEditor);
+        if (position !== null) {
+            items.push({ text: position, align: "right" });
         }
 
         this.view.setItems(items);
+    }
+
+    /**
+     * VSCode-style "Ln X, Col Y" for the primary cursor, or null when there is
+     * no active editor. The column is the tab-expanded display column (matching
+     * the rendered cursor), 1-based like the line.
+     */
+    private cursorPositionText(editor: EditorController | null): string | null {
+        if (editor === null) return null;
+        const viewState = editor.viewState;
+        const active = viewState.selections[0]?.active;
+        if (active === undefined) return null;
+        const lineContent = viewState.document.getLineContent(active.line);
+        const column = new DisplayLine(lineContent, viewState.tabSize).offsetToColumn(active.character);
+        return `Ln ${active.line + 1}, Col ${column + 1}`;
     }
 
     /**

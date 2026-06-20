@@ -1,4 +1,5 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
+import type { IDisposable } from "../Common/Disposable.ts";
 
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
@@ -36,7 +37,8 @@ export class EditorViewState {
     public tabSize = 4;
     public insertSpaces = false;
     public detectIndentation = true;
-    public selections: ISelection[];
+    private selectionsValue!: ISelection[];
+    private cursorChangeListeners: Array<() => void> = [];
     /** Ranges of all current search matches to highlight (set by the find controller). */
     public searchMatches: IRange[] = [];
     /** Index into {@link searchMatches} of the active match, or -1 when there is none. */
@@ -58,6 +60,40 @@ export class EditorViewState {
         this.document = document;
         this.selections = selections && selections.length > 0 ? selections : [createCursorSelection(0, 0)];
         this.runDetectIndentation();
+    }
+
+    /**
+     * Primary cursor/selection list. Assigning a new array notifies
+     * cursor-change listeners (used e.g. by the status bar Ln/Col indicator).
+     * In-place mutation of the returned array does NOT fire the event.
+     */
+    public get selections(): ISelection[] {
+        return this.selectionsValue;
+    }
+
+    public set selections(value: ISelection[]) {
+        this.selectionsValue = value;
+        this.fireCursorChange();
+    }
+
+    /**
+     * Subscribes to cursor/selection changes. Fires whenever `selections` is
+     * reassigned — cursor movement, typing, deletion, mouse, undo/redo.
+     */
+    public onDidChangeCursorPosition(listener: () => void): IDisposable {
+        this.cursorChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.cursorChangeListeners.indexOf(listener);
+                if (i >= 0) this.cursorChangeListeners.splice(i, 1);
+            },
+        };
+    }
+
+    private fireCursorChange(): void {
+        for (const listener of [...this.cursorChangeListeners]) {
+            listener();
+        }
     }
 
     /**
