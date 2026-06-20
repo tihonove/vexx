@@ -25,6 +25,7 @@ import {
     inputDeleteWordLeftAction,
     inputDeleteWordRightAction,
     inputPasteAction,
+    inputRedoAction,
     inputSelectAllAction,
     inputSelectLeftAction,
     inputSelectRightAction,
@@ -32,6 +33,7 @@ import {
     inputSelectToHomeAction,
     inputSelectWordLeftAction,
     inputSelectWordRightAction,
+    inputUndoAction,
 } from "./InputActions.ts";
 
 function memoryClipboard(initial = ""): IClipboard {
@@ -154,6 +156,30 @@ describe("InputActions — clipboard on a real InputState", () => {
         await exec(inputPasteAction);
         expect(input.inputState.value).toBe("hello world!!!");
         expect(onChange).toHaveBeenLastCalledWith("hello world!!!");
+    });
+});
+
+describe("InputActions — undo/redo on a real InputState", () => {
+    it("inputUndo reverts the last edit and fires onChange", async () => {
+        const { input, onChange, exec } = makeCtx("hello world", { cursor: "end" });
+        await exec(inputDeleteLeftAction); // "hello worl"
+        await exec(inputUndoAction);
+        expect(input.inputState.value).toBe("hello world");
+        expect(onChange).toHaveBeenLastCalledWith("hello world");
+    });
+
+    it("inputRedo re-applies an undone edit", async () => {
+        const { input, exec } = makeCtx("hello world", { cursor: "end" });
+        await exec(inputDeleteLeftAction); // "hello worl"
+        await exec(inputUndoAction); // "hello world"
+        await exec(inputRedoAction);
+        expect(input.inputState.value).toBe("hello worl");
+    });
+
+    it("inputUndo is a safe no-op with no edit history", async () => {
+        const { input, exec } = makeCtx("hello world", { cursor: "end" });
+        await exec(inputUndoAction);
+        expect(input.inputState.value).toBe("hello world");
     });
 });
 

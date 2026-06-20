@@ -67,16 +67,28 @@ import { fileSaveAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
+    inputCopyAction,
     inputCursorEndAction,
     inputCursorHomeAction,
     inputCursorLeftAction,
     inputCursorRightAction,
     inputCursorWordLeftAction,
     inputCursorWordRightAction,
+    inputCutAction,
     inputDeleteLeftAction,
     inputDeleteRightAction,
     inputDeleteWordLeftAction,
     inputDeleteWordRightAction,
+    inputPasteAction,
+    inputRedoAction,
+    inputSelectAllAction,
+    inputSelectLeftAction,
+    inputSelectRightAction,
+    inputSelectToEndAction,
+    inputSelectToHomeAction,
+    inputSelectWordLeftAction,
+    inputSelectWordRightAction,
+    inputUndoAction,
 } from "./Actions/InputActions.ts";
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
@@ -172,6 +184,18 @@ const builtinActions = [
     inputDeleteRightAction,
     inputDeleteWordLeftAction,
     inputDeleteWordRightAction,
+    inputSelectLeftAction,
+    inputSelectRightAction,
+    inputSelectToHomeAction,
+    inputSelectToEndAction,
+    inputSelectWordLeftAction,
+    inputSelectWordRightAction,
+    inputSelectAllAction,
+    inputCopyAction,
+    inputCutAction,
+    inputPasteAction,
+    inputUndoAction,
+    inputRedoAction,
 ];
 
 // How long to wait for the next chord part before cancelling (matches VS Code).

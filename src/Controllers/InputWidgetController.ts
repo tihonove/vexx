@@ -75,6 +75,22 @@ export class InputWidgetController {
         this.activeInput.markDirty();
     }
 
+    // ─── Undo / Redo ─────────────────────────────────────────
+
+    public undo(): void {
+        if (!this.activeInput) return;
+        this.activeInput.inputState.undo();
+        this.activeInput.onChange?.(this.activeInput.inputState.value);
+        this.activeInput.markDirty();
+    }
+
+    public redo(): void {
+        if (!this.activeInput) return;
+        this.activeInput.inputState.redo();
+        this.activeInput.onChange?.(this.activeInput.inputState.value);
+        this.activeInput.markDirty();
+    }
+
     // ─── Selection ───────────────────────────────────────────
 
     public selectLeft(): void {
@@ -115,31 +131,36 @@ export class InputWidgetController {
     // ─── Clipboard ───────────────────────────────────────────
 
     public async copy(clipboard: IClipboard): Promise<void> {
-        if (!this.activeInput) return;
-        const text = this.activeInput.inputState.selectedText;
+        const input = this.activeInput;
+        if (!input) return;
+        const text = input.inputState.selectedText;
         if (text !== "") {
             await clipboard.writeText(text);
         }
     }
 
     public async cut(clipboard: IClipboard): Promise<void> {
-        if (!this.activeInput) return;
-        const text = this.activeInput.inputState.selectedText;
-        if (text !== "") {
-            await clipboard.writeText(text);
-            this.activeInput.inputState.deleteLeft();
-            this.activeInput.onChange?.(this.activeInput.inputState.value);
-            this.activeInput.markDirty();
-        }
+        const input = this.activeInput;
+        if (!input) return;
+        const text = input.inputState.selectedText;
+        if (text === "") return;
+        await clipboard.writeText(text);
+        // Focus may have moved (or the overlay closed) during the async clipboard write —
+        // don't mutate an input the user is no longer editing.
+        if (this.activeInput !== input) return;
+        input.inputState.deleteLeft();
+        input.onChange?.(input.inputState.value);
+        input.markDirty();
     }
 
     public async paste(clipboard: IClipboard): Promise<void> {
-        if (!this.activeInput) return;
+        const input = this.activeInput;
+        if (!input) return;
         const text = await clipboard.readText();
-        if (text !== "") {
-            this.activeInput.inputState.insert(text);
-            this.activeInput.onChange?.(this.activeInput.inputState.value);
-            this.activeInput.markDirty();
-        }
+        // Reading the clipboard (OSC 52) can take a while; bail if focus changed meanwhile.
+        if (text === "" || this.activeInput !== input) return;
+        input.inputState.insert(text);
+        input.onChange?.(input.inputState.value);
+        input.markDirty();
     }
 }

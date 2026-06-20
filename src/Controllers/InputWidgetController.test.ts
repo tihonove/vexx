@@ -239,3 +239,118 @@ describe("InputWidgetController — clipboard", () => {
         await expect(controller.paste(clipboard)).resolves.toBeUndefined();
     });
 });
+
+/**
+ * A clipboard whose read/write promises stay pending until manually resolved — lets us
+ * change the active input mid-await to reproduce the focus race that crashed the editor.
+ */
+function deferredClipboard(text = ""): { clipboard: IClipboard; resolveRead(): void; resolveWrite(): void } {
+    const holder: { read?: () => void; write?: () => void } = {};
+    const clipboard: IClipboard = {
+        readText: () =>
+            new Promise<string>((res) => {
+                holder.read = () => {
+                    res(text);
+                };
+            }),
+        writeText: () =>
+            new Promise<void>((res) => {
+                holder.write = () => {
+                    res();
+                };
+            }),
+    };
+    return {
+        clipboard,
+        resolveRead: () => holder.read?.(),
+        resolveWrite: () => holder.write?.(),
+    };
+}
+
+describe("InputWidgetController — undo/redo", () => {
+    it("undo reverts the last edit group and notifies via onChange", () => {
+        const { controller, input, changes } = setup();
+        input.inputState.insert("a");
+        input.inputState.insert("b"); // coalesced into one undo group
+
+        controller.undo();
+        expect(input.inputState.value).toBe("");
+        expect(changes).toContain("");
+    });
+
+    it("redo re-applies an undone edit", () => {
+        const { controller, input } = setup();
+        input.inputState.insert("a");
+        input.inputState.insert("b");
+        controller.undo();
+
+        controller.redo();
+        expect(input.inputState.value).toBe("ab");
+    });
+
+    it("undo/redo work on an input without an onChange handler", () => {
+        const input = new InputElement(); // no onChange wired
+        input.inputState.insert("x");
+        const controller = new InputWidgetController();
+        controller.setActive(input);
+
+        expect(() => {
+            controller.undo();
+            controller.redo();
+        }).not.toThrow();
+        expect(input.inputState.value).toBe("x");
+    });
+
+    it("undo/redo are safe no-ops when no input is active", () => {
+        const controller = new InputWidgetController();
+        controller.setActive(null);
+        expect(() => {
+            controller.undo();
+            controller.redo();
+        }).not.toThrow();
+    });
+});
+
+describe("InputWidgetController — focus changes during async clipboard ops", () => {
+    it("paste does not crash or insert when the input is unfocused during the read", async () => {
+        const { controller, input, changes } = setup("ab");
+        const cb = deferredClipboard("X");
+
+        const p = controller.paste(cb.clipboard);
+        controller.setActive(null); // focus lost while the OSC 52 read is in flight
+        cb.resolveRead();
+        await expect(p).resolves.toBeUndefined();
+
+        expect(input.inputState.value).toBe("ab");
+        expect(changes).toEqual([]);
+    });
+
+    it("paste targets only the input that was focused when it started", async () => {
+        const { controller, input } = setup("ab");
+        const other = new InputElement();
+        other.inputState.value = "zz";
+        const cb = deferredClipboard("X");
+
+        const p = controller.paste(cb.clipboard);
+        controller.setActive(other); // focus moved to a different input mid-read
+        cb.resolveRead();
+        await p;
+
+        expect(input.inputState.value).toBe("ab"); // original untouched
+        expect(other.inputState.value).toBe("zz"); // not pasted into the new one either
+    });
+
+    it("cut does not mutate the input when focus is lost during the write", async () => {
+        const { controller, input, changes } = setup("hello");
+        controller.selectAll();
+        const cb = deferredClipboard();
+
+        const p = controller.cut(cb.clipboard);
+        controller.setActive(null);
+        cb.resolveWrite();
+        await expect(p).resolves.toBeUndefined();
+
+        expect(input.inputState.value).toBe("hello");
+        expect(changes).toEqual([]);
+    });
+});

@@ -210,3 +210,25 @@ export const inputPasteAction: CommandAction = {
         await accessor.get(InputWidgetControllerDIToken).paste(accessor.get(ClipboardDIToken));
     },
 };
+
+// ─── Undo / Redo ─────────────────────────────────────────────
+
+export const inputUndoAction: CommandAction = {
+    id: "input.undo",
+    title: "Input: Undo",
+    keybinding: parseKeybinding("ctrl+z"),
+    when: "inputWidgetFocus",
+    run(accessor) {
+        accessor.get(InputWidgetControllerDIToken).undo();
+    },
+};
+
+export const inputRedoAction: CommandAction = {
+    id: "input.redo",
+    title: "Input: Redo",
+    keybindings: [parseKeybinding("ctrl+y"), parseKeybinding("ctrl+shift+z")],
+    when: "inputWidgetFocus",
+    run(accessor) {
+        accessor.get(InputWidgetControllerDIToken).redo();
+    },
+};
