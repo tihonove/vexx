@@ -4,7 +4,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { createSelection } from "../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
@@ -100,6 +100,25 @@ describe("FindController", () => {
         expect(editor.viewState.currentSearchMatchIndex).toBe(0);
         find.prev(); // wraps backwards
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
+    });
+
+    it("right-aligns the widget so its right border sits on the group's last column", () => {
+        const { find, group, testApp } = setup("foo bar foo");
+        find.open();
+        testApp.render();
+
+        const groupWidth = group.view.layoutSize.width;
+        const widgetW = Math.min(60, Math.max(28, groupWidth - 2));
+        const borderRow = 1; // directly under the tab strip
+
+        const charAt = (x: number): string => testApp.backend.getTextAt(new Point(x, borderRow), 1);
+
+        // Top-right corner is flush with the group's last column — no stray gap.
+        expect(charAt(groupWidth - 1)).toBe("┐");
+        // Top-left corner lands exactly widgetW columns to the left.
+        expect(charAt(groupWidth - widgetW)).toBe("┌");
+        // The column just left of the right corner is the horizontal border, not empty.
+        expect(charAt(groupWidth - 2)).toBe("─");
     });
 
     it("seeds the query from a single-line selection on open", () => {
