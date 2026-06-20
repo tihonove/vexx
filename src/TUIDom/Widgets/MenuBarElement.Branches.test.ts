@@ -102,7 +102,7 @@ describe("MenuBarElement — separator entries", () => {
 
         expect(menuBar.isMenuOpen).toBe(true);
         // The popup rendered with the separator entry passed through openMenu's mapping.
-        expect(body.contextMenuLayer.getItems().length).toBe(1);
+        expect(body.overlayLayer.getItems().length).toBe(1);
     });
 });
 

@@ -5,8 +5,8 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { BodyElement } from "./BodyElement.ts";
-import type { ContextMenuLayer } from "./ContextMenuLayer.ts";
-import type { OverlaySessionHandle } from "./ContextMenuLayer.ts";
+import type { OverlayLayer } from "./OverlayLayer.ts";
+import type { OverlaySessionHandle } from "./OverlayLayer.ts";
 import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts";
 import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
 import type { MenuEntry } from "./PopupMenuElement.ts";
@@ -316,7 +316,7 @@ export class MenuBarElement extends TUIElement {
         return new Point(this.globalPosition.x + el.localPosition.dx, this.globalPosition.y + 1);
     }
 
-    private getOverlayLayer(): ContextMenuLayer {
-        return (this.getRoot() as BodyElement).contextMenuLayer;
+    private getOverlayLayer(): OverlayLayer {
+        return (this.getRoot() as BodyElement).overlayLayer;
     }
 }

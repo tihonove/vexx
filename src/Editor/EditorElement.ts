@@ -7,7 +7,7 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
@@ -436,7 +436,7 @@ export class EditorElement extends TUIElement implements IScrollable {
 
         const menu = new PopupMenuElement(wrappedEntries);
 
-        const layer = this.getContextMenuLayer();
+        const layer = this.getOverlayLayer();
         if (!layer) return;
 
         let session: OverlaySessionHandle | null = null;
@@ -469,10 +469,10 @@ export class EditorElement extends TUIElement implements IScrollable {
         session.dispose();
     }
 
-    private getContextMenuLayer() {
+    private getOverlayLayer() {
         const root = this.getRoot();
         if (!root) return null;
-        return (root as BodyElement).contextMenuLayer;
+        return (root as BodyElement).overlayLayer;
     }
 
     private handleMouseMove(event: TUIMouseEvent): void {

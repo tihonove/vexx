@@ -1,19 +1,19 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { ContextMenuLayer } from "./ContextMenuLayer.ts";
+import { OverlayLayer } from "./OverlayLayer.ts";
 import { EditorTabStripElement } from "./EditorTabStripElement.ts";
 
 export class EditorGroupElement extends TUIElement {
     public readonly tabStrip: EditorTabStripElement;
     private content: TUIElement | null = null;
-    private readonly overlayLayerValue: ContextMenuLayer;
+    private readonly overlayLayerValue: OverlayLayer;
 
     public constructor() {
         super();
         this.tabStrip = new EditorTabStripElement();
         this.tabStrip.setParent(this);
-        this.overlayLayerValue = new ContextMenuLayer();
+        this.overlayLayerValue = new OverlayLayer();
         this.overlayLayerValue.setParent(this);
     }
 
@@ -22,7 +22,7 @@ export class EditorGroupElement extends TUIElement {
      * widget (and any future editor-group overlay). Positions are relative to the
      * group; the layer clips its items to the group bounds.
      */
-    public get overlayLayer(): ContextMenuLayer {
+    public get overlayLayer(): OverlayLayer {
         return this.overlayLayerValue;
     }
 

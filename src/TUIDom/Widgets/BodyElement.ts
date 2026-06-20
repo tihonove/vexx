@@ -1,7 +1,7 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { ContextMenuLayer } from "./ContextMenuLayer.ts";
+import { OverlayLayer } from "./OverlayLayer.ts";
 import type { MenuBarElement } from "./MenuBarElement.ts";
 import type { StatusBarElement } from "./StatusBarElement.ts";
 
@@ -10,15 +10,15 @@ export class BodyElement extends TUIElement {
     public content: TUIElement | null = null;
     public menuBar: MenuBarElement | null = null;
     public statusBar: StatusBarElement | null = null;
-    public readonly contextMenuLayer: ContextMenuLayer;
+    public readonly overlayLayer: OverlayLayer;
 
     public constructor() {
         super();
         // BodyElement is the root, so mark it as such
         this.setAsRoot();
 
-        this.contextMenuLayer = new ContextMenuLayer();
-        this.contextMenuLayer.setParent(this);
+        this.overlayLayer = new OverlayLayer();
+        this.overlayLayer.setParent(this);
     }
 
     public setContent(element: TUIElement): void {
@@ -41,7 +41,7 @@ export class BodyElement extends TUIElement {
         if (this.menuBar) children.push(this.menuBar);
         if (this.content) children.push(this.content);
         if (this.statusBar) children.push(this.statusBar);
-        children.push(this.contextMenuLayer);
+        children.push(this.overlayLayer);
         return children;
     }
 
@@ -71,9 +71,9 @@ export class BodyElement extends TUIElement {
             this.statusBar.performLayout(BoxConstraints.tight(new Size(containerSize.width, statusBarHeight)));
         }
 
-        this.contextMenuLayer.localPosition = new Offset(0, 0);
-        this.contextMenuLayer.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
-        this.contextMenuLayer.performLayout(BoxConstraints.tight(containerSize));
+        this.overlayLayer.localPosition = new Offset(0, 0);
+        this.overlayLayer.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
+        this.overlayLayer.performLayout(BoxConstraints.tight(containerSize));
 
         return containerSize;
     }
@@ -105,6 +105,6 @@ export class BodyElement extends TUIElement {
         }
 
         // Context menu layer — rendered on top
-        this.contextMenuLayer.render(context);
+        this.overlayLayer.render(context);
     }
 }

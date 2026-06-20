@@ -6,13 +6,13 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { TUIElement } from "../TUIElement.ts";
 
-import { ContextMenuLayer } from "./ContextMenuLayer.ts";
+import { OverlayLayer } from "./OverlayLayer.ts";
 import { InputElement } from "./InputElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
-describe("ContextMenuLayer — item mutation guards", () => {
+describe("OverlayLayer — item mutation guards", () => {
     it("removeItem is a no-op when the element is neither a session nor an item", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const stranger = new TUIElement();
 
         // No session and not in items → both guards (session + findIndex) fall through.
@@ -21,7 +21,7 @@ describe("ContextMenuLayer — item mutation guards", () => {
     });
 
     it("setVisible is a no-op for an element that is not an item", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const stranger = new TUIElement();
 
         layer.setVisible(stranger, true);
@@ -29,7 +29,7 @@ describe("ContextMenuLayer — item mutation guards", () => {
     });
 
     it("setPosition is a no-op for an element that is not an item", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const stranger = new TUIElement();
 
         // Element not present → no item found, nothing to reposition.
@@ -38,11 +38,11 @@ describe("ContextMenuLayer — item mutation guards", () => {
     });
 });
 
-describe("ContextMenuLayer — createSession option defaults", () => {
+describe("OverlayLayer — createSession option defaults", () => {
     it("defaults visible to false when the option is omitted", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         // No `visible` option → `options.visible ?? false` falls back to false.
@@ -53,11 +53,11 @@ describe("ContextMenuLayer — createSession option defaults", () => {
     });
 });
 
-describe("ContextMenuLayer — disposed handle guards", () => {
+describe("OverlayLayer — disposed handle guards", () => {
     it("open/close/setPosition do nothing once the session is disposed", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         const session = layer.createSession(menu, new Point(2, 2), { visible: false });
@@ -75,11 +75,11 @@ describe("ContextMenuLayer — disposed handle guards", () => {
     });
 });
 
-describe("ContextMenuLayer — live handle setPosition", () => {
+describe("OverlayLayer — live handle setPosition", () => {
     it("repositions the menu through the handle while the session is alive", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         const session = layer.createSession(menu, new Point(1, 1), { visible: true });
@@ -93,11 +93,11 @@ describe("ContextMenuLayer — live handle setPosition", () => {
     });
 });
 
-describe("ContextMenuLayer — computeAnchorPosition preferBelow", () => {
+describe("OverlayLayer — computeAnchorPosition preferBelow", () => {
     it("places the menu at the anchor row when preferBelow is false", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(40, 12));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Item" }]);
         const position = layer.computeAnchorPosition(menu, {
@@ -112,11 +112,11 @@ describe("ContextMenuLayer — computeAnchorPosition preferBelow", () => {
     });
 });
 
-describe("ContextMenuLayer — restoreFocus without a focus manager", () => {
+describe("OverlayLayer — restoreFocus without a focus manager", () => {
     it("opens and closes safely when the layer has no root/focus manager", () => {
         // A detached layer: getRoot()/focusManager are null, exercising the
         // `root?.focusManager ?? null` fallback in both open and close.
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const menu = new PopupMenuElement([{ label: "Copy" }]);
 
         const session = layer.createSession(menu, new Point(0, 0), {
@@ -132,11 +132,11 @@ describe("ContextMenuLayer — restoreFocus without a focus manager", () => {
     });
 });
 
-describe("ContextMenuLayer — disposeOnClose", () => {
+describe("OverlayLayer — disposeOnClose", () => {
     it("disposes the session automatically when it closes", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         const onClose = vi.fn();
@@ -157,11 +157,11 @@ describe("ContextMenuLayer — disposeOnClose", () => {
     });
 });
 
-describe("ContextMenuLayer — root listener guards", () => {
+describe("OverlayLayer — root listener guards", () => {
     it("ignores a non-Escape key on the root while a closeOnEscape session is open", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         menu.tabIndex = 0;
@@ -184,7 +184,7 @@ describe("ContextMenuLayer — root listener guards", () => {
     it("keeps the session open when the pointer press lands inside the menu", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }, { label: "Paste" }]);
         menu.tabIndex = 0;
@@ -222,11 +222,11 @@ describe("ContextMenuLayer — root listener guards", () => {
     });
 });
 
-describe("ContextMenuLayer — elementFromPoint miss", () => {
+describe("OverlayLayer — elementFromPoint miss", () => {
     it("returns null when the point is inside an item's bounds but the child reports no hit", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
-        const layer = app.root.contextMenuLayer;
+        const layer = app.root.overlayLayer;
 
         // A visible item whose own elementFromPoint always misses.
         const child = new TUIElement();

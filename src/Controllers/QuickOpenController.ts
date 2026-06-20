@@ -3,7 +3,7 @@ import * as nodePath from "node:path";
 import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
@@ -73,7 +73,7 @@ export class QuickOpenController extends Disposable {
 
     public setHostView(body: BodyElement): void {
         this.hostBody = body;
-        this.quickOpenSession = body.contextMenuLayer.createSession(this.view, new Point(0, 0), {
+        this.quickOpenSession = body.overlayLayer.createSession(this.view, new Point(0, 0), {
             visible: false,
             restoreFocus: true,
         });

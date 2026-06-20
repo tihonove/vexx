@@ -15,7 +15,7 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/ContextMenuLayer.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
@@ -840,7 +840,7 @@ export class AppController extends Disposable implements IController {
     ): void {
         if (!this.confirmDialog) {
             this.confirmDialog = new ConfirmSaveDialogElement(filename);
-            this.confirmDialogSession = this.view.contextMenuLayer.createSession(this.confirmDialog, new Point(0, 0), {
+            this.confirmDialogSession = this.view.overlayLayer.createSession(this.confirmDialog, new Point(0, 0), {
                 visible: false,
                 restoreFocus: true,
                 closeOnEscape: true,
@@ -897,7 +897,7 @@ export class AppController extends Disposable implements IController {
         menu.tabIndex = 0;
 
         let session: OverlaySessionHandle | null = null;
-        session = this.view.contextMenuLayer.openPopupSession(
+        session = this.view.overlayLayer.openPopupSession(
             menu,
             { screenX, screenY },
             {

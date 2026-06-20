@@ -367,7 +367,7 @@ describe("AppController — Quick Open", () => {
         testApp.sendKey("Ctrl+P");
 
         expect(testApp.querySelector("QuickPickElement")).not.toBeNull();
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("Ctrl+Shift+P opens QuickPickElement in commands mode", () => {
@@ -377,7 +377,7 @@ describe("AppController — Quick Open", () => {
         commandRegistry.execute("workbench.action.showCommands");
         testApp.render();
 
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(true);
         const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
         expect(picker.placeholder).toBe("Show All Commands");
     });
@@ -391,21 +391,21 @@ describe("AppController — Quick Open", () => {
         controller.focusEditor();
 
         testApp.backend.sendRaw("\x1b[112;6"); // first read — incomplete CSI-u
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(false);
 
         testApp.backend.sendRaw("u"); // rest of the same sequence → reassembled
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("Escape closes Quick Open picker", () => {
         const { testApp, controller } = createTestAppController();
         controller.focusEditor();
         testApp.sendKey("Ctrl+P");
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(true);
 
         testApp.sendKey("Escape");
 
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("Escape after Ctrl+P returns focus to editor", () => {

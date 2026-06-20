@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 
 import { BoxElement } from "./BoxElement.ts";
-import { ContextMenuLayer } from "./ContextMenuLayer.ts";
+import { OverlayLayer } from "./OverlayLayer.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
 function sizedBox(global: Point, size: Size): BoxElement {
@@ -13,9 +13,9 @@ function sizedBox(global: Point, size: Size): BoxElement {
     return box;
 }
 
-describe("ContextMenuLayer — elementFromPoint", () => {
+describe("OverlayLayer — elementFromPoint", () => {
     it("returns the visible element under the point", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const hidden = sizedBox(new Point(0, 0), new Size(4, 3));
         const visible = sizedBox(new Point(5, 2), new Size(6, 4));
 
@@ -27,7 +27,7 @@ describe("ContextMenuLayer — elementFromPoint", () => {
     });
 
     it("skips invisible items and returns null when nothing visible is hit", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         const visible = sizedBox(new Point(5, 2), new Size(6, 4));
         const hidden = sizedBox(new Point(0, 0), new Size(4, 3));
 
@@ -40,9 +40,9 @@ describe("ContextMenuLayer — elementFromPoint", () => {
     });
 });
 
-describe("ContextMenuLayer — openPopupSession", () => {
+describe("OverlayLayer — openPopupSession", () => {
     it("opens a session positioned by the anchor", () => {
-        const layer = new ContextMenuLayer();
+        const layer = new OverlayLayer();
         layer.globalPosition = new Point(0, 0);
         layer.performLayout(BoxConstraints.tight(new Size(40, 20)));
 

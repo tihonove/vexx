@@ -150,7 +150,7 @@ describe("MenuBarElement — open/close state transitions via the overlay sessio
 
         // The popup lives in the context-menu layer; close it via its own Escape handler,
         // which routes popup.onClose → session.close() → the session onClose callback.
-        const popup = body.contextMenuLayer.getItems()[0].element;
+        const popup = body.overlayLayer.getItems()[0].element;
         popup.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
 
         expect(menuBar.isMenuOpen).toBe(false);
@@ -161,13 +161,13 @@ describe("MenuBarElement — open/close state transitions via the overlay sessio
 
         backend.sendKey("Alt+f"); // File
         expect(menuBar.activeIndex).toBe(0);
-        expect(body.contextMenuLayer.getItems().length).toBe(1);
+        expect(body.overlayLayer.getItems().length).toBe(1);
 
         backend.sendKey("ArrowRight"); // switch to Edit popup
         expect(menuBar.activeIndex).toBe(1);
         expect(menuBar.isMenuOpen).toBe(true);
         // Exactly one popup remains — the previous one was disposed, not stacked.
-        expect(body.contextMenuLayer.getItems().length).toBe(1);
+        expect(body.overlayLayer.getItems().length).toBe(1);
     });
 });
 

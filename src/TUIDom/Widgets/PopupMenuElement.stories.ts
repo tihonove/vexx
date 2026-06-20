@@ -24,15 +24,15 @@ export function contextMenu(ctx: StoryContext): void {
         { label: "Close", shortcut: "Ctrl+W", icon: "\uf00d" },
     ]);
 
-    ctx.body.contextMenuLayer.addItem(menu, new Point(5, 3), false);
+    ctx.body.overlayLayer.addItem(menu, new Point(5, 3), false);
 
     menu.onClose = () => {
-        ctx.body.contextMenuLayer.setVisible(menu, false);
+        ctx.body.overlayLayer.setVisible(menu, false);
     };
 
     ctx.body.addEventListener("keydown", (event) => {
-        if (event.key === "m" && !ctx.body.contextMenuLayer.hasVisibleItems()) {
-            ctx.body.contextMenuLayer.setVisible(menu, true);
+        if (event.key === "m" && !ctx.body.overlayLayer.hasVisibleItems()) {
+            ctx.body.overlayLayer.setVisible(menu, true);
         }
     });
 }

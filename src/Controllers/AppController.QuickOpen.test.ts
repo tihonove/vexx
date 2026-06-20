@@ -121,7 +121,7 @@ describe("AppController — Quick Open accept callbacks", () => {
         controller.focusEditor();
         testApp.sendKey("Ctrl+P");
         testApp.render();
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(true);
 
         const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
         const first = picker.items[0];
@@ -131,6 +131,6 @@ describe("AppController — Quick Open accept callbacks", () => {
         await flushMicrotasks();
         testApp.render();
 
-        expect(testApp.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 });

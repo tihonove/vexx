@@ -8,13 +8,13 @@ import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { InputElement } from "./InputElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
-describe("ContextMenuLayer session API", () => {
+describe("OverlayLayer session API", () => {
     it("open/close/dispose are idempotent", () => {
         const input = new InputElement();
         const app = TestApp.createWithContent(input, new Size(30, 10));
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
-        const session = app.root.contextMenuLayer.createSession(menu, new Point(2, 2), { visible: false });
+        const session = app.root.overlayLayer.createSession(menu, new Point(2, 2), { visible: false });
 
         expect(() => {
             session.open();
@@ -25,8 +25,8 @@ describe("ContextMenuLayer session API", () => {
             session.dispose();
         }).not.toThrow();
 
-        expect(app.root.contextMenuLayer.getItems().length).toBe(0);
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.getItems().length).toBe(0);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("restores focus on close when restoreFocus=true", () => {
@@ -39,7 +39,7 @@ describe("ContextMenuLayer session API", () => {
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         menu.tabIndex = 0;
 
-        const session = app.root.contextMenuLayer.createSession(menu, new Point(1, 1), {
+        const session = app.root.overlayLayer.createSession(menu, new Point(1, 1), {
             visible: false,
             restoreFocus: true,
             focusOnOpen: true,
@@ -59,13 +59,13 @@ describe("ContextMenuLayer session API", () => {
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         menu.tabIndex = 0;
 
-        const session = app.root.contextMenuLayer.createSession(menu, new Point(5, 2), {
+        const session = app.root.overlayLayer.createSession(menu, new Point(5, 2), {
             visible: true,
             closeOnOutsidePointer: true,
             focusOnOpen: true,
         });
 
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(true);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
 
         input.dispatchEvent(
             new TUIMouseEvent("mousedown", {
@@ -78,7 +78,7 @@ describe("ContextMenuLayer session API", () => {
         );
 
         expect(session.isOpen()).toBe(false);
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("closes on Escape when closeOnEscape=true", () => {
@@ -88,7 +88,7 @@ describe("ContextMenuLayer session API", () => {
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         menu.tabIndex = 0;
 
-        const session = app.root.contextMenuLayer.createSession(menu, new Point(3, 1), {
+        const session = app.root.overlayLayer.createSession(menu, new Point(3, 1), {
             visible: true,
             closeOnEscape: true,
             focusOnOpen: true,
@@ -99,7 +99,7 @@ describe("ContextMenuLayer session API", () => {
         menu.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
 
         expect(session.isOpen()).toBe(false);
-        expect(app.root.contextMenuLayer.hasVisibleItems()).toBe(false);
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("computeAnchorPosition clamps X and flips Y", () => {
@@ -110,7 +110,7 @@ describe("ContextMenuLayer session API", () => {
         const menuW = menu.getMaxIntrinsicWidth(0);
         const menuH = menu.getMaxIntrinsicHeight(menuW);
 
-        const position = app.root.contextMenuLayer.computeAnchorPosition(menu, {
+        const position = app.root.overlayLayer.computeAnchorPosition(menu, {
             screenX: 19,
             screenY: 5,
         });

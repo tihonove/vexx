@@ -27,10 +27,10 @@ describe("BodyElement root reference", () => {
         expect(content.getRoot()).toBe(body);
     });
 
-    it("ContextMenuLayer receives root reference from BodyElement", () => {
+    it("OverlayLayer receives root reference from BodyElement", () => {
         const body = new BodyElement();
 
-        expect(body.contextMenuLayer.getRoot()).toBe(body);
+        expect(body.overlayLayer.getRoot()).toBe(body);
     });
 
     it("nested elements in VStack all receive the same root", () => {
@@ -48,11 +48,11 @@ describe("BodyElement root reference", () => {
         expect(box2.getRoot()).toBe(body);
     });
 
-    it("items added to ContextMenuLayer receive root reference", () => {
+    it("items added to OverlayLayer receive root reference", () => {
         const body = new BodyElement();
         const popup = new BoxElement();
 
-        body.contextMenuLayer.addItem(popup, new Point(5, 5), true);
+        body.overlayLayer.addItem(popup, new Point(5, 5), true);
 
         expect(popup.getRoot()).toBe(body);
     });
