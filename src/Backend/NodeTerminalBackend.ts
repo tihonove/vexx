@@ -82,7 +82,14 @@ export class NodeTerminalBackend implements ITerminalBackend {
     private readonly isTmux: boolean;
     private readonly inputParser = new KeyInputParser();
     private readonly renderer: TerminalRenderer;
+    /**
+     * The cell-diff for the current frame is buffered here instead of going straight
+     * to stdout, so renderFrame() can decide whether the frame is empty before
+     * emitting the frame wrapper (sync markers + cursor hide/show). See renderFrame.
+     */
+    private readonly frameBuffer = new StringSink();
     private prevGrid: Grid | null = null;
+    private prevCursorPosition: Point | null = null;
 
     public constructor(
         stdin: NodeJS.ReadStream = process.stdin,
@@ -93,7 +100,7 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout = stdout;
         this.resizeThrottleMs = options?.resizeThrottleMs ?? 100;
         this.isTmux = isInsideTmux();
-        this.renderer = new TerminalRenderer(stdout);
+        this.renderer = new TerminalRenderer(this.frameBuffer);
     }
 
     /**
@@ -218,17 +225,38 @@ export class NodeTerminalBackend implements ITerminalBackend {
         if (sizeChanged) {
             this.prevGrid = new Grid(grid.size);
         }
-        this.stdout.write("\x1b[?2026h"); // begin synchronized output
-        this.stdout.write("\x1b[?25l"); // hide cursor
-        if (sizeChanged) {
-            this.stdout.write("\x1b[2J"); // clear screen to avoid stale reflow artifacts
-        }
+
+        // Diff into a buffer (not straight to stdout) so we know whether anything changed.
+        this.frameBuffer.reset();
         this.renderer.render(grid, this.prevGrid);
-        if (cursorPosition !== null) {
-            this.stdout.write(`\x1b[${(cursorPosition.y + 1).toString()};${(cursorPosition.x + 1).toString()}H`); // position cursor
-            this.stdout.write("\x1b[?25h"); // show cursor
+        const body = this.frameBuffer.value;
+
+        const cursorChanged = !samePoint(cursorPosition, this.prevCursorPosition);
+
+        // Nothing to repaint and the cursor hasn't moved → emit absolutely nothing.
+        // Without this, every mouse-move event re-sent the frame wrapper (hide/show
+        // cursor + reposition), making the terminal cursor flicker on plain motion.
+        if (!sizeChanged && body.length === 0 && !cursorChanged) {
+            return;
         }
-        this.stdout.write("\x1b[?2026l"); // end synchronized output
+
+        let out = "\x1b[?2026h"; // begin synchronized output
+        if (sizeChanged) {
+            out += "\x1b[2J"; // clear screen to avoid stale reflow artifacts
+        }
+        // Hide the cursor while we paint cells, or when it should be hidden outright.
+        if (body.length > 0 || cursorPosition === null) {
+            out += "\x1b[?25l"; // hide cursor
+        }
+        out += body;
+        if (cursorPosition !== null) {
+            out += `\x1b[${(cursorPosition.y + 1).toString()};${(cursorPosition.x + 1).toString()}H`; // position cursor
+            out += "\x1b[?25h"; // show cursor
+        }
+        out += "\x1b[?2026l"; // end synchronized output
+
+        this.stdout.write(out);
+        this.prevCursorPosition = cursorPosition;
     }
 
     public getSize(): Size {
@@ -330,4 +358,22 @@ export class NodeTerminalBackend implements ITerminalBackend {
         }
         this.cleanupHandlers = [];
     }
+}
+
+/** In-memory sink that accumulates writes into a string. Implements WritableOutput. */
+class StringSink {
+    public value = "";
+
+    public write(data: string): void {
+        this.value += data;
+    }
+
+    public reset(): void {
+        this.value = "";
+    }
+}
+
+function samePoint(a: Point | null, b: Point | null): boolean {
+    if (a === null || b === null) return a === b;
+    return a.x === b.x && a.y === b.y;
 }
