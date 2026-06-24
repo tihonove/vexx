@@ -15,10 +15,10 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
@@ -252,6 +252,7 @@ export class AppController extends Disposable implements IController {
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
     private inputWidgetController: InputWidgetController;
+    private themeService: ThemeService;
     private terminalEnv: TerminalEnvironmentService;
     private chordTimer: ReturnType<typeof setTimeout> | null = null;
     private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
@@ -274,6 +275,7 @@ export class AppController extends Disposable implements IController {
         super();
         this.logger = logService.createLogger("input.keybindings");
         this.terminalEnv = terminalEnv;
+        this.themeService = themeService;
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
         this.fileSearchService = this.register(new FileSearchService());
@@ -307,7 +309,11 @@ export class AppController extends Disposable implements IController {
         this.quickOpenController.setHostView(this.view);
         this.findController.setHostView();
         // Find operates on the active editor only — close the widget when it changes.
-        this.register(this.editorGroupController.onActiveEditorChanged(() => this.findController.close()));
+        this.register(
+            this.editorGroupController.onActiveEditorChanged(() => {
+                this.findController.close();
+            }),
+        );
         this.register({
             dispose: () => {
                 this.clearChordTimeout();
@@ -552,6 +558,7 @@ export class AppController extends Disposable implements IController {
             ...(fg !== undefined ? { fg } : {}),
             ...(bg !== undefined ? { bg } : {}),
         };
+        this.confirmDialog?.applyTheme(theme);
     }
 
     // Capture phase: while a chord is in progress, intercept the next key
@@ -864,6 +871,7 @@ export class AppController extends Disposable implements IController {
     ): void {
         if (!this.confirmDialog) {
             this.confirmDialog = new ConfirmSaveDialogElement(filename);
+            this.confirmDialog.applyTheme(this.themeService.theme);
             this.confirmDialogSession = this.view.overlayLayer.createSession(this.confirmDialog, new Point(0, 0), {
                 visible: false,
                 restoreFocus: true,

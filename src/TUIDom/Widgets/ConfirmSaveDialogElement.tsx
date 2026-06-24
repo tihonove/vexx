@@ -1,5 +1,6 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
+import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { CompositeElement } from "../CompositeElement.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { JsxNode } from "../JSX/jsx-runtime.ts";
@@ -66,6 +67,23 @@ export class ConfirmSaveDialogElement extends CompositeElement {
     public setFilename(filename: string): void {
         this.filename = filename;
         this.rebuild();
+    }
+
+    /**
+     * Push button colors from the active theme. The focused (default) button maps to the
+     * VS Code "primary" button, the rest to the "secondary" button; fallbacks keep the
+     * historical look when a theme omits the `button.*` tokens.
+     */
+    public applyTheme(theme: WorkbenchTheme): void {
+        for (const button of [this.dontSaveButton, this.cancelButton, this.saveButton]) {
+            button.focusedBg = theme.getColorOrDefault("button.background", packRgb(0, 120, 215));
+            button.focusedFg = theme.getColorOrDefault("button.foreground", packRgb(255, 255, 255));
+            button.focusedHoverBg = theme.getColorOrDefault("button.hoverBackground", packRgb(26, 134, 224));
+            button.normalBg = theme.getColorOrDefault("button.secondaryBackground", packRgb(60, 60, 60));
+            button.normalFg = theme.getColorOrDefault("button.secondaryForeground", packRgb(204, 204, 204));
+            button.normalHoverBg = theme.getColorOrDefault("button.secondaryHoverBackground", packRgb(69, 73, 78));
+            button.markDirty();
+        }
     }
 
     public focusDefault(): void {
