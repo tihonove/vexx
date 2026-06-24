@@ -116,6 +116,23 @@ describe("ButtonElement — hover", () => {
         const backend = renderStandalone(button);
         expect(backend.getBgAt(new Point(0, 0))).toBe(customHoverBg);
     });
+
+    it("ignores a repeated mouseenter without re-marking dirty", () => {
+        const button = new ButtonElement("OK");
+        hover(button, "mouseenter");
+        const markDirty = vi.spyOn(button, "markDirty");
+        hover(button, "mouseenter");
+        expect(markDirty).not.toHaveBeenCalled();
+        expect(renderStandalone(button).getBgAt(new Point(0, 0))).toBe(BUTTON_HOVER_BG);
+    });
+
+    it("ignores mouseleave when not hovered", () => {
+        const button = new ButtonElement("OK");
+        const markDirty = vi.spyOn(button, "markDirty");
+        hover(button, "mouseleave");
+        expect(markDirty).not.toHaveBeenCalled();
+        expect(renderStandalone(button).getBgAt(new Point(0, 0))).toBe(BUTTON_BG);
+    });
 });
 
 describe("ButtonElement — activation", () => {
