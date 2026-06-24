@@ -13,8 +13,10 @@ import { ButtonElement } from "./ButtonElement.ts";
 
 const BUTTON_FG = packRgb(204, 204, 204);
 const BUTTON_BG = packRgb(60, 60, 60);
+const BUTTON_HOVER_BG = packRgb(69, 73, 78);
 const BUTTON_SEL_FG = packRgb(255, 255, 255);
 const BUTTON_SEL_BG = packRgb(0, 120, 215);
+const BUTTON_SEL_HOVER_BG = packRgb(26, 134, 224);
 
 function renderStandalone(button: ButtonElement): MockTerminalBackend {
     const w = button.getMaxIntrinsicWidth(0);
@@ -70,6 +72,49 @@ describe("ButtonElement — rendering", () => {
         const pos = button.globalPosition;
         expect(testApp.backend.getFgAt(new Point(pos.x, pos.y))).toBe(BUTTON_SEL_FG);
         expect(testApp.backend.getBgAt(new Point(pos.x, pos.y))).toBe(BUTTON_SEL_BG);
+    });
+});
+
+describe("ButtonElement — hover", () => {
+    function hover(button: ButtonElement, type: "mouseenter" | "mouseleave"): void {
+        button.dispatchEvent(new TUIMouseEvent(type, { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
+    }
+
+    it("uses the hover background while hovered and unfocused", () => {
+        const button = new ButtonElement("OK");
+        hover(button, "mouseenter");
+        const backend = renderStandalone(button);
+        expect(backend.getFgAt(new Point(0, 0))).toBe(BUTTON_FG);
+        expect(backend.getBgAt(new Point(0, 0))).toBe(BUTTON_HOVER_BG);
+    });
+
+    it("reverts to the base background after mouseleave", () => {
+        const button = new ButtonElement("OK");
+        hover(button, "mouseenter");
+        hover(button, "mouseleave");
+        const backend = renderStandalone(button);
+        expect(backend.getBgAt(new Point(0, 0))).toBe(BUTTON_BG);
+    });
+
+    it("uses the focused hover background while hovered and focused", () => {
+        const button = new ButtonElement("OK");
+        const testApp = TestApp.createWithContent(button, new Size(20, 3));
+        button.focus();
+        hover(button, "mouseenter");
+        testApp.render();
+
+        const pos = button.globalPosition;
+        expect(testApp.backend.getFgAt(new Point(pos.x, pos.y))).toBe(BUTTON_SEL_FG);
+        expect(testApp.backend.getBgAt(new Point(pos.x, pos.y))).toBe(BUTTON_SEL_HOVER_BG);
+    });
+
+    it("honors externally overridden colors in render", () => {
+        const button = new ButtonElement("OK");
+        const customHoverBg = packRgb(1, 2, 3);
+        button.normalHoverBg = customHoverBg;
+        hover(button, "mouseenter");
+        const backend = renderStandalone(button);
+        expect(backend.getBgAt(new Point(0, 0))).toBe(customHoverBg);
     });
 });
 

@@ -71,22 +71,22 @@ export interface IWorkbenchColors {
     // "toolbar.activeBackground"?: number;
 
     // ── Button control ──────────────────────────────────────
-    // /** Button background color. */
-    // "button.background"?: number;
-    // /** Button foreground color. */
-    // "button.foreground"?: number;
+    /** Button background color. */
+    "button.background"?: number;
+    /** Button foreground color. */
+    "button.foreground"?: number;
     // /** Button border color. */
     // "button.border"?: number;
     // /** Button separator color. */
     // "button.separator"?: number;
-    // /** Button background color when hovering. */
-    // "button.hoverBackground"?: number;
-    // /** Secondary button foreground color. */
-    // "button.secondaryForeground"?: number;
-    // /** Secondary button background color. */
-    // "button.secondaryBackground"?: number;
-    // /** Secondary button background color when hovering. */
-    // "button.secondaryHoverBackground"?: number;
+    /** Button background color when hovering. */
+    "button.hoverBackground"?: number;
+    /** Secondary button foreground color. */
+    "button.secondaryForeground"?: number;
+    /** Secondary button background color. */
+    "button.secondaryBackground"?: number;
+    /** Secondary button background color when hovering. */
+    "button.secondaryHoverBackground"?: number;
     // /** Secondary button border color. */
     // "button.secondaryBorder"?: number;
 
