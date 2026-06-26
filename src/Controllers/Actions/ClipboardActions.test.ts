@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
+import { OscClipboard } from "../../Common/OscClipboard.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { createCursorSelection, createSelection } from "../../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
@@ -179,6 +180,28 @@ describe("clipboardCutAction defensive delete handling", () => {
 
         expect(await clipboard.readText()).toBe("selected");
         expect(pushUndo).not.toHaveBeenCalled();
+    });
+});
+
+describe("copy→paste round-trip via OscClipboard (internal register)", () => {
+    it("pastes copied text instantly through the internal register, never querying the terminal", async () => {
+        // Real OscClipboard: copy must mirror out via the OSC 52 *write* sequence, and a
+        // subsequent paste must read back the register without emitting an OSC 52 read
+        // query (`\x1b]52;c;?\x07`) — the round-trip that hangs in kitty+ssh+tmux.
+        const writeFn = vi.fn();
+        const clipboard = new OscClipboard(writeFn);
+        const { editor, exec } = openEditor("hello world", clipboard);
+
+        editor.viewState.selections = [createSelection(0, 0, 0, 5)]; // "hello"
+        await exec(clipboardCopyAction);
+
+        editor.viewState.selections = [createCursorSelection(0, 11)]; // end of line
+        await exec(clipboardPasteAction);
+
+        expect(editor.getText()).toBe("hello worldhello");
+        // The only sequence ever written is the OSC 52 write from copy — no read query.
+        expect(writeFn).toHaveBeenCalledOnce();
+        expect(writeFn.mock.calls[0][0]).not.toContain("?");
     });
 });
 

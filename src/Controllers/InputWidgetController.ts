@@ -157,7 +157,8 @@ export class InputWidgetController {
         const input = this.activeInput;
         if (!input) return;
         const text = await clipboard.readText();
-        // Reading the clipboard (OSC 52) can take a while; bail if focus changed meanwhile.
+        // readText resolves immediately, but it's still async — bail defensively if focus
+        // changed while the microtask was queued.
         if (text === "" || this.activeInput !== input) return;
         input.inputState.insert(text);
         input.onChange?.(input.inputState.value);

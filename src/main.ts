@@ -103,14 +103,9 @@ async function runEditor(): Promise<void> {
 
     const backend = new NodeTerminalBackend();
     const application = new TuiApplication(backend);
-    const clipboard = new OscClipboard(
-        (seq) => {
-            backend.writeOscSequence(seq);
-        },
-        (cb) => {
-            backend.onOscResponse(cb);
-        },
-    );
+    const clipboard = new OscClipboard((seq) => {
+        backend.writeOscSequence(seq);
+    });
 
     const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 
