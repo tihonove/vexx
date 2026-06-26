@@ -5,6 +5,7 @@ import { StyleFlags } from "../Rendering/StyleFlags.ts";
 import type { TUIEventBase } from "../TUIDom/Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
+import type { TUIPasteEvent } from "../TUIDom/Events/TUIPasteEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
@@ -132,6 +133,9 @@ export class EditorElement extends TUIElement implements IScrollable {
         });
         this.addEventListener("keypress", (event) => {
             this.handleKeyPress(event);
+        });
+        this.addEventListener("paste", (event) => {
+            this.handlePaste(event);
         });
         this.addEventListener("mousedown", (event) => {
             this.handleMouseDown(event);
@@ -508,6 +512,11 @@ export class EditorElement extends TUIElement implements IScrollable {
             this.pushUndo(this.viewState.type(event.key));
             return;
         }
+    }
+
+    private handlePaste(event: TUIPasteEvent): void {
+        // Insert the whole paste as one edit (newlines preserved) — one undo step.
+        this.pushUndo(this.viewState.insertText(event.text));
     }
 
     private pushUndo(element: IUndoElement | undefined): void {

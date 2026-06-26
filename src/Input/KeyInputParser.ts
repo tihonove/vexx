@@ -35,6 +35,34 @@ function incompleteTailStart(data: string): number {
 }
 
 /**
+ * Bracketed paste markers (DEC mode ?2004). The terminal wraps clipboard pastes
+ * as `ESC[200~ <literal text> ESC[201~`, letting us insert the whole block as one
+ * text edit instead of replaying it byte-by-byte through key parsing (which would
+ * turn newlines into Enter keypresses and run special characters as shortcuts).
+ */
+const PASTE_START = "\x1b[200~";
+const PASTE_END = "\x1b[201~";
+
+/**
+ * If `s` ends with a non-empty proper prefix of `marker` (a marker split across
+ * stdin reads), return the index where that partial tail begins; otherwise `s.length`.
+ * Used while accumulating paste content so a split `ESC[201~` end marker is held back
+ * rather than swallowed into the pasted text.
+ */
+function partialMarkerTailStart(s: string, marker: string): number {
+    const max = Math.min(s.length, marker.length - 1);
+    for (let len = max; len > 0; len--) {
+        if (s.endsWith(marker.slice(0, len))) return s.length - len;
+    }
+    return s.length;
+}
+
+/** Normalize pasted line endings: CRLF and lone CR both become LF. */
+function normalizeNewlines(text: string): string {
+    return text.replace(/\r\n?/g, "\n");
+}
+
+/**
  * Set of key values representing modifier keys.
  * These follow the browser model: keydown/keyup only, no keypress synthesized.
  */
@@ -80,6 +108,12 @@ interface InputStreams {
     mouse: MouseToken[];
     osc: OscToken[];
     deviceReports: DeviceReportToken[];
+    /** Text blocks delivered via bracketed paste (already newline-normalized). */
+    paste: string[];
+}
+
+function emptyStreams(): InputStreams {
+    return { keys: [], mouse: [], osc: [], deviceReports: [], paste: [] };
 }
 
 export class KeyInputParser {
@@ -87,6 +121,12 @@ export class KeyInputParser {
 
     /** Tail of the previous chunk that was cut mid-escape-sequence; "" when none. */
     private pending = "";
+
+    /** True while accumulating bracketed-paste content (between ESC[200~ and ESC[201~). */
+    private pasting = false;
+
+    /** Pasted text accumulated so far, awaiting the ESC[201~ end marker. */
+    private pasteBuffer = "";
 
     /**
      * Parse a chunk of raw terminal input into browser-like keyboard events.
@@ -111,42 +151,85 @@ export class KeyInputParser {
      * Force-process any buffered partial sequence as-is (a lone ESC becomes the
      * Escape key). Callers use a short timeout so a real Escape keypress isn't
      * held hostage waiting for a continuation that never comes.
+     *
+     * While a paste is in flight (ESC[200~ seen, ESC[201~ not yet), this is a no-op:
+     * the held tail is a split end marker, not a stuck escape — keep accumulating so
+     * the paste isn't corrupted or truncated.
      */
     public flush(): InputStreams {
+        const streams = emptyStreams();
+        if (this.pasting) return streams;
         const tail = this.pending;
         this.pending = "";
-        return tail === "" ? { keys: [], mouse: [], osc: [], deviceReports: [] } : this.tokenizeToStreams(tail);
+        if (tail !== "") this.tokenizeInto(tail, streams);
+        return streams;
     }
 
     /**
-     * Prepend any buffered tail, then split off a fresh incomplete tail before
-     * tokenizing so a sequence cut across stdin reads is reassembled.
+     * Reassemble the stream across reads, splitting out bracketed-paste blocks so
+     * their literal text bypasses key tokenization entirely. Normal segments keep the
+     * existing behavior: prepend any buffered tail, then hold back a fresh incomplete
+     * tail so an escape sequence cut across stdin reads is reassembled next chunk.
      */
     private ingest(data: string): InputStreams {
-        const combined = this.pending + data;
-        const cut = incompleteTailStart(combined);
-        if (cut === -1) {
-            this.pending = "";
-            return this.tokenizeToStreams(combined);
+        let combined = this.pending + data;
+        this.pending = "";
+        const streams = emptyStreams();
+
+        while (combined !== "") {
+            if (this.pasting) {
+                const endIdx = combined.indexOf(PASTE_END);
+                if (endIdx === -1) {
+                    // No end marker yet: accumulate, but hold back a possible split ESC[201~.
+                    const tailStart = partialMarkerTailStart(combined, PASTE_END);
+                    this.pasteBuffer += combined.slice(0, tailStart);
+                    this.pending = combined.slice(tailStart);
+                    return streams;
+                }
+                this.pasteBuffer += combined.slice(0, endIdx);
+                const text = normalizeNewlines(this.pasteBuffer);
+                if (text !== "") streams.paste.push(text);
+                this.pasteBuffer = "";
+                this.pasting = false;
+                combined = combined.slice(endIdx + PASTE_END.length);
+                continue;
+            }
+
+            const startIdx = combined.indexOf(PASTE_START);
+            if (startIdx === -1) {
+                // No paste start in view. A trailing partial ESC[200~ is an incomplete CSI,
+                // so incompleteTailStart already holds it back like any split sequence.
+                const cut = incompleteTailStart(combined);
+                if (cut === -1) {
+                    this.tokenizeInto(combined, streams);
+                } else {
+                    this.tokenizeInto(combined.slice(0, cut), streams);
+                    this.pending = combined.slice(cut);
+                }
+                return streams;
+            }
+
+            // Bytes before the marker are complete (a full marker follows them).
+            this.tokenizeInto(combined.slice(0, startIdx), streams);
+            this.pasting = true;
+            combined = combined.slice(startIdx + PASTE_START.length);
         }
-        this.pending = combined.slice(cut);
-        return this.tokenizeToStreams(combined.slice(0, cut));
+
+        return streams;
     }
 
-    private tokenizeToStreams(data: string): InputStreams {
+    private tokenizeInto(data: string, streams: InputStreams): void {
+        if (data === "") return;
         const tokens = tokenize(data);
-        const mouseTokens: MouseToken[] = [];
         const keyEvents: KeyPressEvent[] = [];
-        const oscTokens: OscToken[] = [];
-        const deviceReports: DeviceReportToken[] = [];
 
         for (const token of tokens) {
             if (token.kind === "mouse") {
-                mouseTokens.push(token);
+                streams.mouse.push(token);
             } else if (token.kind === "osc") {
-                oscTokens.push(token);
+                streams.osc.push(token);
             } else if (token.kind === "device-report") {
-                deviceReports.push(token);
+                streams.deviceReports.push(token);
             } else if (token.kind === "unknown-csi") {
                 // Complete but unrecognized CSI sequence — drop it (never type it as text).
             } else {
@@ -154,7 +237,9 @@ export class KeyInputParser {
             }
         }
 
-        return { keys: this.processKeyEvents(keyEvents), mouse: mouseTokens, osc: oscTokens, deviceReports };
+        for (const event of this.processKeyEvents(keyEvents)) {
+            streams.keys.push(event);
+        }
     }
 
     private processKeyEvents(rawEvents: KeyPressEvent[]): KeyPressEvent[] {

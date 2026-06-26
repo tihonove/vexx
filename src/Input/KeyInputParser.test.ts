@@ -424,7 +424,7 @@ describe("KeyInputParser — browser-like event model", () => {
         it("flush() with an empty buffer is a no-op", () => {
             const parser = new KeyInputParser();
             const out = parser.flush();
-            expect(out).toEqual({ keys: [], mouse: [], osc: [], deviceReports: [] });
+            expect(out).toEqual({ keys: [], mouse: [], osc: [], deviceReports: [], paste: [] });
             expect(parser.hasPending()).toBe(false);
         });
     });

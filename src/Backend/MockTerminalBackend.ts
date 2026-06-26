@@ -20,6 +20,7 @@ import type { ITerminalBackend } from "./ITerminalBackend.ts";
 export class MockTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
     private mouseCallbacks: ((event: MouseToken) => void)[] = [];
+    private pasteCallbacks: ((text: string) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private oscResponseCallbacks: ((code: number, data: string) => void)[] = [];
     private keyboardProbeCallbacks: ((supported: boolean) => void)[] = [];
@@ -56,6 +57,10 @@ export class MockTerminalBackend implements ITerminalBackend {
 
     public onMouse(callback: (event: MouseToken) => void): void {
         this.mouseCallbacks.push(callback);
+    }
+
+    public onPaste(callback: (text: string) => void): void {
+        this.pasteCallbacks.push(callback);
     }
 
     public onResize(callback: (size: Size) => void): void {
@@ -111,7 +116,7 @@ export class MockTerminalBackend implements ITerminalBackend {
      */
     public sendKey(name: string): void {
         const raw = serializeKey(name);
-        this.emitKeys(this.inputParser.parse(raw));
+        this.emitStreams(this.inputParser.parseWithMouse(raw));
         // serializeKey always produces a complete sequence, so deliver immediately —
         // a lone ESC ("Escape") would otherwise sit buffered awaiting a continuation.
         this.flushInput();
@@ -124,14 +129,28 @@ export class MockTerminalBackend implements ITerminalBackend {
      */
     public flushInput(): void {
         if (this.inputParser.hasPending()) {
-            this.emitKeys(this.inputParser.flush().keys);
+            this.emitStreams(this.inputParser.flush());
         }
     }
 
-    private emitKeys(events: KeyPressEvent[]): void {
-        for (const event of events) {
+    /**
+     * Simulate a bracketed paste: wrap `text` in the ESC[200~ … ESC[201~ markers the
+     * terminal emits and feed it through the parser, so the whole block is delivered to
+     * paste subscribers as one string.
+     */
+    public sendPaste(text: string): void {
+        this.sendRaw(`\x1b[200~${text}\x1b[201~`);
+    }
+
+    private emitStreams(streams: ReturnType<KeyInputParser["parseWithMouse"]>): void {
+        for (const event of streams.keys) {
             for (const cb of this.inputCallbacks) {
                 cb(event);
+            }
+        }
+        for (const text of streams.paste) {
+            for (const cb of this.pasteCallbacks) {
+                cb(text);
             }
         }
     }
@@ -173,7 +192,7 @@ export class MockTerminalBackend implements ITerminalBackend {
     public sendRaw(data: string): void {
         // No implicit flush: callers may deliberately send a partial sequence to
         // simulate stdin packetization (use flushInput() to drain a leftover tail).
-        this.emitKeys(this.inputParser.parse(data));
+        this.emitStreams(this.inputParser.parseWithMouse(data));
     }
 
     // ─── Screen assertions ───

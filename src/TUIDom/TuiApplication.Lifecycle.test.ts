@@ -61,6 +61,37 @@ describe("TuiApplication — input routing", () => {
         expect(backend.getTextAt(new Point(0, 0), 2)).toBe("hi");
     });
 
+    it("routes a bracketed paste to the focused element as one insertion", () => {
+        const backend = new MockTerminalBackend(new Size(20, 1));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const input = new InputElement();
+        body.setContent(input);
+        app.root = body;
+        app.run();
+
+        input.focus();
+        backend.sendPaste("hello");
+
+        expect(input.inputState.value).toBe("hello");
+    });
+
+    it("falls back to root dispatch for a paste when nothing is focused", () => {
+        const backend = new MockTerminalBackend(new Size(20, 1));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        const handler = vi.fn();
+        body.addEventListener("paste", handler);
+        app.root = body;
+        app.run();
+
+        backend.sendPaste("data");
+
+        expect(handler).toHaveBeenCalled();
+    });
+
     it("falls back to root dispatch when nothing is focused", () => {
         const backend = new MockTerminalBackend(new Size(20, 1));
         const app = new TuiApplication(backend);
@@ -182,6 +213,11 @@ describe("TuiApplication — input handlers with no root", () => {
     it("ignores mouse input when root is null", () => {
         const { backend } = runningApp();
         expect(() => backend.simulateMouse(pressMouse(1, 1))).not.toThrow();
+    });
+
+    it("ignores paste when root is null", () => {
+        const { backend } = runningApp();
+        expect(() => backend.sendPaste("x")).not.toThrow();
     });
 
     it("ignores resize when root is null but still swaps the screen", () => {

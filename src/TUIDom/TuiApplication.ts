@@ -7,6 +7,7 @@ import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
 import { FocusManager } from "./Events/FocusManager.ts";
 import { MouseEventDispatcher } from "./Events/MouseEventDispatcher.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
+import { TUIPasteEvent } from "./Events/TUIPasteEvent.ts";
 import { ROOT_RESOLVED_STYLE } from "./Styles/TUIStyle.ts";
 import { RenderContext } from "./TUIElement.ts";
 import type { BodyElement } from "./Widgets/BodyElement.ts";
@@ -89,6 +90,15 @@ export class TuiApplication {
         }
     }
 
+    private handlePaste(text: string): void {
+        if (this.root) {
+            const event = new TUIPasteEvent(text);
+            const target = this.focusManager?.activeElement ?? this.root;
+            target.dispatchEvent(event);
+            this.renderFrame();
+        }
+    }
+
     private handleMouse(token: MouseToken): void {
         if (this.root) {
             this.mouseDispatcher.handleMouseToken(token, this.root);
@@ -123,6 +133,10 @@ export class TuiApplication {
 
         this.backend.onResize((size) => {
             this.handleResize(size);
+        });
+
+        this.backend.onPaste((text) => {
+            this.handlePaste(text);
         });
 
         this.backend.onMouse((token) => {

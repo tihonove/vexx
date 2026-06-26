@@ -3,6 +3,7 @@ import { BoxConstraints, Point, Rect, Size } from "../../Common/GeometryPromitiv
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import type { TUIPasteEvent } from "../Events/TUIPasteEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { InputState } from "./InputState.ts";
@@ -201,6 +202,17 @@ export class InputElement extends TUIElement {
     // ─── Input ──────────────────────────────────────────────────────────────
 
     protected override performDefaultAction(event: TUIEventBase): void {
+        if (event.type === "paste") {
+            // Single-line field: flatten any newlines from the pasted block into spaces.
+            const text = (event as TUIPasteEvent).text.replace(/\n/g, " ");
+            if (text !== "") {
+                event.preventDefault();
+                this.inputState.insert(text);
+                this.onChange?.(this.inputState.value);
+                this.markDirty();
+            }
+            return;
+        }
         if (event.type !== "keydown") return;
         const keyEvent = event as TUIKeyboardEvent;
 

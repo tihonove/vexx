@@ -22,6 +22,16 @@ const KITTY_ENABLE = "\x1b[>15u";
 const KITTY_DISABLE = "\x1b[<u";
 
 /**
+ * Bracketed paste (DEC private mode ?2004). When enabled, the terminal wraps pasted
+ * clipboard content in `ESC[200~ … ESC[201~` so we insert it as one literal text block
+ * instead of replaying it as keystrokes (which loses newlines and runs special chars as
+ * shortcuts). Like the Kitty/mouse modes, tmux understands and tracks it per-pane, so it
+ * is written directly (no passthrough).
+ */
+const BRACKETED_PASTE_ENABLE = "\x1b[?2004h";
+const BRACKETED_PASTE_DISABLE = "\x1b[?2004l";
+
+/**
  * Keyboard-protocol probe: query current Kitty flags (`CSI ? u`) immediately followed by
  * Primary Device Attributes (`CSI c`). Only Kitty-capable terminals answer the first; every
  * terminal answers DA1, so the DA1 reply is the "all replies are in" sentinel. The timeout
@@ -66,6 +76,7 @@ function wrapForTmux(sequence: string): string {
 export class NodeTerminalBackend implements ITerminalBackend {
     private inputCallbacks: ((event: KeyPressEvent) => void)[] = [];
     private mouseCallbacks: ((event: MouseToken) => void)[] = [];
+    private pasteCallbacks: ((text: string) => void)[] = [];
     private resizeCallbacks: ((size: Size) => void)[] = [];
     private oscResponseCallbacks: ((code: number, data: string) => void)[] = [];
     private deviceReportCallbacks: ((report: "kitty-flags" | "da1", params: string) => void)[] = [];
@@ -143,6 +154,10 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.mouseCallbacks.push(callback);
     }
 
+    public onPaste(callback: (text: string) => void): void {
+        this.pasteCallbacks.push(callback);
+    }
+
     public onResize(callback: (size: Size) => void): void {
         this.resizeCallbacks.push(callback);
     }
@@ -178,6 +193,9 @@ export class NodeTerminalBackend implements ITerminalBackend {
         }
         for (const mouseToken of result.mouse) {
             for (const cb of this.mouseCallbacks) cb(mouseToken);
+        }
+        for (const text of result.paste) {
+            for (const cb of this.pasteCallbacks) cb(text);
         }
         for (const oscToken of result.osc) {
             for (const cb of this.oscResponseCallbacks) cb(oscToken.code, oscToken.data);
@@ -272,6 +290,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.writeDirect(KITTY_ENABLE);
         // Enable mouse tracking (all-motion mode for hover/enter/leave) — direct, per-pane
         this.writeDirect(MOUSE_TRACKING_ALL_ENABLE);
+        // Enable bracketed paste so pastes arrive as one text block — direct, per-pane
+        this.writeDirect(BRACKETED_PASTE_ENABLE);
 
         // Raw mode for character-by-character input
         this.stdin.setRawMode(true);
@@ -329,6 +349,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.writeDirect(KITTY_DISABLE);
         // Disable mouse tracking — direct
         this.writeDirect(MOUSE_TRACKING_DISABLE);
+        // Disable bracketed paste — direct (matches the per-pane enable in setup)
+        this.writeDirect(BRACKETED_PASTE_DISABLE);
         // Restore cursor
         this.stdout.write("\x1b[?25h");
         // Restore normal screen buffer

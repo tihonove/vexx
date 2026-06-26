@@ -8,6 +8,7 @@ import { EventPhase, TUIEventBase } from "./Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "./Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "./Events/TUIMouseEvent.ts";
+import type { TUIPasteEvent } from "./Events/TUIPasteEvent.ts";
 import type { ResolvedTUIStyle, TUIStyle } from "./Styles/TUIStyle.ts";
 import { resolveStyle, ROOT_RESOLVED_STYLE } from "./Styles/TUIStyle.ts";
 import { querySelector, querySelectorAll } from "./TUISelector.ts";
@@ -119,6 +120,7 @@ export interface TUIElementEventMap {
     mouseenter: TUIMouseEvent;
     mouseleave: TUIMouseEvent;
     wheel: TUIMouseEvent;
+    paste: TUIPasteEvent;
 }
 
 interface ListenerEntry {

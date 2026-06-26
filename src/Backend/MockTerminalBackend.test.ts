@@ -185,6 +185,39 @@ describe("MockTerminalBackend", () => {
         }).not.toThrow();
     });
 
+    // ─── Bracketed paste ───
+
+    it("sendPaste delivers the whole text as one block to onPaste listeners", () => {
+        const backend = new MockTerminalBackend();
+        const handler = vi.fn<(text: string) => void>();
+        backend.onPaste(handler);
+
+        backend.sendPaste("line one\nline two");
+
+        expect(handler).toHaveBeenCalledOnce();
+        expect(handler).toHaveBeenCalledWith("line one\nline two");
+    });
+
+    it("sendRaw with bracketed-paste markers routes to onPaste, not onInput", () => {
+        const backend = new MockTerminalBackend();
+        const pasteHandler = vi.fn<(text: string) => void>();
+        const keyHandler = vi.fn();
+        backend.onPaste(pasteHandler);
+        backend.onInput(keyHandler);
+
+        backend.sendRaw("\x1b[200~hi\x1b[201~");
+
+        expect(pasteHandler).toHaveBeenCalledWith("hi");
+        expect(keyHandler).not.toHaveBeenCalled();
+    });
+
+    it("sendPaste with no paste listeners does not throw", () => {
+        const backend = new MockTerminalBackend();
+        expect(() => {
+            backend.sendPaste("x");
+        }).not.toThrow();
+    });
+
     // ─── Foreground / background colours ───
 
     it("renderFrame records fg/bg colours readable via getFgAt/getBgAt", () => {

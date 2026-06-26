@@ -17,6 +17,9 @@ export interface ITerminalBackend {
     /** Subscribe to raw mouse events */
     onMouse(callback: (event: MouseToken) => void): void;
 
+    /** Subscribe to bracketed-paste text blocks (whole paste delivered as one string) */
+    onPaste(callback: (text: string) => void): void;
+
     /** Subscribe to terminal resize events */
     onResize(callback: (size: Size) => void): void;
 
