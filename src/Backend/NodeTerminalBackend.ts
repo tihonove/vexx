@@ -22,6 +22,20 @@ const KITTY_ENABLE = "\x1b[>15u";
 const KITTY_DISABLE = "\x1b[<u";
 
 /**
+ * xterm modifyOtherKeys, level 2 (`CSI > 4 ; 2 m`) + reset (`CSI > 4 ; 0 m`).
+ *
+ * tmux does NOT speak the Kitty keyboard protocol push (`CSI > 15 u`) — it ignores it,
+ * so inside tmux modified keys like Ctrl+Tab / Ctrl+Shift+<letter> arrive as their plain
+ * legacy byte (Ctrl+Tab → `\t`) and the shortcut is lost. tmux DOES honor modifyOtherKeys
+ * and then emits those keys in CSI-u form (Ctrl+Tab → `\x1b[9;5u`), which our tokenizer
+ * already parses. Sending both enables is the standard belt-and-suspenders: real Kitty (no
+ * tmux) uses the Kitty protocol and ignores modifyOtherKeys; tmux uses modifyOtherKeys.
+ * Written per-pane (`writeDirect`, no passthrough) like the other input modes.
+ */
+const MODIFY_OTHER_KEYS_ENABLE = "\x1b[>4;2m";
+const MODIFY_OTHER_KEYS_DISABLE = "\x1b[>4;0m";
+
+/**
  * Bracketed paste (DEC private mode ?2004). When enabled, the terminal wraps pasted
  * clipboard content in `ESC[200~ … ESC[201~` so we insert it as one literal text block
  * instead of replaying it as keystrokes (which loses newlines and runs special chars as
@@ -288,6 +302,9 @@ export class NodeTerminalBackend implements ITerminalBackend {
         this.stdout.write("\x1b[?25h");
         // Enable Kitty Keyboard Protocol — direct, so tmux tracks it per-pane (no passthrough)
         this.writeDirect(KITTY_ENABLE);
+        // Also enable xterm modifyOtherKeys — tmux ignores the Kitty push but honors this,
+        // delivering Ctrl+Tab / Ctrl+Shift+<key> as CSI-u. Direct, per-pane.
+        this.writeDirect(MODIFY_OTHER_KEYS_ENABLE);
         // Enable mouse tracking (all-motion mode for hover/enter/leave) — direct, per-pane
         this.writeDirect(MOUSE_TRACKING_ALL_ENABLE);
         // Enable bracketed paste so pastes arrive as one text block — direct, per-pane
@@ -347,6 +364,8 @@ export class NodeTerminalBackend implements ITerminalBackend {
     public teardown(): void {
         // Disable Kitty Keyboard Protocol — direct (matches the per-pane enable in setup)
         this.writeDirect(KITTY_DISABLE);
+        // Reset modifyOtherKeys — direct (matches the per-pane enable in setup)
+        this.writeDirect(MODIFY_OTHER_KEYS_DISABLE);
         // Disable mouse tracking — direct
         this.writeDirect(MOUSE_TRACKING_DISABLE);
         // Disable bracketed paste — direct (matches the per-pane enable in setup)
