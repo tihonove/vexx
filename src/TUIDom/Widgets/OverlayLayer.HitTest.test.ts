@@ -48,7 +48,7 @@ describe("OverlayLayer — openPopupSession", () => {
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         const anchor = { screenX: 3, screenY: 1 };
-        const handle = layer.openPopupSession(menu, anchor, { visible: true });
+        const handle = layer.openPopupSession(menu, anchor, { visible: true, pointerPolicy: "passthrough" });
 
         expect(handle.isOpen()).toBe(true);
 

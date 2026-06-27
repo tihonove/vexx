@@ -894,6 +894,7 @@ export class AppController extends Disposable implements IController {
                 visible: false,
                 restoreFocus: true,
                 closeOnEscape: true,
+                pointerPolicy: "modal",
             });
         } else {
             this.confirmDialog.setFilename(filename);
@@ -955,7 +956,7 @@ export class AppController extends Disposable implements IController {
                 restoreFocus: true,
                 focusOnOpen: true,
                 closeOnEscape: true,
-                closeOnOutsidePointer: true,
+                pointerPolicy: "close-on-outside",
                 disposeOnClose: true,
                 onClose: () => {
                     /* v8 ignore start -- defensive: a replaced session is disposed (which does not fire onClose), so when onClose runs it is always the current session */

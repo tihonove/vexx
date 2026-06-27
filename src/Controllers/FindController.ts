@@ -48,6 +48,8 @@ export class FindController extends Disposable {
         this.session = this.editorGroupController.view.overlayLayer.createSession(this.view, new Point(0, 0), {
             visible: false,
             restoreFocus: true,
+            // Find — это док-виджет: клики мимо него намеренно уходят в редактор (как в VS Code).
+            pointerPolicy: "passthrough",
         });
         this.register({
             dispose: () => {

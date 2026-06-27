@@ -14,7 +14,10 @@ describe("OverlayLayer session API", () => {
         const app = TestApp.createWithContent(input, new Size(30, 10));
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
-        const session = app.root.overlayLayer.createSession(menu, new Point(2, 2), { visible: false });
+        const session = app.root.overlayLayer.createSession(menu, new Point(2, 2), {
+            visible: false,
+            pointerPolicy: "passthrough",
+        });
 
         expect(() => {
             session.open();
@@ -43,6 +46,7 @@ describe("OverlayLayer session API", () => {
             visible: false,
             restoreFocus: true,
             focusOnOpen: true,
+            pointerPolicy: "passthrough",
         });
 
         session.open();
@@ -61,7 +65,7 @@ describe("OverlayLayer session API", () => {
 
         const session = app.root.overlayLayer.createSession(menu, new Point(5, 2), {
             visible: true,
-            closeOnOutsidePointer: true,
+            pointerPolicy: "close-on-outside",
             focusOnOpen: true,
         });
 
@@ -92,6 +96,7 @@ describe("OverlayLayer session API", () => {
             visible: true,
             closeOnEscape: true,
             focusOnOpen: true,
+            pointerPolicy: "passthrough",
         });
 
         expect(session.isOpen()).toBe(true);

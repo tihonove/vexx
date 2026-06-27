@@ -234,6 +234,10 @@ export class MenuBarElement extends TUIElement {
         let session: OverlaySessionHandle | null = null;
         session = layer.createSession(menu, position, {
             visible: true,
+            // Меню-бар сам управляет закрытием дропдауна: клик снаружи уводит фокус →
+            // blur → deactivate, а повторный клик по тому же пункту тоглит его. Перехват
+            // в OverlayLayer (close-on-outside) гонялся бы с этим тоглом, поэтому passthrough.
+            pointerPolicy: "passthrough",
             disposeOnClose: true,
             onClose: () => {
                 /* v8 ignore start -- guards against a stale onClose after the menu was switched; switching disposes the old session without firing onClose, so the mismatch (false) side is unreachable via the public API */

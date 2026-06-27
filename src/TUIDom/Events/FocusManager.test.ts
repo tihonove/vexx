@@ -255,4 +255,89 @@ describe("FocusManager", () => {
             expect(focusHandler).toHaveBeenCalledOnce();
         });
     });
+
+    describe("focus scope (modal trapping)", () => {
+        function buildScopedTree(): {
+            root: ContainerElement;
+            outside: TUIElement;
+            scope: ContainerElement;
+            m1: TUIElement;
+            m2: TUIElement;
+            fm: FocusManager;
+        } {
+            const root = new ContainerElement();
+            root.setAsRoot();
+            const fm = new FocusManager(root);
+            root.focusManager = fm;
+
+            const outside = new TUIElement();
+            outside.tabIndex = 0;
+            root.addChild(outside);
+
+            const scope = new ContainerElement(); // tabIndex -1 → container only, not focusable itself
+            root.addChild(scope);
+
+            const m1 = new TUIElement();
+            m1.tabIndex = 0;
+            scope.addChild(m1);
+
+            const m2 = new TUIElement();
+            m2.tabIndex = 0;
+            scope.addChild(m2);
+
+            return { root, outside, scope, m1, m2, fm };
+        }
+
+        it("limits cycleFocus to the pushed scope subtree", () => {
+            const { scope, m1, m2, fm } = buildScopedTree();
+            fm.pushFocusScope(scope);
+
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).toBe(m1);
+
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).toBe(m2);
+
+            // Wraps inside the scope — never lands on the outside element.
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).toBe(m1);
+        });
+
+        it("restores full-tree cycling after the scope is popped", () => {
+            const { outside, scope, m1, fm } = buildScopedTree();
+            fm.pushFocusScope(scope);
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).toBe(m1);
+
+            fm.popFocusScope(scope);
+
+            // Back to the whole tree: outside is the first focusable.
+            fm.setFocus(null);
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).toBe(outside);
+        });
+
+        it("keeps the stack consistent when scopes are popped out of order", () => {
+            const { outside, scope, fm } = buildScopedTree();
+            const inner = new ContainerElement();
+            scope.addChild(inner);
+            const innerFocusable = new TUIElement();
+            innerFocusable.tabIndex = 0;
+            inner.addChild(innerFocusable);
+
+            fm.pushFocusScope(scope);
+            fm.pushFocusScope(inner);
+
+            // Pop the outer scope first (non-LIFO); the top-of-stack inner scope still applies.
+            fm.popFocusScope(scope);
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).toBe(innerFocusable);
+
+            // Popping the inner scope leaves no scopes → cycling spans the whole tree again.
+            fm.popFocusScope(inner);
+            fm.setFocus(null);
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).toBe(outside);
+        });
+    });
 });

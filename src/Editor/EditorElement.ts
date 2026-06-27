@@ -447,7 +447,7 @@ export class EditorElement extends TUIElement implements IScrollable {
         session = layer.createSession(menu, new Point(screenX, screenY), {
             visible: true,
             closeOnEscape: true,
-            closeOnOutsidePointer: true,
+            pointerPolicy: "close-on-outside",
             focusOnOpen: true,
             disposeOnClose: true,
             onClose: () => {

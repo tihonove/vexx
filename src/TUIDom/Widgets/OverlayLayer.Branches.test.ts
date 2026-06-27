@@ -46,7 +46,7 @@ describe("OverlayLayer — createSession option defaults", () => {
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
         // No `visible` option → `options.visible ?? false` falls back to false.
-        const session = layer.createSession(menu, new Point(2, 2), {});
+        const session = layer.createSession(menu, new Point(2, 2), { pointerPolicy: "passthrough" });
 
         expect(session.isOpen()).toBe(false);
         expect(layer.hasVisibleItems()).toBe(false);
@@ -60,7 +60,10 @@ describe("OverlayLayer — disposed handle guards", () => {
         const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
-        const session = layer.createSession(menu, new Point(2, 2), { visible: false });
+        const session = layer.createSession(menu, new Point(2, 2), {
+            visible: false,
+            pointerPolicy: "passthrough",
+        });
         session.dispose();
 
         expect(() => {
@@ -82,7 +85,10 @@ describe("OverlayLayer — live handle setPosition", () => {
         const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
-        const session = layer.createSession(menu, new Point(1, 1), { visible: true });
+        const session = layer.createSession(menu, new Point(1, 1), {
+            visible: true,
+            pointerPolicy: "passthrough",
+        });
 
         session.setPosition(new Point(6, 4));
         app.render();
@@ -121,6 +127,7 @@ describe("OverlayLayer — restoreFocus without a focus manager", () => {
 
         const session = layer.createSession(menu, new Point(0, 0), {
             restoreFocus: true,
+            pointerPolicy: "passthrough",
         });
 
         expect(() => {
@@ -143,6 +150,7 @@ describe("OverlayLayer — disposeOnClose", () => {
         const session = layer.createSession(menu, new Point(1, 1), {
             visible: true,
             disposeOnClose: true,
+            pointerPolicy: "passthrough",
             onClose,
         });
 
@@ -168,6 +176,7 @@ describe("OverlayLayer — root listener guards", () => {
         const session = layer.createSession(menu, new Point(3, 1), {
             visible: true,
             closeOnEscape: true,
+            pointerPolicy: "passthrough",
         });
 
         expect(session.isOpen()).toBe(true);
@@ -190,7 +199,7 @@ describe("OverlayLayer — root listener guards", () => {
         menu.tabIndex = 0;
         const session = layer.createSession(menu, new Point(2, 2), {
             visible: true,
-            closeOnOutsidePointer: true,
+            pointerPolicy: "close-on-outside",
         });
         app.render();
 

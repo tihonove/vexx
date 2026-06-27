@@ -20,6 +20,7 @@ describe("OverlayLayer edge cases", () => {
         const session = layer.createSession(menu, new Point(2, 2), {
             visible: true,
             closeOnEscape: true,
+            pointerPolicy: "passthrough",
             onClose,
         });
 
@@ -46,7 +47,7 @@ describe("OverlayLayer edge cases", () => {
         const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Cut" }]);
-        const session = layer.createSession(menu, new Point(1, 1), { visible: false });
+        const session = layer.createSession(menu, new Point(1, 1), { visible: false, pointerPolicy: "passthrough" });
 
         expect(session.isDisposed).toBe(false);
         session.dispose();
@@ -59,7 +60,7 @@ describe("OverlayLayer edge cases", () => {
         const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Delete" }]);
-        const session = layer.createSession(menu, new Point(0, 0), { visible: true });
+        const session = layer.createSession(menu, new Point(0, 0), { visible: true, pointerPolicy: "passthrough" });
 
         const menuW = menu.getMaxIntrinsicWidth(0);
         const menuH = menu.getMaxIntrinsicHeight(menuW);
@@ -80,7 +81,7 @@ describe("OverlayLayer edge cases", () => {
         const layer = app.root.overlayLayer;
 
         const menu = new PopupMenuElement([{ label: "Delete" }]);
-        const session = layer.createSession(menu, new Point(0, 0), { visible: false });
+        const session = layer.createSession(menu, new Point(0, 0), { visible: false, pointerPolicy: "passthrough" });
         session.dispose();
 
         expect(() => session.setAnchor({ screenX: 5, screenY: 5 })).not.toThrow();
@@ -100,6 +101,7 @@ describe("OverlayLayer edge cases", () => {
         const session = layer.createSession(menu, new Point(3, 1), {
             visible: true,
             closeOnEscape: true,
+            pointerPolicy: "passthrough",
             onClose,
         });
 
@@ -126,12 +128,12 @@ describe("OverlayLayer edge cases", () => {
 
         const menu = new PopupMenuElement([{ label: "Copy" }]);
 
-        const first = layer.createSession(menu, new Point(1, 1), { visible: true });
+        const first = layer.createSession(menu, new Point(1, 1), { visible: true, pointerPolicy: "passthrough" });
         expect(first.isOpen()).toBe(true);
         expect(layer.getItems().length).toBe(1);
 
         // Re-creating a session for the SAME element triggers disposeSessionByElement.
-        const second = layer.createSession(menu, new Point(4, 4), { visible: false });
+        const second = layer.createSession(menu, new Point(4, 4), { visible: false, pointerPolicy: "passthrough" });
 
         expect(first.isDisposed).toBe(true);
         expect(second.isDisposed).toBe(false);

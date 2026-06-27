@@ -17,12 +17,21 @@ export interface OverlayAnchorPosition {
     preferBelow?: boolean;
 }
 
+/**
+ * Поведение оверлей-сессии по клику мимо неё. Поле обязательное — каждый оверлей
+ * должен явно объявить, что происходит с кликом позади него:
+ * - `close-on-outside` — клик снаружи закрывает сессию (попап доходит до элемента позади как раньше);
+ * - `modal` — клик снаружи блокируется и НЕ доходит до элементов позади (плюс Tab-фокус заперт внутри);
+ * - `passthrough` — клик снаружи проходит насквозь, сессия не закрывается (док-виджеты вроде Find).
+ */
+export type PointerPolicy = "close-on-outside" | "modal" | "passthrough";
+
 export interface OverlaySessionOptions {
     visible?: boolean;
     restoreFocus?: boolean;
     focusOnOpen?: boolean;
     closeOnEscape?: boolean;
-    closeOnOutsidePointer?: boolean;
+    pointerPolicy: PointerPolicy;
     disposeOnClose?: boolean;
     onClose?: () => void;
 }
@@ -43,12 +52,13 @@ interface OverlaySessionState {
     options: Required<
         Pick<
             OverlaySessionOptions,
-            "restoreFocus" | "focusOnOpen" | "closeOnEscape" | "closeOnOutsidePointer" | "disposeOnClose"
+            "restoreFocus" | "focusOnOpen" | "closeOnEscape" | "pointerPolicy" | "disposeOnClose"
         >
     >;
     visible: boolean;
     isDisposed: boolean;
     savedFocus: TUIElement | null;
+    focusScopePushed: boolean;
     rootEscapeHandler: ((event: TUIEventBase) => void) | null;
     rootOutsideHandler: ((event: TUIEventBase) => void) | null;
     onClose: (() => void) | null;
@@ -98,7 +108,7 @@ export class OverlayLayer extends TUIElement {
     public createSession(
         element: TUIElement,
         position: Point,
-        options: OverlaySessionOptions = {},
+        options: OverlaySessionOptions,
     ): OverlaySessionHandle {
         this.disposeSessionByElement(element);
 
@@ -112,12 +122,13 @@ export class OverlayLayer extends TUIElement {
                 restoreFocus: options.restoreFocus ?? false,
                 focusOnOpen: options.focusOnOpen ?? false,
                 closeOnEscape: options.closeOnEscape ?? false,
-                closeOnOutsidePointer: options.closeOnOutsidePointer ?? false,
+                pointerPolicy: options.pointerPolicy,
                 disposeOnClose: options.disposeOnClose ?? false,
             },
             visible: false,
             isDisposed: false,
             savedFocus: null,
+            focusScopePushed: false,
             rootEscapeHandler: null,
             rootOutsideHandler: null,
             onClose: options.onClose ?? null,
@@ -165,7 +176,7 @@ export class OverlayLayer extends TUIElement {
     public openPopupSession(
         element: TUIElement,
         anchor: OverlayAnchorPosition,
-        options: OverlaySessionOptions = {},
+        options: OverlaySessionOptions,
     ): OverlaySessionHandle {
         const position = this.computeAnchorPosition(element, anchor);
         return this.createSession(element, position, options);
@@ -204,6 +215,7 @@ export class OverlayLayer extends TUIElement {
     public clearAll(): void {
         for (const session of this.sessions.values()) {
             this.cleanupSessionListeners(session);
+            this.releaseFocusScope(session);
             session.isDisposed = true;
         }
         this.sessions.clear();
@@ -232,8 +244,18 @@ export class OverlayLayer extends TUIElement {
                 const hit = item.element.elementFromPoint(point);
                 if (hit) return hit;
             }
+            // A modal session swallows every point not already claimed by an item above it,
+            // so the hit never falls through to elements behind the overlay.
+            if (this.isModalElement(item.element)) {
+                return item.element;
+            }
         }
         return null;
+    }
+
+    private isModalElement(element: TUIElement): boolean {
+        const session = this.sessions.get(element);
+        return session?.visible === true && session.options.pointerPolicy === "modal";
     }
 
     public performLayout(constraints: BoxConstraints): Size {
@@ -280,9 +302,21 @@ export class OverlayLayer extends TUIElement {
         this.setVisible(session.element, true);
         this.attachSessionListeners(session);
 
+        if (focusManager && session.options.pointerPolicy === "modal" && !session.focusScopePushed) {
+            focusManager.pushFocusScope(session.element);
+            session.focusScopePushed = true;
+        }
+
         if (session.options.focusOnOpen) {
             session.element.focus();
         }
+    }
+
+    private releaseFocusScope(session: OverlaySessionState): void {
+        if (!session.focusScopePushed) return;
+        const focusManager = this.getRoot()?.focusManager ?? null;
+        focusManager?.popFocusScope(session.element);
+        session.focusScopePushed = false;
     }
 
     private closeSession(session: OverlaySessionState): void {
@@ -294,6 +328,7 @@ export class OverlayLayer extends TUIElement {
         session.visible = false;
         this.setVisible(session.element, false);
         this.cleanupSessionListeners(session);
+        this.releaseFocusScope(session);
 
         if (session.options.restoreFocus && session.savedFocus) {
             focusManager?.setFocus(session.savedFocus);
@@ -321,6 +356,7 @@ export class OverlayLayer extends TUIElement {
         if (session.visible) {
             session.visible = false;
             this.setVisible(session.element, false);
+            this.releaseFocusScope(session);
         }
 
         this.cleanupSessionListeners(session);
@@ -355,7 +391,7 @@ export class OverlayLayer extends TUIElement {
             root.addEventListener("keydown", session.rootEscapeHandler, { capture: true });
         }
 
-        if (session.options.closeOnOutsidePointer && !session.rootOutsideHandler) {
+        if (session.options.pointerPolicy === "close-on-outside" && !session.rootOutsideHandler) {
             session.rootOutsideHandler = (event: TUIEventBase) => {
                 /* v8 ignore start -- defensive: the handler is registered only for "mousedown", so a non-mousedown event never reaches it */
                 if (event.type !== "mousedown") return;

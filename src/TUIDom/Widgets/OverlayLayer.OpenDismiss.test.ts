@@ -26,7 +26,7 @@ describe("OverlayLayer — open at point and dismiss", () => {
         const layer = app.root.overlayLayer;
 
         const box = new BoxElement();
-        layer.createSession(box, new Point(6, 3), { visible: true });
+        layer.createSession(box, new Point(6, 3), { visible: true, pointerPolicy: "passthrough" });
         app.render();
 
         const corners = cornerCells(app);
@@ -39,7 +39,7 @@ describe("OverlayLayer — open at point and dismiss", () => {
         const layer = app.root.overlayLayer;
 
         const box = new BoxElement();
-        const session = layer.createSession(box, new Point(4, 2), { visible: true });
+        const session = layer.createSession(box, new Point(4, 2), { visible: true, pointerPolicy: "passthrough" });
         app.render();
         expect(cornerCells(app).length).toBeGreaterThan(0);
 
@@ -59,6 +59,7 @@ describe("OverlayLayer — open at point and dismiss", () => {
         const session = layer.createSession(box, new Point(5, 5), {
             visible: true,
             closeOnEscape: true,
+            pointerPolicy: "passthrough",
         });
 
         expect(session.isOpen()).toBe(true);
@@ -76,7 +77,7 @@ describe("OverlayLayer — open at point and dismiss", () => {
         const box = new BoxElement();
         const session = layer.createSession(box, new Point(5, 5), {
             visible: true,
-            closeOnOutsidePointer: true,
+            pointerPolicy: "close-on-outside",
         });
 
         expect(session.isOpen()).toBe(true);
@@ -102,6 +103,7 @@ describe("OverlayLayer — open at point and dismiss", () => {
         const session = layer.createSession(box, new Point(5, 5), {
             visible: true,
             closeOnEscape: false,
+            pointerPolicy: "passthrough",
         });
 
         app.root.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));

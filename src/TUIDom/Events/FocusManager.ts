@@ -5,9 +5,23 @@ import { TUIFocusEvent } from "./TUIFocusEvent.ts";
 export class FocusManager {
     public activeElement: TUIElement | null = null;
     private rootElement: TUIElement;
+    private focusScopeStack: TUIElement[] = [];
 
     public constructor(rootElement: TUIElement) {
         this.rootElement = rootElement;
+    }
+
+    /** Ограничить Tab-навигацию поддеревом `element` (модальные оверлеи). */
+    public pushFocusScope(element: TUIElement): void {
+        this.focusScopeStack.push(element);
+    }
+
+    /** Снять ранее установленный focus-scope. Удаляет по идентичности — устойчиво к не-LIFO снятию. */
+    public popFocusScope(element: TUIElement): void {
+        const index = this.focusScopeStack.lastIndexOf(element);
+        if (index !== -1) {
+            this.focusScopeStack.splice(index, 1);
+        }
     }
 
     public setFocus(element: TUIElement | null): void {
@@ -30,7 +44,8 @@ export class FocusManager {
     }
 
     public cycleFocus(direction: "forward" | "backward"): void {
-        const focusable = this.rootElement.getDepthFirstFocusableOrder();
+        const scope = this.focusScopeStack[this.focusScopeStack.length - 1] ?? this.rootElement;
+        const focusable = scope.getDepthFirstFocusableOrder();
         if (focusable.length === 0) return;
 
         const currentIndex = this.activeElement ? focusable.indexOf(this.activeElement) : -1;
