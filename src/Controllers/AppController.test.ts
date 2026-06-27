@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
@@ -10,6 +11,7 @@ import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
+import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 
 interface TestAppContext {
     testApp: TestApp;
@@ -442,5 +444,53 @@ describe("AppController — Quick Open", () => {
         const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
         const labels = picker.items.map((i) => i.label);
         expect(labels).toContain("My Test Command");
+    });
+});
+
+describe("AppController — runtime extended-keys detection", () => {
+    let savedEnv: NodeJS.ProcessEnv;
+
+    beforeEach(() => {
+        savedEnv = { ...process.env };
+        // Force a legacy baseline: tmux masks $TERM and ssh strips the kitty env flag,
+        // so neither the term-name hint nor the env-flag hint fires.
+        process.env.TERM = "tmux-256color";
+        process.env.TMUX = "/tmp/tmux-1000/default,1,0";
+        delete process.env.KITTY_WINDOW_ID;
+        delete process.env.GHOSTTY_RESOURCES_DIR;
+        delete process.env.WEZTERM_PANE;
+        delete process.env.ALACRITTY_WINDOW_ID;
+        delete process.env.TERM_PROGRAM;
+        delete process.env.COLORTERM;
+    });
+
+    afterEach(() => {
+        process.env = savedEnv;
+    });
+
+    function mountController() {
+        const { container } = createTestContainer();
+        const controller = container.get(AppControllerDIToken);
+        controller.mount();
+        const env = container.get(TerminalEnvironmentServiceDIToken);
+        return { controller, env };
+    }
+
+    it("promotes the tier off legacy when a CSI-u key arrives (e.g. Ctrl+Tab behind tmux)", () => {
+        const { controller, env } = mountController();
+        expect(env.tier).toBe("legacy");
+
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Tab", ctrlKey: true, raw: "\x1b[9;5u" }));
+
+        expect(env.tier).toBe("csi-u");
+        expect(env.hasCapability("extended-keys")).toBe(true);
+    });
+
+    it("leaves the tier at legacy for ordinary (non-CSI-u) keys", () => {
+        const { controller, env } = mountController();
+
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a", raw: "a" }));
+
+        expect(env.tier).toBe("legacy");
     });
 });

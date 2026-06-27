@@ -121,6 +121,47 @@ describe("TerminalEnvironmentService", () => {
         });
     });
 
+    describe("runtime detection from observed CSI-u input (noteExtendedKeysObserved)", () => {
+        it("upgrades legacy → csi-u on the first observed extended key", () => {
+            const service = new TerminalEnvironmentService(new MockTerminalBackend(), configFrom());
+            let changed = 0;
+            service.onDidChange(() => changed++);
+
+            expect(service.tier).toBe("legacy");
+            service.noteExtendedKeysObserved();
+
+            expect(service.hasCapability("extended-keys")).toBe(true);
+            expect(service.tier).toBe("csi-u");
+            expect(changed).toBe(1);
+        });
+
+        it("is idempotent — a second observation does not emit again", () => {
+            const service = new TerminalEnvironmentService(new MockTerminalBackend(), configFrom());
+            let changed = 0;
+            service.onDidChange(() => changed++);
+
+            service.noteExtendedKeysObserved();
+            service.noteExtendedKeysObserved();
+
+            expect(changed).toBe(1);
+        });
+
+        it("upgrades the capability but does not emit when a forced tier pins the result", () => {
+            const service = new TerminalEnvironmentService(
+                new MockTerminalBackend(),
+                configFrom({ terminal: { tier: "csi-u" } }),
+            );
+            let changed = 0;
+            service.onDidChange(() => changed++);
+
+            service.noteExtendedKeysObserved();
+
+            expect(service.hasCapability("extended-keys")).toBe(true);
+            expect(service.tier).toBe("csi-u");
+            expect(changed).toBe(0);
+        });
+    });
+
     describe("config overrides", () => {
         it("forces the tier regardless of detection", () => {
             const service = new TerminalEnvironmentService(

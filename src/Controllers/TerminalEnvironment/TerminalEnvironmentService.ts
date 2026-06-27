@@ -136,6 +136,23 @@ export class TerminalEnvironmentService extends Disposable {
         });
     }
 
+    /**
+     * Upgrade `extended-keys` from observed input — call when the app actually received a
+     * Kitty/CSI-u-encoded key. This is the only reliable signal behind tmux, which masks $TERM
+     * and silently drops the `CSI ? u` capability probe: the probe can't confirm support, but a
+     * key arriving in CSI-u form proves it. Upgrade-only and idempotent, like {@link detect};
+     * a config-forced value still wins. Fires `onDidChange` if the tier actually changes.
+     */
+    public noteExtendedKeysObserved(): void {
+        if (this.capabilities["extended-keys"]) return;
+        this.capabilities["extended-keys"] = true;
+        this.applyCapabilityOverrides(); // a config-forced value still wins
+        const tier = this.resolveTierWithOverride();
+        if (tier === this.tierValue) return;
+        this.tierValue = tier;
+        this.emitChange();
+    }
+
     private applyCapabilityOverrides(): void {
         const overrides = this.config.get<Partial<Record<Capability, boolean>>>("terminal.capabilities");
         if (!overrides) return;

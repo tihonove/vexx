@@ -212,6 +212,14 @@ function isModifierKey(key: string): boolean {
     return modifierKeyNames.has(key);
 }
 
+/**
+ * A CSI-u encoded key (`ESC [ <code>[;<mods>] u`). A key only arrives in this form when the
+ * Kitty keyboard protocol / xterm modifyOtherKeys is actually engaged — so receiving one is
+ * proof of `extended-keys` support, even behind tmux where the capability probe can't confirm.
+ */
+// eslint-disable-next-line no-control-regex
+const CSI_U_KEY_RAW = /^\x1b\[[0-9;:]*u$/;
+
 function eventToKeybinding(event: TUIKeyboardEvent): Keybinding {
     return {
         key: event.key,
@@ -565,12 +573,22 @@ export class AppController extends Disposable implements IController {
     // before it reaches the focused widget and swallow it entirely — so the
     // continuation key never leaks into the editor, matched or not.
     private handleKeyDownCapture = (event: TUIKeyboardEvent): void => {
+        this.observeExtendedKeys(event);
         if (this.keybindings.pendingLength === 0) return; // not in a chord — let the bubble handler run
         if (isModifierKey(event.key)) return; // holding a modifier must not break the chord
         event.preventDefault();
         event.stopImmediatePropagation();
         this.dispatchKey(event);
     };
+
+    /**
+     * Promote the terminal tier off `legacy` the moment a CSI-u key actually arrives — the only
+     * reliable extended-keys signal behind tmux, which drops the startup capability probe.
+     */
+    private observeExtendedKeys(event: TUIKeyboardEvent): void {
+        if (this.terminalEnv.hasCapability("extended-keys")) return;
+        if (CSI_U_KEY_RAW.test(event.raw)) this.terminalEnv.noteExtendedKeysObserved();
+    }
 
     private handleKeyPressCapture = (event: TUIKeyboardEvent): void => {
         if (!this.swallowNextKeyPress) return;
