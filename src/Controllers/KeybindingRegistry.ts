@@ -38,7 +38,7 @@ export type KeybindingChord = Keybinding[];
  *  - "none":    nothing matched (and any pending chord was reset).
  */
 export type KeybindingResolution =
-    | { kind: "command"; commandId: string }
+    | { kind: "command"; commandId: string; when?: string }
     | { kind: "chord"; chord: KeybindingChord }
     | { kind: "none" };
 
@@ -238,7 +238,7 @@ export class KeybindingRegistry implements IDisposable {
             if (!whenPasses(entry) || !prefixMatches(entry)) continue;
             if (entry.chord.length === seq.length) {
                 this.pendingEvents = [];
-                return { kind: "command", commandId: entry.commandId };
+                return { kind: "command", commandId: entry.commandId, when: entry.when };
             }
             hasLongerCandidate = true;
         }

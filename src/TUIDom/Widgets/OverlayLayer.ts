@@ -32,6 +32,8 @@ export interface OverlaySessionOptions {
     focusOnOpen?: boolean;
     closeOnEscape?: boolean;
     pointerPolicy: PointerPolicy;
+    /** Гасит ли оверлей глобальные кейбинды, пока видим. По умолчанию pointerPolicy !== "passthrough". */
+    capturesKeyboard?: boolean;
     disposeOnClose?: boolean;
     onClose?: () => void;
 }
@@ -52,7 +54,12 @@ interface OverlaySessionState {
     options: Required<
         Pick<
             OverlaySessionOptions,
-            "restoreFocus" | "focusOnOpen" | "closeOnEscape" | "pointerPolicy" | "disposeOnClose"
+            | "restoreFocus"
+            | "focusOnOpen"
+            | "closeOnEscape"
+            | "pointerPolicy"
+            | "capturesKeyboard"
+            | "disposeOnClose"
         >
     >;
     visible: boolean;
@@ -119,6 +126,7 @@ export class OverlayLayer extends TUIElement {
                 focusOnOpen: options.focusOnOpen ?? false,
                 closeOnEscape: options.closeOnEscape ?? false,
                 pointerPolicy: options.pointerPolicy,
+                capturesKeyboard: options.capturesKeyboard ?? (options.pointerPolicy !== "passthrough"),
                 disposeOnClose: options.disposeOnClose ?? false,
             },
             visible: false,
@@ -206,6 +214,18 @@ export class OverlayLayer extends TUIElement {
 
     public hasVisibleItems(): boolean {
         return this.items.some((item) => item.visible);
+    }
+
+    /**
+     * Клавиатурный аналог модальности из elementFromPoint: видимая захватывающая сессия
+     * гасит ГЛОБАЛЬНЫЕ кейбинды, чтобы шорткат не увёл фокус на панель за оверлеем.
+     * Собственные клавиши оверлея идут мимо глобального реестра, поэтому не задеваются.
+     */
+    public hasKeyboardCapturingOverlay(): boolean {
+        for (const session of this.sessions.values()) {
+            if (session.visible && session.options.capturesKeyboard) return true;
+        }
+        return false;
     }
 
     public clearAll(): void {
