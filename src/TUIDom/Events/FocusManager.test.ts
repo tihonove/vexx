@@ -317,6 +317,19 @@ describe("FocusManager", () => {
             expect(fm.activeElement).toBe(outside);
         });
 
+        it("ignores popFocusScope for an element that was never pushed", () => {
+            const { outside, scope, fm } = buildScopedTree();
+            const neverPushed = new TUIElement();
+
+            fm.pushFocusScope(scope);
+            // lastIndexOf returns -1 → the splice branch is skipped, stack unchanged.
+            fm.popFocusScope(neverPushed);
+
+            // The real scope is still active: cycling stays trapped inside it.
+            fm.cycleFocus("forward");
+            expect(fm.activeElement).not.toBe(outside);
+        });
+
         it("keeps the stack consistent when scopes are popped out of order", () => {
             const { outside, scope, fm } = buildScopedTree();
             const inner = new ContainerElement();
