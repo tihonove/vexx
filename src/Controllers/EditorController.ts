@@ -23,6 +23,7 @@ import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts"
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");
 
@@ -32,6 +33,7 @@ export class EditorController extends Disposable implements IController {
         TokenizationRegistryDIToken,
         TokenStyleResolverDIToken,
         LanguageServiceDIToken,
+        UndoRedoServiceDIToken,
     ] as const;
 
     public readonly view: ScrollBarDecorator;
@@ -49,6 +51,7 @@ export class EditorController extends Disposable implements IController {
     private readonly tokenizationRegistry: TokenizationRegistry;
     private readonly tokenStyleResolver: ITokenStyleResolver;
     private readonly languageService: ILanguageService;
+    private readonly undoRedoService: UndoRedoService;
     private contextMenuEntriesValue: MenuEntry[] = [];
 
     public get isModified(): boolean {
@@ -83,12 +86,14 @@ export class EditorController extends Disposable implements IController {
         tokenizationRegistry: TokenizationRegistry,
         tokenStyleResolver: ITokenStyleResolver,
         languageService: ILanguageService,
+        undoRedoService: UndoRedoService,
     ) {
         super();
 
         this.tokenizationRegistry = tokenizationRegistry;
         this.tokenStyleResolver = tokenStyleResolver;
         this.languageService = languageService;
+        this.undoRedoService = undoRedoService;
 
         this.doc = new TextDocument("");
         this.editorViewState = new EditorViewState(this.doc);
@@ -97,6 +102,7 @@ export class EditorController extends Disposable implements IController {
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = tokenStyleResolver;
         this.editor.tabIndex = 0;
+        this.attachUndoRouting();
         this.view = new ScrollBarDecorator(this.editor);
 
         this.register(
@@ -104,6 +110,8 @@ export class EditorController extends Disposable implements IController {
                 this.applyTheme(theme);
             }),
         );
+        // Очищаем историю отмены этого файла при закрытии вкладки.
+        this.register({ dispose: () => this.undoRedoService.clear(this.undoContext()) });
     }
 
     public openFile(filePath: string): void {
@@ -118,6 +126,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
+        this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
     }
@@ -140,11 +149,43 @@ export class EditorController extends Disposable implements IController {
     }
 
     public undo(): void {
-        this.editor.undoManager.undo();
+        void this.undoRedoService.undo(this.undoContext());
     }
 
     public redo(): void {
-        this.editor.undoManager.redo();
+        void this.undoRedoService.redo(this.undoContext());
+    }
+
+    /** Контекст-бакет истории отмены для этого редактора (путь файла). */
+    private undoContext(): string {
+        return this.filePath ?? "untitled";
+    }
+
+    /**
+     * Подключает текущий редактор к общей истории: каждый шаг `UndoManager` регистрирует
+     * обёртку в `UndoRedoService` под контекстом этого файла. Обёртка — токен порядка:
+     * её undo/redo делегируют в `UndoManager` (LIFO 1:1, поэтому стеки идут в ногу).
+     */
+    private attachUndoRouting(): void {
+        const editor = this.editor;
+        editor.undoManager.onDidPush = (element) => {
+            const resource = this.undoContext();
+            this.undoRedoService.pushElement(
+                {
+                    label: element.label,
+                    resources: [resource],
+                    undo: () => {
+                        editor.undoManager.undo();
+                        editor.markDirty();
+                    },
+                    redo: () => {
+                        editor.undoManager.redo();
+                        editor.markDirty();
+                    },
+                },
+                resource,
+            );
+        };
     }
 
     /**

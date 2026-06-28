@@ -14,6 +14,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorController } from "./EditorController.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function createEditorController(
     overrides: {
@@ -28,6 +29,7 @@ function createEditorController(
         overrides.registry ?? new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
         overrides.languageService ?? NULL_LANGUAGE_SERVICE,
+        new UndoRedoService(),
     );
 }
 
