@@ -197,10 +197,9 @@ export class FileSearchService extends Disposable {
         if (live) this.entries = next;
 
         const stack: string[] = [root];
-        while (stack.length > 0) {
+        for (let dir = stack.pop(); dir !== undefined; dir = stack.pop()) {
             if (this.cancelled(generation)) return;
 
-            const dir = stack.pop() as string;
             let dirents: fs.Dirent[];
             try {
                 dirents = await fs.promises.readdir(dir, { withFileTypes: true });

@@ -311,7 +311,7 @@ describe("TreeViewElement edge cases", () => {
             // Targeted refresh of src must recurse into its expanded child (utils)
             await tree.refresh(roots[0]);
 
-            const queried = getChildren.mock.calls.map((c) => (c[0] as TestNode | undefined)?.id);
+            const queried = getChildren.mock.calls.map((c) => c[0]?.id);
             expect(queried).toContain("src");
             expect(queried).toContain("src/utils");
             expect(tree.contentHeight).toBe(5);

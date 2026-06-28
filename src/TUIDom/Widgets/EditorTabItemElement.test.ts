@@ -120,7 +120,9 @@ describe("EditorTabItemElement", () => {
 
     describe("hover behaviour", () => {
         function hover(tab: EditorTabItemElement, type: "mouseenter" | "mouseleave"): void {
-            tab.dispatchEvent(new TUIMouseEvent(type, { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
+            tab.dispatchEvent(
+                new TUIMouseEvent(type, { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }),
+            );
         }
 
         it("swaps the modified dot for the close cross while hovered", () => {

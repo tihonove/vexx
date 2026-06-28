@@ -66,12 +66,12 @@ describe("FsAssetAccess", () => {
         expect(await assets.listEntries("Extensions/builtin/nope/")).toEqual([]);
     });
 
-    it("listEntries по пустому prefix бросает, если нет mapping для \"\"", async () => {
+    it('listEntries по пустому prefix бросает, если нет mapping для ""', async () => {
         const assets = new FsAssetAccess({ "Extensions/builtin/": join(root, "ext") });
         await expect(assets.listEntries("")).rejects.toThrow(/empty virtual prefix/);
     });
 
-    it("listEntries по пустому prefix читает root, если он замаплен на \"\"", async () => {
+    it('listEntries по пустому prefix читает root, если он замаплен на ""', async () => {
         const assets = new FsAssetAccess({ "": join(root, "ext") });
         const entries = (await assets.listEntries("")).map((e) => e.name).sort();
         expect(entries).toEqual(["ts"]);

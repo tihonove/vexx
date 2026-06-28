@@ -14,15 +14,15 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
+import { fileSaveAction } from "../Controllers/Actions/FileActions.ts";
+import { findAction } from "../Controllers/Actions/FindActions.ts";
+import { quickOpenAction, showCommandsAction } from "../Controllers/Actions/QuickOpenActions.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,
     previousEditorInGroupAction,
 } from "../Controllers/Actions/TabActions.ts";
 import type { CommandAction } from "../Controllers/CommandAction.ts";
-import { fileSaveAction } from "../Controllers/Actions/FileActions.ts";
-import { findAction } from "../Controllers/Actions/FindActions.ts";
-import { quickOpenAction, showCommandsAction } from "../Controllers/Actions/QuickOpenActions.ts";
 import { formatKeybinding, type Keybinding } from "../Controllers/KeybindingRegistry.ts";
 import {
     detectBaseModes,
@@ -81,7 +81,7 @@ function actionBindings(action: CommandAction): ResolvedBinding[] {
         } else {
             kb = entry;
         }
-        if (kb) out.push({ id: action.id, kb, when });
+        out.push({ id: action.id, kb, when });
     }
     return out;
 }
@@ -126,8 +126,10 @@ function describeToken(t: ReturnType<typeof tokenize>[number]): string {
     if (t.kind === "csi-u") {
         return `csi-u  codepoint=${t.codepoint} key=${t.key} eventType=${t.eventType} mods=${mods(t)}`;
     }
-    if (t.kind === "csi-tilde") return `csi-tilde number=${t.number} key=${t.key} eventType=${t.eventType} mods=${mods(t)}`;
-    if (t.kind === "csi-letter") return `csi-letter ${t.finalByte} key=${t.key} eventType=${t.eventType} mods=${mods(t)}`;
+    if (t.kind === "csi-tilde")
+        return `csi-tilde number=${t.number} key=${t.key} eventType=${t.eventType} mods=${mods(t)}`;
+    if (t.kind === "csi-letter")
+        return `csi-letter ${t.finalByte} key=${t.key} eventType=${t.eventType} mods=${mods(t)}`;
     if (t.kind === "ctrl-char") return `ctrl-char letter=${t.letter}`;
     if (t.kind === "char") return `char '${t.char}'`;
     if (t.kind === "special-key") return `special-key ${t.key}`;
@@ -185,9 +187,12 @@ stdin.on("data", (chunk: string) => {
 
         if (e.type !== "keydown") continue;
 
-        if (/^\x1b\[[0-9;:]*u$/.test(e.raw) && !sawCsiU) {
+        const isCsiU = e.raw.charCodeAt(0) === 0x1b && /^\[[0-9;:]*u$/.test(e.raw.slice(1));
+        if (isCsiU && !sawCsiU) {
             sawCsiU = true;
-            stdout.write("    " + green("→ CSI-u key seen — extended-keys confirmed; vexx would upgrade tier to csi-u") + "\r\n");
+            stdout.write(
+                "    " + green("→ CSI-u key seen — extended-keys confirmed; vexx would upgrade tier to csi-u") + "\r\n",
+            );
         }
 
         const binding = formatKeybinding([eventToKeybinding(e)]);
@@ -204,7 +209,11 @@ stdin.on("data", (chunk: string) => {
                 );
             }
             stdout.write(
-                "    " + red("⚠ matched — if this does nothing in vexx, the `when` gate above is false (e.g. need ≥2 tabs)") + "\r\n",
+                "    " +
+                    red(
+                        "⚠ matched — if this does nothing in vexx, the `when` gate above is false (e.g. need ≥2 tabs)",
+                    ) +
+                    "\r\n",
             );
         }
     }

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Size } from "../../Common/GeometryPromitives.ts";
-import { TestApp } from "../../TestUtils/TestApp.ts";
 import { VEXX_VERSION } from "../../Common/Version.ts";
+import { TestApp } from "../../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 
 import { AboutDialogElement } from "./AboutDialogElement.tsx";

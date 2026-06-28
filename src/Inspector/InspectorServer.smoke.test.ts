@@ -1,12 +1,12 @@
-import WebSocket from "ws";
 import { afterEach, describe, expect, it } from "vitest";
+import WebSocket from "ws";
 
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
 
-import { attachInspector, type AttachedInspector } from "./attachInspector.ts";
+import { type AttachedInspector, attachInspector } from "./attachInspector.ts";
 import type { GetDocumentResult, InspectorResponse, InspectorSuccessResponse } from "./protocol.ts";
 
 describe("InspectorServer smoke (real WebSocket)", () => {
@@ -25,8 +25,12 @@ describe("InspectorServer smoke (real WebSocket)", () => {
 
         const ws = new WebSocket(`ws://127.0.0.1:${attached.port}`);
         const response = await new Promise<InspectorResponse>((resolve, reject) => {
-            ws.on("open", () => ws.send(JSON.stringify({ id: 1, method: "TUIDom.getDocument" })));
-            ws.on("message", (data: WebSocket.RawData) => resolve(JSON.parse(data.toString()) as InspectorResponse));
+            ws.on("open", () => {
+                ws.send(JSON.stringify({ id: 1, method: "TUIDom.getDocument" }));
+            });
+            ws.on("message", (data: WebSocket.RawData) => {
+                resolve(JSON.parse((data as Buffer).toString("utf8")) as InspectorResponse);
+            });
             ws.on("error", reject);
         });
         ws.close();

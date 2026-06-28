@@ -8,8 +8,8 @@ import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import type { TUIPasteEvent } from "../TUIDom/Events/TUIPasteEvent.ts";
 import { RenderContext, TUIElement } from "../TUIDom/TUIElement.ts";
 import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
@@ -330,12 +330,7 @@ export class EditorElement extends TUIElement implements IScrollable {
      * the visible viewport. Only `bg` is set, so the glyph and fg underneath are
      * preserved. Used by both the selection and search-match highlight passes.
      */
-    private paintRangeBackground(
-        context: RenderContext,
-        range: IRange,
-        bg: number,
-        geo: RangeHighlightGeometry,
-    ): void {
+    private paintRangeBackground(context: RenderContext, range: IRange, bg: number, geo: RangeHighlightGeometry): void {
         for (let screenY = 0; screenY < geo.visibleLines; screenY++) {
             const viewLine = geo.scrollTop + screenY;
             if (viewLine >= geo.viewLineCount) break;

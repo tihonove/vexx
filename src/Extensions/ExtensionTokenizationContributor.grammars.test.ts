@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
+import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
+import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
-import type { IExtension } from "./IExtension.ts";
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
+import type { IExtension } from "./IExtension.ts";
 
 // Mock the grammar loader so we can drive loadSupport() without touching real grammar assets.
 vi.mock("../Editor/Tokenization/textmate/TextMateGrammarLoader.ts", () => {
@@ -75,7 +75,9 @@ describe("ExtensionTokenizationContributor — grammar collection", () => {
 
         expect(MockedLoader).not.toHaveBeenCalled();
         // dispose() with no loader and no registrations must be safe.
-        expect(() => contributor.dispose()).not.toThrow();
+        expect(() => {
+            contributor.dispose();
+        }).not.toThrow();
     });
 
     it("skips extensions without grammars and registers only the contributing ones", async () => {

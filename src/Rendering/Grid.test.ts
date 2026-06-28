@@ -156,7 +156,6 @@ describe("Grid", () => {
             expect(nextCont.char).toBe(" ");
             expect(nextCont.width).toBe(1);
         });
-
     });
 
     describe("updateCell wide characters", () => {

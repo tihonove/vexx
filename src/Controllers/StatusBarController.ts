@@ -70,7 +70,10 @@ export class StatusBarController extends Disposable implements IController {
      */
     private bindCursorListener(editor: EditorController | null): void {
         this.cursorSubscription?.dispose();
-        this.cursorSubscription = editor?.onDidChangeCursorPosition(() => this.update()) ?? null;
+        this.cursorSubscription =
+            editor?.onDidChangeCursorPosition(() => {
+                this.update();
+            }) ?? null;
     }
 
     public async activate(): Promise<void> {
@@ -118,8 +121,8 @@ export class StatusBarController extends Disposable implements IController {
     private cursorPositionText(editor: EditorController | null): string | null {
         if (editor === null) return null;
         const viewState = editor.viewState;
-        const active = viewState.selections[0]?.active;
-        if (active === undefined) return null;
+        if (viewState.selections.length === 0) return null;
+        const active = viewState.selections[0].active;
         const lineContent = viewState.document.getLineContent(active.line);
         const column = new DisplayLine(lineContent, viewState.tabSize).offsetToColumn(active.character);
         return `Ln ${active.line + 1}, Col ${column + 1}`;

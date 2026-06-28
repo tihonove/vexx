@@ -2,11 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
+import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
-import type { IExtension } from "./IExtension.ts";
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
+import type { IExtension } from "./IExtension.ts";
 
 // Mock the grammar loader so we can drive loadSupport() into the null / throw branches
 // without touching real grammar assets.

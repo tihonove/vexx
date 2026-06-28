@@ -5,9 +5,9 @@ import type { IPosition } from "../Editor/IPosition.ts";
 import { comparePositions } from "../Editor/IPosition.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import { createSelection } from "../Editor/ISelection.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
-import { FindWidgetElement } from "../TUIDom/Widgets/FindWidgetElement.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { FindWidgetElement } from "../TUIDom/Widgets/FindWidgetElement.ts";
+import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 
 import type { EditorGroupController } from "./EditorGroupController.ts";
 

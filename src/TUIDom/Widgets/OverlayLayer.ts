@@ -105,11 +105,7 @@ export class OverlayLayer extends TUIElement {
         }
     }
 
-    public createSession(
-        element: TUIElement,
-        position: Point,
-        options: OverlaySessionOptions,
-    ): OverlaySessionHandle {
+    public createSession(element: TUIElement, position: Point, options: OverlaySessionOptions): OverlaySessionHandle {
         this.disposeSessionByElement(element);
 
         const initialVisible = options.visible ?? false;

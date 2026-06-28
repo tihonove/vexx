@@ -33,7 +33,9 @@ describe("EditorOptionsServiceAdapter", () => {
 
     it("setActiveEditorOptions() is a no-op when there is no active editor", () => {
         const adapter = new EditorOptionsServiceAdapter(groupWithNoActiveEditor());
-        expect(() => adapter.setActiveEditorOptions({ tabSize: 2 })).not.toThrow();
+        expect(() => {
+            adapter.setActiveEditorOptions({ tabSize: 2 });
+        }).not.toThrow();
     });
 
     it("setActiveEditorOptions() forwards the patch to the active editor", () => {

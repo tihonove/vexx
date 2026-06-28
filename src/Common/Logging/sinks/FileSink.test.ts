@@ -14,7 +14,7 @@ import { FileSink } from "./FileSink.ts";
 const createWriteStreamControl = { throwOnCreate: false };
 
 vi.mock("node:fs", async (importActual) => {
-    const actual = await importActual<typeof import("node:fs")>();
+    const actual = await importActual<typeof fs>();
     return {
         ...actual,
         createWriteStream: (...args: Parameters<typeof actual.createWriteStream>) => {

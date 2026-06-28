@@ -243,7 +243,7 @@ describe("getCharDisplayWidth", () => {
     describe("emoji Emoji_Presentation sub-ranges", () => {
         // Each entry covers one explicit Emoji_Presentation=Yes sub-range in
         // isWide(). Both endpoints are checked to pin down range boundaries.
-        const ranges: Array<[number, number, string]> = [
+        const ranges: [number, number, string][] = [
             [0x1f337, 0x1f37c, "food / plants"],
             [0x1f3a0, 0x1f3ca, "entertainment"],
             [0x1f3cf, 0x1f3d3, "sports"],

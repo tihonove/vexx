@@ -128,7 +128,9 @@ describe("FileSearchService — notify / onIndexChanged", () => {
 
     it("dispose() with no pending notify timer is a no-op (line 143 false branch)", () => {
         // Never activated → notifyTimer is null. dispose() must take the false branch.
-        expect(() => service.dispose()).not.toThrow();
+        expect(() => {
+            service.dispose();
+        }).not.toThrow();
     });
 
     it("flushNotify fires onIndexChanged exactly once on completion when set late", async () => {

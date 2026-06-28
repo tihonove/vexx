@@ -5,8 +5,8 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
-import type { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import type { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";

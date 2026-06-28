@@ -30,6 +30,8 @@ export async function attachInspector(
         core,
         server,
         port,
-        dispose: () => server.dispose(),
+        dispose: () => {
+            server.dispose();
+        },
     };
 }

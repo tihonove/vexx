@@ -4,8 +4,8 @@ import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import type { MouseToken } from "../Input/RawTerminalToken.ts";
 
-import { TUIElement } from "./TUIElement.ts";
 import { TuiApplication } from "./TuiApplication.ts";
+import { TUIElement } from "./TUIElement.ts";
 import { BodyElement } from "./Widgets/BodyElement.ts";
 import { InputElement } from "./Widgets/InputElement.ts";
 
@@ -207,17 +207,23 @@ describe("TuiApplication — input handlers with no root", () => {
 
     it("ignores key input when root is null", () => {
         const { backend } = runningApp();
-        expect(() => backend.sendKey("a")).not.toThrow();
+        expect(() => {
+            backend.sendKey("a");
+        }).not.toThrow();
     });
 
     it("ignores mouse input when root is null", () => {
         const { backend } = runningApp();
-        expect(() => backend.simulateMouse(pressMouse(1, 1))).not.toThrow();
+        expect(() => {
+            backend.simulateMouse(pressMouse(1, 1));
+        }).not.toThrow();
     });
 
     it("ignores paste when root is null", () => {
         const { backend } = runningApp();
-        expect(() => backend.sendPaste("x")).not.toThrow();
+        expect(() => {
+            backend.sendPaste("x");
+        }).not.toThrow();
     });
 
     it("ignores resize when root is null but still swaps the screen", () => {

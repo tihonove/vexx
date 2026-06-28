@@ -118,7 +118,7 @@ describe("reconcile", () => {
     describe("update path on re-reconcile", () => {
         it("calls type.update on the existing element with new props (no new instance)", () => {
             const created: TUIElement[] = [];
-            const updated: Array<{ el: TUIElement; text: string }> = [];
+            const updated: { el: TUIElement; text: string }[] = [];
 
             const Tracked: ComponentType<{ text: string }> = (props): FakeLabel => {
                 const el = new FakeLabel();

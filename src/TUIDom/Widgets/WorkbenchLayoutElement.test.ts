@@ -14,8 +14,11 @@ function createPanel(): TUIElement {
 
 /** A panel that paints a single marker char at its top-left, so we can assert it was rendered. */
 class MarkerPanel extends TUIElement {
-    public constructor(private readonly marker: string) {
+    private readonly marker: string;
+
+    public constructor(marker: string) {
         super();
+        this.marker = marker;
     }
 
     public override render(context: RenderContext): void {

@@ -172,7 +172,9 @@ describe("IpcMessageChannel", () => {
         const received: unknown[] = [];
         const sub = chB.onMessage((m) => received.push(m));
         // Disposable безопасно вызывается и ничего не ломает.
-        expect(() => sub.dispose()).not.toThrow();
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
 
         chA.postMessage("hi");
         await Promise.resolve();
@@ -205,7 +207,9 @@ describe("IpcMessageChannel", () => {
         const [a] = pair();
         const ch = new IpcMessageChannel(a);
         ch.dispose();
-        expect(() => ch.dispose()).not.toThrow();
+        expect(() => {
+            ch.dispose();
+        }).not.toThrow();
     });
 
     it("повторный dispose подписки безопасен (line 71 ветка index < 0)", () => {
@@ -213,7 +217,9 @@ describe("IpcMessageChannel", () => {
         const ch = new IpcMessageChannel(a);
         const sub = ch.onMessage(() => undefined);
         sub.dispose();
-        expect(() => sub.dispose()).not.toThrow();
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
         ch.dispose();
     });
 });

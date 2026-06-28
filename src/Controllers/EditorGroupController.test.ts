@@ -6,10 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
@@ -434,7 +434,9 @@ describe("EditorGroupController", () => {
             ctrl.openFile(writeFile("a.ts", "a"));
 
             // Re-applies the theme with no editor.foreground / editor.background defined.
-            expect(() => themeService.setTheme(emptyTheme)).not.toThrow();
+            expect(() => {
+                themeService.setTheme(emptyTheme);
+            }).not.toThrow();
         });
     });
 });

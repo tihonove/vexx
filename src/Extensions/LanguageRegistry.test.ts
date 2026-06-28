@@ -68,7 +68,9 @@ describe("LanguageRegistry", () => {
 
         // No languages registered, and disposing the no-op must not throw.
         expect(registry.allLanguages()).toEqual([]);
-        expect(() => disposable.dispose()).not.toThrow();
+        expect(() => {
+            disposable.dispose();
+        }).not.toThrow();
     });
 
     it("matches по extension case-insensitive", () => {

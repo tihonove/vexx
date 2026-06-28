@@ -11,10 +11,10 @@ import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.t
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 import type { EditorController } from "./EditorController.ts";

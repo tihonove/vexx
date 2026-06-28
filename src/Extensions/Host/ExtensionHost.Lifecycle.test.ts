@@ -5,8 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
-import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
+import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IProtocolMessage, IRequestMessage } from "./RpcEndpoint.ts";
 
 // `spawn` is the only side effect we need to control; everything else (IPC channel,
@@ -388,9 +388,7 @@ describe("ExtensionHost — readiness failures", () => {
         spawnMock.mockReturnValue(child as never); // never emits ready
         const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs, readyTimeoutMs: 20 });
 
-        await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(
-            /did not become ready/,
-        );
+        await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/did not become ready/);
     });
 });
 

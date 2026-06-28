@@ -184,4 +184,19 @@ describe("SashElement", () => {
         dispatcher.handleMouseToken(makeToken({ action: "release", x: 31, y: 1 }), root);
         expect(renderTopChar(sash)).toBe(" ");
     });
+
+    it("cancels the pending hover timer when the cursor leaves before the delay", () => {
+        vi.useFakeTimers();
+        const { root, sash } = buildScene();
+        sash.hoverBorderColor = HOVER_COLOR;
+        const dispatcher = new MouseEventDispatcher();
+
+        // Enter the sash, then leave again before the hover delay elapses.
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 31, y: 1 }), root);
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 50, y: 1 }), root);
+
+        // The pending timer was cancelled, so the line never lights even after the delay.
+        vi.advanceTimersByTime(300);
+        expect(renderTopChar(sash)).toBe(" ");
+    });
 });

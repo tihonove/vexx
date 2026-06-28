@@ -88,6 +88,8 @@ describe("TUIElement focus convenience", () => {
     it("blur() is a no-op when the element has no root", () => {
         const el = new TUIElement();
         // No root → no focus manager; blur() must short-circuit without throwing.
-        expect(() => el.blur()).not.toThrow();
+        expect(() => {
+            el.blur();
+        }).not.toThrow();
     });
 });

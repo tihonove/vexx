@@ -32,22 +32,18 @@ function openMenu(testApp: TestApp, mnemonic: string): PopupMenuElement {
     testApp.sendKey(`Alt+${mnemonic}`);
     const popup = testApp.querySelector("PopupMenuElement") as PopupMenuElement | null;
     expect(popup).not.toBeNull();
-    return popup as PopupMenuElement;
+    return popup!;
 }
 
 /** Find an entry by its label inside a popup menu. */
 function entryByLabel(popup: PopupMenuElement, label: string): MenuItemEntry {
-    const found = popup.entries.find(
-        (e): e is MenuItemEntry => e.type !== "separator" && (e as MenuItemEntry).label === label,
-    );
+    const found = popup.entries.find((e): e is MenuItemEntry => e.type !== "separator" && e.label === label);
     expect(found, `entry "${label}" should exist`).toBeDefined();
-    return found as MenuItemEntry;
+    return found!;
 }
 
 function itemLabels(popup: PopupMenuElement): string[] {
-    return popup.entries
-        .filter((e): e is MenuItemEntry => e.type !== "separator")
-        .map((e) => e.label);
+    return popup.entries.filter((e): e is MenuItemEntry => e.type !== "separator").map((e) => e.label);
 }
 
 describe("AppController — menu bar wiring", () => {
@@ -266,12 +262,7 @@ describe("AppController — menu bar wiring", () => {
     it("opens the Go menu and renders its entries", () => {
         const { testApp } = createMenuApp();
         const popup = openMenu(testApp, "g");
-        expect(itemLabels(popup)).toEqual([
-            "Go to File...",
-            "Next Editor",
-            "Previous Editor",
-            "Close Editor",
-        ]);
+        expect(itemLabels(popup)).toEqual(["Go to File...", "Next Editor", "Previous Editor", "Close Editor"]);
     });
 
     it("Go → Go to File runs the quick-open command", () => {
@@ -405,8 +396,8 @@ describe("AppController — editor context menu", () => {
         const executeSpy = vi.spyOn(commands, "execute");
 
         const copy = getEditorEntries(testApp).find(
-            (e): e is MenuItemEntry => e.type !== "separator" && (e as MenuItemEntry).label === "Copy",
-        ) as MenuItemEntry;
+            (e): e is MenuItemEntry => e.type !== "separator" && e.label === "Copy",
+        )!;
         copy.onSelect?.();
 
         expect(executeSpy).toHaveBeenCalledWith("editor.action.clipboardCopyAction");
@@ -419,8 +410,8 @@ describe("AppController — editor context menu", () => {
         const executeSpy = vi.spyOn(commands, "execute");
 
         const cut = getEditorEntries(testApp).find(
-            (e): e is MenuItemEntry => e.type !== "separator" && (e as MenuItemEntry).label === "Cut",
-        ) as MenuItemEntry;
+            (e): e is MenuItemEntry => e.type !== "separator" && e.label === "Cut",
+        )!;
         cut.onSelect?.();
 
         expect(executeSpy).toHaveBeenCalledWith("editor.action.clipboardCutAction");
@@ -433,8 +424,8 @@ describe("AppController — editor context menu", () => {
         const executeSpy = vi.spyOn(commands, "execute");
 
         const paste = getEditorEntries(testApp).find(
-            (e): e is MenuItemEntry => e.type !== "separator" && (e as MenuItemEntry).label === "Paste",
-        ) as MenuItemEntry;
+            (e): e is MenuItemEntry => e.type !== "separator" && e.label === "Paste",
+        )!;
         paste.onSelect?.();
 
         expect(executeSpy).toHaveBeenCalledWith("editor.action.clipboardPasteAction");
@@ -447,8 +438,8 @@ describe("AppController — editor context menu", () => {
         const executeSpy = vi.spyOn(commands, "execute");
 
         const undo = getEditorEntries(testApp).find(
-            (e): e is MenuItemEntry => e.type !== "separator" && (e as MenuItemEntry).label === "Undo",
-        ) as MenuItemEntry;
+            (e): e is MenuItemEntry => e.type !== "separator" && e.label === "Undo",
+        )!;
         undo.onSelect?.();
 
         expect(executeSpy).toHaveBeenCalledWith("undo");

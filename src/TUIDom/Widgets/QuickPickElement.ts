@@ -1,6 +1,6 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
-import { abbreviatePath, truncateEnd } from "../../Common/TextTruncation.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import { abbreviatePath, truncateEnd } from "../../Common/TextTruncation.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
@@ -157,6 +157,7 @@ export class QuickPickElement extends TUIElement {
      * on-screen.
      */
     public refreshItems(value: readonly QuickPickItem[]): void {
+        const hadPrevious = this.itemsValue.length > 0;
         const previous = this.itemsValue[this.selectedIndexValue];
         this.itemsValue = value;
 
@@ -167,7 +168,7 @@ export class QuickPickElement extends TUIElement {
             return;
         }
 
-        let next = previous ? value.findIndex((item) => sameItem(item, previous)) : -1;
+        let next = hadPrevious ? value.findIndex((item) => sameItem(item, previous)) : -1;
         if (next < 0) {
             next = Math.min(this.selectedIndexValue, value.length - 1);
         }

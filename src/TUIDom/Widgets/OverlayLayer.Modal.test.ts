@@ -18,8 +18,11 @@ void pointerPolicyIsRequired;
 
 /** Element that lays out to a fixed footprint, so overlay bounds are deterministic. */
 class FixedSizeElement extends TUIElement {
-    public constructor(private readonly desired: Size) {
+    private readonly desired: Size;
+
+    public constructor(desired: Size) {
         super();
+        this.desired = desired;
     }
 
     public override performLayout(constraints: BoxConstraints): Size {

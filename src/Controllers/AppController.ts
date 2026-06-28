@@ -359,7 +359,13 @@ export class AppController extends Disposable implements IController {
             }),
         );
         this.register(
-            commands.register("workbench.action.showAboutDialog", () => this.showAboutDialog(), "About"),
+            commands.register(
+                "workbench.action.showAboutDialog",
+                () => {
+                    this.showAboutDialog();
+                },
+                "About",
+            ),
         );
         this.register(
             registerAction(commands, keybindings, accessor, {
@@ -825,11 +831,7 @@ export class AppController extends Disposable implements IController {
             {
                 label: "File",
                 mnemonic: "f",
-                entries: [
-                    item("Save", "workbench.action.files.save"),
-                    sep(),
-                    item("Exit", "workbench.action.quit"),
-                ],
+                entries: [item("Save", "workbench.action.files.save"), sep(), item("Exit", "workbench.action.quit")],
             },
             {
                 label: "Edit",
@@ -945,7 +947,9 @@ export class AppController extends Disposable implements IController {
         if (!this.aboutDialog) {
             this.aboutDialog = new AboutDialogElement();
             this.aboutDialog.applyTheme(this.themeService.theme);
-            this.aboutDialog.onClose = () => this.hideAboutDialog();
+            this.aboutDialog.onClose = () => {
+                this.hideAboutDialog();
+            };
             this.aboutDialogSession = this.view.overlayLayer.createSession(this.aboutDialog, new Point(0, 0), {
                 visible: false,
                 restoreFocus: true,

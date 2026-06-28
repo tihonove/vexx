@@ -4,8 +4,8 @@ import { EditorViewState } from "./EditorViewState.ts";
 import { createFoldingRegion } from "./IFoldingRegion.ts";
 import { createCursorSelection, createSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
-import { DocumentTokenStore } from "./Tokenization/DocumentTokenStore.ts";
 import { PlainTextTokenizer } from "./Tokenization/builtin/PlainTextTokenizer.ts";
+import { DocumentTokenStore } from "./Tokenization/DocumentTokenStore.ts";
 
 // ─── getViewLine / getViewLineTokens out-of-range ───────────
 

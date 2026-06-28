@@ -72,7 +72,7 @@ describe("AppController — Quick Open accept callbacks", () => {
         testApp.render();
 
         const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
-        const alpha = picker.items.find((i) => i.label === "alpha.txt") as QuickPickItem;
+        const alpha = picker.items.find((i) => i.label === "alpha.txt")!;
         expect(alpha).toBeDefined();
 
         picker.onAccept?.(alpha, picker.items.indexOf(alpha));
@@ -108,7 +108,7 @@ describe("AppController — Quick Open accept callbacks", () => {
         testApp.render();
 
         const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
-        const target = picker.items.find((i) => i.label === "Quick Open Target Command") as QuickPickItem;
+        const target = picker.items.find((i) => i.label === "Quick Open Target Command")!;
         expect(target).toBeDefined();
 
         picker.onAccept?.(target, picker.items.indexOf(target));

@@ -181,7 +181,7 @@ describe("TreeViewElement scroll + render behavior", () => {
             // resolved — exercising findElementByKey's cache-backed lookup.
             await tree.refresh();
 
-            const queried = getChildren.mock.calls.map((c) => (c[0] as TestNode | undefined)?.id);
+            const queried = getChildren.mock.calls.map((c) => c[0]?.id);
             expect(queried).toContain("src"); // root-level expanded reloaded
             expect(queried).toContain("src/utils"); // deep expanded reloaded
             // The whole expanded structure is restored after refresh.

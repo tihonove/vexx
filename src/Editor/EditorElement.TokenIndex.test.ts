@@ -4,11 +4,7 @@ import { TokenIndex } from "./EditorElement.ts";
 import { createLineTokens, createToken } from "./ILineTokens.ts";
 
 describe("TokenIndex", () => {
-    const tokens = createLineTokens([
-        createToken(0, ["a"]),
-        createToken(5, ["b"]),
-        createToken(10, ["c"]),
-    ]);
+    const tokens = createLineTokens([createToken(0, ["a"]), createToken(5, ["b"]), createToken(10, ["c"])]);
 
     it("returns undefined when there are no tokens", () => {
         const index = new TokenIndex(createLineTokens([]), 10);

@@ -5,10 +5,10 @@ import * as path from "node:path";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
-import { AppControllerDIToken } from "./AppController.ts";
 import type { AppController } from "./AppController.ts";
-import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
+import { AppControllerDIToken } from "./AppController.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
+import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import type { EditorController } from "./EditorController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
@@ -42,7 +42,13 @@ export function createFindApp(text: string): FindContext {
         testApp,
         controller,
         contextKeys: container.get(ContextKeyServiceDIToken),
-        activeEditor: () => group.getActiveEditor() as EditorController,
+        activeEditor: () => {
+            const editor = group.getActiveEditor();
+            /* v8 ignore start -- test helper: every find scenario opens an editor before reading it */
+            if (editor === null) throw new Error("expected an active editor");
+            /* v8 ignore stop */
+            return editor;
+        },
         tmpDir,
     };
 }

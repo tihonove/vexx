@@ -4,7 +4,6 @@ import { joinVirtualPath } from "../../../Common/Assets/AssetBundleFormat.ts";
 import { createDevAssetAccess } from "../../../Common/Assets/createDefaultAssetAccess.ts";
 import { scanBuiltinExtensions } from "../../../Extensions/ExtensionScanner.ts";
 import type { IExtension } from "../../../Extensions/IExtension.ts";
-
 import { NULL_STATE } from "../IState.ts";
 
 import type { IGrammarRecord } from "./TextMateGrammarLoader.ts";

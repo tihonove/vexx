@@ -82,8 +82,10 @@ export function serializeKey(name: string): string {
         const mod = match[1];
         if (mod === "Ctrl") ctrl = true;
         else if (mod === "Shift") shift = true;
-        /* v8 ignore start -- the modifier regex only ever captures Ctrl|Shift|Alt|Meta, so the final "none matched" fall-through (no else clause) is unreachable; v8 attributes that phantom branch to these chained else-ifs */
-        else if (mod === "Alt") alt = true;
+        /* v8 ignore start -- the modifier regex only ever captures Ctrl|Shift|Alt|Meta, so the final "none matched" fall-through (no else clause) is unreachable; v8 attributes that phantom branch to these chained else-ifs */ else if (
+            mod === "Alt"
+        )
+            alt = true;
         else if (mod === "Meta") meta = true;
         /* v8 ignore stop */
         remaining = remaining.slice(match[0].length);

@@ -199,13 +199,15 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("unwatchDirectory on a directory that was never watched is a no-op (branch 76)", () => {
-            expect(() => provider.unwatchDirectory(path.join(tmpDir, "never-watched"))).not.toThrow();
+            expect(() => {
+                provider.unwatchDirectory(path.join(tmpDir, "never-watched"));
+            }).not.toThrow();
         });
     });
 
     describe("debounce timer lifecycle", () => {
         /** Wait until a 300ms debounce timer has been scheduled by debouncedNotify. */
-        async function waitForPendingDebounce(spy: ReturnType<typeof vi.spyOn>): Promise<void> {
+        async function waitForPendingDebounce(spy: { mock: { calls: unknown[][] } }): Promise<void> {
             await vi.waitFor(
                 () => {
                     const scheduled = spy.mock.calls.some((call: unknown[]) => call[1] === 300);

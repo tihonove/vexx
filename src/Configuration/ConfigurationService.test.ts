@@ -144,6 +144,9 @@ describe("loadConfiguration", () => {
         };
         const cfg = await loadConfiguration(p, logger);
         expect(cfg.get<number>("editor.tabSize")).toBe(4);
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to read settings file"), expect.anything());
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to read settings file"),
+            expect.anything(),
+        );
     });
 });

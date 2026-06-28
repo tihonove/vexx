@@ -4,10 +4,10 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
@@ -152,14 +152,11 @@ describe("EditorController", () => {
             ctrl.openFile(writeFile("a.ts", "x"));
 
             // A theme that defines a background but no gutter/line-number colors.
-            const sparseTheme = new WorkbenchTheme(
-                "sparse",
-                "dark",
-                { "editor.background": 0x112233 },
-                { rules: [] },
-            );
+            const sparseTheme = new WorkbenchTheme("sparse", "dark", { "editor.background": 0x112233 }, { rules: [] });
 
-            expect(() => themeService.setTheme(sparseTheme)).not.toThrow();
+            expect(() => {
+                themeService.setTheme(sparseTheme);
+            }).not.toThrow();
         });
     });
 

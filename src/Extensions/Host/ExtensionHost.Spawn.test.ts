@@ -1,12 +1,13 @@
 import { EventEmitter } from "node:events";
+import type * as nodeModule from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
-import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
+import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IProtocolMessage } from "./RpcEndpoint.ts";
 
 // `spawn` is mocked so no real subprocess is launched; `createRequire` is mocked so the
@@ -16,9 +17,8 @@ vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
 // Mutable knob read by the mocked `createRequire` at call time.
 const seaState: { mode: "real" | "isSea" | "throw" } = { mode: "real" };
 vi.mock("node:module", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("node:module")>();
-    return {
-        ...actual,
+    const actual = await importOriginal<typeof nodeModule>();
+    return Object.assign({}, actual, {
         createRequire: (specifier: string | URL) => {
             const realRequire = actual.createRequire(specifier);
             return ((id: string): unknown => {
@@ -29,7 +29,7 @@ vi.mock("node:module", async (importOriginal) => {
                 return realRequire(id);
             }) as NodeJS.Require;
         },
-    };
+    });
 });
 
 const { spawn } = await import("node:child_process");
@@ -39,8 +39,8 @@ const spawnMock = vi.mocked(spawn);
 class FakeChild extends EventEmitter {
     public exitCode: number | null = null;
     public killed = false;
-    public stdout: null = null;
-    public stderr: null = null;
+    public stdout = null;
+    public stderr = null;
     public readonly sent: IProtocolMessage[] = [];
     public readonly signals: string[] = [];
 
@@ -109,7 +109,9 @@ async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {
 /** Spawn a host whose subprocess becomes ready on the next microtask. */
 function spawnReadyHost(child: FakeChild, options = {}): ExtensionHost {
     spawnMock.mockReturnValue(child as never);
-    queueMicrotask(() => child.emitReady());
+    queueMicrotask(() => {
+        child.emitReady();
+    });
     return new ExtensionHost(new FakeEditorOptions(), options);
 }
 
@@ -123,7 +125,10 @@ describe("ExtensionHost — SIGKILL escalation (lines 242-247)", () => {
         const child = new FakeChild();
         child.markKilled = false; // SIGTERM does not flip `killed`, so the second guard passes…
         child.exitOnSignal = "SIGKILL"; // …and SIGKILL finally takes it down (keeps the test fast).
-        const host = spawnReadyHost(child, { spawnArgs: () => ({ command: "node", args: ["h.js"] }), shutdownTimeoutMs: 10 });
+        const host = spawnReadyHost(child, {
+            spawnArgs: () => ({ command: "node", args: ["h.js"] }),
+            shutdownTimeoutMs: 10,
+        });
         await host.registerExtension(makeReg("ext.a"));
 
         host.dispose();
@@ -137,7 +142,9 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
     it("derives command/args from process.execPath + main script when no spawnArgs is given", async () => {
         const child = new FakeChild();
         spawnMock.mockReturnValue(child as never);
-        queueMicrotask(() => child.emitReady());
+        queueMicrotask(() => {
+            child.emitReady();
+        });
         const host = new ExtensionHost(new FakeEditorOptions()); // no spawnArgs → defaultSpawnArgs
 
         await host.registerExtension(makeReg("ext.a"));
@@ -153,7 +160,9 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         seaState.mode = "isSea";
         const child = new FakeChild();
         spawnMock.mockReturnValue(child as never);
-        queueMicrotask(() => child.emitReady());
+        queueMicrotask(() => {
+            child.emitReady();
+        });
         const host = new ExtensionHost(new FakeEditorOptions());
 
         await host.registerExtension(makeReg("ext.a"));
@@ -169,7 +178,9 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         seaState.mode = "throw";
         const child = new FakeChild();
         spawnMock.mockReturnValue(child as never);
-        queueMicrotask(() => child.emitReady());
+        queueMicrotask(() => {
+            child.emitReady();
+        });
         const host = new ExtensionHost(new FakeEditorOptions());
 
         await host.registerExtension(makeReg("ext.a"));

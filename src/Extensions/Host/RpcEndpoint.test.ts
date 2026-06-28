@@ -83,10 +83,7 @@ describe("RpcEndpoint", () => {
         a.notify("event", { x: 1 });
         await Promise.resolve();
         await Promise.resolve();
-        expect(logger.warn).toHaveBeenCalledWith(
-            expect.stringContaining("notification handler"),
-            expect.any(Error),
-        );
+        expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining("notification handler"), expect.any(Error));
         a.dispose();
         b.dispose();
         chA.dispose();
@@ -133,7 +130,9 @@ describe("RpcEndpoint", () => {
         const a = new RpcEndpoint(chA);
         const spy = vi.spyOn(chA, "postMessage");
         a.dispose();
-        expect(() => a.notify("event", { x: 1 })).not.toThrow();
+        expect(() => {
+            a.notify("event", { x: 1 });
+        }).not.toThrow();
         expect(spy).not.toHaveBeenCalled();
         chA.dispose();
         chB.dispose();
@@ -184,7 +183,9 @@ describe("RpcEndpoint", () => {
         const a = new RpcEndpoint(chA);
         const b = new RpcEndpoint(chB);
         // No pending request with id 9999 — must be silently dropped.
-        expect(() => chB.postMessage({ kind: "res", id: 9999, result: 1 })).not.toThrow();
+        expect(() => {
+            chB.postMessage({ kind: "res", id: 9999, result: 1 });
+        }).not.toThrow();
         await microtasks();
         a.dispose();
         b.dispose();
@@ -195,7 +196,9 @@ describe("RpcEndpoint", () => {
     it("ignores a notification with no registered handler (line 182)", async () => {
         const { a, b, dispose } = createEndpointPair();
         // No handler registered for "unhandled" — handleNotificationMessage returns early.
-        expect(() => a.notify("unhandled", { x: 1 })).not.toThrow();
+        expect(() => {
+            a.notify("unhandled", { x: 1 });
+        }).not.toThrow();
         await microtasks();
         dispose();
         void b;
@@ -204,7 +207,7 @@ describe("RpcEndpoint", () => {
     it("stringifies a non-Error throw from a handler into the response (line 157 false branch)", async () => {
         const { a, b, dispose } = createEndpointPair();
         b.handleRequest("strthrow", () => {
-            throw "plain string failure"; // eslint-disable-line @typescript-eslint/no-throw-literal
+            throw "plain string failure"; // eslint-disable-line @typescript-eslint/only-throw-error
         });
         await expect(a.request("strthrow")).rejects.toThrow("plain string failure");
         dispose();

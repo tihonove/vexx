@@ -250,11 +250,7 @@ describe("QuickOpenController — files mode", () => {
     });
 
     it("a query change resets the cursor to the top", () => {
-        const results = [
-            makeSearchResult("src/a.ts"),
-            makeSearchResult("src/b.ts"),
-            makeSearchResult("src/c.ts"),
-        ];
+        const results = [makeSearchResult("src/a.ts"), makeSearchResult("src/b.ts"), makeSearchResult("src/c.ts")];
         const { controller, testApp } = createController(results);
         controller.open("files");
 

@@ -3,7 +3,15 @@ import type { Socket } from "node:net";
 
 import type { InspectorCore } from "./InspectorCore.ts";
 import type { InspectorRequest } from "./protocol.ts";
-import { decodeFrames, encodeFrame, encodeTextFrame, OPCODE_CLOSE, OPCODE_PING, OPCODE_PONG, OPCODE_TEXT } from "./ws/frame.ts";
+import {
+    decodeFrames,
+    encodeFrame,
+    encodeTextFrame,
+    OPCODE_CLOSE,
+    OPCODE_PING,
+    OPCODE_PONG,
+    OPCODE_TEXT,
+} from "./ws/frame.ts";
 import { computeAcceptKey } from "./ws/handshake.ts";
 
 export interface InspectorServerOptions {

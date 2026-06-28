@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
+import { TestApp } from "../TestUtils/TestApp.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
 import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";

@@ -38,7 +38,7 @@ export class EditorViewState {
     public insertSpaces = false;
     public detectIndentation = true;
     private selectionsValue!: ISelection[];
-    private cursorChangeListeners: Array<() => void> = [];
+    private cursorChangeListeners: (() => void)[] = [];
     /** Ranges of all current search matches to highlight (set by the find controller). */
     public searchMatches: IRange[] = [];
     /** Index into {@link searchMatches} of the active match, or -1 when there is none. */

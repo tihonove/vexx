@@ -2,10 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
-
-import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
 
 import { TextLabel, TextLabelElement } from "./TextLabelElement.ts";
 

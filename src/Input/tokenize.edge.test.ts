@@ -38,9 +38,7 @@ describe("tokenize — PUA functional keys without an explicit code", () => {
         // kittyCodepointMap[57362] = { key: "Pause" } has no `code` → code falls back to key (tokenize.ts:143).
         const pause = String.fromCodePoint(57362);
         const tokens = tokenize(pause);
-        expect(tokens).toEqual([
-            { kind: "pua", codepoint: 57362, key: "Pause", code: "Pause", raw: pause },
-        ]);
+        expect(tokens).toEqual([{ kind: "pua", codepoint: 57362, key: "Pause", code: "Pause", raw: pause }]);
     });
 
     it("ESC+PUA with key-only mapping falls back to key as code (Alt+Pause)", () => {

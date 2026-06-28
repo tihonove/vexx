@@ -72,6 +72,8 @@ describe("ThemeService", () => {
         const service = new ThemeService(fakeTheme("a"));
         const sub = service.onThemeChange(vi.fn());
         sub.dispose();
-        expect(() => sub.dispose()).not.toThrow();
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
     });
 });

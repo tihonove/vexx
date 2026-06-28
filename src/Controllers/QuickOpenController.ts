@@ -104,7 +104,9 @@ export class QuickOpenController extends Disposable {
             // Kick a throttled background re-index and refresh the list live as
             // it grows (the index builds in the background, not on a watcher).
             this.fileSearch.refreshIfStale();
-            this.fileSearch.onIndexChanged = () => this.handleIndexChanged();
+            this.fileSearch.onIndexChanged = () => {
+                this.handleIndexChanged();
+            };
         }
 
         this.updatePosition();

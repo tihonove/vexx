@@ -7,9 +7,9 @@ import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGra
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
-import type { IGrammarContribution } from "./IGrammarContribution.ts";
-import type { IExtension } from "./IExtension.ts";
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
+import type { IExtension } from "./IExtension.ts";
+import type { IGrammarContribution } from "./IGrammarContribution.ts";
 
 // Mock the grammar loader so we can inspect exactly which IGrammarRecord[] the
 // contributor collects (constructor arg) without touching real grammar assets.
@@ -58,12 +58,18 @@ describe("ExtensionTokenizationContributor — record collection", () => {
 
     it("returns early (no loader) when an extension declares an empty grammars array", async () => {
         const registry = new TokenizationRegistry();
-        const contributor = new ExtensionTokenizationContributor(dummyAssets, [makeExt("a", "Extensions/a/", [])], registry);
+        const contributor = new ExtensionTokenizationContributor(
+            dummyAssets,
+            [makeExt("a", "Extensions/a/", [])],
+            registry,
+        );
 
         await contributor.apply();
 
         expect(MockedLoader).not.toHaveBeenCalled();
-        expect(() => contributor.dispose()).not.toThrow();
+        expect(() => {
+            contributor.dispose();
+        }).not.toThrow();
     });
 
     it("skips extensions whose manifest has no `contributes` block at all", async () => {
@@ -78,7 +84,9 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             // Second ext: one real grammar.
             [
                 makeExt("no-contributes", "Extensions/none/", undefined),
-                makeExt("ts", "Extensions/ts/", [{ language: "typescript", scopeName: "source.ts", path: "./ts.json" }]),
+                makeExt("ts", "Extensions/ts/", [
+                    { language: "typescript", scopeName: "source.ts", path: "./ts.json" },
+                ]),
             ],
             registry,
         );
@@ -99,7 +107,11 @@ describe("ExtensionTokenizationContributor — record collection", () => {
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(
             dummyAssets,
-            [makeExt("ts", "Extensions/builtin/ts/", [{ language: "typescript", scopeName: "source.ts", path: "./syntaxes/ts.tmLanguage.json" }])],
+            [
+                makeExt("ts", "Extensions/builtin/ts/", [
+                    { language: "typescript", scopeName: "source.ts", path: "./syntaxes/ts.tmLanguage.json" },
+                ]),
+            ],
             registry,
         );
 

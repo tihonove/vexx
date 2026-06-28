@@ -6,8 +6,8 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { TUIElement } from "../TUIElement.ts";
 
-import { OverlayLayer } from "./OverlayLayer.ts";
 import { InputElement } from "./InputElement.ts";
+import { OverlayLayer } from "./OverlayLayer.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
 describe("OverlayLayer — item mutation guards", () => {
@@ -16,7 +16,9 @@ describe("OverlayLayer — item mutation guards", () => {
         const stranger = new TUIElement();
 
         // No session and not in items → both guards (session + findIndex) fall through.
-        expect(() => layer.removeItem(stranger)).not.toThrow();
+        expect(() => {
+            layer.removeItem(stranger);
+        }).not.toThrow();
         expect(layer.getItems().length).toBe(0);
     });
 
@@ -33,7 +35,9 @@ describe("OverlayLayer — item mutation guards", () => {
         const stranger = new TUIElement();
 
         // Element not present → no item found, nothing to reposition.
-        expect(() => layer.setPosition(stranger, new Point(3, 3))).not.toThrow();
+        expect(() => {
+            layer.setPosition(stranger, new Point(3, 3));
+        }).not.toThrow();
         expect(layer.getItems().length).toBe(0);
     });
 });
@@ -154,7 +158,9 @@ describe("OverlayLayer — restoreFocus without a focus manager", () => {
         // The focus manager vanishes before close, so releaseFocusScope reaches
         // `this.getRoot()?.focusManager ?? null` and takes the nullish branch.
         app.root.focusManager = null;
-        expect(() => session.close()).not.toThrow();
+        expect(() => {
+            session.close();
+        }).not.toThrow();
         expect(session.isOpen()).toBe(false);
     });
 });

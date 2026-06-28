@@ -162,7 +162,9 @@ describe("FileSearchService — indexing", () => {
 
     describe("refreshIfStale()", () => {
         it("is a no-op before activate (no root)", () => {
-            expect(() => service.refreshIfStale()).not.toThrow();
+            expect(() => {
+                service.refreshIfStale();
+            }).not.toThrow();
             expect(service.search("")).toHaveLength(0);
         });
 
@@ -183,7 +185,9 @@ describe("FileSearchService — indexing", () => {
         it("does nothing after dispose", async () => {
             await service.activate(tmpDir);
             service.dispose();
-            expect(() => service.refreshIfStale()).not.toThrow();
+            expect(() => {
+                service.refreshIfStale();
+            }).not.toThrow();
         });
 
         it("re-walks and picks up new files once stale", async () => {

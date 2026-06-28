@@ -50,9 +50,9 @@ describe("scanExtensions — error handling", () => {
             read: vi.fn(),
             exists: vi.fn().mockResolvedValue(true),
             listEntries: vi.fn().mockResolvedValue(entries),
-            readText: vi.fn(async (p: string) => {
-                if (p.includes("broken")) throw boom;
-                return goodManifest;
+            readText: vi.fn((p: string) => {
+                if (p.includes("broken")) return Promise.reject(boom);
+                return Promise.resolve(goodManifest);
             }),
         };
 

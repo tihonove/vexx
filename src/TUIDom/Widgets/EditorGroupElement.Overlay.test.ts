@@ -12,11 +12,13 @@ const OVERLAY_BG = packRgb(200, 100, 50);
 
 /** Solid-colour element. Fills its allotted size, or a fixed size if given. */
 class FillElement extends TUIElement {
-    public constructor(
-        private readonly color: number,
-        private readonly fixed?: Size,
-    ) {
+    private readonly color: number;
+    private readonly fixed?: Size;
+
+    public constructor(color: number, fixed?: Size) {
         super();
+        this.color = color;
+        this.fixed = fixed;
     }
 
     public override performLayout(constraints: BoxConstraints): Size {

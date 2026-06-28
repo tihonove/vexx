@@ -70,7 +70,14 @@ describe("loadUserKeybindings", () => {
     it("returns [] without logging an error for an empty file", async () => {
         // An empty document parses to `undefined` (not an array): the loader must
         // treat it as "no rules" silently, without emitting the array-shape error.
-        const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), isEnabled: () => true };
+        const logger = {
+            trace: vi.fn(),
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+            isEnabled: () => true,
+        };
         const file = write("");
         const rules = await loadUserKeybindings(file, logger);
         expect(rules).toEqual([]);
@@ -86,14 +93,31 @@ describe("loadUserKeybindings", () => {
 
     it("logs and returns [] when the file can't be read (non-ENOENT error)", async () => {
         // A directory path → readFile throws EISDIR, the non-missing-file branch.
-        const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), isEnabled: () => true };
+        const logger = {
+            trace: vi.fn(),
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+            isEnabled: () => true,
+        };
         const rules = await loadUserKeybindings(dir, logger);
         expect(rules).toEqual([]);
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to read keybindings file"), expect.anything());
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to read keybindings file"),
+            expect.anything(),
+        );
     });
 
     it("skips non-object rules and keeps valid ones", async () => {
-        const logger = { trace: vi.fn(), debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), isEnabled: () => true };
+        const logger = {
+            trace: vi.fn(),
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+            isEnabled: () => true,
+        };
         const file = write(`[
             42,
             "not-an-object",

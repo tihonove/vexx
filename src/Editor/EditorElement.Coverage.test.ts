@@ -9,8 +9,8 @@ import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
-import { createSelection } from "./ISelection.ts";
 import { createLineTokens, createToken } from "./ILineTokens.ts";
+import { createSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
 import { DocumentTokenStore } from "./Tokenization/DocumentTokenStore.ts";
 import type { IState } from "./Tokenization/IState.ts";
@@ -65,7 +65,10 @@ function fireMouseDown(editor: EditorElement, x: number, y: number, button: "lef
     editor.dispatchEvent(new TUIMouseEvent("mousedown", { button, screenX: x, screenY: y, localX: x, localY: y }));
 }
 
-function fireKeyPress(editor: EditorElement, init: { key: string; ctrlKey?: boolean; altKey?: boolean; metaKey?: boolean }): void {
+function fireKeyPress(
+    editor: EditorElement,
+    init: { key: string; ctrlKey?: boolean; altKey?: boolean; metaKey?: boolean },
+): void {
     editor.dispatchEvent(new TUIKeyboardEvent("keypress", init));
 }
 

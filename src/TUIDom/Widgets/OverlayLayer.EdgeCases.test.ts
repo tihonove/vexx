@@ -84,7 +84,9 @@ describe("OverlayLayer edge cases", () => {
         const session = layer.createSession(menu, new Point(0, 0), { visible: false, pointerPolicy: "passthrough" });
         session.dispose();
 
-        expect(() => session.setAnchor({ screenX: 5, screenY: 5 })).not.toThrow();
+        expect(() => {
+            session.setAnchor({ screenX: 5, screenY: 5 });
+        }).not.toThrow();
         // Nothing left to reposition.
         expect(layer.getItems().length).toBe(0);
     });

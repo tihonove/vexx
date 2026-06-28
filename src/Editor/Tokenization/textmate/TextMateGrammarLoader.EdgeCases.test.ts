@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { IAssetAccess, IAssetEntry } from "../../../Common/Assets/IAssetAccess.ts";
 import { createDevAssetAccess } from "../../../Common/Assets/createDefaultAssetAccess.ts";
+import type { IAssetAccess, IAssetEntry } from "../../../Common/Assets/IAssetAccess.ts";
 
 import type { IGrammarRecord } from "./TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "./TextMateGrammarLoader.ts";
@@ -12,7 +12,7 @@ import { TextMateGrammarLoader } from "./TextMateGrammarLoader.ts";
 const devAssets = createDevAssetAccess();
 
 class MemoryGrammarAssets implements IAssetAccess {
-    private readonly files: Record<string, string>;
+    private readonly files: Record<string, string | undefined>;
 
     public constructor(files: Record<string, string>) {
         this.files = files;

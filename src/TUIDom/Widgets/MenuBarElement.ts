@@ -5,10 +5,10 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import type { BodyElement } from "./BodyElement.ts";
-import type { OverlayLayer } from "./OverlayLayer.ts";
-import type { OverlaySessionHandle } from "./OverlayLayer.ts";
 import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts";
 import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
+import type { OverlayLayer } from "./OverlayLayer.ts";
+import type { OverlaySessionHandle } from "./OverlayLayer.ts";
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
