@@ -20,7 +20,7 @@ import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
-import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import type { MenuEntry, MenuItemEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
@@ -315,6 +315,7 @@ export class AppController extends Disposable implements IController {
         );
 
         this.workbenchLayout = new WorkbenchLayoutElement();
+        this.workbenchLayout.setSashHoverColor(themeService.theme.getColor("sash.hoverBorder"));
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
 
         this.view = new BodyElement();
@@ -608,6 +609,7 @@ export class AppController extends Disposable implements IController {
         this.confirmDialog?.applyTheme(theme);
         this.aboutDialog?.applyTheme(theme);
         this.findController.applyTheme(theme);
+        this.workbenchLayout.setSashHoverColor(theme.getColor("sash.hoverBorder"));
     }
 
     // Capture phase: while a chord is in progress, intercept the next key
@@ -804,131 +806,86 @@ export class AppController extends Disposable implements IController {
     }
 
     private setupMenu(): void {
+        // Build a menu item from an existing command id. The displayed shortcut is
+        // resolved from the keybinding registry (same source as the command palette),
+        // so menu labels never drift from the real bindings.
+        const item = (label: string, commandId: string): MenuItemEntry => {
+            const chord = this.keybindings.getKeybindingForCommand(commandId, this.contextKeys);
+            return {
+                label,
+                shortcut: chord ? formatKeybinding(chord) : undefined,
+                onSelect: () => {
+                    this.commands.execute(commandId);
+                },
+            };
+        };
+        const sep = (): MenuEntry => ({ type: "separator" });
+
         const menuItems: MenuBarItem[] = [
             {
                 label: "File",
                 mnemonic: "f",
                 entries: [
-                    {
-                        label: "Save",
-                        shortcut: "Ctrl+S",
-                        onSelect: () => {
-                            this.commands.execute("workbench.action.files.save");
-                        },
-                    },
-                    { type: "separator" },
-                    {
-                        label: "Exit",
-                        shortcut: "Ctrl+Q",
-                        onSelect: () => {
-                            this.commands.execute("workbench.action.quit");
-                        },
-                    },
+                    item("Save", "workbench.action.files.save"),
+                    sep(),
+                    item("Exit", "workbench.action.quit"),
                 ],
             },
             {
                 label: "Edit",
                 mnemonic: "e",
                 entries: [
-                    {
-                        label: "Undo",
-                        shortcut: "Ctrl+Z",
-                        onSelect: () => {
-                            this.commands.execute("undo");
-                        },
-                    },
-                    {
-                        label: "Redo",
-                        shortcut: "Ctrl+Shift+Z",
-                        onSelect: () => {
-                            this.commands.execute("redo");
-                        },
-                    },
-                    { type: "separator" },
-                    {
-                        label: "Cut",
-                        shortcut: "Ctrl+X",
-                        onSelect: () => {
-                            this.commands.execute("editor.action.clipboardCutAction");
-                        },
-                    },
-                    {
-                        label: "Copy",
-                        shortcut: "Ctrl+C",
-                        onSelect: () => {
-                            this.commands.execute("editor.action.clipboardCopyAction");
-                        },
-                    },
-                    {
-                        label: "Paste",
-                        shortcut: "Ctrl+V",
-                        onSelect: () => {
-                            this.commands.execute("editor.action.clipboardPasteAction");
-                        },
-                    },
-                    { type: "separator" },
-                    {
-                        label: "Select All",
-                        shortcut: "Ctrl+A",
-                        onSelect: () => {
-                            this.commands.execute("editor.action.selectAll");
-                        },
-                    },
+                    item("Undo", "undo"),
+                    item("Redo", "redo"),
+                    sep(),
+                    item("Cut", "editor.action.clipboardCutAction"),
+                    item("Copy", "editor.action.clipboardCopyAction"),
+                    item("Paste", "editor.action.clipboardPasteAction"),
+                    sep(),
+                    item("Find", "actions.find"),
+                    item("Find Next", "editor.action.nextMatchFindAction"),
+                    item("Find Previous", "editor.action.previousMatchFindAction"),
                 ],
             },
             {
                 label: "Selection",
                 mnemonic: "s",
                 entries: [
-                    {
-                        label: "Select All",
-                        shortcut: "Ctrl+A",
-                        onSelect: () => {
-                            this.commands.execute("editor.action.selectAll");
-                        },
-                    },
-                    { type: "separator" },
-                    {
-                        label: "Expand Selection (Word)",
-                        shortcut: "Ctrl+Shift+Right",
-                        onSelect: () => {
-                            this.commands.execute("cursorWordRightSelect");
-                        },
-                    },
+                    item("Select All", "editor.action.selectAll"),
+                    sep(),
+                    item("Expand Selection (Word)", "cursorWordRightSelect"),
                 ],
             },
             {
                 label: "View",
                 mnemonic: "v",
                 entries: [
-                    {
-                        label: "Explorer",
-                        shortcut: "Ctrl+Shift+E",
-                        onSelect: () => {
-                            this.commands.execute("workbench.view.explorer");
-                        },
-                    },
-                    { type: "separator" },
-                    {
-                        label: "Toggle Primary Side Bar",
-                        shortcut: "Ctrl+B",
-                        onSelect: () => {
-                            this.commands.execute("workbench.action.toggleSidebarVisibility");
-                        },
-                    },
+                    item("Command Palette...", "workbench.action.showCommands"),
+                    sep(),
+                    item("Explorer", "workbench.view.explorer"),
+                    item("Toggle Primary Side Bar", "workbench.action.toggleSidebarVisibility"),
+                    sep(),
+                    item("Increase Side Bar Width", "workbench.action.increaseSidebarWidth"),
+                    item("Decrease Side Bar Width", "workbench.action.decreaseSidebarWidth"),
+                    item("Reset Side Bar Width", "workbench.action.resetSidebarWidth"),
+                ],
+            },
+            {
+                label: "Go",
+                mnemonic: "g",
+                entries: [
+                    item("Go to File...", "workbench.action.quickOpen"),
+                    sep(),
+                    item("Next Editor", "workbench.action.nextEditorInGroup"),
+                    item("Previous Editor", "workbench.action.previousEditorInGroup"),
+                    sep(),
+                    item("Close Editor", "workbench.action.closeActiveEditor"),
                 ],
             },
             {
                 label: "Help",
                 mnemonic: "h",
-                entries: [
-                    {
-                        label: "About",
-                        onSelect: () => {
-                            this.commands.execute("workbench.action.showAboutDialog");
-                        },
-                    },
-                ],
+                entries: [item("About", "workbench.action.showAboutDialog")],
             },
         ];
 

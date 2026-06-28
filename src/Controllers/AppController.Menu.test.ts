@@ -87,7 +87,16 @@ describe("AppController — menu bar wiring", () => {
     it("opens the Edit menu and renders its entries", () => {
         const { testApp } = createMenuApp();
         const popup = openMenu(testApp, "e");
-        expect(itemLabels(popup)).toEqual(["Undo", "Redo", "Cut", "Copy", "Paste", "Select All"]);
+        expect(itemLabels(popup)).toEqual([
+            "Undo",
+            "Redo",
+            "Cut",
+            "Copy",
+            "Paste",
+            "Find",
+            "Find Next",
+            "Find Previous",
+        ]);
     });
 
     it("Edit → Undo runs the undo command", () => {
@@ -140,14 +149,34 @@ describe("AppController — menu bar wiring", () => {
         expect(executeSpy).toHaveBeenCalledWith("editor.action.clipboardPasteAction");
     });
 
-    it("Edit → Select All runs the select-all command", () => {
+    it("Edit → Find runs the find command", () => {
         const { testApp, commands } = createMenuApp();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
-        entryByLabel(popup, "Select All").onSelect?.();
+        entryByLabel(popup, "Find").onSelect?.();
 
-        expect(executeSpy).toHaveBeenCalledWith("editor.action.selectAll");
+        expect(executeSpy).toHaveBeenCalledWith("actions.find");
+    });
+
+    it("Edit → Find Next runs the next-match command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "e");
+
+        entryByLabel(popup, "Find Next").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("editor.action.nextMatchFindAction");
+    });
+
+    it("Edit → Find Previous runs the previous-match command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "e");
+
+        entryByLabel(popup, "Find Previous").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("editor.action.previousMatchFindAction");
     });
 
     it("opens the Selection menu and renders its entries", () => {
@@ -179,7 +208,34 @@ describe("AppController — menu bar wiring", () => {
     it("opens the View menu and renders its entries", () => {
         const { testApp } = createMenuApp();
         const popup = openMenu(testApp, "v");
-        expect(itemLabels(popup)).toEqual(["Explorer", "Toggle Primary Side Bar"]);
+        expect(itemLabels(popup)).toEqual([
+            "Command Palette...",
+            "Explorer",
+            "Toggle Primary Side Bar",
+            "Increase Side Bar Width",
+            "Decrease Side Bar Width",
+            "Reset Side Bar Width",
+        ]);
+    });
+
+    it("View → Command Palette runs the show-commands command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "v");
+
+        entryByLabel(popup, "Command Palette...").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.showCommands");
+    });
+
+    it("View → Increase Side Bar Width runs the increase-width command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "v");
+
+        entryByLabel(popup, "Increase Side Bar Width").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.increaseSidebarWidth");
     });
 
     it("View → Explorer runs the explorer command", () => {
@@ -205,6 +261,63 @@ describe("AppController — menu bar wiring", () => {
         entryByLabel(popup, "Toggle Primary Side Bar").onSelect?.();
 
         expect(layout.getLeftPanelVisible()).toBe(!before);
+    });
+
+    it("opens the Go menu and renders its entries", () => {
+        const { testApp } = createMenuApp();
+        const popup = openMenu(testApp, "g");
+        expect(itemLabels(popup)).toEqual([
+            "Go to File...",
+            "Next Editor",
+            "Previous Editor",
+            "Close Editor",
+        ]);
+    });
+
+    it("Go → Go to File runs the quick-open command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "g");
+
+        entryByLabel(popup, "Go to File...").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.quickOpen");
+    });
+
+    it("Go → Next Editor runs the next-editor command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "g");
+
+        entryByLabel(popup, "Next Editor").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.nextEditorInGroup");
+    });
+
+    it("Go → Close Editor runs the close-active-editor command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "g");
+
+        entryByLabel(popup, "Close Editor").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.closeActiveEditor");
+    });
+
+    it("derives the menu shortcut from the keybinding registry", () => {
+        const { testApp } = createMenuApp();
+        const popup = openMenu(testApp, "f");
+
+        // Save is bound to Ctrl+S, so the menu shows that automatically.
+        expect(entryByLabel(popup, "Save").shortcut).toBe("Ctrl+S");
+    });
+
+    it("omits the shortcut for commands without a keybinding", () => {
+        const { testApp } = createMenuApp();
+        const popup = openMenu(testApp, "h");
+
+        // About has no default binding → no right-aligned accelerator text.
+        expect(entryByLabel(popup, "About").shortcut).toBeUndefined();
     });
 
     it("opens the Help menu and renders its entries", () => {
