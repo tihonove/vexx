@@ -7,6 +7,7 @@ import type { IRange } from "../Editor/IRange.ts";
 import { createSelection } from "../Editor/ISelection.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import { FindWidgetElement } from "../TUIDom/Widgets/FindWidgetElement.ts";
+import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
@@ -41,6 +42,11 @@ export class FindController extends Disposable {
         this.view.onClose = () => {
             this.close();
         };
+    }
+
+    /** Push the active theme into the widget's buttons. */
+    public applyTheme(theme: WorkbenchTheme): void {
+        this.view.applyTheme(theme);
     }
 
     /** Attaches the widget to the editor group's overlay layer. */
