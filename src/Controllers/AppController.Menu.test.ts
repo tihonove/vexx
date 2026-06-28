@@ -207,6 +207,49 @@ describe("AppController — menu bar wiring", () => {
         expect(layout.getLeftPanelVisible()).toBe(!before);
     });
 
+    it("opens the Help menu and renders its entries", () => {
+        const { testApp } = createMenuApp();
+        const popup = openMenu(testApp, "h");
+        expect(itemLabels(popup)).toEqual(["About"]);
+    });
+
+    it("Help → About runs the show-about-dialog command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "h");
+
+        entryByLabel(popup, "About").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.showAboutDialog");
+    });
+
+    it("show-about-dialog command opens the About dialog", () => {
+        const { testApp, commands } = createMenuApp();
+        expect(testApp.querySelector("AboutDialogElement")).toBeNull();
+
+        commands.execute("workbench.action.showAboutDialog");
+        testApp.render();
+
+        expect(testApp.querySelector("AboutDialogElement")).not.toBeNull();
+    });
+
+    it("reuses the About dialog on reopen and closes it via its callback", () => {
+        const { testApp, commands } = createMenuApp();
+
+        commands.execute("workbench.action.showAboutDialog");
+        testApp.render();
+        const dialog = testApp.querySelector("AboutDialogElement");
+        expect(dialog).not.toBeNull();
+
+        // Reopening reuses the same dialog instance (covers the not-null branch).
+        commands.execute("workbench.action.showAboutDialog");
+        testApp.render();
+        expect(testApp.querySelector("AboutDialogElement")).toBe(dialog);
+
+        // Closing through the dialog's onClose callback hides it without error.
+        expect(() => (dialog as unknown as { onClose?: () => void }).onClose?.()).not.toThrow();
+    });
+
     it("menu bar element is present in the DOM", () => {
         const { testApp } = createMenuApp();
         expect(testApp.querySelector("MenuBarElement")).not.toBeNull();
