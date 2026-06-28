@@ -33,8 +33,8 @@ export interface IWorkbenchColors {
     // "errorForeground"?: number;
     // /** The default color for icons in the workbench. */
     // "icon.foreground"?: number;
-    // /** The hover border color for draggable sashes. */
-    // "sash.hoverBorder"?: number;
+    /** The hover border color for draggable sashes. */
+    "sash.hoverBorder"?: number;
 
     // ── Window border ───────────────────────────────────────
     // /** Border color for the active (focused) window. */

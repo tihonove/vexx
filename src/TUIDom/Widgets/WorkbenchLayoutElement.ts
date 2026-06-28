@@ -32,6 +32,11 @@ export class WorkbenchLayoutElement extends TUIElement {
         };
     }
 
+    /** Color of the sash's hover line; pass undefined to keep it invisible. */
+    public setSashHoverColor(color: number | undefined): void {
+        this.sash.hoverBorderColor = color;
+    }
+
     public setLeftPanel(element: TUIElement | null): void {
         if (this.leftPanel) {
             this.leftPanel.setParent(null);
@@ -165,6 +170,12 @@ export class WorkbenchLayoutElement extends TUIElement {
             const centerClip = new Rect(this.centerContent.globalPosition, this.centerContent.layoutSize);
             this.centerContent.render(context.withOffset(centerOffset).withClip(centerClip));
         }
-        // The sash is invisible — intentionally not rendered.
+
+        // The sash sits on top at the boundary column; it paints only on hover/drag.
+        if (this.leftPanel && this.leftPanelVisible) {
+            const sashOffset = new Offset(this.sash.localPosition.dx, this.sash.localPosition.dy);
+            const sashClip = new Rect(this.sash.globalPosition, this.sash.layoutSize);
+            this.sash.render(context.withOffset(sashOffset).withClip(sashClip));
+        }
     }
 }

@@ -12,6 +12,7 @@ export const darkPlusTheme: IThemeFile = {
         // ── Base colors ─────────────────────────────────
         foreground: "#CCCCCC",
         focusBorder: "#007FD4",
+        "sash.hoverBorder": "#007FD4",
 
         // ── Editor ──────────────────────────────────────
         "editor.background": "#1E1E1E",

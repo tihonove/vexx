@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
@@ -54,7 +54,23 @@ function buildScene(): { root: ContainerElement; sash: SashElement; drags: numbe
     return { root, sash, drags };
 }
 
+const HOVER_COLOR = 0x007fd4;
+
+/** Render the sash standalone and return the character drawn in its top cell. */
+function renderTopChar(sash: SashElement): string {
+    const size = new Size(2, 3);
+    const backend = new MockTerminalBackend(size);
+    const termScreen = new TerminalScreen(size);
+    sash.render(new RenderContext(termScreen, new Offset(0, 0), new Rect(new Point(0, 0), size)));
+    termScreen.flush(backend);
+    return backend.getTextAt(new Point(0, 0), 1);
+}
+
 describe("SashElement", () => {
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it("opts into pointer capture and stays unfocusable", () => {
         const sash = new SashElement();
         expect(sash.capturesPointer).toBe(true);
@@ -112,5 +128,60 @@ describe("SashElement", () => {
         dispatcher.handleMouseToken(makeToken({ action: "move", x: 41, y: 1 }), root);
 
         expect(drags).toEqual([]);
+    });
+
+    it("paints the hover line only after the cursor lingers", () => {
+        vi.useFakeTimers();
+        const { root, sash } = buildScene();
+        sash.hoverBorderColor = HOVER_COLOR;
+        const dispatcher = new MouseEventDispatcher();
+
+        // Cursor enters the sash (screenX 30) — line must not appear immediately.
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 31, y: 1 }), root);
+        expect(renderTopChar(sash)).toBe(" ");
+
+        // After the hover delay elapses, the thin vertical line lights up.
+        vi.advanceTimersByTime(300);
+        expect(renderTopChar(sash)).toBe("│");
+    });
+
+    it("stays invisible without a hover color even after lingering", () => {
+        vi.useFakeTimers();
+        const { root, sash } = buildScene();
+        const dispatcher = new MouseEventDispatcher();
+
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 31, y: 1 }), root);
+        vi.advanceTimersByTime(300);
+
+        expect(renderTopChar(sash)).toBe(" ");
+    });
+
+    it("hides the line when the cursor leaves", () => {
+        vi.useFakeTimers();
+        const { root, sash } = buildScene();
+        sash.hoverBorderColor = HOVER_COLOR;
+        const dispatcher = new MouseEventDispatcher();
+
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 31, y: 1 }), root);
+        vi.advanceTimersByTime(300);
+        expect(renderTopChar(sash)).toBe("│");
+
+        // Move off the sash — the line goes out.
+        dispatcher.handleMouseToken(makeToken({ action: "move", x: 50, y: 1 }), root);
+        expect(renderTopChar(sash)).toBe(" ");
+    });
+
+    it("paints during a drag without waiting for the hover delay", () => {
+        vi.useFakeTimers();
+        const { root, sash } = buildScene();
+        sash.hoverBorderColor = HOVER_COLOR;
+        const dispatcher = new MouseEventDispatcher();
+
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 31, y: 1 }), root);
+        // No timer advance — the line shows immediately while dragging.
+        expect(renderTopChar(sash)).toBe("│");
+
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 31, y: 1 }), root);
+        expect(renderTopChar(sash)).toBe(" ");
     });
 });
