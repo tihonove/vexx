@@ -142,6 +142,10 @@ export class TUIElement<S extends TUIStyle = TUIStyle> {
     // Focus support
     public tabIndex = -1;
 
+    // Pointer capture (opt-in): while a button is held on this element, the dispatcher
+    // routes subsequent move/release events here even if the cursor leaves its bounds.
+    public capturesPointer = false;
+
     // Coordinate system
     public localPosition: Offset = new Offset(0, 0);
     public globalPosition: Point = new Point(0, 0);
