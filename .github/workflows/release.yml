@@ -14,6 +14,9 @@ jobs:
   # Собираем бинарники переиспользуемым воркфлоу.
   build:
     uses: ./.github/workflows/build.yml
+    with:
+      # Зашиваем версию из тега (vX.Y.Z) — build.yml срежет ведущую `v`.
+      version: ${{ github.ref_name }}
 
   release:
     needs: build

@@ -5,7 +5,17 @@ name: Build SEA
 # а также может быть запущена вручную через `workflow_dispatch`.
 on:
   workflow_call:
+    inputs:
+      version:
+        description: "Версия, зашиваемая в бинарник (релиз: vX.Y.Z; ночная: nightly-<hash>)"
+        required: false
+        type: string
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия, зашиваемая в бинарник (релиз: vX.Y.Z; ночная: nightly-<hash>)"
+        required: false
+        type: string
 
 jobs:
   build:
@@ -34,6 +44,8 @@ jobs:
       - run: npm install
 
       - run: npm run build:sea
+        env:
+          VEXX_VERSION: ${{ inputs.version }}
 
       # Переименовываем в платформо-зависимое имя ассета, чтобы:
       #  - файлы не конфликтовали при заливке в один релиз;

@@ -14,6 +14,7 @@ import { FileSink } from "./Common/Logging/sinks/FileSink.ts";
 import { RingBufferSink } from "./Common/Logging/sinks/RingBufferSink.ts";
 import { OscClipboard } from "./Common/OscClipboard.ts";
 import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
+import { VEXX_VERSION } from "./Common/Version.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
@@ -58,6 +59,11 @@ async function runEditor(): Promise<void> {
             process.exit(2);
         }
         throw err;
+    }
+
+    if (cli.version) {
+        console.log(VEXX_VERSION);
+        process.exit(0);
     }
 
     if (cli.help) {

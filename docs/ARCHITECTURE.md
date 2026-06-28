@@ -213,7 +213,8 @@ item.onActivate = () => this.openMenu(index);
 ```
 
 - **`resolveUserDataPaths({ userDataDir?, profile?, homedir })`** — чистая функция (`Common/UserDataPaths.ts`), возвращает `IUserDataPaths` со всеми путями. Имя профиля валидируется `/^[A-Za-z0-9._-]+$/`. Default-профиль кладёт settings прямо в `User/`, именованный — в `User/profiles/<name>/`.
-- **`parseCliArgs(argv)`** — CLI-парсер (`Common/CliArgs.ts`): флаги `--user-data-dir <path>`, `--profile <name>`, `-h/--help`, разделитель `--`, неизвестные флаги → `CliArgsError`.
+- **`parseCliArgs(argv)`** — CLI-парсер (`Common/CliArgs.ts`): флаги `--user-data-dir <path>`, `--profile <name>`, `-h/--help`, `-v/--version`, разделитель `--`, неизвестные флаги → `CliArgsError`.
+- **`VEXX_VERSION`** — версия приложения (`Common/Version.ts`), «зашивается» при сборке через `define` в `tsup.config.ts` (env `VEXX_VERSION` в CI: релиз `vX.Y.Z`, ночная `nightly-<hash>`; иначе git-fallback). В dev — `0.0.0-dev`. Используется `-v/--version` и окном About (`AboutDialogElement`).
 - **`ConfigurationModel`** (`Configuration/ConfigurationModel.ts`) — иммутабельная модель: нормализует dotted-keys (`"editor.tabSize"` → `{editor: {tabSize}}`), deep-merge слоёв (default → user → profile), `get<T>(key, default?)`, `getValue(section?)`, diff через `collectKeys()`.
 - **`IConfigurationService`** + **`ConfigurationService extends Disposable`** — `loadConfiguration(paths)` async-bootstrap, читает оба слоя через `jsonc-parser`, отсутствующий файл → EMPTY. `onDidChangeConfiguration` — пока no-op (watcher не реализован, изменения подхватываются перезапуском).
 - **`NULL_CONFIGURATION_SERVICE`** — заглушка для тестов и demo, всегда возвращает `defaultValue`. Биндится через `configurationModuleDefault` в `TestProfile`.

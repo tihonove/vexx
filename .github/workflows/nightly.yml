@@ -13,12 +13,25 @@ permissions:
   contents: write
 
 jobs:
+  # Вычисляем short-hash заранее, чтобы зашить его в бинарник через build.yml.
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: sha
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
   # Та же переиспользуемая сборка, что и у стабильного релиза.
   build:
+    needs: prepare
     uses: ./.github/workflows/build.yml
+    with:
+      version: nightly-${{ needs.prepare.outputs.short_sha }}
 
   nightly:
-    needs: build
+    needs: [prepare, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,7 +46,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          short_sha="$(git rev-parse --short HEAD)"
+          short_sha="${{ needs.prepare.outputs.short_sha }}"
 
           # Удаляем предыдущий nightly-релиз вместе с его тегом.
           # `|| true` — на случай самого первого запуска, когда релиза ещё нет.

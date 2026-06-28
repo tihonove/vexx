@@ -13,6 +13,7 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
+import { AboutDialogElement } from "../TUIDom/Widgets/AboutDialogElement.tsx";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
@@ -253,6 +254,8 @@ export class AppController extends Disposable implements IController {
     private editorGroupController: EditorGroupController;
     private confirmDialog: ConfirmSaveDialogElement | null = null;
     private confirmDialogSession: OverlaySessionHandle | null = null;
+    private aboutDialog: AboutDialogElement | null = null;
+    private aboutDialogSession: OverlaySessionHandle | null = null;
     private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
     private fileSearchService: FileSearchService;
@@ -353,6 +356,9 @@ export class AppController extends Disposable implements IController {
                     this.requestQuit(a);
                 },
             }),
+        );
+        this.register(
+            commands.register("workbench.action.showAboutDialog", () => this.showAboutDialog(), "About"),
         );
         this.register(
             registerAction(commands, keybindings, accessor, {
@@ -600,6 +606,7 @@ export class AppController extends Disposable implements IController {
             ...(bg !== undefined ? { bg } : {}),
         };
         this.confirmDialog?.applyTheme(theme);
+        this.aboutDialog?.applyTheme(theme);
         this.findController.applyTheme(theme);
     }
 
@@ -911,6 +918,18 @@ export class AppController extends Disposable implements IController {
                     },
                 ],
             },
+            {
+                label: "Help",
+                mnemonic: "h",
+                entries: [
+                    {
+                        label: "About",
+                        onSelect: () => {
+                            this.commands.execute("workbench.action.showAboutDialog");
+                        },
+                    },
+                ],
+            },
         ];
 
         const menuBar = new MenuBarElement(menuItems);
@@ -963,6 +982,38 @@ export class AppController extends Disposable implements IController {
         if (!this.confirmDialog) return;
         /* v8 ignore stop */
         this.confirmDialogSession?.close();
+    }
+
+    public showAboutDialog(): void {
+        if (!this.aboutDialog) {
+            this.aboutDialog = new AboutDialogElement();
+            this.aboutDialog.applyTheme(this.themeService.theme);
+            this.aboutDialog.onClose = () => this.hideAboutDialog();
+            this.aboutDialogSession = this.view.overlayLayer.createSession(this.aboutDialog, new Point(0, 0), {
+                visible: false,
+                restoreFocus: true,
+                closeOnEscape: true,
+                pointerPolicy: "modal",
+            });
+        }
+
+        const screenW = this.view.layoutSize.width;
+        const screenH = this.view.layoutSize.height;
+        const dialogW = this.aboutDialog.getMaxIntrinsicWidth(0);
+        const dialogH = this.aboutDialog.getMaxIntrinsicHeight(dialogW);
+        const px = Math.max(0, Math.floor((screenW - dialogW) / 2));
+        const py = Math.max(0, Math.floor((screenH - dialogH) / 2));
+        this.aboutDialogSession?.setPosition(new Point(px, py));
+
+        this.aboutDialogSession?.open();
+        this.aboutDialog.focusDefault();
+    }
+
+    private hideAboutDialog(): void {
+        /* v8 ignore start -- defensive: only invoked from the dialog callback after showAboutDialog() created the dialog */
+        if (!this.aboutDialog) return;
+        /* v8 ignore stop */
+        this.aboutDialogSession?.close();
     }
 
     private showFileTreeContextMenu(filePath: string, screenX: number, screenY: number): void {
