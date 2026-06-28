@@ -124,3 +124,80 @@ describe("OverlayLayer session API", () => {
         expect(position.y).toBe(Math.max(0, 5 - menuH));
     });
 });
+
+describe("OverlayLayer — hasKeyboardCapturingOverlay", () => {
+    function makeApp() {
+        const input = new InputElement();
+        const app = TestApp.createWithContent(input, new Size(30, 10));
+        const menu = new PopupMenuElement([{ label: "Copy" }]);
+        return { app, menu };
+    }
+
+    it("modal session captures the keyboard while visible, releases on close", () => {
+        const { app, menu } = makeApp();
+        const session = app.root.overlayLayer.createSession(menu, new Point(2, 2), {
+            visible: true,
+            pointerPolicy: "modal",
+        });
+
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(true);
+
+        session.close();
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(false);
+    });
+
+    it("close-on-outside session captures the keyboard (quickpick / context menus)", () => {
+        const { app, menu } = makeApp();
+        app.root.overlayLayer.createSession(menu, new Point(2, 2), {
+            visible: true,
+            pointerPolicy: "close-on-outside",
+        });
+
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(true);
+    });
+
+    it("passthrough session does NOT capture (Find stays transparent)", () => {
+        const { app, menu } = makeApp();
+        app.root.overlayLayer.createSession(menu, new Point(2, 2), {
+            visible: true,
+            pointerPolicy: "passthrough",
+        });
+
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(false);
+    });
+
+    it("passthrough + capturesKeyboard override captures (menu-bar dropdown config)", () => {
+        const { app, menu } = makeApp();
+        app.root.overlayLayer.createSession(menu, new Point(2, 2), {
+            visible: true,
+            pointerPolicy: "passthrough",
+            capturesKeyboard: true,
+        });
+
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(true);
+    });
+
+    it("capturesKeyboard:false override opts a modal out", () => {
+        const { app, menu } = makeApp();
+        app.root.overlayLayer.createSession(menu, new Point(2, 2), {
+            visible: true,
+            pointerPolicy: "modal",
+            capturesKeyboard: false,
+        });
+
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(false);
+    });
+
+    it("a hidden capturing session does not capture until opened", () => {
+        const { app, menu } = makeApp();
+        const session = app.root.overlayLayer.createSession(menu, new Point(2, 2), {
+            visible: false,
+            pointerPolicy: "modal",
+        });
+
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(false);
+
+        session.open();
+        expect(app.root.overlayLayer.hasKeyboardCapturingOverlay()).toBe(true);
+    });
+});

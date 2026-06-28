@@ -148,7 +148,11 @@ describe("KeybindingRegistry — chords", () => {
 
         ctx.set("textInputFocus", true);
         expect(registry.resolveKey(makeEvent({ key: "k", ctrlKey: true }), ctx).kind).toBe("chord");
-        expect(registry.resolveKey(makeEvent({ key: "s" }), ctx)).toEqual({ kind: "command", commandId: "save" });
+        expect(registry.resolveKey(makeEvent({ key: "s" }), ctx)).toEqual({
+            kind: "command",
+            commandId: "save",
+            when: "textInputFocus",
+        });
     });
 
     it("ordinary single combinations still resolve in one step", () => {

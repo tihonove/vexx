@@ -238,6 +238,9 @@ export class MenuBarElement extends TUIElement {
             // blur → deactivate, а повторный клик по тому же пункту тоглит его. Перехват
             // в OverlayLayer (close-on-outside) гонялся бы с этим тоглом, поэтому passthrough.
             pointerPolicy: "passthrough",
+            // ...но клавиатурой дропдаун владеет (стрелки/Enter/Escape/мнемоники), поэтому
+            // глобальные кейбинды при открытом меню гасим явным опт-ином.
+            capturesKeyboard: true,
             disposeOnClose: true,
             onClose: () => {
                 /* v8 ignore start -- guards against a stale onClose after the menu was switched; switching disposes the old session without firing onClose, so the mismatch (false) side is unreachable via the public API */

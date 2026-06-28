@@ -208,6 +208,18 @@ const CHORD_TIMEOUT_MS = 5000;
 // How long the "… is not a command" status message lingers after a broken chord.
 const CHORD_NOT_FOUND_MS = 4000;
 
+// Context keys that reflect WHAT IS FOCUSED (set from `activeElement` in updateContextKeys).
+// A keybinding whose `when` names one of these is scoped to the focused input/list/editor —
+// e.g. clipboard / undo / cursor commands that edit the focused widget. While a capturing overlay
+// (quickpick, dialog, menu) owns the keyboard, only such focus-scoped commands may run; everything
+// else (workbench/navigation commands, which carry no focus-scoped `when`) is suppressed so a
+// shortcut can't act on a panel behind the still-visible overlay. See dispatchKey.
+const FOCUS_SCOPED_CONTEXT_KEYS = ["inputWidgetFocus", "textInputFocus", "listFocus"] as const;
+
+function isFocusScopedWhen(when: string | undefined): boolean {
+    return when !== undefined && FOCUS_SCOPED_CONTEXT_KEYS.some((key) => when.includes(key));
+}
+
 // Modifier keys that arrive as standalone keydowns (Kitty protocol). They must
 // not break or advance an in-progress chord.
 const modifierKeyNames = new Set(["Control", "Shift", "Alt", "Meta", "Hyper", "Super", "AltGraph", "CapsLock"]);
@@ -682,7 +694,20 @@ export class AppController extends Disposable implements IController {
             chord: res.kind === "chord" ? formatKeybinding(res.chord) : undefined,
         });
 
+        // Keyboard modality, symmetric to the pointer path (OverlayLayer.elementFromPoint stops a
+        // click landing behind a modal). While a quickpick / dialog / menu owns the keyboard, only
+        // commands scoped to the focused input/list/editor (their `when` names a focus context key
+        // — e.g. clipboard / undo inside the quickpick query) may run. Workbench/navigation commands
+        // are suppressed so a shortcut can't act on a panel behind the still-visible overlay.
+        const overlayCaptures = this.view.overlayLayer.hasKeyboardCapturingOverlay();
+
         if (res.kind === "chord") {
+            if (overlayCaptures) {
+                // No new chord may start while an overlay owns the keyboard.
+                this.keybindings.resetPending();
+                this.statusBarController.setChordHint(null);
+                return false;
+            }
             // Prefix key of a chord — swallow its keypress and wait for the next.
             this.swallowNextKeyPress = true;
             this.statusBarController.setChordHint(
@@ -698,6 +723,12 @@ export class AppController extends Disposable implements IController {
         if (wasInChord) this.swallowNextKeyPress = true;
 
         if (res.kind === "command" && this.commands.has(res.commandId)) {
+            if (overlayCaptures && !isFocusScopedWhen(res.when)) {
+                // A workbench/navigation shortcut fired while an overlay owns the keyboard:
+                // swallow it (no preventDefault) instead of acting behind the overlay.
+                this.statusBarController.setChordHint(null);
+                return false;
+            }
             this.statusBarController.setChordHint(null);
             this.commands.execute(res.commandId);
             return true;
