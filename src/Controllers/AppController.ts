@@ -4,6 +4,7 @@ import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { ILogService } from "../Common/Logging/ILogService.ts";
+import type { IFileClipboard } from "../Common/IFileClipboard.ts";
 import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
 import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
@@ -66,6 +67,7 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
+import { fileCopyAction, fileCutAction, filePasteAction, pasteFiles } from "./Actions/FileTreeClipboardActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
     inputCopyAction,
@@ -100,7 +102,7 @@ import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { registerContextKeys } from "./ContextKeys.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import { ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
+import { FileClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileSearchService } from "./FileSearchService.ts";
@@ -258,6 +260,7 @@ export class AppController extends Disposable implements IController {
     private aboutDialogSession: OverlaySessionHandle | null = null;
     private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
+    private fileClipboard: IFileClipboard;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
     private findController: FindController;
@@ -292,6 +295,13 @@ export class AppController extends Disposable implements IController {
         this.themeService = themeService;
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
+        this.fileClipboard = accessor.get(FileClipboardDIToken);
+        // Подсветка «вырезанных» файлов в дереве следует за состоянием буфера.
+        this.register(
+            this.fileClipboard.onDidChange((entry) => {
+                this.fileTreeController.setCutPaths(entry && entry.mode === "cut" ? entry.paths : []);
+            }),
+        );
         this.fileSearchService = this.register(new FileSearchService());
         this.quickOpenController = this.register(
             new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
@@ -473,6 +483,35 @@ export class AppController extends Disposable implements IController {
                 ...fileDeleteAction,
                 run: (a, ...args) => {
                     fileDeleteAction.run(a, ...args);
+                    void this.fileTreeController.refresh();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileCopyAction,
+                run: () => {
+                    const paths = this.fileTreeController.getSelectedPaths();
+                    if (paths.length > 0) this.fileClipboard.write(paths, "copy");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileCutAction,
+                run: () => {
+                    const paths = this.fileTreeController.getSelectedPaths();
+                    if (paths.length > 0) this.fileClipboard.write(paths, "cut");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...filePasteAction,
+                run: () => {
+                    const targetDir = this.fileTreeController.getPasteTargetDir();
+                    if (!targetDir) return;
+                    pasteFiles(this.fileClipboard, targetDir);
                     void this.fileTreeController.refresh();
                 },
             }),
@@ -982,13 +1021,42 @@ export class AppController extends Disposable implements IController {
 
         const entries: MenuEntry[] = [
             {
+                label: "Copy",
+                shortcut: "Ctrl+C",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("fileOperations.copy");
+                },
+            },
+            {
+                label: "Cut",
+                shortcut: "Ctrl+X",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("fileOperations.cut");
+                },
+            },
+        ];
+        if (this.fileClipboard.read() !== null) {
+            entries.push({
+                label: "Paste",
+                shortcut: "Ctrl+V",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("fileOperations.paste");
+                },
+            });
+        }
+        entries.push(
+            { type: "separator" },
+            {
                 label: "Delete",
                 onSelect: () => {
                     this.hideFileTreeContextMenu();
                     this.commands.execute("fileOperations.deleteFile", filePath);
                 },
             },
-        ];
+        );
 
         const menu = new PopupMenuElement(entries);
         menu.tabIndex = 0;

@@ -29,6 +29,7 @@ export class TreeViewElement<T> extends ScrollableElement {
     private childrenCache = new Map<string, T[]>();
     private flatNodes: FlatTreeNode<T>[] = [];
     private selectedIndex = 0;
+    private selectionAnchor = 0;
     private hoveredIndex: number | null = null;
     private selectedKeys = new Set<string>();
     private cutKeys = new Set<string>();
@@ -107,6 +108,32 @@ export class TreeViewElement<T> extends ScrollableElement {
     public clearCutKeys(): void {
         this.cutKeys.clear();
         this.markDirty();
+    }
+
+    /** Узел под курсором, либо null если дерево пусто. */
+    public getSelectedNode(): T | null {
+        if (this.selectedIndex >= 0 && this.selectedIndex < this.flatNodes.length) {
+            return this.flatNodes[this.selectedIndex].element;
+        }
+        return null;
+    }
+
+    /**
+     * Все выбранные узлы. Если множественный выбор пуст, возвращает узел под курсором
+     * (в виде массива из одного элемента). Порядок — как в дереве.
+     */
+    public getSelectedNodes(): T[] {
+        if (this.selectedKeys.size === 0) {
+            const node = this.getSelectedNode();
+            return node ? [node] : [];
+        }
+        const result: T[] = [];
+        for (const node of this.flatNodes) {
+            if (this.selectedKeys.has(this.provider.getKey(node.element))) {
+                result.push(node.element);
+            }
+        }
+        return result;
     }
 
     protected override performDefaultAction(event: TUIEventBase): void {
@@ -335,10 +362,12 @@ export class TreeViewElement<T> extends ScrollableElement {
     private restoreSelection(key: string | null): void {
         if (key === null) {
             this.selectedIndex = 0;
+            this.selectionAnchor = 0;
             return;
         }
         const idx = this.flatNodes.findIndex((n) => this.provider.getKey(n.element) === key);
         this.selectedIndex = idx >= 0 ? idx : 0;
+        this.selectionAnchor = this.selectedIndex;
     }
 
     public focusPageDown(): void {
@@ -357,6 +386,50 @@ export class TreeViewElement<T> extends ScrollableElement {
         if (index < 0) return;
 
         this.selectedIndex = index;
+        this.selectionAnchor = index;
+        this.selectedKeys.clear();
+        this.applyCursor(index);
+    }
+
+    /** Двигает курсор и расширяет множественный выбор диапазоном от якоря (Shift+стрелки). */
+    private extendSelectionTo(index: number): void {
+        if (index < 0) index = 0;
+        if (index >= this.flatNodes.length) index = this.flatNodes.length - 1;
+        if (index < 0) return;
+
+        this.selectedIndex = index;
+        this.selectRange(this.selectionAnchor, index);
+        this.applyCursor(index);
+    }
+
+    private selectRange(anchor: number, cursor: number): void {
+        const lo = Math.min(anchor, cursor);
+        const hi = Math.max(anchor, cursor);
+        this.selectedKeys.clear();
+        for (let i = lo; i <= hi; i++) {
+            this.selectedKeys.add(this.provider.getKey(this.flatNodes[i].element));
+        }
+    }
+
+    /** Переключает выбор одной строки (Ctrl/Cmd+клик), не сбрасывая остальное. */
+    private toggleSelectionAt(index: number): void {
+        if (index < 0 || index >= this.flatNodes.length) return;
+        // Первый Ctrl+клик: включаем в набор текущий курсор, чтобы он не потерялся.
+        if (this.selectedKeys.size === 0) {
+            this.selectedKeys.add(this.provider.getKey(this.flatNodes[this.selectedIndex].element));
+        }
+        const key = this.provider.getKey(this.flatNodes[index].element);
+        if (this.selectedKeys.has(key)) {
+            this.selectedKeys.delete(key);
+        } else {
+            this.selectedKeys.add(key);
+        }
+        this.selectedIndex = index;
+        this.selectionAnchor = index;
+        this.applyCursor(index);
+    }
+
+    private applyCursor(index: number): void {
         this.ensureVisible(index);
         this.onSelect?.(this.flatNodes[index].element);
         this.markDirty();
@@ -397,10 +470,18 @@ export class TreeViewElement<T> extends ScrollableElement {
     private handleKeypress(event: TUIKeyboardEvent): void {
         switch (event.key) {
             case "ArrowUp":
-                this.setSelectedIndex(this.selectedIndex - 1);
+                if (event.shiftKey) {
+                    this.extendSelectionTo(this.selectedIndex - 1);
+                } else {
+                    this.setSelectedIndex(this.selectedIndex - 1);
+                }
                 break;
             case "ArrowDown":
-                this.setSelectedIndex(this.selectedIndex + 1);
+                if (event.shiftKey) {
+                    this.extendSelectionTo(this.selectedIndex + 1);
+                } else {
+                    this.setSelectedIndex(this.selectedIndex + 1);
+                }
                 break;
             case "ArrowRight":
                 void this.handleExpandOrMoveToChild();
@@ -470,9 +551,28 @@ export class TreeViewElement<T> extends ScrollableElement {
         if (index < 0 || index >= this.flatNodes.length) return;
 
         if (event.button === "right") {
-            this.setSelectedIndex(index);
+            // Не сбрасываем множественный выбор, если кликнули по уже выбранной строке.
+            const key = this.provider.getKey(this.flatNodes[index].element);
+            if (!this.selectedKeys.has(key)) {
+                this.setSelectedIndex(index);
+            } else {
+                this.selectedIndex = index;
+                this.applyCursor(index);
+            }
             const node = this.flatNodes[index];
             this.onContextMenu?.(node.element, event.screenX, event.screenY);
+            return;
+        }
+
+        if (event.ctrlKey) {
+            this.toggleSelectionAt(index);
+            return;
+        }
+
+        if (event.shiftKey) {
+            this.selectedIndex = index;
+            this.selectRange(this.selectionAnchor, index);
+            this.applyCursor(index);
             return;
         }
 

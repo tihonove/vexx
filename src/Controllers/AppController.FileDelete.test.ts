@@ -173,7 +173,9 @@ describe("File tree context menu — right-click opens context menu", () => {
         testApp.render();
         expect(testApp.querySelector("PopupMenuElement")).not.toBeNull();
 
-        // The only entry ("Delete") is preselected; Enter activates it.
+        // Menu order is Copy, Cut, (separator), Delete — navigate down to Delete and activate it.
+        testApp.sendKey("ArrowDown");
+        testApp.sendKey("ArrowDown");
         testApp.sendKey("Enter");
         testApp.render();
 
