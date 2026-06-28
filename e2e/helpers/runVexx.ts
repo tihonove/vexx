@@ -1,13 +1,24 @@
 import * as pty from "node-pty";
+import type WebSocket from "ws";
+
+import type { GetDocumentResult, NodeSnapshot } from "../../src/Inspector/protocol.ts";
 
 import { AnsiScreen } from "./AnsiScreen.ts";
 import { getBinaryPath } from "./buildOnce.ts";
+import { connectWithRetry, freePort, getDocument } from "./inspectorClient.ts";
 
 export interface VexxSessionOptions {
     args: string[];
     cols?: number;
     rows?: number;
     env?: Record<string, string>;
+    /**
+     * Start the real app with the TUIDom inspector enabled. The harness picks a
+     * free port, injects `--inspect-tui=127.0.0.1:<port>` into the args and lets
+     * assertions read the live document tree via {@link VexxSession.getDocument}
+     * / {@link VexxSession.waitForDocument} — no ANSI-screen parsing needed.
+     */
+    inspect?: boolean;
 }
 
 /**
@@ -17,11 +28,14 @@ export interface VexxSessionOptions {
 export class VexxSession {
     public readonly cols: number;
     public readonly rows: number;
+    /** Port the TUIDom inspector listens on, or `null` when `inspect` was not set. */
+    public readonly inspectorPort: number | null;
     private readonly term: pty.IPty;
     private buffer = "";
     private exited = false;
     private exitCode: number | null = null;
     private readonly waiters: Array<() => void> = [];
+    private inspectorWs: WebSocket | null = null;
 
     public static async start(options: VexxSessionOptions): Promise<VexxSession> {
         const binary = await getBinaryPath();
@@ -34,19 +48,30 @@ export class VexxSession {
         };
         // TMUX wrapping kicks in when $TMUX is set — strip it for predictable output.
         delete env.TMUX;
-        const term = pty.spawn(binary, options.args, {
+
+        // Launch exactly like the other e2e tests; when inspecting, the only
+        // difference is an injected --inspect-tui flag on a free loopback port.
+        const args = [...options.args];
+        let inspectorPort: number | null = null;
+        if (options.inspect === true) {
+            inspectorPort = await freePort();
+            args.push(`--inspect-tui=127.0.0.1:${String(inspectorPort)}`);
+        }
+
+        const term = pty.spawn(binary, args, {
             name: "xterm-256color",
             cols,
             rows,
             env,
         });
-        return new VexxSession(term, cols, rows);
+        return new VexxSession(term, cols, rows, inspectorPort);
     }
 
-    private constructor(term: pty.IPty, cols: number, rows: number) {
+    private constructor(term: pty.IPty, cols: number, rows: number, inspectorPort: number | null) {
         this.term = term;
         this.cols = cols;
         this.rows = rows;
+        this.inspectorPort = inspectorPort;
         this.term.onData((data) => {
             this.buffer += data;
             for (const w of this.waiters.splice(0)) w();
@@ -126,6 +151,46 @@ export class VexxSession {
         );
     }
 
+    /** Lazily open (and cache) the inspector WebSocket, retrying until it's up. */
+    private async ensureInspector(): Promise<WebSocket> {
+        if (this.inspectorPort === null) {
+            throw new Error("VexxSession was started without { inspect: true }");
+        }
+        if (this.inspectorWs === null) {
+            this.inspectorWs = await connectWithRetry(`ws://127.0.0.1:${String(this.inspectorPort)}`, 20_000);
+        }
+        return this.inspectorWs;
+    }
+
+    /** Fetch the current document tree from the inspector. Requires `inspect: true`. */
+    public async getDocument(): Promise<GetDocumentResult> {
+        const ws = await this.ensureInspector();
+        return getDocument(ws);
+    }
+
+    /**
+     * Poll the inspector's document tree until `predicate(root)` holds, then
+     * return the matching root. The inspector-side analogue of {@link waitFor}.
+     */
+    public async waitForDocument(
+        predicate: (root: NodeSnapshot) => boolean,
+        opts: { timeoutMs?: number; intervalMs?: number } = {},
+    ): Promise<NodeSnapshot> {
+        const timeoutMs = opts.timeoutMs ?? 10_000;
+        const intervalMs = opts.intervalMs ?? 100;
+        const deadline = Date.now() + timeoutMs;
+        let lastRootType = "<null>";
+        while (Date.now() < deadline) {
+            const { root } = await this.getDocument();
+            if (root !== null) {
+                lastRootType = root.type;
+                if (predicate(root)) return root;
+            }
+            await sleep(intervalMs);
+        }
+        throw new Error(`waitForDocument timed out after ${String(timeoutMs)}ms (last root: ${lastRootType})`);
+    }
+
     private waitForData(timeoutMs: number): Promise<void> {
         return new Promise((resolve) => {
             let done = false;
@@ -141,6 +206,14 @@ export class VexxSession {
 
     /** Send Ctrl+C and wait for process exit (or kill after fallback timeout). */
     public async dispose(graceMs = 2000): Promise<void> {
+        if (this.inspectorWs !== null) {
+            try {
+                this.inspectorWs.close();
+            } catch {
+                // already closed
+            }
+            this.inspectorWs = null;
+        }
         if (!this.exited) {
             try {
                 this.term.write("\x03");

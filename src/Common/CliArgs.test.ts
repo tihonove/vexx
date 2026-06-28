@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CliArgsError, parseCliArgs } from "./CliArgs.ts";
+import { CliArgsError, DEFAULT_INSPECT_TUI, parseCliArgs } from "./CliArgs.ts";
 
 describe("parseCliArgs", () => {
     it("returns empty result for empty argv", () => {
@@ -8,6 +8,7 @@ describe("parseCliArgs", () => {
         expect(r.positional).toEqual([]);
         expect(r.userDataDir).toBeUndefined();
         expect(r.profile).toBeUndefined();
+        expect(r.inspectTui).toBeUndefined();
         expect(r.help).toBe(false);
     });
 
@@ -70,5 +71,24 @@ describe("parseCliArgs", () => {
     it("treats `-` as positional (stdin convention)", () => {
         const r = parseCliArgs(["-"]);
         expect(r.positional).toEqual(["-"]);
+    });
+
+    it("parses bare --inspect-tui to the default host:port", () => {
+        const [host, port] = DEFAULT_INSPECT_TUI.split(":");
+        const r = parseCliArgs(["--inspect-tui", "file.ts"]);
+        expect(r.inspectTui).toEqual({ host, port: Number(port) });
+        expect(r.positional).toEqual(["file.ts"]);
+    });
+
+    it("parses --inspect-tui=host:port", () => {
+        expect(parseCliArgs(["--inspect-tui=127.0.0.1:0"]).inspectTui).toEqual({ host: "127.0.0.1", port: 0 });
+        expect(parseCliArgs(["--inspect-tui=0.0.0.0:9300"]).inspectTui).toEqual({ host: "0.0.0.0", port: 9300 });
+    });
+
+    it("throws on malformed --inspect-tui", () => {
+        expect(() => parseCliArgs(["--inspect-tui=localhost"])).toThrow(/host:port/);
+        expect(() => parseCliArgs(["--inspect-tui=:9300"])).toThrow(/non-empty host/);
+        expect(() => parseCliArgs(["--inspect-tui=host:notaport"])).toThrow(/port in 0\.\.65535/);
+        expect(() => parseCliArgs(["--inspect-tui=host:70000"])).toThrow(/port in 0\.\.65535/);
     });
 });
