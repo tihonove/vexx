@@ -199,6 +199,9 @@ const builtinActions = [
 ];
 
 // How long to wait for the next chord part before cancelling (matches VS Code).
+// Columns added/removed per increase/decrease Side Bar Width command.
+const SIDEBAR_WIDTH_STEP = 3;
+
 const CHORD_TIMEOUT_MS = 5000;
 
 // How long the "… is not a command" status message lingers after a broken chord.
@@ -419,6 +422,35 @@ export class AppController extends Disposable implements IController {
                     this.workbenchLayout.setLeftPanelVisible(true);
                     this.workbenchLayout.markDirty();
                     this.fileTreeController.focus();
+                },
+            }),
+        );
+        // Side bar width: palette-only, no default keybindings (matching VS Code's
+        // increase/decreaseViewWidth). Users can bind them via keybindings.json.
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.increaseSidebarWidth",
+                title: "View: Increase Side Bar Width",
+                run: () => {
+                    this.workbenchLayout.nudgeLeftPanelWidth(SIDEBAR_WIDTH_STEP);
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.decreaseSidebarWidth",
+                title: "View: Decrease Side Bar Width",
+                run: () => {
+                    this.workbenchLayout.nudgeLeftPanelWidth(-SIDEBAR_WIDTH_STEP);
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.resetSidebarWidth",
+                title: "View: Reset Side Bar Width",
+                run: () => {
+                    this.workbenchLayout.resetLeftPanelWidth();
                 },
             }),
         );

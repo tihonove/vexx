@@ -55,20 +55,31 @@ export class MouseEventDispatcher {
         this.dispatchOn(target, "mousedown", token, screenX, screenY);
     }
 
-    private handleRelease(target: TUIElement | null, token: MouseToken, screenX: number, screenY: number): void {
-        if (!target) return;
-        this.dispatchOn(target, "mouseup", token, screenX, screenY);
+    // True while a button is held on an element that opted into pointer capture.
+    private isCapturing(): boolean {
+        return (
+            this.pressedElement?.capturesPointer === true &&
+            this.pressedButton !== null &&
+            this.pressedButton !== "none"
+        );
+    }
 
-        if (this.pressedElement === target && this.pressedButton === token.button) {
-            this.dispatchOn(target, "click", token, screenX, screenY);
+    private handleRelease(target: TUIElement | null, token: MouseToken, screenX: number, screenY: number): void {
+        // While capturing, the release belongs to the captor regardless of what's under the cursor.
+        const effectiveTarget = this.isCapturing() ? this.pressedElement : target;
+        if (!effectiveTarget) return;
+        this.dispatchOn(effectiveTarget, "mouseup", token, screenX, screenY);
+
+        if (this.pressedElement === effectiveTarget && this.pressedButton === token.button) {
+            this.dispatchOn(effectiveTarget, "click", token, screenX, screenY);
 
             const now = this.now();
-            if (this.lastClickTarget === target && now - this.lastClickTime < DOUBLE_CLICK_THRESHOLD) {
-                this.dispatchOn(target, "dblclick", token, screenX, screenY);
+            if (this.lastClickTarget === effectiveTarget && now - this.lastClickTime < DOUBLE_CLICK_THRESHOLD) {
+                this.dispatchOn(effectiveTarget, "dblclick", token, screenX, screenY);
                 this.lastClickTarget = null;
                 this.lastClickTime = 0;
             } else {
-                this.lastClickTarget = target;
+                this.lastClickTarget = effectiveTarget;
                 this.lastClickTime = now;
             }
         }
@@ -78,6 +89,13 @@ export class MouseEventDispatcher {
     }
 
     private handleMove(target: TUIElement | null, token: MouseToken, screenX: number, screenY: number): void {
+        // While capturing, route moves straight to the captor and suppress enter/leave so
+        // elements under the cursor (editor, tree rows) don't flicker hover state mid-drag.
+        if (this.isCapturing() && this.pressedElement) {
+            this.dispatchOn(this.pressedElement, "mousemove", token, screenX, screenY);
+            return;
+        }
+
         const oldHovered = this.hoveredElement;
         const newHovered = target;
 

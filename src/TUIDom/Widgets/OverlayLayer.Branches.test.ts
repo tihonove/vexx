@@ -137,6 +137,26 @@ describe("OverlayLayer — restoreFocus without a focus manager", () => {
         }).not.toThrow();
         expect(session.isOpen()).toBe(false);
     });
+
+    it("releases a pushed modal scope safely when the focus manager disappears", () => {
+        const input = new InputElement();
+        const app = TestApp.createWithContent(input, new Size(30, 10));
+        const layer = app.root.overlayLayer;
+
+        const modal = new PopupMenuElement([{ label: "Copy" }]);
+        // Modal + visible → openSession pushes the focus scope (focusScopePushed = true).
+        const session = layer.createSession(modal, new Point(2, 2), {
+            visible: true,
+            pointerPolicy: "modal",
+        });
+        expect(session.isOpen()).toBe(true);
+
+        // The focus manager vanishes before close, so releaseFocusScope reaches
+        // `this.getRoot()?.focusManager ?? null` and takes the nullish branch.
+        app.root.focusManager = null;
+        expect(() => session.close()).not.toThrow();
+        expect(session.isOpen()).toBe(false);
+    });
 });
 
 describe("OverlayLayer — disposeOnClose", () => {

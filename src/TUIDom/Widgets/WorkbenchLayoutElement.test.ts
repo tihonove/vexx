@@ -5,6 +5,7 @@ import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/Geometry
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { SashElement } from "./SashElement.ts";
 import { WorkbenchLayoutElement } from "./WorkbenchLayoutElement.ts";
 
 function createPanel(): TUIElement {
@@ -149,7 +150,7 @@ describe("WorkbenchLayoutElement", () => {
     });
 
     describe("getChildren", () => {
-        it("returns both panels when left panel is visible", () => {
+        it("returns both panels plus the sash when left panel is visible", () => {
             const layout = new WorkbenchLayoutElement();
             const leftPanel = createPanel();
             const center = createPanel();
@@ -157,7 +158,11 @@ describe("WorkbenchLayoutElement", () => {
             layout.setLeftPanel(leftPanel);
             layout.setCenterContent(center);
 
-            expect(layout.getChildren()).toEqual([leftPanel, center]);
+            const children = layout.getChildren();
+            expect(children.slice(0, 2)).toEqual([leftPanel, center]);
+            // The draggable sash is appended last so it hit-tests on top at the boundary.
+            expect(children).toHaveLength(3);
+            expect(children[2]).toBeInstanceOf(SashElement);
         });
 
         it("returns only center when left panel is hidden", () => {
@@ -250,8 +255,8 @@ describe("WorkbenchLayoutElement", () => {
         });
     });
 
-    describe("left panel width clamped to container width", () => {
-        it("clamps left panel width to container width", () => {
+    describe("left panel width clamped to reserve the editor", () => {
+        it("clamps left panel width so the center keeps its minimum width", () => {
             const layout = new WorkbenchLayoutElement();
             const leftPanel = createPanel();
             const center = createPanel();
@@ -263,8 +268,25 @@ describe("WorkbenchLayoutElement", () => {
             layout.globalPosition = new Point(0, 0);
             layout.performLayout(BoxConstraints.tight(new Size(80, 24)));
 
-            expect(leftPanel.layoutSize.width).toBe(80);
-            expect(center.layoutSize.width).toBe(0);
+            // 80 - MIN_CENTER_WIDTH(20) = 60 reserved for the panel, 20 for the editor.
+            expect(leftPanel.layoutSize.width).toBe(60);
+            expect(center.layoutSize.width).toBe(20);
+        });
+
+        it("does not mutate the stored width when the layout clamps it (resize keeps absolute size)", () => {
+            const layout = new WorkbenchLayoutElement();
+            layout.setLeftPanel(createPanel());
+            layout.setCenterContent(createPanel());
+            layout.setLeftPanelWidth(50);
+
+            layout.globalPosition = new Point(0, 0);
+            // Narrow terminal clamps the displayed width down...
+            layout.performLayout(BoxConstraints.tight(new Size(40, 24)));
+            expect(layout.getLeftPanelWidth()).toBe(50);
+
+            // ...but widening restores the full absolute width.
+            layout.performLayout(BoxConstraints.tight(new Size(120, 24)));
+            expect(layout.getLeftPanel()?.layoutSize.width).toBe(50);
         });
     });
 
@@ -309,12 +331,12 @@ describe("WorkbenchLayoutElement", () => {
             const layout = new WorkbenchLayoutElement();
             layout.setLeftPanel(new MarkerPanel("L"));
             layout.setCenterContent(new MarkerPanel("C"));
-            layout.setLeftPanelWidth(10);
+            layout.setLeftPanelWidth(12);
 
-            const backend = renderLayout(layout, new Size(30, 5));
+            const backend = renderLayout(layout, new Size(40, 5));
 
             expect(backend.getTextAt(new Point(0, 0), 1)).toBe("L"); // left panel at x=0
-            expect(backend.getTextAt(new Point(10, 0), 1)).toBe("C"); // center after left panel
+            expect(backend.getTextAt(new Point(12, 0), 1)).toBe("C"); // center after left panel
         });
 
         it("renders only the left panel when there is no center content (line 99 false branch)", () => {
@@ -349,6 +371,74 @@ describe("WorkbenchLayoutElement", () => {
         it("default left panel width is 30", () => {
             const layout = new WorkbenchLayoutElement();
             expect(layout.getLeftPanelWidth()).toBe(30);
+        });
+    });
+
+    describe("resize: nudge / reset", () => {
+        function laidOut(containerWidth = 80): WorkbenchLayoutElement {
+            const layout = new WorkbenchLayoutElement();
+            layout.setLeftPanel(createPanel());
+            layout.setCenterContent(createPanel());
+            layout.globalPosition = new Point(0, 0);
+            layout.performLayout(BoxConstraints.tight(new Size(containerWidth, 24)));
+            return layout;
+        }
+
+        it("nudges the width by a delta", () => {
+            const layout = laidOut();
+            layout.nudgeLeftPanelWidth(3);
+            expect(layout.getLeftPanelWidth()).toBe(33);
+        });
+
+        it("clamps to the minimum panel width", () => {
+            const layout = laidOut();
+            layout.nudgeLeftPanelWidth(-100);
+            expect(layout.getLeftPanelWidth()).toBe(12);
+        });
+
+        it("clamps to the maximum that still leaves the editor its minimum", () => {
+            const layout = laidOut(80);
+            layout.nudgeLeftPanelWidth(1000);
+            // 80 - MIN_CENTER_WIDTH(20) = 60.
+            expect(layout.getLeftPanelWidth()).toBe(60);
+        });
+
+        it("resets to the default width", () => {
+            const layout = laidOut();
+            layout.nudgeLeftPanelWidth(20);
+            layout.resetLeftPanelWidth();
+            expect(layout.getLeftPanelWidth()).toBe(30);
+        });
+    });
+
+    describe("resize: sash", () => {
+        function laidOut(leftWidth: number): { layout: WorkbenchLayoutElement; sash: SashElement } {
+            const layout = new WorkbenchLayoutElement();
+            layout.setLeftPanel(createPanel());
+            layout.setCenterContent(createPanel());
+            layout.setLeftPanelWidth(leftWidth);
+            layout.globalPosition = new Point(0, 0);
+            layout.performLayout(BoxConstraints.tight(new Size(80, 24)));
+            const sash = layout.getChildren()[2] as SashElement;
+            return { layout, sash };
+        }
+
+        it("positions the sash at the panel/editor boundary, 1 column wide", () => {
+            const { sash } = laidOut(20);
+            expect(sash.globalPosition).toEqual(new Point(20, 0));
+            expect(sash.layoutSize).toEqual(new Size(1, 24));
+        });
+
+        it("dragging the sash updates the panel width", () => {
+            const { layout, sash } = laidOut(20);
+            sash.onDrag?.(50);
+            expect(layout.getLeftPanelWidth()).toBe(50);
+        });
+
+        it("dragging past the maximum clamps the width", () => {
+            const { layout, sash } = laidOut(20);
+            sash.onDrag?.(200);
+            expect(layout.getLeftPanelWidth()).toBe(60);
         });
     });
 });
