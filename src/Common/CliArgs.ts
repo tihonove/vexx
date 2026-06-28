@@ -6,6 +6,7 @@
  * Поддерживаемые формы:
  *   --user-data-dir <path>          | --user-data-dir=<path>
  *   --profile <name>                | --profile=<name>
+ *   --inspect-tui                   | --inspect-tui=<host:port>
  *   --help, -h
  *   --version, -v
  *   --                              | всё после трактуется как позиционные
@@ -18,17 +19,26 @@ export interface ICliArgs {
     readonly userDataDir: string | undefined;
     /** Имя профиля из `--profile`, если указано. */
     readonly profile: string | undefined;
+    /**
+     * Адрес TUIDom-инспектора, если передан `--inspect-tui`. Голый флаг даёт
+     * дефолт {@link DEFAULT_INSPECT_TUI}; `--inspect-tui=host:port` — заданный адрес.
+     */
+    readonly inspectTui: { host: string; port: number } | undefined;
     /** Был ли передан `--help` / `-h`. */
     readonly help: boolean;
     /** Был ли передан `--version` / `-v`. */
     readonly version: boolean;
 }
 
+/** Адрес инспектора по умолчанию для голого `--inspect-tui`. */
+export const DEFAULT_INSPECT_TUI = "127.0.0.1:9223";
+
 export const USAGE = `Usage: vexx [options] <file-or-dir> [<file-or-dir> ...]
 
 Options:
   --user-data-dir <path>   Альтернативный каталог user data (default: ~/.vexx)
   --profile <name>         Имя профиля (default: "default")
+  --inspect-tui[=host:port] Поднять TUIDom-инспектор (default: ${DEFAULT_INSPECT_TUI})
   -h, --help               Показать эту справку
   -v, --version            Показать версию
 `;
@@ -52,10 +62,32 @@ const FLAG_SPECS: Readonly<Record<string, IFlagSpec | undefined>> = {
     "--profile": { key: "profile", value: true },
 };
 
+/**
+ * Разбирает `host:port` для `--inspect-tui`. Хост обязателен и непуст; порт —
+ * целое 0..65535 (0 = эфемерный). Бросает {@link CliArgsError} при неверном формате.
+ */
+function parseInspectTui(raw: string): { host: string; port: number } {
+    const idx = raw.lastIndexOf(":");
+    if (idx === -1) {
+        throw new CliArgsError(`--inspect-tui expects host:port, got: ${raw}`);
+    }
+    const host = raw.slice(0, idx);
+    const portStr = raw.slice(idx + 1);
+    if (host.length === 0) {
+        throw new CliArgsError(`--inspect-tui requires a non-empty host: ${raw}`);
+    }
+    const port = Number(portStr);
+    if (!Number.isInteger(port) || port < 0 || port > 65535) {
+        throw new CliArgsError(`--inspect-tui requires a port in 0..65535: ${raw}`);
+    }
+    return { host, port };
+}
+
 export function parseCliArgs(argv: readonly string[]): ICliArgs {
     const positional: string[] = [];
     let userDataDir: string | undefined;
     let profile: string | undefined;
+    let inspectTui: { host: string; port: number } | undefined;
     let help = false;
     let version = false;
 
@@ -76,6 +108,15 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
 
         if (arg === "-v" || arg === "--version") {
             version = true;
+            i += 1;
+            continue;
+        }
+
+        // Опциональное значение: голый `--inspect-tui` → дефолт, иначе `=host:port`.
+        if (arg === "--inspect-tui" || arg.startsWith("--inspect-tui=")) {
+            const eqIndex = arg.indexOf("=");
+            const raw = eqIndex === -1 ? DEFAULT_INSPECT_TUI : arg.slice(eqIndex + 1);
+            inspectTui = parseInspectTui(raw);
             i += 1;
             continue;
         }
@@ -119,5 +160,5 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
         i += 1;
     }
 
-    return { positional, userDataDir, profile, help, version };
+    return { positional, userDataDir, profile, inspectTui, help, version };
 }

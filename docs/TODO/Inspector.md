@@ -80,7 +80,10 @@ input-события) + опц. State-класс. Связь: `element.onX = …
 3. **MenuBar (B)**: вынести `MenuBarController`, тонкий `MenuBarElement`.
 4. **ContextMenuLayer (B)**: `OverlayManager` + тонкий контейнер, мигрировать
    потребителей по одному.
-5. **Инспектор**: на чистой основе (см. ниже).
+5. **Инспектор**: `[~]` первый срез готов — `src/Inspector/` (`InspectorCore` +
+   `serializeTree` + `TUIDom.getDocument` + рукописный WS-транспорт
+   `InspectorServer` + `attachInspector`), тесты in-process + смоук. Дальше —
+   nodeId/самоописание/grid/renderTick/CLI-флаг `--inspect-tui`.
 
 ## Инспектор — зафиксированные решения
 - Свой протокол `TUIDom.*` (WebSocket+JSON, форма как у CDP), НЕ

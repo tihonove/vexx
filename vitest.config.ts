@@ -69,6 +69,9 @@ export default defineConfig({
         "src/Extensions/Host/VscodeNamespace.ts", // RPC-проводка в subprocess
         "src/Controllers/Modules/**", // DI-проводка (integration/e2e)
         "src/Configuration/NullConfigurationService.ts", // null-object заглушка
+        "src/Inspector/InspectorServer.ts", // рукописный ws-транспорт (смоук-тест)
+        "src/Inspector/ws/**", // рукописный RFC6455 фрейминг
+        "src/Inspector/attachInspector.ts", // поднимает реальный сервер (смоук-тест)
       ],
     },
   },

@@ -28,6 +28,7 @@ import { runExtensionHostSubprocess } from "./Extensions/Host/ExtensionHostSubpr
 import type { IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
+import { attachInspector } from "./Inspector/index.ts";
 import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
 import { WorkbenchTheme } from "./Theme/WorkbenchTheme.ts";
@@ -182,6 +183,20 @@ async function runEditor(): Promise<void> {
     app.root = appController.view;
     appController.mount();
     app.run();
+
+    // TUIDom-инспектор: поднимаем WebSocket-сервер только по `--inspect-tui`.
+    // Сервер читает дерево лениво (на момент getDocument), поэтому ок поднять
+    // его до openFile — клиент увидит актуальное дерево, когда подключится.
+    // Логируем порт только в logService: писать в stderr нельзя — он уходит в
+    // тот же pty и испортит TUI-рендер.
+    if (cli.inspectTui !== undefined) {
+        const inspector = await attachInspector(app, cli.inspectTui);
+        bootstrapLogger.info("TUIDom inspector listening", {
+            host: cli.inspectTui.host,
+            port: inspector.port,
+        });
+    }
+
     await appController.activate();
     // Дожидаемся регистрации TextMate-грамматик до открытия первых файлов,
     // чтобы при создании `DocumentTokenStore` уже был полноценный токенайзер.
