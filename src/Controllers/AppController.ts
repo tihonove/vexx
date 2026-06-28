@@ -297,6 +297,7 @@ export class AppController extends Disposable implements IController {
             new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
         );
         this.findController = this.register(new FindController(this.editorGroupController));
+        this.findController.applyTheme(themeService.theme);
         this.statusBarController = this.register(statusBarController);
         this.commands = commands;
         this.keybindings = keybindings;
@@ -606,6 +607,7 @@ export class AppController extends Disposable implements IController {
         };
         this.confirmDialog?.applyTheme(theme);
         this.aboutDialog?.applyTheme(theme);
+        this.findController.applyTheme(theme);
     }
 
     // Capture phase: while a chord is in progress, intercept the next key

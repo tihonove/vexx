@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { MouseToken } from "../Input/RawTerminalToken.ts";
+import type { MouseAction, MouseToken } from "../Input/RawTerminalToken.ts";
 
 import type { FindContext } from "./AppController.Find.TestUtils.ts";
 import { createFindApp, disposeFindApp, type } from "./AppController.Find.TestUtils.ts";
@@ -27,18 +27,20 @@ function clickButton(ctx: FindContext, glyph: string): void {
     const rows = ctx.testApp.backend.screenToString().split("\n");
     const y = rows.findIndex((line) => line.includes(CLOSE_GLYPH)) + 1;
     const x = buttonColumn(ctx, glyph);
-    const token: MouseToken = {
+    const token = (action: MouseAction): MouseToken => ({
         kind: "mouse",
         button: "left",
-        action: "press",
+        action,
         x,
         y,
         shiftKey: false,
         altKey: false,
         ctrlKey: false,
         raw: "",
-    };
-    ctx.testApp.backend.simulateMouse(token);
+    });
+    // A ButtonElement activates on "click" (press + release on the same target).
+    ctx.testApp.backend.simulateMouse(token("press"));
+    ctx.testApp.backend.simulateMouse(token("release"));
 }
 
 describe("AppController — find lifecycle & interaction", () => {

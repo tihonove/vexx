@@ -1,45 +1,54 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { RenderContext } from "../TUIElement.ts";
 
+import type { ButtonElement } from "./ButtonElement.ts";
 import { FindWidgetElement } from "./FindWidgetElement.ts";
 
 const WIDTH = 44;
 
-/** Lays out + renders the widget at a fixed width so the button hit-test X's are populated. */
-function render(widget: FindWidgetElement): void {
-    const size = new Size(WIDTH, 3);
+// ButtonElement defaults (no theme applied).
+const BUTTON_BG = packRgb(60, 60, 60);
+const BUTTON_HOVER_BG = packRgb(69, 73, 78);
+
+/** Lays out + renders the widget into a backend so button positions/colors are populated. */
+function render(widget: FindWidgetElement, width = WIDTH): MockTerminalBackend {
+    const size = new Size(width, 3);
+    const backend = new MockTerminalBackend(size);
+    const termScreen = new TerminalScreen(size);
     widget.globalPosition = new Point(0, 0);
     widget.performLayout(BoxConstraints.tight(size));
-    widget.render(new RenderContext(new TerminalScreen(size)));
+    widget.render(new RenderContext(termScreen));
+    termScreen.flush(backend);
+    return backend;
 }
 
-function mousedown(widget: FindWidgetElement, localX: number, localY = 1): TUIMouseEvent {
-    const event = new TUIMouseEvent("mousedown", {
-        button: "left",
-        screenX: localX,
-        screenY: localY,
-        localX,
-        localY,
-    });
-    widget.dispatchEvent(event);
-    return event;
+/** The three nav buttons in order: [prev, next, close]. */
+function buttons(widget: FindWidgetElement): ButtonElement[] {
+    return widget.querySelectorAll("ButtonElement") as ButtonElement[];
 }
 
-// At width 44 with an empty input the right block is just the 5-cell "↑ ↓ ✕" nav
-// (all three glyphs are single-width), so navStart = 44 - 1 - 5 = 38 → prev=38, next=40, close=42.
-const PREV_X = 38;
-const NEXT_X = 40;
-const CLOSE_X = 42;
+function mouse(type: "click" | "mouseenter" | "mouseleave", x = 0, y = 0): TUIMouseEvent {
+    return new TUIMouseEvent(type, { button: "left", screenX: x, screenY: y, localX: 0, localY: 0 });
+}
+
+/** Resolves the element at a screen point and dispatches a left click on it. */
+function clickAt(widget: FindWidgetElement, x: number, y: number): void {
+    const target = widget.elementFromPoint(new Point(x, y));
+    target?.dispatchEvent(mouse("click", x, y));
+}
 
 describe("FindWidgetElement — intrinsic sizing", () => {
     it("reports a fixed min width and preferred-width max width", () => {
         const widget = new FindWidgetElement();
         widget.preferredWidth = 50;
-        expect(widget.getMinIntrinsicWidth(3)).toBe(24);
+        expect(widget.getMinIntrinsicWidth(3)).toBe(30);
         expect(widget.getMaxIntrinsicWidth(3)).toBe(50);
     });
 
@@ -58,50 +67,78 @@ describe("FindWidgetElement — intrinsic sizing", () => {
 });
 
 describe("FindWidgetElement — button clicks", () => {
-    it("invokes onClose and prevents default when the ✕ button is clicked", () => {
-        const widget = new FindWidgetElement();
-        const onClose = vi.fn();
-        widget.onClose = onClose;
-        render(widget);
-
-        const event = mousedown(widget, CLOSE_X);
-
-        expect(onClose).toHaveBeenCalledOnce();
-        expect(event.defaultPrevented).toBe(true);
-    });
-
-    it("invokes onNext when the ↓ button is clicked", () => {
-        const widget = new FindWidgetElement();
-        const onNext = vi.fn();
-        widget.onNext = onNext;
-        render(widget);
-
-        mousedown(widget, NEXT_X);
-
-        expect(onNext).toHaveBeenCalledOnce();
-    });
-
-    it("invokes onPrev when the ↑ button is clicked", () => {
+    it("invokes onPrev / onNext / onClose when the matching button is clicked", () => {
         const widget = new FindWidgetElement();
         const onPrev = vi.fn();
+        const onNext = vi.fn();
+        const onClose = vi.fn();
         widget.onPrev = onPrev;
+        widget.onNext = onNext;
+        widget.onClose = onClose;
         render(widget);
 
-        mousedown(widget, PREV_X);
+        const [prev, next, close] = buttons(widget);
+        clickAt(widget, prev.globalPosition.x, prev.globalPosition.y);
+        clickAt(widget, next.globalPosition.x, next.globalPosition.y);
+        clickAt(widget, close.globalPosition.x, close.globalPosition.y);
 
         expect(onPrev).toHaveBeenCalledOnce();
+        expect(onNext).toHaveBeenCalledOnce();
+        expect(onClose).toHaveBeenCalledOnce();
     });
 
-    it("ignores clicks that miss the button row", () => {
+    it("ignores clicks that land on the input rather than a button", () => {
         const widget = new FindWidgetElement();
         const onClose = vi.fn();
         widget.onClose = onClose;
         render(widget);
 
-        // Same column as ✕ but on the border row (y=0), and an empty column on the input row.
-        mousedown(widget, CLOSE_X, 0);
-        mousedown(widget, 5, 1);
+        // Column 2, row 1 sits inside the query input, not on a button.
+        clickAt(widget, 2, 1);
 
         expect(onClose).not.toHaveBeenCalled();
+    });
+});
+
+describe("FindWidgetElement — hover", () => {
+    it("highlights a button on mouseenter and reverts on mouseleave", () => {
+        const widget = new FindWidgetElement();
+        render(widget);
+        const next = buttons(widget)[1];
+        const x = next.globalPosition.x;
+
+        next.dispatchEvent(mouse("mouseenter"));
+        expect(render(widget).getBgAt(new Point(x, 1))).toBe(BUTTON_HOVER_BG);
+
+        next.dispatchEvent(mouse("mouseleave"));
+        expect(render(widget).getBgAt(new Point(x, 1))).toBe(BUTTON_BG);
+    });
+});
+
+describe("FindWidgetElement — applyTheme", () => {
+    it("pushes the theme's secondary button colors into the buttons", () => {
+        const SECONDARY_BG = packRgb(11, 22, 33);
+        const SECONDARY_HOVER_BG = packRgb(44, 55, 66);
+        const theme = new WorkbenchTheme(
+            "test",
+            "dark",
+            {
+                "button.secondaryBackground": SECONDARY_BG,
+                "button.secondaryForeground": packRgb(200, 200, 200),
+                "button.secondaryHoverBackground": SECONDARY_HOVER_BG,
+            },
+            { rules: [] },
+        );
+
+        const widget = new FindWidgetElement();
+        widget.applyTheme(theme);
+        render(widget);
+
+        const close = buttons(widget)[2];
+        const x = close.globalPosition.x;
+        expect(render(widget).getBgAt(new Point(x, 1))).toBe(SECONDARY_BG);
+
+        close.dispatchEvent(mouse("mouseenter"));
+        expect(render(widget).getBgAt(new Point(x, 1))).toBe(SECONDARY_HOVER_BG);
     });
 });
