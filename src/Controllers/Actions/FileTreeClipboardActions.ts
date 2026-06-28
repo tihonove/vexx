@@ -1,8 +1,7 @@
-import type { IFileClipboard } from "../../Common/IFileClipboard.ts";
+import type { FileClipboardEntry } from "../../Common/IFileClipboard.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { parseKeybinding } from "../KeybindingRegistry.ts";
-
-import { copyInto, moveInto } from "./fileClipboardFs.ts";
+import type { ResourceFileEdit } from "../Workspace/WorkspaceEdit.ts";
 
 /**
  * Дескрипторы команд copy/cut/paste для explorer (без `run` — он привязывается в
@@ -30,34 +29,12 @@ export const filePasteAction = {
     when: "listFocus",
 } satisfies Omit<CommandAction, "run">;
 
-export interface PasteResult {
-    /** Пути успешно вставленных записей. */
-    pasted: string[];
-    /** Записи, которые не удалось вставить, с сообщением об ошибке. */
-    errors: { path: string; message: string }[];
-}
-
 /**
- * Выполняет вставку содержимого файлового буфера в `targetDir`. В режиме `cut`
- * перемещает (и очищает буфер после), в режиме `copy` — копирует. Каждая запись
- * обрабатывается независимо; ошибка по одной не прерывает остальные.
+ * Превращает содержимое файлового буфера в набор `ResourceFileEdit` для вставки в `targetDir`:
+ * режим `cut` → перемещение, `copy` → копирование. Исполнение и запись в историю отмены —
+ * на стороне `WorkspaceEditService.applyFileEdits`.
  */
-export function pasteFiles(clipboard: IFileClipboard, targetDir: string): PasteResult {
-    const result: PasteResult = { pasted: [], errors: [] };
-    const entry = clipboard.read();
-    if (!entry) return result;
-
-    for (const src of entry.paths) {
-        try {
-            const dest = entry.mode === "cut" ? moveInto(src, targetDir) : copyInto(src, targetDir);
-            result.pasted.push(dest);
-        } catch (error) {
-            result.errors.push({ path: src, message: (error as Error).message });
-        }
-    }
-
-    if (entry.mode === "cut") {
-        clipboard.clear();
-    }
-    return result;
+export function buildPasteEdits(entry: FileClipboardEntry, targetDir: string): ResourceFileEdit[] {
+    const kind = entry.mode === "cut" ? "move" : "copy";
+    return entry.paths.map((from) => ({ kind, from, to: targetDir }));
 }

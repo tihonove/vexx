@@ -38,6 +38,24 @@ function assertNotIntoSelf(src: string, targetDir: string): void {
     }
 }
 
+/**
+ * Перемещает `src` на точный путь `dest` (а не «внутрь каталога»). На cross-device
+ * (`EXDEV`) — копирует и удаляет. Используется обратимыми операциями (корзина, откат move),
+ * где назначение известно поимённо.
+ */
+export function moveToPath(src: string, dest: string): void {
+    try {
+        fs.renameSync(src, dest);
+    } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "EXDEV") {
+            fs.cpSync(src, dest, { recursive: true });
+            fs.rmSync(src, { recursive: true, force: true });
+        } else {
+            throw error;
+        }
+    }
+}
+
 /** Копирует `src` внутрь `targetDir`, авто-переименовывая при конфликте. Возвращает путь назначения. */
 export function copyInto(src: string, targetDir: string): string {
     assertNotIntoSelf(src, targetDir);
@@ -56,15 +74,6 @@ export function moveInto(src: string, targetDir: string): string {
     if (path.dirname(src) === targetDir) return src;
 
     const dest = resolveNonConflictingDest(targetDir, path.basename(src));
-    try {
-        fs.renameSync(src, dest);
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "EXDEV") {
-            fs.cpSync(src, dest, { recursive: true });
-            fs.rmSync(src, { recursive: true, force: true });
-        } else {
-            throw error;
-        }
-    }
+    moveToPath(src, dest);
     return dest;
 }

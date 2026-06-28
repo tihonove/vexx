@@ -1,3 +1,5 @@
+import * as path from "node:path";
+
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
@@ -5,6 +7,8 @@ import { Point } from "../Common/GeometryPromitives.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { ILogService } from "../Common/Logging/ILogService.ts";
 import type { IFileClipboard } from "../Common/IFileClipboard.ts";
+import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
 import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
@@ -16,6 +20,8 @@ import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { AboutDialogElement } from "../TUIDom/Widgets/AboutDialogElement.tsx";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import type { ConfirmDialogOptions } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
+import { ConfirmDialogElement } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
 import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
@@ -67,7 +73,7 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
-import { fileCopyAction, fileCutAction, filePasteAction, pasteFiles } from "./Actions/FileTreeClipboardActions.ts";
+import { buildPasteEdits, fileCopyAction, fileCutAction, filePasteAction } from "./Actions/FileTreeClipboardActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
     inputCopyAction,
@@ -116,6 +122,8 @@ import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
+import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
+import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
 import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 
@@ -258,9 +266,13 @@ export class AppController extends Disposable implements IController {
     private confirmDialogSession: OverlaySessionHandle | null = null;
     private aboutDialog: AboutDialogElement | null = null;
     private aboutDialogSession: OverlaySessionHandle | null = null;
+    private confirmActionSession: OverlaySessionHandle | null = null;
     private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
     private fileClipboard: IFileClipboard;
+    private workspaceEditService: WorkspaceEditService;
+    private undoRedoService: UndoRedoService;
+    private configurationService: IConfigurationService;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
     private findController: FindController;
@@ -296,6 +308,9 @@ export class AppController extends Disposable implements IController {
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
         this.fileClipboard = accessor.get(FileClipboardDIToken);
+        this.workspaceEditService = accessor.get(WorkspaceEditServiceDIToken);
+        this.undoRedoService = accessor.get(UndoRedoServiceDIToken);
+        this.configurationService = accessor.get(IConfigurationServiceDIToken);
         // Подсветка «вырезанных» файлов в дереве следует за состоянием буфера.
         this.register(
             this.fileClipboard.onDidChange((entry) => {
@@ -481,9 +496,9 @@ export class AppController extends Disposable implements IController {
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...fileDeleteAction,
-                run: (a, ...args) => {
-                    fileDeleteAction.run(a, ...args);
-                    void this.fileTreeController.refresh();
+                run: (_a, ...args) => {
+                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
+                    if (filePath) this.requestDeleteFile(filePath);
                 },
             }),
         );
@@ -511,8 +526,38 @@ export class AppController extends Disposable implements IController {
                 run: () => {
                     const targetDir = this.fileTreeController.getPasteTargetDir();
                     if (!targetDir) return;
-                    pasteFiles(this.fileClipboard, targetDir);
+                    const entry = this.fileClipboard.read();
+                    if (!entry) return;
+                    this.workspaceEditService.applyFileEdits(
+                        buildPasteEdits(entry, targetDir),
+                        entry.mode === "cut" ? "Move" : "Paste",
+                    );
+                    if (entry.mode === "cut") this.fileClipboard.clear();
                     void this.fileTreeController.refresh();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "fileOperations.undo",
+                title: "File: Undo",
+                keybinding: parseKeybinding("ctrl+z"),
+                when: "listFocus",
+                run: () => {
+                    this.undoWorkspace();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "fileOperations.redo",
+                title: "File: Redo",
+                keybindings: [parseKeybinding("ctrl+shift+z"), parseKeybinding("ctrl+y")],
+                when: "listFocus",
+                run: () => {
+                    void this.undoRedoService.redo(WORKSPACE_UNDO_CONTEXT).then((ok) => {
+                        if (ok) void this.fileTreeController.refresh();
+                    });
                 },
             }),
         );
@@ -980,6 +1025,114 @@ export class AppController extends Disposable implements IController {
         if (!this.confirmDialog) return;
         /* v8 ignore stop */
         this.confirmDialogSession?.close();
+    }
+
+    /** Удаление файла: подтверждение (всегда — если безвозвратно) + запись в историю отмены. */
+    private requestDeleteFile(filePath: string): void {
+        const willTrash = this.workspaceEditService.willMoveToTrash();
+        const confirmDelete = this.configurationService.get<boolean>("explorer.confirmDelete", true) ?? true;
+        const name = path.basename(filePath);
+
+        const doDelete = (): void => {
+            this.workspaceEditService.applyFileEdits([{ kind: "delete", from: filePath }], "Delete");
+            void this.fileTreeController.refresh();
+        };
+
+        // Безвозвратное удаление подтверждаем всегда (необратимо); удаление в корзину — по настройке.
+        if (willTrash && !confirmDelete) {
+            doDelete();
+            return;
+        }
+        this.showConfirmDialog(
+            willTrash
+                ? {
+                      title: "Delete",
+                      message: [`«${name}» будет перемещён в корзину.`, "Можно восстановить (Ctrl+Z или из корзины)."],
+                      confirmLabel: "Move to Trash",
+                      defaultButton: "confirm",
+                  }
+                : {
+                      title: "Delete",
+                      message: [
+                          "⚠ Системная корзина не найдена.",
+                          `«${name}» будет удалён безвозвратно — отменить нельзя.`,
+                      ],
+                      confirmLabel: "Delete Permanently",
+                      warning: true,
+                      defaultButton: "cancel",
+                  },
+            { onConfirm: doDelete },
+        );
+    }
+
+    /** Отмена последней файловой операции; для деструктивной — переспрашивает (confirmUndo). */
+    private undoWorkspace(): void {
+        const element = this.undoRedoService.peekUndo(WORKSPACE_UNDO_CONTEXT);
+        if (!element) return;
+        const confirmUndo = this.configurationService.get<boolean>("explorer.confirmUndo", true) ?? true;
+
+        const doUndo = (): void => {
+            void this.undoRedoService.undo(WORKSPACE_UNDO_CONTEXT).then((ok) => {
+                if (ok) void this.fileTreeController.refresh();
+            });
+        };
+
+        if (element.confirmBeforeUndo && confirmUndo) {
+            this.showConfirmDialog(
+                {
+                    title: "Undo",
+                    message: element.confirmBeforeUndo,
+                    confirmLabel: "Yes",
+                    cancelLabel: "No",
+                    defaultButton: "cancel",
+                },
+                { onConfirm: doUndo },
+            );
+        } else {
+            doUndo();
+        }
+    }
+
+    private showConfirmDialog(
+        options: ConfirmDialogOptions,
+        callbacks: { onConfirm: () => void; onCancel?: () => void },
+    ): void {
+        this.hideConfirmActionDialog();
+
+        const dialog = new ConfirmDialogElement(options);
+        dialog.applyTheme(this.themeService.theme);
+        dialog.onConfirm = () => {
+            this.hideConfirmActionDialog();
+            callbacks.onConfirm();
+        };
+        dialog.onCancel = () => {
+            this.hideConfirmActionDialog();
+            callbacks.onCancel?.();
+        };
+
+        const session = this.view.overlayLayer.createSession(dialog, new Point(0, 0), {
+            visible: false,
+            restoreFocus: true,
+            closeOnEscape: true,
+            pointerPolicy: "modal",
+            disposeOnClose: true,
+        });
+        this.confirmActionSession = session;
+
+        const screenW = this.view.layoutSize.width;
+        const screenH = this.view.layoutSize.height;
+        const dialogW = dialog.getMaxIntrinsicWidth(0);
+        const dialogH = dialog.getMaxIntrinsicHeight(dialogW);
+        session.setPosition(
+            new Point(Math.max(0, Math.floor((screenW - dialogW) / 2)), Math.max(0, Math.floor((screenH - dialogH) / 2))),
+        );
+        session.open();
+        dialog.focusDefault();
+    }
+
+    private hideConfirmActionDialog(): void {
+        this.confirmActionSession?.close();
+        this.confirmActionSession = null;
     }
 
     public showAboutDialog(): void {
