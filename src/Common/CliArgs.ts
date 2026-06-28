@@ -7,6 +7,7 @@
  *   --user-data-dir <path>          | --user-data-dir=<path>
  *   --profile <name>                | --profile=<name>
  *   --help, -h
+ *   --version, -v
  *   --                              | всё после трактуется как позиционные
  *   <позиционные>                   | файлы/папки для открытия
  */
@@ -19,6 +20,8 @@ export interface ICliArgs {
     readonly profile: string | undefined;
     /** Был ли передан `--help` / `-h`. */
     readonly help: boolean;
+    /** Был ли передан `--version` / `-v`. */
+    readonly version: boolean;
 }
 
 export const USAGE = `Usage: vexx [options] <file-or-dir> [<file-or-dir> ...]
@@ -27,6 +30,7 @@ Options:
   --user-data-dir <path>   Альтернативный каталог user data (default: ~/.vexx)
   --profile <name>         Имя профиля (default: "default")
   -h, --help               Показать эту справку
+  -v, --version            Показать версию
 `;
 
 export class CliArgsError extends Error {
@@ -53,6 +57,7 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
     let userDataDir: string | undefined;
     let profile: string | undefined;
     let help = false;
+    let version = false;
 
     let i = 0;
     while (i < argv.length) {
@@ -65,6 +70,12 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
 
         if (arg === "-h" || arg === "--help") {
             help = true;
+            i += 1;
+            continue;
+        }
+
+        if (arg === "-v" || arg === "--version") {
+            version = true;
             i += 1;
             continue;
         }
@@ -108,5 +119,5 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
         i += 1;
     }
 
-    return { positional, userDataDir, profile, help };
+    return { positional, userDataDir, profile, help, version };
 }

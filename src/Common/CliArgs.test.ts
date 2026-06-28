@@ -38,6 +38,12 @@ describe("parseCliArgs", () => {
         expect(parseCliArgs(["--help"]).help).toBe(true);
     });
 
+    it("supports -v and --version", () => {
+        expect(parseCliArgs(["-v"]).version).toBe(true);
+        expect(parseCliArgs(["--version"]).version).toBe(true);
+        expect(parseCliArgs([]).version).toBe(false);
+    });
+
     it("treats arguments after -- as positional", () => {
         const r = parseCliArgs(["--user-data-dir", "/tmp/v", "--", "--profile", "x"]);
         expect(r.userDataDir).toBe("/tmp/v");
