@@ -21,6 +21,7 @@ import { keybindingsModule } from "./KeybindingsModule.ts";
 import { loggingModule } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { workspaceModule } from "./WorkspaceModule.ts";
 
 export interface ProductionProfileContext {
     app: TuiApplication;
@@ -54,6 +55,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
         .use(configurationModule, { configurationService: ctx.configurationService })
         .use(terminalEnvironmentModule, { backend: ctx.backend })
         .use(keybindingsModule, { rules: ctx.userKeybindings })
+        .use(workspaceModule)
         .use(controllersModule)
         .use(extensionHostModule);
 }

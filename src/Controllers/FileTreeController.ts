@@ -1,3 +1,5 @@
+import * as path from "node:path";
+
 import { Disposable } from "../Common/Disposable.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
@@ -80,6 +82,31 @@ export class FileTreeController extends Disposable implements IController {
         this.tree?.focus();
     }
 
+    /** Пути выбранных узлов (множественный выбор либо узел под курсором). */
+    public getSelectedPaths(): string[] {
+        return this.tree?.getSelectedNodes().map((node) => node.path) ?? [];
+    }
+
+    /**
+     * Каталог, в который должна выполняться вставка: сам узел под курсором, если это
+     * папка, иначе — его родитель. При пустом дереве — корень.
+     */
+    public getPasteTargetDir(): string | null {
+        const node = this.tree?.getSelectedNode() ?? null;
+        if (!node) return this.rootPath;
+        return node.isDirectory ? node.path : path.dirname(node.path);
+    }
+
+    /** Подсвечивает «вырезанные» пути приглушённым цветом (или снимает подсветку). */
+    public setCutPaths(paths: string[]): void {
+        if (!this.tree) return;
+        if (paths.length === 0) {
+            this.tree.clearCutKeys();
+        } else {
+            this.tree.setCutKeys(new Set(paths));
+        }
+    }
+
     private wireTreeEvents(): void {
         /* v8 ignore start -- defensive: both callers (mount/setRootPath) only invoke this once tree+provider exist */
         if (!this.tree || !this.provider) return;
@@ -118,6 +145,7 @@ export class FileTreeController extends Disposable implements IController {
         );
         this.tree.hoverBg = theme.getColor("list.hoverBackground");
         this.tree.hoverFg = theme.getColor("list.hoverForeground");
+        this.tree.cutFg = theme.getColorOrDefault("list.deemphasizedForeground", packRgb(128, 128, 128));
 
         const sidebarBg = theme.getColor("sideBar.background");
         const sidebarFg = theme.getColor("sideBar.foreground");

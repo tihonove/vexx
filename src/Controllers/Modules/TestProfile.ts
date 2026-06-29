@@ -18,6 +18,7 @@ import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 import { loggingModuleDefault } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { workspaceModule } from "./WorkspaceModule.ts";
 
 /**
  * Тестовый контейнер. Возвращает контейнер с подключёнными NULL-стабами для
@@ -50,6 +51,7 @@ export function createTestContainer(): TestContainerHandle {
         .use(configurationModuleDefault)
         .use(terminalEnvironmentModule, { backend: new MockTerminalBackend() })
         .use(keybindingsModuleDefault)
+        .use(workspaceModule)
         .use(controllersModule);
 
     return {
