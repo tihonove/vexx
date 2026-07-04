@@ -35,6 +35,166 @@ declare module "vscode" {
     export type Event<T> = (listener: (e: T) => unknown, thisArgs?: unknown, disposables?: Disposable[]) => Disposable;
 
     /**
+     * Notify subscribers of an event. Сигнатура-совместима с `vscode.EventEmitter`.
+     */
+    export class EventEmitter<T> {
+        event: Event<T>;
+        fire(data: T): void;
+        dispose(): void;
+    }
+
+    /**
+     * Иммутабельная позиция (0-based line/character).
+     */
+    export class Position {
+        readonly line: number;
+        readonly character: number;
+        constructor(line: number, character: number);
+        isBefore(other: Position): boolean;
+        isBeforeOrEqual(other: Position): boolean;
+        isAfter(other: Position): boolean;
+        isAfterOrEqual(other: Position): boolean;
+        isEqual(other: Position): boolean;
+        compareTo(other: Position): number;
+        translate(lineDelta?: number, characterDelta?: number): Position;
+        translate(change: { lineDelta?: number; characterDelta?: number }): Position;
+        with(line?: number, character?: number): Position;
+        with(change: { line?: number; character?: number }): Position;
+    }
+
+    /**
+     * Иммутабельный диапазон; `start.isBeforeOrEqual(end)` гарантирован.
+     */
+    export class Range {
+        readonly start: Position;
+        readonly end: Position;
+        constructor(start: Position, end: Position);
+        constructor(startLine: number, startCharacter: number, endLine: number, endCharacter: number);
+        readonly isEmpty: boolean;
+        readonly isSingleLine: boolean;
+        contains(positionOrRange: Position | Range): boolean;
+        isEqual(other: Range): boolean;
+        intersection(range: Range): Range | undefined;
+        union(other: Range): Range;
+        with(start?: Position, end?: Position): Range;
+        with(change: { start?: Position; end?: Position }): Range;
+    }
+
+    /**
+     * Направление перевода строки.
+     */
+    export enum EndOfLine {
+        LF = 1,
+        CRLF = 2,
+    }
+
+    /**
+     * Причина сохранения документа (для `onWillSaveTextDocument`, WP6).
+     */
+    export enum TextDocumentSaveReason {
+        Manual = 1,
+        AfterDelay = 2,
+        FocusOut = 3,
+    }
+
+    /**
+     * Тип записи файловой системы.
+     */
+    export enum FileType {
+        Unknown = 0,
+        File = 1,
+        Directory = 2,
+        SymbolicLink = 64,
+    }
+
+    /**
+     * Одиночная текстовая правка либо смена EOL всего документа.
+     */
+    export class TextEdit {
+        static replace(range: Range, newText: string): TextEdit;
+        static insert(position: Position, newText: string): TextEdit;
+        static delete(range: Range): TextEdit;
+        static setEndOfLine(eol: EndOfLine): TextEdit;
+        range: Range;
+        newText: string;
+        newEol?: EndOfLine;
+        constructor(range: Range, newText: string);
+    }
+
+    /**
+     * URI ресурса. В Vexx поддержана только схема `file` (сужено — без полного
+     * набора компонент authority/query/fragment исходного `vscode.Uri`).
+     */
+    export class Uri {
+        static parse(value: string, strict?: boolean): Uri;
+        static file(path: string): Uri;
+        static joinPath(base: Uri, ...pathSegments: string[]): Uri;
+        readonly scheme: string;
+        readonly path: string;
+        readonly fsPath: string;
+        toString(): string;
+    }
+
+    /**
+     * Разновидность элемента автодополнения.
+     */
+    export enum CompletionItemKind {
+        Text = 0,
+        Method = 1,
+        Function = 2,
+        Constructor = 3,
+        Field = 4,
+        Variable = 5,
+        Class = 6,
+        Interface = 7,
+        Module = 8,
+        Property = 9,
+        Unit = 10,
+        Value = 11,
+        Enum = 12,
+        Keyword = 13,
+        Snippet = 14,
+        Color = 15,
+        File = 16,
+        Reference = 17,
+        Folder = 18,
+        EnumMember = 19,
+        Constant = 20,
+        Struct = 21,
+        Event = 22,
+        Operator = 23,
+        TypeParameter = 24,
+        User = 25,
+        Issue = 26,
+    }
+
+    /**
+     * Элемент автодополнения (сужено: без `SnippetString`/`MarkdownString`/
+     * `CompletionItemLabel`/`Command`/`CompletionItemTag`). UI — WP8.
+     */
+    export class CompletionItem {
+        label: string;
+        kind?: CompletionItemKind;
+        insertText?: string;
+        detail?: string;
+        documentation?: string;
+        command?: { title: string; command: string; arguments?: unknown[] };
+        constructor(label: string, kind?: CompletionItemKind);
+    }
+
+    /**
+     * Строка документа (`vscode.TextLine`).
+     */
+    export interface TextLine {
+        readonly lineNumber: number;
+        readonly text: string;
+        readonly range: Range;
+        readonly rangeIncludingLineBreak: Range;
+        readonly firstNonWhitespaceCharacterIndex: number;
+        readonly isEmptyOrWhitespace: boolean;
+    }
+
+    /**
      * Подмножество `TextEditorOptions`. В Phase 1 host применяет только
      * `tabSize` и `insertSpaces` к активному редактору.
      *
@@ -47,11 +207,25 @@ declare module "vscode" {
     }
 
     /**
-     * Минимальный `TextDocument` — только `fileName`. Прочие свойства
-     * (`uri`, `languageId`, `version`, `getText()`, ...) добавим позже.
+     * `TextDocument` — файл в редакторе. Реализация в subprocess —
+     * `ExtHostTextDocument` (стабильная идентичность по `fileName`). Полный текст
+     * приходит только на пути will-save (WP6); до тех пор `lineAt`/`lineCount`
+     * отражают последний снапшот (пустая строка до первого).
      */
     export interface TextDocument {
+        readonly uri: Uri;
         readonly fileName: string;
+        readonly isUntitled: boolean;
+        readonly isClosed: boolean;
+        readonly isDirty: boolean;
+        readonly languageId: string;
+        readonly encoding: string;
+        readonly version: number;
+        readonly eol: EndOfLine;
+        readonly lineCount: number;
+        getText(range?: Range): string;
+        lineAt(line: number): TextLine;
+        lineAt(position: Position): TextLine;
     }
 
     /**

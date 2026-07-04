@@ -1,47 +1,66 @@
 import type * as vscode from "vscode";
 
+import type { ExtHostTextDocument } from "./Vscode/ExtHostDocuments.ts";
+import { DocumentRegistry } from "./Vscode/ExtHostDocuments.ts";
+import {
+    CompletionItem,
+    CompletionItemKind,
+    DisposableImpl,
+    EndOfLine,
+    EventEmitter,
+    FileType,
+    Position,
+    Range,
+    TextDocumentSaveReason,
+    TextEdit,
+    Uri,
+} from "./Vscode/VscodeTypes.ts";
 import type { RpcEndpoint } from "./RpcEndpoint.ts";
 
 /**
- * Строит минимальный объект `vscode`, который раздаётся расширениям
- * (in-process в тестах или внутри subprocess через `Module._cache`).
+ * Собирает объект `vscode`, раздаваемый расширениям (in-process в тестах или в
+ * subprocess через `Module._cache`).
  *
- * Все мутирующие действия проксируются хосту как RPC-запросы; никакой
- * прямой ссылки на host-сервисы у `vscode`-неймспейса нет.
+ * Ассемблер держит общее состояние — {@link DocumentRegistry} со стабильной
+ * идентичностью документов и кэш editor-объектов — и композирует поверх него
+ * namespace'ы. Пока это только `window`; WP3/WP4 добавят `workspace`/`commands`/
+ * `languages` поверх ТОГО ЖЕ реестра (см. маркер ниже). Value-типы
+ * (`Position`, `Range`, `TextEdit`, `Uri`, enum'ы, `EventEmitter`) отдаются как
+ * runtime-поля — расширение делает `new vscode.Position(...)` и т.п.
+ *
+ * Все мутирующие действия проксируются хосту как RPC-запросы; прямой ссылки на
+ * host-сервисы у `vscode`-неймспейса нет.
  */
 export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
-    class DisposableImpl {
-        private readonly callOnDispose: () => unknown;
-        public constructor(callOnDispose: () => unknown) {
-            this.callOnDispose = callOnDispose;
-        }
-        public dispose(): unknown {
-            return this.callOnDispose();
-        }
-        public static from(...items: { dispose: () => unknown }[]): DisposableImpl {
-            return new DisposableImpl(() => {
-                for (const item of items) item.dispose();
-            });
-        }
-    }
-
-    // --- Active editor state (updated via editor.activeEditorChanged notifications) ---
-    let activeEditorState: { fileName: string } | null = null;
+    // --- Общее состояние (seam, который читают будущие WP3/WP4) ---
+    const registry = new DocumentRegistry();
+    let activeEditorFileName: string | null = null;
+    // Ключ — сам ExtHostTextDocument (канонично стабилен по fileName), поэтому
+    // editor.document === registry.getOrCreate(fileName) по построению.
+    const editorCache = new WeakMap<ExtHostTextDocument, vscode.TextEditor>();
     const activeEditorListeners: ((editor: vscode.TextEditor | undefined) => void)[] = [];
 
     rpc.handleNotification("editor.activeEditorChanged", (params) => {
         const { fileName } = params as { fileName: string | null };
-        activeEditorState = fileName != null ? { fileName } : null;
-        const editor = activeEditorState != null ? makeEditorProxy(activeEditorState.fileName) : undefined;
-        for (const listener of activeEditorListeners) {
+        activeEditorFileName = fileName;
+        const editor = fileName != null ? getEditorFor(registry.upsertMeta({ fileName })) : undefined;
+        for (const listener of [...activeEditorListeners]) {
             listener(editor);
         }
     });
 
-    function makeEditorProxy(fileName: string): vscode.TextEditor {
+    function getEditorFor(doc: ExtHostTextDocument): vscode.TextEditor {
+        const cached = editorCache.get(doc);
+        if (cached !== undefined) return cached;
+        const editor = makeEditorProxy(doc);
+        editorCache.set(doc, editor);
+        return editor;
+    }
+
+    function makeEditorProxy(document: ExtHostTextDocument): vscode.TextEditor {
         const editorData = {
             options: {} as vscode.TextEditorOptions,
-            document: { fileName },
+            document,
         };
         return new Proxy(editorData, {
             set: (target, prop, value): boolean => {
@@ -68,8 +87,8 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
 
     const windowNs = {
         get activeTextEditor(): vscode.TextEditor | undefined {
-            if (activeEditorState === null) return undefined;
-            return makeEditorProxy(activeEditorState.fileName);
+            if (activeEditorFileName === null) return undefined;
+            return getEditorFor(registry.getOrCreate(activeEditorFileName));
         },
 
         onDidChangeActiveTextEditor: (
@@ -116,9 +135,25 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
         },
     };
 
+    // --- Место для WP3/WP4: workspace/commands/languages namespaces поверх
+    //     ТОГО ЖЕ `registry` и общего состояния выше. Не реализуется в WP1. ---
+
     return {
         version: "vexx-phase-1",
         Disposable: DisposableImpl,
+        // Value-типы — обязательно перечислить поимённо: каст `as unknown as
+        // typeof vscode` прячет пропуск, он всплыл бы только рантайм-undefined
+        // внутри расширения (`new vscode.Position(...)`).
+        Position,
+        Range,
+        TextEdit,
+        Uri,
+        EventEmitter,
+        CompletionItem,
+        EndOfLine,
+        TextDocumentSaveReason,
+        FileType,
+        CompletionItemKind,
         window: windowNs,
     } as unknown as typeof vscode;
 }
