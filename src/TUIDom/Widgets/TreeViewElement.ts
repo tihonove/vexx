@@ -68,6 +68,7 @@ export class TreeViewElement<T> extends ScrollableElement {
 
     public async refresh(element?: T): Promise<void> {
         const selectedKey = this.getSelectedKey();
+        const previousIndex = this.selectedIndex;
 
         if (element !== undefined) {
             const key = this.provider.getKey(element);
@@ -79,7 +80,7 @@ export class TreeViewElement<T> extends ScrollableElement {
         }
 
         this.rebuildFlatList();
-        this.restoreSelection(selectedKey);
+        this.restoreSelection(selectedKey, previousIndex);
         this.markDirty();
     }
 
@@ -359,14 +360,25 @@ export class TreeViewElement<T> extends ScrollableElement {
         return null;
     }
 
-    private restoreSelection(key: string | null): void {
-        if (key === null) {
+    private restoreSelection(key: string | null, previousIndex: number): void {
+        if (key !== null) {
+            const idx = this.flatNodes.findIndex((n) => this.provider.getKey(n.element) === key);
+            if (idx >= 0) {
+                this.selectedIndex = idx;
+                this.selectionAnchor = idx;
+                return;
+            }
+        }
+        // The previously selected node is gone (e.g. it was deleted). Keep the cursor
+        // on the nearest remaining row instead of jumping to the top of the tree: the
+        // next sibling shifts into the same index, or we clamp to the last row when the
+        // deleted node was last.
+        if (this.flatNodes.length === 0) {
             this.selectedIndex = 0;
             this.selectionAnchor = 0;
             return;
         }
-        const idx = this.flatNodes.findIndex((n) => this.provider.getKey(n.element) === key);
-        this.selectedIndex = idx >= 0 ? idx : 0;
+        this.selectedIndex = Math.min(Math.max(previousIndex, 0), this.flatNodes.length - 1);
         this.selectionAnchor = this.selectedIndex;
     }
 
