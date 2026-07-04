@@ -18,6 +18,7 @@ import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 
@@ -28,6 +29,7 @@ export class EditorGroupController extends Disposable implements IController {
         TokenStyleResolverDIToken,
         LanguageServiceDIToken,
         IConfigurationServiceDIToken,
+        UndoRedoServiceDIToken,
     ] as const;
 
     public readonly view: EditorGroupElement;
@@ -39,6 +41,7 @@ export class EditorGroupController extends Disposable implements IController {
     private tokenStyleResolver: ITokenStyleResolver;
     private languageService: ILanguageService;
     private configurationService: IConfigurationService;
+    private undoRedoService: UndoRedoService;
     private activeEditorListeners: ((editor: EditorController | null) => void)[] = [];
 
     public onRequestConfirmClose?: (index: number) => void;
@@ -60,6 +63,7 @@ export class EditorGroupController extends Disposable implements IController {
         tokenStyleResolver: ITokenStyleResolver,
         languageService: ILanguageService,
         configurationService: IConfigurationService,
+        undoRedoService: UndoRedoService,
     ) {
         super();
         this.themeService = themeService;
@@ -67,6 +71,7 @@ export class EditorGroupController extends Disposable implements IController {
         this.tokenStyleResolver = tokenStyleResolver;
         this.languageService = languageService;
         this.configurationService = configurationService;
+        this.undoRedoService = undoRedoService;
         this.view = new EditorGroupElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -106,6 +111,7 @@ export class EditorGroupController extends Disposable implements IController {
                 this.tokenizationRegistry,
                 this.tokenStyleResolver,
                 this.languageService,
+                this.undoRedoService,
             ),
         );
         editor.openFile(filePath);

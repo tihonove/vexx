@@ -13,6 +13,16 @@ export function getDefaultConfiguration(): Readonly<Record<string, unknown>> {
             insertSpaces: true,
             // detectIndentation: true — добавим, когда EditorController станет читать из конфига.
         },
+        explorer: {
+            // Спрашивать подтверждение перед удалением (безвозвратное удаление спрашивает всегда).
+            confirmDelete: true,
+            // Спрашивать подтверждение перед отменой деструктивной файловой операции.
+            confirmUndo: true,
+        },
+        files: {
+            // true → удалять в системную корзину, если она доступна; false → всегда безвозвратно.
+            enableTrash: true,
+        },
         terminal: {
             // Tier override: "auto" (detect) | "legacy" | "csi-u" | "kitty".
             tier: "auto",

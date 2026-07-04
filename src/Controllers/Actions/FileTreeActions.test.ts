@@ -4,6 +4,8 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { parseKeybinding } from "../KeybindingRegistry.ts";
+
 import { fileDeleteAction } from "./FileTreeActions.ts";
 
 describe("fileDeleteAction", () => {
@@ -26,6 +28,11 @@ describe("fileDeleteAction", () => {
 
     it("has correct title", () => {
         expect(fileDeleteAction.title).toBe("File: Delete");
+    });
+
+    it("is bound to the Delete key while a list is focused", () => {
+        expect(fileDeleteAction.keybinding).toEqual(parseKeybinding("delete"));
+        expect(fileDeleteAction.when).toBe("listFocus");
     });
 
     it("deletes a file from the filesystem", () => {

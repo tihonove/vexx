@@ -16,6 +16,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorController } from "./EditorController.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 /** Токенизатор-маркер: помечает всю строку одним заданным scope. */
 function markerTokenizer(scope: string): ITokenizationSupport {
@@ -51,6 +52,7 @@ describe("EditorController — language", () => {
             registry,
             NULL_TOKEN_STYLE_RESOLVER,
             TS_ONLY_LANGUAGE_SERVICE,
+            new UndoRedoService(),
         );
     });
 

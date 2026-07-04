@@ -20,6 +20,7 @@ import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { EditorController } from "./EditorController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FindController } from "./FindController.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function makeGroup(): EditorGroupController {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
@@ -29,6 +30,7 @@ function makeGroup(): EditorGroupController {
         NULL_TOKEN_STYLE_RESOLVER,
         NULL_LANGUAGE_SERVICE,
         NULL_CONFIGURATION_SERVICE,
+        new UndoRedoService(),
     );
 }
 
