@@ -1228,9 +1228,9 @@ export class AppController extends Disposable implements IController {
                 pointerPolicy: "close-on-outside",
                 disposeOnClose: true,
                 onClose: () => {
-                    /* v8 ignore start -- defensive: a replaced session is disposed (which does not fire onClose), so when onClose runs it is always the current session */
+                    // Через hideFileTreeContextMenu поле уже занулено до close() — не трогаем
+                    // (там может быть уже открыта следующая сессия).
                     if (this.fileTreeContextMenuSession === session) {
-                        /* v8 ignore stop */
                         this.fileTreeContextMenuSession = null;
                     }
                 },
@@ -1248,7 +1248,9 @@ export class AppController extends Disposable implements IController {
         if (!this.fileTreeContextMenuSession) return;
         const session = this.fileTreeContextMenuSession;
         this.fileTreeContextMenuSession = null;
-        session.dispose();
+        // Именно close(), не dispose(): close восстанавливает сохранённый фокус (restoreFocus),
+        // а disposeOnClose доведёт teardown до конца.
+        session.close();
     }
 
     private doQuit(accessor: ServiceAccessor): void {

@@ -9,7 +9,7 @@ import { MouseEventDispatcher } from "./Events/MouseEventDispatcher.ts";
 import { TUIKeyboardEvent } from "./Events/TUIKeyboardEvent.ts";
 import { TUIPasteEvent } from "./Events/TUIPasteEvent.ts";
 import { ROOT_RESOLVED_STYLE } from "./Styles/TUIStyle.ts";
-import { RenderContext } from "./TUIElement.ts";
+import { RenderContext, type TUIElement } from "./TUIElement.ts";
 import type { BodyElement } from "./Widgets/BodyElement.ts";
 
 export class TuiApplication {
@@ -20,6 +20,9 @@ export class TuiApplication {
     public focusManager: FocusManager | null = null;
     public mouseDispatcher: MouseEventDispatcher = new MouseEventDispatcher();
     private renderScheduled = false;
+    // Цель keydown, закреплённая за парным keypress того же физического нажатия
+    // (см. handleInput).
+    private pinnedKeypressTarget: TUIElement | null = null;
 
     public constructor(backend: ITerminalBackend) {
         this.backend = backend;
@@ -77,7 +80,21 @@ export class TuiApplication {
                 raw: event.raw,
             });
 
-            const target = this.focusManager?.activeElement ?? this.root;
+            // Одно физическое нажатие — один логический получатель: парсер на каждый
+            // keydown синтезирует keypress сразу следом, и если обработчик keydown
+            // сменил фокус (оверлей закрылся, restoreFocus вернул фокус дереву),
+            // парный keypress не должен «протечь» новому владельцу фокуса. Поэтому
+            // цель keypress закрепляется за целью её keydown; keyup — отдельный
+            // момент времени, он идёт текущему фокусу.
+            let target = this.focusManager?.activeElement ?? this.root;
+            if (
+                event.type === "keypress" &&
+                /* v8 ignore next 2 -- defensive: keypress эмитится парсером только сразу после парного keydown, который уже выставил пин */
+                this.pinnedKeypressTarget !== null
+            ) {
+                target = this.pinnedKeypressTarget;
+            }
+            this.pinnedKeypressTarget = event.type === "keydown" ? target : null;
             const notPrevented = target.dispatchEvent(tuiEvent);
 
             // Tab focus cycling (default behavior if not prevented, only on keydown)

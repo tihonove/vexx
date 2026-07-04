@@ -135,6 +135,9 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
         ctx.testApp.render();
 
         expect(fs.existsSync(alpha)).toBe(false);
+        // Enter, подтвердивший диалог, не должен «протечь» вернувшемуся в фокус дереву
+        // и активировать (открыть в редакторе) только что удалённый файл.
+        expect(ctx.testApp.focusedElement).toBe(ctx.testApp.querySelector("TreeViewElement"));
         ctx.controller.dispose();
     });
 });

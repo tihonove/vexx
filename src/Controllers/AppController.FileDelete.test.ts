@@ -223,7 +223,7 @@ describe("File tree context menu — right-click opens context menu", () => {
         expect(testApp.querySelectorAll("PopupMenuElement")).toHaveLength(1);
     });
 
-    it("pressing Escape closes the context menu", () => {
+    it("pressing Escape closes the context menu and returns focus to the tree", () => {
         const tree = getTreeElement();
         tree.focus();
         testApp.render();
@@ -235,5 +235,23 @@ describe("File tree context menu — right-click opens context menu", () => {
         testApp.render();
 
         expect(testApp.querySelector("PopupMenuElement")).toBeNull();
+        expect(testApp.focusedElement).toBe(tree);
+    });
+
+    it("selecting a menu entry returns focus to the tree without activating the row", () => {
+        const tree = getTreeElement();
+        tree.focus();
+        testApp.render();
+
+        rightClickRow(tree, 0);
+        expect(testApp.focusedElement).not.toBe(tree); // фокус ушёл в меню
+
+        testApp.sendKey("Enter"); // первый пункт — Copy
+        testApp.render();
+
+        expect(testApp.querySelector("PopupMenuElement")).toBeNull();
+        // Фокус вернулся дереву, а парный keypress того же Enter не «протёк» в дерево
+        // и не открыл файл под курсором в редакторе.
+        expect(testApp.focusedElement).toBe(tree);
     });
 });

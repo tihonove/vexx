@@ -142,8 +142,8 @@ describe("File explorer context menu — clipboard entries", () => {
         ctx.testApp.sendKey("Enter");
         ctx.testApp.render();
 
-        // Фокус после закрытия меню не на дереве — двигаем курсор кликом по строке target/.
-        clickRow(0);
+        // Фокус вернулся на дерево после закрытия меню — стрелка двигает курсор на target/.
+        ctx.testApp.sendKey("ArrowUp");
         ctx.commands.execute("fileOperations.paste");
 
         expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
