@@ -93,6 +93,19 @@ describe("EditorController — language", () => {
         expect(changes).toEqual([{ oldLanguageId: "typescript", newLanguageId: "markdown" }]);
     });
 
+    it("dispose подписки onDidChangeLanguage останавливает доставку, повторный dispose — no-op", () => {
+        let fired = 0;
+        const subscription = ctrl.onDidChangeLanguage(() => fired++);
+        ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+
+        ctrl.setLanguage("markdown");
+        subscription.dispose();
+        subscription.dispose();
+        ctrl.setLanguage("json");
+
+        expect(fired).toBe(1);
+    });
+
     it("setLanguage пересаживает токенизатор на язык назначения", () => {
         registry.register("markdown", markerTokenizer("markup.markdown"));
         ctrl.openFile(writeFile("a.ts", "# header"));

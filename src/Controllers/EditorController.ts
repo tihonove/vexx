@@ -299,8 +299,7 @@ export class EditorController extends Disposable implements IController {
      * Language detection is delegated to the {@link ILanguageService}
      * (implemented by `LanguageRegistry` from the Extensions layer).
      */
-    private resolveLanguageId(filePath: string | null): string {
-        if (filePath === null) return "plaintext";
+    private resolveLanguageId(filePath: string): string {
         return this.languageService.getLanguageIdForResource(filePath) ?? "plaintext";
     }
 

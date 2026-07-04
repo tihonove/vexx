@@ -44,15 +44,18 @@ describe("TextDocument — language", () => {
         expect(doc.versionId).toBe(before);
     });
 
-    it("dispose подписки останавливает доставку", () => {
+    it("dispose подписки останавливает доставку, повторный dispose — no-op", () => {
         const doc = new TextDocument("");
         let fired = 0;
         const subscription = doc.onDidChangeLanguage(() => fired++);
+        const other = doc.onDidChangeLanguage(() => undefined);
 
         doc.setLanguage("json");
+        subscription.dispose();
         subscription.dispose();
         doc.setLanguage("yaml");
 
         expect(fired).toBe(1);
+        other.dispose();
     });
 });
