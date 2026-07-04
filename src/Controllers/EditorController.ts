@@ -184,6 +184,23 @@ export class EditorController extends Disposable implements IController {
         this.onDidSave?.();
     }
 
+    /**
+     * Writes the document to a new path and re-points the editor to it.
+     *
+     * Unlike {@link openFile}, the document/view-state/undo-history/cursor are
+     * preserved. The language is re-resolved for the new extension; the bound
+     * language listener re-tokenizes and repaints automatically. Firing
+     * `onDidSave` lets the group controller rename the tab and clear the dirty
+     * marker.
+     */
+    public saveAs(newPath: string): void {
+        this.filePath = newPath;
+        fs.writeFileSync(newPath, this.doc.getText(), "utf-8");
+        this.doc.setLanguage(this.resolveLanguageId(newPath));
+        this.savedVersionId = this.doc.versionId;
+        this.onDidSave?.();
+    }
+
     public getText(): string {
         return this.doc.getText();
     }

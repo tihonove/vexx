@@ -14,3 +14,14 @@ export const fileSaveAction: CommandAction = {
         accessor.get(StatusBarControllerDIToken).update();
     },
 };
+
+export const fileSaveAsAction: CommandAction = {
+    id: "workbench.action.files.saveAs",
+    title: "File: Save As...",
+    keybinding: parseKeybinding("ctrl+shift+s"),
+    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime (needs QuickInput + confirm dialog) */
+    run() {
+        // Overridden in AppController.
+    },
+    /* v8 ignore stop */
+};

@@ -1,3 +1,4 @@
+import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
@@ -71,7 +72,7 @@ import {
     selectAllAction,
     undoAction,
 } from "./Actions/EditorEditActions.ts";
-import { fileSaveAction } from "./Actions/FileActions.ts";
+import { fileSaveAction, fileSaveAsAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import { buildPasteEdits, fileCopyAction, fileCutAction, filePasteAction } from "./Actions/FileTreeClipboardActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
@@ -119,6 +120,7 @@ import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidg
 import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
+import { QuickInputController } from "./QuickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
@@ -287,6 +289,7 @@ export class AppController extends Disposable implements IController {
     private configurationService: IConfigurationService;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
+    private quickInputController: QuickInputController;
     private findController: FindController;
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
@@ -333,6 +336,7 @@ export class AppController extends Disposable implements IController {
         this.quickOpenController = this.register(
             new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
         );
+        this.quickInputController = this.register(new QuickInputController());
         this.findController = this.register(new FindController(this.editorGroupController));
         this.findController.applyTheme(themeService.theme);
         this.statusBarController = this.register(statusBarController);
@@ -360,6 +364,7 @@ export class AppController extends Disposable implements IController {
         this.view.setStatusBar(this.statusBarController.view);
 
         this.quickOpenController.setHostView(this.view);
+        this.quickInputController.setHostView(this.view);
         this.findController.setHostView();
         // Find operates on the active editor only — close the widget when it changes.
         this.register(
@@ -417,6 +422,14 @@ export class AppController extends Disposable implements IController {
                 ...showCommandsAction,
                 run: () => {
                     this.quickOpenController.open("commands");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileSaveAsAction,
+                run: () => {
+                    void this.runSaveAs();
                 },
             }),
         );
@@ -946,7 +959,12 @@ export class AppController extends Disposable implements IController {
             {
                 label: "File",
                 mnemonic: "f",
-                entries: [item("Save", "workbench.action.files.save"), sep(), item("Exit", "workbench.action.quit")],
+                entries: [
+                    item("Save", "workbench.action.files.save"),
+                    item("Save As...", "workbench.action.files.saveAs"),
+                    sep(),
+                    item("Exit", "workbench.action.quit"),
+                ],
             },
             {
                 label: "Edit",
@@ -1166,6 +1184,64 @@ export class AppController extends Disposable implements IController {
     private hideConfirmActionDialog(): void {
         this.confirmActionSession?.close();
         this.confirmActionSession = null;
+    }
+
+    /**
+     * Save As flow: prompt for a target path (InputBox), confirm overwrite if a
+     * different file already exists, then write via {@link EditorController.saveAs}.
+     */
+    private async runSaveAs(): Promise<void> {
+        const editor = this.editorGroupController.getActiveEditor();
+        if (!editor) return;
+
+        /* v8 ignore start -- defensive: an active editor always has a path today; the fallback covers a future untitled document */
+        const seed = editor.absoluteFilePath ?? path.join(process.cwd(), editor.fileName ?? "untitled.txt");
+        /* v8 ignore stop */
+        const target = await this.quickInputController.input({
+            title: "Save As",
+            placeholder: "Enter path to save",
+            value: seed,
+            validateInput: (value) => {
+                const trimmed = value.trim();
+                if (trimmed === "") return "Please enter a file name";
+                const resolved = path.resolve(trimmed);
+                const dir = path.dirname(resolved);
+                if (!fs.existsSync(dir)) return `Directory does not exist: ${dir}`;
+                if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+                    return "A folder with that name already exists";
+                }
+                return null;
+            },
+        });
+        if (target === undefined) return;
+
+        const resolved = path.resolve(target.trim());
+        const doSave = (): void => {
+            try {
+                editor.saveAs(resolved);
+                this.updateContextKeys();
+                this.statusBarController.update();
+            } catch (error) {
+                /* v8 ignore start -- defensive: surfaces a filesystem write failure (permissions/disk); not reproducible in tests */
+                this.logger.error("Save As failed", { path: resolved, error: String(error) });
+                /* v8 ignore stop */
+            }
+        };
+
+        // Overwriting a *different* existing file → confirm first.
+        if (resolved !== editor.absoluteFilePath && fs.existsSync(resolved)) {
+            this.showConfirmDialog(
+                {
+                    title: "Save As",
+                    message: `${path.basename(resolved)} already exists. Overwrite?`,
+                    confirmLabel: "Overwrite",
+                    cancelLabel: "Cancel",
+                },
+                { onConfirm: doSave },
+            );
+            return;
+        }
+        doSave();
     }
 
     public showAboutDialog(): void {

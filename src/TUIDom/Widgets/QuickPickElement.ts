@@ -19,6 +19,11 @@ const DESCRIPTION_FG = packRgb(125, 125, 125);
 const BADGE_FG = packRgb(150, 190, 100);
 const SHORTCUT_FG = packRgb(128, 128, 128);
 const HINT_FG = packRgb(100, 150, 200);
+const TITLE_FG = packRgb(230, 230, 230);
+const PROMPT_FG = packRgb(140, 140, 140);
+const VALIDATION_ERROR_FG = packRgb(240, 100, 90);
+const VALIDATION_WARNING_FG = packRgb(255, 200, 0);
+const VALIDATION_INFO_FG = packRgb(100, 150, 200);
 
 // ─── Public types ────────────────────────────────────────────────────────────
 
@@ -65,10 +70,32 @@ export interface QuickPickItem {
  *   picker.onQueryChange = query => { picker.items = search(query); };
  *   picker.onAccept = (item) => openFile(item.description!);
  */
+export type QuickPickAcceptMode = "item" | "value";
+export type ValidationSeverity = "error" | "warning" | "info";
+
 export class QuickPickElement extends TUIElement {
     public placeholder = "Type to search…";
     /** Maximum rows of the list to show at once (scrolls when exceeded). */
     public maxVisibleItems = 10;
+
+    /** Optional title drawn centered into the top border (e.g. "Save As"). */
+    public title: string | undefined = undefined;
+    /**
+     * Optional subtitle drawn on a dedicated row under the input (dim).
+     * Used by the InputBox flavor. Overridden by `validationMessage` when set.
+     */
+    public prompt: string | undefined = undefined;
+    /** Validation/error text shown under the input; blocks Enter when severity is "error". */
+    public validationMessage: string | null = null;
+    public validationSeverity: ValidationSeverity = "error";
+    /**
+     * How Enter is interpreted:
+     *   "item"  — fire onAccept(item, index), only when the list is non-empty (default; QuickOpen).
+     *   "value" — always fire onAcceptValue(getQuery()) — the InputBox flavor.
+     */
+    public acceptMode: QuickPickAcceptMode = "item";
+    /** Fired by Enter when acceptMode === "value". */
+    public onAcceptValue: ((value: string) => void) | null = null;
     /**
      * Desired width of the picker in columns.
      * When the element is laid out with loose constraints it will use this
@@ -119,7 +146,13 @@ export class QuickPickElement extends TUIElement {
                     break;
                 case "Enter":
                     event.preventDefault();
-                    if (this.itemsValue.length > 0) {
+                    // A hard validation error blocks accept in every mode.
+                    if (this.validationMessage !== null && this.validationSeverity === "error") {
+                        break;
+                    }
+                    if (this.acceptMode === "value") {
+                        this.onAcceptValue?.(this.getQuery());
+                    } else if (this.itemsValue.length > 0) {
                         this.onAccept?.(this.itemsValue[this.selectedIndexValue], this.selectedIndexValue);
                     }
                     break;
@@ -205,14 +238,36 @@ export class QuickPickElement extends TUIElement {
         return Math.min(this.itemsValue.length, this.maxVisibleItems);
     }
 
+    /**
+     * The message row shown under the input (InputBox flavor). A validation
+     * message wins over the plain prompt; returns null when neither is set.
+     */
+    private get messageRow(): { text: string; fg: number } | null {
+        if (this.validationMessage !== null) {
+            const fg =
+                this.validationSeverity === "warning"
+                    ? VALIDATION_WARNING_FG
+                    : this.validationSeverity === "info"
+                      ? VALIDATION_INFO_FG
+                      : VALIDATION_ERROR_FG;
+            return { text: this.validationMessage, fg };
+        }
+        if (this.prompt !== undefined) {
+            return { text: this.prompt, fg: PROMPT_FG };
+        }
+        return null;
+    }
+
     private get totalHeight(): number {
         const listRows = this.visibleItemCount;
+        // Extra row for the InputBox prompt / validation message, when present.
+        const messageRows = this.messageRow !== null ? 1 : 0;
         if (listRows === 0) {
-            // top border + input row + bottom border
-            return 3;
+            // top border + input row + [message row] + bottom border
+            return 3 + messageRows;
         }
-        // top border + input row + separator + list rows + bottom border
-        return 4 + listRows;
+        // top border + input row + [message row] + separator + list rows + bottom border
+        return 4 + messageRows + listRows;
     }
 
     public override getMinIntrinsicWidth(_height: number): number {
@@ -272,12 +327,15 @@ export class QuickPickElement extends TUIElement {
             }
         }
 
-        // ── Top border ───────────────────────────────────────────────────────
+        // ── Top border (with optional centered title) ─────────────────────────
         context.setCell(0, 0, { char: "┌", fg: BORDER_FG, bg: BG });
         for (let x = 1; x < w - 1; x++) {
             context.setCell(x, 0, { char: "─", fg: BORDER_FG, bg: BG });
         }
         context.setCell(w - 1, 0, { char: "┐", fg: BORDER_FG, bg: BG });
+        if (this.title !== undefined && this.title !== "") {
+            this.renderTitle(context, w);
+        }
 
         // ── Input row side borders ────────────────────────────────────────────
         context.setCell(0, 1, { char: "│", fg: BORDER_FG, bg: BG });
@@ -290,19 +348,27 @@ export class QuickPickElement extends TUIElement {
         const inputOffset = new Offset(this.inputElement.localPosition.dx, this.inputElement.localPosition.dy);
         this.inputElement.render(context.withOffset(inputOffset).withClip(inputClip));
 
+        // ── Optional message row (InputBox prompt / validation) ───────────────
+        const message = this.messageRow;
+        if (message !== null) {
+            this.renderMessageRow(context, w, 2, message);
+        }
+        // Row after the input (+ message row when present): separator/bottom border.
+        const bodyTop = message !== null ? 3 : 2;
+
         if (hasItems) {
             // ── Separator ─────────────────────────────────────────────────────
-            context.setCell(0, 2, { char: "├", fg: BORDER_FG, bg: BG });
+            context.setCell(0, bodyTop, { char: "├", fg: BORDER_FG, bg: BG });
             for (let x = 1; x < w - 1; x++) {
-                context.setCell(x, 2, { char: "─", fg: BORDER_FG, bg: BG });
+                context.setCell(x, bodyTop, { char: "─", fg: BORDER_FG, bg: BG });
             }
-            context.setCell(w - 1, 2, { char: "┤", fg: BORDER_FG, bg: BG });
+            context.setCell(w - 1, bodyTop, { char: "┤", fg: BORDER_FG, bg: BG });
 
             // ── Item rows ─────────────────────────────────────────────────────
             const hasIcons = this.itemsValue.some((item) => item.icon !== undefined);
             for (let i = 0; i < this.visibleItemCount; i++) {
                 const itemIndex = this.scrollOffset + i;
-                this.renderItemRow(context, w, 3 + i, itemIndex, hasIcons);
+                this.renderItemRow(context, w, bodyTop + 1 + i, itemIndex, hasIcons);
             }
 
             // ── Bottom border ─────────────────────────────────────────────────
@@ -314,12 +380,37 @@ export class QuickPickElement extends TUIElement {
             context.setCell(w - 1, bottomY, { char: "┘", fg: BORDER_FG, bg: BG });
         } else {
             // ── Bottom border (no items) ──────────────────────────────────────
-            context.setCell(0, 2, { char: "└", fg: BORDER_FG, bg: BG });
+            context.setCell(0, bodyTop, { char: "└", fg: BORDER_FG, bg: BG });
             for (let x = 1; x < w - 1; x++) {
-                context.setCell(x, 2, { char: "─", fg: BORDER_FG, bg: BG });
+                context.setCell(x, bodyTop, { char: "─", fg: BORDER_FG, bg: BG });
             }
-            context.setCell(w - 1, 2, { char: "┘", fg: BORDER_FG, bg: BG });
+            context.setCell(w - 1, bodyTop, { char: "┘", fg: BORDER_FG, bg: BG });
         }
+    }
+
+    /** Draws the title centered into the top border row as ┤ title ├. */
+    private renderTitle(context: RenderContext, w: number): void {
+        const label = ` ${this.title} `;
+        const labelWidth = new DisplayLine(label).displayWidth;
+        // Need room for the two caps plus the border corners.
+        if (labelWidth + 4 > w) return;
+        const startX = Math.max(2, Math.floor((w - labelWidth) / 2));
+        context.setCell(startX - 1, 0, { char: "┤", fg: BORDER_FG, bg: BG });
+        context.drawText(startX, 0, label, { fg: TITLE_FG, bg: BG });
+        context.setCell(startX + labelWidth, 0, { char: "├", fg: BORDER_FG, bg: BG });
+    }
+
+    /** Draws the prompt / validation message row under the input. */
+    private renderMessageRow(context: RenderContext, w: number, rowY: number, message: { text: string; fg: number }): void {
+        for (let x = 0; x < w; x++) {
+            context.setCell(x, rowY, { char: " ", fg: message.fg, bg: BG });
+        }
+        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: BG });
+        const avail = Math.max(0, w - 3);
+        const text =
+            new DisplayLine(message.text).displayWidth <= avail ? message.text : truncateEnd(message.text, avail);
+        context.drawText(2, rowY, text, { fg: message.fg, bg: BG }, { maxWidth: avail });
     }
 
     private renderItemRow(context: RenderContext, w: number, rowY: number, itemIndex: number, hasIcons: boolean): void {
