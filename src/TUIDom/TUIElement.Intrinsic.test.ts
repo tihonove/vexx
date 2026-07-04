@@ -51,8 +51,9 @@ describe("Intrinsic Size API", () => {
             el.setItems([{ text: "Ln 1" }, { text: "Col 1" }]);
             expect(el.getMaxIntrinsicHeight(100)).toBe(1);
             expect(el.getMinIntrinsicHeight(100)).toBe(1);
-            expect(el.getMaxIntrinsicWidth(100)).toBe("Ln 1  Col 1".length);
-            expect(el.getMinIntrinsicWidth(100)).toBe("Ln 1  Col 1".length);
+            // Content plus one padding cell on each side of the bar.
+            expect(el.getMaxIntrinsicWidth(100)).toBe("Ln 1  Col 1".length + 2);
+            expect(el.getMinIntrinsicWidth(100)).toBe("Ln 1  Col 1".length + 2);
         });
 
         it("returns 0 width with no items", () => {

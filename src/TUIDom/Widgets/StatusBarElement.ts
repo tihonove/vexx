@@ -8,6 +8,14 @@ export interface StatusBarItem {
 }
 
 export class StatusBarElement extends TUIElement {
+    /**
+     * Horizontal padding of the bar's content area, applied to both edges.
+     * Besides breathing room, it keeps the last character of right-aligned
+     * items out of the terminal's bottom-right corner cell, which the renderer
+     * never writes (doing so triggers hardware scroll).
+     */
+    private static readonly paddingX = 1;
+
     private items: StatusBarItem[] = [];
 
     public setItems(items: StatusBarItem[]): void {
@@ -44,10 +52,9 @@ export class StatusBarElement extends TUIElement {
     private intrinsicWidth(): number {
         const left = this.leftText();
         const right = this.rightText();
-        if (left.length > 0 && right.length > 0) {
-            return left.length + 2 + right.length;
-        }
-        return left.length + right.length;
+        if (left.length === 0 && right.length === 0) return 0;
+        const gap = left.length > 0 && right.length > 0 ? 2 : 0;
+        return left.length + gap + right.length + StatusBarElement.paddingX * 2;
     }
 
     public override getMinIntrinsicHeight(_width: number): number {
@@ -75,19 +82,21 @@ export class StatusBarElement extends TUIElement {
             context.setCell(x, 0, { char: " ", fg: resolved.fg, bg: resolved.bg });
         }
 
-        // Left-aligned items
-        for (let x = 0; x < left.length && x < width; x++) {
-            context.setCell(x, 0, { char: left[x], fg: resolved.fg, bg: resolved.bg });
+        const pad = StatusBarElement.paddingX;
+
+        // Left-aligned items, inset by the bar padding.
+        for (let i = 0; i < left.length && pad + i < width; i++) {
+            context.setCell(pad + i, 0, { char: left[i], fg: resolved.fg, bg: resolved.bg });
         }
 
-        // Right-aligned items, flush to the right edge. Skip any cell that falls
-        // off the left edge (right text wider than the bar) or that a left item
-        // already owns — left items win on overlap. The last cell always lands at
-        // width-1, so an upper-bound check is unnecessary.
-        const rightStart = width - right.length;
+        // Right-aligned items, flush to the padded right edge. Skip any cell
+        // that falls into the left padding or that a left item already owns —
+        // left items win on overlap. The last cell lands at width-1-paddingX,
+        // so an upper-bound check is unnecessary.
+        const rightStart = width - pad - right.length;
         for (let i = 0; i < right.length; i++) {
             const x = rightStart + i;
-            if (x < 0 || x < left.length) continue;
+            if (x < pad + left.length) continue;
             context.setCell(x, 0, { char: right[i], fg: resolved.fg, bg: resolved.bg });
         }
     }

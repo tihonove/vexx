@@ -70,7 +70,7 @@ describe("StatusBarElement", () => {
         expect(screenText.length).toBeLessThanOrEqual(5);
     });
 
-    it("right-aligns items flush to the right edge, left items winning on overlap", () => {
+    it("insets both sides by the bar padding, left items winning on overlap", () => {
         const size = new Size(20, 1);
         const backend = new MockTerminalBackend(size);
         const termScreen = new TerminalScreen(size);
@@ -83,8 +83,10 @@ describe("StatusBarElement", () => {
 
         const line = backend.screenToString().split("\n")[0];
         expect(line.length).toBe(20);
-        expect(line.startsWith("left")).toBe(true);
-        expect(line.endsWith("Ln 1, Col 1")).toBe(true);
+        expect(line.startsWith(" left")).toBe(true);
+        // The trailing padding cell keeps the last character out of the
+        // bottom-right corner the renderer never writes.
+        expect(line.endsWith("Ln 1, Col 1 ")).toBe(true);
     });
 
     function renderLine(width: number, items: { text: string; align?: "left" | "right" }[]): string {
@@ -101,25 +103,27 @@ describe("StatusBarElement", () => {
     }
 
     it("lets the left item win the cells a right item would overlap", () => {
-        // width 10, left "LLLLLLLL" (8), right "RGHT" (4) → rightStart=6, cells 6–7
-        // belong to the left item, only 8–9 ("HT") are drawn for the right item.
-        const line = renderLine(10, [{ text: "LLLLLLLL" }, { text: "RGHT", align: "right" }]);
-        expect(line).toBe("LLLLLLLLHT");
+        // width 10, left "LLLLLL" at cells 1–6, right "RGHT" (4) → rightStart=5,
+        // cells 5–6 belong to the left item, only 7–8 ("HT") are drawn for the
+        // right item; cells 0 and 9 are the bar padding.
+        const line = renderLine(10, [{ text: "LLLLLL" }, { text: "RGHT", align: "right" }]);
+        expect(line).toBe(" LLLLLLHT ");
     });
 
-    it("clips a right item that is wider than the bar at the left edge", () => {
-        // width 5, right "TOOLONG" (7) → rightStart=-2, the first two cells fall
-        // off the left edge and are skipped; the tail "OLONG" survives.
+    it("clips a right item that is wider than the bar at the left padding", () => {
+        // width 5, right "TOOLONG" (7) → rightStart=-3, everything left of the
+        // content area is skipped; "ONG" survives at cells 1–3, cells 0 and 4
+        // are the bar padding.
         const line = renderLine(5, [{ text: "TOOLONG", align: "right" }]);
-        expect(line).toBe("OLONG");
+        expect(line).toBe(" ONG ");
     });
 
-    it("intrinsic width sums left, a two-space gap and right", () => {
+    it("intrinsic width sums the bar padding, left, a two-space gap and right", () => {
         const bar = new StatusBarElement();
         bar.setItems([{ text: "abc" }, { text: "xy", align: "right" }]);
-        // "abc" (3) + gap (2) + "xy" (2) = 7
-        expect(bar.getMinIntrinsicWidth(1)).toBe(7);
-        expect(bar.getMaxIntrinsicWidth(1)).toBe(7);
+        // padding (1) + "abc" (3) + gap (2) + "xy" (2) + padding (1) = 9
+        expect(bar.getMinIntrinsicWidth(1)).toBe(9);
+        expect(bar.getMaxIntrinsicWidth(1)).toBe(9);
     });
 
     it("renders with correct offset", () => {
