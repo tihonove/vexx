@@ -1,6 +1,7 @@
 import type { IDisposable } from "../Common/Disposable.ts";
 
 import type { IDocumentContentChange } from "./IDocumentContentChange.ts";
+import type { IDocumentLanguageChange } from "./IDocumentLanguageChange.ts";
 import { comparePositions } from "./IPosition.ts";
 import type { IRange } from "./IRange.ts";
 import { createRange } from "./IRange.ts";
@@ -17,14 +18,44 @@ import { createTextEdit } from "./ITextEdit.ts";
 export class TextDocument implements ITextDocument {
     private lines: string[];
     private contentChangeListeners: ((change: IDocumentContentChange) => void)[] = [];
+    private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
     private innerVersionId = 0;
+    private languageIdValue: string;
 
-    public constructor(text: string) {
+    public constructor(text: string, languageId = "plaintext") {
         this.lines = text.split("\n");
+        this.languageIdValue = languageId;
     }
 
     public get versionId(): number {
         return this.innerVersionId;
+    }
+
+    public get languageId(): string {
+        return this.languageIdValue;
+    }
+
+    /**
+     * Меняет язык документа. Не трогает `versionId`: смена языка не делает
+     * документ dirty (isModified у контроллера сравнивает versionId).
+     */
+    public setLanguage(languageId: string): void {
+        if (languageId === this.languageIdValue) return;
+        const oldLanguageId = this.languageIdValue;
+        this.languageIdValue = languageId;
+        for (const listener of this.languageChangeListeners) {
+            listener({ oldLanguageId, newLanguageId: languageId });
+        }
+    }
+
+    public onDidChangeLanguage(listener: (change: IDocumentLanguageChange) => void): IDisposable {
+        this.languageChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.languageChangeListeners.indexOf(listener);
+                if (i >= 0) this.languageChangeListeners.splice(i, 1);
+            },
+        };
     }
 
     public get lineCount(): number {

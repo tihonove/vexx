@@ -166,6 +166,7 @@ describe("EditorController", () => {
             // Language service resolves an id, but the registry has nothing registered for it.
             const languageService: ILanguageService = {
                 getLanguageIdForResource: () => "typescript",
+                getLanguageDisplayName: () => undefined,
             };
             const ctrl = createEditorController({ registry, languageService });
 
@@ -180,6 +181,7 @@ describe("EditorController", () => {
             registry.register("typescript", new PlainTextTokenizer());
             const languageService: ILanguageService = {
                 getLanguageIdForResource: () => "typescript",
+                getLanguageDisplayName: () => undefined,
             };
             const ctrl = createEditorController({ registry, languageService });
 

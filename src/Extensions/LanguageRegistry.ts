@@ -47,6 +47,14 @@ interface MutableLanguageEntry {
 export class LanguageRegistry implements ILanguageService {
     private readonly languages = new Map<string, MutableLanguageEntry>();
 
+    public constructor() {
+        // plaintext — core-язык (аналог modesRegistry в VS Code): его не
+        // contribute'ит ни один языковой пак, но он всегда должен быть в
+        // реестре — как fallback для документов без языка и как запись
+        // для будущего пикера. Refcount никогда не опускается до нуля.
+        this.applyContribution({ id: "plaintext", aliases: ["Plain Text"], extensions: [".txt"] }, "builtin:core/", 1);
+    }
+
     /**
      * Регистрирует все языки из манифеста расширения.
      * Возвращает Disposable, который удаляет contributions именно этого
@@ -83,6 +91,10 @@ export class LanguageRegistry implements ILanguageService {
 
     public allLanguages(): readonly ILanguageEntry[] {
         return Array.from(this.languages.values());
+    }
+
+    public getLanguageDisplayName(languageId: string): string | undefined {
+        return this.languages.get(languageId)?.aliases[0];
     }
 
     /**

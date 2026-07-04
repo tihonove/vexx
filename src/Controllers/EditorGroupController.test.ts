@@ -326,6 +326,7 @@ describe("EditorGroupController", () => {
             registry.register("typescript", new PlainTextTokenizer());
             const languageService: ILanguageService = {
                 getLanguageIdForResource: () => "typescript",
+                getLanguageDisplayName: () => undefined,
             };
             const ctrl = createEditorGroupController({ registry, languageService });
             ctrl.mount();

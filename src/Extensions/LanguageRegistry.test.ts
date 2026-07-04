@@ -50,9 +50,9 @@ describe("LanguageRegistry", () => {
         // '+' is a regex quantifier; it must be matched literally, not as "one or more".
         registry.register(makeExt("p", [{ id: "plusfile", filenamePatterns: ["c++.*"] }]));
 
-        expect(registry.getLanguageIdForResource("/p/c++.txt")).toBe("plusfile");
-        // 'cc.txt' would match if '+' were treated as a quantifier — it must NOT.
-        expect(registry.getLanguageIdForResource("/p/cc.txt")).toBeUndefined();
+        expect(registry.getLanguageIdForResource("/p/c++.zzz")).toBe("plusfile");
+        // 'cc.zzz' would match if '+' were treated as a quantifier — it must NOT.
+        expect(registry.getLanguageIdForResource("/p/cc.zzz")).toBeUndefined();
     });
 
     it("records firstLine from a language contribution", () => {
@@ -66,8 +66,8 @@ describe("LanguageRegistry", () => {
         const registry = new LanguageRegistry();
         const disposable = registry.register(makeExt("nolang", []));
 
-        // No languages registered, and disposing the no-op must not throw.
-        expect(registry.allLanguages()).toEqual([]);
+        // No languages registered (кроме seed'а plaintext), и dispose no-op'а не бросает.
+        expect(registry.allLanguages().map((l) => l.id)).toEqual(["plaintext"]);
         expect(() => {
             disposable.dispose();
         }).not.toThrow();
@@ -143,14 +143,14 @@ describe("LanguageRegistry", () => {
 
     it("matches filenamePatterns с одиночным wildcard '?'", () => {
         const registry = new LanguageRegistry();
-        registry.register(makeExt("q", [{ id: "qlang", filenamePatterns: ["file?.txt"] }]));
+        registry.register(makeExt("q", [{ id: "qlang", filenamePatterns: ["file?.zzz"] }]));
 
         // '?' матчит ровно один символ.
-        expect(registry.getLanguageIdForResource("/p/fileA.txt")).toBe("qlang");
-        expect(registry.getLanguageIdForResource("/p/file1.txt")).toBe("qlang");
+        expect(registry.getLanguageIdForResource("/p/fileA.zzz")).toBe("qlang");
+        expect(registry.getLanguageIdForResource("/p/file1.zzz")).toBe("qlang");
         // Ноль или два символа в позиции '?' матчиться не должны.
-        expect(registry.getLanguageIdForResource("/p/file.txt")).toBeUndefined();
-        expect(registry.getLanguageIdForResource("/p/fileAB.txt")).toBeUndefined();
+        expect(registry.getLanguageIdForResource("/p/file.zzz")).toBeUndefined();
+        expect(registry.getLanguageIdForResource("/p/fileAB.zzz")).toBeUndefined();
     });
 
     it("повторный dispose contribution'а — no-op (запись уже удалена)", () => {
@@ -193,6 +193,29 @@ describe("LanguageRegistry", () => {
             .allLanguages()
             .map((l) => l.id)
             .sort();
-        expect(ids).toEqual(["javascript", "typescript"]);
+        expect(ids).toEqual(["javascript", "plaintext", "typescript"]);
+    });
+
+    it("seed'ит plaintext как core-язык", () => {
+        const registry = new LanguageRegistry();
+
+        expect(registry.getLanguage("plaintext")?.aliases).toEqual(["Plain Text"]);
+        expect(registry.getLanguageIdForResource("notes.txt")).toBe("plaintext");
+    });
+
+    it("getLanguageDisplayName возвращает первый alias", () => {
+        const registry = new LanguageRegistry();
+        registry.register(makeExt("ts", [{ id: "typescript", extensions: [".ts"], aliases: ["TypeScript", "ts"] }]));
+
+        expect(registry.getLanguageDisplayName("typescript")).toBe("TypeScript");
+        expect(registry.getLanguageDisplayName("plaintext")).toBe("Plain Text");
+    });
+
+    it("getLanguageDisplayName — undefined для незнакомого языка и языка без alias'ов", () => {
+        const registry = new LanguageRegistry();
+        registry.register(makeExt("x", [{ id: "aliasless", extensions: [".x"] }]));
+
+        expect(registry.getLanguageDisplayName("unknown")).toBeUndefined();
+        expect(registry.getLanguageDisplayName("aliasless")).toBeUndefined();
     });
 });
