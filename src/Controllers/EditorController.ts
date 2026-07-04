@@ -7,6 +7,7 @@ import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
 import type { IRange } from "../Editor/IRange.ts";
+import type { ITextEdit } from "../Editor/ITextEdit.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
@@ -209,6 +210,19 @@ export class EditorController extends Disposable implements IController {
         if (element) {
             this.editor.undoManager.pushUndoElement(element);
         }
+    }
+
+    /**
+     * Applies a programmatic batch of edits as a single undoable operation.
+     *
+     * A seam for edits that don't originate from user input — editor commands
+     * (trim-trailing-whitespace, insert-final-newline) and, later, save
+     * participants. Pushes an undo element (if anything changed) and repaints.
+     * Document dirtiness follows automatically from the version bump.
+     */
+    public applyExternalEdits(edits: readonly ITextEdit[], label: string): void {
+        this.pushUndo(this.editorViewState.applyEdits(edits, label));
+        this.editor.markDirty();
     }
 
     public undo(): void {

@@ -268,6 +268,34 @@ export class EditorViewState {
     }
 
     /**
+     * Applies an arbitrary batch of edits as a single undoable operation.
+     *
+     * Unlike {@link type}, the edits are supplied by the caller instead of
+     * being derived from the current selections — used by external/programmatic
+     * edits (e.g. trim-trailing-whitespace, save participants). Returns an
+     * {@link IUndoElement} to push onto the undo stack, or `undefined` when
+     * there is nothing to apply.
+     */
+    public applyEdits(edits: readonly ITextEdit[], label: string): IUndoElement | undefined {
+        if (edits.length === 0) return undefined;
+        const beforeSelections = this.cloneSelections();
+        const versionBefore = this.document.versionId;
+        const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
+        this.adjustFoldingRegionsForEdits(edits);
+        this.selections = this.computeSelectionsAfterEdits(edits);
+        this.ensureCursorVisible();
+        return {
+            label,
+            versionBefore,
+            versionAfter: appliedVersion,
+            forwardEdits: edits,
+            backwardEdits: inverseEdits,
+            beforeSelections,
+            afterSelections: this.cloneSelections(),
+        };
+    }
+
+    /**
      * Inserts a newline at every cursor.
      */
     public insertNewLine(): void {
@@ -1000,7 +1028,7 @@ export class EditorViewState {
      * After edits are applied, computes the new cursor positions.
      * Each cursor moves to the end of the inserted text.
      */
-    private computeSelectionsAfterEdits(edits: ITextEdit[]): ISelection[] {
+    private computeSelectionsAfterEdits(edits: readonly ITextEdit[]): ISelection[] {
         // Sort edits in document order (ascending)
         const sorted = [...edits].sort((a, b) => comparePositions(a.range.start, b.range.start));
 
