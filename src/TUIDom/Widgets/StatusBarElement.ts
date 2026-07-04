@@ -9,12 +9,12 @@ export interface StatusBarItem {
 
 export class StatusBarElement extends TUIElement {
     /**
-     * The bar sits on the terminal's bottom row, and the renderer never writes
-     * the bottom-right corner cell (doing so triggers hardware scroll). Keep
-     * right-aligned items one cell away from the edge so their last character
-     * stays visible.
+     * Horizontal padding of the bar's content area, applied to both edges.
+     * Besides breathing room, it keeps the last character of right-aligned
+     * items out of the terminal's bottom-right corner cell, which the renderer
+     * never writes (doing so triggers hardware scroll).
      */
-    private static readonly rightPadding = 1;
+    private static readonly paddingX = 1;
 
     private items: StatusBarItem[] = [];
 
@@ -52,11 +52,9 @@ export class StatusBarElement extends TUIElement {
     private intrinsicWidth(): number {
         const left = this.leftText();
         const right = this.rightText();
-        const rightWidth = right.length > 0 ? right.length + StatusBarElement.rightPadding : 0;
-        if (left.length > 0 && rightWidth > 0) {
-            return left.length + 2 + rightWidth;
-        }
-        return left.length + rightWidth;
+        if (left.length === 0 && right.length === 0) return 0;
+        const gap = left.length > 0 && right.length > 0 ? 2 : 0;
+        return left.length + gap + right.length + StatusBarElement.paddingX * 2;
     }
 
     public override getMinIntrinsicHeight(_width: number): number {
@@ -84,20 +82,21 @@ export class StatusBarElement extends TUIElement {
             context.setCell(x, 0, { char: " ", fg: resolved.fg, bg: resolved.bg });
         }
 
-        // Left-aligned items
-        for (let x = 0; x < left.length && x < width; x++) {
-            context.setCell(x, 0, { char: left[x], fg: resolved.fg, bg: resolved.bg });
+        const pad = StatusBarElement.paddingX;
+
+        // Left-aligned items, inset by the bar padding.
+        for (let i = 0; i < left.length && pad + i < width; i++) {
+            context.setCell(pad + i, 0, { char: left[i], fg: resolved.fg, bg: resolved.bg });
         }
 
-        // Right-aligned items, padded off the right edge (see rightPadding).
-        // Skip any cell that falls off the left edge (right text wider than the
-        // bar) or that a left item already owns — left items win on overlap.
-        // The last cell lands at width-1-rightPadding, so an upper-bound check
-        // is unnecessary.
-        const rightStart = width - right.length - StatusBarElement.rightPadding;
+        // Right-aligned items, flush to the padded right edge. Skip any cell
+        // that falls into the left padding or that a left item already owns —
+        // left items win on overlap. The last cell lands at width-1-paddingX,
+        // so an upper-bound check is unnecessary.
+        const rightStart = width - pad - right.length;
         for (let i = 0; i < right.length; i++) {
             const x = rightStart + i;
-            if (x < 0 || x < left.length) continue;
+            if (x < pad + left.length) continue;
             context.setCell(x, 0, { char: right[i], fg: resolved.fg, bg: resolved.bg });
         }
     }
