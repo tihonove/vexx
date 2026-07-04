@@ -5,6 +5,7 @@ import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
+import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
@@ -46,6 +47,8 @@ export class EditorController extends Disposable implements IController {
     private editorViewState: EditorViewState;
     private editor: EditorElement;
     private tokenStore: DocumentTokenStore;
+    private languageSubscription: IDisposable | null = null;
+    private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
     private filePath: string | null = null;
     private savedVersionId = 0;
     private readonly tokenizationRegistry: TokenizationRegistry;
@@ -73,6 +76,34 @@ export class EditorController extends Disposable implements IController {
         return this.editorViewState.onDidChangeCursorPosition(listener);
     }
 
+    /** Language id открытого документа (`plaintext`, если язык не определён). */
+    public get languageId(): string {
+        return this.doc.languageId;
+    }
+
+    /**
+     * Меняет язык документа вручную (закладка под будущий language picker,
+     * аналог `editor.action.changeLanguage` из VS Code). Токенизатор
+     * пересаживается автоматически через подписку на doc.onDidChangeLanguage.
+     */
+    public setLanguage(languageId: string): void {
+        this.doc.setLanguage(languageId);
+    }
+
+    /**
+     * Событие смены языка документа. Подписка живёт на контроллере, а не на
+     * конкретном документе — переживает пересоздание документа в openFile.
+     */
+    public onDidChangeLanguage(listener: (change: IDocumentLanguageChange) => void): IDisposable {
+        this.languageChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.languageChangeListeners.indexOf(listener);
+                if (i >= 0) this.languageChangeListeners.splice(i, 1);
+            },
+        };
+    }
+
     public get fileName(): string | null {
         return this.filePath ? path.basename(this.filePath) : null;
     }
@@ -97,19 +128,33 @@ export class EditorController extends Disposable implements IController {
 
         this.doc = new TextDocument("");
         this.editorViewState = new EditorViewState(this.doc);
-        this.tokenStore = new DocumentTokenStore(this.doc, this.pickTokenizer(null));
+        this.tokenStore = new DocumentTokenStore(this.doc, this.pickTokenizerForLanguage(this.doc.languageId));
         this.editorViewState.tokenStore = this.tokenStore;
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.attachUndoRouting();
         this.view = new ScrollBarDecorator(this.editor);
+        this.bindLanguageListener();
 
         this.register(
             themeService.onThemeChange((theme) => {
                 this.applyTheme(theme);
             }),
         );
+        // Грамматики регистрируются асинхронно (ExtensionTokenizationContributor)
+        // и могут появиться уже после открытия файла — тогда пересаживаем
+        // документ с fallback-токенизатора на настоящий.
+        this.register(
+            tokenizationRegistry.onDidChange((languageId) => {
+                if (languageId === this.doc.languageId) this.applyTokenizer();
+            }),
+        );
+        this.register({
+            dispose: () => {
+                this.languageSubscription?.dispose();
+            },
+        });
         // Очищаем историю отмены этого файла при закрытии вкладки.
         this.register({ dispose: () => this.undoRedoService.clear(this.undoContext()) });
     }
@@ -117,10 +162,10 @@ export class EditorController extends Disposable implements IController {
     public openFile(filePath: string): void {
         this.filePath = filePath;
         const content = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : "";
-        this.doc = new TextDocument(content);
+        this.doc = new TextDocument(content, this.resolveLanguageId(filePath));
         this.editorViewState = new EditorViewState(this.doc);
         this.tokenStore.dispose();
-        this.tokenStore = new DocumentTokenStore(this.doc, this.pickTokenizer(filePath));
+        this.tokenStore = new DocumentTokenStore(this.doc, this.pickTokenizerForLanguage(this.doc.languageId));
         this.editorViewState.tokenStore = this.tokenStore;
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
@@ -129,6 +174,7 @@ export class EditorController extends Disposable implements IController {
         this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
+        this.bindLanguageListener();
     }
 
     public save(): void {
@@ -250,13 +296,33 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Picks a tokenizer based on the file path. Language detection is
-     * delegated to the {@link ILanguageService} (implemented by
-     * `LanguageRegistry` from the Extensions layer).
+     * Language detection is delegated to the {@link ILanguageService}
+     * (implemented by `LanguageRegistry` from the Extensions layer).
      */
-    private pickTokenizer(filePath: string | null): ITokenizationSupport {
-        const languageId = filePath === null ? undefined : this.languageService.getLanguageIdForResource(filePath);
-        if (languageId === undefined) return new PlainTextTokenizer();
+    private resolveLanguageId(filePath: string): string {
+        return this.languageService.getLanguageIdForResource(filePath) ?? "plaintext";
+    }
+
+    private pickTokenizerForLanguage(languageId: string): ITokenizationSupport {
         return this.tokenizationRegistry.get(languageId) ?? new PlainTextTokenizer();
+    }
+
+    /** Пересаживает токен-кеш текущего документа на актуальный токенизатор. */
+    private applyTokenizer(): void {
+        this.tokenStore.setTokenizationSupport(this.pickTokenizerForLanguage(this.doc.languageId));
+        this.editor.markDirty();
+    }
+
+    /**
+     * Переподписывается на смену языка текущего документа (документ
+     * пересоздаётся в openFile): пересаживает токенизатор и ретранслирует
+     * событие подписчикам контроллера.
+     */
+    private bindLanguageListener(): void {
+        this.languageSubscription?.dispose();
+        this.languageSubscription = this.doc.onDidChangeLanguage((change) => {
+            this.applyTokenizer();
+            for (const listener of [...this.languageChangeListeners]) listener(change);
+        });
     }
 }

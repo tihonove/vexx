@@ -9,6 +9,7 @@
 ## Phase 1 — [x] Языки и TextMate-грамматики
 
 - [x] Сделано: сканирование манифестов (`ExtensionScanner`), `LanguageRegistry` (`implements ILanguageService`), регистрация грамматик через `ExtensionTokenizationContributor` → `TokenizationRegistry`, builtin-расширения из microsoft/vscode, SEA-упаковка через `IAssetAccess`. Детали: [ARCHITECTURE.md](../ARCHITECTURE.md) → Extensions.
+- [x] Полный набор языков: все 48 декларативных языковых паков из microsoft/vscode импортируются скриптом `scripts/import-vscode-extensions.mjs` (пин тега — `src/Extensions/builtin/VSCODE_VERSION`; обновление = бамп тега + перезапуск). Smoke-тест — `src/Extensions/BuiltinLanguagePacks.test.ts`. `git-base` содержит `main`, но builtin-расширения в extension host не активируются — берём только его языки (git-commit, git-rebase, ignore).
 
 Каверза: `language-configuration.json` загружается ТОЛЬКО как путь в манифесте — auto-closing pairs, brackets, on-enter rules ещё не применяются (типизация в `ILanguageConfiguration.ts` готова, см. Phase 3).
 

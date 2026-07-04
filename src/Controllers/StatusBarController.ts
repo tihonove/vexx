@@ -1,6 +1,7 @@
 import { token } from "../Common/DiContainer.ts";
 import { DisplayLine } from "../Common/DisplayLine.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -8,6 +9,7 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
+import { LanguageServiceDIToken } from "./CoreTokens.ts";
 import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
@@ -22,22 +24,27 @@ export class StatusBarController extends Disposable implements IController {
         EditorGroupControllerDIToken,
         ThemeServiceDIToken,
         TerminalEnvironmentServiceDIToken,
+        LanguageServiceDIToken,
     ] as const;
 
     public readonly view: StatusBarElement;
     private editorGroupController: EditorGroupController;
     private terminalEnv: TerminalEnvironmentService;
+    private languageService: ILanguageService;
     private chordHint: string | null = null;
     private cursorSubscription: IDisposable | null = null;
+    private languageSubscription: IDisposable | null = null;
 
     public constructor(
         editorGroupController: EditorGroupController,
         themeService: ThemeService,
         terminalEnv: TerminalEnvironmentService,
+        languageService: ILanguageService,
     ) {
         super();
         this.editorGroupController = editorGroupController;
         this.terminalEnv = terminalEnv;
+        this.languageService = languageService;
         this.view = new StatusBarElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -51,27 +58,33 @@ export class StatusBarController extends Disposable implements IController {
         );
         this.register(
             this.editorGroupController.onActiveEditorChanged((editor) => {
-                this.bindCursorListener(editor);
+                this.bindEditorListeners(editor);
                 this.update();
             }),
         );
         this.register({ dispose: () => this.cursorSubscription?.dispose() });
+        this.register({ dispose: () => this.languageSubscription?.dispose() });
     }
 
     public mount(): void {
         // Pick up an editor that became active before this subscription existed.
-        this.bindCursorListener(this.editorGroupController.getActiveEditor());
+        this.bindEditorListeners(this.editorGroupController.getActiveEditor());
         this.update();
     }
 
     /**
-     * Re-points the cursor-position listener at the currently active editor so
-     * the Ln/Col indicator tracks the live cursor. Disposes the previous one.
+     * Re-points the per-editor listeners at the currently active editor so the
+     * Ln/Col and language indicators track it live. Disposes the previous ones.
      */
-    private bindCursorListener(editor: EditorController | null): void {
+    private bindEditorListeners(editor: EditorController | null): void {
         this.cursorSubscription?.dispose();
         this.cursorSubscription =
             editor?.onDidChangeCursorPosition(() => {
+                this.update();
+            }) ?? null;
+        this.languageSubscription?.dispose();
+        this.languageSubscription =
+            editor?.onDidChangeLanguage(() => {
                 this.update();
             }) ?? null;
     }
@@ -110,7 +123,25 @@ export class StatusBarController extends Disposable implements IController {
             items.push({ text: position, align: "right" });
         }
 
+        // Правые элементы рендерятся в порядке массива — язык встаёт правее
+        // Ln/Col (как в VS Code; Spaces/Encoding/EOL добавятся между ними).
+        const language = this.languageSegment(activeEditor);
+        if (language !== null) {
+            items.push({ text: language, align: "right" });
+        }
+
         this.view.setItems(items);
+    }
+
+    /**
+     * VS Code-style language indicator for the active editor: the language
+     * display name ("TypeScript"), falling back to the raw language id when
+     * the language has no registered alias. Null without an active editor.
+     */
+    private languageSegment(editor: EditorController | null): string | null {
+        if (editor === null) return null;
+        const languageId = editor.languageId;
+        return this.languageService.getLanguageDisplayName(languageId) ?? languageId;
     }
 
     /**

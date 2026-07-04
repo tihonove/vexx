@@ -13,6 +13,14 @@ export interface ILanguageService {
      * (потребитель тогда обычно откатывается на `"plaintext"`).
      */
     getLanguageIdForResource(filePath: string): string | undefined;
+
+    /**
+     * Человекочитаемое имя языка для UI (конвенция VS Code: первый alias
+     * из `contributes.languages`, например `"TypeScript"` для
+     * `typescript`). `undefined`, если язык не зарегистрирован или без
+     * alias'ов — потребитель откатывается на сырой language id.
+     */
+    getLanguageDisplayName(languageId: string): string | undefined;
 }
 
 /**
@@ -21,4 +29,5 @@ export interface ILanguageService {
  */
 export const NULL_LANGUAGE_SERVICE: ILanguageService = {
     getLanguageIdForResource: () => undefined,
+    getLanguageDisplayName: () => undefined,
 };
