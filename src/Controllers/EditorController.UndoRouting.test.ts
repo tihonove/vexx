@@ -65,6 +65,26 @@ describe("EditorController — text undo routes through the unified UndoRedoServ
         expect(controller.getText()).toBe("abc");
     });
 
+    it("routes undo under the 'untitled' context when no file is open", () => {
+        const undoRedo = new UndoRedoService();
+        const theme = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+        const controller = new EditorController(
+            theme,
+            new TokenizationRegistry(),
+            NULL_TOKEN_STYLE_RESOLVER,
+            NULL_LANGUAGE_SERVICE,
+            undoRedo,
+        );
+
+        controller.pushUndo(controller.viewState.type("hi"));
+        expect(undoRedo.canUndo("untitled")).toBe(true);
+
+        controller.undo();
+        expect(controller.getText()).toBe("");
+
+        controller.dispose();
+    });
+
     it("clears the file's history when the controller is disposed", () => {
         const { controller, undoRedo, file } = make();
         controller.pushUndo(controller.viewState.type("x"));

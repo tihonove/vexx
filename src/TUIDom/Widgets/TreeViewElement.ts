@@ -413,7 +413,9 @@ export class TreeViewElement<T> extends ScrollableElement {
 
     /** Переключает выбор одной строки (Ctrl/Cmd+клик), не сбрасывая остальное. */
     private toggleSelectionAt(index: number): void {
+        /* v8 ignore start -- defensive: the mouse handler bounds-checks the row before calling */
         if (index < 0 || index >= this.flatNodes.length) return;
+        /* v8 ignore stop */
         // Первый Ctrl+клик: включаем в набор текущий курсор, чтобы он не потерялся.
         if (this.selectedKeys.size === 0) {
             this.selectedKeys.add(this.provider.getKey(this.flatNodes[this.selectedIndex].element));

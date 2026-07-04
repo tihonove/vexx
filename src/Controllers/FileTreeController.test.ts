@@ -159,6 +159,32 @@ describe("FileTreeController", () => {
     });
 });
 
+describe("FileTreeController — clipboard helpers before a root is assigned", () => {
+    it("returns an empty selection and a null paste target without a tree", () => {
+        const controller = new FileTreeController();
+
+        expect(controller.getSelectedPaths()).toEqual([]);
+        expect(controller.getPasteTargetDir()).toBeNull();
+        // Подсветка «вырезанных» без дерева — no-op, не должна падать.
+        expect(() => controller.setCutPaths(["/x"])).not.toThrow();
+
+        controller.dispose();
+    });
+
+    it("paste target falls back to the root when the tree is empty", async () => {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-ctrl-empty-"));
+        const controller = new FileTreeController();
+        controller.setRootPath(dir);
+        controller.mount();
+        await controller.activate();
+
+        expect(controller.getPasteTargetDir()).toBe(dir);
+
+        controller.dispose();
+        cleanupDir(dir);
+    });
+});
+
 describe("FileTreeController — setRootPath after mount", () => {
     let dirA: string;
     let dirB: string;

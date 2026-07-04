@@ -21,6 +21,17 @@ describe("UndoRedoService", () => {
         expect(service.canUndo(CTX)).toBe(false);
         expect(service.canRedo(CTX)).toBe(false);
         expect(service.peekUndo(CTX)).toBeUndefined();
+        expect(service.peekRedo(CTX)).toBeUndefined();
+    });
+
+    it("peekRedo exposes the top redo element without removing it", async () => {
+        const service = new UndoRedoService();
+        const { el } = makeElement("Move");
+        service.pushElement(el, CTX);
+        await service.undo(CTX);
+
+        expect(service.peekRedo(CTX)).toBe(el);
+        expect(service.canRedo(CTX)).toBe(true); // peek не снимает элемент
     });
 
     it("undo calls element.undo and moves it to the redo stack", async () => {

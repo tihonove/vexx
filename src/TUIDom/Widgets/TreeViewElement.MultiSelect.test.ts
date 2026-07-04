@@ -124,4 +124,61 @@ describe("TreeViewElement - multi-selection", () => {
         key(tree, "ArrowDown");
         expect(selectedIds(tree)).toEqual(["d"]);
     });
+
+    it("Shift+ArrowUp extends the selection upwards", async () => {
+        const { tree } = await createTree(FLAT_TREE);
+        click(tree, 2); // курсор и якорь на Gamma
+        key(tree, "ArrowUp", true);
+        expect(selectedIds(tree)).toEqual(["b", "c"]);
+        expect(tree.getSelectedNode()?.id).toBe("b");
+    });
+
+    it("Shift+ArrowUp on the first row clamps to the top", async () => {
+        const { tree } = await createTree(FLAT_TREE);
+        // курсор на первой строке — расширять некуда, выбор остаётся из одной строки
+        key(tree, "ArrowUp", true);
+        expect(selectedIds(tree)).toEqual(["a"]);
+        expect(tree.getSelectedNode()?.id).toBe("a");
+    });
+
+    it("Shift+ArrowDown on the last row clamps to the bottom", async () => {
+        const { tree } = await createTree(FLAT_TREE);
+        click(tree, 3);
+        key(tree, "ArrowDown", true);
+        expect(selectedIds(tree)).toEqual(["d"]);
+        expect(tree.getSelectedNode()?.id).toBe("d");
+    });
+
+    it("right-click on an already-selected row keeps the multi-selection", async () => {
+        const { tree } = await createTree(FLAT_TREE);
+        const contextNodes: string[] = [];
+        tree.onContextMenu = (node) => {
+            contextNodes.push(node.id);
+        };
+        click(tree, 1);
+        click(tree, 3, { shiftKey: true }); // выбраны b, c, d
+
+        tree.dispatchEvent(
+            new TUIMouseEvent("click", { button: "right", screenX: 5, screenY: 2, localX: 5, localY: 2 }),
+        );
+
+        expect(selectedIds(tree)).toEqual(["b", "c", "d"]); // выбор не сброшен
+        expect(tree.getSelectedNode()?.id).toBe("c"); // но курсор перескочил на кликнутую строку
+        expect(contextNodes).toEqual(["c"]);
+    });
+});
+
+describe("TreeViewElement - empty tree", () => {
+    it("reports no selection", async () => {
+        const { tree } = await createTree([]);
+        expect(tree.getSelectedNode()).toBeNull();
+        expect(tree.getSelectedNodes()).toEqual([]);
+    });
+
+    it("ignores selection-extending keys without crashing", async () => {
+        const { tree } = await createTree([]);
+        key(tree, "ArrowUp", true);
+        key(tree, "ArrowDown", true);
+        expect(tree.getSelectedNodes()).toEqual([]);
+    });
 });

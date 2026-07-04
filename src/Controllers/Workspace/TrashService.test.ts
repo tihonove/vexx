@@ -89,4 +89,48 @@ describe.skipIf(process.platform !== "linux")("TrashService (freedesktop)", () =
         expect(fs.existsSync(src)).toBe(true);
         expect(fs.readFileSync(restored, "utf8")).toBe("old");
     });
+
+    it("falls back to ~/.local/share when XDG_DATA_HOME is not set", () => {
+        const savedHome = process.env.HOME;
+        delete process.env.XDG_DATA_HOME;
+        process.env.HOME = path.join(tmpDir, "home");
+        fs.mkdirSync(process.env.HOME, { recursive: true });
+        try {
+            const trash = new TrashService();
+            expect(trash.isAvailable()).toBe(true);
+            expect(fs.existsSync(path.join(tmpDir, "home", ".local", "share", "Trash", "files"))).toBe(true);
+        } finally {
+            process.env.HOME = savedHome;
+        }
+    });
+
+    it("reports unavailable when the trash directories cannot be created", () => {
+        const blocker = path.join(tmpDir, "blocker");
+        fs.writeFileSync(blocker, ""); // файл на месте каталога → mkdir упадёт
+        process.env.XDG_DATA_HOME = path.join(blocker, "data");
+
+        expect(new TrashService().isAvailable()).toBe(false);
+    });
+
+    it("trash() throws when the trash is unavailable", () => {
+        const blocker = path.join(tmpDir, "blocker");
+        fs.writeFileSync(blocker, "");
+        process.env.XDG_DATA_HOME = path.join(blocker, "data");
+
+        const src = writeFile("doomed.txt");
+        expect(() => new TrashService().trash(src)).toThrow();
+        expect(fs.existsSync(src)).toBe(true); // файл не тронут
+    });
+});
+
+describe("TrashService — platform gate", () => {
+    it("is unavailable on non-linux platforms", () => {
+        const original = Object.getOwnPropertyDescriptor(process, "platform")!;
+        Object.defineProperty(process, "platform", { value: "darwin" });
+        try {
+            expect(new TrashService().isAvailable()).toBe(false);
+        } finally {
+            Object.defineProperty(process, "platform", original);
+        }
+    });
 });

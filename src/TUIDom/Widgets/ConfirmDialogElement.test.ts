@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../../Common/GeometryPromitives.ts";
+import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 
@@ -79,5 +80,38 @@ describe("ConfirmDialogElement", () => {
         const { buttons } = mount({ confirmLabel: "Yes", cancelLabel: "No" });
         expect(buttons[0].getLabel()).toBe("Yes");
         expect(buttons[1].getLabel()).toBe("No");
+    });
+
+    it("Enter on the cancel button fires onCancel", () => {
+        const { dialog, testApp, buttons } = mount();
+        const onCancel = vi.fn();
+        dialog.onCancel = onCancel;
+        buttons[1].focus();
+        sendToFocused(testApp, "Enter");
+        expect(onCancel).toHaveBeenCalledOnce();
+    });
+
+    it("ArrowLeft on the first button and ArrowRight on the last are no-ops", () => {
+        const { testApp, buttons } = mount();
+
+        buttons[0].focus();
+        sendToFocused(testApp, "ArrowLeft");
+        expect(testApp.focusedElement).toBe(buttons[0]);
+
+        buttons[1].focus();
+        sendToFocused(testApp, "ArrowRight");
+        expect(testApp.focusedElement).toBe(buttons[1]);
+    });
+
+    it("highlights the message in the warning color when warning is set", () => {
+        const { testApp } = mount({ message: "Danger zone", warning: true });
+        testApp.render();
+
+        const rows = testApp.backend.screenToString().split("\n");
+        const y = rows.findIndex((row) => row.includes("Danger zone"));
+        expect(y).toBeGreaterThanOrEqual(0);
+        const x = rows[y].indexOf("Danger zone");
+
+        expect(testApp.backend.getFgAt(new Point(x, y))).toBe(packRgb(255, 200, 0));
     });
 });

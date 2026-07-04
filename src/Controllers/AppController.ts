@@ -1073,7 +1073,9 @@ export class AppController extends Disposable implements IController {
 
         const doUndo = (): void => {
             void this.undoRedoService.undo(WORKSPACE_UNDO_CONTEXT).then((ok) => {
+                /* v8 ignore start -- defensive: peekUndo above gates on a non-empty stack, and undo() pops synchronously, so it cannot come back empty */
                 if (ok) void this.fileTreeController.refresh();
+                /* v8 ignore stop */
             });
         };
 

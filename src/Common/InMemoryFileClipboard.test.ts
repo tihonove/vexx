@@ -52,4 +52,19 @@ describe("InMemoryFileClipboard", () => {
         clip.write(["/a"], "copy");
         expect(listener).not.toHaveBeenCalled();
     });
+
+    it("dispose is idempotent and does not detach other listeners", () => {
+        const clip = new InMemoryFileClipboard();
+        const first = vi.fn();
+        const second = vi.fn();
+        const sub = clip.onDidChange(first);
+        clip.onDidChange(second);
+
+        sub.dispose();
+        sub.dispose(); // повторный dispose — no-op, чужая подписка не должна пострадать
+
+        clip.write(["/a"], "copy");
+        expect(first).not.toHaveBeenCalled();
+        expect(second).toHaveBeenCalledTimes(1);
+    });
 });

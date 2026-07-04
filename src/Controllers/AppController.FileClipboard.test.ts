@@ -4,8 +4,10 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
+import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
@@ -85,5 +87,81 @@ describe("File explorer copy/cut/paste commands", () => {
         ctx.commands.execute("fileOperations.paste");
 
         expect(fs.existsSync(path.join(tmpDir, "a copy.txt"))).toBe(true);
+    });
+});
+
+describe("File explorer context menu — clipboard entries", () => {
+    let tmpDir: string;
+    let ctx: Ctx;
+
+    beforeEach(async () => {
+        tmpDir = createWorkspace();
+        ctx = createApp(tmpDir);
+        await ctx.controller.activate();
+        ctx.testApp.render();
+        ctx.testApp.querySelector("TreeViewElement")!.focus();
+        ctx.testApp.render();
+    });
+
+    afterEach(() => {
+        ctx.controller.dispose();
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    // Порядок пунктов: Copy, Cut, [Paste — если буфер не пуст], (separator), Delete.
+    function rightClickRow(row: number): void {
+        clickTree(row, "right");
+    }
+
+    function clickRow(row: number): void {
+        clickTree(row, "left");
+    }
+
+    function clickTree(row: number, button: "left" | "right"): void {
+        const tree = ctx.testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
+        tree.globalPosition = new Point(0, 0);
+        tree.dispatchEvent(new TUIMouseEvent("click", { button, screenX: 2, screenY: row, localX: 2, localY: row }));
+        ctx.testApp.render();
+    }
+
+    it("Copy entry puts the clicked file on the clipboard", () => {
+        rightClickRow(1); // a.txt
+        ctx.testApp.sendKey("Enter"); // первый пункт — Copy
+        ctx.testApp.render();
+        expect(ctx.testApp.querySelector("PopupMenuElement")).toBeNull();
+
+        // Курсор остался на a.txt → вставка в корень с авто-переименованием.
+        ctx.commands.execute("fileOperations.paste");
+        expect(fs.existsSync(path.join(tmpDir, "a copy.txt"))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
+    });
+
+    it("Cut entry moves the file on the next paste", () => {
+        rightClickRow(1); // a.txt
+        ctx.testApp.sendKey("ArrowDown"); // Cut
+        ctx.testApp.sendKey("Enter");
+        ctx.testApp.render();
+
+        // Фокус после закрытия меню не на дереве — двигаем курсор кликом по строке target/.
+        clickRow(0);
+        ctx.commands.execute("fileOperations.paste");
+
+        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(false);
+    });
+
+    it("Paste entry appears for a non-empty clipboard and pastes into the clicked folder", () => {
+        ctx.testApp.sendKey("ArrowDown"); // a.txt
+        ctx.commands.execute("fileOperations.copy");
+
+        rightClickRow(0); // target/
+        expect(ctx.testApp.backend.screenToString()).toContain("Paste");
+        ctx.testApp.sendKey("ArrowDown"); // Cut
+        ctx.testApp.sendKey("ArrowDown"); // Paste
+        ctx.testApp.sendKey("Enter");
+        ctx.testApp.render();
+
+        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
     });
 });

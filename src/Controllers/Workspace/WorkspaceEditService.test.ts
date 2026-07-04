@@ -105,6 +105,29 @@ describe("WorkspaceEditService — delete (permanent)", () => {
     });
 });
 
+describe("WorkspaceEditService — edge cases", () => {
+    it("ignores unsupported edit kinds (returns null, records nothing)", () => {
+        const { service, undoRedo } = makeService();
+        const dest = path.join(tmpDir, "x.txt");
+
+        // "create" объявлен в модели, но сервисом пока не поддержан — запись молча пропускается.
+        const element = service.applyFileEdits([{ kind: "create", to: dest }], "Create");
+
+        expect(element).toBeNull();
+        expect(fs.existsSync(dest)).toBe(false);
+        expect(undoRedo.canUndo(WORKSPACE_UNDO_CONTEXT)).toBe(false);
+    });
+
+    it.skipIf(process.platform !== "linux")("treats a missing files.enableTrash setting as enabled", () => {
+        const config: IConfigurationService = {
+            ...NULL_CONFIGURATION_SERVICE,
+            get: () => undefined, // настройка не задана вовсе
+        };
+        const service = new WorkspaceEditService(new UndoRedoService(), new TrashService(), config);
+        expect(service.willMoveToTrash()).toBe(true);
+    });
+});
+
 describe.skipIf(process.platform !== "linux")("WorkspaceEditService — delete (trash)", () => {
     it("moves to trash, pushes an undoable element, and restores on undo", async () => {
         const { service, undoRedo } = makeService(true);
