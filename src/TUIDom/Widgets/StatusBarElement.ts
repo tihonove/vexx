@@ -8,6 +8,14 @@ export interface StatusBarItem {
 }
 
 export class StatusBarElement extends TUIElement {
+    /**
+     * The bar sits on the terminal's bottom row, and the renderer never writes
+     * the bottom-right corner cell (doing so triggers hardware scroll). Keep
+     * right-aligned items one cell away from the edge so their last character
+     * stays visible.
+     */
+    private static readonly rightPadding = 1;
+
     private items: StatusBarItem[] = [];
 
     public setItems(items: StatusBarItem[]): void {
@@ -44,10 +52,11 @@ export class StatusBarElement extends TUIElement {
     private intrinsicWidth(): number {
         const left = this.leftText();
         const right = this.rightText();
-        if (left.length > 0 && right.length > 0) {
-            return left.length + 2 + right.length;
+        const rightWidth = right.length > 0 ? right.length + StatusBarElement.rightPadding : 0;
+        if (left.length > 0 && rightWidth > 0) {
+            return left.length + 2 + rightWidth;
         }
-        return left.length + right.length;
+        return left.length + rightWidth;
     }
 
     public override getMinIntrinsicHeight(_width: number): number {
@@ -80,11 +89,12 @@ export class StatusBarElement extends TUIElement {
             context.setCell(x, 0, { char: left[x], fg: resolved.fg, bg: resolved.bg });
         }
 
-        // Right-aligned items, flush to the right edge. Skip any cell that falls
-        // off the left edge (right text wider than the bar) or that a left item
-        // already owns — left items win on overlap. The last cell always lands at
-        // width-1, so an upper-bound check is unnecessary.
-        const rightStart = width - right.length;
+        // Right-aligned items, padded off the right edge (see rightPadding).
+        // Skip any cell that falls off the left edge (right text wider than the
+        // bar) or that a left item already owns — left items win on overlap.
+        // The last cell lands at width-1-rightPadding, so an upper-bound check
+        // is unnecessary.
+        const rightStart = width - right.length - StatusBarElement.rightPadding;
         for (let i = 0; i < right.length; i++) {
             const x = rightStart + i;
             if (x < 0 || x < left.length) continue;
