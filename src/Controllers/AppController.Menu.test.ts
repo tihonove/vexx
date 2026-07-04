@@ -50,7 +50,7 @@ describe("AppController — menu bar wiring", () => {
     it("opens the File menu and renders its entries", () => {
         const { testApp } = createMenuApp();
         const popup = openMenu(testApp, "f");
-        expect(itemLabels(popup)).toEqual(["Save", "Exit"]);
+        expect(itemLabels(popup)).toEqual(["Save", "Save As...", "Exit"]);
     });
 
     it("File → Save runs the save command", () => {

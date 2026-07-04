@@ -426,11 +426,14 @@ describe("AppController — Quick Open", () => {
     it("Ctrl+P while picker already open does not open second picker", () => {
         const { testApp, controller } = createTestAppController();
         controller.focusEditor();
+
+        // The app hosts persistent singleton pickers (quick-open + quick-input);
+        // pressing Ctrl+P must reuse the quick-open one, never spawn a new element.
+        const before = testApp.querySelectorAll("QuickPickElement").length;
         testApp.sendKey("Ctrl+P");
         testApp.sendKey("Ctrl+P");
 
-        const pickers = testApp.querySelectorAll("QuickPickElement");
-        expect(pickers).toHaveLength(1);
+        expect(testApp.querySelectorAll("QuickPickElement").length).toBe(before);
     });
 
     it("Show Commands lists registered commands", () => {
