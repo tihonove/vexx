@@ -128,6 +128,101 @@ describe("fileOperations.deleteFile command", () => {
         const nonExistent = path.join(tmpDir, "ghost.txt");
         expect(() => commands.execute("fileOperations.deleteFile", nonExistent)).not.toThrow();
     });
+
+    it("is a no-op when called without an argument and nothing is selected in the tree", () => {
+        // No workspace folder → no tree → no selected node to fall back to.
+        const { container, bindApp } = createTestContainer();
+        const bareController = container.get(AppControllerDIToken);
+        bareController.mount();
+        const bareApp = TestApp.create(bareController.view, new Size(80, 24));
+        bindApp(bareApp.app);
+        const bareCommands = container.get(CommandRegistryDIToken);
+
+        expect(() => bareCommands.execute("fileOperations.deleteFile")).not.toThrow();
+        bareController.dispose();
+    });
+});
+
+describe("Delete key in the file tree", () => {
+    let tmpDir: string;
+    let testApp: TestApp;
+    let controller: AppController;
+
+    beforeEach(async () => {
+        savedXdg = process.env.XDG_DATA_HOME;
+        tmpDir = createTempWorkspace();
+        ({ testApp, controller } = createIntegrationApp(tmpDir));
+        await controller.activate();
+        testApp.render();
+    });
+
+    afterEach(() => {
+        controller.dispose();
+        cleanupDir(tmpDir);
+        if (savedXdg === undefined) delete process.env.XDG_DATA_HOME;
+        else process.env.XDG_DATA_HOME = savedXdg;
+    });
+
+    function getTreeElement(): TreeViewElement<unknown> {
+        const el = testApp.querySelector("TreeViewElement");
+        expect(el).not.toBeNull();
+        return el as TreeViewElement<unknown>;
+    }
+
+    function confirmDelete(): void {
+        expect(testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        testApp.sendKey("Enter");
+        testApp.render();
+    }
+
+    it("pressing Delete deletes the file selected in the focused tree after confirmation", () => {
+        const alpha = path.join(tmpDir, "alpha.txt");
+        const beta = path.join(tmpDir, "beta.txt");
+
+        const tree = getTreeElement();
+        tree.focus();
+        testApp.render();
+
+        // Row 0 (alpha.txt) is selected by default.
+        testApp.sendKey("Delete");
+        testApp.render();
+        expect(fs.existsSync(alpha)).toBe(true); // not deleted until confirmed
+        confirmDelete();
+
+        expect(fs.existsSync(alpha)).toBe(false);
+        expect(fs.existsSync(beta)).toBe(true);
+    });
+
+    it("pressing Delete deletes the file the cursor was moved to", () => {
+        const alpha = path.join(tmpDir, "alpha.txt");
+        const beta = path.join(tmpDir, "beta.txt");
+
+        const tree = getTreeElement();
+        tree.focus();
+        testApp.render();
+
+        testApp.sendKey("ArrowDown");
+        testApp.sendKey("Delete");
+        testApp.render();
+        confirmDelete();
+
+        expect(fs.existsSync(alpha)).toBe(true);
+        expect(fs.existsSync(beta)).toBe(false);
+    });
+
+    it("does not delete tree files when the tree is not focused", () => {
+        const alpha = path.join(tmpDir, "alpha.txt");
+
+        controller.openFile(alpha);
+        controller.focusEditor();
+        testApp.render();
+
+        testApp.sendKey("Delete");
+        testApp.render();
+
+        expect(testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(fs.existsSync(alpha)).toBe(true);
+    });
 });
 
 describe("File tree context menu — right-click opens context menu", () => {
