@@ -1,6 +1,6 @@
 # Подсветка синтаксиса
 
-**Статус**: TextMate-движок работает (vscode-textmate + oniguruma); остались scope-селекторы, async/background токенизация, hot-swap.
+**Статус**: TextMate-движок работает (vscode-textmate + oniguruma), hot-swap токенайзера сделан; остались scope-селекторы, async/background токенизация.
 
 Архитектура повторяет VS Code:
 
@@ -79,22 +79,18 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 **Граничный случай:** end-state convergence уже умеет «пропустить хвост». Если фоновая задача доходит до места, где endState не изменился, она прекращает работу досрочно (текущая логика и так это делает).
 
 ### [x] Language detection service
-Реализовано в рамках [Extensions.md](Extensions.md) Phase 1: `ILanguageService` в `Editor/Tokenization/`, `LanguageRegistry` в `Extensions/`. `EditorController.pickTokenizer` ходит через DI-токен `LanguageServiceDIToken`. Поддерживаются `extensions`, `filenames`, `filenamePatterns` (минимальный glob).
+Реализовано в рамках [Extensions.md](Extensions.md) Phase 1: `ILanguageService` в `Editor/Tokenization/`, `LanguageRegistry` в `Extensions/`. `EditorController.resolveLanguageId` ходит через DI-токен `LanguageServiceDIToken`; результат хранится на документе (`ITextDocument.languageId`, дефолт `plaintext`). Поддерживаются `extensions`, `filenames`, `filenamePatterns` (минимальный glob).
 
 Осталось (отдельными подзадачами):
 
 - [ ] **Шебанг** (`firstLine`): в манифесте типизировано, но в `LanguageRegistry.getLanguageIdForResource` не используется. Требует расширения API (принять `firstLine`).
 - [ ] **mimetypes** — типизировано, не используется.
 - [ ] **VS Code-style modeline** (`vim: set filetype=...`) — отдельная задача.
-- [ ] **Команда `editor.action.changeLanguage`** — ручная смена языка с пересозданием `DocumentTokenStore`.
+- [ ] **`filenamePatterns` с `/`** (например `**/.gitconfig`) не матчатся: `matchGlob` сравнивает только basename. Pre-existing ограничение, стало заметнее с полным набором языковых паков.
+- [ ] **Команда `editor.action.changeLanguage`** — UI-пикер поверх готовой закладки: `EditorController.setLanguage(langId)` уже меняет язык документа и пересаживает токенизатор; языки для пикера — `LanguageRegistry.allLanguages()`.
 
-### [ ] Hot-swap токенайзера
-При смене языка пользователем (или установке нового tokenizer-а через `TokenizationRegistry.register`) — пересоздать токенизатор у `DocumentTokenStore`. Сейчас `TokenizationRegistry.onDidChange` существует, но `DocumentTokenStore` на него не подписан.
-
-**План:**
-1. В `DocumentTokenStore` подписаться на `tokenizationRegistry.onDidChange(languageId)`. Если меняется текущий languageId документа — вызвать `setTokenizationSupport(newSupport)`. Подписка диспозится вместе со store.
-2. `setTokenizationSupport`: сбросить `cachedTokens`, `endStates`, `invalidLineIndex = 0`. Следующий `tokenizeUpTo` — с нуля.
-3. Команда `editor.action.changeLanguage` (для пользователя): отдельная задача. Архитектурно — `EditorController.changeLanguage(langId)` пересоздаёт store с другим languageId.
+### [x] Hot-swap токенайзера
+Реализовано на уровне `EditorController`, а не `DocumentTokenStore` (store не знает про languageId — он у документа): контроллер подписан на `TokenizationRegistry.onDidChange(languageId)` и на `document.onDidChangeLanguage`; при совпадении с языком текущего документа вызывает `DocumentTokenStore.setTokenizationSupport` (полная инвалидация кеша) + `markDirty`. Закрыт пробел «файл открыт до async-загрузки грамматики → навсегда PlainTextTokenizer».
 
 ### [ ] Cache scope-to-style на смене темы
 `TokenThemeResolver` создаётся один раз и держит свой кеш по `scopes.join(" ")`.
