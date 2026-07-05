@@ -218,4 +218,26 @@ describe("LanguageRegistry", () => {
         expect(registry.getLanguageDisplayName("unknown")).toBeUndefined();
         expect(registry.getLanguageDisplayName("aliasless")).toBeUndefined();
     });
+
+    // WP8: completion-провайдер editorconfig завязан на languageId "editorconfig".
+    // Расширение вносит его через contributes.languages.filenames, что и должно
+    // резолвить .editorconfig-файл в нужный язык (точное имя бьёт .extensions).
+    it("резолвит .editorconfig в 'editorconfig' по contributes.languages user-расширения", () => {
+        const registry = new LanguageRegistry();
+        // Builtin ini кладёт .editorconfig в .extensions (не срабатывает: extname('.editorconfig') === '').
+        registry.register(makeExt("ini", [{ id: "properties", extensions: [".editorconfig", ".ini"] }]));
+        // Без editorconfig-расширения .editorconfig не резолвится.
+        expect(registry.getLanguageIdForResource("/p/.editorconfig")).toBeUndefined();
+
+        // User editorconfig-расширение вносит точное filenames-соответствие.
+        registry.register(
+            makeExt(
+                "editorconfig",
+                [{ id: "editorconfig", filenames: [".editorconfig"], aliases: ["EditorConfig"] }],
+                "UserExtensions/EditorConfig.EditorConfig-0.16.0/",
+            ),
+        );
+        expect(registry.getLanguageIdForResource("/p/.editorconfig")).toBe("editorconfig");
+        expect(registry.getLanguageIdForResource(".editorconfig")).toBe("editorconfig");
+    });
 });

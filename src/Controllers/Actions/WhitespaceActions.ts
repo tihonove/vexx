@@ -1,6 +1,7 @@
 import { createDeleteEdit, createInsertEdit, type ITextEdit } from "../../Editor/ITextEdit.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { parseKeybinding } from "../KeybindingRegistry.ts";
 
 // ─── Whitespace ─────────────────────────────────────────────
 //
@@ -57,16 +58,21 @@ export const insertFinalNewLineAction: CommandAction = {
 };
 
 /**
- * No-op placeholder for `editor.action.triggerSuggest`.
+ * Открывает completion-попап у каретки (`editor.action.triggerSuggest`).
  *
- * The editorconfig extension calls this command after applying completions;
- * Vexx has no completion UI yet (arrives in a later work package), so accepting
- * and ignoring the command keeps such callers working without error.
+ * Реальный обработчик устанавливает `AppController` (делегирует в
+ * `CompletionController.trigger()`) — как у quick-open/find. Здесь только
+ * плейсхолдер `run` и дефолтный кейбинд Ctrl+Space (при фокусе редактора).
+ * Команда также вызывается расширениями (editorconfig после вставки свойства).
  */
 export const triggerSuggestAction: CommandAction = {
     id: "editor.action.triggerSuggest",
     title: "Trigger Suggest",
+    keybinding: parseKeybinding("ctrl+space"),
+    when: "textInputFocus",
+    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime */
     run() {
-        // Intentionally empty until the completion UI lands.
+        // Overridden in AppController.
     },
+    /* v8 ignore stop */
 };

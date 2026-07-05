@@ -24,6 +24,7 @@ import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import type { OverlayAnchorPosition } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
@@ -99,6 +100,16 @@ export class EditorController extends Disposable implements IController {
     /** Language id открытого документа (`plaintext`, если язык не определён). */
     public get languageId(): string {
         return this.doc.languageId;
+    }
+
+    /**
+     * Экранный якорь каретки для completion-попапа, или `null`, если каретка вне
+     * видимой области. Делегирует в {@link EditorElement.getCaretScreenCell}.
+     */
+    public getCaretAnchor(): OverlayAnchorPosition | null {
+        const cell = this.editor.getCaretScreenCell();
+        if (cell === null) return null;
+        return { screenX: cell.x, screenY: cell.y, preferBelow: true };
     }
 
     /**

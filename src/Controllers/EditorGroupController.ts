@@ -5,6 +5,7 @@ import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
+import type { CompletionSource } from "../Editor/ICompletionSource.ts";
 import type { SaveParticipant } from "../Editor/ISaveParticipant.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -55,6 +56,13 @@ export class EditorGroupController extends Disposable implements IController {
 
     public onRequestConfirmClose?: (index: number) => void;
     public onEditorCreate?: (controller: EditorController) => void;
+
+    /**
+     * Источник автодополнений (host/харнесс подключает сюда провайдеры
+     * расширений через `languages.provideCompletionItems`). Читается
+     * `CompletionController` при триггере; в редакторы не раздаётся (group-level).
+     */
+    public completionSource?: CompletionSource;
 
     /**
      * Save-участник, прокидываемый в каждый редактор группы (host/харнесс

@@ -4,8 +4,15 @@ import { EndOfLine } from "../../Editor/EndOfLine.ts";
 
 import { createInProcessChannelPair } from "./InProcessChannelPair.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
-import type { WireTextEdit } from "./WireTypes.ts";
-import { parseWireTextEdits, requestWillSaveEdits, wireToSaveEdits } from "./WireTypes.ts";
+import type { WireCompletionItem, WireTextEdit } from "./WireTypes.ts";
+import {
+    parseWireCompletionItems,
+    parseWireTextEdits,
+    requestCompletionItems,
+    requestWillSaveEdits,
+    wireToCoreCompletionItems,
+    wireToSaveEdits,
+} from "./WireTypes.ts";
 
 const PARAMS = {
     fileName: "/tmp/file.txt",
@@ -109,6 +116,121 @@ describe("WireTypes — requestWillSaveEdits (InProcessChannelPair)", () => {
             });
             const edits = await requestWillSaveEdits((m, p) => host.request(m, p), PARAMS, 1000);
             expect(edits).toEqual([]);
+        } finally {
+            dispose();
+        }
+    });
+});
+
+// ─── Completion ───────────────────────────────────────────────────────────────
+
+const COMPLETION_PARAMS = {
+    fileName: "/proj/.editorconfig",
+    languageId: "editorconfig",
+    text: "ind",
+    line: 0,
+    character: 3,
+};
+
+describe("WireTypes — parseWireCompletionItems", () => {
+    it("парсит полный элемент и подставляет insertText из label", () => {
+        const raw = [
+            {
+                label: "indent_style",
+                kind: 9,
+                detail: "EditorConfig",
+                command: { command: "c._trigger", arguments: [1] },
+                range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 3 },
+            },
+            { label: "root", insertText: "root = true" },
+        ];
+        const parsed = parseWireCompletionItems(raw);
+        expect(parsed[0].insertText).toBe("indent_style"); // fallback на label
+        expect(parsed[0].command).toEqual({ command: "c._trigger", arguments: [1] });
+        expect(parsed[1].insertText).toBe("root = true");
+    });
+
+    it("отбрасывает невалидные элементы (нет label / битый range)", () => {
+        const raw = [
+            null,
+            { insertText: "x" }, // нет label
+            { label: "" }, // пустой label
+            { label: "ok", range: { startLine: 0 } }, // битый range → range опущен, элемент валиден
+        ];
+        const parsed = parseWireCompletionItems(raw);
+        expect(parsed).toHaveLength(1);
+        expect(parsed[0].label).toBe("ok");
+        expect(parsed[0].range).toBeUndefined();
+    });
+
+    it("не-массив → []", () => {
+        expect(parseWireCompletionItems(undefined)).toEqual([]);
+    });
+});
+
+describe("WireTypes — wireToCoreCompletionItems", () => {
+    it("маппит range в core IRange и сохраняет command", () => {
+        const wire: WireCompletionItem[] = [
+            {
+                label: "root",
+                insertText: "root",
+                kind: 9,
+                range: { startLine: 1, startCharacter: 2, endLine: 1, endCharacter: 6 },
+                command: { command: "c", arguments: [true] },
+            },
+        ];
+        expect(wireToCoreCompletionItems(wire)).toEqual([
+            {
+                label: "root",
+                insertText: "root",
+                kind: 9,
+                range: { start: { line: 1, character: 2 }, end: { line: 1, character: 6 } },
+                command: { command: "c", arguments: [true] },
+            },
+        ]);
+    });
+});
+
+describe("WireTypes — requestCompletionItems (InProcessChannelPair)", () => {
+    function connectPair(): { host: RpcEndpoint; sub: RpcEndpoint; dispose: () => void } {
+        const [a, b] = createInProcessChannelPair();
+        const host = new RpcEndpoint(a);
+        const sub = new RpcEndpoint(b);
+        return { host, sub, dispose: () => { host.dispose(); sub.dispose(); } };
+    }
+
+    it("десериализует элементы, вернувшиеся от subprocess'а", async () => {
+        const { host, sub, dispose } = connectPair();
+        try {
+            sub.handleRequest("languages.provideCompletionItems", () => [
+                { label: "indent_style", insertText: "indent_style", kind: 9 },
+            ]);
+            const items = await requestCompletionItems((m, p) => host.request(m, p), COMPLETION_PARAMS, 1000);
+            expect(items).toEqual([{ label: "indent_style", insertText: "indent_style", kind: 9 }]);
+        } finally {
+            dispose();
+        }
+    });
+
+    it("возвращает [] по таймауту", async () => {
+        const { host, sub, dispose } = connectPair();
+        try {
+            sub.handleRequest("languages.provideCompletionItems", () => new Promise(() => {}));
+            const items = await requestCompletionItems((m, p) => host.request(m, p), COMPLETION_PARAMS, 30);
+            expect(items).toEqual([]);
+        } finally {
+            dispose();
+        }
+    });
+
+    it("возвращает [] при ошибке RPC-хендлера", async () => {
+        const { host, sub, dispose } = connectPair();
+        try {
+            sub.handleRequest("languages.provideCompletionItems", () => {
+                throw new Error("boom");
+            });
+            const items = await requestCompletionItems((m, p) => host.request(m, p), COMPLETION_PARAMS, 1000);
+            expect(items).toEqual([]);
         } finally {
             dispose();
         }

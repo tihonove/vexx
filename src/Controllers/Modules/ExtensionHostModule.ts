@@ -64,6 +64,10 @@ export const extensionHostModule: ContainerModule = (container) => {
         group.saveParticipant = (snapshot) => host.willSaveTextDocument(snapshot);
         group.onEditorSaved((meta) => host.didSaveTextDocument(meta));
 
+        // Completion: провайдеры расширений (languages.provideCompletionItems)
+        // подключаются как источник автодополнений группы (читает CompletionController).
+        group.completionSource = (req) => host.provideCompletionItems(req);
+
         return host;
     });
 };
