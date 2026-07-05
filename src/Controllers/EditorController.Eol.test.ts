@@ -99,6 +99,22 @@ describe("EditorController EOL", () => {
         expect(ctrl.isModified).toBe(false);
     });
 
+    it("onDidChangeEol fires on setEol and on undo, surviving openFile re-creation", () => {
+        const ctrl = createEditorController();
+        let fired = 0;
+        ctrl.onDidChangeEol(() => fired++);
+
+        // Подписка сделана до openFile — документ внутри пересоздаётся,
+        // но слушатель контроллера должен продолжать работать.
+        ctrl.openFile(writeFile("lf.txt", "a\nb"));
+
+        ctrl.setEol(EndOfLine.CRLF);
+        expect(fired).toBe(1);
+
+        ctrl.undo();
+        expect(fired).toBe(2);
+    });
+
     it("undo of an eol change restores the eol and clears the modified flag", () => {
         const filePath = writeFile("lf.txt", "a\nb");
         const ctrl = createEditorController();

@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { EndOfLine } from "../Editor/EndOfLine.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
@@ -245,6 +246,30 @@ describe("EditorGroupController", () => {
             const editor = ctrl.getActiveEditor()!;
             editor.viewState.insertText("y");
             editor.save();
+
+            const items = ctrl.view.tabStrip.getItemElements();
+            expect(items[0].getModified()).toBe(false);
+        });
+
+        it("tab becomes modified immediately after an EOL conversion", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a\nb"));
+
+            ctrl.getActiveEditor()!.setEol(EndOfLine.CRLF);
+
+            const items = ctrl.view.tabStrip.getItemElements();
+            expect(items[0].getModified()).toBe(true);
+        });
+
+        it("tab clears the modified marker after undoing an EOL conversion", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a\nb"));
+            const editor = ctrl.getActiveEditor()!;
+
+            editor.setEol(EndOfLine.CRLF);
+            editor.undo();
 
             const items = ctrl.view.tabStrip.getItemElements();
             expect(items[0].getModified()).toBe(false);

@@ -20,6 +20,7 @@ export class TextDocument implements ITextDocument {
     private lines: string[];
     private contentChangeListeners: ((change: IDocumentContentChange) => void)[] = [];
     private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
+    private eolChangeListeners: (() => void)[] = [];
     private innerVersionId = 0;
     private eolValue: EndOfLine;
     private languageIdValue: string;
@@ -88,7 +89,19 @@ export class TextDocument implements ITextDocument {
     }
 
     public setEol(eol: EndOfLine): void {
+        if (eol === this.eolValue) return;
         this.eolValue = eol;
+        for (const listener of [...this.eolChangeListeners]) listener();
+    }
+
+    public onDidChangeEol(listener: () => void): IDisposable {
+        this.eolChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.eolChangeListeners.indexOf(listener);
+                if (i >= 0) this.eolChangeListeners.splice(i, 1);
+            },
+        };
     }
 
     public setText(text: string): void {
