@@ -46,13 +46,6 @@ declare module "vscode" {
         insertSpaces?: boolean | string;
     }
 
-    /**
-     * Минимальный `TextDocument` — только `fileName`. Прочие свойства
-     * (`uri`, `languageId`, `version`, `getText()`, ...) добавим позже.
-     */
-    export interface TextDocument {
-        readonly fileName: string;
-    }
 
     /**
      * Минимальный `TextEditor` — мутабельные `options` и `document`.
@@ -110,6 +103,909 @@ declare module "vscode" {
     export interface ExtensionContext {
         readonly subscriptions: { dispose(): unknown }[];
     }
+
+	export class EventEmitter<T> {
+
+		/**
+		 * The event listeners can subscribe to.
+		 */
+		event: Event<T>;
+
+		/**
+		 * Notify all subscribers of the {@link EventEmitter.event event}. Failure
+		 * of one or more listener will not fail this function call.
+		 *
+		 * @param data The event object.
+		 */
+		fire(data: T): void;
+
+		/**
+		 * Dispose this object and free resources.
+		 */
+		dispose(): void;
+	}
+
+	export class Position {
+
+		/**
+		 * The zero-based line value.
+		 */
+		readonly line: number;
+
+		/**
+		 * The zero-based character value.
+		 *
+		 * Character offsets are expressed using UTF-16 [code units](https://developer.mozilla.org/en-US/docs/Glossary/Code_unit).
+		 */
+		readonly character: number;
+
+		/**
+		 * @param line A zero-based line value.
+		 * @param character A zero-based character value.
+		 */
+		constructor(line: number, character: number);
+
+		/**
+		 * Check if this position is before `other`.
+		 *
+		 * @param other A position.
+		 * @returns `true` if position is on a smaller line
+		 * or on the same line on a smaller character.
+		 */
+		isBefore(other: Position): boolean;
+
+		/**
+		 * Check if this position is before or equal to `other`.
+		 *
+		 * @param other A position.
+		 * @returns `true` if position is on a smaller line
+		 * or on the same line on a smaller or equal character.
+		 */
+		isBeforeOrEqual(other: Position): boolean;
+
+		/**
+		 * Check if this position is after `other`.
+		 *
+		 * @param other A position.
+		 * @returns `true` if position is on a greater line
+		 * or on the same line on a greater character.
+		 */
+		isAfter(other: Position): boolean;
+
+		/**
+		 * Check if this position is after or equal to `other`.
+		 *
+		 * @param other A position.
+		 * @returns `true` if position is on a greater line
+		 * or on the same line on a greater or equal character.
+		 */
+		isAfterOrEqual(other: Position): boolean;
+
+		/**
+		 * Check if this position is equal to `other`.
+		 *
+		 * @param other A position.
+		 * @returns `true` if the line and character of the given position are equal to
+		 * the line and character of this position.
+		 */
+		isEqual(other: Position): boolean;
+
+		/**
+		 * Compare this to `other`.
+		 *
+		 * @param other A position.
+		 * @returns A number smaller than zero if this position is before the given position,
+		 * a number greater than zero if this position is after the given position, or zero when
+		 * this and the given position are equal.
+		 */
+		compareTo(other: Position): number;
+
+		/**
+		 * Create a new position relative to this position.
+		 *
+		 * @param lineDelta Delta value for the line value, default is `0`.
+		 * @param characterDelta Delta value for the character value, default is `0`.
+		 * @returns A position which line and character is the sum of the current line and
+		 * character and the corresponding deltas.
+		 */
+		translate(lineDelta?: number, characterDelta?: number): Position;
+
+		/**
+		 * Derived a new position relative to this position.
+		 *
+		 * @param change An object that describes a delta to this position.
+		 * @returns A position that reflects the given delta. Will return `this` position if the change
+		 * is not changing anything.
+		 */
+		translate(change: {
+			/**
+			 * Delta value for the line value, default is `0`.
+			 */
+			lineDelta?: number;
+			/**
+			 * Delta value for the character value, default is `0`.
+			 */
+			characterDelta?: number;
+		}): Position;
+
+		/**
+		 * Create a new position derived from this position.
+		 *
+		 * @param line Value that should be used as line value, default is the {@link Position.line existing value}
+		 * @param character Value that should be used as character value, default is the {@link Position.character existing value}
+		 * @returns A position where line and character are replaced by the given values.
+		 */
+		with(line?: number, character?: number): Position;
+
+		/**
+		 * Derived a new position from this position.
+		 *
+		 * @param change An object that describes a change to this position.
+		 * @returns A position that reflects the given change. Will return `this` position if the change
+		 * is not changing anything.
+		 */
+		with(change: {
+			/**
+			 * New line value, defaults the line value of `this`.
+			 */
+			line?: number;
+			/**
+			 * New character value, defaults the character value of `this`.
+			 */
+			character?: number;
+		}): Position;
+	}
+
+	export class Range {
+
+		/**
+		 * The start position. It is before or equal to {@link Range.end end}.
+		 */
+		readonly start: Position;
+
+		/**
+		 * The end position. It is after or equal to {@link Range.start start}.
+		 */
+		readonly end: Position;
+
+		/**
+		 * Create a new range from two positions. If `start` is not
+		 * before or equal to `end`, the values will be swapped.
+		 *
+		 * @param start A position.
+		 * @param end A position.
+		 */
+		constructor(start: Position, end: Position);
+
+		/**
+		 * Create a new range from number coordinates. It is a shorter equivalent of
+		 * using `new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter))`
+		 *
+		 * @param startLine A zero-based line value.
+		 * @param startCharacter A zero-based character value.
+		 * @param endLine A zero-based line value.
+		 * @param endCharacter A zero-based character value.
+		 */
+		constructor(startLine: number, startCharacter: number, endLine: number, endCharacter: number);
+
+		/**
+		 * `true` if `start` and `end` are equal.
+		 */
+		isEmpty: boolean;
+
+		/**
+		 * `true` if `start.line` and `end.line` are equal.
+		 */
+		isSingleLine: boolean;
+
+		/**
+		 * Check if a position or a range is contained in this range.
+		 *
+		 * @param positionOrRange A position or a range.
+		 * @returns `true` if the position or range is inside or equal
+		 * to this range.
+		 */
+		contains(positionOrRange: Position | Range): boolean;
+
+		/**
+		 * Check if `other` equals this range.
+		 *
+		 * @param other A range.
+		 * @returns `true` when start and end are {@link Position.isEqual equal} to
+		 * start and end of this range.
+		 */
+		isEqual(other: Range): boolean;
+
+		/**
+		 * Intersect `range` with this range and returns a new range or `undefined`
+		 * if the ranges have no overlap.
+		 *
+		 * @param range A range.
+		 * @returns A range of the greater start and smaller end positions. Will
+		 * return undefined when there is no overlap.
+		 */
+		intersection(range: Range): Range | undefined;
+
+		/**
+		 * Compute the union of `other` with this range.
+		 *
+		 * @param other A range.
+		 * @returns A range of smaller start position and the greater end position.
+		 */
+		union(other: Range): Range;
+
+		/**
+		 * Derived a new range from this range.
+		 *
+		 * @param start A position that should be used as start. The default value is the {@link Range.start current start}.
+		 * @param end A position that should be used as end. The default value is the {@link Range.end current end}.
+		 * @returns A range derived from this range with the given start and end position.
+		 * If start and end are not different `this` range will be returned.
+		 */
+		with(start?: Position, end?: Position): Range;
+
+		/**
+		 * Derived a new range from this range.
+		 *
+		 * @param change An object that describes a change to this range.
+		 * @returns A range that reflects the given change. Will return `this` range if the change
+		 * is not changing anything.
+		 */
+		with(change: {
+			/**
+			 * New start position, defaults to {@link Range.start current start}
+			 */
+			start?: Position;
+			/**
+			 * New end position, defaults to {@link Range.end current end}
+			 */
+			end?: Position;
+		}): Range;
+	}
+
+	export interface TextLine {
+
+		/**
+		 * The zero-based line number.
+		 */
+		readonly lineNumber: number;
+
+		/**
+		 * The text of this line without the line separator characters.
+		 */
+		readonly text: string;
+
+		/**
+		 * The range this line covers without the line separator characters.
+		 */
+		readonly range: Range;
+
+		/**
+		 * The range this line covers with the line separator characters.
+		 */
+		readonly rangeIncludingLineBreak: Range;
+
+		/**
+		 * The offset of the first character which is not a whitespace character as defined
+		 * by `/\s/`. **Note** that if a line is all whitespace the length of the line is returned.
+		 */
+		readonly firstNonWhitespaceCharacterIndex: number;
+
+		/**
+		 * Whether this line is whitespace only, shorthand
+		 * for {@link TextLine.firstNonWhitespaceCharacterIndex} === {@link TextLine.text TextLine.text.length}.
+		 */
+		readonly isEmptyOrWhitespace: boolean;
+	}
+
+	export class TextEdit {
+
+		/**
+		 * Utility to create a replace edit.
+		 *
+		 * @param range A range.
+		 * @param newText A string.
+		 * @returns A new text edit object.
+		 */
+		static replace(range: Range, newText: string): TextEdit;
+
+		/**
+		 * Utility to create an insert edit.
+		 *
+		 * @param position A position, will become an empty range.
+		 * @param newText A string.
+		 * @returns A new text edit object.
+		 */
+		static insert(position: Position, newText: string): TextEdit;
+
+		/**
+		 * Utility to create a delete edit.
+		 *
+		 * @param range A range.
+		 * @returns A new text edit object.
+		 */
+		static delete(range: Range): TextEdit;
+
+		/**
+		 * Utility to create an eol-edit.
+		 *
+		 * @param eol An eol-sequence
+		 * @returns A new text edit object.
+		 */
+		static setEndOfLine(eol: EndOfLine): TextEdit;
+
+		/**
+		 * The range this edit applies to.
+		 */
+		range: Range;
+
+		/**
+		 * The string this edit will insert.
+		 */
+		newText: string;
+
+		/**
+		 * The eol-sequence used in the document.
+		 *
+		 * *Note* that the eol-sequence will be applied to the
+		 * whole document.
+		 */
+		newEol?: EndOfLine;
+
+		/**
+		 * Create a new TextEdit.
+		 *
+		 * @param range A range.
+		 * @param newText A string.
+		 */
+		constructor(range: Range, newText: string);
+	}
+
+	export class Uri {
+
+		/**
+		 * Create an URI from a string, e.g. `http://www.example.com/some/path`,
+		 * `file:///usr/home`, or `scheme:with/path`.
+		 *
+		 * *Note* that for a while uris without a `scheme` were accepted. That is not correct
+		 * as all uris should have a scheme. To avoid breakage of existing code the optional
+		 * `strict`-argument has been added. We *strongly* advise to use it, e.g. `Uri.parse('my:uri', true)`
+		 *
+		 * @see {@link Uri.toString}
+		 * @param value The string value of an Uri.
+		 * @param strict Throw an error when `value` is empty or when no `scheme` can be parsed.
+		 * @returns A new Uri instance.
+		 */
+		static parse(value: string, strict?: boolean): Uri;
+
+		/**
+		 * Create an URI from a file system path. The {@link Uri.scheme scheme}
+		 * will be `file`.
+		 *
+		 * The *difference* between {@link Uri.parse} and {@link Uri.file} is that the latter treats the argument
+		 * as path, not as stringified-uri. E.g. `Uri.file(path)` is *not* the same as
+		 * `Uri.parse('file://' + path)` because the path might contain characters that are
+		 * interpreted (# and ?). See the following sample:
+		 * ```ts
+		 * const good = URI.file('/coding/c#/project1');
+		 * good.scheme === 'file';
+		 * good.path === '/coding/c#/project1';
+		 * good.fragment === '';
+		 *
+		 * const bad = URI.parse('file://' + '/coding/c#/project1');
+		 * bad.scheme === 'file';
+		 * bad.path === '/coding/c'; // path is now broken
+		 * bad.fragment === '/project1';
+		 * ```
+		 *
+		 * @param path A file system or UNC path.
+		 * @returns A new Uri instance.
+		 */
+		static file(path: string): Uri;
+
+		/**
+		 * Create a new uri which path is the result of joining
+		 * the path of the base uri with the provided path segments.
+		 *
+		 * - Note 1: `joinPath` only affects the path component
+		 * and all other components (scheme, authority, query, and fragment) are
+		 * left as they are.
+		 * - Note 2: The base uri must have a path; an error is thrown otherwise.
+		 *
+		 * The path segments are normalized in the following ways:
+		 * - sequences of path separators (`/` or `\`) are replaced with a single separator
+		 * - for `file`-uris on windows, the backslash-character (`\`) is considered a path-separator
+		 * - the `..`-segment denotes the parent segment, the `.` denotes the current segment
+		 * - paths have a root which always remains, for instance on windows drive-letters are roots
+		 * so that is true: `joinPath(Uri.file('file:///c:/root'), '../../other').fsPath === 'c:/other'`
+		 *
+		 * @param base An uri. Must have a path.
+		 * @param pathSegments One more more path fragments
+		 * @returns A new uri which path is joined with the given fragments
+		 */
+		static joinPath(base: Uri, ...pathSegments: string[]): Uri;
+
+		/**
+		 * Create an URI from its component parts
+		 *
+		 * @see {@link Uri.toString}
+		 * @param components The component parts of an Uri.
+		 * @returns A new Uri instance.
+		 */
+		static from(components: {
+			/**
+			 * The scheme of the uri
+			 */
+			readonly scheme: string;
+			/**
+			 * The authority of the uri
+			 */
+			readonly authority?: string;
+			/**
+			 * The path of the uri
+			 */
+			readonly path?: string;
+			/**
+			 * The query string of the uri
+			 */
+			readonly query?: string;
+			/**
+			 * The fragment identifier of the uri
+			 */
+			readonly fragment?: string;
+		}): Uri;
+
+		/**
+		 * Use the `file` and `parse` factory functions to create new `Uri` objects.
+		 */
+		private constructor(scheme: string, authority: string, path: string, query: string, fragment: string);
+
+		/**
+		 * Scheme is the `http` part of `http://www.example.com/some/path?query#fragment`.
+		 * The part before the first colon.
+		 */
+		readonly scheme: string;
+
+		/**
+		 * Authority is the `www.example.com` part of `http://www.example.com/some/path?query#fragment`.
+		 * The part between the first double slashes and the next slash.
+		 */
+		readonly authority: string;
+
+		/**
+		 * Path is the `/some/path` part of `http://www.example.com/some/path?query#fragment`.
+		 */
+		readonly path: string;
+
+		/**
+		 * Query is the `query` part of `http://www.example.com/some/path?query#fragment`.
+		 */
+		readonly query: string;
+
+		/**
+		 * Fragment is the `fragment` part of `http://www.example.com/some/path?query#fragment`.
+		 */
+		readonly fragment: string;
+
+		/**
+		 * The string representing the corresponding file system path of this Uri.
+		 *
+		 * Will handle UNC paths and normalize windows drive letters to lower-case. Also
+		 * uses the platform specific path separator.
+		 *
+		 * * Will *not* validate the path for invalid characters and semantics.
+		 * * Will *not* look at the scheme of this Uri.
+		 * * The resulting string shall *not* be used for display purposes but
+		 * for disk operations, like `readFile` et al.
+		 *
+		 * The *difference* to the {@linkcode Uri.path path}-property is the use of the platform specific
+		 * path separator and the handling of UNC paths. The sample below outlines the difference:
+		 * ```ts
+		 * const u = URI.parse('file://server/c$/folder/file.txt')
+		 * u.authority === 'server'
+		 * u.path === '/c$/folder/file.txt'
+		 * u.fsPath === '\\server\c$\folder\file.txt'
+		 * ```
+		 */
+		readonly fsPath: string;
+
+		/**
+		 * Derive a new Uri from this Uri.
+		 *
+		 * ```ts
+		 * let file = Uri.parse('before:some/file/path');
+		 * let other = file.with({ scheme: 'after' });
+		 * assert.ok(other.toString() === 'after:some/file/path');
+		 * ```
+		 *
+		 * @param change An object that describes a change to this Uri. To unset components use `null` or
+		 *  the empty string.
+		 * @returns A new Uri that reflects the given change. Will return `this` Uri if the change
+		 *  is not changing anything.
+		 */
+		with(change: {
+			/**
+			 * The new scheme, defaults to this Uri's scheme.
+			 */
+			scheme?: string;
+			/**
+			 * The new authority, defaults to this Uri's authority.
+			 */
+			authority?: string;
+			/**
+			 * The new path, defaults to this Uri's path.
+			 */
+			path?: string;
+			/**
+			 * The new query, defaults to this Uri's query.
+			 */
+			query?: string;
+			/**
+			 * The new fragment, defaults to this Uri's fragment.
+			 */
+			fragment?: string;
+		}): Uri;
+
+		/**
+		 * Returns a string representation of this Uri. The representation and normalization
+		 * of a URI depends on the scheme.
+		 *
+		 * * The resulting string can be safely used with {@link Uri.parse}.
+		 * * The resulting string shall *not* be used for display purposes.
+		 *
+		 * *Note* that the implementation will encode _aggressive_ which often leads to unexpected,
+		 * but not incorrect, results. For instance, colons are encoded to `%3A` which might be unexpected
+		 * in file-uri. Also `&` and `=` will be encoded which might be unexpected for http-uris. For stability
+		 * reasons this cannot be changed anymore. If you suffer from too aggressive encoding you should use
+		 * the `skipEncoding`-argument: `uri.toString(true)`.
+		 *
+		 * @param skipEncoding Do not percentage-encode the result, defaults to `false`. Note that
+		 *	the `#` and `?` characters occurring in the path will always be encoded.
+		 * @returns A string representation of this Uri.
+		 */
+		toString(skipEncoding?: boolean): string;
+
+		/**
+		 * Returns a JSON representation of this Uri.
+		 *
+		 * @returns An object.
+		 */
+		toJSON(): any;
+	}
+
+	export enum EndOfLine {
+		/**
+		 * The line feed `\n` character.
+		 */
+		LF = 1,
+		/**
+		 * The carriage return line feed `\r\n` sequence.
+		 */
+		CRLF = 2
+	}
+
+	export enum TextDocumentSaveReason {
+
+		/**
+		 * Manually triggered, e.g. by the user pressing save, by starting debugging,
+		 * or by an API call.
+		 */
+		Manual = 1,
+
+		/**
+		 * Automatic after a delay.
+		 */
+		AfterDelay = 2,
+
+		/**
+		 * When the editor lost focus.
+		 */
+		FocusOut = 3
+	}
+
+	export enum FileType {
+		/**
+		 * The file type is unknown.
+		 */
+		Unknown = 0,
+		/**
+		 * A regular file.
+		 */
+		File = 1,
+		/**
+		 * A directory.
+		 */
+		Directory = 2,
+		/**
+		 * A symbolic link to a file.
+		 */
+		SymbolicLink = 64
+	}
+
+	export enum CompletionItemKind {
+		/**
+		 * The `Text` completion item kind.
+		 */
+		Text = 0,
+		/**
+		 * The `Method` completion item kind.
+		 */
+		Method = 1,
+		/**
+		 * The `Function` completion item kind.
+		 */
+		Function = 2,
+		/**
+		 * The `Constructor` completion item kind.
+		 */
+		Constructor = 3,
+		/**
+		 * The `Field` completion item kind.
+		 */
+		Field = 4,
+		/**
+		 * The `Variable` completion item kind.
+		 */
+		Variable = 5,
+		/**
+		 * The `Class` completion item kind.
+		 */
+		Class = 6,
+		/**
+		 * The `Interface` completion item kind.
+		 */
+		Interface = 7,
+		/**
+		 * The `Module` completion item kind.
+		 */
+		Module = 8,
+		/**
+		 * The `Property` completion item kind.
+		 */
+		Property = 9,
+		/**
+		 * The `Unit` completion item kind.
+		 */
+		Unit = 10,
+		/**
+		 * The `Value` completion item kind.
+		 */
+		Value = 11,
+		/**
+		 * The `Enum` completion item kind.
+		 */
+		Enum = 12,
+		/**
+		 * The `Keyword` completion item kind.
+		 */
+		Keyword = 13,
+		/**
+		 * The `Snippet` completion item kind.
+		 */
+		Snippet = 14,
+		/**
+		 * The `Color` completion item kind.
+		 */
+		Color = 15,
+		/**
+		 * The `Reference` completion item kind.
+		 */
+		Reference = 17,
+		/**
+		 * The `File` completion item kind.
+		 */
+		File = 16,
+		/**
+		 * The `Folder` completion item kind.
+		 */
+		Folder = 18,
+		/**
+		 * The `EnumMember` completion item kind.
+		 */
+		EnumMember = 19,
+		/**
+		 * The `Constant` completion item kind.
+		 */
+		Constant = 20,
+		/**
+		 * The `Struct` completion item kind.
+		 */
+		Struct = 21,
+		/**
+		 * The `Event` completion item kind.
+		 */
+		Event = 22,
+		/**
+		 * The `Operator` completion item kind.
+		 */
+		Operator = 23,
+		/**
+		 * The `TypeParameter` completion item kind.
+		 */
+		TypeParameter = 24,
+		/**
+		 * The `User` completion item kind.
+		 */
+		User = 25,
+		/**
+		 * The `Issue` completion item kind.
+		 */
+		Issue = 26,
+	}
+
+	export interface TextDocument {
+
+		/**
+		 * The associated uri for this document.
+		 *
+		 * *Note* that most documents use the `file`-scheme, which means they are files on disk. However, **not** all documents are
+		 * saved on disk and therefore the `scheme` must be checked before trying to access the underlying file or siblings on disk.
+		 *
+		 * @see {@link FileSystemProvider}
+		 * @see {@link TextDocumentContentProvider}
+		 */
+		readonly uri: Uri;
+
+		/**
+		 * The file system path of the associated resource. Shorthand
+		 * notation for {@link TextDocument.uri TextDocument.uri.fsPath}. Independent of the uri scheme.
+		 */
+		readonly fileName: string;
+
+		/**
+		 * Is this document representing an untitled file which has never been saved yet. *Note* that
+		 * this does not mean the document will be saved to disk, use {@linkcode Uri.scheme}
+		 * to figure out where a document will be {@link FileSystemProvider saved}, e.g. `file`, `ftp` etc.
+		 */
+		readonly isUntitled: boolean;
+
+		/**
+		 * The identifier of the language associated with this document.
+		 */
+		readonly languageId: string;
+
+		/**
+		 * The file encoding of this document that will be used when the document is saved.
+		 *
+		 * Use the {@link workspace.onDidChangeTextDocument onDidChangeTextDocument}-event to
+		 * get notified when the document encoding changes.
+		 *
+		 * Note that the possible encoding values are currently defined as any of the following:
+		 * 'utf8', 'utf8bom', 'utf16le', 'utf16be', 'windows1252', 'iso88591', 'iso88593',
+		 * 'iso885915', 'macroman', 'cp437', 'windows1256', 'iso88596', 'windows1257',
+		 * 'iso88594', 'iso885914', 'windows1250', 'iso88592', 'cp852', 'windows1251',
+		 * 'cp866', 'cp1125', 'iso88595', 'koi8r', 'koi8u', 'iso885913', 'windows1253',
+		 * 'iso88597', 'windows1255', 'iso88598', 'iso885910', 'iso885916', 'windows1254',
+		 * 'iso88599', 'windows1258', 'gbk', 'gb18030', 'cp950', 'big5hkscs', 'shiftjis',
+		 * 'eucjp', 'euckr', 'windows874', 'iso885911', 'koi8ru', 'koi8t', 'gb2312',
+		 * 'cp865', 'cp850', 'cp857'.
+		 */
+		readonly encoding: string;
+
+		/**
+		 * The version number of this document (it will strictly increase after each
+		 * change, including undo/redo).
+		 */
+		readonly version: number;
+
+		/**
+		 * `true` if there are unpersisted changes.
+		 */
+		readonly isDirty: boolean;
+
+		/**
+		 * `true` if the document has been closed. A closed document isn't synchronized anymore
+		 * and won't be re-used when the same resource is opened again.
+		 */
+		readonly isClosed: boolean;
+
+		/**
+		 * Save the underlying file.
+		 *
+		 * @returns A promise that will resolve to `true` when the file
+		 * has been saved. If the save failed, will return `false`.
+		 */
+		save(): Thenable<boolean>;
+
+		/**
+		 * The {@link EndOfLine end of line} sequence that is predominately
+		 * used in this document.
+		 */
+		readonly eol: EndOfLine;
+
+		/**
+		 * The number of lines in this document.
+		 */
+		readonly lineCount: number;
+
+		/**
+		 * Returns a text line denoted by the line number. Note
+		 * that the returned object is *not* live and changes to the
+		 * document are not reflected.
+		 *
+		 * @param line A line number in `[0, lineCount)`.
+		 * @returns A {@link TextLine line}.
+		 */
+		lineAt(line: number): TextLine;
+
+		/**
+		 * Returns a text line denoted by the position. Note
+		 * that the returned object is *not* live and changes to the
+		 * document are not reflected.
+		 *
+		 * The position will be {@link TextDocument.validatePosition adjusted}.
+		 *
+		 * @see {@link TextDocument.lineAt}
+		 *
+		 * @param position A position.
+		 * @returns A {@link TextLine line}.
+		 */
+		lineAt(position: Position): TextLine;
+
+		/**
+		 * Converts the position to a zero-based offset.
+		 *
+		 * The position will be {@link TextDocument.validatePosition adjusted}.
+		 *
+		 * @param position A position.
+		 * @returns A valid zero-based offset in UTF-16 [code units](https://developer.mozilla.org/en-US/docs/Glossary/Code_unit).
+		 */
+		offsetAt(position: Position): number;
+
+		/**
+		 * Converts a zero-based offset to a position.
+		 *
+		 * @param offset A zero-based offset into the document. This offset is in UTF-16 [code units](https://developer.mozilla.org/en-US/docs/Glossary/Code_unit).
+		 * @returns A valid {@link Position}.
+		 */
+		positionAt(offset: number): Position;
+
+		/**
+		 * Get the text of this document. A substring can be retrieved by providing
+		 * a range. The range will be {@link TextDocument.validateRange adjusted}.
+		 *
+		 * @param range Include only the text included by the range.
+		 * @returns The text inside the provided range or the entire text.
+		 */
+		getText(range?: Range): string;
+
+		/**
+		 * Get a word-range at the given position. By default words are defined by
+		 * common separators, like space, -, _, etc. In addition, per language custom
+		 * [word definitions] can be defined. It
+		 * is also possible to provide a custom regular expression.
+		 *
+		 * * *Note 1:* A custom regular expression must not match the empty string and
+		 * if it does, it will be ignored.
+		 * * *Note 2:* A custom regular expression will fail to match multiline strings
+		 * and in the name of speed regular expressions should not match words with
+		 * spaces. Use {@linkcode TextLine.text} for more complex, non-wordy, scenarios.
+		 *
+		 * The position will be {@link TextDocument.validatePosition adjusted}.
+		 *
+		 * @param position A position.
+		 * @param regex Optional regular expression that describes what a word is.
+		 * @returns A range spanning a word, or `undefined`.
+		 */
+		getWordRangeAtPosition(position: Position, regex?: RegExp): Range | undefined;
+
+		/**
+		 * Ensure a range is completely contained in this document.
+		 *
+		 * @param range A range.
+		 * @returns The given range or a new, adjusted range.
+		 */
+		validateRange(range: Range): Range;
+
+		/**
+		 * Ensure a position is contained in the range of this document.
+		 *
+		 * @param position A position.
+		 * @returns The given position or a new, adjusted position.
+		 */
+		validatePosition(position: Position): Position;
+	}
+
 }
 
 /* ─────────────────────────────────────────────────────────────────────────────
