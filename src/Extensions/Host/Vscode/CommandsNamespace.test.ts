@@ -85,6 +85,22 @@ describe("CommandsNamespace (subprocess)", () => {
         dispose();
     });
 
+    it("dispose первой регистрации не трогает id, перезанятый повторным register", async () => {
+        const { commands, host, dispose } = createBridge();
+        const unregistered: string[] = [];
+        host.handleNotification("commands.unregisterCommand", (p) => unregistered.push((p as { id: string }).id));
+
+        const first = commands.registerCommand("ext.dup", () => "one");
+        commands.registerCommand("ext.dup", () => "two"); // перезаписывает bound
+        first.dispose(); // get(id) !== bound первого → ничего не снимаем
+
+        await microtasks();
+        expect(unregistered).toEqual([]);
+        // Команда всё ещё исполняется вторым колбэком.
+        await expect(commands.executeCommand<string>("ext.dup")).resolves.toBe("two");
+        dispose();
+    });
+
     it("host → subprocess: входящий commands.executeCommand гоняет локальный колбэк с прокинутыми args", async () => {
         const { commands, host, dispose } = createBridge();
         const seen: unknown[][] = [];
@@ -103,6 +119,33 @@ describe("CommandsNamespace (subprocess)", () => {
     it("host → subprocess: неизвестная локально команда → reject", async () => {
         const { host, dispose } = createBridge();
         await expect(host.request("commands.executeCommand", { id: "nope", args: [] })).rejects.toThrow(/not found/);
+        dispose();
+    });
+
+    it("host → subprocess: без массива args колбэк зовётся без аргументов", async () => {
+        const { commands, host, dispose } = createBridge();
+        const seen: unknown[][] = [];
+        commands.registerCommand("ext.noargs", (...args) => {
+            seen.push(args);
+            return "ok";
+        });
+
+        const result = await host.request("commands.executeCommand", { id: "ext.noargs" });
+
+        expect(result).toBe("ok");
+        expect(seen).toEqual([[]]);
+        dispose();
+    });
+
+    it("host → subprocess: некорректные params (не объект) → reject", async () => {
+        const { host, dispose } = createBridge();
+        await expect(host.request("commands.executeCommand", 42)).rejects.toThrow(/must be an object/);
+        dispose();
+    });
+
+    it("host → subprocess: пустой id → reject", async () => {
+        const { host, dispose } = createBridge();
+        await expect(host.request("commands.executeCommand", { id: "" })).rejects.toThrow(/non-empty string/);
         dispose();
     });
 

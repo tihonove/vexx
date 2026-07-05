@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
 
 import { CommandServiceAdapter } from "./CommandServiceAdapter.ts";
+import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";
 
 describe("CommandServiceAdapter", () => {
     it("execute делегирует в CommandRegistry и пробрасывает args/результат", () => {
@@ -40,5 +41,16 @@ describe("CommandServiceAdapter", () => {
 
         disposable.dispose();
         expect(registry.has("ext.temp")).toBe(false);
+    });
+});
+
+describe("NULL_COMMAND_SERVICE", () => {
+    it("execute — no-op возвращает undefined", () => {
+        expect(NULL_COMMAND_SERVICE.execute("any", [1, 2])).toBeUndefined();
+    });
+
+    it("registerProxy — no-op возвращает безопасный Disposable", () => {
+        const disposable = NULL_COMMAND_SERVICE.registerProxy("any", () => undefined);
+        expect(() => disposable.dispose()).not.toThrow();
     });
 });
