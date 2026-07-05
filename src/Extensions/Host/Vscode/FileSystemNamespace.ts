@@ -20,7 +20,7 @@ import { FileSystemError, FileType } from "./VscodeTypes.ts";
 export type IFileSystemNamespace = Pick<vscode.FileSystem, "stat" | "readFile" | "writeFile">;
 
 /** Преобразует ошибку `node:fs` в {@link FileSystemError}; прочее пробрасывает. */
-function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
+export function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
     const code = (err as NodeJS.ErrnoException | null)?.code;
     switch (code) {
         case "ENOENT":
@@ -35,19 +35,27 @@ function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
     }
 }
 
+/** Минимум `fs.Stats`, нужный для определения {@link FileType}. */
+interface IStatKind {
+    isFile(): boolean;
+    isDirectory(): boolean;
+    isSymbolicLink(): boolean;
+}
+
+/** Классифицирует запись ФС в {@link FileType}. */
+export function fileTypeFromStats(s: IStatKind): FileType {
+    if (s.isFile()) return FileType.File;
+    if (s.isDirectory()) return FileType.Directory;
+    if (s.isSymbolicLink()) return FileType.SymbolicLink;
+    return FileType.Unknown;
+}
+
 export function createFileSystemNamespace(): IFileSystemNamespace {
     async function stat(uri: vscode.Uri): Promise<vscode.FileStat> {
         try {
             const s = await fs.stat(uri.fsPath);
-            const type = s.isFile()
-                ? FileType.File
-                : s.isDirectory()
-                  ? FileType.Directory
-                  : s.isSymbolicLink()
-                    ? FileType.SymbolicLink
-                    : FileType.Unknown;
             return {
-                type: type as vscode.FileType,
+                type: fileTypeFromStats(s) as vscode.FileType,
                 ctime: s.ctimeMs,
                 mtime: s.mtimeMs,
                 size: s.size,
