@@ -51,6 +51,8 @@ export class EditorController extends Disposable implements IController {
     private tokenStore: DocumentTokenStore;
     private languageSubscription: IDisposable | null = null;
     private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
+    private eolSubscription: IDisposable | null = null;
+    private eolChangeListeners: (() => void)[] = [];
     private filePath: string | null = null;
     private savedVersionId = 0;
     private savedEol: EndOfLine;
@@ -111,6 +113,21 @@ export class EditorController extends Disposable implements IController {
         };
     }
 
+    /**
+     * Событие смены EOL документа (командой, undo/redo — любым путём через
+     * doc.setEol). Подписка живёт на контроллере, а не на конкретном
+     * документе — переживает пересоздание документа в openFile.
+     */
+    public onDidChangeEol(listener: () => void): IDisposable {
+        this.eolChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.eolChangeListeners.indexOf(listener);
+                if (i >= 0) this.eolChangeListeners.splice(i, 1);
+            },
+        };
+    }
+
     public get fileName(): string | null {
         return this.filePath ? path.basename(this.filePath) : null;
     }
@@ -143,7 +160,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tabIndex = 0;
         this.attachUndoRouting();
         this.view = new ScrollBarDecorator(this.editor);
-        this.bindLanguageListener();
+        this.bindDocumentListeners();
 
         this.register(
             themeService.onThemeChange((theme) => {
@@ -161,6 +178,7 @@ export class EditorController extends Disposable implements IController {
         this.register({
             dispose: () => {
                 this.languageSubscription?.dispose();
+                this.eolSubscription?.dispose();
             },
         });
         // Очищаем историю отмены этого файла при закрытии вкладки.
@@ -183,7 +201,7 @@ export class EditorController extends Disposable implements IController {
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
         this.savedEol = this.doc.eol;
-        this.bindLanguageListener();
+        this.bindDocumentListeners();
     }
 
     public save(): void {
@@ -381,15 +399,19 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Переподписывается на смену языка текущего документа (документ
-     * пересоздаётся в openFile): пересаживает токенизатор и ретранслирует
-     * событие подписчикам контроллера.
+     * Переподписывается на события текущего документа (документ пересоздаётся
+     * в openFile): на смену языка — пересаживает токенизатор, на смену EOL —
+     * просто ретранслирует; оба события ретранслируются подписчикам контроллера.
      */
-    private bindLanguageListener(): void {
+    private bindDocumentListeners(): void {
         this.languageSubscription?.dispose();
         this.languageSubscription = this.doc.onDidChangeLanguage((change) => {
             this.applyTokenizer();
             for (const listener of [...this.languageChangeListeners]) listener(change);
+        });
+        this.eolSubscription?.dispose();
+        this.eolSubscription = this.doc.onDidChangeEol(() => {
+            for (const listener of [...this.eolChangeListeners]) listener();
         });
     }
 }

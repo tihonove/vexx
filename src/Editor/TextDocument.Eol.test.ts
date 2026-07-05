@@ -84,6 +84,42 @@ describe("TextDocument EOL model", () => {
         expect(doc.serialize()).toBe("a\nb");
     });
 
+    // ─── onDidChangeEol ─────────────────────────────────────
+
+    it("onDidChangeEol fires when setEol changes the sequence", () => {
+        const doc = new TextDocument("a\nb");
+        let fired = 0;
+        doc.onDidChangeEol(() => fired++);
+
+        doc.setEol(EndOfLine.CRLF);
+
+        expect(fired).toBe(1);
+    });
+
+    it("onDidChangeEol does not fire when setEol is a no-op", () => {
+        const doc = new TextDocument("a\nb");
+        let fired = 0;
+        doc.onDidChangeEol(() => fired++);
+
+        doc.setEol(EndOfLine.LF);
+
+        expect(fired).toBe(0);
+    });
+
+    it("dispose подписки onDidChangeEol останавливает доставку, повторный dispose — no-op", () => {
+        const doc = new TextDocument("a\nb");
+        let fired = 0;
+        const subscription = doc.onDidChangeEol(() => fired++);
+        const other = doc.onDidChangeEol(() => undefined);
+
+        subscription.dispose();
+        subscription.dispose();
+        doc.setEol(EndOfLine.CRLF);
+
+        expect(fired).toBe(0);
+        other.dispose();
+    });
+
     // ─── setText re-detects eol ─────────────────────────────
 
     it("setText re-detects eol and strips \\r", () => {
