@@ -1,5 +1,6 @@
 import type { IDisposable } from "../Common/Disposable.ts";
 
+import { detectEndOfLine, EndOfLine, eolToSequence } from "./EndOfLine.ts";
 import type { IDocumentContentChange } from "./IDocumentContentChange.ts";
 import type { IDocumentLanguageChange } from "./IDocumentLanguageChange.ts";
 import { comparePositions } from "./IPosition.ts";
@@ -20,15 +21,21 @@ export class TextDocument implements ITextDocument {
     private contentChangeListeners: ((change: IDocumentContentChange) => void)[] = [];
     private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
     private innerVersionId = 0;
+    private eolValue: EndOfLine;
     private languageIdValue: string;
 
     public constructor(text: string, languageId = "plaintext") {
-        this.lines = text.split("\n");
+        this.eolValue = detectEndOfLine(text);
+        this.lines = text.split(/\r\n|\n/);
         this.languageIdValue = languageId;
     }
 
     public get versionId(): number {
         return this.innerVersionId;
+    }
+
+    public get eol(): EndOfLine {
+        return this.eolValue;
     }
 
     public get languageId(): string {
@@ -76,10 +83,19 @@ export class TextDocument implements ITextDocument {
         return this.lines.join("\n");
     }
 
+    public serialize(): string {
+        return this.lines.join(eolToSequence(this.eolValue));
+    }
+
+    public setEol(eol: EndOfLine): void {
+        this.eolValue = eol;
+    }
+
     public setText(text: string): void {
         const oldEndLine = this.lines.length - 1;
         this.innerVersionId++;
-        this.lines = text.split("\n");
+        this.eolValue = detectEndOfLine(text);
+        this.lines = text.split(/\r\n|\n/);
         this.fireChange({
             startLine: 0,
             oldEndLine,

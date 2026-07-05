@@ -72,6 +72,7 @@ import {
     selectAllAction,
     undoAction,
 } from "./Actions/EditorEditActions.ts";
+import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
 import { fileSaveAction, fileSaveAsAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import { buildPasteEdits, fileCopyAction, fileCutAction, filePasteAction } from "./Actions/FileTreeClipboardActions.ts";
@@ -176,6 +177,11 @@ const builtinActions = [
     undoAction,
     redoAction,
     selectAllAction,
+
+    // End of line
+    convertToLfAction,
+    convertToCrlfAction,
+    toggleEolAction,
 
     // Whitespace
     trimTrailingWhitespaceAction,

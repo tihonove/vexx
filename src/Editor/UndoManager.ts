@@ -1,3 +1,4 @@
+import type { EndOfLine } from "./EndOfLine.ts";
 import type { EditorViewState } from "./EditorViewState.ts";
 import type { ISelection } from "./ISelection.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
@@ -12,6 +13,8 @@ interface MutableUndoElement {
     backwardEdits: readonly ITextEdit[];
     beforeSelections: readonly ISelection[];
     afterSelections: readonly ISelection[];
+    eolBefore?: EndOfLine;
+    eolAfter?: EndOfLine;
 }
 
 export class UndoManager {
@@ -56,6 +59,9 @@ export class UndoManager {
 
         const { appliedVersion, inverseEdits } = this.doc.applyEdits(element.backwardEdits);
         this.viewState.restoreSelections(element.beforeSelections);
+        if (element.eolBefore !== undefined) {
+            this.doc.setEol(element.eolBefore);
+        }
 
         this.redoStack.push({
             label: element.label,
@@ -65,6 +71,8 @@ export class UndoManager {
             backwardEdits: inverseEdits,
             beforeSelections: element.afterSelections,
             afterSelections: element.beforeSelections,
+            eolBefore: element.eolAfter,
+            eolAfter: element.eolBefore,
         });
 
         // The next element on the undo stack now needs its versionAfter updated
@@ -86,6 +94,9 @@ export class UndoManager {
 
         const { appliedVersion, inverseEdits } = this.doc.applyEdits(element.backwardEdits);
         this.viewState.restoreSelections(element.beforeSelections);
+        if (element.eolBefore !== undefined) {
+            this.doc.setEol(element.eolBefore);
+        }
 
         this.undoStack.push({
             label: element.label,
@@ -95,6 +106,8 @@ export class UndoManager {
             backwardEdits: inverseEdits,
             beforeSelections: element.afterSelections,
             afterSelections: element.beforeSelections,
+            eolBefore: element.eolAfter,
+            eolAfter: element.eolBefore,
         });
 
         // Update the next redo element's versionAfter to match current doc version
