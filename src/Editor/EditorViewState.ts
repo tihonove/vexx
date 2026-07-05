@@ -1087,7 +1087,7 @@ export class EditorViewState {
         });
     }
 
-    private cloneSelections(): ISelection[] {
+    public cloneSelections(): ISelection[] {
         return this.selections.map((s) => ({ ...s, anchor: { ...s.anchor }, active: { ...s.active } }));
     }
 }

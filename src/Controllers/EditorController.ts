@@ -5,6 +5,7 @@ import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
+import { EndOfLine } from "../Editor/EndOfLine.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
@@ -46,13 +47,18 @@ export class EditorController extends Disposable implements IController {
     private tokenStore: DocumentTokenStore;
     private filePath: string | null = null;
     private savedVersionId = 0;
+    private savedEol: EndOfLine;
     private readonly tokenizationRegistry: TokenizationRegistry;
     private readonly tokenStyleResolver: ITokenStyleResolver;
     private readonly languageService: ILanguageService;
     private contextMenuEntriesValue: MenuEntry[] = [];
 
     public get isModified(): boolean {
-        return this.doc.versionId !== this.savedVersionId;
+        return this.doc.versionId !== this.savedVersionId || this.doc.eol !== this.savedEol;
+    }
+
+    public get eol(): EndOfLine {
+        return this.doc.eol;
     }
 
     public set contextMenuEntries(entries: MenuEntry[]) {
@@ -91,6 +97,7 @@ export class EditorController extends Disposable implements IController {
         this.languageService = languageService;
 
         this.doc = new TextDocument("");
+        this.savedEol = this.doc.eol;
         this.editorViewState = new EditorViewState(this.doc);
         this.tokenStore = new DocumentTokenStore(this.doc, this.pickTokenizer(null));
         this.editorViewState.tokenStore = this.tokenStore;
@@ -120,13 +127,41 @@ export class EditorController extends Disposable implements IController {
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
+        this.savedEol = this.doc.eol;
     }
 
     public save(): void {
         if (this.filePath === null) return;
-        fs.writeFileSync(this.filePath, this.doc.getText(), "utf-8");
+        fs.writeFileSync(this.filePath, this.doc.serialize(), "utf-8");
         this.savedVersionId = this.doc.versionId;
+        this.savedEol = this.doc.eol;
         this.onDidSave?.();
+    }
+
+    /**
+     * Changes the document's end-of-line sequence. The change is undoable and
+     * marks the editor dirty (EOL is tracked as a separate axis from content —
+     * see {@link isModified}).
+     */
+    public setEol(eol: EndOfLine): void {
+        const previous = this.doc.eol;
+        if (previous === eol) return;
+
+        const selections = this.editorViewState.cloneSelections();
+        const version = this.doc.versionId;
+        this.doc.setEol(eol);
+        this.pushUndo({
+            label: "Change End of Line Sequence",
+            versionBefore: version,
+            versionAfter: version,
+            forwardEdits: [],
+            backwardEdits: [],
+            beforeSelections: selections,
+            afterSelections: selections,
+            eolBefore: previous,
+            eolAfter: eol,
+        });
+        this.editor.markDirty();
     }
 
     public getText(): string {

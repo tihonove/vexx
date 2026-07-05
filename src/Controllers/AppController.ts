@@ -64,6 +64,7 @@ import {
     selectAllAction,
     undoAction,
 } from "./Actions/EditorEditActions.ts";
+import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
 import { fileSaveAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
@@ -159,6 +160,11 @@ const builtinActions = [
     undoAction,
     redoAction,
     selectAllAction,
+
+    // End of line
+    convertToLfAction,
+    convertToCrlfAction,
+    toggleEolAction,
 
     // Clipboard
     clipboardCopyAction,

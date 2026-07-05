@@ -1,6 +1,7 @@
 import type { IDisposable } from "../Common/Disposable.ts";
 
 import type { IDocumentContentChange } from "./IDocumentContentChange.ts";
+import type { EndOfLine } from "./EndOfLine.ts";
 import type { IRange } from "./IRange.ts";
 import type { ITextEdit } from "./ITextEdit.ts";
 
@@ -20,11 +21,24 @@ export interface ITextDocument {
     readonly lineCount: number;
     readonly versionId: number;
 
+    /**
+     * End-of-line sequence used when the document is serialized to disk.
+     * Line content is always stored LF-canonical; this is a separate axis
+     * applied only by {@link serialize}.
+     */
+    readonly eol: EndOfLine;
+
     getLineContent(lineIndex: number): string;
     getLineLength(lineIndex: number): number;
+    /** Returns the full text with LF line separators (internal canonical form). */
     getText(): string;
     setText(text: string): void;
     getTextInRange(range: IRange): string;
+
+    /** Returns the full text joined with the document's {@link eol} — for writing to disk. */
+    serialize(): string;
+    /** Changes the {@link eol} axis. Does not alter line content or bump versionId. */
+    setEol(eol: EndOfLine): void;
 
     applyEdits(edits: readonly ITextEdit[]): IApplyEditsResult;
 
