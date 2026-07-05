@@ -7,7 +7,12 @@ import { subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarnes
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
 import { ExtensionHost } from "./ExtensionHost.ts";
-import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
+import type {
+    IActiveEditorMeta,
+    IEditorOptionsPatch,
+    IEditorOptionsService,
+    IEditorOptionsState,
+} from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 
 const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
@@ -25,7 +30,10 @@ class FakeOptionsService implements IEditorOptionsService {
     public getActiveEditorFilePath(): string | null {
         return null;
     }
-    public onActiveEditorChanged(_cb: (filePath: string | null) => void): { dispose(): void } {
+    public getActiveEditorMeta(): IActiveEditorMeta {
+        return { fileName: null, languageId: null, isDirty: false };
+    }
+    public onActiveEditorChanged(_cb: (meta: IActiveEditorMeta) => void): { dispose(): void } {
         return { dispose: () => {} };
     }
 }

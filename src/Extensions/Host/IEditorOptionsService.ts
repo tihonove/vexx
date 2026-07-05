@@ -13,6 +13,17 @@ export interface IEditorOptionsPatch {
     readonly insertSpaces?: boolean;
 }
 
+/**
+ * Метаданные активного редактора, проецируемые в subprocess на смене фокуса
+ * (`editor.activeEditorChanged`). Только метаданные — без текста (полный снапшот
+ * приходит лишь на пути will-save, WP6).
+ */
+export interface IActiveEditorMeta {
+    readonly fileName: string | null;
+    readonly languageId: string | null;
+    readonly isDirty: boolean;
+}
+
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 /**
@@ -25,5 +36,7 @@ export interface IEditorOptionsService {
     getActiveEditorOptions(): IEditorOptionsState | null;
     setActiveEditorOptions(patch: IEditorOptionsPatch): void;
     getActiveEditorFilePath(): string | null;
-    onActiveEditorChanged(cb: (filePath: string | null) => void): IDisposable;
+    /** Метаданные активного редактора для проекции в subprocess. */
+    getActiveEditorMeta(): IActiveEditorMeta;
+    onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable;
 }

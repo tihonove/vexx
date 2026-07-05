@@ -13,6 +13,29 @@ import { RpcEndpoint } from "./RpcEndpoint.ts";
 
 export const ExtensionHostDIToken = token<ExtensionHost>("ExtensionHost");
 
+/** Папка воркспейса, проецируемая в subprocess (`workspace.workspaceFolders`). */
+export interface IWorkspaceFolderInfo {
+    readonly uri: string;
+    readonly name: string;
+    readonly index: number;
+}
+
+/**
+ * Провайдер конфигурации для push-модели: host рассылает снапшот настроек и
+ * папки воркспейса в subprocess (`getConfiguration(...).get(...)` в расширениях
+ * синхронный, RPC-per-get невозможен). Внедряется в {@link ExtensionHost} из
+ * {@link ../../Controllers/Modules/ExtensionHostModule.ts} поверх
+ * `IConfigurationService`, чтобы не тянуть слой Configuration в рантайм host'а.
+ */
+export interface IExtensionHostConfigProvider {
+    /** Полное слитое дерево настроек (`IConfigurationService.getValue()`). */
+    getSnapshot(): unknown;
+    /** Папки воркспейса (одна, из `process.cwd()`, пока нет multi-root). */
+    getWorkspaceFolders(): readonly IWorkspaceFolderInfo[];
+    /** Подписка на изменение настроек (live-reload); передаёт изменившиеся ключи. */
+    onDidChange(cb: (affectedKeys: readonly string[]) => void): IDisposable;
+}
+
 export interface IExtensionHostOptions {
     /**
      * Команда и аргументы для запуска subprocess'а. По умолчанию вычисляется
@@ -46,6 +69,12 @@ export interface IExtensionHostOptions {
      * Логгер для stderr subprocess'а (канал `extensions.host.stderr`).
      */
     readonly stderrLogger?: ILogger;
+    /**
+     * Провайдер конфигурации для push в subprocess (`workspace.initialize` /
+     * `workspace.configurationChanged`). Если не передан — конфиг не рассылается
+     * (расширение видит только `configDefaults` из своего манифеста).
+     */
+    readonly configuration?: IExtensionHostConfigProvider;
 }
 
 /**
@@ -73,6 +102,7 @@ export class ExtensionHost extends Disposable {
     private readonly rpcLogger: ILogger | undefined;
     private readonly stdoutLogger: ILogger | undefined;
     private readonly stderrLogger: ILogger | undefined;
+    private readonly configuration: IExtensionHostConfigProvider | undefined;
     private readonly extensions = new Set<string>();
     private subprocess: ChildProcess | null = null;
     private channel: IpcMessageChannel | null = null;
@@ -92,6 +122,7 @@ export class ExtensionHost extends Disposable {
         this.rpcLogger = options.rpcLogger;
         this.stdoutLogger = options.stdoutLogger;
         this.stderrLogger = options.stderrLogger;
+        this.configuration = options.configuration;
     }
 
     public async registerExtension(reg: IExtensionRegistration): Promise<IDisposable> {
@@ -101,7 +132,11 @@ export class ExtensionHost extends Disposable {
         }
         this.logger?.debug(`registerExtension(${reg.id})`, { mainPath: reg.mainPath });
         const rpc = await this.ensureSubprocess();
-        await rpc.request("host.activateExtension", { id: reg.id, mainPath: reg.mainPath });
+        await rpc.request("host.activateExtension", {
+            id: reg.id,
+            mainPath: reg.mainPath,
+            configDefaults: reg.configDefaults,
+        });
         this.extensions.add(reg.id);
         this.logger?.info(`activated extension "${reg.id}"`);
         return {
@@ -187,9 +222,17 @@ export class ExtensionHost extends Disposable {
 
         this.readyPromise = waitForReady(rpc, child, this.options.readyTimeoutMs).then(() => {
             this.logger?.info("extension host ready");
+            // Push конфигурацию ДО стартового active-editor и первого
+            // activateExtension: расширение читает getConfiguration уже в activate().
+            if (this.configuration !== undefined) {
+                rpc.notify("workspace.initialize", {
+                    configuration: this.configuration.getSnapshot(),
+                    workspaceFolders: this.configuration.getWorkspaceFolders(),
+                });
+            }
             // Send initial active editor state so that window.activeTextEditor
             // is correct before the first host.activateExtension call.
-            rpc.notify("editor.activeEditorChanged", { fileName: this.editorOptions.getActiveEditorFilePath() });
+            rpc.notify("editor.activeEditorChanged", this.editorOptions.getActiveEditorMeta());
         });
         await this.readyPromise;
         return rpc;
@@ -205,10 +248,28 @@ export class ExtensionHost extends Disposable {
             return this.editorOptions.getActiveEditorOptions();
         });
         this.register(
-            this.editorOptions.onActiveEditorChanged((filePath) => {
-                rpc.notify("editor.activeEditorChanged", { fileName: filePath });
+            this.editorOptions.onActiveEditorChanged((meta) => {
+                rpc.notify("editor.activeEditorChanged", meta);
             }),
         );
+        rpc.handleNotification("window.showMessage", (params) => {
+            const { severity, message } = params as { severity?: unknown; message?: unknown };
+            const text = typeof message === "string" ? message : String(message);
+            if (severity === "error") this.logger?.error(`[extension] ${text}`);
+            else if (severity === "warn") this.logger?.warn(`[extension] ${text}`);
+            else this.logger?.info(`[extension] ${text}`);
+        });
+        const configuration = this.configuration;
+        if (configuration !== undefined) {
+            this.register(
+                configuration.onDidChange((affectedKeys) => {
+                    rpc.notify("workspace.configurationChanged", {
+                        configuration: configuration.getSnapshot(),
+                        affectedKeys,
+                    });
+                }),
+            );
+        }
     }
 
     private async shutdownSubprocess(): Promise<void> {
@@ -257,10 +318,15 @@ export class ExtensionHost extends Disposable {
 
 function sanitizeOptionsPatch(raw: unknown): IEditorOptionsPatch {
     if (typeof raw !== "object" || raw === null) return {};
-    const obj = raw as { tabSize?: unknown; insertSpaces?: unknown };
+    const obj = raw as { tabSize?: unknown; insertSpaces?: unknown; indentSize?: unknown };
     const patch: { tabSize?: number; insertSpaces?: boolean } = {};
     if (typeof obj.tabSize === "number" && Number.isFinite(obj.tabSize) && obj.tabSize > 0) {
         patch.tabSize = Math.floor(obj.tabSize);
+    }
+    // `indentSize` — алиас tabSize (Vexx пока не различает их): применяем только
+    // если явного tabSize нет. editorconfig шлёт indent_size именно так.
+    if (patch.tabSize === undefined && typeof obj.indentSize === "number" && Number.isFinite(obj.indentSize) && obj.indentSize > 0) {
+        patch.tabSize = Math.floor(obj.indentSize);
     }
     if (typeof obj.insertSpaces === "boolean") {
         patch.insertSpaces = obj.insertSpaces;

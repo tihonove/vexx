@@ -26,4 +26,10 @@ export interface IExtensionRegistration {
         readonly [key: string]: unknown;
     };
     readonly mainPath: string;
+    /**
+     * Дефолты из `contributes.configuration` расширения, сплюснутые в dotted-map
+     * (`{ "editorconfig.generateAuto": true }`). Отправляются в subprocess в
+     * `host.activateExtension` и слоятся под пользовательским снапшотом настроек.
+     */
+    readonly configDefaults?: Readonly<Record<string, unknown>>;
 }

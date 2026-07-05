@@ -1,8 +1,15 @@
+import * as path from "node:path";
+
+import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { LogLevel } from "../../Common/Logging/LogLevel.ts";
 import { EditorOptionsServiceAdapter } from "../../Extensions/Host/EditorOptionsServiceAdapter.ts";
-import { ExtensionHost, ExtensionHostDIToken } from "../../Extensions/Host/ExtensionHost.ts";
+import {
+    ExtensionHost,
+    ExtensionHostDIToken,
+    type IExtensionHostConfigProvider,
+} from "../../Extensions/Host/ExtensionHost.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 
 /**
@@ -27,11 +34,25 @@ export const extensionHostModule: ContainerModule = (container) => {
         // \u0414\u043b\u044f NULL_LOG_SERVICE \u0432\u0441\u0435 \u0443\u0440\u043e\u0432\u043d\u0438 \u043e\u0442\u043a\u043b\u044e\u0447\u0435\u043d\u044b \u2014 \u043d\u0435 \u043f\u0435\u0440\u0435\u043a\u043b\u044e\u0447\u0430\u0435\u043c stdio \u0432 \"pipe\".
         const wantStdio = (lg: typeof stdoutLogger): typeof stdoutLogger | undefined =>
             lg.isEnabled(LogLevel.Info) ? lg : undefined;
+
+        // Провайдер конфигурации: снапшот настроек + единственная папка воркспейса
+        // (пока нет multi-root) из process.cwd(). Слой Configuration не тянется в
+        // рантайм host'а — доступ идёт через этот тонкий адаптер.
+        const configService = container.get(IConfigurationServiceDIToken);
+        const cwd = process.cwd();
+        const configuration: IExtensionHostConfigProvider = {
+            getSnapshot: () => configService.getValue(),
+            getWorkspaceFolders: () => [{ uri: cwd, name: path.basename(cwd), index: 0 }],
+            onDidChange: (cb) =>
+                configService.onDidChangeConfiguration((event) => cb(event.affectedKeys)),
+        };
+
         return new ExtensionHost(adapter, {
             logger,
             rpcLogger,
             stdoutLogger: wantStdio(stdoutLogger),
             stderrLogger: wantStdio(stderrLogger),
+            configuration,
         });
     });
 };

@@ -5,7 +5,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
-import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
+import type {
+    IActiveEditorMeta,
+    IEditorOptionsPatch,
+    IEditorOptionsService,
+    IEditorOptionsState,
+} from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IProtocolMessage, IRequestMessage } from "./RpcEndpoint.ts";
 
@@ -80,7 +85,7 @@ class FakeEditorOptions implements IEditorOptionsService {
     public options: IEditorOptionsState | null = { tabSize: 4, insertSpaces: true };
     public lastPatch: IEditorOptionsPatch | null = null;
     public filePath: string | null = "/active.ts";
-    private cb: ((p: string | null) => void) | null = null;
+    private cb: ((meta: IActiveEditorMeta) => void) | null = null;
 
     public getActiveEditorOptions(): IEditorOptionsState | null {
         return this.options;
@@ -91,7 +96,10 @@ class FakeEditorOptions implements IEditorOptionsService {
     public getActiveEditorFilePath(): string | null {
         return this.filePath;
     }
-    public onActiveEditorChanged(cb: (p: string | null) => void): IDisposable {
+    public getActiveEditorMeta(): IActiveEditorMeta {
+        return { fileName: this.filePath, languageId: null, isDirty: false };
+    }
+    public onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable {
         this.cb = cb;
         return {
             dispose: (): void => {
@@ -100,7 +108,7 @@ class FakeEditorOptions implements IEditorOptionsService {
         };
     }
     public fireActiveEditorChanged(p: string | null): void {
-        this.cb?.(p);
+        this.cb?.({ fileName: p, languageId: null, isDirty: false });
     }
 }
 

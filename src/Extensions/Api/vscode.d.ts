@@ -44,6 +44,11 @@ declare module "vscode" {
     export interface TextEditorOptions {
         tabSize?: number | string;
         insertSpaces?: boolean | string;
+        /**
+         * Размер отступа. Число или `"tabSize"`. Host алиасит его к `tabSize`
+         * (Vexx пока не различает их) — editorconfig шлёт `indent_size` так.
+         */
+        indentSize?: number | string;
     }
 
 
@@ -90,9 +95,33 @@ declare module "vscode" {
         export const onDidChangeActiveTextEditor: Event<TextEditor | undefined>;
 
         /**
+         * Состояние окна. В TUI всегда сфокусировано/активно.
+         */
+        export const state: WindowState;
+
+        /**
+         * Событие смены состояния окна. Регистрируется, но в TUI не стреляет.
+         */
+        export const onDidChangeWindowState: Event<WindowState>;
+
+        /**
+         * Показать сообщение об ошибке/предупреждение/информацию. В Vexx уходит
+         * в лог host'а; промис резолвится `undefined` (кнопки не поддержаны).
+         */
+        export function showErrorMessage(message: string, ...items: string[]): Thenable<string | undefined>;
+        export function showWarningMessage(message: string, ...items: string[]): Thenable<string | undefined>;
+        export function showInformationMessage(message: string, ...items: string[]): Thenable<string | undefined>;
+
+        /**
          * Создаёт output channel. В Phase 1 — заглушка (вывод игнорируется).
          */
         export function createOutputChannel(name: string): OutputChannel;
+    }
+
+    /** Состояние окна редактора. */
+    export interface WindowState {
+        readonly focused: boolean;
+        readonly active: boolean;
     }
 
     /**
@@ -1006,7 +1035,133 @@ declare module "vscode" {
 		validatePosition(position: Position): Position;
 	}
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // WP3: workspace / configuration / languages surface.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Папка воркспейса. */
+    export interface WorkspaceFolder {
+        readonly uri: Uri;
+        readonly name: string;
+        readonly index: number;
+    }
+
+    /** Событие изменения конфигурации. */
+    export interface ConfigurationChangeEvent {
+        affectsConfiguration(section: string, scope?: unknown): boolean;
+    }
+
+    /** Результат покомпонентного `inspect`. */
+    export interface ConfigurationInspect<T> {
+        key: string;
+        defaultValue?: T;
+        globalValue?: T;
+        workspaceValue?: T;
+        workspaceFolderValue?: T;
+    }
+
+    /** Доступ к конфигурации (`getConfiguration`). */
+    export interface WorkspaceConfiguration {
+        get<T>(section: string): T | undefined;
+        get<T>(section: string, defaultValue: T): T;
+        has(section: string): boolean;
+        inspect<T>(section: string): ConfigurationInspect<T> | undefined;
+        update(section: string, value: unknown, configurationTarget?: unknown, overrideInLanguage?: boolean): Thenable<void>;
+        readonly [key: string]: unknown;
+    }
+
+    /** Событие will-save с возможностью отложить сохранение правками. */
+    export interface TextDocumentWillSaveEvent {
+        readonly document: TextDocument;
+        readonly reason: TextDocumentSaveReason;
+        waitUntil(thenable: Thenable<readonly TextEdit[]>): void;
+        waitUntil(thenable: Thenable<unknown>): void;
+    }
+
+    /** Подмножество `vscode.workspace`. */
+    export namespace workspace {
+        export const workspaceFolders: readonly WorkspaceFolder[] | undefined;
+        export const name: string | undefined;
+        export const textDocuments: readonly TextDocument[];
+        export function getConfiguration(section?: string, scope?: unknown): WorkspaceConfiguration;
+        export function asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string;
+        export function openTextDocument(uri: Uri | string): Thenable<TextDocument>;
+        export const onDidChangeConfiguration: Event<ConfigurationChangeEvent>;
+        export const onDidOpenTextDocument: Event<TextDocument>;
+        export const onDidCloseTextDocument: Event<TextDocument>;
+        export const onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>;
+        export const onDidSaveTextDocument: Event<TextDocument>;
+    }
+
+    /** Селектор документа для провайдеров. */
+    export interface DocumentFilter {
+        readonly language?: string;
+        readonly scheme?: string;
+        readonly pattern?: string;
+    }
+    export type DocumentSelector = string | DocumentFilter | ReadonlyArray<string | DocumentFilter>;
+
+    /** Результат провайдера — значение или Thenable. */
+    export type ProviderResult<T> = T | undefined | null | Thenable<T | undefined | null>;
+
+    export interface CancellationToken {
+        readonly isCancellationRequested: boolean;
+        readonly onCancellationRequested: Event<unknown>;
+    }
+
+    export enum CompletionTriggerKind {
+        Invoke = 0,
+        TriggerCharacter = 1,
+        TriggerForIncompleteCompletions = 2,
+    }
+
+    export interface CompletionContext {
+        readonly triggerKind: CompletionTriggerKind;
+        readonly triggerCharacter?: string;
+    }
+
+    /** Элемент автодополнения. */
+    export class CompletionItem {
+        label: string;
+        kind?: CompletionItemKind;
+        insertText?: string;
+        detail?: string;
+        documentation?: string;
+        command?: { command: string; title: string; arguments?: unknown[] };
+        constructor(label: string, kind?: CompletionItemKind);
+    }
+
+    export interface CompletionList<T extends CompletionItem = CompletionItem> {
+        isIncomplete?: boolean;
+        items: T[];
+    }
+
+    export interface CompletionItemProvider<T extends CompletionItem = CompletionItem> {
+        provideCompletionItems(
+            document: TextDocument,
+            position: Position,
+            token: CancellationToken,
+            context: CompletionContext,
+        ): ProviderResult<T[] | CompletionList<T>>;
+        resolveCompletionItem?(item: T, token: CancellationToken): ProviderResult<T>;
+    }
+
+    /** Подмножество `vscode.languages`. */
+    export namespace languages {
+        export function registerCompletionItemProvider(
+            selector: DocumentSelector,
+            provider: CompletionItemProvider,
+            ...triggerCharacters: string[]
+        ): Disposable;
+    }
+
 }
+
+/**
+ * Глобальный `Thenable<T>` — VS Code исторически использует его вместо `Promise`
+ * в сигнатурах API. Совместим с `Promise` структурно.
+ */
+interface Thenable<T> extends PromiseLike<T> {}
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Ниже — полный исходный vscode.d.ts из microsoft/vscode, закомментирован

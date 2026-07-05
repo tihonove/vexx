@@ -5,14 +5,16 @@ import type { IDisposable } from "../../Common/Disposable.ts";
 import type { IIpcEndpoint } from "./IpcMessageChannel.ts";
 import { IpcMessageChannel } from "./IpcMessageChannel.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
+import type { WorkspaceConfigStore } from "./Vscode/WorkspaceConfigStore.ts";
 import { buildVscodeNamespace } from "./VscodeNamespace.ts";
 
 /**
  * Сообщения protocol host -> subprocess. RPC-методы:
  *
- * - `host.activateExtension({ id, mainPath })` -> `null`. Загружает CJS-модуль
- *   через `createRequire`, вызывает `module.activate(context)`. Бросает на
- *   ошибках загрузки/активации.
+ * - `host.activateExtension({ id, mainPath, configDefaults? })` -> `null`.
+ *   Кладёт `configDefaults` (дефолты `contributes.configuration`) в config store,
+ *   загружает CJS-модуль через `createRequire`, вызывает `module.activate(context)`.
+ *   Бросает на ошибках загрузки/активации.
  * - `host.deactivateExtension({ id })` -> `null`. Вызывает `deactivate()` +
  *   disposes `context.subscriptions`. Idempotent.
  * - `host.shutdown()` -> `null`. Снимает все расширения и инициирует exit.
@@ -52,15 +54,18 @@ export function runExtensionHostSubprocess(): void {
     const channel = new IpcMessageChannel(process as unknown as IIpcEndpoint);
     const rpc = new RpcEndpoint(channel);
 
-    installVscodeStub(rpc);
+    const { configStore } = installVscodeStub(rpc);
 
     const extensions = new Map<string, ActivatedExtension>();
 
     rpc.handleRequest("host.activateExtension", async (params): Promise<unknown> => {
-        const { id, mainPath } = parseActivateParams(params);
+        const { id, mainPath, configDefaults } = parseActivateParams(params);
         if (extensions.has(id)) {
             throw new Error(`Extension "${id}" already activated`);
         }
+        // Дефолты из `contributes.configuration` — под пользовательским снапшотом,
+        // должны быть доступны через getConfiguration ДО activate().
+        configStore.applyDefaults(configDefaults);
         const extRequire = createRequire(mainPath);
         const loaded = extRequire(mainPath) as ExtensionModule;
         if (typeof loaded.activate !== "function") {
@@ -131,18 +136,26 @@ async function deactivate(active: ActivatedExtension): Promise<void> {
     }
 }
 
-function parseActivateParams(raw: unknown): { id: string; mainPath: string } {
+function parseActivateParams(raw: unknown): {
+    id: string;
+    mainPath: string;
+    configDefaults: Record<string, unknown> | undefined;
+} {
     if (typeof raw !== "object" || raw === null) {
         throw new Error("activateExtension: params must be an object");
     }
-    const obj = raw as { id?: unknown; mainPath?: unknown };
+    const obj = raw as { id?: unknown; mainPath?: unknown; configDefaults?: unknown };
     if (typeof obj.id !== "string" || obj.id === "") {
         throw new Error("activateExtension: id must be a non-empty string");
     }
     if (typeof obj.mainPath !== "string" || obj.mainPath === "") {
         throw new Error("activateExtension: mainPath must be a non-empty string");
     }
-    return { id: obj.id, mainPath: obj.mainPath };
+    const configDefaults =
+        typeof obj.configDefaults === "object" && obj.configDefaults !== null
+            ? (obj.configDefaults as Record<string, unknown>)
+            : undefined;
+    return { id: obj.id, mainPath: obj.mainPath, configDefaults };
 }
 
 function parseExtensionId(raw: unknown): string {
@@ -163,8 +176,8 @@ function parseExtensionId(raw: unknown): string {
  * Используем приватные API `Module._cache` и `Module._resolveFilename` —
  * стандартный приём расширений Node и оригинальный приём VS Code.
  */
-function installVscodeStub(rpc: RpcEndpoint): IDisposable {
-    const vscodeNs = buildVscodeNamespace(rpc);
+function installVscodeStub(rpc: RpcEndpoint): IDisposable & { configStore: WorkspaceConfigStore } {
+    const { namespace, configStore } = buildVscodeNamespace(rpc);
     const moduleAny = Module as unknown as {
         _cache: Record<string, { exports: unknown; loaded: boolean; id: string; filename: string }>;
         _resolveFilename: (request: string, parent: unknown, ...rest: unknown[]) => string;
@@ -175,7 +188,7 @@ function installVscodeStub(rpc: RpcEndpoint): IDisposable {
         id: cacheKey,
         filename: cacheKey,
         loaded: true,
-        exports: vscodeNs,
+        exports: namespace,
     };
 
     const origResolve = moduleAny._resolveFilename;
@@ -185,6 +198,7 @@ function installVscodeStub(rpc: RpcEndpoint): IDisposable {
     };
 
     return {
+        configStore,
         dispose: (): void => {
             moduleAny._resolveFilename = origResolve;
             Reflect.deleteProperty(moduleAny._cache, cacheKey);

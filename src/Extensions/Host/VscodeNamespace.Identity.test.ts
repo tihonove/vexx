@@ -40,14 +40,14 @@ function makeStubRpc(): StubRpc {
 describe("VscodeNamespace — стабильная идентичность activeTextEditor", () => {
     it("повторный activeTextEditor возвращает ту же ссылку", () => {
         const { rpc, fireActiveEditorChanged } = makeStubRpc();
-        const vscode = buildVscodeNamespace(rpc);
+        const vscode = buildVscodeNamespace(rpc).namespace;
         fireActiveEditorChanged("/f.ts");
         expect(vscode.window.activeTextEditor).toBe(vscode.window.activeTextEditor);
     });
 
     it("editor.document стабилен по ссылке (=== doc для editorconfig)", () => {
         const { rpc, fireActiveEditorChanged } = makeStubRpc();
-        const vscode = buildVscodeNamespace(rpc);
+        const vscode = buildVscodeNamespace(rpc).namespace;
         fireActiveEditorChanged("/f.ts");
         const doc1 = vscode.window.activeTextEditor?.document;
         const doc2 = vscode.window.activeTextEditor?.document;
@@ -57,7 +57,7 @@ describe("VscodeNamespace — стабильная идентичность acti
 
     it("editor из onDidChangeActiveTextEditor === window.activeTextEditor", () => {
         const { rpc, fireActiveEditorChanged } = makeStubRpc();
-        const vscode = buildVscodeNamespace(rpc);
+        const vscode = buildVscodeNamespace(rpc).namespace;
         let delivered: unknown;
         vscode.window.onDidChangeActiveTextEditor((e) => (delivered = e));
         fireActiveEditorChanged("/f.ts");
@@ -66,7 +66,7 @@ describe("VscodeNamespace — стабильная идентичность acti
 
     it("document — полноценный ExtHostTextDocument (uri/lineAt)", () => {
         const { rpc, fireActiveEditorChanged } = makeStubRpc();
-        const vscode = buildVscodeNamespace(rpc);
+        const vscode = buildVscodeNamespace(rpc).namespace;
         fireActiveEditorChanged("/dir/f.ts");
         const doc = vscode.window.activeTextEditor?.document as unknown as {
             uri: { fsPath: string };
@@ -78,7 +78,7 @@ describe("VscodeNamespace — стабильная идентичность acti
 
     it("установка options проксируется в rpc.request(editor.setOptions)", () => {
         const { rpc, fireActiveEditorChanged, request } = makeStubRpc();
-        const vscode = buildVscodeNamespace(rpc);
+        const vscode = buildVscodeNamespace(rpc).namespace;
         fireActiveEditorChanged("/f.ts");
         const editor = vscode.window.activeTextEditor!;
         editor.options = { tabSize: 2, insertSpaces: true };
@@ -87,7 +87,7 @@ describe("VscodeNamespace — стабильная идентичность acti
 
     it("fileName=null → activeTextEditor undefined", () => {
         const { rpc, fireActiveEditorChanged } = makeStubRpc();
-        const vscode = buildVscodeNamespace(rpc);
+        const vscode = buildVscodeNamespace(rpc).namespace;
         fireActiveEditorChanged("/f.ts");
         expect(vscode.window.activeTextEditor).toBeDefined();
         fireActiveEditorChanged(null);
@@ -96,7 +96,7 @@ describe("VscodeNamespace — стабильная идентичность acti
 
     it("value-типы экспортированы как runtime-поля", () => {
         const { rpc } = makeStubRpc();
-        const vscode = buildVscodeNamespace(rpc) as unknown as Record<string, unknown>;
+        const vscode = buildVscodeNamespace(rpc).namespace as unknown as Record<string, unknown>;
         for (const name of ["Position", "Range", "TextEdit", "Uri", "EventEmitter", "EndOfLine"]) {
             expect(vscode[name], name).toBeDefined();
         }

@@ -26,6 +26,7 @@ import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokeniza
 import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
 import { runExtensionHostSubprocess } from "./Extensions/Host/ExtensionHostSubprocess.ts";
 import type { IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.ts";
+import type { IConfigurationContribution } from "./Extensions/IExtensionManifest.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
 import { attachInspector } from "./Inspector/index.ts";
@@ -225,10 +226,34 @@ async function runEditor(): Promise<void> {
                     version: ext.manifest.version,
                 },
                 mainPath,
+                configDefaults: flattenConfigDefaults(ext.manifest.contributes?.configuration),
             };
             await extensionHost.registerExtension(reg);
         } catch (err) {
             extensionsLogger.error(`${ext.id}: failed to activate`, err);
         }
     }
+}
+
+/**
+ * Сплющивает `contributes.configuration` расширения в dotted-map дефолтов
+ * (`{ "editorconfig.generateAuto": true }`). Ключи `properties` — уже полные
+ * dotted-пути настроек. Блок может быть объектом или массивом объектов.
+ */
+function flattenConfigDefaults(
+    configuration: IConfigurationContribution | readonly IConfigurationContribution[] | undefined,
+): Record<string, unknown> | undefined {
+    if (configuration === undefined) return undefined;
+    const blocks = Array.isArray(configuration) ? configuration : [configuration];
+    const defaults: Record<string, unknown> = {};
+    for (const block of blocks as readonly IConfigurationContribution[]) {
+        const properties = block.properties;
+        if (properties === undefined) continue;
+        for (const [key, schema] of Object.entries(properties)) {
+            if (schema !== null && typeof schema === "object" && "default" in schema) {
+                defaults[key] = schema.default;
+            }
+        }
+    }
+    return Object.keys(defaults).length > 0 ? defaults : undefined;
 }
