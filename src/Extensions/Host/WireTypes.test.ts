@@ -29,6 +29,8 @@ describe("WireTypes — parseWireTextEdits", () => {
         const raw = [
             null,
             42,
+            { text: "x" }, // range отсутствует
+            { range: null, text: "x" }, // range === null
             { range: { startLine: 0 }, text: "x" }, // неполный range
             { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 0 }, text: 5 }, // text не строка
             { setEndOfLine: 3 }, // недопустимый eol

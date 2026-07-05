@@ -12,7 +12,9 @@ const WILL_SAVE_LISTENER_TIMEOUT_MS = 1500;
 /** Промис, резолвящийся пустым набором правок по истечении per-listener тайм-аута. */
 function listenerTimeout(): Promise<readonly TextEdit[]> {
     return new Promise((resolve) => {
-        setTimeout(() => resolve([]), WILL_SAVE_LISTENER_TIMEOUT_MS);
+        const timer = setTimeout(() => resolve([]), WILL_SAVE_LISTENER_TIMEOUT_MS);
+        // Не держим event loop живым из-за таймера, который проиграл гонку.
+        timer.unref?.();
     });
 }
 

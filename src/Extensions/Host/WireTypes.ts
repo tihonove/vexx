@@ -111,7 +111,7 @@ export async function requestWillSaveEdits(
     timeoutMs: number,
 ): Promise<ISaveEdit[]> {
     const TIMEOUT = Symbol("timeout");
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let timer!: ReturnType<typeof setTimeout>;
     const timeout = new Promise<typeof TIMEOUT>((resolve) => {
         timer = setTimeout(() => resolve(TIMEOUT), timeoutMs);
     });
@@ -123,6 +123,6 @@ export async function requestWillSaveEdits(
         if (outcome === TIMEOUT) return [];
         return wireToSaveEdits(parseWireTextEdits(outcome));
     } finally {
-        if (timer !== undefined) clearTimeout(timer);
+        clearTimeout(timer);
     }
 }

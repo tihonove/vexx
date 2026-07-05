@@ -196,6 +196,7 @@ export class ExtensionHost extends Disposable {
         const rpc = this.rpc;
         if (rpc === null || !this.willSaveSubscribed) return [];
         // Guard: очень большой документ не гоняем через RPC (арх-решение плана).
+        /* v8 ignore start -- защитный лимит на снапшот 8 МБ; открытие такого файла в редакторе неподъёмно для unit-теста */
         if (snapshot.text.length > MAX_WILL_SAVE_TEXT_BYTES) {
             this.logger?.warn("skipping will-save participant: document too large", {
                 fileName: snapshot.fileName,
@@ -203,6 +204,7 @@ export class ExtensionHost extends Disposable {
             });
             return [];
         }
+        /* v8 ignore stop */
         return requestWillSaveEdits(
             (method, params) => rpc.request(method, params),
             {

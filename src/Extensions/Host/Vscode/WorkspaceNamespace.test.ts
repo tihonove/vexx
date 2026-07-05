@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
 import { makeStubRpc } from "./testStubRpc.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
-import { Uri } from "./VscodeTypes.ts";
+import { EndOfLine, Position, Range, TextEdit, Uri } from "./VscodeTypes.ts";
 import { WorkspaceConfigStore } from "./WorkspaceConfigStore.ts";
 import { createWorkspaceNamespace } from "./WorkspaceNamespace.ts";
 
@@ -214,5 +214,131 @@ describe("WorkspaceNamespace — save subscriptions", () => {
             method: "workspace.updateSubscriptions",
             params: { willSave: false, didSave: false },
         });
+    });
+});
+
+describe("WorkspaceNamespace — will-save request handler", () => {
+    const REQUEST = "workspace.willSaveTextDocument";
+    const paramsFor = (text: string) => ({
+        fileName: "/f.txt",
+        languageId: "plaintext",
+        isDirty: true,
+        text,
+        reason: 1,
+    });
+
+    it("сериализует TextEdit[] участника (upsertFull + fire + waitUntil)", async () => {
+        const { stub, ctx, workspace } = makeCtx();
+        workspace.onWillSaveTextDocument((e) => {
+            // текст доехал в реестр
+            expect(e.document.getText()).toBe("abc   \n");
+            e.waitUntil(Promise.resolve([TextEdit.delete(new Range(0, 3, 0, 6))]));
+        });
+        const result = await stub.callRequest(REQUEST, paramsFor("abc   \n"));
+        expect(result).toEqual([
+            { range: { startLine: 0, startCharacter: 3, endLine: 0, endCharacter: 6 }, text: "" },
+        ]);
+        expect(ctx.registry.get("/f.txt")?.getText()).toBe("abc   \n");
+    });
+
+    it("сериализует setEndOfLine (CRLF→2, LF→1)", async () => {
+        const crlf = makeCtx();
+        crlf.workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([TextEdit.setEndOfLine(EndOfLine.CRLF)])));
+        expect(await crlf.stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([{ setEndOfLine: 2 }]);
+
+        const lf = makeCtx();
+        lf.workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([TextEdit.setEndOfLine(EndOfLine.LF)])));
+        expect(await lf.stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([{ setEndOfLine: 1 }]);
+    });
+
+    it("минимальные params (без text/reason/languageId) не падают", async () => {
+        const { stub, ctx, workspace } = makeCtx();
+        let reason: number | undefined;
+        workspace.onWillSaveTextDocument((e) => {
+            reason = e.reason as unknown as number;
+            e.waitUntil(Promise.resolve([]));
+        });
+        expect(await stub.callRequest(REQUEST, { fileName: "/x.txt" })).toEqual([]);
+        expect(reason).toBe(1); // TextDocumentSaveReason.Manual по умолчанию
+        expect(ctx.registry.get("/x.txt")?.getText()).toBe(""); // text ?? ""
+    });
+
+    it("без слушателей возвращает []", async () => {
+        const { stub } = makeCtx();
+        expect(await stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([]);
+    });
+
+    it("не-TextEdit и не-массив результаты отбрасываются", async () => {
+        const { stub, workspace } = makeCtx();
+        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve("nope")));
+        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([{ notAnEdit: true }])));
+        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([TextEdit.insert(new Position(0, 0), "x")])));
+        expect(await stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([
+            { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 0 }, text: "x" },
+        ]);
+    });
+
+    it("отклонённый waitUntil-thenable трактуется как []", async () => {
+        const { stub, workspace } = makeCtx();
+        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.reject(new Error("boom"))));
+        expect(await stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([]);
+    });
+
+    it("waitUntil после завершения диспетча игнорируется", async () => {
+        const { stub, workspace } = makeCtx();
+        let captured: { waitUntil: (t: Thenable<unknown>) => void } | undefined;
+        workspace.onWillSaveTextDocument((e) => {
+            captured = e;
+        });
+        const result = await stub.callRequest(REQUEST, paramsFor("a\n"));
+        expect(result).toEqual([]);
+        // collecting уже false — правка не подхватится (и не бросит)
+        captured?.waitUntil(Promise.resolve([TextEdit.insert(new Position(0, 0), "x")]));
+    });
+
+    it("per-listener таймаут → [] если waitUntil никогда не резолвится", async () => {
+        vi.useFakeTimers();
+        try {
+            const { stub, workspace } = makeCtx();
+            workspace.onWillSaveTextDocument((e) => e.waitUntil(new Promise(() => {})));
+            const pending = stub.callRequest(REQUEST, paramsFor("a\n"));
+            await vi.advanceTimersByTimeAsync(1500);
+            expect(await pending).toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+});
+
+describe("WorkspaceNamespace — did-save notification", () => {
+    it("фаерит onDidSaveTextDocument с документом из реестра", () => {
+        const { stub, workspace } = makeCtx();
+        let saved: { fileName: string; languageId: string } | undefined;
+        workspace.onDidSaveTextDocument((doc) => {
+            saved = doc as unknown as { fileName: string; languageId: string };
+        });
+        stub.fire("workspace.didSaveTextDocument", { fileName: "/f.txt", languageId: "typescript" });
+        expect(saved?.fileName).toBe("/f.txt");
+        expect(saved?.languageId).toBe("typescript");
+    });
+
+    it("без languageId апдейтит только по fileName", () => {
+        const { stub, workspace } = makeCtx();
+        let saved: { languageId: string } | undefined;
+        workspace.onDidSaveTextDocument((doc) => {
+            saved = doc as unknown as { languageId: string };
+        });
+        stub.fire("workspace.didSaveTextDocument", { fileName: "/g.txt" });
+        expect(saved?.languageId).toBe("plaintext");
+    });
+
+    it("невалидный fileName игнорируется", () => {
+        const { stub, workspace } = makeCtx();
+        let fired = false;
+        workspace.onDidSaveTextDocument(() => {
+            fired = true;
+        });
+        stub.fire("workspace.didSaveTextDocument", { fileName: 42 });
+        expect(fired).toBe(false);
     });
 });

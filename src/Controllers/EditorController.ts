@@ -219,8 +219,9 @@ export class EditorController extends Disposable implements IController {
         if (this.filePath === null) return;
         // Когда участник не задан — до writeFileSync нет ни одного await, запись
         // остаётся синхронной в текущем тике (вызовы save() без await работают).
-        if (this.saveParticipant !== undefined) {
-            await this.runSaveParticipant(this.filePath);
+        const participant = this.saveParticipant;
+        if (participant !== undefined) {
+            await this.runSaveParticipant(participant, this.filePath);
         }
         fs.writeFileSync(this.filePath, this.doc.serialize(), "utf-8");
         this.savedVersionId = this.doc.versionId;
@@ -232,9 +233,7 @@ export class EditorController extends Disposable implements IController {
      * Собирает снапшот, дожидается участника и применяет вернувшиеся правки к
      * буферу (undoable) до записи. Выделено, чтобы переиспользовать в saveAs.
      */
-    private async runSaveParticipant(fileName: string): Promise<void> {
-        const participant = this.saveParticipant;
-        if (participant === undefined) return;
+    private async runSaveParticipant(participant: SaveParticipant, fileName: string): Promise<void> {
         const snapshot: ISaveSnapshot = {
             fileName,
             languageId: this.doc.languageId,
@@ -318,8 +317,9 @@ export class EditorController extends Disposable implements IController {
      */
     public async saveAs(newPath: string): Promise<void> {
         this.filePath = newPath;
-        if (this.saveParticipant !== undefined) {
-            await this.runSaveParticipant(newPath);
+        const participant = this.saveParticipant;
+        if (participant !== undefined) {
+            await this.runSaveParticipant(participant, newPath);
         }
         fs.writeFileSync(newPath, this.doc.serialize(), "utf-8");
         this.doc.setLanguage(this.resolveLanguageId(newPath));
