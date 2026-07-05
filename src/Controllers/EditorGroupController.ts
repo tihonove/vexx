@@ -122,6 +122,14 @@ export class EditorGroupController extends Disposable implements IController {
                 this.syncTabs();
             }),
         );
+        // Смена EOL не меняет контент, но меняет isModified — таб должен
+        // получить/потерять маркер изменённости сразу, не дожидаясь
+        // переключения вкладки.
+        this.register(
+            editor.onDidChangeEol(() => {
+                this.syncTabs();
+            }),
+        );
         editor.onDidSave = () => {
             this.syncTabs();
         };

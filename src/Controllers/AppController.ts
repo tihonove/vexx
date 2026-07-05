@@ -101,7 +101,12 @@ import {
     inputSelectWordRightAction,
     inputUndoAction,
 } from "./Actions/InputActions.ts";
-import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
+import {
+    listFocusFirstAction,
+    listFocusLastAction,
+    listFocusPageDownAction,
+    listFocusPageUpAction,
+} from "./Actions/ListActions.ts";
 import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import {
@@ -196,6 +201,8 @@ const builtinActions = [
     // List
     listFocusPageDownAction,
     listFocusPageUpAction,
+    listFocusFirstAction,
+    listFocusLastAction,
 
     // Tabs
     nextEditorInGroupAction,

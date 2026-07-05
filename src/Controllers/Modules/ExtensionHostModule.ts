@@ -4,12 +4,14 @@ import { IConfigurationServiceDIToken } from "../../Configuration/IConfiguration
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { LogLevel } from "../../Common/Logging/LogLevel.ts";
+import { CommandServiceAdapter } from "../../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import {
     ExtensionHost,
     ExtensionHostDIToken,
     type IExtensionHostConfigProvider,
 } from "../../Extensions/Host/ExtensionHost.ts";
+import { CommandRegistryDIToken } from "../CommandRegistry.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 
 /**
@@ -26,6 +28,7 @@ export const extensionHostModule: ContainerModule = (container) => {
     container.bind(ExtensionHostDIToken, () => {
         const group = container.get(EditorGroupControllerDIToken);
         const adapter = new EditorOptionsServiceAdapter(group);
+        const commandAdapter = new CommandServiceAdapter(container.get(CommandRegistryDIToken));
         const logService = container.get(ILogServiceDIToken);
         const logger = logService.createLogger("extensions.host");
         const rpcLogger = logService.createLogger("extensions.host.rpc");
@@ -47,7 +50,7 @@ export const extensionHostModule: ContainerModule = (container) => {
                 configService.onDidChangeConfiguration((event) => cb(event.affectedKeys)),
         };
 
-        return new ExtensionHost(adapter, {
+        return new ExtensionHost(adapter, commandAdapter, {
             logger,
             rpcLogger,
             stdoutLogger: wantStdio(stdoutLogger),

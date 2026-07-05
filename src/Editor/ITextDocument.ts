@@ -40,7 +40,7 @@ export interface ITextDocument {
 
     /** Returns the full text joined with the document's {@link eol} — for writing to disk. */
     serialize(): string;
-    /** Changes the {@link eol} axis. Does not alter line content or bump versionId. */
+    /** Changes the {@link eol} axis. No-op при совпадении. Does not alter line content or bump versionId. */
     setEol(eol: EndOfLine): void;
 
     applyEdits(edits: readonly ITextEdit[]): IApplyEditsResult;
@@ -60,4 +60,11 @@ export interface ITextDocument {
 
     /** Notifies of a language change made via {@link setLanguage}. */
     onDidChangeLanguage(listener: (change: IDocumentLanguageChange) => void): IDisposable;
+
+    /**
+     * Notifies of an {@link eol} change made via {@link setEol} (в том числе
+     * из undo/redo). Смена EOL не является структурным изменением текста и
+     * поэтому не попадает в {@link onDidChangeContent}.
+     */
+    onDidChangeEol(listener: () => void): IDisposable;
 }

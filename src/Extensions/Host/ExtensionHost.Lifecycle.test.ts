@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost, type IExtensionHostConfigProvider } from "./ExtensionHost.ts";
+import type { ICommandService } from "./ICommandService.ts";
+import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";
 import type {
     IActiveEditorMeta,
     IEditorOptionsPatch,
@@ -132,12 +134,48 @@ async function waitUntil(pred: () => boolean, timeoutMs = 2000): Promise<void> {
 }
 
 /** Spawn a host whose subprocess becomes ready on the next microtask. */
-function spawnReadyHost(child: FakeChild, editorOptions: FakeEditorOptions, options = {}) {
+function spawnReadyHost(
+    child: FakeChild,
+    editorOptions: FakeEditorOptions,
+    options = {},
+    commandService: ICommandService = NULL_COMMAND_SERVICE,
+) {
     spawnMock.mockReturnValue(child as never);
     queueMicrotask(() => {
         child.emitReady();
     });
-    return new ExtensionHost(editorOptions, { spawnArgs, ...options });
+    return new ExtensionHost(editorOptions, commandService, { spawnArgs, ...options });
+}
+
+/** Records execute/registerProxy calls for asserting the host commands bridge. */
+class FakeCommandService implements ICommandService {
+    public readonly executed: { id: string; args: readonly unknown[] }[] = [];
+    public executeResult: unknown = "core-result";
+    public executeThrows: string | null = null;
+    /** Every proxy ever registered (kept across re-registers to observe dispose). */
+    public readonly proxies: { id: string; invoke: (args: readonly unknown[]) => unknown; disposed: boolean }[] = [];
+
+    public execute(id: string, args: readonly unknown[]): unknown {
+        this.executed.push({ id, args });
+        if (this.executeThrows !== null) throw new Error(this.executeThrows);
+        return this.executeResult;
+    }
+
+    public registerProxy(id: string, invoke: (args: readonly unknown[]) => unknown): IDisposable {
+        const entry = { id, invoke, disposed: false };
+        this.proxies.push(entry);
+        return {
+            dispose: (): void => {
+                entry.disposed = true;
+            },
+        };
+    }
+
+    public last(id: string): { id: string; invoke: (args: readonly unknown[]) => unknown; disposed: boolean } {
+        const found = [...this.proxies].reverse().find((p) => p.id === id);
+        if (found === undefined) throw new Error(`no proxy for "${id}"`);
+        return found;
+    }
 }
 
 afterEach(() => {
@@ -311,6 +349,151 @@ describe("ExtensionHost — editor options RPC handlers", () => {
     });
 });
 
+describe("ExtensionHost — commands RPC handlers", () => {
+    async function readyHostWithCommands(child: FakeChild, commandService: FakeCommandService): Promise<ExtensionHost> {
+        const host = spawnReadyHost(child, new FakeEditorOptions(), {}, commandService);
+        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        return host;
+    }
+
+    it("executes a core command on commands.executeCommand and responds with its result", async () => {
+        const child = new FakeChild();
+        const commands = new FakeCommandService();
+        await readyHostWithCommands(child, commands);
+
+        child.receiveFromHostPeer({
+            kind: "req",
+            id: 200,
+            method: "commands.executeCommand",
+            params: { id: "core.do", args: [1, "x"] },
+        });
+
+        await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 200));
+        expect(commands.executed).toEqual([{ id: "core.do", args: [1, "x"] }]);
+        const res = child.sent.find((m) => m.kind === "res" && m.id === 200);
+        expect(res).toMatchObject({ result: "core-result" });
+    });
+
+    it("defaults args to an empty array when commands.executeCommand omits them", async () => {
+        const child = new FakeChild();
+        const commands = new FakeCommandService();
+        await readyHostWithCommands(child, commands);
+
+        child.receiveFromHostPeer({ kind: "req", id: 210, method: "commands.executeCommand", params: { id: "core.bare" } });
+
+        await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 210));
+        expect(commands.executed).toEqual([{ id: "core.bare", args: [] }]);
+    });
+
+    it("rejects commands.executeCommand with a non-object payload", async () => {
+        const child = new FakeChild();
+        await readyHostWithCommands(child, new FakeCommandService());
+
+        child.receiveFromHostPeer({ kind: "req", id: 201, method: "commands.executeCommand", params: 42 });
+
+        await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 201));
+        const res = child.sent.find((m) => m.kind === "res" && m.id === 201);
+        expect(res).toMatchObject({ error: { message: expect.stringContaining("must be an object") } });
+    });
+
+    it("rejects commands.executeCommand with a missing/empty id", async () => {
+        const child = new FakeChild();
+        await readyHostWithCommands(child, new FakeCommandService());
+
+        child.receiveFromHostPeer({ kind: "req", id: 202, method: "commands.executeCommand", params: { id: "" } });
+
+        await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 202));
+        const res = child.sent.find((m) => m.kind === "res" && m.id === 202);
+        expect(res).toMatchObject({ error: { message: expect.stringContaining("non-empty string") } });
+    });
+
+    it("registers a proxy on commands.registerCommand whose invoke calls back into the subprocess", async () => {
+        const child = new FakeChild();
+        const commands = new FakeCommandService();
+        await readyHostWithCommands(child, commands);
+
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.registerCommand", params: { id: "ext.cmd" } });
+        await waitUntil(() => commands.proxies.some((p) => p.id === "ext.cmd"));
+
+        // Invoking the proxy issues a host→subprocess commands.executeCommand request.
+        void commands.last("ext.cmd").invoke([9]);
+        await waitUntil(() =>
+            child.sent.some(
+                (m) => m.kind === "req" && m.method === "commands.executeCommand" && (m.params as { id: string }).id === "ext.cmd",
+            ),
+        );
+        const req = child.sent.find(
+            (m) => m.kind === "req" && m.method === "commands.executeCommand" && (m.params as { id: string }).id === "ext.cmd",
+        );
+        expect(req).toMatchObject({ params: { id: "ext.cmd", args: [9] } });
+    });
+
+    it("disposes the previous proxy when the same command id re-registers", async () => {
+        const child = new FakeChild();
+        const commands = new FakeCommandService();
+        await readyHostWithCommands(child, commands);
+
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.registerCommand", params: { id: "ext.dup" } });
+        await waitUntil(() => commands.proxies.filter((p) => p.id === "ext.dup").length === 1);
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.registerCommand", params: { id: "ext.dup" } });
+        await waitUntil(() => commands.proxies.filter((p) => p.id === "ext.dup").length === 2);
+
+        const [first, second] = commands.proxies.filter((p) => p.id === "ext.dup");
+        expect(first.disposed).toBe(true);
+        expect(second.disposed).toBe(false);
+    });
+
+    it("ignores commands.registerCommand with a bad id", async () => {
+        const child = new FakeChild();
+        const commands = new FakeCommandService();
+        await readyHostWithCommands(child, commands);
+
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.registerCommand", params: { id: 123 } });
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.registerCommand", params: null });
+        await waitUntil(() => true);
+        expect(commands.proxies).toEqual([]);
+    });
+
+    it("unregisters a proxy on commands.unregisterCommand", async () => {
+        const child = new FakeChild();
+        const commands = new FakeCommandService();
+        await readyHostWithCommands(child, commands);
+
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.registerCommand", params: { id: "ext.gone" } });
+        await waitUntil(() => commands.proxies.some((p) => p.id === "ext.gone"));
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.unregisterCommand", params: { id: "ext.gone" } });
+        await waitUntil(() => commands.last("ext.gone").disposed);
+
+        expect(commands.last("ext.gone").disposed).toBe(true);
+    });
+
+    it("tolerates commands.unregisterCommand for an unknown or bad id", async () => {
+        const child = new FakeChild();
+        const commands = new FakeCommandService();
+        await readyHostWithCommands(child, commands);
+
+        // Neither throws; nothing to dispose.
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.unregisterCommand", params: { id: "never" } });
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.unregisterCommand", params: {} });
+        await waitUntil(() => true);
+        expect(commands.proxies).toEqual([]);
+    });
+
+    it("disposes outstanding proxies when the subprocess shuts down", async () => {
+        const child = new FakeChild();
+        child.exitOnShutdown = true;
+        const commands = new FakeCommandService();
+        const host = await readyHostWithCommands(child, commands);
+
+        child.receiveFromHostPeer({ kind: "notif", method: "commands.registerCommand", params: { id: "ext.live" } });
+        await waitUntil(() => commands.proxies.some((p) => p.id === "ext.live"));
+
+        host.dispose();
+        await waitUntil(() => commands.last("ext.live").disposed);
+        expect(commands.last("ext.live").disposed).toBe(true);
+    });
+});
+
 describe("ExtensionHost — stdout/stderr piping", () => {
     it("forwards full lines from stdout/stderr to the loggers", async () => {
         const child = new FakeChild();
@@ -386,7 +569,7 @@ describe("ExtensionHost — readiness failures", () => {
         queueMicrotask(() => {
             child.simulateExit(1);
         });
-        const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs });
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs });
 
         await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/exited before ready/);
     });
@@ -394,7 +577,7 @@ describe("ExtensionHost — readiness failures", () => {
     it("rejects when the subprocess does not become ready in time", async () => {
         const child = new FakeChild();
         spawnMock.mockReturnValue(child as never); // never emits ready
-        const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs, readyTimeoutMs: 20 });
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs, readyTimeoutMs: 20 });
 
         await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/did not become ready/);
     });
@@ -441,7 +624,7 @@ describe("ExtensionHost — shutdown", () => {
     });
 
     it("disposes cleanly when no subprocess was ever spawned", () => {
-        const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs });
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs });
         expect(() => {
             host.dispose();
         }).not.toThrow();

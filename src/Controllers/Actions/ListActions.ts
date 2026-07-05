@@ -30,3 +30,31 @@ export const listFocusPageUpAction: CommandAction = {
         }
     },
 };
+
+export const listFocusFirstAction: CommandAction = {
+    id: "list.focusFirst",
+    title: "List: Focus First",
+    keybinding: parseKeybinding("home"),
+    when: "listFocus",
+    run(accessor) {
+        const app = accessor.get(TuiApplicationDIToken);
+        const active = app.focusManager?.activeElement;
+        if (active instanceof TreeViewElement) {
+            active.focusFirst();
+        }
+    },
+};
+
+export const listFocusLastAction: CommandAction = {
+    id: "list.focusLast",
+    title: "List: Focus Last",
+    keybinding: parseKeybinding("end"),
+    when: "listFocus",
+    run(accessor) {
+        const app = accessor.get(TuiApplicationDIToken);
+        const active = app.focusManager?.activeElement;
+        if (active instanceof TreeViewElement) {
+            active.focusLast();
+        }
+    },
+};

@@ -5,6 +5,7 @@ import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
 import type { ILogger } from "../../Common/Logging/ILogger.ts";
 
+import type { ICommandService } from "./ICommandService.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService } from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IIpcEndpoint } from "./IpcMessageChannel.ts";
@@ -95,6 +96,9 @@ export interface IExtensionHostOptions {
  */
 export class ExtensionHost extends Disposable {
     private readonly editorOptions: IEditorOptionsService;
+    private readonly commandService: ICommandService;
+    /** Прокси-регистрации команд сабпроцесса в host CommandRegistry (по id). */
+    private readonly proxyCommands = new Map<string, IDisposable>();
     private readonly options: Required<
         Pick<IExtensionHostOptions, "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs">
     >;
@@ -110,9 +114,14 @@ export class ExtensionHost extends Disposable {
     private readyPromise: Promise<void> | null = null;
     private hostDisposed = false;
 
-    public constructor(editorOptions: IEditorOptionsService, options: IExtensionHostOptions = {}) {
+    public constructor(
+        editorOptions: IEditorOptionsService,
+        commandService: ICommandService,
+        options: IExtensionHostOptions = {},
+    ) {
         super();
         this.editorOptions = editorOptions;
+        this.commandService = commandService;
         this.options = {
             spawnArgs: options.spawnArgs ?? defaultSpawnArgs,
             readyTimeoutMs: options.readyTimeoutMs ?? 5000,
@@ -247,6 +256,30 @@ export class ExtensionHost extends Disposable {
         rpc.handleRequest("editor.getOptions", (): unknown => {
             return this.editorOptions.getActiveEditorOptions();
         });
+        // Сабпроцесс просит исполнить команду ядра (напр. встроенную
+        // editor.action.trimTrailingWhitespace). Нормализуем через Promise —
+        // handler ядра может вернуть значение или thenable.
+        rpc.handleRequest("commands.executeCommand", (params): unknown => {
+            const { id, args } = parseCommandInvocation(params);
+            return Promise.resolve(this.commandService.execute(id, args));
+        });
+        // Сабпроцесс зарегистрировал команду — заводим прокси в host-реестре,
+        // который уводит исполнение обратно в сабпроцесс обратным RPC.
+        rpc.handleNotification("commands.registerCommand", (params): void => {
+            const id = parseCommandId(params);
+            if (id === null) return;
+            this.proxyCommands.get(id)?.dispose();
+            this.proxyCommands.set(
+                id,
+                this.commandService.registerProxy(id, (args) => rpc.request("commands.executeCommand", { id, args })),
+            );
+        });
+        rpc.handleNotification("commands.unregisterCommand", (params): void => {
+            const id = parseCommandId(params);
+            if (id === null) return;
+            this.proxyCommands.get(id)?.dispose();
+            this.proxyCommands.delete(id);
+        });
         this.register(
             this.editorOptions.onActiveEditorChanged((meta) => {
                 rpc.notify("editor.activeEditorChanged", meta);
@@ -272,6 +305,14 @@ export class ExtensionHost extends Disposable {
         }
     }
 
+    /** Снимает все прокси-регистрации команд (при смерти сабпроцесса). */
+    private clearProxyCommands(): void {
+        for (const disposable of this.proxyCommands.values()) {
+            disposable.dispose();
+        }
+        this.proxyCommands.clear();
+    }
+
     private async shutdownSubprocess(): Promise<void> {
         const rpc = this.rpc;
         const channel = this.channel;
@@ -280,6 +321,9 @@ export class ExtensionHost extends Disposable {
         this.channel = null;
         this.subprocess = null;
         this.readyPromise = null;
+        // Прокси-команды указывали на умирающий сабпроцесс — снимаем их из
+        // общего DI-синглтона CommandRegistry, чтобы не оставить висячие записи.
+        this.clearProxyCommands();
         if (child === null) {
             rpc?.dispose();
             channel?.dispose();
@@ -332,6 +376,24 @@ function sanitizeOptionsPatch(raw: unknown): IEditorOptionsPatch {
         patch.insertSpaces = obj.insertSpaces;
     }
     return patch;
+}
+
+function parseCommandInvocation(raw: unknown): { id: string; args: unknown[] } {
+    if (typeof raw !== "object" || raw === null) {
+        throw new Error("commands.executeCommand: params must be an object");
+    }
+    const obj = raw as { id?: unknown; args?: unknown };
+    if (typeof obj.id !== "string" || obj.id === "") {
+        throw new Error("commands.executeCommand: id must be a non-empty string");
+    }
+    const args = Array.isArray(obj.args) ? (obj.args as unknown[]) : [];
+    return { id: obj.id, args };
+}
+
+function parseCommandId(raw: unknown): string | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const obj = raw as { id?: unknown };
+    return typeof obj.id === "string" && obj.id !== "" ? obj.id : null;
 }
 
 function defaultSpawnArgs(): { command: string; args: string[] } {

@@ -7,6 +7,7 @@ import { subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarnes
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
 import { ExtensionHost } from "./ExtensionHost.ts";
+import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";
 import type {
     IActiveEditorMeta,
     IEditorOptionsPatch,
@@ -47,7 +48,7 @@ function makeReg(id: string, mainFile: string): IExtensionRegistration {
 }
 
 function createHost(svc: IEditorOptionsService): ExtensionHost {
-    return new ExtensionHost(svc, { spawnArgs: subprocessSpawnArgsForTests() });
+    return new ExtensionHost(svc, NULL_COMMAND_SERVICE, { spawnArgs: subprocessSpawnArgsForTests() });
 }
 
 async function settle(): Promise<void> {

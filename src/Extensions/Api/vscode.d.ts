@@ -125,6 +125,31 @@ declare module "vscode" {
     }
 
     /**
+     * Подмножество `vscode.commands` (WP4 — commands bridge). Реализованы
+     * `registerCommand` (локальная Map сабпроцесса + прокси в host CommandRegistry)
+     * и `executeCommand` (local-first, иначе RPC на хост). `registerTextEditorCommand`
+     * и `getCommands` пока не поддержаны.
+     */
+    export namespace commands {
+        /**
+         * Регистрирует команду, вызываемую через палитру, кейбиндинг или
+         * `executeCommand`. Возвращает {@link Disposable}, снимающий регистрацию.
+         */
+        export function registerCommand(
+            command: string,
+            callback: (...args: any[]) => any,
+            thisArg?: any,
+        ): Disposable;
+
+        /**
+         * Исполняет команду по идентификатору. Сначала ищет локально
+         * (зарегистрированную этим сабпроцессом), иначе делегирует ядру через RPC.
+         * Возвращает результат команды или `undefined`.
+         */
+        export function executeCommand<T = unknown>(command: string, ...rest: any[]): Thenable<T>;
+    }
+
+    /**
      * Контекст активации, передаваемый в `activate(context)`. В Phase 1
      * предоставляет только `subscriptions` для управления disposable'ами
      * расширения.
