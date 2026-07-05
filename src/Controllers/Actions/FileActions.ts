@@ -9,8 +9,8 @@ export const fileSaveAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+s"),
     // Additional chord binding for save: Ctrl+K then S.
     keybindings: [parseChord("ctrl+k s")],
-    run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.save();
+    async run(accessor) {
+        await accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.save();
         accessor.get(StatusBarControllerDIToken).update();
     },
 };

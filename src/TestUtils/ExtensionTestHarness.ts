@@ -115,6 +115,10 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         configuration,
     });
 
+    // Save-pipeline (WP6): проброс will-save/did-save между группой и хостом.
+    group.saveParticipant = (snapshot) => host.willSaveTextDocument(snapshot);
+    group.onEditorSaved((meta) => host.didSaveTextDocument(meta));
+
     const writeFile = (name: string, content: string): string => {
         const fp = path.join(tmpDir, name);
         fs.writeFileSync(fp, content, "utf-8");

@@ -8,7 +8,10 @@ import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
 import type { IRange } from "../Editor/IRange.ts";
+import { createRange } from "../Editor/IRange.ts";
+import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "../Editor/ISaveParticipant.ts";
 import type { ITextEdit } from "../Editor/ITextEdit.ts";
+import { createTextEdit } from "../Editor/ITextEdit.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
@@ -76,6 +79,14 @@ export class EditorController extends Disposable implements IController {
     }
 
     public onDidSave?: () => void;
+
+    /**
+     * Save-участник (`onWillSaveTextDocument`): вызывается перед записью на диск,
+     * возвращает undoable-правки (trim/insert-final-newline/EOL из editorconfig).
+     * Инъектируется извне (EditorGroupController ← host/харнесс); ядро не знает
+     * про extension-слой. Не задан ⇒ save остаётся синхронным.
+     */
+    public saveParticipant?: SaveParticipant;
 
     public onDidChangeContent(listener: () => void): IDisposable {
         return this.doc.onDidChangeContent(listener);
@@ -204,12 +215,70 @@ export class EditorController extends Disposable implements IController {
         this.bindDocumentListeners();
     }
 
-    public save(): void {
+    public async save(): Promise<void> {
         if (this.filePath === null) return;
+        // Когда участник не задан — до writeFileSync нет ни одного await, запись
+        // остаётся синхронной в текущем тике (вызовы save() без await работают).
+        if (this.saveParticipant !== undefined) {
+            await this.runSaveParticipant(this.filePath);
+        }
         fs.writeFileSync(this.filePath, this.doc.serialize(), "utf-8");
         this.savedVersionId = this.doc.versionId;
         this.savedEol = this.doc.eol;
         this.onDidSave?.();
+    }
+
+    /**
+     * Собирает снапшот, дожидается участника и применяет вернувшиеся правки к
+     * буферу (undoable) до записи. Выделено, чтобы переиспользовать в saveAs.
+     */
+    private async runSaveParticipant(fileName: string): Promise<void> {
+        const participant = this.saveParticipant;
+        if (participant === undefined) return;
+        const snapshot: ISaveSnapshot = {
+            fileName,
+            languageId: this.doc.languageId,
+            versionId: this.doc.versionId,
+            isDirty: this.isModified,
+            text: this.doc.getText(),
+        };
+        const edits = await participant(snapshot);
+        this.applySaveEdits(edits);
+    }
+
+    /**
+     * Применяет правки save-участника. Текстовые правки клампятся к текущим
+     * границам документа (во время await пользователь мог печатать) и уходят
+     * одним undoable-батчем; смена EOL — отдельным undoable-элементом (setEol).
+     */
+    private applySaveEdits(edits: readonly ISaveEdit[]): void {
+        const textEdits: ITextEdit[] = [];
+        for (const edit of edits) {
+            if (edit.kind === "text") {
+                textEdits.push(createTextEdit(this.clampRange(edit.range), edit.text));
+            }
+        }
+        if (textEdits.length > 0) {
+            this.applyExternalEdits(textEdits, "editorconfig: pre-save");
+        }
+        for (const edit of edits) {
+            if (edit.kind === "eol") this.setEol(edit.eol);
+        }
+    }
+
+    /** Ограничивает диапазон текущими границами документа (строки и колонки). */
+    private clampRange(range: IRange): IRange {
+        const start = this.clampPosition(range.start.line, range.start.character);
+        const end = this.clampPosition(range.end.line, range.end.character);
+        return createRange(start.line, start.character, end.line, end.character);
+    }
+
+    private clampPosition(line: number, character: number): { line: number; character: number } {
+        const maxLine = this.doc.lineCount - 1;
+        const clampedLine = line < 0 ? 0 : line > maxLine ? maxLine : line;
+        const maxChar = this.doc.getLineLength(clampedLine);
+        const clampedChar = character < 0 ? 0 : character > maxChar ? maxChar : character;
+        return { line: clampedLine, character: clampedChar };
     }
 
     /**
@@ -247,8 +316,11 @@ export class EditorController extends Disposable implements IController {
      * `onDidSave` lets the group controller rename the tab and clear the dirty
      * marker.
      */
-    public saveAs(newPath: string): void {
+    public async saveAs(newPath: string): Promise<void> {
         this.filePath = newPath;
+        if (this.saveParticipant !== undefined) {
+            await this.runSaveParticipant(newPath);
+        }
         fs.writeFileSync(newPath, this.doc.serialize(), "utf-8");
         this.doc.setLanguage(this.resolveLanguageId(newPath));
         this.savedVersionId = this.doc.versionId;

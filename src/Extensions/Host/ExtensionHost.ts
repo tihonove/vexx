@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
 import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import type { ISaveEdit, ISaveSnapshot } from "../../Editor/ISaveParticipant.ts";
 
 import type { ICommandService } from "./ICommandService.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService } from "./IEditorOptionsService.ts";
@@ -11,8 +12,12 @@ import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IIpcEndpoint } from "./IpcMessageChannel.ts";
 import { IpcMessageChannel } from "./IpcMessageChannel.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
+import { requestWillSaveEdits } from "./WireTypes.ts";
 
 export const ExtensionHostDIToken = token<ExtensionHost>("ExtensionHost");
+
+/** Порог, выше которого снапшот документа не гоняется через will-save RPC (8 MB). */
+const MAX_WILL_SAVE_TEXT_BYTES = 8 * 1024 * 1024;
 
 /** Папка воркспейса, проецируемая в subprocess (`workspace.workspaceFolders`). */
 export interface IWorkspaceFolderInfo {
@@ -52,6 +57,11 @@ export interface IExtensionHostOptions {
      * Тайм-аут на graceful shutdown через `host.shutdown` перед `SIGTERM`. Default: 1500.
      */
     readonly shutdownTimeoutMs?: number;
+    /**
+     * Тайм-аут на ответ участника will-save (`workspace.willSaveTextDocument`), мс.
+     * По истечении сохранение продолжается без правок расширения. Default: 1500.
+     */
+    readonly willSaveTimeoutMs?: number;
     /**
      * Логгер для lifecycle-событий host'а (канал `extensions.host`). Подканалы
      * `extensions.host.rpc` / `.stdout` / `.stderr` берутся из {@link logService}, если передан.
@@ -100,7 +110,7 @@ export class ExtensionHost extends Disposable {
     /** Прокси-регистрации команд сабпроцесса в host CommandRegistry (по id). */
     private readonly proxyCommands = new Map<string, IDisposable>();
     private readonly options: Required<
-        Pick<IExtensionHostOptions, "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs">
+        Pick<IExtensionHostOptions, "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs" | "willSaveTimeoutMs">
     >;
     private readonly logger: ILogger | undefined;
     private readonly rpcLogger: ILogger | undefined;
@@ -113,6 +123,9 @@ export class ExtensionHost extends Disposable {
     private rpc: RpcEndpoint | null = null;
     private readyPromise: Promise<void> | null = null;
     private hostDisposed = false;
+    /** Есть ли в субпроцессе активные подписки на will/did-save (см. `workspace.updateSubscriptions`). */
+    private willSaveSubscribed = false;
+    private didSaveSubscribed = false;
 
     public constructor(
         editorOptions: IEditorOptionsService,
@@ -126,6 +139,7 @@ export class ExtensionHost extends Disposable {
             spawnArgs: options.spawnArgs ?? defaultSpawnArgs,
             readyTimeoutMs: options.readyTimeoutMs ?? 5000,
             shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1500,
+            willSaveTimeoutMs: options.willSaveTimeoutMs ?? 1500,
         };
         this.logger = options.logger;
         this.rpcLogger = options.rpcLogger;
@@ -170,6 +184,47 @@ export class ExtensionHost extends Disposable {
             // subprocess мог уже умереть — игнорируем.
             this.logger?.debug(`deactivateExtension(${id}) ignored`, err);
         }
+    }
+
+    /**
+     * Запрашивает у субпроцесса правки will-save (`onWillSaveTextDocument`).
+     * Возвращает `[]`, если субпроцесса нет, никто не подписан, документ слишком
+     * большой или расширение не ответило за `willSaveTimeoutMs`. Подключается в
+     * `EditorGroupController.saveParticipant` (wiring в module/харнессе).
+     */
+    public async willSaveTextDocument(snapshot: ISaveSnapshot): Promise<readonly ISaveEdit[]> {
+        const rpc = this.rpc;
+        if (rpc === null || !this.willSaveSubscribed) return [];
+        // Guard: очень большой документ не гоняем через RPC (арх-решение плана).
+        if (snapshot.text.length > MAX_WILL_SAVE_TEXT_BYTES) {
+            this.logger?.warn("skipping will-save participant: document too large", {
+                fileName: snapshot.fileName,
+                length: snapshot.text.length,
+            });
+            return [];
+        }
+        return requestWillSaveEdits(
+            (method, params) => rpc.request(method, params),
+            {
+                fileName: snapshot.fileName,
+                languageId: snapshot.languageId,
+                version: snapshot.versionId,
+                isDirty: snapshot.isDirty,
+                text: snapshot.text,
+                reason: 1, // TextDocumentSaveReason.Manual
+            },
+            this.options.willSaveTimeoutMs,
+        );
+    }
+
+    /**
+     * Уведомляет субпроцесс о состоявшемся сохранении (`onDidSaveTextDocument`).
+     * No-op, если субпроцесса нет или никто не подписан.
+     */
+    public didSaveTextDocument(meta: { fileName: string; languageId: string }): void {
+        const rpc = this.rpc;
+        if (rpc === null || !this.didSaveSubscribed) return;
+        rpc.notify("workspace.didSaveTextDocument", meta);
     }
 
     public hasExtension(id: string): boolean {
@@ -285,6 +340,13 @@ export class ExtensionHost extends Disposable {
                 rpc.notify("editor.activeEditorChanged", meta);
             }),
         );
+        // Субпроцесс сообщает, есть ли подписчики на will/did-save. Без них хост
+        // не гоняет RPC на сохранении (save остаётся синхронным).
+        rpc.handleNotification("workspace.updateSubscriptions", (params) => {
+            const p = params as { willSave?: unknown; didSave?: unknown };
+            this.willSaveSubscribed = p.willSave === true;
+            this.didSaveSubscribed = p.didSave === true;
+        });
         rpc.handleNotification("window.showMessage", (params) => {
             const { severity, message } = params as { severity?: unknown; message?: unknown };
             const text = typeof message === "string" ? message : String(message);
@@ -321,6 +383,8 @@ export class ExtensionHost extends Disposable {
         this.channel = null;
         this.subprocess = null;
         this.readyPromise = null;
+        this.willSaveSubscribed = false;
+        this.didSaveSubscribed = false;
         // Прокси-команды указывали на умирающий сабпроцесс — снимаем их из
         // общего DI-синглтона CommandRegistry, чтобы не оставить висячие записи.
         this.clearProxyCommands();
