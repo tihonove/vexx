@@ -1,5 +1,6 @@
 node_modules
 dist
+dist-terminal
 vexx.log
 coverage/.tmp
 coverage/lcov-report

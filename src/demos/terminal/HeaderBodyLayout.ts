@@ -1,0 +1,59 @@
+// Крошечный демо-контейнер: фиксированной высоты «шапка» сверху + тело на остаток высоты.
+//
+// VStackElement требует фиксированную высоту у каждого ребёнка и не умеет «занять остаток»,
+// а нам нужен тулбар в 1 строку и терминал на всё остальное. Паттерн layout/render —
+// как в VStackElement/HFlexElement. Дополнительно `bodyPadX` inset'ит тело по горизонтали
+// (демонстрация ресайза контрола без изменения окна).
+
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../TUIDom/TUIElement.ts";
+
+export class HeaderBodyLayout extends TUIElement {
+    private readonly header: TUIElement;
+    private readonly body: TUIElement;
+    private readonly headerHeight: number;
+
+    /** Горизонтальный отступ тела с каждой стороны (для демо ресайза). */
+    public bodyPadX = 0;
+
+    public constructor(header: TUIElement, body: TUIElement, headerHeight = 1) {
+        super();
+        this.header = header;
+        this.body = body;
+        this.headerHeight = headerHeight;
+        this.header.setParent(this);
+        this.body.setParent(this);
+    }
+
+    public override getChildren(): readonly TUIElement[] {
+        return [this.header, this.body];
+    }
+
+    public override performLayout(constraints: BoxConstraints): Size {
+        const size = super.performLayout(constraints);
+        const w = size.width;
+        const h = size.height;
+        const hh = Math.min(this.headerHeight, h);
+
+        this.header.localPosition = new Offset(0, 0);
+        this.header.globalPosition = new Point(this.globalPosition.x, this.globalPosition.y);
+        this.header.performLayout(BoxConstraints.tight(new Size(w, hh)));
+
+        const padX = Math.max(0, Math.min(this.bodyPadX, Math.floor((w - 1) / 2)));
+        const bodyW = Math.max(0, w - 2 * padX);
+        const bodyH = Math.max(0, h - hh);
+        this.body.localPosition = new Offset(padX, hh);
+        this.body.globalPosition = new Point(this.globalPosition.x + padX, this.globalPosition.y + hh);
+        this.body.performLayout(BoxConstraints.tight(new Size(bodyW, bodyH)));
+
+        return size;
+    }
+
+    public override render(context: RenderContext): void {
+        for (const child of this.getChildren()) {
+            const offset = new Offset(child.localPosition.dx, child.localPosition.dy);
+            const clip = new Rect(child.globalPosition, child.layoutSize);
+            child.render(context.withOffset(offset).withClip(clip));
+        }
+    }
+}
