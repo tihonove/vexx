@@ -14,6 +14,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorController } from "./EditorController.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function createEditorController(
     overrides: {
@@ -28,6 +29,7 @@ function createEditorController(
         overrides.registry ?? new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
         overrides.languageService ?? NULL_LANGUAGE_SERVICE,
+        new UndoRedoService(),
     );
 }
 
@@ -77,6 +79,69 @@ describe("EditorController", () => {
 
             expect(ctrl.fileName).toBe("hello.ts");
             expect(ctrl.absoluteFilePath).toBe(fp);
+        });
+    });
+
+    describe("saveAs", () => {
+        it("writes content to the new path and re-points the editor", () => {
+            const ctrl = createEditorController();
+            ctrl.openFile(writeFile("a.txt", "content"));
+            let saved = 0;
+            ctrl.onDidSave = () => {
+                saved++;
+            };
+
+            const newPath = path.join(tmpDir, "b.md");
+            ctrl.saveAs(newPath);
+
+            expect(fs.readFileSync(newPath, "utf-8")).toBe("content");
+            expect(ctrl.absoluteFilePath).toBe(newPath);
+            expect(ctrl.fileName).toBe("b.md");
+            expect(ctrl.isModified).toBe(false);
+            expect(saved).toBe(1);
+        });
+
+        it("persists in-memory edits and clears the dirty flag", () => {
+            const ctrl = createEditorController();
+            ctrl.openFile(writeFile("a.txt", ""));
+            ctrl.viewState.insertText("edited");
+            expect(ctrl.isModified).toBe(true);
+
+            const newPath = path.join(tmpDir, "b.txt");
+            ctrl.saveAs(newPath);
+
+            expect(fs.readFileSync(newPath, "utf-8")).toBe("edited");
+            expect(ctrl.isModified).toBe(false);
+        });
+
+        it("re-picks the tokenizer for the new extension", () => {
+            const seen: string[] = [];
+            const languageService: ILanguageService = {
+                getLanguageIdForResource: (p) => {
+                    seen.push(p);
+                    return "typescript";
+                },
+                getLanguageDisplayName: () => undefined,
+            };
+            const ctrl = createEditorController({ languageService });
+            ctrl.openFile(writeFile("a.txt", "x"));
+
+            const newPath = path.join(tmpDir, "b.ts");
+            ctrl.saveAs(newPath);
+
+            expect(seen).toContain(newPath);
+        });
+
+        it("works for an editor that never had a file (untitled)", () => {
+            const ctrl = createEditorController();
+            ctrl.viewState.insertText("hi");
+
+            const newPath = path.join(tmpDir, "new.txt");
+            ctrl.saveAs(newPath);
+
+            expect(fs.readFileSync(newPath, "utf-8")).toBe("hi");
+            expect(ctrl.absoluteFilePath).toBe(newPath);
+            expect(ctrl.isModified).toBe(false);
         });
     });
 
@@ -166,6 +231,7 @@ describe("EditorController", () => {
             // Language service resolves an id, but the registry has nothing registered for it.
             const languageService: ILanguageService = {
                 getLanguageIdForResource: () => "typescript",
+                getLanguageDisplayName: () => undefined,
             };
             const ctrl = createEditorController({ registry, languageService });
 
@@ -180,6 +246,7 @@ describe("EditorController", () => {
             registry.register("typescript", new PlainTextTokenizer());
             const languageService: ILanguageService = {
                 getLanguageIdForResource: () => "typescript",
+                getLanguageDisplayName: () => undefined,
             };
             const ctrl = createEditorController({ registry, languageService });
 

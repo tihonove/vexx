@@ -13,6 +13,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorController } from "./EditorController.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function createEditorController(): EditorController {
     return new EditorController(
@@ -20,6 +21,7 @@ function createEditorController(): EditorController {
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
         NULL_LANGUAGE_SERVICE,
+        new UndoRedoService(),
     );
 }
 

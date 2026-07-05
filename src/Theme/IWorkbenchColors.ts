@@ -185,8 +185,8 @@ export interface IWorkbenchColors {
     // "list.filterMatchBackground"?: number;
     // /** Border color of the filtered matches in lists and trees. */
     // "list.filterMatchBorder"?: number;
-    // /** List/Tree foreground color for items that are deemphasized. */
-    // "list.deemphasizedForeground"?: number;
+    /** List/Tree foreground color for items that are deemphasized (e.g. cut in explorer). */
+    "list.deemphasizedForeground"?: number;
     // /** Tree Widget's stroke color for indent guides. */
     // "tree.indentGuidesStroke"?: number;
     // /** Tree stroke color for the indentation guides that are not active. */

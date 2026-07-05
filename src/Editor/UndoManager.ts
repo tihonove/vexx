@@ -23,6 +23,13 @@ export class UndoManager {
     private readonly doc: ITextDocument;
     private readonly viewState: EditorViewState;
 
+    /**
+     * Вызывается после каждого `pushUndoElement` — единая точка-чока для всех правок
+     * (набор текста, удаления, вставка). Контроллер вешает сюда регистрацию шага в общий
+     * `UndoRedoService`. Editor-слой при этом не зависит от Controllers.
+     */
+    public onDidPush: ((element: IUndoElement) => void) | null = null;
+
     public constructor(doc: ITextDocument, viewState: EditorViewState) {
         this.doc = doc;
         this.viewState = viewState;
@@ -39,6 +46,7 @@ export class UndoManager {
     public pushUndoElement(element: IUndoElement): void {
         this.undoStack.push({ ...element });
         this.redoStack.length = 0;
+        this.onDidPush?.(element);
     }
 
     public undo(): boolean {

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../../Common/GeometryPromitives.ts";
+import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
@@ -403,6 +404,94 @@ describe("TreeViewElement", () => {
             // The onSelect won't fire from refresh, but we can verify by pressing ArrowDown
             app.sendKey("ArrowDown");
             expect(selectSpy).toHaveBeenCalledWith(NESTED_TREE[1]);
+        });
+    });
+
+    describe("refresh after deletion", () => {
+        // The active-selection background marks the cursor row when the tree is focused.
+        const ACTIVE_BG = packRgb(4, 57, 94);
+
+        it("keeps the cursor near the deleted node instead of jumping to the top", async () => {
+            const roots: TestNode[] = [
+                { id: "a", label: "Alpha" },
+                { id: "b", label: "Beta" },
+                { id: "c", label: "Gamma" },
+                { id: "d", label: "Delta" },
+            ];
+            const { tree, app } = createTree(roots);
+            await tree.refresh();
+
+            // Move the cursor onto "Beta" (row 1).
+            app.sendKey("ArrowDown");
+            app.render();
+            expect(app.backend.getBgAt(new Point(0, 1))).toBe(ACTIVE_BG);
+
+            // Delete "Beta" and refresh — "Gamma" now shifts into row 1.
+            roots.splice(1, 1);
+            await tree.refresh();
+            app.render();
+
+            expect(app.backend.getBgAt(new Point(0, 1))).toBe(ACTIVE_BG);
+            expect(app.backend.getBgAt(new Point(0, 0))).not.toBe(ACTIVE_BG);
+        });
+
+        it("keeps the cursor at the top when the selected first node is deleted", async () => {
+            const roots: TestNode[] = [
+                { id: "a", label: "Alpha" },
+                { id: "b", label: "Beta" },
+                { id: "c", label: "Gamma" },
+            ];
+            const { tree, app } = createTree(roots);
+            await tree.refresh();
+            app.render();
+
+            // Cursor starts on the first row, "Alpha" (row 0).
+            expect(app.backend.getBgAt(new Point(0, 0))).toBe(ACTIVE_BG);
+
+            // Delete the first node — "Beta" shifts into row 0 and stays selected.
+            roots.splice(0, 1);
+            await tree.refresh();
+            app.render();
+
+            expect(app.backend.getBgAt(new Point(0, 0))).toBe(ACTIVE_BG);
+            expect(app.backend.getBgAt(new Point(0, 1))).not.toBe(ACTIVE_BG);
+        });
+
+        it("clamps the cursor to the last row when the deleted node was last", async () => {
+            const roots: TestNode[] = [
+                { id: "a", label: "Alpha" },
+                { id: "b", label: "Beta" },
+                { id: "c", label: "Gamma" },
+            ];
+            const { tree, app } = createTree(roots);
+            await tree.refresh();
+
+            // Move the cursor onto the last row, "Gamma" (row 2).
+            app.sendKey("ArrowDown");
+            app.sendKey("ArrowDown");
+            app.render();
+            expect(app.backend.getBgAt(new Point(0, 2))).toBe(ACTIVE_BG);
+
+            // Delete the last node — cursor clamps to the new last row, "Beta" (row 1).
+            roots.splice(2, 1);
+            await tree.refresh();
+            app.render();
+
+            expect(app.backend.getBgAt(new Point(0, 1))).toBe(ACTIVE_BG);
+            expect(app.backend.getBgAt(new Point(0, 0))).not.toBe(ACTIVE_BG);
+        });
+
+        it("does not crash when the only node is deleted", async () => {
+            const roots: TestNode[] = [{ id: "a", label: "Alpha" }];
+            const { tree, app } = createTree(roots);
+            await tree.refresh();
+            app.render();
+
+            roots.splice(0, 1);
+            await tree.refresh();
+            app.render();
+
+            expect(tree.contentHeight).toBe(0);
         });
     });
 

@@ -68,7 +68,13 @@ describe("StatusBarController", () => {
         statusBarController.update();
 
         const items = statusBarController.view.getItems();
-        expect(items).toEqual([{ text: "legacy" }, { text: "Ln 1, Col 1", align: "right" }]);
+        expect(items).toEqual([
+            { text: "legacy" },
+            { text: "Ln 1, Col 1", align: "right" },
+            // NULL_LANGUAGE_SERVICE в TestProfile не знает display name — беджик
+            // показывает сырой language id.
+            { text: "plaintext", align: "right" },
+        ]);
     });
 
     it("does not show the file name or a modified badge", () => {
@@ -96,7 +102,11 @@ describe("StatusBarController", () => {
         activeEditor.viewState.selections = [];
         statusBarController.update();
 
-        expect(statusBarController.view.getItems()).toEqual([{ text: "legacy" }]);
+        // Язык остаётся: активный редактор есть, пропадает только Ln/Col.
+        expect(statusBarController.view.getItems()).toEqual([
+            { text: "legacy" },
+            { text: "plaintext", align: "right" },
+        ]);
     });
 
     it("shows the terminal tier as the first segment", () => {

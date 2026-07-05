@@ -16,6 +16,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function createEditorGroupController(
     overrides: {
@@ -32,6 +33,7 @@ function createEditorGroupController(
         NULL_TOKEN_STYLE_RESOLVER,
         overrides.languageService ?? NULL_LANGUAGE_SERVICE,
         overrides.configurationService ?? NULL_CONFIGURATION_SERVICE,
+        new UndoRedoService(),
     );
 }
 
@@ -326,6 +328,7 @@ describe("EditorGroupController", () => {
             registry.register("typescript", new PlainTextTokenizer());
             const languageService: ILanguageService = {
                 getLanguageIdForResource: () => "typescript",
+                getLanguageDisplayName: () => undefined,
             };
             const ctrl = createEditorGroupController({ registry, languageService });
             ctrl.mount();
