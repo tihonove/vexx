@@ -22,7 +22,6 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
     // editor.document === registry.getOrCreate(fileName) по построению.
     const editorCache = new WeakMap<ExtHostTextDocument, vscode.TextEditor>();
     const activeEditorListeners: ((editor: vscode.TextEditor | undefined) => void)[] = [];
-    const windowStateListeners: ((state: vscode.WindowState) => void)[] = [];
 
     rpc.handleNotification("editor.activeEditorChanged", (params) => {
         const meta = params as { fileName: string | null; languageId?: string | null; isDirty?: boolean };
@@ -108,19 +107,15 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         },
 
         onDidChangeWindowState: (
-            listener: (e: vscode.WindowState) => unknown,
-            thisArgs?: unknown,
+            _listener: (e: vscode.WindowState) => unknown,
+            _thisArgs?: unknown,
             disposables?: vscode.Disposable[],
         ): vscode.Disposable => {
-            const bound: (e: vscode.WindowState) => unknown =
-                thisArgs != null ? (e) => listener.call(thisArgs, e) : listener;
-            windowStateListeners.push(bound);
-            const disposable = new DisposableImpl(() => {
-                const idx = windowStateListeners.indexOf(bound);
-                if (idx >= 0) windowStateListeners.splice(idx, 1);
-            });
-            if (disposables !== undefined) disposables.push(disposable as unknown as vscode.Disposable);
-            return disposable as unknown as vscode.Disposable;
+            // В TUI окно всегда активно — событие никогда не стреляет. Возвращаем
+            // валидный no-op Disposable, чтобы регистрация не падала.
+            const disposable = new DisposableImpl(() => undefined) as unknown as vscode.Disposable;
+            if (disposables !== undefined) disposables.push(disposable);
+            return disposable;
         },
 
         showErrorMessage: (message: string): Thenable<string | undefined> =>

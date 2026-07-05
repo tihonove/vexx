@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
 import { makeStubRpc } from "./testStubRpc.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
+import { Uri } from "./VscodeTypes.ts";
 import { WorkspaceConfigStore } from "./WorkspaceConfigStore.ts";
 import { createWorkspaceNamespace } from "./WorkspaceNamespace.ts";
 
@@ -64,6 +65,28 @@ describe("WorkspaceNamespace — configuration", () => {
         expect((stub.notifies[0]?.params as { severity: string }).severity).toBe("warn");
     });
 
+    it("значение секции с именем как у метода (get/has) не затирает метод", () => {
+        const { stub, workspace } = makeCtx();
+        stub.fire("workspace.initialize", {
+            configuration: { section: { get: 1, value: 2 } },
+            workspaceFolders: [],
+        });
+        const config = workspace.getConfiguration("section");
+        // `get` остаётся функцией, `value` — зеркалится как поле
+        expect(typeof config.get).toBe("function");
+        expect((config as unknown as { value: number }).value).toBe(2);
+    });
+
+    it("configurationChanged без affectedKeys не падает", () => {
+        const { stub, workspace } = makeCtx();
+        let seen: boolean | undefined;
+        workspace.onDidChangeConfiguration((e: { affectsConfiguration(s: string): boolean }) => {
+            seen = e.affectsConfiguration("editor");
+        });
+        stub.fire("workspace.configurationChanged", { configuration: {} });
+        expect(seen).toBe(false);
+    });
+
     it("configurationChanged переустанавливает снапшот и стреляет событие", () => {
         const { stub, workspace } = makeCtx();
         stub.fire("workspace.initialize", { configuration: { editor: { tabSize: 2 } }, workspaceFolders: [] });
@@ -92,6 +115,13 @@ describe("WorkspaceNamespace — folders & documents", () => {
         expect(workspace.workspaceFolders![0].name).toBe("repo");
     });
 
+    it("initialize без workspaceFolders → folders пусты", () => {
+        const { stub, workspace } = makeCtx();
+        stub.fire("workspace.initialize", { configuration: {} });
+        expect(workspace.workspaceFolders).toBeUndefined();
+        expect(workspace.name).toBeUndefined();
+    });
+
     it("asRelativePath относительно папки воркспейса", () => {
         const { stub, workspace } = makeCtx();
         stub.fire("workspace.initialize", {
@@ -99,8 +129,24 @@ describe("WorkspaceNamespace — folders & documents", () => {
             workspaceFolders: [{ uri: "/repo", name: "repo", index: 0 }],
         });
         expect(workspace.asRelativePath("/repo/src/a.ts")).toBe("src/a.ts");
+        // Uri вместо строки
+        expect(workspace.asRelativePath(Uri.file("/repo/src/a.ts") as never)).toBe("src/a.ts");
+        // сам корень → возвращается как есть
+        expect(workspace.asRelativePath("/repo")).toBe("/repo");
         // вне папки — возвращается как есть
         expect(workspace.asRelativePath("/other/b.ts")).toBe("/other/b.ts");
+    });
+
+    it("asRelativePath с includeWorkspaceFolder в multi-root добавляет имя папки", () => {
+        const { stub, workspace } = makeCtx();
+        stub.fire("workspace.initialize", {
+            configuration: {},
+            workspaceFolders: [
+                { uri: "/a", name: "a", index: 0 },
+                { uri: "/b", name: "b", index: 1 },
+            ],
+        });
+        expect(workspace.asRelativePath("/b/x.ts", true)).toBe("b/x.ts");
     });
 
     it("textDocuments отражает реестр", () => {
@@ -110,11 +156,13 @@ describe("WorkspaceNamespace — folders & documents", () => {
         expect(workspace.textDocuments).toHaveLength(2);
     });
 
-    it("openTextDocument резолвит открытый документ, иначе reject", async () => {
+    it("openTextDocument резолвит открытый документ (строка и Uri), иначе reject", async () => {
         const { ctx, workspace } = makeCtx();
         ctx.registry.getOrCreate("/a.ts");
-        const doc = await workspace.openTextDocument("/a.ts");
-        expect((doc as unknown as { fileName: string }).fileName).toBe("/a.ts");
+        const byString = await workspace.openTextDocument("/a.ts");
+        expect((byString as unknown as { fileName: string }).fileName).toBe("/a.ts");
+        const byUri = await workspace.openTextDocument(Uri.file("/a.ts") as never);
+        expect((byUri as unknown as { fileName: string }).fileName).toBe("/a.ts");
         await expect(workspace.openTextDocument("/missing.ts")).rejects.toThrow();
     });
 });
@@ -140,12 +188,31 @@ describe("WorkspaceNamespace — save subscriptions", () => {
         });
     });
 
-    it("onDidSaveTextDocument переключает флаг didSave", () => {
+    it("onWillSaveTextDocument кладёт disposable в переданный массив", () => {
+        const { workspace } = makeCtx();
+        const bag: { dispose(): unknown }[] = [];
+        const d = workspace.onWillSaveTextDocument(() => undefined, undefined, bag as never);
+        expect(bag).toContain(d);
+    });
+
+    it("onDidSaveTextDocument: флаг, второй слушатель, dispose до нуля, disposables", () => {
         const { stub, workspace } = makeCtx();
-        workspace.onDidSaveTextDocument(() => undefined);
+        const bag: { dispose(): unknown }[] = [];
+        const d1 = workspace.onDidSaveTextDocument(() => undefined, undefined, bag as never);
+        expect(bag).toContain(d1);
         expect(stub.notifies).toContainEqual({
             method: "workspace.updateSubscriptions",
             params: { willSave: false, didSave: true },
+        });
+        // второй слушатель не шлёт повторно
+        const before = stub.notifies.length;
+        const d2 = workspace.onDidSaveTextDocument(() => undefined);
+        expect(stub.notifies.length).toBe(before);
+        d1.dispose();
+        d2.dispose();
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "workspace.updateSubscriptions",
+            params: { willSave: false, didSave: false },
         });
     });
 });

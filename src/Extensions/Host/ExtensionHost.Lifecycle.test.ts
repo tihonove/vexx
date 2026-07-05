@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
 
-import { ExtensionHost } from "./ExtensionHost.ts";
+import { ExtensionHost, type IExtensionHostConfigProvider } from "./ExtensionHost.ts";
 import type {
     IActiveEditorMeta,
     IEditorOptionsPatch,
@@ -445,5 +445,94 @@ describe("ExtensionHost — shutdown", () => {
         expect(() => {
             host.dispose();
         }).not.toThrow();
+    });
+});
+
+function makeConfigProvider() {
+    let cb: ((keys: readonly string[]) => void) | null = null;
+    const snapshot = { editor: { tabSize: 2 } };
+    const provider: IExtensionHostConfigProvider = {
+        getSnapshot: () => snapshot,
+        getWorkspaceFolders: () => [{ uri: "/repo", name: "repo", index: 0 }],
+        onDidChange: (fn) => {
+            cb = fn;
+            return {
+                dispose: (): void => {
+                    cb = null;
+                },
+            };
+        },
+    };
+    return { provider, fire: (keys: readonly string[]) => cb?.(keys) };
+}
+
+describe("ExtensionHost — WP3 config/window bridge", () => {
+    it("pushes workspace.initialize after ready and re-pushes on config change", async () => {
+        const child = new FakeChild();
+        const cfg = makeConfigProvider();
+        const host = spawnReadyHost(child, new FakeEditorOptions(), { configuration: cfg.provider });
+        await host.registerExtension(makeReg("ext.a", "/a.js"));
+
+        const init = child.sent.find((m) => m.kind === "notif" && m.method === "workspace.initialize");
+        expect(init).toBeDefined();
+        expect((init as { params: unknown }).params).toEqual({
+            configuration: { editor: { tabSize: 2 } },
+            workspaceFolders: [{ uri: "/repo", name: "repo", index: 0 }],
+        });
+
+        cfg.fire(["editor.tabSize"]);
+        const changed = child.sent.filter(
+            (m) => m.kind === "notif" && m.method === "workspace.configurationChanged",
+        );
+        expect(changed.at(-1)).toMatchObject({
+            params: { configuration: { editor: { tabSize: 2 } }, affectedKeys: ["editor.tabSize"] },
+        });
+
+        host.dispose();
+    });
+
+    it("routes window.showMessage notifications to the logger by severity", async () => {
+        const child = new FakeChild();
+        const logger = makeLogger();
+        const host = spawnReadyHost(child, new FakeEditorOptions(), { logger });
+        await host.registerExtension(makeReg("ext.a", "/a.js"));
+
+        const send = (severity: string, message: unknown): void =>
+            child.receiveFromHostPeer({ kind: "notif", method: "window.showMessage", params: { severity, message } });
+        send("error", "boom");
+        send("warn", "careful");
+        send("info", "fyi");
+        send("info", 42); // не-строка → String(message)
+
+        expect(logger.error).toHaveBeenCalledWith("[extension] boom");
+        expect(logger.warn).toHaveBeenCalledWith("[extension] careful");
+        expect(logger.info).toHaveBeenCalledWith("[extension] fyi");
+        expect(logger.info).toHaveBeenCalledWith("[extension] 42");
+
+        host.dispose();
+    });
+
+    it("aliases indentSize to tabSize in editor.setOptions (only when tabSize absent)", async () => {
+        const child = new FakeChild();
+        const editorOptions = new FakeEditorOptions();
+        const host = spawnReadyHost(child, editorOptions, {});
+        await host.registerExtension(makeReg("ext.a", "/a.js"));
+
+        child.receiveFromHostPeer({ kind: "req", id: 901, method: "editor.setOptions", params: { indentSize: 3 } });
+        await waitUntil(() => editorOptions.lastPatch !== null);
+        expect(editorOptions.lastPatch).toEqual({ tabSize: 3 });
+
+        // Явный tabSize имеет приоритет — indentSize игнорируется.
+        editorOptions.lastPatch = null;
+        child.receiveFromHostPeer({
+            kind: "req",
+            id: 902,
+            method: "editor.setOptions",
+            params: { tabSize: 4, indentSize: 8 },
+        });
+        await waitUntil(() => editorOptions.lastPatch !== null);
+        expect(editorOptions.lastPatch).toEqual({ tabSize: 4 });
+
+        host.dispose();
     });
 });

@@ -90,4 +90,24 @@ describe("WorkspaceConfigStore", () => {
         store.setSnapshot("garbage");
         expect(store.get("editor.tabSize")).toBeUndefined();
     });
+
+    it("applyDefaults(undefined) — no-op", () => {
+        const store = new WorkspaceConfigStore();
+        store.applyDefaults(undefined);
+        expect(store.get("anything")).toBeUndefined();
+    });
+
+    it("сливает дефолты с общим префиксом в одно поддерево", () => {
+        const store = new WorkspaceConfigStore();
+        store.applyDefaults({ "a.b": 1, "a.c": 2 });
+        expect(store.get("a.b")).toBe(1);
+        expect(store.get("a.c")).toBe(2);
+        expect(store.get("a")).toEqual({ b: 1, c: 2 });
+    });
+
+    it("get по пути, уходящему за скаляр, возвращает undefined", () => {
+        const store = new WorkspaceConfigStore();
+        store.setSnapshot({ editor: { tabSize: 2 } });
+        expect(store.get("editor.tabSize.deeper")).toBeUndefined();
+    });
 });
