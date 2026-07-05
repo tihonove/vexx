@@ -15,6 +15,7 @@ import {
     TextEdit,
     Uri,
 } from "./Vscode/VscodeTypes.ts";
+import { buildCommandsNamespace } from "./Vscode/CommandsNamespace.ts";
 import type { RpcEndpoint } from "./RpcEndpoint.ts";
 
 /**
@@ -135,8 +136,10 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
         },
     };
 
-    // --- Место для WP3/WP4: workspace/commands/languages namespaces поверх
-    //     ТОГО ЖЕ `registry` и общего состояния выше. Не реализуется в WP1. ---
+    // --- WP4: commands bridge поверх симметричного rpc (собственная локальная
+    //     Map команд + прокси в host CommandRegistry). WP3 добавит рядом
+    //     workspace/languages поверх ТОГО ЖЕ `registry`. ---
+    const commandsNs = buildCommandsNamespace(rpc);
 
     return {
         version: "vexx-phase-1",
@@ -155,6 +158,7 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): typeof vscode {
         FileType,
         CompletionItemKind,
         window: windowNs,
+        commands: commandsNs,
     } as unknown as typeof vscode;
 }
 

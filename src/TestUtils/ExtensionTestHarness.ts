@@ -4,11 +4,13 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { CommandRegistry } from "../Controllers/CommandRegistry.ts";
 import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
 import { UndoRedoService } from "../Controllers/Workspace/UndoRedoService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { CommandServiceAdapter } from "../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import { ExtensionHost } from "../Extensions/Host/ExtensionHost.ts";
 import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
@@ -42,6 +44,12 @@ export interface IExtensionHarness {
     readonly app: TestApp;
     readonly host: ExtensionHost;
     readonly group: EditorGroupController;
+    /**
+     * Host-реестр команд, за которым стоит {@link ExtensionHost}. Тест может
+     * `execute(...)` прокси-команду сабпроцесса (host → subprocess) или
+     * `register(...)` хостовую команду, которую сабпроцесс вызовет fall-through.
+     */
+    readonly commandRegistry: CommandRegistry;
     readonly tmpDir: string;
     writeFile(name: string, content: string): string;
     /**
@@ -75,7 +83,9 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
     group.mount();
 
     const adapter = new EditorOptionsServiceAdapter(group);
-    const host = new ExtensionHost(adapter, { spawnArgs: subprocessSpawnArgsForTests() });
+    const commandRegistry = new CommandRegistry();
+    const commandAdapter = new CommandServiceAdapter(commandRegistry);
+    const host = new ExtensionHost(adapter, commandAdapter, { spawnArgs: subprocessSpawnArgsForTests() });
 
     const writeFile = (name: string, content: string): string => {
         const fp = path.join(tmpDir, name);
@@ -116,5 +126,5 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         }
     };
 
-    return { app, host, group, tmpDir, writeFile, flushRpc, dispose };
+    return { app, host, group, commandRegistry, tmpDir, writeFile, flushRpc, dispose };
 }

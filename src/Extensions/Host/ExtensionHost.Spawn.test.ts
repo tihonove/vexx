@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
+import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IProtocolMessage } from "./RpcEndpoint.ts";
@@ -112,7 +113,7 @@ function spawnReadyHost(child: FakeChild, options = {}): ExtensionHost {
     queueMicrotask(() => {
         child.emitReady();
     });
-    return new ExtensionHost(new FakeEditorOptions(), options);
+    return new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, options);
 }
 
 afterEach(() => {
@@ -145,7 +146,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         queueMicrotask(() => {
             child.emitReady();
         });
-        const host = new ExtensionHost(new FakeEditorOptions()); // no spawnArgs → defaultSpawnArgs
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE); // no spawnArgs → defaultSpawnArgs
 
         await host.registerExtension(makeReg("ext.a"));
 
@@ -163,7 +164,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         queueMicrotask(() => {
             child.emitReady();
         });
-        const host = new ExtensionHost(new FakeEditorOptions());
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE);
 
         await host.registerExtension(makeReg("ext.a"));
 
@@ -181,7 +182,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         queueMicrotask(() => {
             child.emitReady();
         });
-        const host = new ExtensionHost(new FakeEditorOptions());
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE);
 
         await host.registerExtension(makeReg("ext.a"));
 
@@ -196,7 +197,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         const original = process.argv[1];
         process.argv[1] = ""; // simulate a missing main script
         try {
-            const host = new ExtensionHost(new FakeEditorOptions());
+            const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE);
             await expect(host.registerExtension(makeReg("ext.a"))).rejects.toThrow(/cannot determine main script/);
         } finally {
             process.argv[1] = original;

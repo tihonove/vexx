@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
+import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IProtocolMessage, IRequestMessage } from "./RpcEndpoint.ts";
@@ -129,7 +130,7 @@ function spawnReadyHost(child: FakeChild, editorOptions: FakeEditorOptions, opti
     queueMicrotask(() => {
         child.emitReady();
     });
-    return new ExtensionHost(editorOptions, { spawnArgs, ...options });
+    return new ExtensionHost(editorOptions, NULL_COMMAND_SERVICE, { spawnArgs, ...options });
 }
 
 afterEach(() => {
@@ -378,7 +379,7 @@ describe("ExtensionHost — readiness failures", () => {
         queueMicrotask(() => {
             child.simulateExit(1);
         });
-        const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs });
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs });
 
         await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/exited before ready/);
     });
@@ -386,7 +387,7 @@ describe("ExtensionHost — readiness failures", () => {
     it("rejects when the subprocess does not become ready in time", async () => {
         const child = new FakeChild();
         spawnMock.mockReturnValue(child as never); // never emits ready
-        const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs, readyTimeoutMs: 20 });
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs, readyTimeoutMs: 20 });
 
         await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/did not become ready/);
     });
@@ -433,7 +434,7 @@ describe("ExtensionHost — shutdown", () => {
     });
 
     it("disposes cleanly when no subprocess was ever spawned", () => {
-        const host = new ExtensionHost(new FakeEditorOptions(), { spawnArgs });
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs });
         expect(() => {
             host.dispose();
         }).not.toThrow();
