@@ -9,11 +9,15 @@ import type { CompletionListItem } from "../TUIDom/Widgets/CompletionListElement
 import { CompletionListElement } from "../TUIDom/Widgets/CompletionListElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 
+import { collectWordCompletions } from "./collectWordCompletions.ts";
 import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
 /** Символы, образующие «слово» под курсором (префикс автодополнения). */
 const WORD_CHAR = /[\w.-]/;
+
+/** `CompletionItemKind.Text` — для word-based элементов. */
+const KIND_TEXT = 0;
 
 /**
  * Минимальный UI автодополнения ядра (WP8). По триггеру
@@ -67,21 +71,26 @@ export class CompletionController extends Disposable {
      */
     public async trigger(): Promise<void> {
         const editor = this.group.getActiveEditor();
-        const source = this.group.completionSource;
-        if (editor === null || source === undefined) return;
+        if (editor === null) return;
 
         const active = editor.viewState.selections[0].active;
         const lineContent = editor.viewState.document.getLineContent(active.line);
         const prefixStart = wordStart(lineContent, active.character);
         const prefix = lineContent.slice(prefixStart, active.character);
 
-        const items = await source({
-            fileName: editor.absoluteFilePath ?? "",
-            languageId: editor.languageId,
-            text: editor.getText(),
-            line: active.line,
-            character: active.character,
-        });
+        // Провайдеры расширений (если подключён источник) + word-based fallback
+        // из всех открытых редакторов (как editor.wordBasedSuggestions в VS Code).
+        const source = this.group.completionSource;
+        const extensionItems = source
+            ? await source({
+                  fileName: editor.absoluteFilePath ?? "",
+                  languageId: editor.languageId,
+                  text: editor.getText(),
+                  line: active.line,
+                  character: active.character,
+              })
+            : [];
+        const items = [...extensionItems, ...this.wordItems(prefix, extensionItems)];
         if (items.length === 0) return;
 
         // Каретка могла уйти за время await — берём актуальный якорь.
@@ -108,6 +117,23 @@ export class CompletionController extends Disposable {
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────
+
+    /**
+     * Word-based элементы из текста всех открытых редакторов группы, без
+     * дублей с элементами провайдеров. Большие файлы отсекаются внутри
+     * {@link collectWordCompletions}.
+     */
+    private wordItems(prefix: string, extensionItems: readonly ICoreCompletionItem[]): ICoreCompletionItem[] {
+        const texts: string[] = [];
+        for (let i = 0; i < this.group.editorCount; i++) {
+            const editor = this.group.getEditor(i);
+            if (editor !== null) texts.push(editor.getText());
+        }
+        const existing = new Set(extensionItems.map((item) => item.label));
+        return collectWordCompletions(texts, prefix)
+            .filter((word) => !existing.has(word))
+            .map((word) => ({ label: word, insertText: word, kind: KIND_TEXT }));
+    }
 
     private accept(item: CompletionListItem): void {
         const editor = this.activeEditor;
