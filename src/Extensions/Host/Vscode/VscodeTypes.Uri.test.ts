@@ -20,6 +20,18 @@ describe("VscodeTypes — Uri (file scheme)", () => {
         expect(u.path).toBe("/a/b");
     });
 
+    it("parse() без пути даёт path='/'", () => {
+        const u = Uri.parse("file://host");
+        expect(u.scheme).toBe("file");
+        expect(u.path).toBe("/");
+    });
+
+    it("parse() без схемы трактует строку как file-путь", () => {
+        const u = Uri.parse("/plain/path");
+        expect(u.scheme).toBe("file");
+        expect(u.path).toBe("/plain/path");
+    });
+
     it("joinPath() соединяет только path", () => {
         const u = Uri.joinPath(Uri.file("/a"), "b", "c");
         expect(u.scheme).toBe("file");

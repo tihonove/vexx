@@ -62,6 +62,13 @@ describe("VscodeTypes — EventEmitter", () => {
         expect(seen).toEqual(["ok"]);
     });
 
+    it("повторный dispose подписки безопасен (idx<0)", () => {
+        const em = new EventEmitter<number>();
+        const sub = em.event(() => undefined);
+        sub.dispose();
+        expect(() => sub.dispose()).not.toThrow();
+    });
+
     it("emitter.dispose() очищает всех слушателей", () => {
         const em = new EventEmitter<number>();
         const seen: number[] = [];

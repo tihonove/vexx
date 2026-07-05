@@ -29,6 +29,13 @@ describe("ExtHostDocuments — DocumentRegistry идентичность", () =>
         reg.getOrCreate("/b.ts");
         expect(reg.all()).toHaveLength(2);
     });
+
+    it("get() возвращает документ или undefined", () => {
+        const reg = new DocumentRegistry();
+        const doc = reg.getOrCreate("/a.ts");
+        expect(reg.get("/a.ts")).toBe(doc);
+        expect(reg.get("/missing.ts")).toBeUndefined();
+    });
 });
 
 describe("ExtHostDocuments — ExtHostTextDocument", () => {
@@ -111,5 +118,10 @@ describe("ExtHostDocuments — ExtHostTextDocument", () => {
         const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "hello\nworld" });
         expect(doc.getText(new Range(0, 1, 0, 4))).toBe("ell");
         expect(doc.getText(new Range(0, 3, 1, 2))).toBe("lo\nwo");
+    });
+
+    it("getText(range) через несколько строк включает промежуточные целиком", () => {
+        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "one\ntwo\nthree\nfour" });
+        expect(doc.getText(new Range(0, 1, 3, 2))).toBe("ne\ntwo\nthree\nfo");
     });
 });

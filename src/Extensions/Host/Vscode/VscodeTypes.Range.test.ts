@@ -36,11 +36,14 @@ describe("VscodeTypes — Range", () => {
         expect(r.contains(new Range(0, 0, 4, 0))).toBe(false);
     });
 
-    it("intersection/union", () => {
+    it("intersection/union — обе стороны выбора start/end", () => {
         const a = new Range(1, 0, 3, 0);
         const b = new Range(2, 0, 5, 0);
         expect(a.intersection(b)?.isEqual(new Range(2, 0, 3, 0))).toBe(true);
         expect(a.union(b).isEqual(new Range(1, 0, 5, 0))).toBe(true);
+        // Обратный порядок операндов покрывает другие ветки тернарников.
+        expect(b.intersection(a)?.isEqual(new Range(2, 0, 3, 0))).toBe(true);
+        expect(b.union(a).isEqual(new Range(1, 0, 5, 0))).toBe(true);
         expect(new Range(1, 0, 2, 0).intersection(new Range(3, 0, 4, 0))).toBeUndefined();
     });
 
@@ -49,5 +52,7 @@ describe("VscodeTypes — Range", () => {
         expect(r.with()).toBe(r);
         expect(r.with(new Position(0, 0)).start.isEqual(new Position(0, 0))).toBe(true);
         expect(r.with({ end: new Position(9, 9) }).end.isEqual(new Position(9, 9))).toBe(true);
+        // {start} без end — покрывает fallback newEnd = this.end.
+        expect(r.with({ start: new Position(0, 5) }).end.isEqual(new Position(2, 0))).toBe(true);
     });
 });

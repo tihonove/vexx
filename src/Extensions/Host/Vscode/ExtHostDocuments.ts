@@ -73,13 +73,13 @@ export class ExtHostTextDocument {
         if (range === undefined) return this.text;
         const lines = this.lines();
         if (range.start.line === range.end.line) {
-            return (lines[range.start.line] ?? "").slice(range.start.character, range.end.character);
+            return lines[range.start.line].slice(range.start.character, range.end.character);
         }
-        const parts: string[] = [(lines[range.start.line] ?? "").slice(range.start.character)];
+        const parts: string[] = [lines[range.start.line].slice(range.start.character)];
         for (let n = range.start.line + 1; n < range.end.line; n++) {
-            parts.push(lines[n] ?? "");
+            parts.push(lines[n]);
         }
-        parts.push((lines[range.end.line] ?? "").slice(0, range.end.character));
+        parts.push(lines[range.end.line].slice(0, range.end.character));
         return parts.join("\n");
     }
 
