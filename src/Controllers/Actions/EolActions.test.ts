@@ -99,4 +99,17 @@ describe("EolActions", () => {
         exec(toggleEolAction);
         expect(editor.eol).toBe(EndOfLine.LF);
     });
+
+    it("actions are no-ops when there is no active editor", () => {
+        const commands = new CommandRegistry();
+        const keybindings = new KeybindingRegistry();
+        const accessor = new Container();
+        accessor.bind(EditorGroupControllerDIToken, () => ({ getActiveEditor: () => null }) as never);
+        accessor.bind(StatusBarControllerDIToken, () => ({ update() {} }) as never);
+
+        for (const action of [convertToLfAction, convertToCrlfAction, toggleEolAction]) {
+            registerAction(commands, keybindings, accessor, action);
+            expect(() => commands.execute(action.id)).not.toThrow();
+        }
+    });
 });
