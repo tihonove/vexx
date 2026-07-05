@@ -26,6 +26,10 @@ function createTestContext(): TestQuitContext {
     return { testApp, controller, accessor };
 }
 
+/** Save теперь async — сохранение и последующий quit/close откладываются на
+ *  микротаск, поэтому Save-ветки диалога надо «прокрутить» перед проверкой. */
+const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+
 describe("AppController quit with save dialog", () => {
     let exitSpy: ReturnType<typeof vi.spyOn>;
 
@@ -86,7 +90,7 @@ describe("AppController quit with save dialog", () => {
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it("saves file and quits when Save is pressed", () => {
+    it("saves file and quits when Save is pressed", async () => {
         const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/quit-test-save.txt");
         controller.focusEditor();
@@ -96,6 +100,7 @@ describe("AppController quit with save dialog", () => {
 
         const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
         dialog.onSave?.();
+        await tick();
 
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
@@ -160,7 +165,7 @@ describe("AppController quit with save dialog", () => {
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it("Save on the first dialog proceeds to the next file's dialog before quitting", () => {
+    it("Save on the first dialog proceeds to the next file's dialog before quitting", async () => {
         const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/quit-seq-save-a.txt");
         controller.focusEditor();
@@ -174,6 +179,7 @@ describe("AppController quit with save dialog", () => {
         // First dialog: Save → saves file, advances to second dialog (no quit yet).
         const firstDialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
         firstDialog.onSave?.();
+        await tick();
         expect(exitSpy).not.toHaveBeenCalled();
 
         // A second dialog is shown for the remaining unsaved file.
@@ -182,6 +188,7 @@ describe("AppController quit with save dialog", () => {
 
         // Save on the last file → quit.
         secondDialog.onSave?.();
+        await tick();
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -213,7 +220,7 @@ describe("AppController quit with save dialog", () => {
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it("mixes Save then Don't Save across the sequence and quits at the end", () => {
+    it("mixes Save then Don't Save across the sequence and quits at the end", async () => {
         const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/quit-seq-mix-a.txt");
         controller.focusEditor();
@@ -226,6 +233,7 @@ describe("AppController quit with save dialog", () => {
 
         const first = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
         first.onSave?.();
+        await tick();
         expect(exitSpy).not.toHaveBeenCalled();
 
         const second = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
@@ -270,7 +278,7 @@ describe("AppController close-tab confirm flow", () => {
         expect(tabStrip.getItemElements()).toHaveLength(1);
     });
 
-    it("Save on the close-tab dialog saves and closes the tab", () => {
+    it("Save on the close-tab dialog saves and closes the tab", async () => {
         const { testApp, controller } = createTestContext();
         controller.openFile("/tmp/close-confirm-e.txt");
         controller.openFile("/tmp/close-confirm-f.txt");
@@ -284,6 +292,7 @@ describe("AppController close-tab confirm flow", () => {
         testApp.sendKey("Ctrl+W");
         const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
         dialog.onSave?.();
+        await tick();
         testApp.render();
 
         expect(tabStrip.getItemElements()).toHaveLength(1);

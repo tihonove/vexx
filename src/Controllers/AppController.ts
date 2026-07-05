@@ -676,8 +676,9 @@ export class AppController extends Disposable implements IController {
             this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
                 /* v8 ignore stop */
                 onSave: () => {
-                    editor.save();
-                    this.editorGroupController.closeTab(index);
+                    void editor.save().then(() => {
+                        this.editorGroupController.closeTab(index);
+                    });
                 },
                 onDontSave: () => {
                     this.editorGroupController.closeTab(index);
@@ -1239,9 +1240,9 @@ export class AppController extends Disposable implements IController {
         if (target === undefined) return;
 
         const resolved = path.resolve(target.trim());
-        const doSave = (): void => {
+        const doSave = async (): Promise<void> => {
             try {
-                editor.saveAs(resolved);
+                await editor.saveAs(resolved);
                 this.updateContextKeys();
                 this.statusBarController.update();
             } catch (error) {
@@ -1260,11 +1261,11 @@ export class AppController extends Disposable implements IController {
                     confirmLabel: "Overwrite",
                     cancelLabel: "Cancel",
                 },
-                { onConfirm: doSave },
+                { onConfirm: () => void doSave() },
             );
             return;
         }
-        doSave();
+        void doSave();
     }
 
     public showAboutDialog(): void {
@@ -1419,12 +1420,13 @@ export class AppController extends Disposable implements IController {
         this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
             /* v8 ignore stop */
             onSave: () => {
-                editor.save();
-                if (rest.length === 0) {
-                    this.doQuit(accessor);
-                } else {
-                    this.showQuitConfirmDialogSequential(rest, accessor);
-                }
+                void editor.save().then(() => {
+                    if (rest.length === 0) {
+                        this.doQuit(accessor);
+                    } else {
+                        this.showQuitConfirmDialogSequential(rest, accessor);
+                    }
+                });
             },
             onDontSave: () => {
                 if (rest.length === 0) {

@@ -467,4 +467,43 @@ describe("EditorGroupController", () => {
             }).not.toThrow();
         });
     });
+
+    describe("save participant & onEditorSaved", () => {
+        it("раздаёт saveParticipant существующим и будущим редакторам", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.txt", "x"));
+
+            const participant = (): Promise<never[]> => Promise.resolve([]);
+            ctrl.saveParticipant = participant;
+            expect(ctrl.saveParticipant).toBe(participant);
+            expect(ctrl.getActiveEditor()?.saveParticipant).toBe(participant);
+
+            // Новый редактор получает участника при открытии.
+            ctrl.openFile(writeFile("b.txt", "y"));
+            expect(ctrl.getEditor(1)?.saveParticipant).toBe(participant);
+        });
+
+        it("onEditorSaved стреляет при сохранении и отписывается через dispose", async () => {
+            const ctrl = createEditorGroupController({
+                languageService: {
+                    getLanguageIdForResource: (f) => (f.endsWith(".ts") ? "typescript" : undefined),
+                    getLanguageDisplayName: () => undefined,
+                },
+            });
+            ctrl.mount();
+            const fp = writeFile("a.ts", "x");
+            ctrl.openFile(fp);
+
+            const seen: { fileName: string; languageId: string }[] = [];
+            const sub = ctrl.onEditorSaved((m) => seen.push(m));
+            await ctrl.getActiveEditor()?.save();
+            expect(seen).toEqual([{ fileName: fp, languageId: "typescript" }]);
+
+            sub.dispose();
+            sub.dispose(); // повторный dispose — no-op (idx === -1)
+            await ctrl.getActiveEditor()?.save();
+            expect(seen).toHaveLength(1);
+        });
+    });
 });

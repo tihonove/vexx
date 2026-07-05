@@ -5,6 +5,7 @@ import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
+import type { SaveParticipant } from "../Editor/ISaveParticipant.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -21,6 +22,12 @@ import type { IController } from "./IController.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
+
+/** Метаданные сохранённого редактора для проекции в subprocess (did-save). */
+export interface IEditorSavedMeta {
+    readonly fileName: string;
+    readonly languageId: string;
+}
 
 export class EditorGroupController extends Disposable implements IController {
     public static dependencies = [
@@ -43,9 +50,27 @@ export class EditorGroupController extends Disposable implements IController {
     private configurationService: IConfigurationService;
     private undoRedoService: UndoRedoService;
     private activeEditorListeners: ((editor: EditorController | null) => void)[] = [];
+    private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
+    private saveParticipantValue?: SaveParticipant;
 
     public onRequestConfirmClose?: (index: number) => void;
     public onEditorCreate?: (controller: EditorController) => void;
+
+    /**
+     * Save-участник, прокидываемый в каждый редактор группы (host/харнесс
+     * подключает сюда `onWillSaveTextDocument`). Присваивание раздаёт участника
+     * уже открытым редакторам и всем последующим (в openFile).
+     */
+    public get saveParticipant(): SaveParticipant | undefined {
+        return this.saveParticipantValue;
+    }
+
+    public set saveParticipant(participant: SaveParticipant | undefined) {
+        this.saveParticipantValue = participant;
+        for (const editor of this.editors) {
+            editor.saveParticipant = participant;
+        }
+    }
 
     public onActiveEditorChanged(cb: (editor: EditorController | null) => void): IDisposable {
         this.activeEditorListeners.push(cb);
@@ -53,6 +78,21 @@ export class EditorGroupController extends Disposable implements IController {
             dispose: () => {
                 const idx = this.activeEditorListeners.indexOf(cb);
                 if (idx >= 0) this.activeEditorListeners.splice(idx, 1);
+            },
+        };
+    }
+
+    /**
+     * Агрегированное событие сохранения любого редактора группы (host мапит его
+     * в `workspace.didSaveTextDocument`). Отдельно от per-editor `onDidSave`,
+     * который занят синхронизацией вкладок.
+     */
+    public onEditorSaved(cb: (meta: IEditorSavedMeta) => void): IDisposable {
+        this.editorSavedListeners.push(cb);
+        return {
+            dispose: () => {
+                const idx = this.editorSavedListeners.indexOf(cb);
+                if (idx >= 0) this.editorSavedListeners.splice(idx, 1);
             },
         };
     }
@@ -115,6 +155,7 @@ export class EditorGroupController extends Disposable implements IController {
             ),
         );
         editor.openFile(filePath);
+        editor.saveParticipant = this.saveParticipantValue;
         this.applyConfigurationToEditor(editor);
         this.onEditorCreate?.(editor);
         this.register(
@@ -132,6 +173,7 @@ export class EditorGroupController extends Disposable implements IController {
         );
         editor.onDidSave = () => {
             this.syncTabs();
+            this.fireEditorSaved(editor);
         };
         this.editors.push(editor);
         this.activateTab(this.editors.length - 1, { focus });
@@ -247,6 +289,17 @@ export class EditorGroupController extends Disposable implements IController {
     private fireActiveEditorChanged(editor: EditorController | null): void {
         for (const cb of this.activeEditorListeners) {
             cb(editor);
+        }
+    }
+
+    private fireEditorSaved(editor: EditorController): void {
+        const fileName = editor.absoluteFilePath;
+        /* v8 ignore start -- defensive: editors are only added via openFile(), which always sets a file path */
+        if (fileName === null) return;
+        /* v8 ignore stop */
+        const meta: IEditorSavedMeta = { fileName, languageId: editor.languageId };
+        for (const cb of [...this.editorSavedListeners]) {
+            cb(meta);
         }
     }
 }

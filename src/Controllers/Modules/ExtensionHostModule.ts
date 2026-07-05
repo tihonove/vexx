@@ -50,12 +50,20 @@ export const extensionHostModule: ContainerModule = (container) => {
                 configService.onDidChangeConfiguration((event) => cb(event.affectedKeys)),
         };
 
-        return new ExtensionHost(adapter, commandAdapter, {
+        const host = new ExtensionHost(adapter, commandAdapter, {
             logger,
             rpcLogger,
             stdoutLogger: wantStdio(stdoutLogger),
             stderrLogger: wantStdio(stderrLogger),
             configuration,
         });
+
+        // Save-pipeline: редакторы группы прогоняют will-save через host
+        // (onWillSaveTextDocument), а состоявшееся сохранение уходит обратно
+        // в subprocess (onDidSaveTextDocument).
+        group.saveParticipant = (snapshot) => host.willSaveTextDocument(snapshot);
+        group.onEditorSaved((meta) => host.didSaveTextDocument(meta));
+
+        return host;
     });
 };

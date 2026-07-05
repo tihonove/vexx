@@ -1,8 +1,47 @@
 import type * as vscode from "vscode";
 
+import type { WireTextEdit } from "../WireTypes.ts";
+
 import type { ExtHostTextDocument } from "./ExtHostDocuments.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
-import { DisposableImpl, EventEmitter, Uri } from "./VscodeTypes.ts";
+import { DisposableImpl, EndOfLine, EventEmitter, TextDocumentSaveReason, TextEdit, Uri } from "./VscodeTypes.ts";
+
+/** Тайм-аут на один waitUntil-thenable участника will-save, мс. */
+const WILL_SAVE_LISTENER_TIMEOUT_MS = 1500;
+
+/** Промис, резолвящийся пустым набором правок по истечении per-listener тайм-аута. */
+function listenerTimeout(): Promise<readonly TextEdit[]> {
+    return new Promise((resolve) => {
+        const timer = setTimeout(() => resolve([]), WILL_SAVE_LISTENER_TIMEOUT_MS);
+        // Не держим event loop живым из-за таймера, который проиграл гонку.
+        timer.unref?.();
+    });
+}
+
+/** Сериализует `vscode.TextEdit` в wire-форму (subprocess → host). */
+function serializeTextEdit(edit: TextEdit): WireTextEdit {
+    if (edit.newEol !== undefined) {
+        return { setEndOfLine: edit.newEol === EndOfLine.CRLF ? 2 : 1 };
+    }
+    return {
+        range: {
+            startLine: edit.range.start.line,
+            startCharacter: edit.range.start.character,
+            endLine: edit.range.end.line,
+            endCharacter: edit.range.end.character,
+        },
+        text: edit.newText,
+    };
+}
+
+/** Wire-параметры запроса will-save (host → subprocess). */
+interface IWireWillSaveParams {
+    readonly fileName: string;
+    readonly languageId?: string;
+    readonly isDirty?: boolean;
+    readonly text?: string;
+    readonly reason?: number;
+}
 
 /** Папка воркспейса, полученная из `workspace.initialize`. */
 interface IWorkspaceFolder {
@@ -67,6 +106,59 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
             affectsConfiguration: (section: string): boolean =>
                 affectedKeys.some((key) => key === section || key.startsWith(section + ".")),
         } as vscode.ConfigurationChangeEvent);
+    });
+
+    // Хост запрашивает pre-save правки: обновляем полный текст документа в
+    // реестре, фаерим onWillSaveTextDocument, собираем waitUntil-thenable'ы (по
+    // одному per-listener таймауту), сериализуем полученные TextEdit[].
+    rpc.handleRequest("workspace.willSaveTextDocument", async (params): Promise<WireTextEdit[]> => {
+        const p = params as IWireWillSaveParams;
+        const doc = registry.upsertFull({
+            fileName: p.fileName,
+            languageId: p.languageId,
+            isDirty: p.isDirty,
+            text: p.text ?? "",
+        });
+        const thenables: Thenable<readonly vscode.TextEdit[]>[] = [];
+        let collecting = true;
+        const event: vscode.TextDocumentWillSaveEvent = {
+            document: doc as unknown as vscode.TextDocument,
+            reason: (p.reason ?? TextDocumentSaveReason.Manual) as vscode.TextDocumentSaveReason,
+            waitUntil: (thenable: Thenable<unknown>): void => {
+                // waitUntil валиден только во время диспетча события (как в VS Code).
+                if (collecting) thenables.push(Promise.resolve(thenable) as Thenable<readonly vscode.TextEdit[]>);
+            },
+        };
+        onWillSaveTextDocumentEmitter.fire(event);
+        collecting = false;
+
+        const settled = await Promise.all(
+            thenables.map((thenable) =>
+                Promise.race([
+                    Promise.resolve(thenable).catch(() => [] as readonly vscode.TextEdit[]),
+                    listenerTimeout(),
+                ]),
+            ),
+        );
+        const edits: WireTextEdit[] = [];
+        for (const result of settled) {
+            if (!Array.isArray(result)) continue;
+            for (const edit of result) {
+                if (edit instanceof TextEdit) edits.push(serializeTextEdit(edit));
+            }
+        }
+        return edits;
+    });
+
+    // Хост сообщил о состоявшемся сохранении — фаерим onDidSaveTextDocument.
+    rpc.handleNotification("workspace.didSaveTextDocument", (params) => {
+        const p = params as { fileName?: unknown; languageId?: unknown };
+        if (typeof p.fileName !== "string") return;
+        const doc = registry.upsertMeta({
+            fileName: p.fileName,
+            ...(typeof p.languageId === "string" ? { languageId: p.languageId } : {}),
+        });
+        onDidSaveTextDocumentEmitter.fire(doc as unknown as vscode.TextDocument);
     });
 
     function getConfiguration(section?: string, _scope?: unknown): vscode.WorkspaceConfiguration {
