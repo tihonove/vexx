@@ -10,7 +10,12 @@ import { CommandRegistry } from "../CommandRegistry.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
 
-import { listFocusPageDownAction, listFocusPageUpAction } from "./ListActions.ts";
+import {
+    listFocusFirstAction,
+    listFocusLastAction,
+    listFocusPageDownAction,
+    listFocusPageUpAction,
+} from "./ListActions.ts";
 
 interface Node {
     id: string;
@@ -71,6 +76,27 @@ describe("ListActions — drive the focused TreeViewElement", () => {
 
         expect(selected).toHaveBeenLastCalledWith(ITEMS[0]);
     });
+
+    it("list.focusLast jumps the focused tree to the last item", async () => {
+        const { tree, exec } = await mountFocusedTree();
+        const selected = vi.fn();
+        tree.onSelect = selected;
+
+        exec(listFocusLastAction);
+
+        expect(selected).toHaveBeenLastCalledWith(ITEMS[ITEMS.length - 1]);
+    });
+
+    it("list.focusFirst jumps the focused tree back to the first item", async () => {
+        const { tree, exec } = await mountFocusedTree();
+        exec(listFocusLastAction); // move to the end first
+        const selected = vi.fn();
+        tree.onSelect = selected;
+
+        exec(listFocusFirstAction);
+
+        expect(selected).toHaveBeenLastCalledWith(ITEMS[0]);
+    });
 });
 
 describe("ListActions — when the focused element is not a tree", () => {
@@ -106,6 +132,25 @@ describe("ListActions — when the focused element is not a tree", () => {
         registerAction(commands, new KeybindingRegistry(), accessor, listFocusPageUpAction);
 
         expect(() => commands.execute(listFocusPageUpAction.id)).not.toThrow();
+        expect(selected).not.toHaveBeenCalled();
+    });
+
+    it("list.focusFirst and list.focusLast are safe no-ops", async () => {
+        const tree = new TreeViewElement(provider(ITEMS));
+        const app = TestApp.createWithContent(tree, new Size(40, 10));
+        await tree.refresh();
+        app.render();
+        const selected = vi.fn();
+        tree.onSelect = selected;
+
+        const accessor = new Container();
+        accessor.bind(TuiApplicationDIToken, () => app.app);
+        const commands = new CommandRegistry();
+        registerAction(commands, new KeybindingRegistry(), accessor, listFocusFirstAction);
+        registerAction(commands, new KeybindingRegistry(), accessor, listFocusLastAction);
+
+        expect(() => commands.execute(listFocusFirstAction.id)).not.toThrow();
+        expect(() => commands.execute(listFocusLastAction.id)).not.toThrow();
         expect(selected).not.toHaveBeenCalled();
     });
 });
