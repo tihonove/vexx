@@ -104,6 +104,11 @@ import {
 import { listFocusPageDownAction, listFocusPageUpAction } from "./Actions/ListActions.ts";
 import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
+import {
+    insertFinalNewLineAction,
+    trimTrailingWhitespaceAction,
+    triggerSuggestAction,
+} from "./Actions/WhitespaceActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -177,6 +182,11 @@ const builtinActions = [
     convertToLfAction,
     convertToCrlfAction,
     toggleEolAction,
+
+    // Whitespace
+    trimTrailingWhitespaceAction,
+    insertFinalNewLineAction,
+    triggerSuggestAction,
 
     // Clipboard
     clipboardCopyAction,
