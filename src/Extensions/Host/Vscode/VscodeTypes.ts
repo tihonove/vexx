@@ -288,6 +288,37 @@ export class Uri {
     }
 }
 
+/**
+ * Ошибка файловой системы (`vscode.FileSystemError`). Реализация `workspace.fs`
+ * бросает её через фабрики; `code` совпадает с именем фабрики, как в VS Code
+ * (расширения ловят по `err.code === "FileNotFound"`).
+ */
+export class FileSystemError extends Error {
+    public readonly code: string;
+
+    public constructor(messageOrUri?: string | Uri, code = "Unknown") {
+        super(typeof messageOrUri === "string" ? messageOrUri : messageOrUri?.toString());
+        this.name = "FileSystemError";
+        this.code = code;
+    }
+
+    public static FileNotFound(messageOrUri?: string | Uri): FileSystemError {
+        return new FileSystemError(messageOrUri, "FileNotFound");
+    }
+
+    public static FileExists(messageOrUri?: string | Uri): FileSystemError {
+        return new FileSystemError(messageOrUri, "FileExists");
+    }
+
+    public static NoPermissions(messageOrUri?: string | Uri): FileSystemError {
+        return new FileSystemError(messageOrUri, "NoPermissions");
+    }
+
+    public static Unavailable(messageOrUri?: string | Uri): FileSystemError {
+        return new FileSystemError(messageOrUri, "Unavailable");
+    }
+}
+
 /** Разновидность элемента автодополнения. */
 export enum CompletionItemKind {
     Text = 0,

@@ -776,6 +776,50 @@ declare module "vscode" {
 		SymbolicLink = 64
 	}
 
+	/**
+	 * The `FileStat`-type represents metadata about a file.
+	 */
+	export interface FileStat {
+		/** The type of the file, e.g. is a regular file, a directory, or symbolic link to a file. */
+		type: FileType;
+		/** The creation timestamp in milliseconds elapsed since January 1, 1970 00:00:00 UTC. */
+		ctime: number;
+		/** The modification timestamp in milliseconds elapsed since January 1, 1970 00:00:00 UTC. */
+		mtime: number;
+		/** The size in bytes. */
+		size: number;
+	}
+
+	/**
+	 * A type that filesystem providers should use to signal errors.
+	 *
+	 * Factory methods create common error-cases: `throw vscode.FileSystemError.FileNotFound(uri);`.
+	 */
+	export class FileSystemError extends Error {
+		static FileNotFound(messageOrUri?: string | Uri): FileSystemError;
+		static FileExists(messageOrUri?: string | Uri): FileSystemError;
+		static NoPermissions(messageOrUri?: string | Uri): FileSystemError;
+		static Unavailable(messageOrUri?: string | Uri): FileSystemError;
+		constructor(messageOrUri?: string | Uri);
+		/** A code that identifies this error, e.g. `FileNotFound` or `Unknown`. */
+		readonly code: string;
+	}
+
+	/**
+	 * Подмножество `vscode.FileSystem` (workspace.fs). Реализовано локально через
+	 * `node:fs` в subprocess — целевой файл на той же машине, не открытый буфер.
+	 * Реализованы только stat/readFile/writeFile (нужны команде generate и чтению
+	 * `.editorconfig` с диска); прочие методы vscode.FileSystem не поддержаны.
+	 */
+	export interface FileSystem {
+		/** Retrieve metadata about a file. Throws {@link FileSystemError.FileNotFound} when missing. */
+		stat(uri: Uri): Thenable<FileStat>;
+		/** Read the entire contents of a file. */
+		readFile(uri: Uri): Thenable<Uint8Array>;
+		/** Write data to a file, replacing its entire contents. Creates missing parent directories. */
+		writeFile(uri: Uri, content: Uint8Array): Thenable<void>;
+	}
+
 	export enum CompletionItemKind {
 		/**
 		 * The `Text` completion item kind.
@@ -1108,9 +1152,17 @@ declare module "vscode" {
         export const workspaceFolders: readonly WorkspaceFolder[] | undefined;
         export const name: string | undefined;
         export const textDocuments: readonly TextDocument[];
+        /** Локальный доступ к файловой системе (node:fs); см. {@link FileSystem}. */
+        export const fs: FileSystem;
         export function getConfiguration(section?: string, scope?: unknown): WorkspaceConfiguration;
         export function asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string;
         export function openTextDocument(uri: Uri | string): Thenable<TextDocument>;
+        /**
+         * Открывает документ с диска. `encoding` принимается для совместимости с
+         * API 1.100, но фактически используется utf-8 (ядро utf-8-only); при
+         * несовпадении — graceful degrade с предупреждением в лог.
+         */
+        export function openTextDocument(uri: Uri, options?: { encoding?: string }): Thenable<TextDocument>;
         export const onDidChangeConfiguration: Event<ConfigurationChangeEvent>;
         export const onDidOpenTextDocument: Event<TextDocument>;
         export const onDidCloseTextDocument: Event<TextDocument>;

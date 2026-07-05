@@ -1,4 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
 import { makeStubRpc } from "./testStubRpc.ts";
@@ -156,14 +160,67 @@ describe("WorkspaceNamespace — folders & documents", () => {
         expect(workspace.textDocuments).toHaveLength(2);
     });
 
-    it("openTextDocument резолвит открытый документ (строка и Uri), иначе reject", async () => {
+    it("openTextDocument резолвит открытый документ (строка и Uri)", async () => {
         const { ctx, workspace } = makeCtx();
         ctx.registry.getOrCreate("/a.ts");
         const byString = await workspace.openTextDocument("/a.ts");
         expect((byString as unknown as { fileName: string }).fileName).toBe("/a.ts");
         const byUri = await workspace.openTextDocument(Uri.file("/a.ts") as never);
         expect((byUri as unknown as { fileName: string }).fileName).toBe("/a.ts");
-        await expect(workspace.openTextDocument("/missing.ts")).rejects.toThrow();
+    });
+});
+
+describe("WorkspaceNamespace — openTextDocument от диска (WP7)", () => {
+    let tmpDir: string;
+    beforeEach(() => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-otd-"));
+    });
+    afterEach(() => {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it("на промах реестра читает файл с диска в эфемерный документ (не в реестр)", async () => {
+        const { ctx, workspace } = makeCtx();
+        const file = path.join(tmpDir, ".editorconfig");
+        fs.writeFileSync(file, "root = true\n", "utf8");
+
+        const doc = (await workspace.openTextDocument(file)) as unknown as {
+            fileName: string;
+            getText(): string;
+        };
+        expect(doc.fileName).toBe(file);
+        expect(doc.getText()).toBe("root = true\n");
+        // Эфемерный: в реестр не попал.
+        expect(ctx.registry.all()).toHaveLength(0);
+        expect(ctx.registry.get(file)).toBeUndefined();
+    });
+
+    it("несуществующий файл → reject", async () => {
+        const { workspace } = makeCtx();
+        await expect(workspace.openTextDocument(path.join(tmpDir, "nope.txt"))).rejects.toThrow();
+    });
+
+    it("не-utf8 encoding → warn через window.showMessage, текст всё равно utf-8", async () => {
+        const { stub, workspace } = makeCtx();
+        const file = path.join(tmpDir, "a.txt");
+        fs.writeFileSync(file, "abc\n", "utf8");
+
+        const doc = (await workspace.openTextDocument(Uri.file(file) as never, {
+            encoding: "latin1",
+        } as never)) as unknown as { getText(): string };
+        expect(doc.getText()).toBe("abc\n");
+        expect(stub.notifies).toContainEqual({
+            method: "window.showMessage",
+            params: expect.objectContaining({ severity: "warn" }),
+        });
+    });
+
+    it("utf-8 / utf8 encoding не вызывает предупреждения", async () => {
+        const { stub, workspace } = makeCtx();
+        const file = path.join(tmpDir, "b.txt");
+        fs.writeFileSync(file, "x\n", "utf8");
+        await workspace.openTextDocument(Uri.file(file) as never, { encoding: "utf-8" } as never);
+        expect(stub.notifies.some((n) => n.method === "window.showMessage")).toBe(false);
     });
 });
 
