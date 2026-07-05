@@ -3,9 +3,16 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
 import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
 
 const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
+
+/** Мини-сервис языков: `.ts` → typescript, иначе — undefined. */
+const TS_LANGUAGE_SERVICE: ILanguageService = {
+    getLanguageIdForResource: (filePath) => (filePath.endsWith(".ts") ? "typescript" : undefined),
+    getLanguageDisplayName: () => undefined,
+};
 
 function reg(id: string, file: string) {
     return {
@@ -75,6 +82,24 @@ describe("ExtensionHost — window.onDidChangeActiveTextEditor (subprocess)", ()
         try {
             expect(harness.group.getActiveEditor()).toBeNull();
             // Нет редактора → fixture ничего не сделала → tabSize не менялся
+        } finally {
+            await harness.dispose();
+        }
+    });
+
+    it("languageId проецируется в meta и document стабилен по идентичности", async () => {
+        const harness = await createExtensionTestHarness({
+            languageService: TS_LANGUAGE_SERVICE,
+            extensions: [reg("test.reportMeta", "reportActiveEditorMeta.cjs")],
+        });
+        try {
+            const fp = harness.writeFile("main.ts", "export {};\n");
+            harness.group.openFile(fp);
+            await settle();
+            const editor = harness.group.getActiveEditor();
+            // Фикстура ставит tabSize=71 только если document.languageId==="typescript"
+            // И workspace.textDocuments содержит ТОТ ЖЕ объект document.
+            expect(editor?.viewState.tabSize).toBe(71);
         } finally {
             await harness.dispose();
         }

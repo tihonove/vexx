@@ -7,7 +7,12 @@ import type { IDisposable } from "../../Common/Disposable.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
 import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";
-import type { IEditorOptionsPatch, IEditorOptionsService, IEditorOptionsState } from "./IEditorOptionsService.ts";
+import type {
+    IActiveEditorMeta,
+    IEditorOptionsPatch,
+    IEditorOptionsService,
+    IEditorOptionsState,
+} from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IProtocolMessage } from "./RpcEndpoint.ts";
 
@@ -89,7 +94,10 @@ class FakeEditorOptions implements IEditorOptionsService {
     public getActiveEditorFilePath(): string | null {
         return null;
     }
-    public onActiveEditorChanged(_cb: (p: string | null) => void): IDisposable {
+    public getActiveEditorMeta(): IActiveEditorMeta {
+        return { fileName: null, languageId: null, isDirty: false };
+    }
+    public onActiveEditorChanged(_cb: (meta: IActiveEditorMeta) => void): IDisposable {
         return { dispose: (): void => undefined };
     }
 }

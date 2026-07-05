@@ -53,7 +53,27 @@ describe("EditorOptionsServiceAdapter", () => {
         expect(adapter.getActiveEditorFilePath()).toBeNull();
     });
 
-    it("onActiveEditorChanged() forwards the editor's file path, and null when there is no editor", () => {
+    it("getActiveEditorMeta() reports fileName/languageId/isDirty (nulls when no editor)", () => {
+        const withEditor = {
+            getActiveEditor: () => ({
+                absoluteFilePath: "/a/b.ts",
+                languageId: "typescript",
+                isModified: true,
+            }),
+        } as unknown as EditorGroupController;
+        expect(new EditorOptionsServiceAdapter(withEditor).getActiveEditorMeta()).toEqual({
+            fileName: "/a/b.ts",
+            languageId: "typescript",
+            isDirty: true,
+        });
+        expect(new EditorOptionsServiceAdapter(groupWithNoActiveEditor()).getActiveEditorMeta()).toEqual({
+            fileName: null,
+            languageId: null,
+            isDirty: false,
+        });
+    });
+
+    it("onActiveEditorChanged() forwards active-editor meta, and nulls when there is no editor", () => {
         let registered: ((editor: unknown) => void) | undefined;
         const groupDisposable = { dispose: vi.fn() };
         const group = {
@@ -64,18 +84,21 @@ describe("EditorOptionsServiceAdapter", () => {
         } as unknown as EditorGroupController;
         const adapter = new EditorOptionsServiceAdapter(group);
 
-        const received: (string | null)[] = [];
-        const subscription = adapter.onActiveEditorChanged((filePath) => received.push(filePath));
+        const received: unknown[] = [];
+        const subscription = adapter.onActiveEditorChanged((meta) => received.push(meta));
 
         // The adapter passes the group's disposable straight through.
         expect(subscription).toBe(groupDisposable);
         expect(registered).toBeDefined();
 
-        // Active editor present → its absoluteFilePath is forwarded.
-        registered!({ absoluteFilePath: "/a/b.ts" });
-        // No active editor → null is forwarded.
+        // Active editor present → its meta is forwarded.
+        registered!({ absoluteFilePath: "/a/b.ts", languageId: "typescript", isModified: false });
+        // No active editor → nulls are forwarded.
         registered!(null);
 
-        expect(received).toEqual(["/a/b.ts", null]);
+        expect(received).toEqual([
+            { fileName: "/a/b.ts", languageId: "typescript", isDirty: false },
+            { fileName: null, languageId: null, isDirty: false },
+        ]);
     });
 });

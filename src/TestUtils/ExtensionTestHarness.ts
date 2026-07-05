@@ -7,12 +7,13 @@ import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationSe
 import { CommandRegistry } from "../Controllers/CommandRegistry.ts";
 import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
 import { UndoRedoService } from "../Controllers/Workspace/UndoRedoService.ts";
+import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { CommandServiceAdapter } from "../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsServiceAdapter.ts";
-import { ExtensionHost } from "../Extensions/Host/ExtensionHost.ts";
+import { ExtensionHost, type IExtensionHostConfigProvider } from "../Extensions/Host/ExtensionHost.ts";
 import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
 
 const SUBPROCESS_ENTRY = fileURLToPath(new URL("../Extensions/Host/__fixtures__/subprocessEntry.ts", import.meta.url));
@@ -38,6 +39,20 @@ import { TestApp } from "./TestApp.ts";
 export interface IExtensionHarnessOptions {
     readonly initialFile?: { readonly name: string; readonly content: string };
     readonly extensions?: readonly IExtensionRegistration[];
+    /**
+     * Снапшот конфигурации, который host запушит в subprocess
+     * (`workspace.initialize`). Читается расширением через `getConfiguration`.
+     */
+    readonly configuration?: unknown;
+    /**
+     * Пути папок воркспейса (`workspace.workspaceFolders`). По умолчанию — tmpDir.
+     */
+    readonly workspaceFolders?: readonly string[];
+    /**
+     * Сервис определения языка (для `document.languageId`). По умолчанию —
+     * {@link NULL_LANGUAGE_SERVICE} (всё — `plaintext`).
+     */
+    readonly languageService?: ILanguageService;
 }
 
 export interface IExtensionHarness {
@@ -76,7 +91,7 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         themeService,
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
-        NULL_LANGUAGE_SERVICE,
+        options.languageService ?? NULL_LANGUAGE_SERVICE,
         NULL_CONFIGURATION_SERVICE,
         new UndoRedoService(),
     );
@@ -85,7 +100,20 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
     const adapter = new EditorOptionsServiceAdapter(group);
     const commandRegistry = new CommandRegistry();
     const commandAdapter = new CommandServiceAdapter(commandRegistry);
-    const host = new ExtensionHost(adapter, commandAdapter, { spawnArgs: subprocessSpawnArgsForTests() });
+    const folders = (options.workspaceFolders ?? [tmpDir]).map((p, index) => ({
+        uri: p,
+        name: path.basename(p),
+        index,
+    }));
+    const configuration: IExtensionHostConfigProvider = {
+        getSnapshot: () => options.configuration,
+        getWorkspaceFolders: () => folders,
+        onDidChange: () => ({ dispose: () => undefined }),
+    };
+    const host = new ExtensionHost(adapter, commandAdapter, {
+        spawnArgs: subprocessSpawnArgsForTests(),
+        configuration,
+    });
 
     const writeFile = (name: string, content: string): string => {
         const fp = path.join(tmpDir, name);

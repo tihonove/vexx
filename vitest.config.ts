@@ -24,6 +24,7 @@ export default defineConfig({
 
         "src/**/*.bench.ts", // перф-бенчмарки, гоняются отдельным test:perf
         "src/TestUtils/perfFixtures.ts", // фикстуры только для бенчей
+        "src/Extensions/Host/Vscode/testStubRpc.ts", // тестовый стаб RpcEndpoint для unit-тестов namespace'ов
         "src/**/*.stories.ts",
         "src/demos/**",
         "src/main.ts",

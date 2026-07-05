@@ -84,6 +84,13 @@ export interface IExtensionContributions {
     readonly languages?: readonly ILanguageContribution[];
     readonly grammars?: readonly IGrammarContribution[];
 
+    /**
+     * Вклад настроек. Значения `properties[*].default` сплющиваются в
+     * `configDefaults` расширения (см. `main.ts`) и становятся дефолтным слоем
+     * `workspace.getConfiguration()` в subprocess.
+     */
+    readonly configuration?: IConfigurationContribution | readonly IConfigurationContribution[];
+
     // ── TODO(extensions phase 2+): раскомментировать по мере реализации ──
     //
     // readonly themes?: readonly IThemeContribution[];
@@ -97,7 +104,6 @@ export interface IExtensionContributions {
     //
     // readonly snippets?: readonly ISnippetContribution[];
     //
-    // readonly configuration?: IConfigurationContribution | readonly IConfigurationContribution[];
     // readonly configurationDefaults?: Readonly<Record<string, unknown>>;
     //
     // readonly views?: Readonly<Record<string, readonly IViewContribution[]>>;
@@ -132,5 +138,23 @@ export interface IExtensionContributions {
     // readonly htmlLanguageParticipants?: readonly IHtmlLanguageParticipantContribution[];
 
     /** Расширения VS Code иногда содержат поля, неизвестные нам. Игнорируем. */
+    readonly [key: string]: unknown;
+}
+
+/**
+ * Блок `contributes.configuration` (одиночный или в массиве). Нас интересуют
+ * только `properties[*].default` — они формируют дефолтный слой конфигурации.
+ */
+export interface IConfigurationContribution {
+    readonly title?: string;
+    readonly order?: number;
+    readonly properties?: Readonly<Record<string, IConfigurationPropertySchema>>;
+    readonly [key: string]: unknown;
+}
+
+export interface IConfigurationPropertySchema {
+    readonly type?: string | readonly string[];
+    readonly default?: unknown;
+    readonly description?: string;
     readonly [key: string]: unknown;
 }
