@@ -115,6 +115,21 @@ describe("EditorController EOL", () => {
         expect(fired).toBe(2);
     });
 
+    it("dispose подписки onDidChangeEol останавливает доставку, повторный dispose — no-op", () => {
+        const ctrl = createEditorController();
+        ctrl.openFile(writeFile("lf.txt", "a\nb"));
+        let fired = 0;
+        const subscription = ctrl.onDidChangeEol(() => fired++);
+        const other = ctrl.onDidChangeEol(() => undefined);
+
+        subscription.dispose();
+        subscription.dispose();
+        ctrl.setEol(EndOfLine.CRLF);
+
+        expect(fired).toBe(0);
+        other.dispose();
+    });
+
     it("undo of an eol change restores the eol and clears the modified flag", () => {
         const filePath = writeFile("lf.txt", "a\nb");
         const ctrl = createEditorController();

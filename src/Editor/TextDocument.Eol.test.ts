@@ -106,15 +106,18 @@ describe("TextDocument EOL model", () => {
         expect(fired).toBe(0);
     });
 
-    it("disposed onDidChangeEol listener stops receiving events", () => {
+    it("dispose подписки onDidChangeEol останавливает доставку, повторный dispose — no-op", () => {
         const doc = new TextDocument("a\nb");
         let fired = 0;
         const subscription = doc.onDidChangeEol(() => fired++);
+        const other = doc.onDidChangeEol(() => undefined);
 
+        subscription.dispose();
         subscription.dispose();
         doc.setEol(EndOfLine.CRLF);
 
         expect(fired).toBe(0);
+        other.dispose();
     });
 
     // ─── setText re-detects eol ─────────────────────────────
