@@ -39,6 +39,14 @@ export default defineConfig({
   format: ["esm"],
   target: "es2024",
   noExternal: ["chokidar", "vscode-textmate", "vscode-oniguruma", "jsonc-parser", "yauzl"],
+  // Бандленные CJS-зависимости (yauzl и его дерево) делают `require("fs")`.
+  // В ESM-выводе esbuild оборачивает их в шим `__require`, который берёт
+  // глобальный `require`, если он есть, иначе бросает "Dynamic require of…".
+  // Определяем его через SEA-безопасный `createRequire("file:///")` (тот же
+  // приём, что и в src/Common/IsSea.ts), чтобы require работал и в SEA-бинаре.
+  banner: {
+    js: 'import { createRequire as __vexxCreateRequire } from "node:module"; if (typeof globalThis.require === "undefined") { globalThis.require = __vexxCreateRequire("file:///"); }',
+  },
   dts: true,
   clean: true,
   sourcemap: true,
