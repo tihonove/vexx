@@ -81,6 +81,20 @@ describe("LanguageRegistry", () => {
         expect(registry.getLanguageIdForResource("file.TS")).toBe("typescript");
     });
 
+    it("matches dotfile whose whole name equals a registered extension (.editorconfig)", () => {
+        const registry = new LanguageRegistry();
+        // Стоковый editorconfig-vscode объявляет `extensions: [".editorconfig"]`,
+        // а файл называется целиком `.editorconfig` — у него `path.extname` пуст.
+        registry.register(makeExt("ec", [{ id: "editorconfig", extensions: [".editorconfig"] }]));
+
+        expect(registry.getLanguageIdForResource("/proj/.editorconfig")).toBe("editorconfig");
+        expect(registry.getLanguageIdForResource("/proj/.EditorConfig")).toBe("editorconfig");
+        // Обычный файл с тем же расширением тоже матчится (через path.extname).
+        expect(registry.getLanguageIdForResource("/proj/sub.editorconfig")).toBe("editorconfig");
+        // Не-совпадающий dotfile не матчится.
+        expect(registry.getLanguageIdForResource("/proj/.gitignore")).toBeUndefined();
+    });
+
     it("приоритет filenames > filenamePatterns > extensions", () => {
         const registry = new LanguageRegistry();
         registry.register(makeExt("a", [{ id: "byext", extensions: [".json"] }]));
@@ -219,25 +233,43 @@ describe("LanguageRegistry", () => {
         expect(registry.getLanguageDisplayName("aliasless")).toBeUndefined();
     });
 
-    // WP8: completion-провайдер editorconfig завязан на languageId "editorconfig".
-    // Расширение вносит его через contributes.languages.filenames, что и должно
-    // резолвить .editorconfig-файл в нужный язык (точное имя бьёт .extensions).
-    it("резолвит .editorconfig в 'editorconfig' по contributes.languages user-расширения", () => {
+    // WP8/WP9: completion-провайдер editorconfig завязан на languageId "editorconfig".
+    // Стоковый editorconfig-vscode вносит язык через contributes.languages
+    // **.extensions: [".editorconfig"]** (а `filenames` — пустой!), поэтому
+    // резолв держится на dotfile-матче имени против «расширения» (FIX WP9).
+    it("резолвит .editorconfig в 'editorconfig' по .extensions стокового расширения", () => {
         const registry = new LanguageRegistry();
-        // Builtin ini кладёт .editorconfig в .extensions (не срабатывает: extname('.editorconfig') === '').
-        registry.register(makeExt("ini", [{ id: "properties", extensions: [".editorconfig", ".ini"] }]));
         // Без editorconfig-расширения .editorconfig не резолвится.
         expect(registry.getLanguageIdForResource("/p/.editorconfig")).toBeUndefined();
 
-        // User editorconfig-расширение вносит точное filenames-соответствие.
+        // Регистрируем язык ровно так, как стоковый EditorConfig.EditorConfig:
+        // extensions: [".editorconfig"], filenames: [].
         registry.register(
             makeExt(
                 "editorconfig",
-                [{ id: "editorconfig", filenames: [".editorconfig"], aliases: ["EditorConfig"] }],
-                "UserExtensions/EditorConfig.EditorConfig-0.16.0/",
+                [{ id: "editorconfig", extensions: [".editorconfig"], filenames: [], aliases: ["EditorConfig"] }],
+                "UserExtensions/EditorConfig.EditorConfig-0.18.2/",
             ),
         );
         expect(registry.getLanguageIdForResource("/p/.editorconfig")).toBe("editorconfig");
         expect(registry.getLanguageIdForResource(".editorconfig")).toBe("editorconfig");
+    });
+
+    it("при конфликте расширений побеждает зарегистрированный позже (user > builtin)", () => {
+        const registry = new LanguageRegistry();
+        // Builtin ini-пак заявляет .editorconfig среди .extensions языка 'properties'
+        // (как в microsoft/vscode). Регистрируется ПЕРВЫМ (builtin грузится раньше).
+        registry.register(makeExt("ini", [{ id: "properties", extensions: [".ini", ".editorconfig"] }]));
+        expect(registry.getLanguageIdForResource("/p/.editorconfig")).toBe("properties");
+
+        // User editorconfig-расширение заявляет тот же .editorconfig — и должно
+        // переопределить builtin (иначе completion-селектор {language:'editorconfig'}
+        // не сматчит и подсказки в .editorconfig не работают).
+        registry.register(
+            makeExt("editorconfig", [{ id: "editorconfig", extensions: [".editorconfig"], filenames: [] }], "UserExtensions/ec/"),
+        );
+        expect(registry.getLanguageIdForResource("/p/.editorconfig")).toBe("editorconfig");
+        // Расширение .ini у 'properties' не затронуто.
+        expect(registry.getLanguageIdForResource("/p/app.ini")).toBe("properties");
     });
 });
