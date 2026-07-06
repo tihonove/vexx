@@ -292,13 +292,28 @@ export class Uri {
  * Ошибка файловой системы (`vscode.FileSystemError`). Реализация `workspace.fs`
  * бросает её через фабрики; `code` совпадает с именем фабрики, как в VS Code
  * (расширения ловят по `err.code === "FileNotFound"`).
+ *
+ * `name` повторяет формат VS Code `"${providerCode} (FileSystemError)"`, где
+ * `providerCode` — имя из `FileSystemProviderErrorCode` (FileNotFound →
+ * `EntryNotFound`). Некоторые расширения (стоковый editorconfig-vscode) ловят
+ * именно по `err.name === "EntryNotFound (FileSystemError)"`, а не по `code`.
  */
+const PROVIDER_CODE_NAME: Record<string, string> = {
+    FileNotFound: "EntryNotFound",
+    FileExists: "EntryExists",
+    FileNotADirectory: "EntryNotADirectory",
+    FileIsADirectory: "EntryIsADirectory",
+    NoPermissions: "NoPermissions",
+    Unavailable: "Unavailable",
+    Unknown: "Unknown",
+};
+
 export class FileSystemError extends Error {
     public readonly code: string;
 
     public constructor(messageOrUri?: string | Uri, code = "Unknown") {
         super(typeof messageOrUri === "string" ? messageOrUri : messageOrUri?.toString());
-        this.name = "FileSystemError";
+        this.name = `${PROVIDER_CODE_NAME[code] ?? code} (FileSystemError)`;
         this.code = code;
     }
 

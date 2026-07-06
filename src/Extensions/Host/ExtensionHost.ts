@@ -116,6 +116,8 @@ export class ExtensionHost extends Disposable {
     private readonly commandService: ICommandService;
     /** Прокси-регистрации команд сабпроцесса в host CommandRegistry (по id). */
     private readonly proxyCommands = new Map<string, IDisposable>();
+    /** Заголовки команд из contributes.commands (id → title) для видимости в палитре. */
+    private readonly commandTitles = new Map<string, string>();
     private readonly options: Required<
         Pick<
             IExtensionHostOptions,
@@ -167,6 +169,11 @@ export class ExtensionHost extends Disposable {
             throw new Error(`Extension "${reg.id}" already registered`);
         }
         this.logger?.debug(`registerExtension(${reg.id})`, { mainPath: reg.mainPath });
+        // Заголовки команд из contributes.commands — нужны прокси-регистрации,
+        // чтобы команда расширения показалась в палитре (см. commands.registerCommand).
+        if (reg.commandTitles !== undefined) {
+            for (const [id, title] of Object.entries(reg.commandTitles)) this.commandTitles.set(id, title);
+        }
         const rpc = await this.ensureSubprocess();
         await rpc.request("host.activateExtension", {
             id: reg.id,
@@ -227,6 +234,7 @@ export class ExtensionHost extends Disposable {
                 isDirty: snapshot.isDirty,
                 text: snapshot.text,
                 reason: 1, // TextDocumentSaveReason.Manual
+                eol: snapshot.eol,
             },
             this.options.willSaveTimeoutMs,
         );
@@ -373,7 +381,11 @@ export class ExtensionHost extends Disposable {
             this.proxyCommands.get(id)?.dispose();
             this.proxyCommands.set(
                 id,
-                this.commandService.registerProxy(id, (args) => rpc.request("commands.executeCommand", { id, args })),
+                this.commandService.registerProxy(
+                    id,
+                    (args) => rpc.request("commands.executeCommand", { id, args }),
+                    this.commandTitles.get(id),
+                ),
             );
         });
         rpc.handleNotification("commands.unregisterCommand", (params): void => {

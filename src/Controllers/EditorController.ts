@@ -251,6 +251,7 @@ export class EditorController extends Disposable implements IController {
             versionId: this.doc.versionId,
             isDirty: this.isModified,
             text: this.doc.getText(),
+            eol: this.doc.eol,
         };
         const edits = await participant(snapshot);
         this.applySaveEdits(edits);

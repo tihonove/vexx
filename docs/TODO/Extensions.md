@@ -81,18 +81,45 @@
 - [ ] ESM-расширения (`import * as vscode from "vscode"` через ESM loader hooks).
 - [ ] Restart subprocess'а при крэше (сейчас при exit'е extension host'а просто все RPC падают).
 
-### Совместимость со стоковым editorconfig-vscode (подпроект)
+### Совместимость со стоковым editorconfig-vscode (подпроект) — [x] закрыт
 
-Отдельный план — «стоковый editorconfig-vscode работает в Vexx» (WP1–WP9). В `main`
-собраны WP1–WP6: подсистема `src/Extensions/Host/Vscode/` (value-типы, реестр
-документов со стабильной идентичностью, `workspace`/`window`/`languages`/`commands`
-namespace'ы, commands bridge, async save-pipeline с will/did-save).
+Отдельный план — «стоковый editorconfig-vscode работает в Vexx» (WP1–WP9) — **завершён**.
+В `main` собрана подсистема `src/Extensions/Host/Vscode/` (value-типы, реестр документов со
+стабильной идентичностью, `workspace`/`window`/`languages`/`commands` namespace'ы, commands
+bridge, async save-pipeline с will/did-save).
 
 - [x] **WP7** — `workspace.fs.{stat,readFile,writeFile}` + `openTextDocument(uri, {encoding})`
       + сквозная команда `EditorConfig.generate`. `workspace.fs` реализован **локально
       через `node:fs`** в subprocess (целевой файл — на той же машине, не открытый буфер),
       без RPC.
-- [ ] WP8 — completion UI + surfacing провайдеров; WP9 — интеграция с реальным vsix + docs.
+- [x] **WP8** — минимальный completion-UI ядра (`CompletionController` + `CompletionListElement`)
+      + surfacing провайдеров расширений (`languages.provideCompletionItems`).
+- [x] **WP9** — интеграция со **стоковым `.vsix`** (`EditorConfig.EditorConfig@0.18.2` с open-vsx,
+      немодифицированный, свои `node_modules` + `@one-ini/wasm`). Установка новым CLI-флагом
+      `--install-extension`, прогон на собранном SEA-бинаре, драйв через TUIDom-inspector + pty,
+      проверки save-трансформаций по байтам на диске. Сквозной e2e: `e2e/editorconfig-stock.test.ts`
+      (фикстуры — `e2e/fixtures/editorconfig/`).
+
+**Проверенная паритетность (все 6 свойств + generate + completion):** `indent_style`/`indent_size`
+(рендер таб-ширины), `trim_trailing_whitespace` и `insert_final_newline` на Ctrl+S (расширение
+делегирует ядровым `editor.action.trimTrailingWhitespace`/`insertFinalNewLine` — вложенный
+executeCommand во время will-save), `end_of_line` в обе стороны (LF↔CRLF, байты на диске),
+`charset` — graceful degrade, `EditorConfig.generate` через палитру, completion свойств в
+`.editorconfig`.
+
+**Несоответствия, найденные и починенные в WP9 (мелкие, точечно):**
+
+- `LanguageRegistry.getLanguageIdForResource` не резолвил dotfile `.editorconfig` (`path.extname` пуст)
+  и не разрешал конфликт ассоциаций расширения. Теперь: dotfile матчится по полному имени, а при
+  конфликте `.ext` побеждает **зарегистрированный позже** (user editorconfig > builtin `properties`/ini,
+  как в VS Code) — иначе `.editorconfig` резолвился в `properties` и completion-селектор
+  `{language:'editorconfig'}` не матчил.
+- `FileSystemError.name` теперь в формате VS Code `"${providerCode} (FileSystemError)"`
+  (FileNotFound → `EntryNotFound (FileSystemError)`) — стоковый `generate` ловит ENOENT именно по `name`.
+- В снапшот will-save проброшен реальный `eol` документа (`ISaveSnapshot.eol` → wire → `ExtHostTextDocument.eol`),
+  иначе `SetEndOfLine` видел всегда LF и `end_of_line=lf` не нормализовал CRLF-файлы.
+- `contributes.commands` теперь прокидывает `title` в host (`IExtensionRegistration.commandTitles`) —
+  рантайм-`registerCommand` расширения появляется в палитре (иначе `EditorConfig.generate` не выбрать).
 
 **Ограничение WP7 (принято):** ядро Vexx utf-8/LF-only. `openTextDocument` всегда
 читает файл как utf-8 и строит эфемерный документ (не в реестре) с `eol=LF`,

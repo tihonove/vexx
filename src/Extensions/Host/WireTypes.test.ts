@@ -21,6 +21,7 @@ const PARAMS = {
     isDirty: true,
     text: "hi\n",
     reason: 1,
+    eol: 1,
 };
 
 describe("WireTypes — parseWireTextEdits", () => {

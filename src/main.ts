@@ -32,7 +32,7 @@ import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokeniza
 import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
 import { runExtensionHostSubprocess } from "./Extensions/Host/ExtensionHostSubprocess.ts";
 import type { IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.ts";
-import type { IConfigurationContribution } from "./Extensions/IExtensionManifest.ts";
+import type { ICommandContribution, IConfigurationContribution } from "./Extensions/IExtensionManifest.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
 import { attachInspector } from "./Inspector/index.ts";
@@ -241,6 +241,7 @@ async function runEditor(): Promise<void> {
                 },
                 mainPath,
                 configDefaults: flattenConfigDefaults(ext.manifest.contributes?.configuration),
+                commandTitles: collectCommandTitles(ext.manifest.contributes?.commands),
             };
             await extensionHost.registerExtension(reg);
         } catch (err) {
@@ -316,4 +317,21 @@ function flattenConfigDefaults(
         }
     }
     return Object.keys(defaults).length > 0 ? defaults : undefined;
+}
+
+/**
+ * Собирает `contributes.commands` в map id → title, чтобы host завёл прокси
+ * рантайм-команд с заголовком (иначе команда исполнима, но не видна в палитре).
+ */
+function collectCommandTitles(
+    commands: readonly ICommandContribution[] | undefined,
+): Record<string, string> | undefined {
+    if (commands === undefined || commands.length === 0) return undefined;
+    const titles: Record<string, string> = {};
+    for (const cmd of commands) {
+        if (typeof cmd.command === "string" && typeof cmd.title === "string") {
+            titles[cmd.command] = cmd.title;
+        }
+    }
+    return Object.keys(titles).length > 0 ? titles : undefined;
 }

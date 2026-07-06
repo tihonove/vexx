@@ -120,14 +120,26 @@ export class LanguageRegistry implements ILanguageService {
             }
         }
 
+        // При конфликте расширений (несколько языков заявляют один `.ext`)
+        // побеждает зарегистрированный ПОЗЖЕ — как в VS Code, где user-расширение
+        // грузится после builtin и переопределяет ассоциацию. Пример: и builtin
+        // `properties` (ini), и user `editorconfig` заявляют `.editorconfig`;
+        // должен выиграть `editorconfig` (стоковый editorconfig-vscode). Поэтому
+        // не возвращаем на первом совпадении, а берём последнее.
         const ext = path.extname(baseName).toLowerCase();
-        if (ext.length === 0) return undefined;
+        let match: string | undefined;
         for (const entry of this.languages.values()) {
             for (const candidate of entry.extensions) {
-                if (candidate.toLowerCase() === ext) return entry.id;
+                const cand = candidate.toLowerCase();
+                // Обычное расширение (foo.ts → ".ts") либо dotfile, чьё имя целиком
+                // совпадает с "расширением" (.editorconfig) — у таких `path.extname`
+                // пуст, но VS Code матчит их по суффиксу имени.
+                if ((ext.length > 0 && cand === ext) || (ext.length === 0 && cand === baseNameLower)) {
+                    match = entry.id;
+                }
             }
         }
-        return undefined;
+        return match;
     }
 
     private applyContribution(lang: ILanguageContribution, extensionLocation: string, delta: 1 | -1): void {

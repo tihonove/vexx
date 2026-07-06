@@ -17,10 +17,12 @@ export interface ICommandService {
 
     /**
      * Регистрирует прокси-команду расширения в host-реестре. `invoke` уводит
-     * исполнение обратно в сабпроцесс (обратный RPC). Возвращает Disposable,
+     * исполнение обратно в сабпроцесс (обратный RPC). `title` (из
+     * `contributes.commands`) делает команду видимой в палитре — без него она
+     * исполнима по id, но не показывается в списке. Возвращает Disposable,
      * снимающий регистрацию.
      */
-    registerProxy(id: string, invoke: (args: readonly unknown[]) => unknown): IDisposable;
+    registerProxy(id: string, invoke: (args: readonly unknown[]) => unknown, title?: string): IDisposable;
 }
 
 /**
