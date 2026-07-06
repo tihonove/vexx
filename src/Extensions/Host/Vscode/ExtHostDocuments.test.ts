@@ -78,6 +78,15 @@ describe("ExtHostDocuments — ExtHostTextDocument", () => {
         expect(doc.lineAt(1).text).toBe("line1");
     });
 
+    it("upsertFull с eol обновляет doc.eol, без eol — оставляет прежний", () => {
+        const reg = new DocumentRegistry();
+        const doc = reg.upsertFull({ fileName: "/a.ts", text: "a\n", eol: EndOfLine.CRLF });
+        expect(doc.eol).toBe(EndOfLine.CRLF);
+        // Следующий снапшот без eol не сбрасывает уже установленный.
+        reg.upsertFull({ fileName: "/a.ts", text: "b\n" });
+        expect(doc.eol).toBe(EndOfLine.CRLF);
+    });
+
     it("трейлинг \\n даёт пустую последнюю строку", () => {
         const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "a\nb\n" });
         expect(doc.lineCount).toBe(3);

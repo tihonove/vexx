@@ -308,6 +308,13 @@ describe("WorkspaceNamespace — will-save request handler", () => {
         expect(await lf.stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([{ setEndOfLine: 1 }]);
     });
 
+    it("прокидывает eol документа в реестр (для SetEndOfLine расширения)", async () => {
+        const { stub, ctx, workspace } = makeCtx();
+        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([])));
+        await stub.callRequest(REQUEST, { ...paramsFor("a\n"), eol: 2 });
+        expect(ctx.registry.get("/f.txt")?.eol).toBe(EndOfLine.CRLF);
+    });
+
     it("минимальные params (без text/reason/languageId) не падают", async () => {
         const { stub, ctx, workspace } = makeCtx();
         let reason: number | undefined;
