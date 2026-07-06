@@ -91,4 +91,26 @@ describe("parseCliArgs", () => {
         expect(() => parseCliArgs(["--inspect-tui=host:notaport"])).toThrow(/port in 0\.\.65535/);
         expect(() => parseCliArgs(["--inspect-tui=host:70000"])).toThrow(/port in 0\.\.65535/);
     });
+
+    it("parses --install-extension with separate value and =form", () => {
+        expect(parseCliArgs(["--install-extension", "/tmp/ext.vsix"]).installExtension).toBe("/tmp/ext.vsix");
+        expect(parseCliArgs(["--install-extension=/tmp/ext.vsix"]).installExtension).toBe("/tmp/ext.vsix");
+        expect(parseCliArgs([]).installExtension).toBeUndefined();
+    });
+
+    it("parses --uninstall-extension", () => {
+        expect(parseCliArgs(["--uninstall-extension", "acme.hello"]).uninstallExtension).toBe("acme.hello");
+        expect(parseCliArgs(["--uninstall-extension=acme.hello"]).uninstallExtension).toBe("acme.hello");
+        expect(parseCliArgs([]).uninstallExtension).toBeUndefined();
+    });
+
+    it("parses --list-extensions", () => {
+        expect(parseCliArgs(["--list-extensions"]).listExtensions).toBe(true);
+        expect(parseCliArgs([]).listExtensions).toBe(false);
+    });
+
+    it("throws when extension-management flags miss their value", () => {
+        expect(() => parseCliArgs(["--install-extension"])).toThrow(/requires a value/);
+        expect(() => parseCliArgs(["--uninstall-extension="])).toThrow(/non-empty value/);
+    });
 });

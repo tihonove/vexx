@@ -7,6 +7,7 @@ import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
 import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
 import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
+import type { ICliArgs } from "./Common/CliArgs.ts";
 import { CliArgsError, parseCliArgs, USAGE } from "./Common/CliArgs.ts";
 import { isSeaBinary } from "./Common/IsSea.ts";
 import { LogService } from "./Common/Logging/LogService.ts";
@@ -21,6 +22,11 @@ import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
+import {
+    installVsix,
+    listInstalledExtensions,
+    uninstallExtension,
+} from "./Extensions/ExtensionInstaller.ts";
 import { scanExtensions } from "./Extensions/ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
@@ -71,6 +77,14 @@ async function runEditor(): Promise<void> {
     if (cli.help) {
         console.log(USAGE);
         process.exit(0);
+    }
+
+    // ── Управление расширениями ────────────────────────────────
+    // Флаги --install/--uninstall/--list выполняются здесь и завершают процесс
+    // до подъёма TUI (stdout ещё свободен). Приоритет install → uninstall → list.
+    if (cli.installExtension !== undefined || cli.uninstallExtension !== undefined || cli.listExtensions) {
+        await runExtensionManagement(cli);
+        // runExtensionManagement всегда завершает процесс через process.exit.
     }
 
     const filePaths = cli.positional;
@@ -232,6 +246,52 @@ async function runEditor(): Promise<void> {
         } catch (err) {
             extensionsLogger.error(`${ext.id}: failed to activate`, err);
         }
+    }
+}
+
+/**
+ * Выполняет CLI-команду управления расширениями (--install/--uninstall/--list)
+ * и завершает процесс. Работает по каталогу `<userData>/extensions` без подъёма
+ * TUI; вывод — в stdout/stderr, коды выхода 0 (успех) / 1 (ошибка).
+ */
+async function runExtensionManagement(cli: ICliArgs): Promise<never> {
+    const { extensionsDir } = resolveUserDataPaths({
+        userDataDir: cli.userDataDir,
+        profile: cli.profile,
+        homedir: os.homedir(),
+    });
+
+    try {
+        if (cli.installExtension !== undefined) {
+            const vsixPath = path.resolve(cli.installExtension);
+            const { id, version, previous } = await installVsix(vsixPath, extensionsDir);
+            console.log(`Installed ${id}@${version}`);
+            const removed = previous.filter((v) => v !== version);
+            if (removed.length > 0) {
+                console.log(`Removed previous version(s): ${removed.join(", ")}`);
+            }
+            process.exit(0);
+        }
+
+        if (cli.uninstallExtension !== undefined) {
+            const id = cli.uninstallExtension;
+            const { removed } = uninstallExtension(id, extensionsDir);
+            if (removed.length === 0) {
+                console.error(`Extension ${id} is not installed`);
+                process.exit(1);
+            }
+            console.log(`Uninstalled ${id} (${removed.length} version(s))`);
+            process.exit(0);
+        }
+
+        // --list-extensions
+        for (const ext of listInstalledExtensions(extensionsDir)) {
+            console.log(`${ext.id}@${ext.version}`);
+        }
+        process.exit(0);
+    } catch (err) {
+        console.error(err instanceof Error ? err.message : String(err));
+        process.exit(1);
     }
 }
 

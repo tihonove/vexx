@@ -28,6 +28,12 @@ export interface ICliArgs {
     readonly help: boolean;
     /** Был ли передан `--version` / `-v`. */
     readonly version: boolean;
+    /** Путь к `.vsix` из `--install-extension`, если указан. */
+    readonly installExtension: string | undefined;
+    /** id (`publisher.name`) из `--uninstall-extension`, если указан. */
+    readonly uninstallExtension: string | undefined;
+    /** Был ли передан `--list-extensions`. */
+    readonly listExtensions: boolean;
 }
 
 /** Адрес инспектора по умолчанию для голого `--inspect-tui`. */
@@ -39,8 +45,14 @@ Options:
   --user-data-dir <path>   Альтернативный каталог user data (default: ~/.vexx)
   --profile <name>         Имя профиля (default: "default")
   --inspect-tui[=host:port] Поднять TUIDom-инспектор (default: ${DEFAULT_INSPECT_TUI})
+  --install-extension <path.vsix>   Установить расширение из .vsix и выйти
+  --uninstall-extension <publisher.name>  Удалить расширение (все версии) и выйти
+  --list-extensions        Показать установленные расширения и выйти
   -h, --help               Показать эту справку
   -v, --version            Показать версию
+
+Флаги управления расширениями выполняются до запуска TUI; при нескольких
+одновременно применяется первый по приоритету install → uninstall → list.
 `;
 
 export class CliArgsError extends Error {
@@ -52,7 +64,7 @@ export class CliArgsError extends Error {
 
 interface IFlagSpec {
     /** Канонический ключ в `ICliArgs`. */
-    readonly key: "userDataDir" | "profile";
+    readonly key: "userDataDir" | "profile" | "installExtension" | "uninstallExtension";
     /** Требует значение следующим аргументом или через `=`. */
     readonly value: true;
 }
@@ -60,6 +72,8 @@ interface IFlagSpec {
 const FLAG_SPECS: Readonly<Record<string, IFlagSpec | undefined>> = {
     "--user-data-dir": { key: "userDataDir", value: true },
     "--profile": { key: "profile", value: true },
+    "--install-extension": { key: "installExtension", value: true },
+    "--uninstall-extension": { key: "uninstallExtension", value: true },
 };
 
 /**
@@ -90,6 +104,9 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
     let inspectTui: { host: string; port: number } | undefined;
     let help = false;
     let version = false;
+    let installExtension: string | undefined;
+    let uninstallExtension: string | undefined;
+    let listExtensions = false;
 
     let i = 0;
     while (i < argv.length) {
@@ -108,6 +125,12 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
 
         if (arg === "-v" || arg === "--version") {
             version = true;
+            i += 1;
+            continue;
+        }
+
+        if (arg === "--list-extensions") {
+            listExtensions = true;
             i += 1;
             continue;
         }
@@ -148,7 +171,9 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
             }
 
             if (spec.key === "userDataDir") userDataDir = value;
-            else profile = value;
+            else if (spec.key === "profile") profile = value;
+            else if (spec.key === "installExtension") installExtension = value;
+            else uninstallExtension = value;
             continue;
         }
 
@@ -160,5 +185,15 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
         i += 1;
     }
 
-    return { positional, userDataDir, profile, inspectTui, help, version };
+    return {
+        positional,
+        userDataDir,
+        profile,
+        inspectTui,
+        help,
+        version,
+        installExtension,
+        uninstallExtension,
+        listExtensions,
+    };
 }
