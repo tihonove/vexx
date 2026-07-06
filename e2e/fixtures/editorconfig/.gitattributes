@@ -1,0 +1,2 @@
+# Exact bytes matter for these e2e fixtures — do not normalize line endings.
+* -text

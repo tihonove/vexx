@@ -13,6 +13,12 @@ export interface VexxSessionOptions {
     rows?: number;
     env?: Record<string, string>;
     /**
+     * Working directory for the spawned process. Extensions see this as
+     * `workspace.workspaceFolders[0]` (the extension host derives folders from
+     * `process.cwd()`), which matters e.g. for `EditorConfig.generate`.
+     */
+    cwd?: string;
+    /**
      * Start the real app with the TUIDom inspector enabled. The harness picks a
      * free port, injects `--inspect-tui=127.0.0.1:<port>` into the args and lets
      * assertions read the live document tree via {@link VexxSession.getDocument}
@@ -63,6 +69,7 @@ export class VexxSession {
             cols,
             rows,
             env,
+            ...(options.cwd !== undefined ? { cwd: options.cwd } : {}),
         });
         return new VexxSession(term, cols, rows, inspectorPort);
     }
