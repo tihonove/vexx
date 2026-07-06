@@ -133,10 +133,15 @@ describe("ExtensionInstaller", () => {
             path.join(extensionsDir, "acme.hello-9.9.9", "package.json"),
             JSON.stringify({ name: "hello", publisher: "acme", version: "9.9.9" }),
         );
+        // Постороннее расширение — не должно быть затронуто.
+        await installVsix(
+            await makeVsix("other.vsix", vsixEntries({ name: "thing", publisher: "acme", version: "1.0.0" })),
+            extensionsDir,
+        );
 
         const first = uninstallExtension("acme.hello", extensionsDir);
         expect(first.removed).toHaveLength(2);
-        expect(listInstalledExtensions(extensionsDir)).toEqual([]);
+        expect(listInstalledExtensions(extensionsDir).map((e) => e.id)).toEqual(["acme.thing"]);
 
         const second = uninstallExtension("acme.hello", extensionsDir);
         expect(second.removed).toEqual([]);
@@ -153,9 +158,23 @@ describe("ExtensionInstaller", () => {
         );
         // Мусорный каталог без package.json.
         fs.mkdirSync(path.join(extensionsDir, "garbage"), { recursive: true });
+        // Каталог с package.json, но без обязательного поля version.
+        fs.mkdirSync(path.join(extensionsDir, "no-version"), { recursive: true });
+        fs.writeFileSync(
+            path.join(extensionsDir, "no-version", "package.json"),
+            JSON.stringify({ name: "x", publisher: "y" }),
+        );
+        // Обычный файл верхнего уровня (не каталог) — пропускается.
+        fs.writeFileSync(path.join(extensionsDir, "stray.txt"), "noise");
 
         const list = listInstalledExtensions(extensionsDir);
         expect(list.map((e) => `${e.id}@${e.version}`)).toEqual(["acme.alpha@5.0.0", "acme.zeta@1.0.0"]);
+    });
+
+    it("list/uninstall на отсутствующем каталоге extensions → пусто", () => {
+        const missing = path.join(tempRoot, "does-not-exist");
+        expect(listInstalledExtensions(missing)).toEqual([]);
+        expect(uninstallExtension("acme.hello", missing)).toEqual({ removed: [] });
     });
 
     it("битый zip → понятная ошибка, temp подчищен", async () => {
@@ -172,6 +191,15 @@ describe("ExtensionInstaller", () => {
         const vsix = await makeVsix("nopub.vsix", vsixEntries({ name: "hello", version: "1.0.0" }));
 
         await expect(installVsix(vsix, extensionsDir)).rejects.toThrow(/"publisher"/);
+
+        expect(fs.readdirSync(extensionsDir)).toEqual([]);
+    });
+
+    it("vsix без extension/package.json → понятная ошибка, temp подчищен", async () => {
+        // Валидный zip, но полезной нагрузки extension/ нет.
+        const vsix = await makeVsix("empty.vsix", { "extension.vsixmanifest": "<PackageManifest/>" });
+
+        await expect(installVsix(vsix, extensionsDir)).rejects.toThrow(/package\.json/);
 
         expect(fs.readdirSync(extensionsDir)).toEqual([]);
     });

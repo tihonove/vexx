@@ -86,25 +86,12 @@ function readInstalled(extensionsDir: string): IInstalledExtension[] {
     return result;
 }
 
-/** Перемещает каталог `src` на путь `dest` с fallback на cross-device (EXDEV). */
-function renameDir(src: string, dest: string): void {
-    try {
-        fs.renameSync(src, dest);
-    } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "EXDEV") {
-            fs.cpSync(src, dest, { recursive: true });
-            fs.rmSync(src, { recursive: true, force: true });
-        } else {
-            throw error;
-        }
-    }
-}
-
 /**
  * Открывает zip и распаковывает записи под `extension/` в `destDir`. Записи вне
  * `extension/` (включая `extension.vsixmanifest` и `[Content_Types].xml`) и
  * каталоги — пропускаются. Защита от zip-slip: путь, выходящий за `destDir`,
- * приводит к reject.
+ * приводит к reject (yauzl сам отвергает `..`-имена, но guard оставлен как
+ * defense-in-depth).
  */
 function extractExtensionPayload(vsixPath: string, destDir: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -115,13 +102,9 @@ function extractExtensionPayload(vsixPath: string, destDir: string): Promise<voi
             }
 
             const destRoot = path.resolve(destDir);
+            // yauzl эмитит "error" для битого архива и для имён с `..`.
             zipfile.on("error", (err) => reject(err));
             zipfile.on("end", () => resolve());
-
-            const fail = (err: Error): void => {
-                zipfile.close();
-                reject(err);
-            };
 
             zipfile.on("entry", (entry: Entry) => {
                 const name = entry.fileName;
@@ -135,21 +118,28 @@ function extractExtensionPayload(vsixPath: string, destDir: string): Promise<voi
                 const rel = name.slice(EXTENSION_PREFIX.length);
                 const target = path.resolve(destRoot, rel);
 
-                // Zip-slip guard: целевой путь обязан лежать внутри destRoot.
+                /* v8 ignore start -- defense-in-depth: yauzl отвергает `..`-имена
+                   ("error") до эмита "entry", поэтому сюда `..`-путь не доходит */
                 if (target !== destRoot && !target.startsWith(destRoot + path.sep)) {
-                    fail(new Error(`Refusing to extract entry outside target dir (zip-slip): ${name}`));
+                    zipfile.close();
+                    reject(new Error(`Refusing to extract entry outside target dir (zip-slip): ${name}`));
                     return;
                 }
+                /* v8 ignore stop */
 
                 zipfile.openReadStream(entry, (streamErr, readStream) => {
+                    /* v8 ignore start -- defensive: openReadStream ошибается лишь на
+                       повреждённых/неподдерживаемых записях, что не воспроизводится в тестах */
                     if (streamErr !== null || readStream === undefined) {
-                        fail(streamErr ?? new Error(`Failed to read zip entry: ${name}`));
+                        zipfile.close();
+                        reject(streamErr ?? new Error(`Failed to read zip entry: ${name}`));
                         return;
                     }
+                    /* v8 ignore stop */
                     fs.mkdirSync(path.dirname(target), { recursive: true });
                     const writeStream = fs.createWriteStream(target);
-                    readStream.on("error", fail);
-                    writeStream.on("error", fail);
+                    readStream.on("error", reject);
+                    writeStream.on("error", reject);
                     writeStream.on("close", () => zipfile.readEntry());
                     readStream.pipe(writeStream);
                 });
@@ -205,7 +195,8 @@ export async function installVsix(
         if (fs.existsSync(targetDir)) {
             fs.rmSync(targetDir, { recursive: true, force: true });
         }
-        renameDir(tempDir, targetDir);
+        // temp создан внутри extensionsDir → тот же ФС, rename атомарен (без EXDEV).
+        fs.renameSync(tempDir, targetDir);
 
         // Новая версия на месте — теперь сносим прочие версии того же id.
         for (const e of sameId) {
