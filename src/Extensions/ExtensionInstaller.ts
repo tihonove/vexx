@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
+import { createRequire } from "node:module";
 import * as path from "node:path";
 
-import yauzl from "yauzl";
 import type { Entry } from "yauzl";
 
 /**
@@ -87,13 +87,30 @@ function readInstalled(extensionsDir: string): IInstalledExtension[] {
 }
 
 /**
+ * Лениво загружает yauzl. yauzl — CJS и делает `require("fs")` при инициализации;
+ * в ESM-бандле (SEA) esbuild оборачивает это в шим `__require`, который берёт
+ * глобальный `require`, иначе бросает "Dynamic require of…". Ставим require
+ * точечно — только здесь, на пути установки, — чтобы обычный старт редактора
+ * не тянул yauzl и не менял глобальную область (`createRequire("file:///")` —
+ * тот же SEA-безопасный приём, что и в src/Common/IsSea.ts).
+ */
+async function loadYauzl(): Promise<typeof import("yauzl")> {
+    const g = globalThis as { require?: NodeRequire };
+    if (typeof g.require === "undefined") {
+        g.require = createRequire("file:///");
+    }
+    return import("yauzl");
+}
+
+/**
  * Открывает zip и распаковывает записи под `extension/` в `destDir`. Записи вне
  * `extension/` (включая `extension.vsixmanifest` и `[Content_Types].xml`) и
  * каталоги — пропускаются. Защита от zip-slip: путь, выходящий за `destDir`,
  * приводит к reject (yauzl сам отвергает `..`-имена, но guard оставлен как
  * defense-in-depth).
  */
-function extractExtensionPayload(vsixPath: string, destDir: string): Promise<void> {
+async function extractExtensionPayload(vsixPath: string, destDir: string): Promise<void> {
+    const yauzl = await loadYauzl();
     return new Promise((resolve, reject) => {
         yauzl.open(vsixPath, { lazyEntries: true }, (openErr, zipfile) => {
             if (openErr !== null || zipfile === undefined) {
