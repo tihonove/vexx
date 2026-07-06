@@ -1,8 +1,11 @@
+import * as nodeFs from "node:fs/promises";
+
 import type * as vscode from "vscode";
 
 import type { WireTextEdit } from "../WireTypes.ts";
 
-import type { ExtHostTextDocument } from "./ExtHostDocuments.ts";
+import { ExtHostTextDocument } from "./ExtHostDocuments.ts";
+import { createFileSystemNamespace } from "./FileSystemNamespace.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
 import { DisposableImpl, EndOfLine, EventEmitter, TextDocumentSaveReason, TextEdit, Uri } from "./VscodeTypes.ts";
 
@@ -16,6 +19,12 @@ function listenerTimeout(): Promise<readonly TextEdit[]> {
         // Не держим event loop живым из-за таймера, который проиграл гонку.
         timer.unref?.();
     });
+}
+
+/** utf-8 — единственная реально поддерживаемая кодировка (ядро utf-8-only). */
+function isUtf8(encoding: string): boolean {
+    const normalized = encoding.toLowerCase().replace(/[-_]/g, "");
+    return normalized === "utf8";
 }
 
 /** Сериализует `vscode.TextEdit` в wire-форму (subprocess → host). */
@@ -207,13 +216,31 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
         return p;
     }
 
-    function openTextDocument(uriOrPath: vscode.Uri | string): Thenable<vscode.TextDocument> {
+    async function openTextDocument(
+        uriOrPath: vscode.Uri | string,
+        options?: { encoding?: string },
+    ): Promise<vscode.TextDocument> {
         const fsPath =
             typeof uriOrPath === "string" ? uriOrPath : (uriOrPath as unknown as Uri).fsPath;
-        const doc = registry.get(fsPath);
-        if (doc !== undefined) return Promise.resolve(doc as unknown as vscode.TextDocument);
-        // Чтение с диска в эфемерный документ — WP7. Пока graceful reject.
-        return Promise.reject(new Error(`openTextDocument: "${fsPath}" is not an open document`));
+        // Открытый документ — отдаём стабильный объект из реестра.
+        const open = registry.get(fsPath);
+        if (open !== undefined) return open as unknown as vscode.TextDocument;
+
+        // Промах реестра: читаем файл с диска в ЭФЕМЕРНЫЙ документ (в реестр не
+        // кладём — это не открытый буфер). Ядро Vexx utf-8/LF-only, поэтому
+        // encoding принимается, но фактически используется utf-8: при несовпадении
+        // graceful degrade с предупреждением в лог хоста.
+        const encoding = options?.encoding;
+        if (encoding !== undefined && !isUtf8(encoding)) {
+            rpc.notify("window.showMessage", {
+                severity: "warn",
+                message: `openTextDocument("${fsPath}"): encoding "${encoding}" is not supported, reading as utf-8`,
+            });
+        }
+        const text = await nodeFs.readFile(fsPath, "utf8");
+        const doc = new ExtHostTextDocument(fsPath);
+        doc.applyFull({ fileName: fsPath, text });
+        return doc as unknown as vscode.TextDocument;
     }
 
     const workspaceNs = {
@@ -230,6 +257,9 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
         get textDocuments(): readonly vscode.TextDocument[] {
             return registry.all() as unknown as readonly vscode.TextDocument[];
         },
+
+        // workspace.fs — локальный доступ к диску через node:fs (без RPC).
+        fs: createFileSystemNamespace(),
 
         getConfiguration,
         asRelativePath,

@@ -80,6 +80,25 @@
 - [ ] ESM-расширения (`import * as vscode from "vscode"` через ESM loader hooks).
 - [ ] Restart subprocess'а при крэше (сейчас при exit'е extension host'а просто все RPC падают).
 
+### Совместимость со стоковым editorconfig-vscode (подпроект)
+
+Отдельный план — «стоковый editorconfig-vscode работает в Vexx» (WP1–WP9). В `main`
+собраны WP1–WP6: подсистема `src/Extensions/Host/Vscode/` (value-типы, реестр
+документов со стабильной идентичностью, `workspace`/`window`/`languages`/`commands`
+namespace'ы, commands bridge, async save-pipeline с will/did-save).
+
+- [x] **WP7** — `workspace.fs.{stat,readFile,writeFile}` + `openTextDocument(uri, {encoding})`
+      + сквозная команда `EditorConfig.generate`. `workspace.fs` реализован **локально
+      через `node:fs`** в subprocess (целевой файл — на той же машине, не открытый буфер),
+      без RPC.
+- [ ] WP8 — completion UI + surfacing провайдеров; WP9 — интеграция с реальным vsix + docs.
+
+**Ограничение WP7 (принято):** ядро Vexx utf-8/LF-only. `openTextDocument` всегда
+читает файл как utf-8 и строит эфемерный документ (не в реестре) с `eol=LF`,
+`encoding="utf8"`; параметр `encoding` принимается для совместимости с API 1.100, но
+при несовпадении — graceful degrade с предупреждением `window.showMessage`. Полноценные
+не-utf8 кодировки в ядре — вне объёма (см. EOL-модель WP5 и будущую работу по charset).
+
 ## Phase 9 — Внешние расширения
 
 Частично сделано:
