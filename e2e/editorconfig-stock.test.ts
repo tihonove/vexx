@@ -57,7 +57,11 @@ function runCli(binary: string, args: readonly string[]): Promise<CliResult> {
     });
 }
 
-describe("SEA binary — stock editorconfig-vscode integration (WP9)", () => {
+// Gated to non-Windows: the suite drives the app through the pty (Ctrl+S, typing,
+// Ctrl+Space), and Windows ConPTY does not deliver injected input reliably — the
+// same reason the repo's screen-content e2e are Linux-only. The Linux e2e job is
+// the reference for this integration proof.
+describe.skipIf(process.platform === "win32")("SEA binary — stock editorconfig-vscode integration (WP9)", () => {
     let binary: string;
     let tempRoot: string;
     let userDataDir: string;
@@ -139,9 +143,7 @@ describe("SEA binary — stock editorconfig-vscode integration (WP9)", () => {
         );
     }
 
-    it.skipIf(process.platform === "win32")(
-        "applies indent_size to the active editor (rendered tab width)",
-        async () => {
+    it("applies indent_size to the active editor (rendered tab width)", async () => {
             // [*.tabbed]: indent_style=tab, indent_size=3 → editorconfig sets tabSize=3 on
             // the active editor via `editor.options`. A literal leading tab then renders 3
             // columns wide. `indent.tabbed` is "\tindented\nend\n": the gutter width is the
@@ -160,8 +162,7 @@ describe("SEA binary — stock editorconfig-vscode integration (WP9)", () => {
             const ind = screen.findText("indented")!;
             const end = screen.findText("end")!;
             expect(ind.x - end.x).toBe(3);
-        },
-    );
+    });
 
     it("applies trim_trailing_whitespace + insert_final_newline on save (delegated core commands)", async () => {
         const project = copyProject();

@@ -24,6 +24,8 @@ describe("FileSystemError", () => {
         expect(FileSystemError.FileExists("m").name).toBe("EntryExists (FileSystemError)");
         expect(FileSystemError.NoPermissions("m").name).toBe("NoPermissions (FileSystemError)");
         expect(new FileSystemError().name).toBe("Unknown (FileSystemError)");
+        // Код вне таблицы провайдерных имён — используется как есть.
+        expect(new FileSystemError("m", "Custom").name).toBe("Custom (FileSystemError)");
     });
 
     it("принимает Uri (message из toString) и пустой конструктор (code=Unknown)", () => {
