@@ -102,7 +102,7 @@ describe("CompletionListElement", () => {
         expect(w.filter).toBe("");
     });
 
-    it("рендерится со скруглённой рамкой", () => {
+    it("рендерится с рамкой (углы ┌┐└┘, как у остальных оверлеев)", () => {
         const w = makeWidget(ITEMS);
         const size = new Size(w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
         const backend = new MockTerminalBackend(size);
@@ -110,9 +110,10 @@ describe("CompletionListElement", () => {
         w.performLayout(BoxConstraints.tight(size));
         w.render(new RenderContext(termScreen));
         termScreen.flush(backend);
-        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("╭");
-        expect(backend.getTextAt(new Point(size.width - 1, 0), 1)).toBe("╮");
-        expect(backend.getTextAt(new Point(0, size.height - 1), 1)).toBe("╰");
+        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("┌");
+        expect(backend.getTextAt(new Point(size.width - 1, 0), 1)).toBe("┐");
+        expect(backend.getTextAt(new Point(0, size.height - 1), 1)).toBe("└");
+        expect(backend.getTextAt(new Point(size.width - 1, size.height - 1), 1)).toBe("┘");
         // Метка первого элемента присутствует на первом ряду.
         expect(backend.screenToString()).toContain("indent_style");
     });

@@ -35,10 +35,11 @@ export interface CompletionListItem {
 }
 
 /**
- * Компактный дропдаун автодополнения в стиле NvChad: скруглённая рамка,
- * выбранный ряд подсвечивается фоном (без указателей), 1-ячейка паддинга от
- * рамки, колонка codicon-иконки типа. Собственной строки ввода нет — фильтр
- * внутренний (набор символов сужает список, не трогая буфер редактора).
+ * Компактный дропдаун автодополнения в стиле NvChad: рамка (углы `┌┐└┘` —
+ * единый стиль с остальными оверлеями), выбранный ряд подсвечивается фоном (без
+ * указателей), 1-ячейка паддинга от рамки, колонка codicon-иконки типа.
+ * Собственной строки ввода нет — фильтр внутренний (набор символов сужает
+ * список, не трогая буфер редактора).
  *
  * Клавиши (self-focused, `performDefaultAction`):
  *   ↑/↓            — навигация (clamp, без wrap)
@@ -170,21 +171,21 @@ export class CompletionListElement extends TUIElement {
             }
         }
 
-        // Скруглённая рамка сверху ╭───╮
-        context.setCell(0, 0, { char: "╭", fg: BORDER_FG, bg: BG });
+        // Рамка сверху ┌───┐ (единый стиль углов с остальными оверлеями)
+        context.setCell(0, 0, { char: "┌", fg: BORDER_FG, bg: BG });
         for (let x = 1; x < w - 1; x++) context.setCell(x, 0, { char: "─", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, 0, { char: "╮", fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, 0, { char: "┐", fg: BORDER_FG, bg: BG });
 
         // Ряды
         for (let i = 0; i < this.visibleItemCount; i++) {
             this.renderRow(context, w, 1 + i, this.scrollOffset + i);
         }
 
-        // Скруглённая рамка снизу ╰───╯
+        // Рамка снизу └───┘
         const bottomY = h - 1;
-        context.setCell(0, bottomY, { char: "╰", fg: BORDER_FG, bg: BG });
+        context.setCell(0, bottomY, { char: "└", fg: BORDER_FG, bg: BG });
         for (let x = 1; x < w - 1; x++) context.setCell(x, bottomY, { char: "─", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, bottomY, { char: "╯", fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, bottomY, { char: "┘", fg: BORDER_FG, bg: BG });
     }
 
     private renderRow(context: RenderContext, w: number, rowY: number, itemIndex: number): void {
