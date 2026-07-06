@@ -91,13 +91,13 @@ function readInstalled(extensionsDir: string): IInstalledExtension[] {
  * в ESM-бандле (SEA) esbuild оборачивает это в шим `__require`, который берёт
  * глобальный `require`, иначе бросает "Dynamic require of…". Ставим require
  * точечно — только здесь, на пути установки, — чтобы обычный старт редактора
- * не тянул yauzl и не менял глобальную область (`createRequire("file:///")` —
- * тот же SEA-безопасный приём, что и в src/Common/IsSea.ts).
+ * не тянул yauzl и не менял глобальную область. База — `process.execPath`
+ * (абсолютный путь, валиден и на Windows; резолв builtin'ов от базы не зависит).
  */
 async function loadYauzl(): Promise<typeof import("yauzl")> {
     const g = globalThis as { require?: NodeRequire };
     if (typeof g.require === "undefined") {
-        g.require = createRequire("file:///");
+        g.require = createRequire(process.execPath);
     }
     return import("yauzl");
 }
