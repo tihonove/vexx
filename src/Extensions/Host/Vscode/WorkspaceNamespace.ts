@@ -50,6 +50,8 @@ interface IWireWillSaveParams {
     readonly isDirty?: boolean;
     readonly text?: string;
     readonly reason?: number;
+    /** `vscode.EndOfLine`: 1=LF, 2=CRLF. */
+    readonly eol?: number;
 }
 
 /** Папка воркспейса, полученная из `workspace.initialize`. */
@@ -127,6 +129,7 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
             languageId: p.languageId,
             isDirty: p.isDirty,
             text: p.text ?? "",
+            ...(p.eol === 1 || p.eol === 2 ? { eol: p.eol } : {}),
         });
         const thenables: Thenable<readonly vscode.TextEdit[]>[] = [];
         let collecting = true;

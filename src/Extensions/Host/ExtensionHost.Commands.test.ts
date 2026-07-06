@@ -41,6 +41,23 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
         }
     });
 
+    it("commandTitles из contributes.commands делают прокси видимым в палитре", async () => {
+        const harness = await createExtensionTestHarness({
+            initialFile: { name: "main.ts", content: "x\n" },
+            extensions: [
+                { ...reg("test.registersCommand", "registersCommand.cjs"), commandTitles: { "test.applyTab": "Apply Tab" } },
+            ],
+        });
+        try {
+            expect(harness.commandRegistry.has("test.applyTab")).toBe(true);
+            // Без title команда исполнима, но невидима; с title — попадает в listCommands.
+            const listed = harness.commandRegistry.listCommands();
+            expect(listed).toContainEqual({ id: "test.applyTab", title: "Apply Tab" });
+        } finally {
+            await harness.dispose();
+        }
+    });
+
     it("host → subprocess: dispose расширения снимает прокси из host-реестра", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "main.ts", content: "x\n" },

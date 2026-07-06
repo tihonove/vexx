@@ -32,4 +32,11 @@ export interface IExtensionRegistration {
      * `host.activateExtension` и слоятся под пользовательским снапшотом настроек.
      */
     readonly configDefaults?: Readonly<Record<string, unknown>>;
+    /**
+     * Заголовки команд из `contributes.commands` (`{ "EditorConfig.generate":
+     * "Generate .editorconfig" }`). Когда расширение регистрирует одноимённую
+     * команду в рантайме, host заводит прокси с этим title — и команда
+     * появляется в палитре.
+     */
+    readonly commandTitles?: Readonly<Record<string, string>>;
 }

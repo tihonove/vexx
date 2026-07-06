@@ -91,13 +91,20 @@ export interface IExtensionContributions {
      */
     readonly configuration?: IConfigurationContribution | readonly IConfigurationContribution[];
 
+    /**
+     * Команды расширения. Пока используем только `command`/`title` — заголовок
+     * прокидывается в host, чтобы рантайм-`registerCommand` показался в палитре
+     * (см. `IExtensionRegistration.commandTitles`). Остальные поля (`category`,
+     * `icon`, …) игнорируются до Phase 5.
+     */
+    readonly commands?: readonly ICommandContribution[];
+
     // ── TODO(extensions phase 2+): раскомментировать по мере реализации ──
     //
     // readonly themes?: readonly IThemeContribution[];
     // readonly iconThemes?: readonly IIconThemeContribution[];
     // readonly productIconThemes?: readonly IProductIconThemeContribution[];
     //
-    // readonly commands?: readonly ICommandContribution[];
     // readonly keybindings?: readonly IKeybindingContribution[];
     // readonly menus?: Readonly<Record<string, readonly IMenuItemContribution[]>>;
     // readonly submenus?: readonly ISubmenuContribution[];
@@ -138,6 +145,17 @@ export interface IExtensionContributions {
     // readonly htmlLanguageParticipants?: readonly IHtmlLanguageParticipantContribution[];
 
     /** Расширения VS Code иногда содержат поля, неизвестные нам. Игнорируем. */
+    readonly [key: string]: unknown;
+}
+
+/**
+ * Элемент `contributes.commands`. Нас интересуют `command` (id) и `title` для
+ * показа в палитре; остальные поля игнорируются до Phase 5.
+ */
+export interface ICommandContribution {
+    readonly command: string;
+    readonly title: string;
+    readonly category?: string;
     readonly [key: string]: unknown;
 }
 

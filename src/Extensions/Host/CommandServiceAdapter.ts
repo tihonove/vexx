@@ -21,7 +21,7 @@ export class CommandServiceAdapter implements ICommandService {
         return this.registry.execute(id, ...args);
     }
 
-    public registerProxy(id: string, invoke: (args: readonly unknown[]) => unknown): IDisposable {
-        return this.registry.register(id, (...args) => invoke(args));
+    public registerProxy(id: string, invoke: (args: readonly unknown[]) => unknown, title?: string): IDisposable {
+        return this.registry.register(id, (...args) => invoke(args), title);
     }
 }

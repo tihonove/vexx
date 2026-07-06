@@ -10,11 +10,20 @@ describe("FileSystemError", () => {
         expect(FileSystemError.Unavailable("m").code).toBe("Unavailable");
     });
 
-    it("это Error с name=FileSystemError", () => {
+    it("это Error с VS Code-совместимым name (провайдерный код + суффикс)", () => {
         const err = FileSystemError.FileNotFound("nope");
         expect(err).toBeInstanceOf(Error);
-        expect(err.name).toBe("FileSystemError");
+        // VS Code выставляет name = "EntryNotFound (FileSystemError)" для FileNotFound;
+        // стоковый editorconfig-vscode ловит именно по этому имени в EditorConfig.generate.
+        expect(err.name).toBe("EntryNotFound (FileSystemError)");
+        expect(err.code).toBe("FileNotFound");
         expect(err.message).toBe("nope");
+    });
+
+    it("name других кодов тоже в формате VS Code", () => {
+        expect(FileSystemError.FileExists("m").name).toBe("EntryExists (FileSystemError)");
+        expect(FileSystemError.NoPermissions("m").name).toBe("NoPermissions (FileSystemError)");
+        expect(new FileSystemError().name).toBe("Unknown (FileSystemError)");
     });
 
     it("принимает Uri (message из toString) и пустой конструктор (code=Unknown)", () => {

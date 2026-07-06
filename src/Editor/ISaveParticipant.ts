@@ -14,6 +14,13 @@ export interface ISaveSnapshot {
     readonly isDirty: boolean;
     /** Полный текст документа (LF-канонический). */
     readonly text: string;
+    /**
+     * Текущий EOL документа (детектированный при загрузке / изменённый ранее).
+     * Нужен участнику, чтобы решить, менять ли перевод строки: стоковый
+     * editorconfig-vscode эмитит `setEndOfLine` только когда `doc.eol` отличается
+     * от целевого (иначе no-op, сохраняя redo-историю).
+     */
+    readonly eol: EndOfLine;
 }
 
 /**

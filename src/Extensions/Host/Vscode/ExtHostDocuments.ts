@@ -22,6 +22,8 @@ export interface ExtHostDocumentMeta {
 /** Полный снапшот документа (путь will-save; с текстом). */
 export interface ExtHostDocumentSnapshot extends ExtHostDocumentMeta {
     readonly text: string;
+    /** Текущий EOL документа (`vscode.EndOfLine`: 1=LF, 2=CRLF). По умолчанию LF. */
+    readonly eol?: EndOfLine;
 }
 
 /** Строка документа (`vscode.TextLine`). */
@@ -41,7 +43,8 @@ export class ExtHostTextDocument {
     public readonly isUntitled = false;
     public readonly isClosed = false;
     public readonly encoding = "utf8";
-    public readonly eol = EndOfLine.LF;
+    /** Отражает EOL ядрового документа: обновляется из снапшота на will-save. */
+    public eol: EndOfLine = EndOfLine.LF;
 
     public languageId = "plaintext";
     public isDirty = false;
@@ -65,6 +68,7 @@ export class ExtHostTextDocument {
     public applyFull(snapshot: ExtHostDocumentSnapshot): void {
         this.applyMeta(snapshot);
         this.text = snapshot.text;
+        if (snapshot.eol !== undefined) this.eol = snapshot.eol;
         this.lineCache = null;
         this.version += 1;
     }

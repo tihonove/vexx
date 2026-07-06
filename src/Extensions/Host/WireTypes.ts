@@ -29,6 +29,8 @@ export interface IWireWillSaveParams {
     readonly text: string;
     /** `vscode.TextDocumentSaveReason` (1=Manual, 2=AfterDelay, 3=FocusOut). */
     readonly reason: number;
+    /** Текущий EOL документа (`vscode.EndOfLine`: 1=LF, 2=CRLF). */
+    readonly eol: number;
 }
 
 function isFiniteNumber(v: unknown): v is number {
