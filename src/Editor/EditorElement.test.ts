@@ -175,3 +175,27 @@ describe("EditorElement — context menu onClose wiring", () => {
         expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
     });
 });
+
+describe("EditorElement — getCaretScreenCell", () => {
+    it("возвращает абсолютную ячейку каретки, когда она видима", () => {
+        const { editor } = createEditor("hello\nworld", 30, 5);
+        const cell = editor.getCaretScreenCell();
+        expect(cell).not.toBeNull();
+        // Каретка на строке 0 → y == globalPosition.y; x сдвинут на gutter.
+        expect(cell!.y).toBe(editor.globalPosition.y);
+        expect(cell!.x).toBe(editor.globalPosition.x + editor.gutterWidth);
+    });
+
+    it("следует за строкой курсора", () => {
+        const { editor } = createEditor("hello\nworld", 30, 5);
+        editor.viewState.selections = [createCursorSelection(1, 3)];
+        const cell = editor.getCaretScreenCell();
+        expect(cell!.y).toBe(editor.globalPosition.y + 1);
+    });
+
+    it("возвращает null, когда каретка проскроллена за пределы вьюпорта", () => {
+        const { editor } = createEditor("hello\nworld", 30, 5);
+        editor.viewState.scrollTop = 50;
+        expect(editor.getCaretScreenCell()).toBeNull();
+    });
+});

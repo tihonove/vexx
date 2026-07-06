@@ -70,7 +70,13 @@ function setup(
 }
 
 const ITEMS: ICoreCompletionItem[] = [
-    { label: "indent_style", insertText: "indent_style", kind: 9, command: { command: "ec._retrigger", arguments: [] } },
+    {
+        label: "indent_style",
+        insertText: "indent_style",
+        kind: 9,
+        detail: "EditorConfig",
+        command: { command: "ec._retrigger", arguments: [] },
+    },
     { label: "indent_size", insertText: "indent_size", kind: 9 },
     { label: "root", insertText: "root" },
 ];
@@ -164,5 +170,94 @@ describe("CompletionController", () => {
         const labels = controller.view.items.map((i) => i.label);
         // Провайдерские (3) + слова alpha/beta/gamma; "indent_style" не дублируется.
         expect(labels).toEqual(["indent_style", "indent_size", "root", "alpha", "beta", "gamma"]);
+    });
+
+    it("нет активного редактора → no-op", async () => {
+        const group = { getActiveEditor: () => null } as unknown as EditorGroupController;
+        const controller = new CompletionController(group);
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+        await controller.trigger();
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("Escape закрывает попап", async () => {
+        const { controller, body } = setup(ITEMS);
+        await controller.trigger();
+        expect(body.overlayLayer.hasVisibleItems()).toBe(true);
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("каретка вне вьюпорта (anchor null) → попап не открывается", async () => {
+        const { editor } = makeEditor("ind", 3, "ind");
+        (editor as unknown as { getCaretAnchor: () => null }).getCaretAnchor = () => null;
+        const controller = new CompletionController(makeGroup(editor, vi.fn(async () => ITEMS)));
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+        await controller.trigger();
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("untitled (absoluteFilePath null) → fileName пустой в запросе", async () => {
+        const { editor } = makeEditor("ind", 3, "ind");
+        (editor as unknown as { absoluteFilePath: string | null }).absoluteFilePath = null;
+        const source = vi.fn(async () => ITEMS);
+        const controller = new CompletionController(makeGroup(editor, source));
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+        await controller.trigger();
+        expect(source).toHaveBeenCalledWith(expect.objectContaining({ fileName: "" }));
+    });
+
+    it("word-based пропускает несуществующий (null) редактор группы", async () => {
+        const { editor } = makeEditor("", 0, "alpha beta");
+        const group = {
+            getActiveEditor: () => editor,
+            completionSource: undefined,
+            editorCount: 2, // но getEditor(1) === null
+            getEditor: (i: number) => (i === 0 ? editor : null),
+        } as unknown as EditorGroupController;
+        const controller = new CompletionController(group);
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+        await controller.trigger();
+        expect(controller.view.items.map((i) => i.label)).toEqual(["alpha", "beta"]);
+    });
+
+    it("accept без активного редактора (после close) — no-op", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        controller.close(); // activeEditor = null, но список у view остаётся
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
+        expect(fake.applyExternalEdits).not.toHaveBeenCalled();
+    });
+
+    it("accept элемента без command не дёргает onExecuteCommand", async () => {
+        // Курсор на пустой строке → префикс пуст, показываем всё; выбираем "root" (без command).
+        const { controller, fake, onExecuteCommand } = setup(ITEMS, "", 0, "");
+        await controller.trigger();
+        // root — третий; спустимся к нему.
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
+        expect(fake.applyExternalEdits).toHaveBeenCalledTimes(1);
+        await Promise.resolve();
+        expect(onExecuteCommand).not.toHaveBeenCalled();
+    });
+
+    it("item.command без arguments исполняется c пустым списком аргументов", async () => {
+        const items: ICoreCompletionItem[] = [
+            { label: "only", insertText: "only", command: { command: "c.noargs" } },
+        ];
+        const { controller, onExecuteCommand } = setup(items, "", 0, "");
+        await controller.trigger();
+        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
+        await Promise.resolve();
+        expect(onExecuteCommand).toHaveBeenCalledWith("c.noargs");
     });
 });

@@ -163,6 +163,26 @@ describe("WireTypes — parseWireCompletionItems", () => {
         expect(parsed[0].range).toBeUndefined();
     });
 
+    it("подхватывает documentation/sortText/filterText, пустую command отбрасывает", () => {
+        const parsed = parseWireCompletionItems([
+            {
+                label: "x",
+                documentation: "doc",
+                sortText: "0",
+                filterText: "xf",
+                command: { command: "" }, // пустая команда → отбрасывается
+            },
+        ]);
+        expect(parsed[0]).toEqual({
+            label: "x",
+            insertText: "x",
+            documentation: "doc",
+            sortText: "0",
+            filterText: "xf",
+        });
+        expect(parsed[0].command).toBeUndefined();
+    });
+
     it("не-массив → []", () => {
         expect(parseWireCompletionItems(undefined)).toEqual([]);
     });
@@ -186,6 +206,29 @@ describe("WireTypes — wireToCoreCompletionItems", () => {
                 kind: 9,
                 range: { start: { line: 1, character: 2 }, end: { line: 1, character: 6 } },
                 command: { command: "c", arguments: [true] },
+            },
+        ]);
+    });
+
+    it("маппит documentation/sortText/filterText и элемент без kind/команды", () => {
+        const wire: WireCompletionItem[] = [
+            {
+                label: "word",
+                insertText: "word",
+                documentation: "d",
+                sortText: "s",
+                filterText: "f",
+                command: { command: "c" }, // без arguments
+            },
+        ];
+        expect(wireToCoreCompletionItems(wire)).toEqual([
+            {
+                label: "word",
+                insertText: "word",
+                documentation: "d",
+                sortText: "s",
+                filterText: "f",
+                command: { command: "c" },
             },
         ]);
     });

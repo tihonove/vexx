@@ -44,6 +44,18 @@ describe("matchDocumentSelector", () => {
         expect(matchDocumentSelector(sel, doc("/home/u/proj/sub/a.ts", "typescript"))).toBe(false);
     });
 
+    it("globstar не перед '/' раскрывается в '.*'", () => {
+        const sel = { pattern: "**.ts" } as vscode.DocumentFilter;
+        expect(matchDocumentSelector(sel, doc("/a/b/c.ts", "typescript"))).toBe(true);
+        expect(matchDocumentSelector(sel, doc("/a/b/c.js", "typescript"))).toBe(false);
+    });
+
+    it("pattern '?' матчит ровно один символ (не '/')", () => {
+        const sel = { pattern: "/p/foo?.ts" } as vscode.DocumentFilter;
+        expect(matchDocumentSelector(sel, doc("/p/foo1.ts", "typescript"))).toBe(true);
+        expect(matchDocumentSelector(sel, doc("/p/foo.ts", "typescript"))).toBe(false);
+    });
+
     it("массив — any-match", () => {
         const sel = ["ini", { language: "editorconfig" }] as vscode.DocumentSelector;
         expect(matchDocumentSelector(sel, editorconfig)).toBe(true);

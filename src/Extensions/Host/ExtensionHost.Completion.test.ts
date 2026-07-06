@@ -36,7 +36,8 @@ describe("ExtensionHost — completion bridge (subprocess)", () => {
         try {
             await settle();
 
-            const items = await harness.host.provideCompletionItems(REQ);
+            // Через group.completionSource (wiring харнесса) — как это делает ядро.
+            const items = await harness.group.completionSource!(REQ);
             expect(items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
 
             const style = items.find((i) => i.label === "indent_style");

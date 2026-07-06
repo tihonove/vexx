@@ -25,6 +25,16 @@ function keydown(w: CompletionListElement, key: string): void {
     w.dispatchEvent(new TUIKeyboardEvent("keydown", { key }));
 }
 
+function renderToString(w: CompletionListElement): string {
+    const size = new Size(w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
+    const backend = new MockTerminalBackend(size);
+    const termScreen = new TerminalScreen(size);
+    w.performLayout(BoxConstraints.tight(size));
+    w.render(new RenderContext(termScreen));
+    termScreen.flush(backend);
+    return backend.screenToString();
+}
+
 describe("CompletionListElement", () => {
     it("показывает все элементы без фильтра", () => {
         const w = makeWidget(ITEMS);
@@ -116,5 +126,58 @@ describe("CompletionListElement", () => {
         expect(backend.getTextAt(new Point(size.width - 1, size.height - 1), 1)).toBe("┘");
         // Метка первого элемента присутствует на первом ряду.
         expect(backend.screenToString()).toContain("indent_style");
+    });
+
+    it("min и max intrinsic-размеры совпадают (self-sizing)", () => {
+        const w = makeWidget(ITEMS);
+        expect(w.getMinIntrinsicWidth(0)).toBe(w.getMaxIntrinsicWidth(0));
+        expect(w.getMinIntrinsicHeight(0)).toBe(w.getMaxIntrinsicHeight(0));
+    });
+
+    it("рисует detail справа (выбранный и невыбранный ряд), длинный label усекается", () => {
+        const w = makeWidget([
+            { label: "x".repeat(60), detail: "Prop", kind: 9, data: 1 },
+            { label: "size", detail: "Prop2", kind: 9, data: 2 },
+        ]);
+        const out = renderToString(w);
+        expect(out).toContain("Prop"); // detail выбранного ряда
+        expect(out).toContain("Prop2"); // detail невыбранного ряда (DETAIL_FG)
+        expect(out).not.toContain("x".repeat(60)); // label усечён по ширине бокса
+    });
+
+    it("не рисует detail, если он не влезает", () => {
+        const w = makeWidget([{ label: "ab", detail: "very-long-detail-text-here", kind: 9, data: 1 }]);
+        w.preferredWidth = 16;
+        const out = renderToString(w);
+        expect(out).not.toContain("very-long-detail-text-here");
+        expect(out).toContain("ab");
+    });
+
+    it("скроллит окно при навигации вниз и обратно вверх", () => {
+        const many = Array.from({ length: 15 }, (_, i) => ({ label: `item${i}`, data: i }));
+        const w = makeWidget(many);
+        w.maxVisibleItems = 5;
+        for (let i = 0; i < 9; i++) keydown(w, "ArrowDown"); // до index 9 — окно уехало вниз
+        expect(w.selectedIndex).toBe(9);
+        expect(renderToString(w)).toContain("item9");
+        for (let i = 0; i < 9; i++) keydown(w, "ArrowUp"); // назад к 0 — окно вверх
+        expect(w.selectedIndex).toBe(0);
+        expect(renderToString(w)).toContain("item0");
+    });
+
+    it("пустой список: навигация/Enter — no-op, Backspace на пустом фильтре безопасен", () => {
+        const w = makeWidget(ITEMS);
+        w.setFilter("zzzz"); // ничего не матчит
+        expect(w.items).toHaveLength(0);
+        let accepted = false;
+        w.onAccept = () => {
+            accepted = true;
+        };
+        keydown(w, "ArrowDown"); // moveSelection на пустом — return
+        keydown(w, "Enter"); // getSelectedItem null — без accept
+        expect(accepted).toBe(false);
+        w.setFilter("");
+        keydown(w, "Backspace"); // фильтр пуст — no-op
+        expect(w.filter).toBe("");
     });
 });

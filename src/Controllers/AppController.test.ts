@@ -497,3 +497,29 @@ describe("AppController — runtime extended-keys detection", () => {
         expect(env.tier).toBe("legacy");
     });
 });
+
+describe("AppController — completion wiring", () => {
+    it("editor.action.triggerSuggest исполняется без ошибок", () => {
+        const { controller, commandRegistry } = createTestAppController();
+        controller.openFile("/tmp/completion-trigger.txt");
+        controller.focusEditor();
+        expect(() => commandRegistry.execute("editor.action.triggerSuggest")).not.toThrow();
+    });
+
+    it("onExecuteCommand completion-контроллера маршрутизирует в CommandRegistry", () => {
+        const { controller, commandRegistry } = createTestAppController();
+        let ran: unknown[] | null = null;
+        commandRegistry.register("test.fromCompletion", (...args: unknown[]) => {
+            ran = args;
+        });
+        // AppController присвоил completionController.onExecuteCommand в конструкторе —
+        // вызов этого колбэка должен уйти в commands.execute.
+        const cc = (
+            controller as unknown as {
+                completionController: { onExecuteCommand: (id: string, ...args: unknown[]) => void };
+            }
+        ).completionController;
+        cc.onExecuteCommand("test.fromCompletion", 42);
+        expect(ran).toEqual([42]);
+    });
+});

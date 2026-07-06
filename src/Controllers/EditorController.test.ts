@@ -58,6 +58,15 @@ describe("EditorController", () => {
             expect(ctrl.absoluteFilePath).toBeNull();
         });
 
+        it("getCaretAnchor: anchor у видимой каретки, null когда каретка вне вьюпорта", () => {
+            const ctrl = createEditorController();
+            expect(ctrl.getCaretAnchor()).toMatchObject({ preferBelow: true });
+
+            // Уводим каретку за пределы вьюпорта скроллом.
+            ctrl.viewState.scrollTop = 1000;
+            expect(ctrl.getCaretAnchor()).toBeNull();
+        });
+
         it("save() is a no-op when no file is open (no file written, no onDidSave)", () => {
             const ctrl = createEditorController();
             let saved = false;

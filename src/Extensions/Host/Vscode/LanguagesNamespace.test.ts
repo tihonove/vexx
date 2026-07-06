@@ -138,4 +138,93 @@ describe("LanguagesNamespace", () => {
         const result = await stub.callRequest("languages.provideCompletionItems", COMPLETION_PARAMS);
         expect(result).toEqual([]);
     });
+
+    it("сериализует разнообразные формы полей и отбрасывает элементы без label", async () => {
+        const { ctx, stub } = makeCtx();
+        const { languages } = createLanguagesNamespace(ctx);
+        const items = [
+            {
+                // объектный label, SnippetString insertText, MarkdownString documentation,
+                // range как { replacing }, команда с аргументами
+                label: { label: "objlabel" },
+                insertText: { value: "snippet" },
+                documentation: { value: "md" },
+                sortText: "0",
+                filterText: "f",
+                kind: 9,
+                detail: "D",
+                range: { replacing: new Range(0, 0, 0, 1), inserting: new Range(0, 0, 0, 0) },
+                command: { command: "c", arguments: [1] },
+            },
+            {}, // без label → отбрасывается
+            { label: "" }, // пустой label → отбрасывается
+            {
+                // insertText/documentation-объекты без value → fallback; не-Range range → undefined
+                label: "d",
+                insertText: {},
+                documentation: {},
+                range: { foo: 1 },
+                command: { command: "" }, // пустая команда отбрасывается
+            },
+            { label: "e", range: null }, // range null
+        ];
+        languages.registerCompletionItemProvider(
+            { language: "editorconfig" },
+            { provideCompletionItems: () => items } as never,
+        );
+
+        const result = (await stub.callRequest(
+            "languages.provideCompletionItems",
+            COMPLETION_PARAMS,
+        )) as WireCompletionItem[];
+
+        expect(result.map((r) => r.label)).toEqual(["objlabel", "d", "e"]);
+        const a = result[0];
+        expect(a.insertText).toBe("snippet");
+        expect(a.documentation).toBe("md");
+        expect(a.sortText).toBe("0");
+        expect(a.filterText).toBe("f");
+        expect(a.range).toEqual({ startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 1 });
+        expect(a.command).toEqual({ command: "c", arguments: [1] });
+        const d = result[1];
+        expect(d.insertText).toBe("d"); // fallback на label
+        expect(d.documentation).toBeUndefined();
+        expect(d.range).toBeUndefined();
+        expect(d.command).toBeUndefined();
+    });
+
+    it("provideCompletionItems: пропущенные languageId/text/line/character + строковая documentation", async () => {
+        const { ctx, stub } = makeCtx();
+        const { languages } = createLanguagesNamespace(ctx);
+        const item = new CompletionItem("root");
+        item.documentation = "root docs"; // строка (не MarkdownString)
+        languages.registerCompletionItemProvider(
+            { pattern: "**/.editorconfig" }, // матч по пути, без language
+            { provideCompletionItems: () => [item] } as never,
+        );
+        // Параметры только с fileName — остальные поля резолвятся дефолтами.
+        const result = (await stub.callRequest("languages.provideCompletionItems", {
+            fileName: "/proj/.editorconfig",
+        })) as WireCompletionItem[];
+        expect(result).toHaveLength(1);
+        expect(result[0].documentation).toBe("root docs");
+    });
+
+    it("normalizeResult: undefined и {items: не-массив} → пусто", async () => {
+        const undef = makeCtx();
+        const nsU = createLanguagesNamespace(undef.ctx);
+        nsU.languages.registerCompletionItemProvider(
+            { language: "editorconfig" },
+            { provideCompletionItems: () => undefined } as never,
+        );
+        expect(await undef.stub.callRequest("languages.provideCompletionItems", COMPLETION_PARAMS)).toEqual([]);
+
+        const bad = makeCtx();
+        const nsB = createLanguagesNamespace(bad.ctx);
+        nsB.languages.registerCompletionItemProvider(
+            { language: "editorconfig" },
+            { provideCompletionItems: () => ({ items: 5 }) } as never,
+        );
+        expect(await bad.stub.callRequest("languages.provideCompletionItems", COMPLETION_PARAMS)).toEqual([]);
+    });
 });
