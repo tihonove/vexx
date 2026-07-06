@@ -350,7 +350,7 @@ export enum CompletionItemKind {
     Issue = 26,
 }
 
-/** Элемент автодополнения (минимальная поверхность; UI — WP8). */
+/** Элемент автодополнения. Сериализуется хостом в `WireCompletionItem` (WP8). */
 export class CompletionItem {
     public label: string;
     public kind?: CompletionItemKind;
@@ -358,6 +358,10 @@ export class CompletionItem {
     public detail?: string;
     public documentation?: string;
     public command?: { command: string; title: string; arguments?: unknown[] };
+    public range?: Range;
+    public sortText?: string;
+    public filterText?: string;
+    public preselect?: boolean;
 
     public constructor(label: string, kind?: CompletionItemKind) {
         this.label = label;

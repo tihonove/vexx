@@ -132,6 +132,7 @@ import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { QuickInputController } from "./QuickInputController.ts";
+import { CompletionController } from "./CompletionController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
@@ -313,6 +314,7 @@ export class AppController extends Disposable implements IController {
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
     private quickInputController: QuickInputController;
+    private completionController: CompletionController;
     private findController: FindController;
     private statusBarController: StatusBarController;
     private commands: CommandRegistry;
@@ -360,6 +362,7 @@ export class AppController extends Disposable implements IController {
             new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
         );
         this.quickInputController = this.register(new QuickInputController());
+        this.completionController = this.register(new CompletionController(this.editorGroupController));
         this.findController = this.register(new FindController(this.editorGroupController));
         this.findController.applyTheme(themeService.theme);
         this.statusBarController = this.register(statusBarController);
@@ -388,11 +391,16 @@ export class AppController extends Disposable implements IController {
 
         this.quickOpenController.setHostView(this.view);
         this.quickInputController.setHostView(this.view);
+        this.completionController.setHostView(this.view);
+        this.completionController.onExecuteCommand = (id, ...args) => {
+            this.commands.execute(id, ...args);
+        };
         this.findController.setHostView();
-        // Find operates on the active editor only — close the widget when it changes.
+        // Find and completion operate on the active editor only — close them when it changes.
         this.register(
             this.editorGroupController.onActiveEditorChanged(() => {
                 this.findController.close();
+                this.completionController.close();
             }),
         );
         this.register({
@@ -463,6 +471,18 @@ export class AppController extends Disposable implements IController {
                     this.findController.open();
                 },
             }),
+        );
+        // triggerSuggestAction registers the ctrl+space keybinding + placeholder in
+        // the builtinActions loop; override just the command handler here (Map.set
+        // replaces it) so the keybinding is not registered twice.
+        this.register(
+            commands.register(
+                "editor.action.triggerSuggest",
+                () => {
+                    void this.completionController.trigger();
+                },
+                "Trigger Suggest",
+            ),
         );
         this.register(
             registerAction(commands, keybindings, accessor, {

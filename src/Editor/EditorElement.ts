@@ -106,6 +106,30 @@ export class EditorElement extends TUIElement implements IScrollable {
         return GUTTER_LEFT_PADDING + digitCount + 1;
     }
 
+    /**
+     * Абсолютные (экранные) координаты ячейки каретки первичного курсора, или
+     * `null`, если каретка вне видимой области. Используется для якорения
+     * completion-попапа (та же математика, что в {@link render}).
+     */
+    public getCaretScreenCell(): Point | null {
+        const gutterW = this.gutterWidth;
+        const scrollTop = this.viewState.scrollTop;
+        const scrollLeft = this.viewState.scrollLeft;
+        const visibleLines = this.layoutSize.height;
+
+        const primary = this.viewState.selections[0];
+        const cursorVisualLine = this.viewState.logicalToVisualLine(primary.active.line);
+        const cursorLineContent = this.viewState.getViewLine(cursorVisualLine);
+        const cursorDl = new DisplayLine(cursorLineContent, this.tabSize);
+        const localX = cursorDl.offsetToColumn(primary.active.character) - scrollLeft + gutterW;
+        const localY = cursorVisualLine - scrollTop;
+
+        if (localX < gutterW || localX >= this.layoutSize.width || localY < 0 || localY >= visibleLines) {
+            return null;
+        }
+        return new Point(this.globalPosition.x + localX, this.globalPosition.y + localY);
+    }
+
     public override getMinIntrinsicWidth(_height: number): number {
         return 1;
     }

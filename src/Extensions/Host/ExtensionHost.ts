@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
 import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import type { ICompletionRequest, ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
 import type { ISaveEdit, ISaveSnapshot } from "../../Editor/ISaveParticipant.ts";
 
 import type { ICommandService } from "./ICommandService.ts";
@@ -12,7 +13,7 @@ import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 import type { IIpcEndpoint } from "./IpcMessageChannel.ts";
 import { IpcMessageChannel } from "./IpcMessageChannel.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
-import { requestWillSaveEdits } from "./WireTypes.ts";
+import { requestCompletionItems, requestWillSaveEdits } from "./WireTypes.ts";
 
 export const ExtensionHostDIToken = token<ExtensionHost>("ExtensionHost");
 
@@ -63,6 +64,12 @@ export interface IExtensionHostOptions {
      */
     readonly willSaveTimeoutMs?: number;
     /**
+     * Тайм-аут на ответ провайдеров автодополнения
+     * (`languages.provideCompletionItems`), мс. По истечении completion-UI
+     * показывает пустой список. Default: 1500.
+     */
+    readonly completionTimeoutMs?: number;
+    /**
      * Логгер для lifecycle-событий host'а (канал `extensions.host`). Подканалы
      * `extensions.host.rpc` / `.stdout` / `.stderr` берутся из {@link logService}, если передан.
      */
@@ -110,7 +117,10 @@ export class ExtensionHost extends Disposable {
     /** Прокси-регистрации команд сабпроцесса в host CommandRegistry (по id). */
     private readonly proxyCommands = new Map<string, IDisposable>();
     private readonly options: Required<
-        Pick<IExtensionHostOptions, "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs" | "willSaveTimeoutMs">
+        Pick<
+            IExtensionHostOptions,
+            "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs" | "willSaveTimeoutMs" | "completionTimeoutMs"
+        >
     >;
     private readonly logger: ILogger | undefined;
     private readonly rpcLogger: ILogger | undefined;
@@ -126,6 +136,8 @@ export class ExtensionHost extends Disposable {
     /** Есть ли в субпроцессе активные подписки на will/did-save (см. `workspace.updateSubscriptions`). */
     private willSaveSubscribed = false;
     private didSaveSubscribed = false;
+    /** Есть ли в субпроцессе зарегистрированные completion-провайдеры (см. `languages.updateSubscriptions`). */
+    private completionSubscribed = false;
 
     public constructor(
         editorOptions: IEditorOptionsService,
@@ -140,6 +152,7 @@ export class ExtensionHost extends Disposable {
             readyTimeoutMs: options.readyTimeoutMs ?? 5000,
             shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1500,
             willSaveTimeoutMs: options.willSaveTimeoutMs ?? 1500,
+            completionTimeoutMs: options.completionTimeoutMs ?? 1500,
         };
         this.logger = options.logger;
         this.rpcLogger = options.rpcLogger;
@@ -227,6 +240,38 @@ export class ExtensionHost extends Disposable {
         const rpc = this.rpc;
         if (rpc === null || !this.didSaveSubscribed) return;
         rpc.notify("workspace.didSaveTextDocument", meta);
+    }
+
+    /**
+     * Запрашивает у субпроцесса элементы автодополнения для позиции курсора
+     * (`languages.provideCompletionItems`). Возвращает `[]`, если субпроцесса нет,
+     * никто не зарегистрировал провайдеры, документ слишком большой или расширение
+     * не ответило за `completionTimeoutMs`. Подключается в
+     * `EditorGroupController.completionSource` (wiring в module/харнессе).
+     */
+    public async provideCompletionItems(req: ICompletionRequest): Promise<readonly ICoreCompletionItem[]> {
+        const rpc = this.rpc;
+        if (rpc === null || !this.completionSubscribed) return [];
+        /* v8 ignore start -- защитный лимит на снапшот 8 МБ; открытие такого файла в редакторе неподъёмно для unit-теста */
+        if (req.text.length > MAX_WILL_SAVE_TEXT_BYTES) {
+            this.logger?.warn("skipping completion: document too large", {
+                fileName: req.fileName,
+                length: req.text.length,
+            });
+            return [];
+        }
+        /* v8 ignore stop */
+        return requestCompletionItems(
+            (method, params) => rpc.request(method, params),
+            {
+                fileName: req.fileName,
+                languageId: req.languageId,
+                text: req.text,
+                line: req.line,
+                character: req.character,
+            },
+            this.options.completionTimeoutMs,
+        );
     }
 
     public hasExtension(id: string): boolean {
@@ -349,6 +394,12 @@ export class ExtensionHost extends Disposable {
             this.willSaveSubscribed = p.willSave === true;
             this.didSaveSubscribed = p.didSave === true;
         });
+        // Субпроцесс сообщает, есть ли зарегистрированные completion-провайдеры.
+        // Без них хост не гоняет RPC на Ctrl+Space.
+        rpc.handleNotification("languages.updateSubscriptions", (params) => {
+            const p = params as { hasCompletionProviders?: unknown };
+            this.completionSubscribed = p.hasCompletionProviders === true;
+        });
         rpc.handleNotification("window.showMessage", (params) => {
             const { severity, message } = params as { severity?: unknown; message?: unknown };
             const text = typeof message === "string" ? message : String(message);
@@ -387,6 +438,7 @@ export class ExtensionHost extends Disposable {
         this.readyPromise = null;
         this.willSaveSubscribed = false;
         this.didSaveSubscribed = false;
+        this.completionSubscribed = false;
         // Прокси-команды указывали на умирающий сабпроцесс — снимаем их из
         // общего DI-синглтона CommandRegistry, чтобы не оставить висячие записи.
         this.clearProxyCommands();

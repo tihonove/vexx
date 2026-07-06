@@ -70,6 +70,7 @@
 ## Phase 8 — [~] Extension host (ядро готово)
 
 - [x] Сделано (in-process MVP + real subprocess): RPC (request/response/notification) поверх `IMessageChannel` с двумя транспортами (`InProcessChannelPair` для тестов, `IpcMessageChannel` поверх Node IPC), self-spawn subprocess'а (SEA и dev), стаб `require("vscode")` через `Module._cache`, `vscode.d.ts` с минимальной активной поверхностью, `EditorOptionsServiceAdapter` (runtime меняет настройки редактора, не зная про `EditorController`). Детали: [ARCHITECTURE.md](../ARCHITECTURE.md) → Extensions/Host. Тесты: `src/Extensions/Host/*.test.ts`, `e2e/sea-extensions.test.ts`.
+- [x] Completion (WP8): минимальный completion-UI ядра (`CompletionController` + `CompletionListElement`, триггер `editor.action.triggerSuggest`/Ctrl+Space) + surfacing провайдеров расширений. Host-запрос `languages.provideCompletionItems {fileName, languageId, text, line, character}` → subprocess матчит `DocumentSelector` (`Vscode/DocumentSelector.ts`) и вызывает `registerCompletionItemProvider`-провайдеры → `WireCompletionItem[]`. `item.command` исполняется через commands bridge. Тесты: `ExtensionHost.Completion.test.ts`, `CompletionController.test.ts`, `CompletionListElement.test.ts`.
 
 Остаётся:
 
