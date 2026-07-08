@@ -173,6 +173,32 @@ describe("File explorer context menu — clipboard entries", () => {
         expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
         expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
     });
+
+    // Order (empty clipboard): Copy, Cut, (sep), Copy Path, Copy Relative Path, (sep), Delete.
+    it("Copy Path entry puts the clicked file's absolute path on the clipboard", async () => {
+        rightClickRow(1); // a.txt
+        expect(ctx.testApp.backend.screenToString()).toContain("Copy Path");
+        ctx.testApp.sendKey("ArrowDown"); // Cut
+        ctx.testApp.sendKey("ArrowDown"); // Copy Path
+        ctx.testApp.sendKey("Enter");
+        ctx.testApp.render();
+
+        expect(ctx.testApp.querySelector("PopupMenuElement")).toBeNull();
+        expect(await ctx.clipboard.readText()).toBe(path.join(tmpDir, "a.txt"));
+    });
+
+    it("Copy Relative Path entry puts the workspace-relative path on the clipboard", async () => {
+        rightClickRow(1); // a.txt
+        expect(ctx.testApp.backend.screenToString()).toContain("Copy Relative Path");
+        ctx.testApp.sendKey("ArrowDown"); // Cut
+        ctx.testApp.sendKey("ArrowDown"); // Copy Path
+        ctx.testApp.sendKey("ArrowDown"); // Copy Relative Path
+        ctx.testApp.sendKey("Enter");
+        ctx.testApp.render();
+
+        expect(ctx.testApp.querySelector("PopupMenuElement")).toBeNull();
+        expect(await ctx.clipboard.readText()).toBe("a.txt");
+    });
 });
 
 describe("File explorer copy-path commands", () => {
@@ -218,5 +244,50 @@ describe("File explorer copy-path commands", () => {
         ctx.commands.execute("fileOperations.copyRelativePath", path.join(tmpDir, "target"));
 
         expect(await ctx.clipboard.readText()).toBe("target");
+    });
+});
+
+describe("File explorer copy-path — no selection / no workspace root", () => {
+    // App built without a workspace folder: the tree has no nodes (nothing selected)
+    // and getRootPath() returns null.
+    function createRootlessApp(): { controller: AppController; commands: CommandRegistry; clipboard: IClipboard } {
+        const { container, bindApp } = createTestContainer();
+        const controller = container.get(AppControllerDIToken);
+        controller.mount();
+        const testApp = TestApp.create(controller.view, new Size(80, 24));
+        bindApp(testApp.app);
+        return {
+            controller,
+            commands: container.get(CommandRegistryDIToken),
+            clipboard: container.get(ClipboardDIToken),
+        };
+    }
+
+    it("copyPath is a no-op when nothing is selected", async () => {
+        const { controller, commands, clipboard } = createRootlessApp();
+        await controller.activate();
+
+        commands.execute("fileOperations.copyPath");
+        expect(await clipboard.readText()).toBe("");
+        controller.dispose();
+    });
+
+    it("copyRelativePath is a no-op when nothing is selected", async () => {
+        const { controller, commands, clipboard } = createRootlessApp();
+        await controller.activate();
+
+        commands.execute("fileOperations.copyRelativePath");
+        expect(await clipboard.readText()).toBe("");
+        controller.dispose();
+    });
+
+    it("copyRelativePath falls back to the absolute path when there is no workspace root", async () => {
+        const { controller, commands, clipboard } = createRootlessApp();
+        await controller.activate();
+
+        const abs = path.join("/tmp", "nowhere", "file.txt");
+        commands.execute("fileOperations.copyRelativePath", abs);
+        expect(await clipboard.readText()).toBe(abs);
+        controller.dispose();
     });
 });
