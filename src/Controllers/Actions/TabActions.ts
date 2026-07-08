@@ -10,10 +10,7 @@ export const nextEditorInGroupAction: CommandAction = {
     when: "textInputFocus && editorTabsMultiple",
     run(accessor) {
         const group = accessor.get(EditorGroupControllerDIToken);
-        if (group.editorCount < 2) return;
-
-        const nextIndex = (group.activeIndex + 1) % group.editorCount;
-        group.activateTab(nextIndex);
+        group.cycleMru(1);
     },
 };
 
@@ -25,10 +22,7 @@ export const previousEditorInGroupAction: CommandAction = {
     when: "textInputFocus && editorTabsMultiple",
     run(accessor) {
         const group = accessor.get(EditorGroupControllerDIToken);
-        if (group.editorCount < 2) return;
-
-        const previousIndex = (group.activeIndex - 1 + group.editorCount) % group.editorCount;
-        group.activateTab(previousIndex);
+        group.cycleMru(-1);
     },
 };
 
