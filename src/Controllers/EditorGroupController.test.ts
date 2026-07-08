@@ -134,6 +134,17 @@ describe("EditorGroupController", () => {
 
             expect(tabLabels(ctrl)).toEqual(["standalone.ts", "index.ts — a", "index.ts — b"]);
         });
+
+        it("extends the disambiguating suffix when parent directories also collide", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            ctrl.openFile(writeFile(path.join("x", "common", "index.ts"), "x"));
+            ctrl.openFile(writeFile(path.join("y", "common", "index.ts"), "y"));
+
+            const sep = path.sep;
+            expect(tabLabels(ctrl)).toEqual([`index.ts — x${sep}common`, `index.ts — y${sep}common`]);
+        });
     });
 
     describe("activateTab", () => {
