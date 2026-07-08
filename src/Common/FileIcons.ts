@@ -7,6 +7,9 @@ export interface FileIcon {
 
 const DEFAULT_ICON: FileIcon = { icon: "\uF016", color: packRgb(180, 180, 180) };
 
+// \u0418\u043A\u043E\u043D\u043A\u0430-\u0446\u0435\u043F\u043E\u0447\u043A\u0430 (nf-fa-link) \u0434\u043B\u044F \u0441\u0438\u043C\u043B\u0438\u043D\u043A\u043E\u0432 \u2014 \u0435\u0434\u0438\u043D\u0430\u044F \u043D\u0435\u0437\u0430\u0432\u0438\u0441\u0438\u043C\u043E \u043E\u0442 \u0442\u0438\u043F\u0430 \u0446\u0435\u043B\u0438.
+export const SYMLINK_ICON: FileIcon = { icon: "\uF0C1", color: packRgb(86, 182, 194) };
+
 const EXTENSION_ICONS: Record<string, FileIcon | undefined> = {
     ".ts": { icon: "\uE628", color: packRgb(49, 120, 198) },
     ".tsx": { icon: "\uE628", color: packRgb(49, 120, 198) },

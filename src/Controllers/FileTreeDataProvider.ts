@@ -4,7 +4,7 @@ import * as path from "node:path";
 import chokidar, { type FSWatcher } from "chokidar";
 
 import { Disposable } from "../Common/Disposable.ts";
-import { getFileIcon } from "../Common/FileIcons.ts";
+import { getFileIcon, SYMLINK_ICON } from "../Common/FileIcons.ts";
 import type { ITreeDataProvider, ITreeItem } from "../TUIDom/Widgets/ITreeDataProvider.ts";
 
 const EXCLUDED_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);
@@ -13,6 +13,7 @@ export interface FileTreeNode {
     name: string;
     path: string;
     isDirectory: boolean;
+    isSymbolicLink?: boolean;
 }
 
 export class FileTreeDataProvider extends Disposable implements ITreeDataProvider<FileTreeNode> {
@@ -28,6 +29,14 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
     }
 
     public getTreeItem(element: FileTreeNode): ITreeItem {
+        if (element.isSymbolicLink) {
+            return {
+                label: element.name,
+                icon: SYMLINK_ICON.icon,
+                iconColor: SYMLINK_ICON.color,
+                collapsible: element.isDirectory,
+            };
+        }
         if (element.isDirectory) {
             return {
                 label: element.name,
@@ -108,10 +117,23 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
         const nodes: FileTreeNode[] = [];
         for (const entry of entries) {
             if (EXCLUDED_NAMES.has(entry.name)) continue;
+            const fullPath = path.join(dirPath, entry.name);
+            const isSymbolicLink = entry.isSymbolicLink();
+            let isDirectory = entry.isDirectory();
+            if (isSymbolicLink) {
+                // Dirent сообщает тип самой ссылки, а не цели. Резолвим цель, чтобы
+                // симлинк на каталог был раскрываемым. Битую ссылку показываем как файл.
+                try {
+                    isDirectory = fs.statSync(fullPath).isDirectory();
+                } catch {
+                    isDirectory = false;
+                }
+            }
             nodes.push({
                 name: entry.name,
-                path: path.join(dirPath, entry.name),
-                isDirectory: entry.isDirectory(),
+                path: fullPath,
+                isDirectory,
+                isSymbolicLink,
             });
         }
 
