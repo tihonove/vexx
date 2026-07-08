@@ -146,6 +146,14 @@ describe("TreeViewElement type-ahead", () => {
         expect(tree.getSelectedNode()?.label).toBe("app.ts");
     });
 
+    it("does nothing when the tree is empty", async () => {
+        const { tree, app } = await setup([]);
+
+        expect(tree.contentHeight).toBe(0);
+        app.sendKey("a"); // must not throw or select anything
+        expect(tree.getSelectedNode()).toBeNull();
+    });
+
     it("does not treat space as a search character", async () => {
         const { tree, app } = await setup([
             { id: "x", label: "src", children: [{ id: "x/main.ts", label: "main.ts" }] },
