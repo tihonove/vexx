@@ -101,6 +101,39 @@ export class TreeViewElement<T> extends ScrollableElement {
         this.markDirty();
     }
 
+    /** Раскрывает узел (загружая детей в кеш), если он ещё не раскрыт. No-op для уже раскрытого. */
+    private async expandElement(element: T): Promise<void> {
+        const key = this.provider.getKey(element);
+        if (this.expandedKeys.has(key)) return;
+        if (!this.childrenCache.has(key)) {
+            const children = await this.provider.getChildren(element);
+            this.childrenCache.set(key, children);
+        }
+        this.expandedKeys.add(key);
+        this.onExpandedChanged?.(element, true);
+    }
+
+    /**
+     * Раскрывает цепочку предков и ставит курсор на целевой узел, проматывая к нему.
+     * `chain` — путь от корня к цели включительно: все элементы кроме последнего
+     * трактуются как предки-контейнеры и раскрываются, последний — цель выделения.
+     * Если цель не находится в дереве после раскрытия (например, путь вне корня),
+     * выделение не меняется.
+     */
+    public async reveal(chain: T[]): Promise<void> {
+        if (chain.length === 0) return;
+        for (let i = 0; i < chain.length - 1; i++) {
+            await this.expandElement(chain[i]);
+        }
+        this.rebuildFlatList();
+        const targetKey = this.provider.getKey(chain[chain.length - 1]);
+        const index = this.flatNodes.findIndex((node) => this.provider.getKey(node.element) === targetKey);
+        if (index >= 0) {
+            this.setSelectedIndex(index);
+        }
+        this.markDirty();
+    }
+
     public setCutKeys(keys: Set<string>): void {
         this.cutKeys = keys;
         this.markDirty();

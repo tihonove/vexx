@@ -401,6 +401,7 @@ export class AppController extends Disposable implements IController {
             this.editorGroupController.onActiveEditorChanged(() => {
                 this.findController.close();
                 this.completionController.close();
+                this.autoRevealActiveFile();
             }),
         );
         this.register({
@@ -529,6 +530,20 @@ export class AppController extends Disposable implements IController {
                     this.workbenchLayout.setLeftPanelVisible(true);
                     this.workbenchLayout.markDirty();
                     this.fileTreeController.focus();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.files.action.showActiveFileInExplorer",
+                title: "File: Reveal Active File in Explorer",
+                run: () => {
+                    const filePath = this.editorGroupController.getActiveEditor()?.absoluteFilePath;
+                    if (!filePath) return;
+                    this.workbenchLayout.setLeftPanelVisible(true);
+                    this.workbenchLayout.markDirty();
+                    this.fileTreeController.focus();
+                    void this.fileTreeController.revealPath(filePath);
                 },
             }),
         );
@@ -1118,6 +1133,19 @@ export class AppController extends Disposable implements IController {
         if (!this.confirmDialog) return;
         /* v8 ignore stop */
         this.confirmDialogSession?.close();
+    }
+
+    /**
+     * Автоматически подсвечивает активный файл в дереве при смене активного редактора,
+     * если включена настройка `explorer.autoReveal`. Фокус не отбирается у редактора —
+     * меняется только выделение/скролл дерева (в отличие от явной команды reveal).
+     */
+    private autoRevealActiveFile(): void {
+        const autoReveal = this.configurationService.get<boolean>("explorer.autoReveal", true) ?? true;
+        if (!autoReveal) return;
+        const filePath = this.editorGroupController.getActiveEditor()?.absoluteFilePath;
+        if (!filePath) return;
+        void this.fileTreeController.revealPath(filePath);
     }
 
     /** Удаление файла: подтверждение (всегда — если безвозвратно) + запись в историю отмены. */

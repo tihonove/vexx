@@ -18,6 +18,8 @@ export function getDefaultConfiguration(): Readonly<Record<string, unknown>> {
             confirmDelete: true,
             // Спрашивать подтверждение перед отменой деструктивной файловой операции.
             confirmUndo: true,
+            // Автоматически подсвечивать активный файл в дереве при переключении редактора.
+            autoReveal: true,
         },
         files: {
             // true → удалять в системную корзину, если она доступна; false → всегда безвозвратно.
