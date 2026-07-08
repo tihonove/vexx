@@ -1,6 +1,6 @@
 import type { FileClipboardEntry } from "../../Common/IFileClipboard.ts";
 import type { CommandAction } from "../CommandAction.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
 import type { ResourceFileEdit } from "../Workspace/WorkspaceEdit.ts";
 
 /**
@@ -26,6 +26,31 @@ export const filePasteAction = {
     id: "fileOperations.paste",
     title: "File: Paste",
     keybinding: parseKeybinding("ctrl+v"),
+    when: "listFocus",
+} satisfies Omit<CommandAction, "run">;
+
+/**
+ * Копирует полный (абсолютный) путь выбранного файла в системный буфер обмена.
+ * Байнд VS Code — Shift+Alt+C (специально не Ctrl+*, чтобы не схлопнуться с
+ * `fileOperations.copy` на Ctrl+C в legacy-терминалах).
+ */
+export const fileCopyPathAction = {
+    id: "fileOperations.copyPath",
+    title: "File: Copy Path",
+    keybinding: parseKeybinding("shift+alt+c"),
+    when: "listFocus",
+} satisfies Omit<CommandAction, "run">;
+
+/**
+ * Копирует путь выбранного файла относительно корня workspace в системный буфер обмена.
+ * Байнд VS Code — аккорд Ctrl+K Ctrl+Shift+C; в legacy-терминалах вторая часть
+ * не различает Shift, поэтому там fallback на Ctrl+K Ctrl+C.
+ */
+export const fileCopyRelativePathAction = {
+    id: "fileOperations.copyRelativePath",
+    title: "File: Copy Relative Path",
+    keybinding: parseChord("ctrl+k ctrl+shift+c"),
+    keybindings: [{ keys: parseChord("ctrl+k ctrl+c"), when: "tier == 'legacy'" }],
     when: "listFocus",
 } satisfies Omit<CommandAction, "run">;
 

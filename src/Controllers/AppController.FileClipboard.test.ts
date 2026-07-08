@@ -9,9 +9,12 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
+import type { IClipboard } from "../Common/IClipboard.ts";
+
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { ClipboardDIToken } from "./CoreTokens.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 // Workspace layout (dirs sort first): row 0 = "target/", row 1 = "a.txt".
@@ -26,6 +29,7 @@ interface Ctx {
     testApp: TestApp;
     controller: AppController;
     commands: CommandRegistry;
+    clipboard: IClipboard;
 }
 
 function createApp(tmpDir: string): Ctx {
@@ -35,7 +39,12 @@ function createApp(tmpDir: string): Ctx {
     controller.mount();
     const testApp = TestApp.create(controller.view, new Size(80, 24));
     bindApp(testApp.app);
-    return { testApp, controller, commands: container.get(CommandRegistryDIToken) };
+    return {
+        testApp,
+        controller,
+        commands: container.get(CommandRegistryDIToken),
+        clipboard: container.get(ClipboardDIToken),
+    };
 }
 
 describe("File explorer copy/cut/paste commands", () => {
@@ -163,5 +172,51 @@ describe("File explorer context menu — clipboard entries", () => {
 
         expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
         expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
+    });
+});
+
+describe("File explorer copy-path commands", () => {
+    let tmpDir: string;
+    let ctx: Ctx;
+
+    beforeEach(async () => {
+        tmpDir = fs.realpathSync(createWorkspace());
+        ctx = createApp(tmpDir);
+        await ctx.controller.activate();
+        ctx.testApp.render();
+        ctx.testApp.querySelector("TreeViewElement")!.focus();
+        ctx.testApp.render();
+    });
+
+    afterEach(() => {
+        ctx.controller.dispose();
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it("copyPath writes the absolute path of the selected file to the clipboard", async () => {
+        ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
+        ctx.commands.execute("fileOperations.copyPath");
+
+        expect(await ctx.clipboard.readText()).toBe(path.join(tmpDir, "a.txt"));
+    });
+
+    it("copyRelativePath writes the workspace-relative path to the clipboard", async () => {
+        ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
+        ctx.commands.execute("fileOperations.copyRelativePath");
+
+        expect(await ctx.clipboard.readText()).toBe("a.txt");
+    });
+
+    it("copyPath uses the explicit path argument when provided (context-menu path)", async () => {
+        const target = path.join(tmpDir, "target");
+        ctx.commands.execute("fileOperations.copyPath", target);
+
+        expect(await ctx.clipboard.readText()).toBe(target);
+    });
+
+    it("copyRelativePath uses the explicit path argument when provided (context-menu path)", async () => {
+        ctx.commands.execute("fileOperations.copyRelativePath", path.join(tmpDir, "target"));
+
+        expect(await ctx.clipboard.readText()).toBe("target");
     });
 });
