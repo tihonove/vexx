@@ -65,6 +65,7 @@ export class EditorController extends Disposable implements IController {
     private readonly languageService: ILanguageService;
     private readonly undoRedoService: UndoRedoService;
     private contextMenuEntriesValue: MenuEntry[] = [];
+    private currentTheme: WorkbenchTheme | null = null;
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId || this.doc.eol !== this.savedEol;
@@ -219,6 +220,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
+        this.editor.menuTheme = this.currentTheme;
         this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
@@ -456,12 +458,14 @@ export class EditorController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
+        this.currentTheme = theme;
         const fg = theme.getColorOrDefault("editor.foreground", packRgb(212, 212, 212));
         const bg = theme.getColorOrDefault("editor.background", packRgb(30, 30, 30));
         this.editor.style = { fg, bg };
         this.editor.gutterBackground = theme.getColor("editorGutter.background") ?? bg;
         this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
         this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
+        this.editor.menuTheme = theme;
     }
 
     /**

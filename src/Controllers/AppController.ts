@@ -330,6 +330,7 @@ export class AppController extends Disposable implements IController {
     private contextKeys: ContextKeyService;
     private inputWidgetController: InputWidgetController;
     private themeService: ThemeService;
+    private menuBar: MenuBarElement | null = null;
     private terminalEnv: TerminalEnvironmentService;
     private armory: ModifierReleaseArmory;
     private chordTimer: ReturnType<typeof setTimeout> | null = null;
@@ -815,6 +816,7 @@ export class AppController extends Disposable implements IController {
         this.confirmDialog?.applyTheme(theme);
         this.aboutDialog?.applyTheme(theme);
         this.findController.applyTheme(theme);
+        this.menuBar?.applyTheme(theme);
         this.workbenchLayout.setSashHoverColor(theme.getColor("sash.hoverBorder"));
     }
 
@@ -1135,6 +1137,8 @@ export class AppController extends Disposable implements IController {
         ];
 
         const menuBar = new MenuBarElement(menuItems);
+        menuBar.applyTheme(this.themeService.theme);
+        this.menuBar = menuBar;
         this.view.setMenuBar(menuBar);
     }
 
@@ -1461,6 +1465,7 @@ export class AppController extends Disposable implements IController {
         );
 
         const menu = new PopupMenuElement(entries);
+        menu.applyTheme(this.themeService.theme);
         menu.tabIndex = 0;
 
         let session: OverlaySessionHandle | null = null;

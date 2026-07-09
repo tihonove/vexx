@@ -6,6 +6,7 @@ import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { BORDER } from "./BorderGlyphs.ts";
 import { InputElement } from "./InputElement.ts";
 
 // ─── Colors ─────────────────────────────────────────────────────────────────
@@ -328,11 +329,11 @@ export class QuickPickElement extends TUIElement {
         }
 
         // ── Top border (with optional centered title) ─────────────────────────
-        context.setCell(0, 0, { char: "┌", fg: BORDER_FG, bg: BG });
+        context.setCell(0, 0, { char: BORDER.topLeft, fg: BORDER_FG, bg: BG });
         for (let x = 1; x < w - 1; x++) {
             context.setCell(x, 0, { char: "─", fg: BORDER_FG, bg: BG });
         }
-        context.setCell(w - 1, 0, { char: "┐", fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, 0, { char: BORDER.topRight, fg: BORDER_FG, bg: BG });
         if (this.title !== undefined && this.title !== "") {
             this.renderTitle(context, w);
         }
@@ -373,18 +374,18 @@ export class QuickPickElement extends TUIElement {
 
             // ── Bottom border ─────────────────────────────────────────────────
             const bottomY = h - 1;
-            context.setCell(0, bottomY, { char: "└", fg: BORDER_FG, bg: BG });
+            context.setCell(0, bottomY, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
             for (let x = 1; x < w - 1; x++) {
                 context.setCell(x, bottomY, { char: "─", fg: BORDER_FG, bg: BG });
             }
-            context.setCell(w - 1, bottomY, { char: "┘", fg: BORDER_FG, bg: BG });
+            context.setCell(w - 1, bottomY, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
         } else {
             // ── Bottom border (no items) ──────────────────────────────────────
-            context.setCell(0, bodyTop, { char: "└", fg: BORDER_FG, bg: BG });
+            context.setCell(0, bodyTop, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
             for (let x = 1; x < w - 1; x++) {
                 context.setCell(x, bodyTop, { char: "─", fg: BORDER_FG, bg: BG });
             }
-            context.setCell(w - 1, bodyTop, { char: "┘", fg: BORDER_FG, bg: BG });
+            context.setCell(w - 1, bodyTop, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
         }
     }
 

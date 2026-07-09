@@ -4,6 +4,7 @@ import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { BORDER } from "./BorderGlyphs.ts";
 import { ButtonElement } from "./ButtonElement.ts";
 import { InputElement } from "./InputElement.ts";
 
@@ -169,10 +170,10 @@ export class FindWidgetElement extends TUIElement {
         }
 
         // Borders: top / sides / bottom.
-        context.setCell(0, 0, { char: "┌", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, 0, { char: "┐", fg: BORDER_FG, bg: BG });
-        context.setCell(0, 2, { char: "└", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, 2, { char: "┘", fg: BORDER_FG, bg: BG });
+        context.setCell(0, 0, { char: BORDER.topLeft, fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, 0, { char: BORDER.topRight, fg: BORDER_FG, bg: BG });
+        context.setCell(0, 2, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, 2, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
         for (let x = 1; x < w - 1; x++) {
             context.setCell(x, 0, { char: "─", fg: BORDER_FG, bg: BG });
             context.setCell(x, 2, { char: "─", fg: BORDER_FG, bg: BG });

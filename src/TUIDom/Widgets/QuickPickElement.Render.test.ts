@@ -68,15 +68,15 @@ describe("QuickPickElement — border", () => {
     it("draws top border on row 0", () => {
         const picker = new QuickPickElement();
         const backend = renderPicker(picker, 20);
-        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("┌");
-        expect(backend.getTextAt(new Point(19, 0), 1)).toBe("┐");
+        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("╭");
+        expect(backend.getTextAt(new Point(19, 0), 1)).toBe("╮");
     });
 
     it("draws bottom border on row 2 when no items", () => {
         const picker = new QuickPickElement();
         const backend = renderPicker(picker, 20);
-        expect(backend.getTextAt(new Point(0, 2), 1)).toBe("└");
-        expect(backend.getTextAt(new Point(19, 2), 1)).toBe("┘");
+        expect(backend.getTextAt(new Point(0, 2), 1)).toBe("╰");
+        expect(backend.getTextAt(new Point(19, 2), 1)).toBe("╯");
     });
 
     it("draws separator at row 2 when there are items", () => {
@@ -92,8 +92,8 @@ describe("QuickPickElement — border", () => {
         picker.items = makeItems(2);
         const height = picker.getMinIntrinsicHeight(20);
         const backend = renderPicker(picker, 20);
-        expect(backend.getTextAt(new Point(0, height - 1), 1)).toBe("└");
-        expect(backend.getTextAt(new Point(19, height - 1), 1)).toBe("┘");
+        expect(backend.getTextAt(new Point(0, height - 1), 1)).toBe("╰");
+        expect(backend.getTextAt(new Point(19, height - 1), 1)).toBe("╯");
     });
 });
 
@@ -291,7 +291,7 @@ describe("QuickPickElement — scroll", () => {
         const backend = renderPicker(picker, 30);
         const h = picker.getMinIntrinsicHeight(30);
         // Bottom border is at last row
-        expect(backend.getTextAt(new Point(0, h - 1), 1)).toBe("└");
+        expect(backend.getTextAt(new Point(0, h - 1), 1)).toBe("╰");
     });
 
     it("compact screen: only 3 rows fit in height constraint", () => {
@@ -307,7 +307,7 @@ describe("QuickPickElement — scroll", () => {
         picker.render(new RenderContext(termScreen, new Offset(0, 0), clip));
         termScreen.flush(backend);
         // Should not throw; just verify borders
-        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("┌");
+        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("╭");
     });
 });
 
@@ -321,9 +321,9 @@ describe("QuickPickElement — snapshot", () => {
         expectScreen(
             backend,
             screen`
-                ┌──────────────────┐
+                ╭──────────────────╮
                 │Go to file...     │
-                └──────────────────┘
+                ╰──────────────────╯
             `,
         );
     });
@@ -336,12 +336,12 @@ describe("QuickPickElement — snapshot", () => {
         expectScreen(
             backend,
             screen`
-                ┌──────────────────┐
+                ╭──────────────────╮
                 │Search            │
                 ├──────────────────┤
                 │ Alpha            │
                 │ Beta             │
-                └──────────────────┘
+                ╰──────────────────╯
             `,
         );
     });
