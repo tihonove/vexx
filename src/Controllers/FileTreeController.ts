@@ -82,6 +82,29 @@ export class FileTreeController extends Disposable implements IController {
         this.tree?.focus();
     }
 
+    /**
+     * Раскрывает дерево до файла `filePath` и выделяет его. Путь вне корня игнорируется.
+     * Возвращает `true`, если файл лежит внутри корня (и попытка раскрытия выполнена).
+     */
+    public async revealPath(filePath: string): Promise<boolean> {
+        if (!this.tree || this.rootPath === null) return false;
+        const relative = path.relative(this.rootPath, filePath);
+        /* v8 ignore next -- isAbsolute(relative) is Windows-only (cross-drive paths); unreachable on POSIX CI */
+        if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
+            return false;
+        }
+        const segments = relative.split(path.sep);
+        const chain: FileTreeNode[] = [];
+        let current = this.rootPath;
+        for (let i = 0; i < segments.length; i++) {
+            current = path.join(current, segments[i]);
+            const isLast = i === segments.length - 1;
+            chain.push({ name: segments[i], path: current, isDirectory: !isLast });
+        }
+        await this.tree.reveal(chain);
+        return true;
+    }
+
     /** Пути выбранных узлов (множественный выбор либо узел под курсором). */
     public getSelectedPaths(): string[] {
         return this.tree?.getSelectedNodes().map((node) => node.path) ?? [];
