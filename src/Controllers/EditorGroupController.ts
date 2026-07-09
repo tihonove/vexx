@@ -147,7 +147,16 @@ export class EditorGroupController extends Disposable implements IController {
     }
 
     public openFile(filePath: string, { focus = true }: { focus?: boolean } = {}): void {
-        const existingIndex = this.editors.findIndex((e) => e.fileName === path.basename(filePath));
+        // Идентичность вкладки — по полному пути, а не по имени файла: два разных
+        // файла с одинаковым basename (например, два index.ts из разных папок)
+        // должны открываться в отдельных вкладках, а не переключать на первую.
+        const resolved = path.resolve(filePath);
+        const existingIndex = this.editors.findIndex((e) => {
+            /* v8 ignore start -- absoluteFilePath is always set for open editors */
+            if (e.absoluteFilePath === null) return false;
+            /* v8 ignore stop */
+            return path.resolve(e.absoluteFilePath) === resolved;
+        });
         if (existingIndex >= 0) {
             this.activateTab(existingIndex, { focus });
             return;
@@ -277,13 +286,14 @@ export class EditorGroupController extends Disposable implements IController {
     }
 
     public syncTabs(): void {
-        const tabs: TabInfo[] = this.editors.map((editor) => {
+        const labels = this.computeTabLabels();
+        const tabs: TabInfo[] = this.editors.map((editor, i) => {
             /* v8 ignore start -- defensive: editors are only added via openFile(), which always sets a file path, so fileName is never null here */
             const fileName = editor.fileName ?? "untitled";
             /* v8 ignore stop */
             const fi = getFileIcon(fileName);
             return {
-                label: fileName,
+                label: labels[i],
                 icon: fi.icon,
                 iconColor: fi.color,
                 isModified: editor.isModified,
@@ -292,6 +302,54 @@ export class EditorGroupController extends Disposable implements IController {
 
         this.view.tabStrip.setTabs(tabs);
         this.view.tabStrip.activeIndex = this.activeIndexValue;
+    }
+
+    /**
+     * Метки вкладок: обычно это имя файла, но если несколько открытых файлов
+     * делят один basename, к ним добавляется минимальный различающий суффикс
+     * родительского пути (как в VS Code), чтобы вкладки нельзя было спутать.
+     */
+    private computeTabLabels(): string[] {
+        const names = this.editors.map((editor) => {
+            /* v8 ignore start -- fileName is null only without a path; open editors always have one */
+            return editor.fileName ?? "untitled";
+            /* v8 ignore stop */
+        });
+        const groups = new Map<string, number[]>();
+        names.forEach((name, i) => {
+            const arr = groups.get(name);
+            if (arr) arr.push(i);
+            else groups.set(name, [i]);
+        });
+
+        const labels = [...names];
+        for (const indices of groups.values()) {
+            if (indices.length < 2) continue;
+            const dirs = indices.map((i) => {
+                const p = this.editors[i].absoluteFilePath;
+                /* v8 ignore start -- absoluteFilePath is always set for open editors */
+                if (p === null) return [];
+                /* v8 ignore stop */
+                return path.dirname(path.resolve(p)).split(path.sep).filter(Boolean);
+            });
+            const maxK = Math.max(0, ...dirs.map((d) => d.length));
+            indices.forEach((editorIndex, a) => {
+                // Минимальный хвост родительского пути, отличающий этот файл от
+                // остальных в группе. Файлы-тёзки всегда различаются по пути
+                // (дедуп в openFile), поэтому уникальный хвост существует всегда.
+                let suffix = dirs[a].slice(-maxK).join(path.sep);
+                for (let k = 1; k <= maxK; k++) {
+                    const mine = dirs[a].slice(-k).join(path.sep);
+                    const collision = dirs.some((d, b) => b !== a && d.slice(-k).join(path.sep) === mine);
+                    if (!collision) {
+                        suffix = mine;
+                        break;
+                    }
+                }
+                labels[editorIndex] = `${names[editorIndex]} — ${suffix}`;
+            });
+        }
+        return labels;
     }
 
     private fireActiveEditorChanged(editor: EditorController | null): void {

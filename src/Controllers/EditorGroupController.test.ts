@@ -61,8 +61,13 @@ describe("EditorGroupController", () => {
 
     function writeFile(name: string, content: string): string {
         const filePath = path.join(tmpDir, name);
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
         fs.writeFileSync(filePath, content, "utf-8");
         return filePath;
+    }
+
+    function tabLabels(ctrl: EditorGroupController): string[] {
+        return ctrl.view.tabStrip.getItemElements().map((item) => item.getLabel());
     }
 
     describe("openFile", () => {
@@ -102,6 +107,43 @@ describe("EditorGroupController", () => {
 
             expect(ctrl.editorCount).toBe(2);
             expect(ctrl.activeIndex).toBe(0);
+        });
+
+        it("opens two files with the same name from different directories as separate tabs", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            const fp1 = writeFile(path.join("a", "index.ts"), "a");
+            const fp2 = writeFile(path.join("b", "index.ts"), "b");
+
+            ctrl.openFile(fp1);
+            ctrl.openFile(fp2);
+
+            expect(ctrl.editorCount).toBe(2);
+            expect(ctrl.activeIndex).toBe(1);
+        });
+
+        it("disambiguates tabs by parent directory when names collide", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            ctrl.openFile(writeFile("standalone.ts", "s"));
+            expect(tabLabels(ctrl)).toEqual(["standalone.ts"]);
+
+            ctrl.openFile(writeFile(path.join("a", "index.ts"), "a"));
+            ctrl.openFile(writeFile(path.join("b", "index.ts"), "b"));
+
+            expect(tabLabels(ctrl)).toEqual(["standalone.ts", "index.ts — a", "index.ts — b"]);
+        });
+
+        it("extends the disambiguating suffix when parent directories also collide", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            ctrl.openFile(writeFile(path.join("x", "common", "index.ts"), "x"));
+            ctrl.openFile(writeFile(path.join("y", "common", "index.ts"), "y"));
+
+            const sep = path.sep;
+            expect(tabLabels(ctrl)).toEqual([`index.ts — x${sep}common`, `index.ts — y${sep}common`]);
         });
     });
 
