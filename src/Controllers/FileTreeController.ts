@@ -169,6 +169,7 @@ export class FileTreeController extends Disposable implements IController {
         this.tree.hoverBg = theme.getColor("list.hoverBackground");
         this.tree.hoverFg = theme.getColor("list.hoverForeground");
         this.tree.cutFg = theme.getColorOrDefault("list.deemphasizedForeground", packRgb(128, 128, 128));
+        this.tree.symlinkFg = theme.getColorOrDefault("list.deemphasizedForeground", packRgb(128, 128, 128));
 
         const sidebarBg = theme.getColor("sideBar.background");
         const sidebarFg = theme.getColor("sideBar.foreground");

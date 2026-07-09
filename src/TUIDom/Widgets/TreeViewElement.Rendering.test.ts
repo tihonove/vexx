@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
@@ -154,7 +155,7 @@ describe("TreeViewElement rendering", () => {
         expect(lines[0]).toContain("One");
     });
 
-    it("renders a left-edge arrow badge for symlinks without hiding the type icon", async () => {
+    it("renders a right-edge grey arrow badge for symlinks without hiding the type icon", async () => {
         const provider: ITreeDataProvider<TestNode> = {
             getTreeItem: (el) => ({
                 label: el.label,
@@ -173,20 +174,21 @@ describe("TreeViewElement rendering", () => {
             getKey: (el) => el.id,
         };
         const tree = new TreeViewElement(provider);
+        tree.symlinkFg = packRgb(120, 120, 120);
         await tree.refresh();
 
-        const backend = renderTree(tree, 14, 2);
-        const lines = backend
-            .screenToString()
-            .split("\n")
-            .map((l) => l.trimEnd());
-        // Plain file: leftmost cell is blank, no badge.
-        expect(lines[0][0]).not.toBe("↵");
+        const width = 14;
+        const backend = renderTree(tree, width, 2);
+        const lines = backend.screenToString().split("\n");
+        // Plain file: no badge anywhere on the row.
+        expect(lines[0]).not.toContain("↵");
         expect(lines[0]).toContain("");
-        // Symlink: arrow pinned to the left edge, type icon and label preserved.
-        expect(lines[1][0]).toBe("↵");
+        // Symlink: arrow pinned to the rightmost column, type icon and label preserved.
+        expect(lines[1][width - 1]).toBe("↵");
         expect(lines[1]).toContain("");
         expect(lines[1]).toContain("b.ts");
+        // The badge is rendered in the (grey) symlink foreground colour.
+        expect(backend.getFgAt(new Point(width - 1, 1))).toBe(packRgb(120, 120, 120));
     });
 
     it("renders with scroll offset", async () => {
