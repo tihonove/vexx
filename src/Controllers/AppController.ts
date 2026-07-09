@@ -75,7 +75,14 @@ import {
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
 import { fileSaveAction, fileSaveAsAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
-import { buildPasteEdits, fileCopyAction, fileCutAction, filePasteAction } from "./Actions/FileTreeClipboardActions.ts";
+import {
+    buildPasteEdits,
+    fileCopyAction,
+    fileCopyPathAction,
+    fileCopyRelativePathAction,
+    fileCutAction,
+    filePasteAction,
+} from "./Actions/FileTreeClipboardActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
     inputCopyAction,
@@ -120,7 +127,7 @@ import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { registerContextKeys } from "./ContextKeys.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import { FileClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
+import { ClipboardDIToken, FileClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileSearchService } from "./FileSearchService.ts";
@@ -602,6 +609,27 @@ export class AppController extends Disposable implements IController {
                     );
                     if (entry.mode === "cut") this.fileClipboard.clear();
                     void this.fileTreeController.refresh();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileCopyPathAction,
+                run: (runAccessor, ...args) => {
+                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
+                    if (filePath) void runAccessor.get(ClipboardDIToken).writeText(filePath);
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileCopyRelativePathAction,
+                run: (runAccessor, ...args) => {
+                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
+                    if (!filePath) return;
+                    const root = this.fileTreeController.getRootPath();
+                    const relative = root ? path.relative(root, filePath) : filePath;
+                    void runAccessor.get(ClipboardDIToken).writeText(relative);
                 },
             }),
         );
@@ -1354,6 +1382,23 @@ export class AppController extends Disposable implements IController {
             });
         }
         entries.push(
+            { type: "separator" },
+            {
+                label: "Copy Path",
+                shortcut: "Shift+Alt+C",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("fileOperations.copyPath", filePath);
+                },
+            },
+            {
+                label: "Copy Relative Path",
+                shortcut: "Ctrl+K Ctrl+Shift+C",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("fileOperations.copyRelativePath", filePath);
+                },
+            },
             { type: "separator" },
             {
                 label: "Delete",
