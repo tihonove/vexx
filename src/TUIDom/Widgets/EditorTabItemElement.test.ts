@@ -278,6 +278,54 @@ describe("EditorTabItemElement", () => {
             expect(onClose).toHaveBeenCalledOnce();
             expect(onActivate).not.toHaveBeenCalled();
         });
+
+        it("middle click on main area calls onClose", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            const onClose = vi.fn();
+            const onActivate = vi.fn();
+            tab.onClose = onClose;
+            tab.onActivate = onActivate;
+
+            tab.globalPosition = new Point(0, 0);
+            tab.performLayout(BoxConstraints.tight(new Size(tab.getMaxIntrinsicWidth(1), 1)));
+
+            const event = new TUIMouseEvent("click", {
+                button: "middle",
+                screenX: 3,
+                screenY: 0,
+                localX: 3,
+                localY: 0,
+            });
+            tab.dispatchEvent(event);
+
+            expect(onClose).toHaveBeenCalledOnce();
+            expect(onActivate).not.toHaveBeenCalled();
+        });
+
+        it("middle click on close button calls onClose once", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            const onClose = vi.fn();
+            const onActivate = vi.fn();
+            tab.onClose = onClose;
+            tab.onActivate = onActivate;
+
+            const w = tab.getMaxIntrinsicWidth(1);
+            tab.globalPosition = new Point(0, 0);
+            tab.performLayout(BoxConstraints.tight(new Size(w, 1)));
+
+            const closeX = w - 1 - 1; // paddingRight=1, close char len=1
+            const event = new TUIMouseEvent("click", {
+                button: "middle",
+                screenX: closeX,
+                screenY: 0,
+                localX: closeX,
+                localY: 0,
+            });
+            tab.dispatchEvent(event);
+
+            expect(onClose).toHaveBeenCalledOnce();
+            expect(onActivate).not.toHaveBeenCalled();
+        });
     });
 
     describe("rendering under tight width", () => {
