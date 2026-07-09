@@ -35,6 +35,7 @@ export class PopupMenuElement extends TUIElement {
     private selectableIndices: number[];
     private vstack: VStackElement;
     private itemElements: PopupMenuItemElement[] = [];
+    private separatorElements: PopupMenuSeparatorElement[] = [];
     private colors: MenuColors = DEFAULT_MENU_COLORS;
 
     public constructor(entries: MenuEntry[]) {
@@ -48,7 +49,9 @@ export class PopupMenuElement extends TUIElement {
 
         for (const entry of entries) {
             if (isSeparator(entry)) {
-                this.vstack.addChild(new PopupMenuSeparatorElement(this.colors), { width: "stretch", height: 1 });
+                const separator = new PopupMenuSeparatorElement(this.colors);
+                this.separatorElements.push(separator);
+                this.vstack.addChild(separator, { width: "stretch", height: 1 });
             } else {
                 const item = new PopupMenuItemElement(entry.label, config, entry.shortcut, entry.icon, this.colors);
                 item.onSelect = entry.onSelect;
@@ -76,10 +79,11 @@ export class PopupMenuElement extends TUIElement {
             borderFg: theme.getColorOrDefault("menu.border", d.borderFg),
             separatorFg: theme.getColorOrDefault("menu.separatorBackground", d.separatorFg),
         };
-        for (const child of this.vstack.getChildren()) {
-            if (child instanceof PopupMenuItemElement || child instanceof PopupMenuSeparatorElement) {
-                child.colors = this.colors;
-            }
+        for (const item of this.itemElements) {
+            item.colors = this.colors;
+        }
+        for (const separator of this.separatorElements) {
+            separator.colors = this.colors;
         }
         this.markDirty();
     }
