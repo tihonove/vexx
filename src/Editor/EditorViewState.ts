@@ -1,6 +1,7 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
 
+import { computeNewLinePlan } from "./AutoIndent.ts";
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
 import type { ILineTokens } from "./ILineTokens.ts";
 import { detectIndentation } from "./IndentationDetector.ts";
@@ -296,10 +297,41 @@ export class EditorViewState {
     }
 
     /**
-     * Inserts a newline at every cursor.
+     * Inserts a newline at every cursor, carrying over the current line's
+     * indentation (and expanding bracket pairs). See {@link computeNewLinePlan}.
      */
-    public insertNewLine(): void {
-        this.type("\n");
+    public insertNewLine(): IUndoElement {
+        const beforeSelections = this.cloneSelections();
+        const versionBefore = this.document.versionId;
+        const sorted = this.sortedSelections();
+        const plans = sorted.map((sel) => {
+            const range = selectionToRange(sel);
+            return computeNewLinePlan({
+                lineContent: this.document.getLineContent(range.start.line),
+                column: range.start.character,
+                tabSize: this.tabSize,
+                insertSpaces: this.insertSpaces,
+            });
+        });
+        const edits = sorted.map((sel, i) => createTextEdit(selectionToRange(sel), plans[i].editText));
+        const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
+        this.adjustFoldingRegionsForEdits(edits);
+        // computeSelectionsAfterEdits lands the cursor at the end of the inserted
+        // text. For a block expansion the closer occupies the last inserted line,
+        // so move that cursor up one line onto the empty middle line.
+        this.selections = this.computeSelectionsAfterEdits(edits).map((sel, i) =>
+            plans[i].blockExpand ? createCursorSelection(sel.active.line - 1, plans[i].cursorColumn) : sel,
+        );
+        this.ensureCursorVisible();
+        return {
+            label: "type",
+            versionBefore,
+            versionAfter: appliedVersion,
+            forwardEdits: edits,
+            backwardEdits: inverseEdits,
+            beforeSelections,
+            afterSelections: this.cloneSelections(),
+        };
     }
 
     /**

@@ -522,7 +522,7 @@ export class EditorElement extends TUIElement implements IScrollable {
 
     private handleKeyPress(event: TUIKeyboardEvent): void {
         if (event.key === "Enter") {
-            this.pushUndo(this.viewState.type("\n"));
+            this.pushUndo(this.viewState.insertNewLine());
             return;
         }
 
