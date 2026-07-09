@@ -34,6 +34,11 @@ export class EditorTabItemElement extends TUIElement {
 
         this.addEventListener("click", (event) => {
             const mouseEvent = event;
+            // Middle click closes the tab regardless of where it lands (VSCode behaviour).
+            if (mouseEvent.button === "middle") {
+                this.onClose?.();
+                return;
+            }
             const closeStart = this.getCloseButtonStart();
             if (mouseEvent.localX >= closeStart && mouseEvent.localX < closeStart + CLOSE_CHAR.length) {
                 this.onClose?.();
