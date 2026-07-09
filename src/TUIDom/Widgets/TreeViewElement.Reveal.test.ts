@@ -124,6 +124,35 @@ describe("TreeViewElement — reveal", () => {
         expect(tree.getSelectedNode()?.id).toBe("src");
     });
 
+    it("skips ancestors that are already expanded", async () => {
+        const { tree } = createTree(NESTED_TREE);
+        await tree.refresh();
+        const src = NESTED_TREE[0];
+        const utils = src.children![0];
+        const helper = utils.children![0];
+
+        // Pre-expand src, then reveal through it — expandElement short-circuits on src.
+        await tree.toggleExpand(src);
+        await tree.reveal([src, utils, helper]);
+
+        expect(tree.getSelectedNode()?.id).toBe("src/utils/helper.ts");
+    });
+
+    it("re-expands a collapsed ancestor from cache without reloading children", async () => {
+        const { tree } = createTree(NESTED_TREE);
+        await tree.refresh();
+        const src = NESTED_TREE[0];
+        const utils = src.children![0];
+        const helper = utils.children![0];
+
+        // Expand then collapse src: its children stay cached, but it is no longer expanded.
+        await tree.toggleExpand(src);
+        await tree.toggleExpand(src);
+
+        await tree.reveal([src, utils, helper]);
+        expect(tree.getSelectedNode()?.id).toBe("src/utils/helper.ts");
+    });
+
     it("scrolls a target below the fold into view", async () => {
         const many: TestNode[] = Array.from({ length: 40 }, (_v, i) => ({ id: `n${i}`, label: `node-${i}` }));
         const { tree, app } = createTree(many, new Size(40, 8));

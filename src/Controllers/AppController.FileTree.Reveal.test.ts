@@ -5,6 +5,9 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
+import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -25,6 +28,36 @@ function cleanupDir(dirPath: string): void {
     fs.rmSync(dirPath, { recursive: true, force: true });
 }
 
+/** Конфиг-стаб: заданные ключи возвращают свои значения, остальные — default. */
+function stubConfig(values: Record<string, unknown>): IConfigurationService {
+    return {
+        ...NULL_CONFIGURATION_SERVICE,
+        get<T>(key: string, defaultValue?: T): T | undefined {
+            if (key in values) return values[key] as T;
+            return defaultValue;
+        },
+    };
+}
+
+interface Ctx {
+    testApp: TestApp;
+    controller: AppController;
+    commands: CommandRegistry;
+}
+
+function createApp(workspaceDir: string, config?: IConfigurationService): Ctx {
+    const { container, bindApp } = createTestContainer();
+    if (config) {
+        container.bind(IConfigurationServiceDIToken, () => config);
+    }
+    const controller = container.get(AppControllerDIToken);
+    controller.setWorkspaceFolder(workspaceDir);
+    controller.mount();
+    const testApp = TestApp.create(controller.view, new Size(80, 24));
+    bindApp(testApp.app);
+    return { testApp, controller, commands: container.get(CommandRegistryDIToken) };
+}
+
 // The reveal is scheduled fire-and-forget (void promise); let its microtasks settle.
 function flush(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 20));
@@ -32,68 +65,97 @@ function flush(): Promise<void> {
 
 describe("reveal active file in explorer", () => {
     let tmpDir: string;
-    let testApp: TestApp;
-    let controller: AppController;
-    let commands: CommandRegistry;
     let nestedFile: string;
 
-    beforeEach(async () => {
+    beforeEach(() => {
         tmpDir = createNestedWorkspace();
         nestedFile = path.join(tmpDir, "src", "deep", "target.ts");
-
-        const { container, bindApp } = createTestContainer();
-        controller = container.get(AppControllerDIToken);
-        controller.setWorkspaceFolder(tmpDir);
-        controller.mount();
-        testApp = TestApp.create(controller.view, new Size(80, 24));
-        bindApp(testApp.app);
-        commands = container.get(CommandRegistryDIToken);
-
-        await controller.activate();
-        testApp.render();
     });
 
     afterEach(() => {
-        controller.dispose();
         cleanupDir(tmpDir);
     });
 
     it("auto-reveals the active file in the tree when the editor changes", async () => {
+        const ctx = createApp(tmpDir);
+        await ctx.controller.activate();
+        ctx.testApp.render();
+
         // Nested file is inside a collapsed directory — not visible yet.
-        expect(testApp.backend.screenToString()).not.toContain("target.ts");
+        expect(ctx.testApp.backend.screenToString()).not.toContain("target.ts");
 
         // Open it via a non-tree path (e.g. Quick Open). autoReveal defaults to true.
-        controller.openFile(nestedFile);
+        ctx.controller.openFile(nestedFile);
         await flush();
-        testApp.render();
+        ctx.testApp.render();
 
-        expect(testApp.backend.screenToString()).toContain("target.ts");
+        expect(ctx.testApp.backend.screenToString()).toContain("deep");
+        ctx.controller.dispose();
+    });
+
+    it("treats a missing explorer.autoReveal setting as enabled", async () => {
+        // A config whose get() always yields undefined exercises the `?? true` fallback.
+        const ctx = createApp(tmpDir, { ...NULL_CONFIGURATION_SERVICE, get: () => undefined });
+        await ctx.controller.activate();
+        ctx.testApp.render();
+
+        ctx.controller.openFile(nestedFile);
+        await flush();
+        ctx.testApp.render();
+
+        expect(ctx.testApp.backend.screenToString()).toContain("deep");
+        ctx.controller.dispose();
+    });
+
+    it("does not auto-reveal when explorer.autoReveal is false", async () => {
+        const ctx = createApp(tmpDir, stubConfig({ "explorer.autoReveal": false }));
+        await ctx.controller.activate();
+        ctx.testApp.render();
+
+        ctx.controller.openFile(nestedFile);
+        await flush();
+        ctx.testApp.render();
+
+        // Directory stays collapsed — the ancestor dir is never expanded in the tree.
+        // (the editor tab shows the file name, so assert on the tree-only "deep" dir instead)
+        expect(ctx.testApp.backend.screenToString()).not.toContain("deep");
+        ctx.controller.dispose();
     });
 
     it("reveal command shows the sidebar, focuses the tree, and reveals the active file", async () => {
-        controller.openFile(nestedFile);
+        const ctx = createApp(tmpDir);
+        await ctx.controller.activate();
+        ctx.testApp.render();
+
+        ctx.controller.openFile(nestedFile);
         await flush();
 
         // Hide the sidebar and move focus into the editor.
-        testApp.sendKey("Ctrl+B");
-        testApp.render();
-        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(false);
+        ctx.testApp.sendKey("Ctrl+B");
+        ctx.testApp.render();
+        expect(ctx.controller.workbenchLayout.getLeftPanelVisible()).toBe(false);
 
-        commands.execute("workbench.files.action.showActiveFileInExplorer");
+        ctx.commands.execute("workbench.files.action.showActiveFileInExplorer");
         await flush();
-        testApp.render();
+        ctx.testApp.render();
 
-        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(true);
-        expect(testApp.focusedElement?.constructor.name).toBe("TreeViewElement");
-        expect(testApp.backend.screenToString()).toContain("target.ts");
+        expect(ctx.controller.workbenchLayout.getLeftPanelVisible()).toBe(true);
+        expect(ctx.testApp.focusedElement?.constructor.name).toBe("TreeViewElement");
+        expect(ctx.testApp.backend.screenToString()).toContain("deep");
+        ctx.controller.dispose();
     });
 
-    it("reveal command is a no-op when there is no active editor", () => {
-        const editorGroup = (controller as unknown as { editorGroupController: EditorGroupController })
+    it("reveal command is a no-op when there is no active editor", async () => {
+        const ctx = createApp(tmpDir);
+        await ctx.controller.activate();
+        ctx.testApp.render();
+
+        const editorGroup = (ctx.controller as unknown as { editorGroupController: EditorGroupController })
             .editorGroupController;
         expect(editorGroup.getActiveEditor()).toBeNull();
-        expect(() => commands.execute("workbench.files.action.showActiveFileInExplorer")).not.toThrow();
+        expect(() => ctx.commands.execute("workbench.files.action.showActiveFileInExplorer")).not.toThrow();
         // Sidebar stays as-is (visible by default), nothing is revealed.
-        expect(controller.workbenchLayout.getLeftPanelVisible()).toBe(true);
+        expect(ctx.controller.workbenchLayout.getLeftPanelVisible()).toBe(true);
+        ctx.controller.dispose();
     });
 });

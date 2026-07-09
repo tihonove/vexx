@@ -89,6 +89,7 @@ export class FileTreeController extends Disposable implements IController {
     public async revealPath(filePath: string): Promise<boolean> {
         if (!this.tree || this.rootPath === null) return false;
         const relative = path.relative(this.rootPath, filePath);
+        /* v8 ignore next -- isAbsolute(relative) is Windows-only (cross-drive paths); unreachable on POSIX CI */
         if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) {
             return false;
         }
