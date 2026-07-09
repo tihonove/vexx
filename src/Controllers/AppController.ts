@@ -130,6 +130,7 @@ import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { ClipboardDIToken, FileClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
+import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
 import { FileSearchService } from "./FileSearchService.ts";
 import { FileTreeController } from "./FileTreeController.ts";
 import { FindController } from "./FindController.ts";
@@ -330,6 +331,7 @@ export class AppController extends Disposable implements IController {
     private inputWidgetController: InputWidgetController;
     private themeService: ThemeService;
     private terminalEnv: TerminalEnvironmentService;
+    private armory: ModifierReleaseArmory;
     private chordTimer: ReturnType<typeof setTimeout> | null = null;
     private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
     private swallowNextKeyPress = false;
@@ -354,6 +356,7 @@ export class AppController extends Disposable implements IController {
         this.themeService = themeService;
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
+        this.armory = accessor.get(ModifierReleaseArmoryDIToken);
         this.fileClipboard = accessor.get(FileClipboardDIToken);
         this.workspaceEditService = accessor.get(WorkspaceEditServiceDIToken);
         this.undoRedoService = accessor.get(UndoRedoServiceDIToken);
@@ -727,6 +730,7 @@ export class AppController extends Disposable implements IController {
         this.view.addEventListener("keypress", this.handleKeyPressCapture, { capture: true });
         this.view.addEventListener("keydown", this.handleKeyDown);
         this.view.addEventListener("keypress", this.handleKeyPress);
+        this.view.addEventListener("keyup", this.handleKeyUp);
         this.view.addEventListener("focus", this.handleFocusChange, { capture: true });
         this.view.addEventListener("blur", this.handleFocusChange, { capture: true });
         this.editorGroupController.mount();
@@ -914,7 +918,17 @@ export class AppController extends Disposable implements IController {
                 return false;
             }
             this.statusBarController.setChordHint(null);
-            this.commands.execute(res.commandId);
+            // Даём команде контекст модификаторов аккорда: команды с «hold-сессией»
+            // (MRU-вкладки) взводят коммит на отпускание удерживающего модификатора
+            // именно по ним. Через контекст, а не позиционный аргумент — чтобы не
+            // конфликтовать с командами, у которых есть свои аргументы.
+            const trigger: CommandTrigger = {
+                ctrlKey: event.ctrlKey,
+                shiftKey: event.shiftKey,
+                altKey: event.altKey,
+                metaKey: event.metaKey,
+            };
+            this.armory.withTrigger(trigger, () => this.commands.execute(res.commandId));
             return true;
         }
 
@@ -973,6 +987,15 @@ export class AppController extends Disposable implements IController {
 
     private handleKeyPress = (): void => {
         this.statusBarController.update();
+    };
+
+    // Отпускание модификатора завершает «hold-сессии» команд (MRU-переключение
+    // вкладок и т.п.) через ModifierReleaseArmory. Какой именно модификатор ждать,
+    // решает сама команда по своему аккорду — здесь только маршрутизация keyup.
+    // Требует Kitty keyboard protocol с event types: только он присылает keyup для
+    // одиночного модификатора.
+    private handleKeyUp = (event: TUIKeyboardEvent): void => {
+        this.armory.fireRelease(event.key);
     };
 
     private handleFocusChange = (_event: TUIFocusEvent): void => {

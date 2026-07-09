@@ -270,6 +270,19 @@ export class EditorGroupController extends Disposable implements IController {
         this.activateTab(targetIndex, { mru: true });
     }
 
+    /**
+     * Завершает серию Ctrl+Tab (вызывается по отпусканию Ctrl): фиксирует
+     * выбранный в серии редактор в начале MRU-стека. Благодаря этому быстрые
+     * нажатия Ctrl+Tab с отпусканием Ctrl тумблерят два последних редактора
+     * (каждая серия — один шаг), а удержание Ctrl с повторными Tab проходит
+     * вглубь стека (серия не завершается, список заморожен).
+     */
+    public endMruCycle(): void {
+        if (!this.cyclingActive) return;
+        this.commitActiveToMru();
+        this.cyclingActive = false;
+    }
+
     /** Снимок MRU-порядка (mru[0] — самый недавний). Для тестов и диагностики. */
     public getMruOrder(): EditorController[] {
         return [...this.mruOrder];
