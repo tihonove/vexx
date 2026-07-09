@@ -76,11 +76,11 @@ describe("TreeViewElement rendering", () => {
         await tree.refresh();
 
         const backend = renderTree(tree, 14, 2);
-        // ▸ = collapsed icon for collapsible, space for non-collapsible
+        //  = collapsed icon for collapsible, space for non-collapsible
         expectScreen(
             backend,
             screen`
-                \u25B8 src
+                \uF105 src
                   README.md
             `,
         );
@@ -102,11 +102,11 @@ describe("TreeViewElement rendering", () => {
         await tree.toggleExpand(roots[0]);
 
         const backend = renderTree(tree, 16, 3);
-        // ▾ = expanded icon, children indented by 2
+        //  = expanded icon, children indented by 2
         expectScreen(
             backend,
             screen`
-                \u25BE src
+                \uF107 src
                     main.ts
                     util.ts
             `,
@@ -136,8 +136,8 @@ describe("TreeViewElement rendering", () => {
         expectScreen(
             backend,
             screen`
-                \u25BE root
-                  \u25BE mid
+                \uF107 root
+                  \uF107 mid
                       leaf
             `,
         );

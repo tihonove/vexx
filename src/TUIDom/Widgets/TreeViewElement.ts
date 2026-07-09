@@ -12,8 +12,8 @@ const INDENT_SIZE = 2;
 // Окно, в течение которого напечатанные символы складываются в одну последовательность
 // быстрого поиска; после паузы буфер сбрасывается (как в VS Code / файловых менеджерах).
 const TYPEAHEAD_TIMEOUT_MS = 800;
-const ICON_EXPANDED = "\u25BE"; // ▾
-const ICON_COLLAPSED = "\u25B8"; // \u25B8
+const ICON_EXPANDED = "\uF107"; //  nf-fa-angle_down — chevron, как в nvim-tree/NvChad
+const ICON_COLLAPSED = "\uF105"; //  nf-fa-angle_right
 const SYMLINK_BADGE = "\u21B5"; // enter-like arrow marking a symlink, pinned to the right edge
 const DEFAULT_SYMLINK_FG = packRgb(128, 128, 128);
 const DEFAULT_ACTIVE_SELECTION_BG = packRgb(4, 57, 94);

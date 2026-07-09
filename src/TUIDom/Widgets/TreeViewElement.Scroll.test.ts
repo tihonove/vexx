@@ -138,7 +138,7 @@ describe("TreeViewElement scroll + render behavior", () => {
 
     describe("findElementByKey cache fallback during full refresh", () => {
         it("resolves a nested expanded descendant from cache when it is absent from the flat list", async () => {
-            // Tree: src ▸ utils ▸ helper.ts. We expand both, then expand them
+            // Tree: src  utils  helper.ts. We expand both, then expand them
             // in such a way that, on a full refresh, the deep reload of "src/utils"
             // must find its element through the children cache rather than the flat
             // list (the flat list is rebuilt only after loading completes).
@@ -206,8 +206,8 @@ describe("TreeViewElement scroll + render behavior", () => {
             app.render();
 
             const labels = rowLabels(app, 20, 3);
-            expect(labels[0]).toBe("▾ root"); // ▾ root (depth 0)
-            expect(labels[1]).toBe("  ▾ mid"); // depth 1 indented + ▾
+            expect(labels[0]).toBe(" root"); //  root (depth 0)
+            expect(labels[1]).toBe("   mid"); // depth 1 indented + 
             expect(labels[2]).toBe("      leaf"); // depth 2 indented, no marker (leaf)
         });
 
@@ -234,7 +234,7 @@ describe("TreeViewElement scroll + render behavior", () => {
             app.render();
 
             // Expand icon is at column 0 (depth 0).
-            expect(app.backend.getTextAt(new Point(0, 0), 1)).toBe("▸");
+            expect(app.backend.getTextAt(new Point(0, 0), 1)).toBe("");
             expect(app.backend.getFgAt(new Point(0, 0))).toBe(EXPAND_MARKER_FG);
         });
     });
