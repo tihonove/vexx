@@ -210,8 +210,7 @@ export class EditorGroupController extends Disposable implements IController {
         // сперва — недавно выбранную в серии вкладку, затем целевую.
         if (!mru) {
             if (this.cyclingActive) {
-                const current = this.getActiveEditor();
-                if (current) this.moveToMruFront(current);
+                this.commitActiveToMru();
                 this.cyclingActive = false;
             }
             this.moveToMruFront(this.editors[index]);
@@ -236,8 +235,7 @@ export class EditorGroupController extends Disposable implements IController {
         if (this.editors.length < 2) return;
 
         if (!this.cyclingActive) {
-            const current = this.getActiveEditor();
-            if (current) this.moveToMruFront(current);
+            this.commitActiveToMru();
             this.mruCycleList = this.mruOrder.filter((e) => this.editors.includes(e));
             this.mruCyclePointer = 0;
             this.cyclingActive = true;
@@ -274,6 +272,14 @@ export class EditorGroupController extends Disposable implements IController {
         this.mruOrder.unshift(editor);
     }
 
+    /** Продвигает активный редактор в начало MRU-стека (фиксирует выбор серии). */
+    private commitActiveToMru(): void {
+        const current = this.getActiveEditor();
+        /* v8 ignore start -- defensive: коммит вызывается только когда есть активный редактор */
+        if (current) this.moveToMruFront(current);
+        /* v8 ignore stop */
+    }
+
     public closeTab(index: number): void {
         if (index < 0 || index >= this.editors.length) return;
 
@@ -283,7 +289,9 @@ export class EditorGroupController extends Disposable implements IController {
         const editor = this.editors[index];
         this.editors.splice(index, 1);
         const mruIndex = this.mruOrder.indexOf(editor);
+        /* v8 ignore start -- defensive: каждый открытый редактор присутствует в mruOrder */
         if (mruIndex >= 0) this.mruOrder.splice(mruIndex, 1);
+        /* v8 ignore stop */
         editor.dispose();
 
         if (this.editors.length === 0) {
