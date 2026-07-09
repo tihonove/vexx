@@ -251,10 +251,22 @@ describe("getCharDisplayWidth", () => {
             [0x1f4ff, 0x1f53d, "more objects"],
             [0x1f550, 0x1f567, "clocks"],
             [0x1f595, 0x1f596, "hand gestures"],
+            [0x1f6cc, 0x1f6cc, "🛌 sleeping accommodation"],
             [0x1f6d5, 0x1f6d7, "transport/map"],
+            [0x1f6dc, 0x1f6dc, "🛜 wireless"],
             [0x1f6dd, 0x1f6df, "transport/map"],
             [0x1f6eb, 0x1f6ec, "transport/map"],
             [0x1f6f4, 0x1f6fc, "transport/map"],
+            [0x1f7e0, 0x1f7eb, "🟠🟢 colored circles / squares"],
+            [0x1f7f0, 0x1f7f0, "🟰 heavy equals sign"],
+            [0x1f004, 0x1f004, "🀄 mahjong red dragon"],
+            [0x1f0cf, 0x1f0cf, "🃏 playing card joker"],
+            [0x1f201, 0x1f201, "🈁 squared katakana koko"],
+            [0x1f21a, 0x1f21a, "🈚 squared 7121"],
+            [0x1f22f, 0x1f22f, "🈯 squared 6307"],
+            [0x1f232, 0x1f236, "🈲 squared CJK"],
+            [0x1f238, 0x1f23a, "🈸 squared CJK"],
+            [0x1f250, 0x1f251, "🉐🉑 circled ideograph"],
             // Emoji_Presentation=Yes code points inside the Dingbats block (2700–27BF).
             [0x2705, 0x2705, "✅ check mark"],
             [0x270a, 0x270b, "✊✋ fist / hand"],
@@ -276,6 +288,14 @@ describe("getCharDisplayWidth", () => {
 
         it("returns 2 for MAN DANCING (U+1F57A)", () => {
             expect(getCharDisplayWidth(0x1f57a)).toBe(2);
+        });
+
+        // Regression for issue #60: colored circle emoji used as legend bullets
+        // (🟠🟡🟢) were computed as width 1, desyncing column accounting on scroll.
+        it("returns 2 for colored circles 🟠🟡🟢 (U+1F7E0..U+1F7E2)", () => {
+            expect(getCharDisplayWidth(0x1f7e0)).toBe(2); // 🟠 orange
+            expect(getCharDisplayWidth(0x1f7e1)).toBe(2); // 🟡 yellow
+            expect(getCharDisplayWidth(0x1f7e2)).toBe(2); // 🟢 green
         });
     });
 

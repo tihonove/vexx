@@ -39,6 +39,25 @@ describe("DisplayLine — Emoji", () => {
         });
     });
 
+    describe("colored circle emoji (issue #60)", () => {
+        it("🟢 occupies 2 columns with a continuation cell", () => {
+            const dl = new DisplayLine("🟢 x");
+            // 🟢(2) + space(1) + x(1) = 4
+            expect(dl.displayWidth).toBe(4);
+            expect(dl.slots[0].displayWidth).toBe(2);
+            expect(dl.charAtColumn(0)).toBe("🟢");
+            expect(dl.charAtColumn(1)).toBe(""); // continuation cell
+            expect(dl.charAtColumn(2)).toBe(" ");
+            expect(dl.charAtColumn(3)).toBe("x");
+        });
+
+        it("legend bullets 🟠🟡🟢 each occupy 2 columns", () => {
+            const dl = new DisplayLine("🟠🟡🟢");
+            expect(dl.slots.length).toBe(3);
+            expect(dl.displayWidth).toBe(6);
+        });
+    });
+
     describe("emoji with ZWJ sequences", () => {
         it("👨‍👩‍👧‍👦 is one grapheme cluster with 2 columns", () => {
             const family = "👨\u200d👩\u200d👧\u200d👦";
