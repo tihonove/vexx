@@ -28,6 +28,9 @@ jobs:
           - os: macos-latest
             asset: vexx-macos-arm64
             binary: dist/vexx
+          - os: macos-15-intel
+            asset: vexx-macos-x64
+            binary: dist/vexx
           - os: windows-latest
             asset: vexx-windows-x64.exe
             binary: dist/vexx.exe
