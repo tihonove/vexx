@@ -5,6 +5,7 @@ import { registerAction } from "../CommandAction.ts";
 import { CommandRegistry } from "../CommandRegistry.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
+import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../ModifierReleaseArmory.ts";
 
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./TabActions.ts";
 
@@ -13,6 +14,7 @@ interface GroupStub {
     editorCount: number;
     activateTab: (index: number) => void;
     cycleMru?: (direction: 1 | -1) => void;
+    endMruCycle?: () => void;
     closeTab: (index: number) => void;
     getActiveEditor?: () => { isModified: boolean } | null;
     onRequestConfirmClose?: (index: number) => void;
@@ -22,8 +24,10 @@ function setupActionTest(group: GroupStub) {
     const commands = new CommandRegistry();
     const keybindings = new KeybindingRegistry();
     const accessor = new Container();
+    const armory = new ModifierReleaseArmory();
     accessor.bind(EditorGroupControllerDIToken, () => group as never);
-    return { commands, keybindings, accessor };
+    accessor.bind(ModifierReleaseArmoryDIToken, () => armory);
+    return { commands, keybindings, accessor, armory };
 }
 
 describe("TabActions", () => {
@@ -61,6 +65,50 @@ describe("TabActions", () => {
         commands.execute("workbench.action.previousEditorInGroup");
 
         expect(cycleMru).toHaveBeenCalledWith(-1);
+    });
+
+    it("arms the trigger's hold modifier so releasing it commits the MRU cycle", () => {
+        const endMruCycle = vi.fn();
+        const group: GroupStub = {
+            activeIndex: 0,
+            editorCount: 3,
+            activateTab: vi.fn(),
+            cycleMru: vi.fn(),
+            endMruCycle,
+            closeTab: vi.fn(),
+        };
+
+        const { commands, keybindings, accessor, armory } = setupActionTest(group);
+        registerAction(commands, keybindings, accessor, nextEditorInGroupAction);
+
+        // Triggered by Ctrl+Tab → runs inside a Control trigger context → arms on Control release.
+        armory.withTrigger({ ctrlKey: true, shiftKey: false, altKey: false, metaKey: false }, () => {
+            commands.execute("workbench.action.nextEditorInGroup");
+        });
+        expect(endMruCycle).not.toHaveBeenCalled();
+
+        armory.fireRelease("Control");
+        expect(endMruCycle).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not arm a hold session when invoked without a modifier (e.g. from a menu)", () => {
+        const endMruCycle = vi.fn();
+        const group: GroupStub = {
+            activeIndex: 0,
+            editorCount: 3,
+            activateTab: vi.fn(),
+            cycleMru: vi.fn(),
+            endMruCycle,
+            closeTab: vi.fn(),
+        };
+
+        const { commands, keybindings, accessor, armory } = setupActionTest(group);
+        registerAction(commands, keybindings, accessor, previousEditorInGroupAction);
+
+        commands.execute("workbench.action.previousEditorInGroup"); // no trigger
+
+        armory.fireRelease("Control");
+        expect(endMruCycle).not.toHaveBeenCalled();
     });
 
     it("closeActiveEditor closes currently active tab", () => {

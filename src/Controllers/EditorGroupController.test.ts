@@ -312,6 +312,50 @@ describe("EditorGroupController", () => {
             expect(ctrl.getActiveEditor()?.fileName).toBe("c.ts");
         });
 
+        it("releasing Ctrl commits the selection so quick presses toggle the two newest", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a
+
+            // Press-release Ctrl+Tab: one step, then commit on release.
+            ctrl.cycleMru(1); // → b
+            ctrl.endMruCycle(); // release Ctrl → commit → MRU: b, c, a
+            expect(ctrl.getActiveEditor()?.fileName).toBe("b.ts");
+            expect(mruNames(ctrl)).toEqual(["b.ts", "c.ts", "a.ts"]);
+
+            // Next press-release toggles back to c, not deeper to a.
+            ctrl.cycleMru(1); // → c
+            ctrl.endMruCycle(); // MRU: c, b, a
+            expect(ctrl.getActiveEditor()?.fileName).toBe("c.ts");
+
+            ctrl.cycleMru(1); // → b again (toggle)
+            ctrl.endMruCycle();
+            expect(ctrl.getActiveEditor()?.fileName).toBe("b.ts");
+        });
+
+        it("keeps stepping deeper while Ctrl is held (no endMruCycle between steps)", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a
+
+            // Ctrl held: repeated Tab without a release walks the frozen stack.
+            ctrl.cycleMru(1); // → b
+            ctrl.cycleMru(1); // → a
+            ctrl.endMruCycle(); // release Ctrl → commit a
+            expect(ctrl.getActiveEditor()?.fileName).toBe("a.ts");
+            expect(mruNames(ctrl)).toEqual(["a.ts", "c.ts", "b.ts"]);
+        });
+
+        it("endMruCycle is a no-op when no series is in progress", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a
+
+            ctrl.endMruCycle(); // nothing to commit
+            expect(mruNames(ctrl)).toEqual(["c.ts", "b.ts", "a.ts"]);
+            expect(ctrl.getActiveEditor()?.fileName).toBe("c.ts");
+        });
+
         it("is a no-op with fewer than two editors", () => {
             const ctrl = createEditorGroupController();
             ctrl.mount();
