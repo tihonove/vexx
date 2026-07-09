@@ -9,6 +9,9 @@ import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
 import { ScrollableElement, type ScrollViewportInfo } from "./ScrollableElement.ts";
 
 const INDENT_SIZE = 2;
+// Окно, в течение которого напечатанные символы складываются в одну последовательность
+// быстрого поиска; после паузы буфер сбрасывается (как в VS Code / файловых менеджерах).
+const TYPEAHEAD_TIMEOUT_MS = 800;
 const ICON_EXPANDED = "\u25BE"; // ▾
 const ICON_COLLAPSED = "\u25B8"; // \u25B8
 const SYMLINK_BADGE = "\u21B5"; // enter-like arrow marking a symlink, pinned to the left edge
@@ -36,6 +39,8 @@ export class TreeViewElement<T> extends ScrollableElement {
     private selectedKeys = new Set<string>();
     private cutKeys = new Set<string>();
     private maxRowWidth = 0;
+    private typeaheadBuffer = "";
+    private typeaheadTimer: ReturnType<typeof setTimeout> | null = null;
 
     // ─── Theme colors ───
     public activeSelectionBg = DEFAULT_ACTIVE_SELECTION_BG;
@@ -532,7 +537,66 @@ export class TreeViewElement<T> extends ScrollableElement {
                 void this.toggleSelected();
                 break;
             default:
+                this.handleTypeahead(event);
                 return;
+        }
+    }
+
+    // ─── Private: type-ahead поиск ───
+
+    /**
+     * Быстрый поиск по набору: печатаешь символы — курсор перепрыгивает к первому узлу,
+     * чья метка начинается с набранной последовательности. Повтор одного и того же
+     * символа циклически перебирает совпадения; набор из разных символов уточняет
+     * префикс, начиная с текущей строки. Буфер копится, пока не выйдет тайм-аут.
+     */
+    private handleTypeahead(event: TUIKeyboardEvent): void {
+        if (event.ctrlKey || event.altKey || event.metaKey) return;
+        const ch = event.key;
+        // Только одиночные печатные символы: имена клавиш ("Enter", "F1"), управляющие
+        // символы и пробел (уже занят разворачиванием) в поиск не идут.
+        if (ch.length !== 1 || ch === " " || ch.charCodeAt(0) < 0x20) return;
+
+        this.typeaheadBuffer += ch;
+        this.restartTypeaheadTimer();
+        this.jumpToTypeaheadMatch();
+    }
+
+    private restartTypeaheadTimer(): void {
+        if (this.typeaheadTimer !== null) {
+            clearTimeout(this.typeaheadTimer);
+        }
+        this.typeaheadTimer = setTimeout(() => {
+            this.typeaheadTimer = null;
+            this.typeaheadBuffer = "";
+        }, TYPEAHEAD_TIMEOUT_MS);
+        // Незавершённый таймер поиска не должен удерживать процесс от выхода.
+        this.typeaheadTimer.unref?.();
+    }
+
+    private jumpToTypeaheadMatch(): void {
+        const count = this.flatNodes.length;
+        if (count === 0) return;
+
+        const buffer = this.typeaheadBuffer.toLowerCase();
+        // Повтор одного символа ("aa", "aaa") трактуем как перебор совпадений по одной
+        // букве, а не как буквальный префикс — так работает быстрый поиск в проводниках.
+        const allSameChar = [...buffer].every((c) => c === buffer[0]);
+        const prefix = allSameChar ? buffer[0] : buffer;
+        // Перебор (следующая строка) — только когда пользователь реально жмёт ту же
+        // клавишу повторно (буфер ≥ 2 и все символы одинаковы). Первое нажатие и
+        // уточнение префикса ищут с текущей строки включительно, чтобы найти первое
+        // совпадение на текущей позиции или после неё.
+        const cycling = buffer.length >= 2 && allSameChar;
+        const start = cycling ? this.selectedIndex + 1 : this.selectedIndex;
+
+        for (let i = 0; i < count; i++) {
+            const idx = (start + i) % count;
+            const label = this.flatNodes[idx].item.label.toLowerCase();
+            if (label.startsWith(prefix)) {
+                this.setSelectedIndex(idx);
+                return;
+            }
         }
     }
 
