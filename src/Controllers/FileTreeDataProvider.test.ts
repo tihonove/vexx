@@ -139,21 +139,28 @@ describe("FileTreeDataProvider", () => {
             expect(link?.isDirectory).toBe(false);
         });
 
-        it("gives a symlink a distinct icon", () => {
+        it("flags a symlinked file while keeping its normal type icon", () => {
             const node = { name: "link.ts", path: "/link.ts", isDirectory: false, isSymbolicLink: true };
             const item = provider.getTreeItem(node);
-            expect(item.icon).toBeDefined();
-            expect(item.iconColor).toBeDefined();
-            // The symlink icon differs from the plain .ts file icon.
+            expect(item.symlink).toBe(true);
+            // The type icon is preserved — same as a non-symlink .ts file (icon not hidden).
             const plain = provider.getTreeItem({ name: "link.ts", path: "/link.ts", isDirectory: false });
-            expect(item.icon).not.toBe(plain.icon);
+            expect(item.icon).toBe(plain.icon);
+            expect(item.iconColor).toBe(plain.iconColor);
         });
 
-        it("makes a symlink to a directory collapsible with an icon", () => {
+        it("flags a symlinked directory and keeps it collapsible", () => {
             const node = { name: "linkDir", path: "/linkDir", isDirectory: true, isSymbolicLink: true };
             const item = provider.getTreeItem(node);
             expect(item.collapsible).toBe(true);
-            expect(item.icon).toBeDefined();
+            expect(item.symlink).toBe(true);
+        });
+
+        it("does not flag a regular file or directory as a symlink", () => {
+            const file = provider.getTreeItem({ name: "main.ts", path: "/main.ts", isDirectory: false });
+            const dir = provider.getTreeItem({ name: "src", path: "/src", isDirectory: true });
+            expect(file.symlink).toBeFalsy();
+            expect(dir.symlink).toBeFalsy();
         });
     });
 

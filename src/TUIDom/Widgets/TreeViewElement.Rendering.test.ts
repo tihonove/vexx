@@ -154,6 +154,41 @@ describe("TreeViewElement rendering", () => {
         expect(lines[0]).toContain("One");
     });
 
+    it("renders a left-edge arrow badge for symlinks without hiding the type icon", async () => {
+        const provider: ITreeDataProvider<TestNode> = {
+            getTreeItem: (el) => ({
+                label: el.label,
+                icon: "",
+                iconColor: 0xffffff,
+                collapsible: false,
+                symlink: el.id === "link",
+            }),
+            getChildren: (el) =>
+                el
+                    ? []
+                    : [
+                          { id: "plain", label: "a.ts" },
+                          { id: "link", label: "b.ts" },
+                      ],
+            getKey: (el) => el.id,
+        };
+        const tree = new TreeViewElement(provider);
+        await tree.refresh();
+
+        const backend = renderTree(tree, 14, 2);
+        const lines = backend
+            .screenToString()
+            .split("\n")
+            .map((l) => l.trimEnd());
+        // Plain file: leftmost cell is blank, no badge.
+        expect(lines[0][0]).not.toBe("↵");
+        expect(lines[0]).toContain("");
+        // Symlink: arrow pinned to the left edge, type icon and label preserved.
+        expect(lines[1][0]).toBe("↵");
+        expect(lines[1]).toContain("");
+        expect(lines[1]).toContain("b.ts");
+    });
+
     it("renders with scroll offset", async () => {
         const roots: TestNode[] = [];
         for (let i = 0; i < 10; i++) {

@@ -3,6 +3,8 @@ export interface ITreeItem {
     readonly icon?: string;
     readonly iconColor?: number;
     readonly collapsible: boolean;
+    /** Помечает элемент как символическую ссылку: рисуется стрелка-badge у левого края. */
+    readonly symlink?: boolean;
 }
 
 export interface ITreeDataProvider<T> {

@@ -10,7 +10,9 @@ import { ScrollableElement, type ScrollViewportInfo } from "./ScrollableElement.
 
 const INDENT_SIZE = 2;
 const ICON_EXPANDED = "\u25BE"; // ▾
-const ICON_COLLAPSED = "\u25B8"; // ▸
+const ICON_COLLAPSED = "\u25B8"; // \u25B8
+const SYMLINK_BADGE = "\u21B5"; // enter-like arrow marking a symlink, pinned to the left edge
+const SYMLINK_BADGE_COLOR = packRgb(86, 182, 194);
 const DEFAULT_ACTIVE_SELECTION_BG = packRgb(4, 57, 94);
 const DEFAULT_ACTIVE_SELECTION_FG = packRgb(255, 255, 255);
 const DEFAULT_INACTIVE_SELECTION_BG = packRgb(55, 55, 61);
@@ -233,6 +235,18 @@ export class TreeViewElement<T> extends ScrollableElement {
                     col += w;
                     screenX += w;
                 }
+            }
+
+            // Метка симлинка: стрелка-«enter», прижатая к левому краю explorer.
+            // Рисуется поверх крайней левой ячейки, не входит в ширину строки —
+            // иконки типов файлов остаются на своих местах и не скрываются.
+            if (node.item.symlink) {
+                context.setCell(0, screenY, {
+                    char: SYMLINK_BADGE,
+                    fg: SYMLINK_BADGE_COLOR,
+                    bg: rowBg,
+                    width: 1,
+                });
             }
         }
     }

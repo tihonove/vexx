@@ -4,7 +4,7 @@ import * as path from "node:path";
 import chokidar, { type FSWatcher } from "chokidar";
 
 import { Disposable } from "../Common/Disposable.ts";
-import { getFileIcon, SYMLINK_ICON } from "../Common/FileIcons.ts";
+import { getFileIcon } from "../Common/FileIcons.ts";
 import type { ITreeDataProvider, ITreeItem } from "../TUIDom/Widgets/ITreeDataProvider.ts";
 
 const EXCLUDED_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);
@@ -29,18 +29,14 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
     }
 
     public getTreeItem(element: FileTreeNode): ITreeItem {
-        if (element.isSymbolicLink) {
-            return {
-                label: element.name,
-                icon: SYMLINK_ICON.icon,
-                iconColor: SYMLINK_ICON.color,
-                collapsible: element.isDirectory,
-            };
-        }
+        // Симлинк сохраняет обычную иконку типа (файл/каталог), а признак ссылки
+        // помечается флагом symlink — стрелку рисует TreeViewElement у левого края,
+        // не смещая иконки и не пряча их.
         if (element.isDirectory) {
             return {
                 label: element.name,
                 collapsible: true,
+                symlink: element.isSymbolicLink,
             };
         }
         const fileIcon = getFileIcon(element.name);
@@ -49,6 +45,7 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
             icon: fileIcon.icon,
             iconColor: fileIcon.color,
             collapsible: false,
+            symlink: element.isSymbolicLink,
         };
     }
 
