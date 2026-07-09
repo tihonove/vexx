@@ -83,8 +83,8 @@ describe("MenuBarElement focus colors", () => {
 
         backend.sendKey("Tab"); // focus menuBar → activeIndex=0 ("File")
 
-        // " File " positions should have ACTIVE_MENU_BG (starts at x=1 due to spacer)
-        for (let x = 1; x < 7; x++) {
+        // " File " positions should have ACTIVE_MENU_BG (starts at x=2 due to spacer)
+        for (let x = 2; x < 8; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(ACTIVE_MENU_BG);
         }
     });
@@ -94,7 +94,7 @@ describe("MenuBarElement focus colors", () => {
 
         backend.sendKey("Tab");
 
-        for (let x = 1; x < 7; x++) {
+        for (let x = 2; x < 8; x++) {
             expect(backend.getFgAt(new Point(x, 0))).toBe(ACTIVE_MENU_FG);
         }
     });
@@ -104,8 +104,8 @@ describe("MenuBarElement focus colors", () => {
 
         backend.sendKey("Tab"); // focus → "File" active
 
-        // " Edit " at x=7..12 should keep bar colors
-        for (let x = 7; x < 13; x++) {
+        // " Edit " at x=8..13 should keep bar colors
+        for (let x = 8; x < 14; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(MENU_BAR_BG);
         }
     });
@@ -117,12 +117,12 @@ describe("MenuBarElement focus colors", () => {
         backend.sendKey("ArrowRight"); // → "Edit"
 
         // " File " should revert to bar colors
-        for (let x = 1; x < 7; x++) {
+        for (let x = 2; x < 8; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(MENU_BAR_BG);
         }
 
         // " Edit " should have active colors
-        for (let x = 7; x < 13; x++) {
+        for (let x = 8; x < 14; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(ACTIVE_MENU_BG);
         }
     });

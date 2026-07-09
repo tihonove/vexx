@@ -41,7 +41,7 @@ export class MenuBarElement extends TUIElement {
         this.items = items;
 
         this.hflex = new HFlexElement();
-        this.hflex.addChild(new MenuBarFillerElement(), { width: hflexFixed(1), height: 1 });
+        this.hflex.addChild(new MenuBarFillerElement(), { width: hflexFixed(2), height: 1 });
         this.itemElements = items.map((item, index) => {
             const el = new MenuBarItemElement(item.label, item.mnemonic);
             el.onActivate = () => {

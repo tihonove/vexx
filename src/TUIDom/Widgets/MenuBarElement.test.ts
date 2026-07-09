@@ -120,15 +120,15 @@ describe("MenuBarElement", () => {
                 3,
             );
             const firstLine = backend.getTextAt(new Point(0, 0), 20);
-            expect(firstLine.slice(1, 5)).toBe(" AB ");
-            expect(firstLine.slice(5, 9)).toBe(" CD ");
+            expect(firstLine.slice(2, 6)).toBe(" AB ");
+            expect(firstLine.slice(6, 10)).toBe(" CD ");
         });
 
-        it("first menu item starts at x=1, not x=0", () => {
+        it("first menu item starts at x=2, not x=0", () => {
             const { backend } = renderMenuBar(simpleItems(), 30, 3);
             const firstLine = backend.getTextAt(new Point(0, 0), 30);
-            expect(firstLine.slice(1, 7)).toBe(" File ");
-            expect(firstLine[0]).toBe(" ");
+            expect(firstLine.slice(2, 8)).toBe(" File ");
+            expect(firstLine.slice(0, 2)).toBe("  ");
         });
     });
 
@@ -421,13 +421,13 @@ describe("MenuBarElement", () => {
 
             backend.sendKey("Alt+f");
 
-            // Menu bar: 1-char spacer then " File " item (spacer aligns with Explorer heading)
-            expect(backend.getTextAt(new Point(0, 0), 8)).toBe("  File  ");
-            // Popup is positioned below the active item which is shifted right by the 1-char spacer
-            expect(backend.getTextAt(new Point(1, 1), 8)).toBe("┌──────┐");
-            expect(backend.getTextAt(new Point(1, 2), 8)).toBe("│ New  │");
-            expect(backend.getTextAt(new Point(1, 3), 8)).toBe("│ Open │");
-            expect(backend.getTextAt(new Point(1, 4), 8)).toBe("└──────┘");
+            // Menu bar: 2-char spacer then " File " item (spacer aligns with Explorer heading)
+            expect(backend.getTextAt(new Point(0, 0), 9)).toBe("   File  ");
+            // Popup is positioned below the active item which is shifted right by the 2-char spacer
+            expect(backend.getTextAt(new Point(2, 1), 8)).toBe("┌──────┐");
+            expect(backend.getTextAt(new Point(2, 2), 8)).toBe("│ New  │");
+            expect(backend.getTextAt(new Point(2, 3), 8)).toBe("│ Open │");
+            expect(backend.getTextAt(new Point(2, 4), 8)).toBe("└──────┘");
         });
 
         it("navigates dropdown with ArrowDown", () => {
