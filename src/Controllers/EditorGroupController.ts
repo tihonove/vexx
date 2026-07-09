@@ -44,6 +44,22 @@ export class EditorGroupController extends Disposable implements IController {
 
     private editors: EditorController[] = [];
     private activeIndexValue = -1;
+
+    /**
+     * Порядок редакторов от самого недавно использованного к самому давнему
+     * (mru[0] — активный/последний). Отдельно от `editors`, который хранит
+     * позиционный порядок вкладок в strip'е. Питает MRU-переключение Ctrl+Tab.
+     */
+    private mruOrder: EditorController[] = [];
+    /**
+     * Идёт ли сейчас серия Ctrl+Tab. Пока серия активна, список MRU заморожен
+     * (`mruCycleList`), а выбор не коммитится в начало `mruOrder` — иначе нельзя
+     * было бы уйти глубже второй вкладки. Любое обычное переключение или
+     * структурное изменение завершает серию.
+     */
+    private cyclingActive = false;
+    private mruCycleList: EditorController[] = [];
+    private mruCyclePointer = 0;
     private themeService: ThemeService;
     private tokenizationRegistry: TokenizationRegistry;
     private tokenStyleResolver: ITokenStyleResolver;
@@ -196,8 +212,19 @@ export class EditorGroupController extends Disposable implements IController {
         this.activateTab(this.editors.length - 1, { focus });
     }
 
-    public activateTab(index: number, { focus = true }: { focus?: boolean } = {}): void {
+    public activateTab(index: number, { focus = true, mru = false }: { focus?: boolean; mru?: boolean } = {}): void {
         if (index < 0 || index >= this.editors.length) return;
+
+        // Обычное переключение завершает серию Ctrl+Tab и коммитит в MRU:
+        // сперва — недавно выбранную в серии вкладку, затем целевую.
+        if (!mru) {
+            if (this.cyclingActive) {
+                this.commitActiveToMru();
+                this.cyclingActive = false;
+            }
+            this.moveToMruFront(this.editors[index]);
+        }
+
         this.activeIndexValue = index;
 
         const editor = this.editors[index];
@@ -207,11 +234,73 @@ export class EditorGroupController extends Disposable implements IController {
         this.fireActiveEditorChanged(editor);
     }
 
+    /**
+     * Переключение вкладок по принципу MRU (Ctrl+Tab / Ctrl+Shift+Tab).
+     * `direction === 1` идёт к более давним вкладкам, `-1` — к более недавним.
+     * Пока серия нажатий не прервана, порядок MRU заморожен, что позволяет
+     * проходить по стеку глубже двух вкладок.
+     */
+    public cycleMru(direction: 1 | -1): void {
+        if (this.editors.length < 2) return;
+
+        if (!this.cyclingActive) {
+            this.commitActiveToMru();
+            this.mruCycleList = this.mruOrder.filter((e) => this.editors.includes(e));
+            this.mruCyclePointer = 0;
+            this.cyclingActive = true;
+        }
+
+        const length = this.mruCycleList.length;
+        /* v8 ignore start -- defensive: cyclingActive is cleared on any structural change, so the frozen list always has ≥2 open editors here */
+        if (length < 2) {
+            this.cyclingActive = false;
+            return;
+        }
+        /* v8 ignore stop */
+
+        this.mruCyclePointer = (this.mruCyclePointer + direction + length) % length;
+        const target = this.mruCycleList[this.mruCyclePointer];
+        const targetIndex = this.editors.indexOf(target);
+        /* v8 ignore start -- defensive: closing a tab clears cyclingActive, so the frozen target is always still open */
+        if (targetIndex < 0) {
+            this.cyclingActive = false;
+            return;
+        }
+        /* v8 ignore stop */
+        this.activateTab(targetIndex, { mru: true });
+    }
+
+    /** Снимок MRU-порядка (mru[0] — самый недавний). Для тестов и диагностики. */
+    public getMruOrder(): EditorController[] {
+        return [...this.mruOrder];
+    }
+
+    private moveToMruFront(editor: EditorController): void {
+        const index = this.mruOrder.indexOf(editor);
+        if (index >= 0) this.mruOrder.splice(index, 1);
+        this.mruOrder.unshift(editor);
+    }
+
+    /** Продвигает активный редактор в начало MRU-стека (фиксирует выбор серии). */
+    private commitActiveToMru(): void {
+        const current = this.getActiveEditor();
+        /* v8 ignore start -- defensive: коммит вызывается только когда есть активный редактор */
+        if (current) this.moveToMruFront(current);
+        /* v8 ignore stop */
+    }
+
     public closeTab(index: number): void {
         if (index < 0 || index >= this.editors.length) return;
 
+        // Структурное изменение делает замороженный список серии невалидным.
+        this.cyclingActive = false;
+
         const editor = this.editors[index];
         this.editors.splice(index, 1);
+        const mruIndex = this.mruOrder.indexOf(editor);
+        /* v8 ignore start -- defensive: каждый открытый редактор присутствует в mruOrder */
+        if (mruIndex >= 0) this.mruOrder.splice(mruIndex, 1);
+        /* v8 ignore stop */
         editor.dispose();
 
         if (this.editors.length === 0) {
@@ -221,6 +310,7 @@ export class EditorGroupController extends Disposable implements IController {
         } else if (index <= this.activeIndexValue) {
             this.activeIndexValue = Math.max(0, this.activeIndexValue - 1);
             const activeEditor = this.editors[this.activeIndexValue];
+            this.moveToMruFront(activeEditor);
             this.view.setContent(activeEditor.view);
             this.focusEditor();
             this.fireActiveEditorChanged(activeEditor);

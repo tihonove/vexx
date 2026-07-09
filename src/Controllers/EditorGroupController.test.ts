@@ -239,6 +239,116 @@ describe("EditorGroupController", () => {
         });
     });
 
+    describe("MRU cycling (cycleMru)", () => {
+        function openThree(ctrl: EditorGroupController): void {
+            ctrl.openFile(writeFile("a.ts", "a")); // index 0
+            ctrl.openFile(writeFile("b.ts", "b")); // index 1
+            ctrl.openFile(writeFile("c.ts", "c")); // index 2, active; MRU: c, b, a
+        }
+
+        function mruNames(ctrl: EditorGroupController): (string | null)[] {
+            return ctrl.getMruOrder().map((e) => e.fileName);
+        }
+
+        it("Ctrl+Tab activates the previously used editor, not the next tab by position", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl);
+
+            // Active is c (last). MRU order is c, b, a → Ctrl+Tab picks b, not (wrap to) a.
+            ctrl.cycleMru(1);
+
+            expect(ctrl.getActiveEditor()?.fileName).toBe("b.ts");
+            expect(ctrl.activeIndex).toBe(1);
+        });
+
+        it("stepping deeper walks the frozen MRU stack instead of toggling two editors", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a
+
+            ctrl.cycleMru(1); // → b
+            expect(ctrl.getActiveEditor()?.fileName).toBe("b.ts");
+            ctrl.cycleMru(1); // → a (deeper, not back to c)
+            expect(ctrl.getActiveEditor()?.fileName).toBe("a.ts");
+            ctrl.cycleMru(1); // → c (wrap around)
+            expect(ctrl.getActiveEditor()?.fileName).toBe("c.ts");
+        });
+
+        it("Ctrl+Shift+Tab steps toward more recent editors", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a, active c
+
+            // From the top of the stack, going up wraps to the least-recent editor.
+            ctrl.cycleMru(-1);
+
+            expect(ctrl.getActiveEditor()?.fileName).toBe("a.ts");
+        });
+
+        it("MRU order reflects the actual usage history, not tab position", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a
+
+            ctrl.activateTab(0); // click a → MRU: a, c, b
+            expect(mruNames(ctrl)).toEqual(["a.ts", "c.ts", "b.ts"]);
+
+            // Now Ctrl+Tab from a goes to c (the next most-recent), not b (next tab).
+            ctrl.cycleMru(1);
+            expect(ctrl.getActiveEditor()?.fileName).toBe("c.ts");
+        });
+
+        it("a fresh cycle re-snapshots the MRU order after an edit commits the selection", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a
+
+            ctrl.cycleMru(1); // → b (not yet committed to MRU front)
+            // A normal activation (e.g. click) ends the cycle and commits.
+            ctrl.activateTab(1); // stay on b, but now commit → MRU: b, c, a
+
+            ctrl.cycleMru(1); // fresh cycle from b → next most-recent is c
+            expect(ctrl.getActiveEditor()?.fileName).toBe("c.ts");
+        });
+
+        it("is a no-op with fewer than two editors", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a"));
+
+            ctrl.cycleMru(1);
+
+            expect(ctrl.activeIndex).toBe(0);
+            expect(ctrl.getActiveEditor()?.fileName).toBe("a.ts");
+        });
+
+        it("keeps the MRU stack consistent after closing a tab", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            openThree(ctrl); // MRU: c, b, a
+
+            ctrl.closeTab(2); // close active c → b becomes active
+            expect(ctrl.getActiveEditor()?.fileName).toBe("b.ts");
+            expect(mruNames(ctrl)).toEqual(["b.ts", "a.ts"]);
+
+            // Cycling now only sees the two remaining editors.
+            ctrl.cycleMru(1);
+            expect(ctrl.getActiveEditor()?.fileName).toBe("a.ts");
+        });
+
+        it("reopening an already-open file promotes it to the MRU front", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            const fpA = writeFile("a.ts", "a");
+            ctrl.openFile(fpA);
+            ctrl.openFile(writeFile("b.ts", "b")); // MRU: b, a
+            ctrl.openFile(fpA); // re-focus a → MRU: a, b
+
+            expect(mruNames(ctrl)).toEqual(["a.ts", "b.ts"]);
+        });
+    });
+
     describe("syncTabs", () => {
         it("updates tab strip with current file names", () => {
             const ctrl = createEditorGroupController();
