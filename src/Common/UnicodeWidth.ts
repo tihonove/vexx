@@ -140,11 +140,16 @@ function isWide(cp: number): boolean {
     if (cp >= 0x1f600 && cp <= 0x1f64f) return true;
     // Transport and Map Symbols (1F680-1F6FF) — Emoji_Presentation=Yes sub-ranges
     if (cp >= 0x1f680 && cp <= 0x1f6ca) return true;
+    if (cp === 0x1f6cc) return true; // 🛌 SLEEPING ACCOMMODATION
     if (cp >= 0x1f6d0 && cp <= 0x1f6d2) return true;
     if (cp >= 0x1f6d5 && cp <= 0x1f6d7) return true;
+    if (cp === 0x1f6dc) return true; // 🛜 WIRELESS (added Unicode 15)
     if (cp >= 0x1f6dd && cp <= 0x1f6df) return true;
     if (cp >= 0x1f6eb && cp <= 0x1f6ec) return true;
     if (cp >= 0x1f6f4 && cp <= 0x1f6fc) return true;
+    // Geometric Shapes Extended (1F7E0–1F7EB) — colored circles/squares 🟠🟡🟢🔵🟣🟤 🟥🟦🟨🟩🟧🟪🟫
+    if (cp >= 0x1f7e0 && cp <= 0x1f7eb) return true;
+    if (cp === 0x1f7f0) return true; // 🟰 HEAVY EQUALS SIGN (added Unicode 14)
     // Supplemental Symbols and Pictographs
     if (cp >= 0x1f900 && cp <= 0x1f9ff) return true;
     // Symbols and Pictographs Extended-A
@@ -166,6 +171,16 @@ function isWide(cp: number): boolean {
     if (cp === 0x27bf) return true; // ➿ DOUBLE CURLY LOOP
     // Enclosed Alphanumeric Supplement (circled numbers, emoji)
     if (cp >= 0x1f100 && cp <= 0x1f1ff) return true;
+    // Mahjong Tiles / Playing Cards — Emoji_Presentation=Yes code points
+    if (cp === 0x1f004) return true; // 🀄 MAHJONG TILE RED DRAGON
+    if (cp === 0x1f0cf) return true; // 🃏 PLAYING CARD BLACK JOKER
+    // Enclosed Ideographic Supplement (1F200–1F2FF) — Emoji_Presentation=Yes squared CJK
+    if (cp === 0x1f201) return true; // 🈁 SQUARED KATAKANA KOKO
+    if (cp === 0x1f21a) return true; // 🈚 SQUARED CJK UNIFIED IDEOGRAPH-7121
+    if (cp === 0x1f22f) return true; // 🈯 SQUARED CJK UNIFIED IDEOGRAPH-6307
+    if (cp >= 0x1f232 && cp <= 0x1f236) return true; // 🈲🈳🈴🈵🈶
+    if (cp >= 0x1f238 && cp <= 0x1f23a) return true; // 🈸🈹🈺
+    if (cp >= 0x1f250 && cp <= 0x1f251) return true; // 🉐🉑
 
     return false;
 }

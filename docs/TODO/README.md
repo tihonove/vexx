@@ -94,6 +94,29 @@ Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z) на базе истории снапшотов 
 ### [x] #7 Корректное отображение wide chars, табов и спецсимволов
 Сделано (Phases 1–6): `DisplayLine` (`src/Common/DisplayLine.ts`) — графемная сегментация, tab expansion, offset↔column; ширины wide chars в `Cell`/`Grid`/`TerminalRenderer`; рендеринг и навигация через `DisplayLine` в `EditorElement`, `EditorViewState` и виджетах (`TextLabelElement`, `TextBlockElement`, `TreeViewElement` и др.). Детали: ARCHITECTURE.md → Common.
 
+### [x] #60 Артефакты при скролле на цветных emoji-кружках
+Причина: ручная таблица ширины в `src/Common/UnicodeWidth.ts` не содержала блок
+Geometric Shapes Extended (`U+1F7E0..1F7EB` — 🟠🟡🟢…) и ещё несколько
+Emoji_Presentation=Yes точек (`1F7F0`, `1F6CC`, `1F6DC`, `1F004`, `1F0CF`,
+squared/enclosed-CJK). Они считались шириной 1, терминал рисовал 2 → рассинхрон
+колонок и stale-глифы при частичной перерисовке на скролле. Диапазоны добавлены в
+`isWide()`, покрыты регресс-тестами (`UnicodeWidth.test.ts`, `DisplayLine.Emoji.test.ts`).
+
+### [ ] Системная ширина символов: кодоген таблиц + рантайм-проба ambiguous-width
+Ручная таблица в `UnicodeWidth.ts` неизбежно отстаёт от Unicode (класс бага
+«пропущенный диапазон», см. #60). Два направления:
+- **Кодоген** — генерировать `isWide`/`isZeroWidth` из официальных Unicode-файлов
+  (`EastAsianWidth.txt` + `emoji-data.txt`) скриптом `scripts/gen-unicode-width.mjs`
+  в отдельный generated-модуль. Убирает «пропущенные диапазоны» навсегда.
+- **Рантайм-проба (CPR)** — ширина *ambiguous-width* символов (`·≈→↔–—…№`, EAW=A)
+  и часть emoji терминально-зависимы; terminfo/`TERM` этого НЕ содержит (там только
+  возможности). Единственный источник правды — спросить сам терминал: напечатать
+  символ → послать `ESC[6n` (Cursor Position Report) → по ответу `ESC[row;colR`
+  вычислить фактическую ширину. Одноразовый probe в bootstrap для набора спорных
+  символов, кэшировать результат. Опционально — mode 2027 (grapheme clustering).
+
+Файлы: `src/Common/UnicodeWidth.ts`, bootstrap в `src/App/`/`main.ts`, `src/Backend/`.
+
 ---
 
 ## События и скролл
