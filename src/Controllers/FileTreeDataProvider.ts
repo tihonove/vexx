@@ -13,6 +13,7 @@ export interface FileTreeNode {
     name: string;
     path: string;
     isDirectory: boolean;
+    isSymbolicLink?: boolean;
 }
 
 export class FileTreeDataProvider extends Disposable implements ITreeDataProvider<FileTreeNode> {
@@ -28,10 +29,14 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
     }
 
     public getTreeItem(element: FileTreeNode): ITreeItem {
+        // Симлинк сохраняет обычную иконку типа (файл/каталог), а признак ссылки
+        // помечается флагом symlink — стрелку рисует TreeViewElement у левого края,
+        // не смещая иконки и не пряча их.
         if (element.isDirectory) {
             return {
                 label: element.name,
                 collapsible: true,
+                symlink: element.isSymbolicLink,
             };
         }
         const fileIcon = getFileIcon(element.name);
@@ -40,6 +45,7 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
             icon: fileIcon.icon,
             iconColor: fileIcon.color,
             collapsible: false,
+            symlink: element.isSymbolicLink,
         };
     }
 
@@ -108,10 +114,23 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
         const nodes: FileTreeNode[] = [];
         for (const entry of entries) {
             if (EXCLUDED_NAMES.has(entry.name)) continue;
+            const fullPath = path.join(dirPath, entry.name);
+            const isSymbolicLink = entry.isSymbolicLink();
+            let isDirectory = entry.isDirectory();
+            if (isSymbolicLink) {
+                // Dirent сообщает тип самой ссылки, а не цели. Резолвим цель, чтобы
+                // симлинк на каталог был раскрываемым. Битую ссылку показываем как файл.
+                try {
+                    isDirectory = fs.statSync(fullPath).isDirectory();
+                } catch {
+                    isDirectory = false;
+                }
+            }
             nodes.push({
                 name: entry.name,
-                path: path.join(dirPath, entry.name),
-                isDirectory: entry.isDirectory(),
+                path: fullPath,
+                isDirectory,
+                isSymbolicLink,
             });
         }
 
