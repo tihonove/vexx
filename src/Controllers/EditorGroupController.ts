@@ -353,11 +353,17 @@ export class EditorGroupController extends Disposable implements IController {
     }
 
     /**
-     * Применяет к редактору настройки из `IConfigurationService` (сейчас —
-     * только `editor.tabSize` и `editor.insertSpaces`). Если ключ не задан,
-     * `setIndentOptions` оставит существующее значение (auto-detect и т.п.).
+     * Применяет к редактору настройки из `IConfigurationService`
+     * (`editor.cursorSurroundingLines`, `editor.tabSize`, `editor.insertSpaces`).
+     * Если ключ не задан, соответствующая настройка редактора не трогается
+     * (`setIndentOptions` оставит существующее значение — auto-detect и т.п.).
      */
     private applyConfigurationToEditor(editor: EditorController): void {
+        const surroundingLines = this.configurationService.get<number>("editor.cursorSurroundingLines");
+        if (surroundingLines !== undefined) {
+            editor.setCursorSurroundingLines(surroundingLines);
+        }
+
         const tabSize = this.configurationService.get<number>("editor.tabSize");
         const insertSpaces = this.configurationService.get<boolean>("editor.insertSpaces");
         if (tabSize === undefined && insertSpaces === undefined) return;

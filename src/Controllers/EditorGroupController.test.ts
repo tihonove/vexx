@@ -541,6 +541,18 @@ describe("EditorGroupController", () => {
             expect(editor.viewState.tabSize).toBe(2);
             expect(editor.viewState.insertSpaces).toBe(true);
         });
+
+        it("seeds cursorSurroundingLines from the configuration service", () => {
+            const ctrl = createEditorGroupController({
+                configurationService: stubConfigurationService({
+                    "editor.cursorSurroundingLines": 5,
+                }),
+            });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+
+            expect(ctrl.getActiveEditor()!.viewState.cursorSurroundingLines).toBe(5);
+        });
     });
 
     describe("language detection", () => {

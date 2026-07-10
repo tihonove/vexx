@@ -35,6 +35,12 @@ export class EditorViewState {
     public scrollTop = 0;
     public viewportWidth = 80;
     public viewportHeight = 24;
+    /**
+     * Minimum number of lines to keep visible between the primary cursor and the
+     * top/bottom edge of the viewport when scrolling it into view (VS Code's
+     * `editor.cursorSurroundingLines`). `0` glues the cursor to the very edge.
+     */
+    public cursorSurroundingLines = 0;
     public tabSize = 4;
     public insertSpaces = false;
     public detectIndentation = true;
@@ -873,10 +879,17 @@ export class EditorViewState {
         const visualLine = this.logicalToVisualLine(pos.line);
         if (visualLine < 0) return;
 
-        if (visualLine < this.scrollTop) {
-            this.scrollTop = visualLine;
-        } else if (visualLine >= this.scrollTop + this.viewportHeight) {
-            this.scrollTop = visualLine - this.viewportHeight + 1;
+        // Keep `margin` lines between the cursor and the top/bottom edge so the
+        // cursor "steps back" from the edge (VS Code's `cursorSurroundingLines`).
+        // Cap the margin at half the viewport, otherwise the two edges collide
+        // and the cursor could be pushed out of view.
+        const maxMargin = Math.floor((this.viewportHeight - 1) / 2);
+        const margin = Math.max(0, Math.min(this.cursorSurroundingLines, maxMargin));
+
+        if (visualLine < this.scrollTop + margin) {
+            this.scrollTop = Math.max(0, visualLine - margin);
+        } else if (visualLine > this.scrollTop + this.viewportHeight - 1 - margin) {
+            this.scrollTop = visualLine - this.viewportHeight + 1 + margin;
         }
 
         const lineContent = this.document.getLineContent(pos.line);
