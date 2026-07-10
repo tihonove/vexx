@@ -4,7 +4,6 @@ import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { BORDER } from "./BorderGlyphs.ts";
 import type { MenuColors, PopupMenuItemConfig } from "./PopupMenuItemElement.tsx";
 import { DEFAULT_MENU_COLORS, PopupMenuItemElement, PopupMenuSeparatorElement } from "./PopupMenuItemElement.tsx";
 import { VStackElement } from "./VStackElement.ts";
@@ -137,44 +136,18 @@ export class PopupMenuElement extends TUIElement {
         const borderFg = this.colors.borderFg;
         const bg = this.colors.bg;
 
-        // Top border: ╭───╮
-        this.drawCell(context, 0, 0, BORDER.topLeft, borderFg, bg);
-        for (let x = 1; x < w - 1; x++) {
-            this.drawCell(context, x, 0, BORDER.horizontal, borderFg, bg);
-        }
-        this.drawCell(context, w - 1, 0, BORDER.topRight, borderFg, bg);
-
-        // Side borders and separator T-connectors
+        // Frame with T-connectors on separator rows (├───┤).
         const children = this.vstack.getChildren();
+        const separators: number[] = [];
         for (let i = 0; i < children.length; i++) {
-            const rowY = 1 + i;
-            const child = children[i];
-
-            if (child instanceof PopupMenuSeparatorElement) {
-                this.drawCell(context, 0, rowY, BORDER.teeLeft, borderFg, bg);
-                this.drawCell(context, w - 1, rowY, BORDER.teeRight, borderFg, bg);
-            } else {
-                this.drawCell(context, 0, rowY, BORDER.vertical, borderFg, bg);
-                this.drawCell(context, w - 1, rowY, BORDER.vertical, borderFg, bg);
-            }
+            if (children[i] instanceof PopupMenuSeparatorElement) separators.push(1 + i);
         }
-
-        // Bottom border: ╰───╯
-        const bottomY = h - 1;
-        this.drawCell(context, 0, bottomY, BORDER.bottomLeft, borderFg, bg);
-        for (let x = 1; x < w - 1; x++) {
-            this.drawCell(context, x, bottomY, BORDER.horizontal, borderFg, bg);
-        }
-        this.drawCell(context, w - 1, bottomY, BORDER.bottomRight, borderFg, bg);
+        context.drawBox(0, 0, w, h, { fg: borderFg, bg, separators });
 
         // Render VStack content
         const vstackOffset = new Offset(this.vstack.localPosition.dx, this.vstack.localPosition.dy);
         const vstackClip = new Rect(this.vstack.globalPosition, this.vstack.layoutSize);
         this.vstack.render(context.withOffset(vstackOffset).withClip(vstackClip));
-    }
-
-    private drawCell(context: RenderContext, x: number, y: number, char: string, fg: number, bg: number): void {
-        context.setCell(x, y, { char, fg, bg });
     }
 
     private computeConfig(): PopupMenuItemConfig {

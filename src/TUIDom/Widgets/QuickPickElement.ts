@@ -7,7 +7,6 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { BORDER } from "./BorderGlyphs.ts";
 import { InputElement } from "./InputElement.ts";
 
 // ─── Colors ─────────────────────────────────────────────────────────────────
@@ -366,26 +365,20 @@ export class QuickPickElement extends TUIElement {
         const h = this.totalHeight;
         const hasItems = this.visibleItemCount > 0;
 
-        // ── Background fill ──────────────────────────────────────────────────
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                context.setCell(x, y, { char: " ", fg: FG, bg: BG });
-            }
-        }
+        // Row after the input (+ message row when present): separator/bottom border.
+        const message = this.messageRow;
+        const bodyTop = message !== null ? 3 : 2;
 
-        // ── Top border (with optional centered title) ─────────────────────────
-        context.setCell(0, 0, { char: BORDER.topLeft, fg: BORDER_FG, bg: BG });
-        for (let x = 1; x < w - 1; x++) {
-            context.setCell(x, 0, { char: "─", fg: BORDER_FG, bg: BG });
-        }
-        context.setCell(w - 1, 0, { char: BORDER.topRight, fg: BORDER_FG, bg: BG });
+        // ── Background fill + frame ───────────────────────────────────────────
+        // The separator between the input area and the list is a T-connector row
+        // (├───┤); item rows re-draw their own side borders under the row bg.
+        const separators = hasItems ? [bodyTop] : undefined;
+        context.drawBox(0, 0, w, h, { fg: BORDER_FG, bg: BG, fill: true, separators });
+
+        // ── Top border title (optional, centered as ┤ title ├) ────────────────
         if (this.title !== undefined && this.title !== "") {
             this.renderTitle(context, w);
         }
-
-        // ── Input row side borders ────────────────────────────────────────────
-        context.setCell(0, 1, { char: "│", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, 1, { char: "│", fg: BORDER_FG, bg: BG });
 
         // ── Render InputElement ───────────────────────────────────────────────
         // Give it an explicit placeholder since we own the visual chrome.
@@ -395,42 +388,17 @@ export class QuickPickElement extends TUIElement {
         this.inputElement.render(context.withOffset(inputOffset).withClip(inputClip));
 
         // ── Optional message row (InputBox prompt / validation) ───────────────
-        const message = this.messageRow;
         if (message !== null) {
             this.renderMessageRow(context, w, 2, message);
         }
-        // Row after the input (+ message row when present): separator/bottom border.
-        const bodyTop = message !== null ? 3 : 2;
 
+        // ── Item rows (frame + separator already drawn by drawBox above) ──────
         if (hasItems) {
-            // ── Separator ─────────────────────────────────────────────────────
-            context.setCell(0, bodyTop, { char: "├", fg: BORDER_FG, bg: BG });
-            for (let x = 1; x < w - 1; x++) {
-                context.setCell(x, bodyTop, { char: "─", fg: BORDER_FG, bg: BG });
-            }
-            context.setCell(w - 1, bodyTop, { char: "┤", fg: BORDER_FG, bg: BG });
-
-            // ── Item rows ─────────────────────────────────────────────────────
             const hasIcons = this.itemsValue.some((item) => item.icon !== undefined);
             for (let i = 0; i < this.visibleItemCount; i++) {
                 const itemIndex = this.scrollOffset + i;
                 this.renderItemRow(context, w, bodyTop + 1 + i, itemIndex, hasIcons);
             }
-
-            // ── Bottom border ─────────────────────────────────────────────────
-            const bottomY = h - 1;
-            context.setCell(0, bottomY, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
-            for (let x = 1; x < w - 1; x++) {
-                context.setCell(x, bottomY, { char: "─", fg: BORDER_FG, bg: BG });
-            }
-            context.setCell(w - 1, bottomY, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
-        } else {
-            // ── Bottom border (no items) ──────────────────────────────────────
-            context.setCell(0, bodyTop, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
-            for (let x = 1; x < w - 1; x++) {
-                context.setCell(x, bodyTop, { char: "─", fg: BORDER_FG, bg: BG });
-            }
-            context.setCell(w - 1, bodyTop, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
         }
     }
 
