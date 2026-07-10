@@ -41,9 +41,9 @@ describe("BoxContainerElement", () => {
             const box = new BoxContainerElement();
             const backend = layoutAndRender(box, 6, 3);
 
-            expect(backend.getTextAt(new Point(0, 0), 6)).toBe("┌────┐");
+            expect(backend.getTextAt(new Point(0, 0), 6)).toBe("╭────╮");
             expect(backend.getTextAt(new Point(0, 1), 6)).toBe("│    │");
-            expect(backend.getTextAt(new Point(0, 2), 6)).toBe("└────┘");
+            expect(backend.getTextAt(new Point(0, 2), 6)).toBe("╰────╯");
         });
     });
 

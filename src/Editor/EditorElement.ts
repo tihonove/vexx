@@ -2,6 +2,7 @@ import { DisplayLine } from "../Common/DisplayLine.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
+import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../TUIDom/Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
@@ -69,6 +70,8 @@ export class EditorElement extends TUIElement implements IScrollable {
     public lineNumberActiveForeground: number | undefined;
 
     public contextMenuEntries: MenuEntry[] = [];
+    /** Тема для тематизации контекстного меню (`menu.*`); задаётся контроллером. */
+    public menuTheme: WorkbenchTheme | null = null;
 
     private contentWidthCache: { versionId: number; value: number } | null = null;
     private activeContextMenuSession: OverlaySessionHandle | null = null;
@@ -243,9 +246,8 @@ export class EditorElement extends TUIElement implements IScrollable {
 
             // --- Content area ---
             if (viewLine >= viewLineCount) {
-                // Past end of document — draw tilde like vim
-                context.setCell(gutterW, screenY, { char: "~", fg: editorFg, bg: editorBg });
-                for (let x = 1; x < contentCols; x++) {
+                // Past end of document — empty content area (VS Code draws no vim-style tildes)
+                for (let x = 0; x < contentCols; x++) {
                     context.setCell(gutterW + x, screenY, { char: " ", fg: editorFg, bg: editorBg });
                 }
                 continue;
@@ -458,6 +460,9 @@ export class EditorElement extends TUIElement implements IScrollable {
         });
 
         const menu = new PopupMenuElement(wrappedEntries);
+        if (this.menuTheme) {
+            menu.applyTheme(this.menuTheme);
+        }
 
         const layer = this.getOverlayLayer();
         if (!layer) return;

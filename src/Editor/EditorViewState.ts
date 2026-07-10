@@ -851,6 +851,34 @@ export class EditorViewState {
         this.revealPosition(range.start);
     }
 
+    /** Number of logical lines in the underlying document. */
+    public get lineCount(): number {
+        return this.document.lineCount;
+    }
+
+    /** 0-based line of the primary cursor (0 when there is no selection). */
+    public get primaryCursorLine(): number {
+        return this.selections[0]?.active.line ?? 0;
+    }
+
+    /** 0-based character offset of the primary cursor (0 when there is no selection). */
+    public get primaryCursorColumn(): number {
+        return this.selections[0]?.active.character ?? 0;
+    }
+
+    /**
+     * Moves the primary cursor to (`line`, `character`) — both 0-based — clamping
+     * to document/line bounds, collapsing any selection, and revealing the target
+     * (expanding a fold that hides it). Used by Go-to-Line navigation.
+     */
+    public goToPosition(line: number, character = 0): void {
+        const clampedLine = Math.max(0, Math.min(line, this.document.lineCount - 1));
+        const clampedChar = Math.max(0, Math.min(character, this.document.getLineLength(clampedLine)));
+        this.selections = [createCursorSelection(clampedLine, clampedChar)];
+        this.ensureLineVisible(clampedLine);
+        this.revealPosition(this.selections[0].active);
+    }
+
     /**
      * Restores selections from a saved snapshot (used by UndoManager).
      */

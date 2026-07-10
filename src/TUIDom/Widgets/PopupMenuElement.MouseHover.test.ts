@@ -8,7 +8,7 @@ import { TUIElement } from "../TUIElement.ts";
 import { BodyElement } from "./BodyElement.ts";
 import type { MenuBarItem } from "./MenuBarElement.ts";
 import { MenuBarElement } from "./MenuBarElement.ts";
-import { HIGHLIGHT_BG } from "./PopupMenuItemElement.tsx";
+import { DEFAULT_MENU_COLORS } from "./PopupMenuItemElement.tsx";
 import { VStackElement } from "./VStackElement.ts";
 
 class FocusableChild extends TUIElement {
@@ -72,11 +72,11 @@ describe("PopupMenuElement — mouse hover moves selection", () => {
         backend.sendKey("Tab");
         backend.sendKey("ArrowDown"); // open File menu, first item highlighted
 
-        expect(backend.getBgAt(new Point(3, 2))).toBe(HIGHLIGHT_BG);
+        expect(backend.getBgAt(new Point(3, 2))).toBe(DEFAULT_MENU_COLORS.highlightBg);
 
         moveMouse(backend, 4, 4); // over "Save"
-        expect(backend.getBgAt(new Point(3, 4))).toBe(HIGHLIGHT_BG);
-        expect(backend.getBgAt(new Point(3, 2))).not.toBe(HIGHLIGHT_BG);
+        expect(backend.getBgAt(new Point(3, 4))).toBe(DEFAULT_MENU_COLORS.highlightBg);
+        expect(backend.getBgAt(new Point(3, 2))).not.toBe(DEFAULT_MENU_COLORS.highlightBg);
     });
 
     it("hovering the already-selected item keeps it highlighted", () => {
@@ -85,7 +85,7 @@ describe("PopupMenuElement — mouse hover moves selection", () => {
         backend.sendKey("ArrowDown"); // "New" (first item) selected
 
         moveMouse(backend, 4, 2); // hover "New" — already selected
-        expect(backend.getBgAt(new Point(3, 2))).toBe(HIGHLIGHT_BG);
+        expect(backend.getBgAt(new Point(3, 2))).toBe(DEFAULT_MENU_COLORS.highlightBg);
     });
 
     it("hovering back up moves the highlight up again", () => {
@@ -94,11 +94,11 @@ describe("PopupMenuElement — mouse hover moves selection", () => {
         backend.sendKey("ArrowDown");
 
         moveMouse(backend, 4, 4); // "Save"
-        expect(backend.getBgAt(new Point(3, 4))).toBe(HIGHLIGHT_BG);
+        expect(backend.getBgAt(new Point(3, 4))).toBe(DEFAULT_MENU_COLORS.highlightBg);
 
         moveMouse(backend, 4, 3); // "Open"
-        expect(backend.getBgAt(new Point(3, 3))).toBe(HIGHLIGHT_BG);
-        expect(backend.getBgAt(new Point(3, 4))).not.toBe(HIGHLIGHT_BG);
+        expect(backend.getBgAt(new Point(3, 3))).toBe(DEFAULT_MENU_COLORS.highlightBg);
+        expect(backend.getBgAt(new Point(3, 4))).not.toBe(DEFAULT_MENU_COLORS.highlightBg);
     });
 
     it("Enter activates the mouse-hovered item", () => {

@@ -44,7 +44,7 @@ describe("BoxContainer JSX adapter", () => {
         const backend = render(el, 8, 6);
 
         // Border corner uses borderFg over the configured background.
-        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("┌");
+        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("╭");
         expect(backend.getFgAt(new Point(0, 0))).toBe(BORDER);
         expect(backend.getBgAt(new Point(0, 0))).toBe(BG);
 

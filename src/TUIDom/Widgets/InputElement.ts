@@ -6,6 +6,7 @@ import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { TUIPasteEvent } from "../Events/TUIPasteEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { BORDER } from "./BorderGlyphs.ts";
 import { InputState } from "./InputState.ts";
 
 // ─── Colors ─────────────────────────────────────────────────────────────────
@@ -178,12 +179,12 @@ export class InputElement extends TUIElement {
         const fg = focused ? FOCUSED_BORDER_FG : UNFOCUSED_BORDER_FG;
         const bg = INPUT_BG;
 
-        // Top row: ┌───┐
-        context.setCell(0, 0, { char: "┌", fg, bg });
+        // Top row: ╭───╮
+        context.setCell(0, 0, { char: BORDER.topLeft, fg, bg });
         for (let x = 1; x < w - 1; x++) {
             context.setCell(x, 0, { char: "─", fg, bg });
         }
-        context.setCell(w - 1, 0, { char: "┐", fg, bg });
+        context.setCell(w - 1, 0, { char: BORDER.topRight, fg, bg });
 
         // Middle rows: │   │
         for (let y = 1; y < h - 1; y++) {
@@ -191,12 +192,12 @@ export class InputElement extends TUIElement {
             context.setCell(w - 1, y, { char: "│", fg, bg });
         }
 
-        // Bottom row: └───┘
-        context.setCell(0, h - 1, { char: "└", fg, bg });
+        // Bottom row: ╰───╯
+        context.setCell(0, h - 1, { char: BORDER.bottomLeft, fg, bg });
         for (let x = 1; x < w - 1; x++) {
             context.setCell(x, h - 1, { char: "─", fg, bg });
         }
-        context.setCell(w - 1, h - 1, { char: "┘", fg, bg });
+        context.setCell(w - 1, h - 1, { char: BORDER.bottomRight, fg, bg });
     }
 
     // ─── Input ──────────────────────────────────────────────────────────────

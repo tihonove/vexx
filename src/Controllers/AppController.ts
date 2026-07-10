@@ -114,7 +114,7 @@ import {
     listFocusPageDownAction,
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
-import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
+import { gotoLineAction, quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import {
     insertFinalNewLineAction,
@@ -330,6 +330,7 @@ export class AppController extends Disposable implements IController {
     private contextKeys: ContextKeyService;
     private inputWidgetController: InputWidgetController;
     private themeService: ThemeService;
+    private menuBar: MenuBarElement | null = null;
     private terminalEnv: TerminalEnvironmentService;
     private armory: ModifierReleaseArmory;
     private chordTimer: ReturnType<typeof setTimeout> | null = null;
@@ -430,6 +431,9 @@ export class AppController extends Disposable implements IController {
         this.quickOpenController.onExecuteCommand = (id, ...args) => {
             this.commands.execute(id, ...args);
         };
+        // Go-to-Line targets the active editor (read lazily, so a `file:line`
+        // accept jumps in the editor opened by the same accept).
+        this.quickOpenController.getActiveEditor = () => this.editorGroupController.getActiveEditor();
 
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
@@ -464,6 +468,14 @@ export class AppController extends Disposable implements IController {
                 ...showCommandsAction,
                 run: () => {
                     this.quickOpenController.open("commands");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...gotoLineAction,
+                run: () => {
+                    this.quickOpenController.open("line");
                 },
             }),
         );
@@ -815,6 +827,7 @@ export class AppController extends Disposable implements IController {
         this.confirmDialog?.applyTheme(theme);
         this.aboutDialog?.applyTheme(theme);
         this.findController.applyTheme(theme);
+        this.menuBar?.applyTheme(theme);
         this.workbenchLayout.setSashHoverColor(theme.getColor("sash.hoverBorder"));
     }
 
@@ -1120,6 +1133,7 @@ export class AppController extends Disposable implements IController {
                 mnemonic: "g",
                 entries: [
                     item("Go to File...", "workbench.action.quickOpen"),
+                    item("Go to Line/Column...", "workbench.action.gotoLine"),
                     sep(),
                     item("Next Editor", "workbench.action.nextEditorInGroup"),
                     item("Previous Editor", "workbench.action.previousEditorInGroup"),
@@ -1135,6 +1149,8 @@ export class AppController extends Disposable implements IController {
         ];
 
         const menuBar = new MenuBarElement(menuItems);
+        menuBar.applyTheme(this.themeService.theme);
+        this.menuBar = menuBar;
         this.view.setMenuBar(menuBar);
     }
 
@@ -1461,6 +1477,7 @@ export class AppController extends Disposable implements IController {
         );
 
         const menu = new PopupMenuElement(entries);
+        menu.applyTheme(this.themeService.theme);
         menu.tabIndex = 0;
 
         let session: OverlaySessionHandle | null = null;

@@ -79,7 +79,7 @@ describe("PopupMenuItemElement integration — full app with mouse clicks", () =
         // The menu should now be open
         expect(menuBar.isMenuOpen).toBe(true);
 
-        // Click on "Cut" — row 2, inside the menu (content shifted right by the 2-col menu-bar spacer)
+        // Click on "Cut" — row 2, content column x=3 (x=2 is the popup border).
         simulateClick(backend, 3, 2);
 
         expect(onCut).toHaveBeenCalledOnce();
@@ -110,7 +110,7 @@ describe("PopupMenuItemElement integration — full app with mouse clicks", () =
         simulateClick(backend, 2, 0);
         expect(menuBar.isMenuOpen).toBe(true);
 
-        // Click on "Copy" (row 3, content shifted right by the 2-col menu-bar spacer)
+        // Click on "Copy" — row 3, content column x=3 (x=2 is the popup border).
         simulateClick(backend, 3, 3);
 
         expect(onCut).not.toHaveBeenCalled();

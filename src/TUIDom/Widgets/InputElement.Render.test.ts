@@ -139,32 +139,32 @@ describe("InputElement — rendering without border", () => {
 });
 
 describe("InputElement — rendering with border", () => {
-    it("renders top-left corner ┌", () => {
+    it("renders top-left corner ╭", () => {
         const input = new InputElement();
         input.showBorder = true;
         const { backend } = renderInput(input, 10);
-        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("┌");
+        expect(backend.getTextAt(new Point(0, 0), 1)).toBe("╭");
     });
 
-    it("renders top-right corner ┐", () => {
+    it("renders top-right corner ╮", () => {
         const input = new InputElement();
         input.showBorder = true;
         const { backend } = renderInput(input, 10);
-        expect(backend.getTextAt(new Point(9, 0), 1)).toBe("┐");
+        expect(backend.getTextAt(new Point(9, 0), 1)).toBe("╮");
     });
 
-    it("renders bottom-left corner └", () => {
+    it("renders bottom-left corner ╰", () => {
         const input = new InputElement();
         input.showBorder = true;
         const { backend } = renderInput(input, 10);
-        expect(backend.getTextAt(new Point(0, 2), 1)).toBe("└");
+        expect(backend.getTextAt(new Point(0, 2), 1)).toBe("╰");
     });
 
-    it("renders bottom-right corner ┘", () => {
+    it("renders bottom-right corner ╯", () => {
         const input = new InputElement();
         input.showBorder = true;
         const { backend } = renderInput(input, 10);
-        expect(backend.getTextAt(new Point(9, 2), 1)).toBe("┘");
+        expect(backend.getTextAt(new Point(9, 2), 1)).toBe("╯");
     });
 
     it("renders left side border │", () => {

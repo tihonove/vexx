@@ -11,6 +11,7 @@ import type { QuickPickElement, QuickPickItem } from "../TUIDom/Widgets/QuickPic
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { EditorGroupController } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 function createTempWorkspace(): string {
@@ -132,5 +133,98 @@ describe("AppController — Quick Open accept callbacks", () => {
         testApp.render();
 
         expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+});
+
+describe("AppController — Go to Line", () => {
+    let tmpDir: string;
+    let testApp: TestApp;
+    let controller: AppController;
+    let commands: CommandRegistry;
+
+    function activeEditor(): EditorGroupController {
+        return (controller as unknown as { editorGroupController: EditorGroupController }).editorGroupController;
+    }
+
+    beforeEach(async () => {
+        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-gotoline-"));
+        // A 60-line file to navigate around.
+        fs.writeFileSync(path.join(tmpDir, "big.txt"), Array.from({ length: 60 }, (_, i) => `line ${i + 1}`).join("\n"));
+        ({ testApp, controller, commands } = createQuickOpenApp(tmpDir));
+        await controller.activate();
+        await controller.fileIndexReady;
+        // Open the file so there is an active editor to navigate.
+        commands.execute("workbench.openFile", path.join(tmpDir, "big.txt"));
+        testApp.render();
+    });
+
+    afterEach(() => {
+        controller.dispose();
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+        vi.restoreAllMocks();
+    });
+
+    it("Ctrl+G opens Quick Open seeded with ':'", () => {
+        controller.focusEditor();
+        testApp.sendKey("Ctrl+G");
+        testApp.render();
+
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(true);
+        const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
+        expect(picker.getQuery()).toBe(":");
+    });
+
+    it("accepting ':30' moves the cursor to that line (1-based → 0-based)", async () => {
+        controller.focusEditor();
+        commands.execute("workbench.action.gotoLine");
+        testApp.render();
+
+        const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
+        picker.onQueryChange?.(":30");
+        testApp.render();
+
+        picker.onAccept?.(picker.items[0], 0);
+        await flushMicrotasks();
+        testApp.render();
+
+        expect(activeEditor().getActiveEditor()?.primaryCursorLine).toBe(29);
+        expect(testApp.root.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("accepting ':30:5' moves both the line and the column", async () => {
+        controller.focusEditor();
+        commands.execute("workbench.action.gotoLine");
+        testApp.render();
+
+        const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
+        picker.onQueryChange?.(":30:5");
+        testApp.render();
+
+        picker.onAccept?.(picker.items[0], 0);
+        await flushMicrotasks();
+        testApp.render();
+
+        const editor = activeEditor().getActiveEditor()!;
+        expect(editor.primaryCursorLine).toBe(29);
+        expect(editor.primaryCursorColumn).toBe(4);
+    });
+
+    it("a file:line query opens the file and jumps to the line", async () => {
+        // Close the current editor state by opening via quick open with a suffix.
+        controller.focusEditor();
+        testApp.sendKey("Ctrl+P");
+        testApp.render();
+
+        const picker = testApp.querySelector("QuickPickElement") as QuickPickElement;
+        picker.onQueryChange?.("big:15");
+        testApp.render();
+
+        const target = picker.items.find((i) => i.label === "big.txt")!;
+        expect(target).toBeDefined();
+        picker.onAccept?.(target, picker.items.indexOf(target));
+        await flushMicrotasks();
+        testApp.render();
+
+        expect(activeEditor().getActiveEditor()?.primaryCursorLine).toBe(14);
     });
 });

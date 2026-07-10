@@ -65,6 +65,7 @@ export class EditorController extends Disposable implements IController {
     private readonly languageService: ILanguageService;
     private readonly undoRedoService: UndoRedoService;
     private contextMenuEntriesValue: MenuEntry[] = [];
+    private currentTheme: WorkbenchTheme | null = null;
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId || this.doc.eol !== this.savedEol;
@@ -219,6 +220,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
+        this.editor.menuTheme = this.currentTheme;
         this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
@@ -441,6 +443,30 @@ export class EditorController extends Disposable implements IController {
         this.editor.markDirty();
     }
 
+    /** Logical line count of the open document. */
+    public get lineCount(): number {
+        return this.editorViewState.lineCount;
+    }
+
+    /** 0-based line of the primary cursor. */
+    public get primaryCursorLine(): number {
+        return this.editorViewState.primaryCursorLine;
+    }
+
+    /** 0-based character offset of the primary cursor. */
+    public get primaryCursorColumn(): number {
+        return this.editorViewState.primaryCursorColumn;
+    }
+
+    /**
+     * Moves the primary cursor to (`line`, `column`) — both 0-based — clamping to
+     * document bounds and revealing the target. Backs Go-to-Line navigation.
+     */
+    public goToPosition(line: number, column = 0): void {
+        this.editorViewState.goToPosition(line, column);
+        this.editor.markDirty();
+    }
+
     /* v8 ignore start -- placeholder lifecycle hook; editor-specific subscriptions are added later */
     public mount(): void {
         // Future: subscribe to editor-specific events
@@ -456,12 +482,14 @@ export class EditorController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
+        this.currentTheme = theme;
         const fg = theme.getColorOrDefault("editor.foreground", packRgb(212, 212, 212));
         const bg = theme.getColorOrDefault("editor.background", packRgb(30, 30, 30));
         this.editor.style = { fg, bg };
         this.editor.gutterBackground = theme.getColor("editorGutter.background") ?? bg;
         this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
         this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
+        this.editor.menuTheme = theme;
     }
 
     /**

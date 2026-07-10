@@ -12,6 +12,17 @@ export const quickOpenAction: CommandAction = {
     /* v8 ignore stop */
 };
 
+export const gotoLineAction: CommandAction = {
+    id: "workbench.action.gotoLine",
+    title: "Go to Line/Column...",
+    keybinding: parseKeybinding("ctrl+g"),
+    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime */
+    run() {
+        // Overridden in AppController
+    },
+    /* v8 ignore stop */
+};
+
 export const showCommandsAction: CommandAction = {
     id: "workbench.action.showCommands",
     title: "Show All Commands",
