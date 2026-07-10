@@ -3,35 +3,70 @@ import { describe, expect, it, vi } from "vitest";
 import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 import { CompletionController } from "./CompletionController.ts";
 import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
+type CaretAnchor = { screenX: number; screenY: number; preferBelow: boolean } | null;
+
 interface FakeEditor {
     applyExternalEdits: ReturnType<typeof vi.fn>;
-    lineContent: string;
+    line: number;
     character: number;
+    lineContent: string;
+    docText: string;
+    caretAnchor: CaretAnchor;
+    /** Двигает каретку/строку и рассылает подписчикам onDidChangeContent + onDidChangeCursorPosition. */
+    emitChange(next: { line?: number; character?: number; lineContent?: string; caretAnchor?: CaretAnchor }): void;
+    contentListeners: Array<() => void>;
+    cursorListeners: Array<() => void>;
 }
 
-function makeEditor(
-    lineContent: string,
-    character: number,
-    docText = lineContent,
-): { editor: EditorController; fake: FakeEditor } {
-    const fake: FakeEditor = { applyExternalEdits: vi.fn(), lineContent, character };
+function makeEditor(lineContent: string, character: number, docText = lineContent): { editor: EditorController; fake: FakeEditor } {
+    const fake: FakeEditor = {
+        applyExternalEdits: vi.fn(),
+        line: 0,
+        character,
+        lineContent,
+        docText,
+        caretAnchor: { screenX: 5, screenY: 5, preferBelow: true },
+        contentListeners: [],
+        cursorListeners: [],
+        emitChange(next) {
+            if (next.line !== undefined) fake.line = next.line;
+            if (next.character !== undefined) fake.character = next.character;
+            if (next.lineContent !== undefined) fake.lineContent = next.lineContent;
+            if (next.caretAnchor !== undefined) fake.caretAnchor = next.caretAnchor;
+            for (const l of [...fake.contentListeners]) l();
+            for (const l of [...fake.cursorListeners]) l();
+        },
+    };
     const editor = {
         viewState: {
-            selections: [{ active: { line: 0, character } }],
-            document: { getLineContent: () => lineContent },
+            selections: [
+                {
+                    get active() {
+                        return { line: fake.line, character: fake.character };
+                    },
+                },
+            ],
+            document: { getLineContent: () => fake.lineContent },
         },
-        getText: () => docText,
+        getText: () => fake.docText,
         absoluteFilePath: "/proj/.editorconfig",
         languageId: "editorconfig",
-        getCaretAnchor: () => ({ screenX: 5, screenY: 5, preferBelow: true }),
+        getCaretAnchor: () => fake.caretAnchor,
         applyExternalEdits: fake.applyExternalEdits,
+        onDidChangeContent: (l: () => void) => {
+            fake.contentListeners.push(l);
+            return { dispose: () => fake.contentListeners.splice(fake.contentListeners.indexOf(l), 1) };
+        },
+        onDidChangeCursorPosition: (l: () => void) => {
+            fake.cursorListeners.push(l);
+            return { dispose: () => fake.cursorListeners.splice(fake.cursorListeners.indexOf(l), 1) };
+        },
     } as unknown as EditorController;
     return { editor, fake };
 }
@@ -50,12 +85,7 @@ function makeGroup(
     } as unknown as EditorGroupController;
 }
 
-function setup(
-    items: readonly ICoreCompletionItem[],
-    lineContent = "ind",
-    character = 3,
-    docText = lineContent,
-) {
+function setup(items: readonly ICoreCompletionItem[], lineContent = "ind", character = 3, docText = lineContent) {
     const { editor, fake } = makeEditor(lineContent, character, docText);
     const source = vi.fn(async () => items);
     const group = makeGroup(editor, source);
@@ -102,6 +132,7 @@ describe("CompletionController", () => {
         const { controller, body } = setup(ITEMS);
         await controller.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
+        expect(controller.isVisible()).toBe(true);
         // Префикс "ind" отфильтровал "root".
         expect(controller.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
     });
@@ -118,11 +149,11 @@ describe("CompletionController", () => {
         });
     });
 
-    it("accept вставляет элемент, заменяя префикс, и исполняет item.command", async () => {
+    it("acceptSelected вставляет элемент, заменяя префикс, и исполняет item.command", async () => {
         const { controller, fake, onExecuteCommand } = setup(ITEMS);
         await controller.trigger();
-        // Enter принимает выбранный (indent_style).
-        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
+        // Принимает выбранный (indent_style).
+        controller.acceptSelected();
 
         expect(fake.applyExternalEdits).toHaveBeenCalledTimes(1);
         const [edits, label] = fake.applyExternalEdits.mock.calls[0];
@@ -131,6 +162,8 @@ describe("CompletionController", () => {
         expect(edits[0].text).toBe("indent_style");
         // Диапазон замены = префикс [0,0]–[0,3].
         expect(edits[0].range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 3 } });
+        // Приняли → попап закрыт.
+        expect(controller.isVisible()).toBe(false);
 
         // item.command исполняется через onExecuteCommand (в микротаске).
         await Promise.resolve();
@@ -144,7 +177,6 @@ describe("CompletionController", () => {
     });
 
     it("word-based: без источника предлагает слова из документа", async () => {
-        // Курсор после "ind" в документе со словами; провайдеров нет.
         const { editor } = makeEditor("ind", 3, "indent_style indent_size root ab");
         const controller = new CompletionController(makeGroup(editor, undefined));
         const body = new BodyElement();
@@ -182,12 +214,13 @@ describe("CompletionController", () => {
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
-    it("Escape закрывает попап", async () => {
+    it("close закрывает попап", async () => {
         const { controller, body } = setup(ITEMS);
         await controller.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
-        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
+        controller.close();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
+        expect(controller.isVisible()).toBe(false);
     });
 
     it("каретка вне вьюпорта (anchor null) → попап не открывается", async () => {
@@ -229,35 +262,118 @@ describe("CompletionController", () => {
         expect(controller.view.items.map((i) => i.label)).toEqual(["alpha", "beta"]);
     });
 
-    it("accept без активного редактора (после close) — no-op", async () => {
+    it("acceptSelected без активного редактора (после close) — no-op", async () => {
         const { controller, fake } = setup(ITEMS);
         await controller.trigger();
         controller.close(); // activeEditor = null, но список у view остаётся
-        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
+        controller.acceptSelected();
         expect(fake.applyExternalEdits).not.toHaveBeenCalled();
     });
 
-    it("accept элемента без command не дёргает onExecuteCommand", async () => {
+    it("acceptSelected при пустом списке просто закрывает (getSelectedItem null)", async () => {
+        const { controller, fake } = setup(ITEMS, "", 0, "");
+        await controller.trigger();
+        controller.view.setFilter("zzzz"); // ничего не матчит — getSelectedItem null
+        controller.acceptSelected();
+        expect(fake.applyExternalEdits).not.toHaveBeenCalled();
+        expect(controller.isVisible()).toBe(false);
+    });
+
+    it("acceptSelected элемента без command не дёргает onExecuteCommand", async () => {
         // Курсор на пустой строке → префикс пуст, показываем всё; выбираем "root" (без command).
         const { controller, fake, onExecuteCommand } = setup(ITEMS, "", 0, "");
         await controller.trigger();
-        // root — третий; спустимся к нему.
-        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
-        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
-        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
+        // root — третий; спустимся к нему через selectNext.
+        controller.selectNext();
+        controller.selectNext();
+        controller.acceptSelected();
         expect(fake.applyExternalEdits).toHaveBeenCalledTimes(1);
         await Promise.resolve();
         expect(onExecuteCommand).not.toHaveBeenCalled();
     });
 
+    it("selectPrev двигает выбор вверх (делегат во view)", async () => {
+        const { controller } = setup(ITEMS, "", 0, "");
+        await controller.trigger();
+        controller.selectNext();
+        controller.selectNext();
+        expect(controller.view.selectedIndex).toBe(2);
+        controller.selectPrev();
+        expect(controller.view.selectedIndex).toBe(1);
+    });
+
     it("item.command без arguments исполняется c пустым списком аргументов", async () => {
-        const items: ICoreCompletionItem[] = [
-            { label: "only", insertText: "only", command: { command: "c.noargs" } },
-        ];
+        const items: ICoreCompletionItem[] = [{ label: "only", insertText: "only", command: { command: "c.noargs" } }];
         const { controller, onExecuteCommand } = setup(items, "", 0, "");
         await controller.trigger();
-        controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));
+        controller.acceptSelected();
         await Promise.resolve();
         expect(onExecuteCommand).toHaveBeenCalledWith("c.noargs");
+    });
+
+    // ─── Живой пересчёт (editor-focus) ──────────────────────────────────────
+
+    it("живо рефильтрует список при вводе в буфер (попап остаётся)", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        expect(controller.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
+        // Пользователь дописал в буфер "ent_st" — префикс "indent_st".
+        fake.emitChange({ character: 9, lineContent: "indent_st" });
+        expect(controller.isVisible()).toBe(true);
+        expect(controller.view.items.map((i) => i.label)).toEqual(["indent_style"]);
+    });
+
+    it("правка/каретка на другой строке → закрывается", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        fake.emitChange({ line: 1, character: 3 });
+        expect(controller.isVisible()).toBe(false);
+    });
+
+    it("каретка ушла со слова (пустой префикс) → закрывается", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        // Каретка после пробела — слова под курсором нет.
+        fake.emitChange({ character: 4, lineContent: "ind " });
+        expect(controller.isVisible()).toBe(false);
+    });
+
+    it("ничего не матчит новому префиксу → закрывается", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        fake.emitChange({ character: 3, lineContent: "zzz" });
+        expect(controller.isVisible()).toBe(false);
+    });
+
+    it("каретка уехала за пределы вьюпорта (anchor null) → закрывается", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        fake.emitChange({ character: 4, lineContent: "inde", caretAnchor: null });
+        expect(controller.isVisible()).toBe(false);
+    });
+
+    it("refresh после закрытия — no-op (подписки сняты, ничего не падает)", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        controller.close();
+        // Событие уже не должно ни на что влиять (guard editor===null / !isVisible).
+        expect(() => fake.emitChange({ character: 9, lineContent: "indent_st" })).not.toThrow();
+        expect(controller.isVisible()).toBe(false);
+    });
+
+    it("устаревший async-ответ (закрыли за время await) не открывает попап", async () => {
+        const { editor } = makeEditor("ind", 3, "ind");
+        let resolveItems: (v: readonly ICoreCompletionItem[]) => void = () => {};
+        const source = vi.fn(() => new Promise<readonly ICoreCompletionItem[]>((r) => (resolveItems = r)));
+        const controller = new CompletionController(makeGroup(editor, source));
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+
+        const pending = controller.trigger();
+        controller.close(); // инвалидирует requestSeq
+        resolveItems(ITEMS);
+        await pending;
+        expect(controller.isVisible()).toBe(false);
     });
 });

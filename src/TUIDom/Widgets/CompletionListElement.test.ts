@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import type { CompletionListItem } from "./CompletionListElement.ts";
@@ -21,10 +20,6 @@ const ITEMS: CompletionListItem[] = [
     { label: "insert_final_newline", kind: 4, data: 3 },
 ];
 
-function keydown(w: CompletionListElement, key: string): void {
-    w.dispatchEvent(new TUIKeyboardEvent("keydown", { key }));
-}
-
 function renderToString(w: CompletionListElement): string {
     const size = new Size(w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
     const backend = new MockTerminalBackend(size);
@@ -35,6 +30,9 @@ function renderToString(w: CompletionListElement): string {
     return backend.screenToString();
 }
 
+// Editor-focus модель: виджет — чистый рендер + выбор. Клавиатуру он больше не
+// обрабатывает (редактор сохраняет фокус); фильтр/выбор им управляет контроллер
+// через setFilter / selectNext / selectPrev.
 describe("CompletionListElement", () => {
     it("показывает все элементы без фильтра", () => {
         const w = makeWidget(ITEMS);
@@ -50,66 +48,22 @@ describe("CompletionListElement", () => {
         expect(w.items.map((i) => i.label)).toEqual(["insert_final_newline"]);
     });
 
-    it("↑/↓ двигают выбор с clamp (без wrap)", () => {
+    it("setItems переприменяет текущий фильтр", () => {
         const w = makeWidget(ITEMS);
-        keydown(w, "ArrowUp"); // уже на 0 — остаётся
+        w.setFilter("ind");
+        w.setItems([...ITEMS, { label: "indented", kind: 9, data: 4 }]);
+        expect(w.items.map((i) => i.label)).toEqual(["indent_style", "indent_size", "indented"]);
+    });
+
+    it("selectNext/selectPrev двигают выбор с clamp (без wrap)", () => {
+        const w = makeWidget(ITEMS);
+        w.selectPrev(); // уже на 0 — остаётся
         expect(w.selectedIndex).toBe(0);
-        keydown(w, "ArrowDown");
-        keydown(w, "ArrowDown");
+        w.selectNext();
+        w.selectNext();
         expect(w.getSelectedItem()?.label).toBe("insert_final_newline");
-        keydown(w, "ArrowDown"); // clamp на последнем
+        w.selectNext(); // clamp на последнем
         expect(w.selectedIndex).toBe(2);
-    });
-
-    it("Enter → onAccept с выбранным элементом", () => {
-        const w = makeWidget(ITEMS);
-        keydown(w, "ArrowDown");
-        let accepted: CompletionListItem | null = null;
-        w.onAccept = (item) => {
-            accepted = item;
-        };
-        keydown(w, "Enter");
-        expect(accepted).not.toBeNull();
-        expect(accepted!.data).toBe(2);
-    });
-
-    it("Tab тоже принимает", () => {
-        const w = makeWidget(ITEMS);
-        let accepted = false;
-        w.onAccept = () => {
-            accepted = true;
-        };
-        keydown(w, "Tab");
-        expect(accepted).toBe(true);
-    });
-
-    it("Escape → onCancel", () => {
-        const w = makeWidget(ITEMS);
-        let cancelled = false;
-        w.onCancel = () => {
-            cancelled = true;
-        };
-        keydown(w, "Escape");
-        expect(cancelled).toBe(true);
-    });
-
-    it("печатный символ сужает фильтр и шлёт onFilterChange", () => {
-        const w = makeWidget(ITEMS);
-        const filters: string[] = [];
-        w.onFilterChange = (f) => filters.push(f);
-        keydown(w, "f");
-        expect(w.filter).toBe("f");
-        expect(w.items.map((i) => i.label)).toEqual(["insert_final_newline"]);
-        keydown(w, "Backspace");
-        expect(w.filter).toBe("");
-        expect(w.items).toHaveLength(3);
-        expect(filters).toEqual(["f", ""]);
-    });
-
-    it("ctrl-комбинации не попадают в фильтр", () => {
-        const w = makeWidget(ITEMS);
-        w.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a", ctrlKey: true }));
-        expect(w.filter).toBe("");
     });
 
     it("рендерится с рамкой (углы ┌┐└┘, как у остальных оверлеев)", () => {
@@ -153,31 +107,24 @@ describe("CompletionListElement", () => {
         expect(out).toContain("ab");
     });
 
-    it("скроллит окно при навигации вниз и обратно вверх", () => {
+    it("скроллит окно при выборе вниз и обратно вверх", () => {
         const many = Array.from({ length: 15 }, (_, i) => ({ label: `item${i}`, data: i }));
         const w = makeWidget(many);
         w.maxVisibleItems = 5;
-        for (let i = 0; i < 9; i++) keydown(w, "ArrowDown"); // до index 9 — окно уехало вниз
+        for (let i = 0; i < 9; i++) w.selectNext(); // до index 9 — окно уехало вниз
         expect(w.selectedIndex).toBe(9);
         expect(renderToString(w)).toContain("item9");
-        for (let i = 0; i < 9; i++) keydown(w, "ArrowUp"); // назад к 0 — окно вверх
+        for (let i = 0; i < 9; i++) w.selectPrev(); // назад к 0 — окно вверх
         expect(w.selectedIndex).toBe(0);
         expect(renderToString(w)).toContain("item0");
     });
 
-    it("пустой список: навигация/Enter — no-op, Backspace на пустом фильтре безопасен", () => {
+    it("пустой список: selectNext — no-op, getSelectedItem — null", () => {
         const w = makeWidget(ITEMS);
         w.setFilter("zzzz"); // ничего не матчит
         expect(w.items).toHaveLength(0);
-        let accepted = false;
-        w.onAccept = () => {
-            accepted = true;
-        };
-        keydown(w, "ArrowDown"); // moveSelection на пустом — return
-        keydown(w, "Enter"); // getSelectedItem null — без accept
-        expect(accepted).toBe(false);
-        w.setFilter("");
-        keydown(w, "Backspace"); // фильтр пуст — no-op
-        expect(w.filter).toBe("");
+        w.selectNext(); // moveSelection на пустом — return
+        expect(w.selectedIndex).toBe(0);
+        expect(w.getSelectedItem()).toBeNull();
     });
 });

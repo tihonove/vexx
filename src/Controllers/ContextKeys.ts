@@ -70,7 +70,7 @@ export interface ContextKeyTypes {
 
     // -- Editor widget contexts --
     findWidgetVisible: boolean;
-    // suggestWidgetVisible: boolean;
+    suggestWidgetVisible: boolean;
     // suggestWidgetMultipleSuggestions: boolean;
     // renameInputVisible: boolean;
     // referenceSearchVisible: boolean;
@@ -204,7 +204,7 @@ export const allContextKeys: ContextKey[] = [
 
     // -- Editor widget contexts --
     "findWidgetVisible",
-    // "suggestWidgetVisible",
+    "suggestWidgetVisible",
     // "suggestWidgetMultipleSuggestions",
     // "renameInputVisible",
     // "referenceSearchVisible",

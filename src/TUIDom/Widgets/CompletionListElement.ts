@@ -2,8 +2,6 @@ import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { truncateEnd } from "../../Common/TextTruncation.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import type { TUIEventBase } from "../Events/TUIEventBase.ts";
-import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { kindIcon } from "./CompletionItemKindIcon.ts";
@@ -38,22 +36,17 @@ export interface CompletionListItem {
  * Компактный дропдаун автодополнения в стиле NvChad: рамка (углы `┌┐└┘` —
  * единый стиль с остальными оверлеями), выбранный ряд подсвечивается фоном (без
  * указателей), 1-ячейка паддинга от рамки, колонка codicon-иконки типа.
- * Собственной строки ввода нет — фильтр внутренний (набор символов сужает
- * список, не трогая буфер редактора).
  *
- * Клавиши (self-focused, `performDefaultAction`):
- *   ↑/↓            — навигация (clamp, без wrap)
- *   Enter / Tab    — `onAccept(item)`
- *   Escape         — `onCancel()`
- *   печатный / Backspace — правит внутренний `filter` → `onFilterChange`
+ * Чистый рендер списка + выбор (editor-focus модель, как в VS Code): виджет
+ * **не** забирает фокус и **не** обрабатывает клавиатуру — редактор сохраняет
+ * фокус, набор уходит в буфер, а {@link ../../Controllers/CompletionController}
+ * фильтрует список по префиксу из буфера ({@link setFilter}) и двигает выбор
+ * ({@link selectNext}/{@link selectPrev}) в ответ на перехваченные навигационные
+ * клавиши.
  */
 export class CompletionListElement extends TUIElement {
     public maxVisibleItems = 10;
     public preferredWidth = 40;
-
-    public onAccept: ((item: CompletionListItem) => void) | null = null;
-    public onCancel: (() => void) | null = null;
-    public onFilterChange: ((filter: string) => void) | null = null;
 
     private allItems: readonly CompletionListItem[] = [];
     private filteredItems: readonly CompletionListItem[] = [];
@@ -61,22 +54,12 @@ export class CompletionListElement extends TUIElement {
     private selectedIndexValue = 0;
     private scrollOffset = 0;
 
-    public constructor() {
-        super();
-        this.tabIndex = 0;
-    }
-
     // ─── Public API ──────────────────────────────────────────────────────────
 
     /** Задаёт полный набор элементов; переприменяет текущий фильтр. */
     public setItems(items: readonly CompletionListItem[]): void {
         this.allItems = items;
         this.applyFilter();
-    }
-
-    /** Текущий внутренний фильтр (префикс + добор в попапе). */
-    public get filter(): string {
-        return this.filterValue;
     }
 
     public setFilter(value: string): void {
@@ -225,44 +208,16 @@ export class CompletionListElement extends TUIElement {
         context.drawText(LABEL_X, rowY, labelText, { fg: rowFg, bg: rowBg }, { maxWidth: labelAvail });
     }
 
-    // ─── Keyboard ────────────────────────────────────────────────────────────
+    // ─── Selection ─────────────────────────────────────────────────────────────
 
-    protected override performDefaultAction(event: TUIEventBase): void {
-        if (event.type !== "keydown") return;
-        const keyEvent = event as TUIKeyboardEvent;
-        switch (keyEvent.key) {
-            case "ArrowDown":
-                event.preventDefault();
-                this.moveSelection(1);
-                return;
-            case "ArrowUp":
-                event.preventDefault();
-                this.moveSelection(-1);
-                return;
-            case "Enter":
-            case "Tab": {
-                event.preventDefault();
-                const item = this.getSelectedItem();
-                if (item !== null) this.onAccept?.(item);
-                return;
-            }
-            case "Escape":
-                event.preventDefault();
-                this.onCancel?.();
-                return;
-            case "Backspace":
-                event.preventDefault();
-                if (this.filterValue.length > 0) {
-                    this.setFilter(this.filterValue.slice(0, -1));
-                    this.onFilterChange?.(this.filterValue);
-                }
-                return;
-        }
-        if (keyEvent.key.length === 1 && !keyEvent.ctrlKey && !keyEvent.altKey && !keyEvent.metaKey) {
-            event.preventDefault();
-            this.setFilter(this.filterValue + keyEvent.key);
-            this.onFilterChange?.(this.filterValue);
-        }
+    /** Двигает выбор вниз на один элемент (clamp, без wrap). */
+    public selectNext(): void {
+        this.moveSelection(1);
+    }
+
+    /** Двигает выбор вверх на один элемент (clamp, без wrap). */
+    public selectPrev(): void {
+        this.moveSelection(-1);
     }
 
     private moveSelection(delta: number): void {

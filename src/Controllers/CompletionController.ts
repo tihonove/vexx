@@ -1,4 +1,5 @@
 import { Disposable } from "../Common/Disposable.ts";
+import type { IDisposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
 import type { IRange } from "../Editor/IRange.ts";
@@ -19,13 +20,27 @@ const WORD_CHAR = /[\w.-]/;
 /** `CompletionItemKind.Text` — для word-based элементов. */
 const KIND_TEXT = 0;
 
+/** Позиция каретки в буфере (0-based). */
+interface CaretPosition {
+    readonly line: number;
+    readonly character: number;
+}
+
 /**
- * Минимальный UI автодополнения ядра (WP8). По триггеру
+ * UI автодополнения ядра по **editor-focus** модели (как в VS Code). По триггеру
  * (`editor.action.triggerSuggest` / Ctrl+Space) запрашивает элементы у
- * `EditorGroupController.completionSource` (провайдеры расширений через host),
- * показывает {@link CompletionListElement} у каретки и вставляет выбранный
- * элемент. `item.command` исполняется через {@link onExecuteCommand}
- * (commands bridge). Построен по образцу `QuickOpenController`.
+ * `EditorGroupController.completionSource` (провайдеры расширений через host) +
+ * word-based fallback и показывает {@link CompletionListElement} у каретки как
+ * оверлей.
+ *
+ * Ключевое отличие от popup-focus: попап **не** забирает фокус/клавиатуру —
+ * редактор остаётся сфокусированным, набор символов идёт в буфер. Контроллер
+ * подписывается на изменения документа/курсора активного редактора и **живо
+ * рефильтрует** список по префиксу под кареткой, переезжает вслед за кареткой и
+ * закрывается, когда слово ушло из-под курсора. Навигация (↑/↓/Enter/Tab/Esc)
+ * перехватывается `AppController` через suggest-экшены (`when:
+ * suggestWidgetVisible`) и делегируется сюда ({@link selectNext} и т.д.).
+ * `item.command` исполняется через {@link onExecuteCommand} (commands bridge).
  */
 export class CompletionController extends Disposable {
     public readonly view: CompletionListElement;
@@ -37,25 +52,34 @@ export class CompletionController extends Disposable {
     private session: OverlaySessionHandle | null = null;
     private activeEditor: EditorController | null = null;
     private prefixRange: IRange | null = null;
+    /** Строка, на которой открыт попап; правка на другой строке — закрытие. */
+    private anchorLine = -1;
+    /** Кэш полного набора (фильтруем по префиксу из буфера без повторного запроса). */
+    private items: readonly ICoreCompletionItem[] = [];
+    /** Подписки на изменения активного редактора (живут пока попап открыт). */
+    private editorSubscriptions: IDisposable[] = [];
+    /** Инвалидирует in-flight async-запрос при закрытии/повторном триггере. */
+    private requestSeq = 0;
 
     public constructor(group: EditorGroupController) {
         super();
         this.group = group;
         this.view = new CompletionListElement();
-        this.view.onAccept = (item) => {
-            this.accept(item);
-        };
-        this.view.onCancel = () => {
-            this.close();
-        };
     }
 
     public setHostView(body: BodyElement): void {
         this.session = body.overlayLayer.createSession(this.view, new Point(0, 0), {
             visible: false,
-            restoreFocus: true,
-            capturesKeyboard: true,
+            // Editor-focus: попап не забирает фокус и не гасит клавиатуру —
+            // редактор продолжает получать ввод в буфер.
+            restoreFocus: false,
+            focusOnOpen: false,
+            capturesKeyboard: false,
+            // Клик мимо закрывает попап и доходит до редактора (перемещая каретку).
             pointerPolicy: "close-on-outside",
+            onClose: () => {
+                this.handleSessionClosed();
+            },
         });
         this.register({
             dispose: () => {
@@ -66,57 +90,167 @@ export class CompletionController extends Disposable {
     }
 
     /**
-     * Запрашивает автодополнения для текущей позиции курсора и показывает попап.
+     * Явный триггер автодополнения (Ctrl+Space / повторный вызов провайдером):
+     * запрашивает элементы для текущей позиции и показывает попап. При явном
+     * вызове показываем полный список, даже если префикс ничего не матчит.
      * No-op, если нет активного редактора, источника, или каретка вне вьюпорта.
      */
     public async trigger(): Promise<void> {
         const editor = this.group.getActiveEditor();
         if (editor === null) return;
 
-        const active = editor.viewState.selections[0].active;
-        const lineContent = editor.viewState.document.getLineContent(active.line);
-        const prefixStart = wordStart(lineContent, active.character);
-        const prefix = lineContent.slice(prefixStart, active.character);
+        const caret = getCaret(editor);
+        const lineContent = editor.viewState.document.getLineContent(caret.line);
+        const prefixStart = wordStart(lineContent, caret.character);
+        const prefix = lineContent.slice(prefixStart, caret.character);
 
-        // Провайдеры расширений (если подключён источник) + word-based fallback
-        // из всех открытых редакторов (как editor.wordBasedSuggestions в VS Code).
-        const source = this.group.completionSource;
-        const extensionItems = source
-            ? await source({
-                  fileName: editor.absoluteFilePath ?? "",
-                  languageId: editor.languageId,
-                  text: editor.getText(),
-                  line: active.line,
-                  character: active.character,
-              })
-            : [];
-        const items = [...extensionItems, ...this.wordItems(prefix, extensionItems)];
+        const seq = ++this.requestSeq;
+        const items = await this.computeItems(editor, prefix);
+        // Запрос устарел (закрыли/пере-триггерили за время await) — молча выходим.
+        if (seq !== this.requestSeq) return;
         if (items.length === 0) return;
 
         // Каретка могла уйти за время await — берём актуальный якорь.
         const anchor = editor.getCaretAnchor();
         if (anchor === null) return;
 
+        this.items = items;
         this.activeEditor = editor;
-        this.prefixRange = createRange(active.line, prefixStart, active.line, active.character);
+        this.anchorLine = caret.line;
+        this.prefixRange = createRange(caret.line, prefixStart, caret.line, caret.character);
 
         this.view.setItems(items.map(toListItem));
         this.view.setFilter(prefix);
-        // Если префикс отфильтровал всё — показываем полный список (можно добрать).
+        // Явный вызов: если префикс отфильтровал всё — показываем полный список.
         if (this.view.items.length === 0) this.view.setFilter("");
 
+        this.subscribeEditor(editor);
         this.session?.setAnchor(anchor);
         this.session?.open();
-        this.view.focus();
+        // NB: фокус НЕ передаём — редактор остаётся активным (editor-focus).
+    }
+
+    /** Виден ли попап (источник контекст-ключа `suggestWidgetVisible`). */
+    public isVisible(): boolean {
+        return this.session?.isOpen() === true;
+    }
+
+    /** ↓ — следующий элемент (делегат suggest-экшена). */
+    public selectNext(): void {
+        this.view.selectNext();
+    }
+
+    /** ↑ — предыдущий элемент (делегат suggest-экшена). */
+    public selectPrev(): void {
+        this.view.selectPrev();
+    }
+
+    /** Enter/Tab — принять выбранный элемент; при пустом списке просто закрыть. */
+    public acceptSelected(): void {
+        const item = this.view.getSelectedItem();
+        if (item === null) {
+            this.close();
+            return;
+        }
+        this.accept(item);
     }
 
     public close(): void {
-        if (this.session?.isOpen() === true) this.session.close();
+        // Инвалидируем любой in-flight запрос и снимаем подписки до закрытия
+        // сессии, чтобы наша же правка (accept) не пере-открыла попап.
+        this.requestSeq++;
+        this.unsubscribeEditor();
         this.activeEditor = null;
         this.prefixRange = null;
+        this.anchorLine = -1;
+        this.items = [];
+        if (this.session?.isOpen() === true) this.session.close();
     }
 
     // ─── Private ─────────────────────────────────────────────────────────────
+
+    /** Провайдеры расширений + word-based fallback для заданного префикса. */
+    private async computeItems(editor: EditorController, prefix: string): Promise<readonly ICoreCompletionItem[]> {
+        const caret = getCaret(editor);
+        const source = this.group.completionSource;
+        const extensionItems = source
+            ? await source({
+                  fileName: editor.absoluteFilePath ?? "",
+                  languageId: editor.languageId,
+                  text: editor.getText(),
+                  line: caret.line,
+                  character: caret.character,
+              })
+            : [];
+        return [...extensionItems, ...this.wordItems(prefix, extensionItems)];
+    }
+
+    /**
+     * Живой пересчёт при изменении документа/курсора: рефильтрует кэш по новому
+     * префиксу под кареткой и переезжает вслед за ней. Закрывается, когда слово
+     * ушло из-под курсора, правка ушла на другую строку, каретка вне вьюпорта
+     * или ничего больше не матчит.
+     */
+    private refresh = (): void => {
+        const editor = this.activeEditor;
+        /* v8 ignore start -- defensive: refresh снимается с подписки в close()/handleSessionClosed до обнуления activeEditor, поэтому с null сюда не входим */
+        if (editor === null) return;
+        /* v8 ignore stop */
+
+        const caret = getCaret(editor);
+        // Правка/каретка ушли на другую строку — попап уже не про это слово.
+        if (caret.line !== this.anchorLine) {
+            this.close();
+            return;
+        }
+
+        const lineContent = editor.viewState.document.getLineContent(caret.line);
+        const prefixStart = wordStart(lineContent, caret.character);
+        const prefix = lineContent.slice(prefixStart, caret.character);
+        // Каретка ушла со слова (пустой префикс) — закрываемся, как VS Code.
+        if (prefix === "") {
+            this.close();
+            return;
+        }
+
+        this.view.setFilter(prefix);
+        // Ни один элемент не подходит под набранное — прячем попап.
+        if (this.view.items.length === 0) {
+            this.close();
+            return;
+        }
+
+        // Каретка уехала за пределы вьюпорта (скролл) — прячем.
+        const anchor = editor.getCaretAnchor();
+        if (anchor === null) {
+            this.close();
+            return;
+        }
+
+        this.prefixRange = createRange(caret.line, prefixStart, caret.line, caret.character);
+        this.session?.setAnchor(anchor);
+    };
+
+    private subscribeEditor(editor: EditorController): void {
+        this.unsubscribeEditor();
+        this.editorSubscriptions.push(editor.onDidChangeContent(this.refresh));
+        this.editorSubscriptions.push(editor.onDidChangeCursorPosition(this.refresh));
+    }
+
+    private unsubscribeEditor(): void {
+        for (const sub of this.editorSubscriptions) sub.dispose();
+        this.editorSubscriptions = [];
+    }
+
+    /** Внешнее закрытие сессии (клик мимо и т.п.) — чистим состояние. */
+    private handleSessionClosed(): void {
+        this.requestSeq++;
+        this.unsubscribeEditor();
+        this.activeEditor = null;
+        this.prefixRange = null;
+        this.anchorLine = -1;
+        this.items = [];
+    }
 
     /**
      * Word-based элементы из текста всех открытых редакторов группы, без
@@ -153,6 +287,12 @@ export class CompletionController extends Disposable {
             });
         }
     }
+}
+
+/** Текущая позиция каретки активного редактора (0-based). */
+function getCaret(editor: EditorController): CaretPosition {
+    const active = editor.viewState.selections[0].active;
+    return { line: active.line, character: active.character };
 }
 
 /** Индекс начала «слова» под курсором (скан назад по {@link WORD_CHAR}). */

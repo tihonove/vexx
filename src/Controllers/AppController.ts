@@ -115,6 +115,7 @@ import {
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
 import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
+import { SUGGEST_NAV_COMMAND_IDS, suggestActions } from "./Actions/SuggestActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import {
     insertFinalNewLineAction,
@@ -263,6 +264,10 @@ const FOCUS_SCOPED_CONTEXT_KEYS = ["inputWidgetFocus", "textInputFocus", "listFo
 function isFocusScopedWhen(when: string | undefined): boolean {
     return when !== undefined && FOCUS_SCOPED_CONTEXT_KEYS.some((key) => when.includes(key));
 }
+
+// Suggest-навигационные команды — их AppController перехватывает в capture-фазе,
+// пока попап автодополнения видим (editor-focus модель). См. interceptSuggestNavigation.
+const SUGGEST_NAV_COMMANDS = new Set<string>(SUGGEST_NAV_COMMAND_IDS);
 
 // Modifier keys that arrive as standalone keydowns (Kitty protocol). They must
 // not break or advance an in-progress chord.
@@ -494,6 +499,32 @@ export class AppController extends Disposable implements IController {
                 },
                 "Trigger Suggest",
             ),
+        );
+        // Suggest-навигация: registerAction ставит кейбинды (down/up/enter/tab/esc,
+        // when: suggestWidgetVisible) + плейсхолдеры; здесь подменяем обработчики
+        // на делегаты контроллера (Map.set replaces), как у triggerSuggest.
+        for (const action of suggestActions) {
+            this.register(registerAction(commands, keybindings, accessor, action));
+        }
+        this.register(
+            commands.register("selectNextSuggestion", () => this.completionController.selectNext(), "Select Next Suggestion"),
+        );
+        this.register(
+            commands.register(
+                "selectPrevSuggestion",
+                () => this.completionController.selectPrev(),
+                "Select Previous Suggestion",
+            ),
+        );
+        this.register(
+            commands.register(
+                "acceptSelectedSuggestion",
+                () => this.completionController.acceptSelected(),
+                "Accept Selected Suggestion",
+            ),
+        );
+        this.register(
+            commands.register("hideSuggestWidget", () => this.completionController.close(), "Hide Suggest Widget"),
         );
         this.register(
             registerAction(commands, keybindings, accessor, {
@@ -823,12 +854,45 @@ export class AppController extends Disposable implements IController {
     // continuation key never leaks into the editor, matched or not.
     private handleKeyDownCapture = (event: TUIKeyboardEvent): void => {
         this.observeExtendedKeys(event);
-        if (this.keybindings.pendingLength === 0) return; // not in a chord — let the bubble handler run
-        if (isModifierKey(event.key)) return; // holding a modifier must not break the chord
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        this.dispatchKey(event);
+        if (this.keybindings.pendingLength > 0) {
+            if (isModifierKey(event.key)) return; // holding a modifier must not break the chord
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            this.dispatchKey(event);
+            return;
+        }
+        // Editor-focus completion: пока попап видим, перехватываем навигационные
+        // клавиши в capture-фазе — раньше собственных keydown/keypress редактора
+        // (Tab/Enter) и обычного bubble-диспатча. Остальное падает в редактор как
+        // обычный ввод в буфер.
+        if (this.completionController.isVisible() && !isModifierKey(event.key)) {
+            this.interceptSuggestNavigation(event);
+        }
     };
+
+    /**
+     * While the suggest popup is visible, resolve the key against the bindings and,
+     * if it maps to a suggest-navigation command (↑↓/Enter/Tab/Esc, gated by
+     * `when: suggestWidgetVisible`), run it here and stop the event — so the editor
+     * never types the Enter/Tab or moves the caret behind the popup. Non-navigation
+     * keys fall through untouched to the editor (ordinary buffer input).
+     */
+    private interceptSuggestNavigation(event: TUIKeyboardEvent): void {
+        this.updateContextKeys();
+        const res = this.keybindings.resolveKey(event, this.contextKeys);
+        if (res.kind === "command" && SUGGEST_NAV_COMMANDS.has(res.commandId) && this.commands.has(res.commandId)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            // Enter/Tab синтезируют парный keypress — глушим его, чтобы редактор не
+            // вставил перевод строки/таб (у стрелок и Esc keypress нет).
+            if (event.key === "Enter" || event.key === "Tab") this.swallowNextKeyPress = true;
+            this.commands.execute(res.commandId);
+            return;
+        }
+        // Не suggest-команда: resolveKey мог начать аккорд — сбрасываем, чтобы
+        // обычный bubble-диспатч пере-разрешил клавишу с чистого листа.
+        this.keybindings.resetPending();
+    }
 
     /**
      * Promote the terminal tier off `legacy` the moment a CSI-u key actually arrives — the only
@@ -1030,6 +1094,7 @@ export class AppController extends Disposable implements IController {
         this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
         this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
+        this.contextKeys.set("suggestWidgetVisible", this.completionController.isVisible());
 
         // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
         // but mode can be force-toggled at runtime, so refresh alongside focus context.
