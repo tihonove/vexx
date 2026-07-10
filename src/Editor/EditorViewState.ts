@@ -36,6 +36,12 @@ export class EditorViewState {
     public scrollTop = 0;
     public viewportWidth = 80;
     public viewportHeight = 24;
+    /**
+     * Minimum number of lines to keep visible between the primary cursor and the
+     * top/bottom edge of the viewport when scrolling it into view (VS Code's
+     * `editor.cursorSurroundingLines`). `0` glues the cursor to the very edge.
+     */
+    public cursorSurroundingLines = 0;
     public tabSize = 4;
     public insertSpaces = false;
     public detectIndentation = true;
@@ -852,6 +858,34 @@ export class EditorViewState {
         this.revealPosition(range.start);
     }
 
+    /** Number of logical lines in the underlying document. */
+    public get lineCount(): number {
+        return this.document.lineCount;
+    }
+
+    /** 0-based line of the primary cursor (0 when there is no selection). */
+    public get primaryCursorLine(): number {
+        return this.selections[0]?.active.line ?? 0;
+    }
+
+    /** 0-based character offset of the primary cursor (0 when there is no selection). */
+    public get primaryCursorColumn(): number {
+        return this.selections[0]?.active.character ?? 0;
+    }
+
+    /**
+     * Moves the primary cursor to (`line`, `character`) — both 0-based — clamping
+     * to document/line bounds, collapsing any selection, and revealing the target
+     * (expanding a fold that hides it). Used by Go-to-Line navigation.
+     */
+    public goToPosition(line: number, character = 0): void {
+        const clampedLine = Math.max(0, Math.min(line, this.document.lineCount - 1));
+        const clampedChar = Math.max(0, Math.min(character, this.document.getLineLength(clampedLine)));
+        this.selections = [createCursorSelection(clampedLine, clampedChar)];
+        this.ensureLineVisible(clampedLine);
+        this.revealPosition(this.selections[0].active);
+    }
+
     /**
      * Restores selections from a saved snapshot (used by UndoManager).
      */
@@ -874,10 +908,17 @@ export class EditorViewState {
         const visualLine = this.logicalToVisualLine(pos.line);
         if (visualLine < 0) return;
 
-        if (visualLine < this.scrollTop) {
-            this.scrollTop = visualLine;
-        } else if (visualLine >= this.scrollTop + this.viewportHeight) {
-            this.scrollTop = visualLine - this.viewportHeight + 1;
+        // Keep `margin` lines between the cursor and the top/bottom edge so the
+        // cursor "steps back" from the edge (VS Code's `cursorSurroundingLines`).
+        // Cap the margin at half the viewport, otherwise the two edges collide
+        // and the cursor could be pushed out of view.
+        const maxMargin = Math.floor((this.viewportHeight - 1) / 2);
+        const margin = Math.max(0, Math.min(this.cursorSurroundingLines, maxMargin));
+
+        if (visualLine < this.scrollTop + margin) {
+            this.scrollTop = Math.max(0, visualLine - margin);
+        } else if (visualLine > this.scrollTop + this.viewportHeight - 1 - margin) {
+            this.scrollTop = visualLine - this.viewportHeight + 1 + margin;
         }
 
         const lineContent = this.document.getLineContent(pos.line);

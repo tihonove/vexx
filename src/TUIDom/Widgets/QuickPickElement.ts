@@ -4,8 +4,10 @@ import { abbreviatePath, truncateEnd } from "../../Common/TextTruncation.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { BORDER } from "./BorderGlyphs.ts";
 import { InputElement } from "./InputElement.ts";
 
 // ─── Colors ─────────────────────────────────────────────────────────────────
@@ -162,6 +164,50 @@ export class QuickPickElement extends TUIElement {
                     break;
             }
         });
+    }
+
+    // ─── Mouse ──────────────────────────────────────────────────────────────
+
+    protected override performDefaultAction(event: TUIEventBase): void {
+        if (event.type === "mousemove") {
+            this.handleMouseMove(event as TUIMouseEvent);
+        } else if (event.type === "click") {
+            this.handleClick(event as TUIMouseEvent);
+        } else {
+            super.performDefaultAction(event);
+        }
+    }
+
+    /** Follow the mouse: hovering a list row moves the selection onto it (VS Code behavior). */
+    private handleMouseMove(event: TUIMouseEvent): void {
+        const index = this.itemIndexFromLocalY(event.localY);
+        if (index === null || index === this.selectedIndexValue) return;
+        this.selectedIndexValue = index;
+        this.markDirty();
+    }
+
+    /** Clicking a list row selects it and accepts it, mirroring Enter. */
+    private handleClick(event: TUIMouseEvent): void {
+        if (event.button !== "left") return;
+        const index = this.itemIndexFromLocalY(event.localY);
+        if (index === null) return;
+        this.selectedIndexValue = index;
+        this.markDirty();
+        if (this.validationMessage !== null && this.validationSeverity === "error") return;
+        this.onAccept?.(this.itemsValue[index], index);
+    }
+
+    /**
+     * Maps a y offset local to this element onto an item index, or null when it
+     * falls outside the visible list rows (border, input, message, separator).
+     */
+    private itemIndexFromLocalY(localY: number): number | null {
+        if (this.visibleItemCount === 0) return null;
+        const bodyTop = this.messageRow !== null ? 3 : 2;
+        const firstRowY = bodyTop + 1; // border/input/[message]/separator then rows
+        const row = localY - firstRowY;
+        if (row < 0 || row >= this.visibleItemCount) return null;
+        return this.scrollOffset + row;
     }
 
     // ─── Public API ─────────────────────────────────────────────────────────
@@ -328,11 +374,11 @@ export class QuickPickElement extends TUIElement {
         }
 
         // ── Top border (with optional centered title) ─────────────────────────
-        context.setCell(0, 0, { char: "┌", fg: BORDER_FG, bg: BG });
+        context.setCell(0, 0, { char: BORDER.topLeft, fg: BORDER_FG, bg: BG });
         for (let x = 1; x < w - 1; x++) {
             context.setCell(x, 0, { char: "─", fg: BORDER_FG, bg: BG });
         }
-        context.setCell(w - 1, 0, { char: "┐", fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, 0, { char: BORDER.topRight, fg: BORDER_FG, bg: BG });
         if (this.title !== undefined && this.title !== "") {
             this.renderTitle(context, w);
         }
@@ -373,18 +419,18 @@ export class QuickPickElement extends TUIElement {
 
             // ── Bottom border ─────────────────────────────────────────────────
             const bottomY = h - 1;
-            context.setCell(0, bottomY, { char: "└", fg: BORDER_FG, bg: BG });
+            context.setCell(0, bottomY, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
             for (let x = 1; x < w - 1; x++) {
                 context.setCell(x, bottomY, { char: "─", fg: BORDER_FG, bg: BG });
             }
-            context.setCell(w - 1, bottomY, { char: "┘", fg: BORDER_FG, bg: BG });
+            context.setCell(w - 1, bottomY, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
         } else {
             // ── Bottom border (no items) ──────────────────────────────────────
-            context.setCell(0, bodyTop, { char: "└", fg: BORDER_FG, bg: BG });
+            context.setCell(0, bodyTop, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
             for (let x = 1; x < w - 1; x++) {
                 context.setCell(x, bodyTop, { char: "─", fg: BORDER_FG, bg: BG });
             }
-            context.setCell(w - 1, bodyTop, { char: "┘", fg: BORDER_FG, bg: BG });
+            context.setCell(w - 1, bodyTop, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
         }
     }
 
@@ -420,13 +466,15 @@ export class QuickPickElement extends TUIElement {
         const rowFg = isSelected ? this.activeSelectionFg : FG;
 
         // ── Row background ────────────────────────────────────────────────────
-        for (let x = 0; x < w; x++) {
+        // Fill only the interior; the border columns keep the box background so
+        // the selection highlight never bleeds onto the frame (see issue #94).
+        for (let x = 1; x < w - 1; x++) {
             context.setCell(x, rowY, { char: " ", fg: rowFg, bg: rowBg });
         }
 
         // ── Side borders ──────────────────────────────────────────────────────
-        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: rowBg });
-        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: rowBg });
+        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: BG });
 
         let x = 2;
 

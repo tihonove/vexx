@@ -424,10 +424,10 @@ describe("MenuBarElement", () => {
             // Menu bar: 2-char spacer then " File " item (spacer aligns with Explorer heading)
             expect(backend.getTextAt(new Point(0, 0), 9)).toBe("   File  ");
             // Popup is positioned below the active item which is shifted right by the 2-char spacer
-            expect(backend.getTextAt(new Point(2, 1), 8)).toBe("┌──────┐");
+            expect(backend.getTextAt(new Point(2, 1), 8)).toBe("╭──────╮");
             expect(backend.getTextAt(new Point(2, 2), 8)).toBe("│ New  │");
             expect(backend.getTextAt(new Point(2, 3), 8)).toBe("│ Open │");
-            expect(backend.getTextAt(new Point(2, 4), 8)).toBe("└──────┘");
+            expect(backend.getTextAt(new Point(2, 4), 8)).toBe("╰──────╯");
         });
 
         it("navigates dropdown with ArrowDown", () => {

@@ -114,7 +114,7 @@ import {
     listFocusPageDownAction,
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
-import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
+import { gotoLineAction, quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import {
     insertFinalNewLineAction,
@@ -330,6 +330,7 @@ export class AppController extends Disposable implements IController {
     private contextKeys: ContextKeyService;
     private inputWidgetController: InputWidgetController;
     private themeService: ThemeService;
+    private menuBar: MenuBarElement | null = null;
     private terminalEnv: TerminalEnvironmentService;
     private armory: ModifierReleaseArmory;
     private chordTimer: ReturnType<typeof setTimeout> | null = null;
@@ -430,6 +431,9 @@ export class AppController extends Disposable implements IController {
         this.quickOpenController.onExecuteCommand = (id, ...args) => {
             this.commands.execute(id, ...args);
         };
+        // Go-to-Line targets the active editor (read lazily, so a `file:line`
+        // accept jumps in the editor opened by the same accept).
+        this.quickOpenController.getActiveEditor = () => this.editorGroupController.getActiveEditor();
 
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
@@ -469,6 +473,14 @@ export class AppController extends Disposable implements IController {
         );
         this.register(
             registerAction(commands, keybindings, accessor, {
+                ...gotoLineAction,
+                run: () => {
+                    this.quickOpenController.open("line");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
                 ...fileSaveAsAction,
                 run: () => {
                     void this.runSaveAs();
@@ -493,6 +505,28 @@ export class AppController extends Disposable implements IController {
                     void this.completionController.trigger();
                 },
                 "Trigger Suggest",
+            ),
+        );
+        // fileSaveAction registers the ctrl+s keybinding + placeholder in the
+        // builtinActions loop; override just the command handler here (Map.set
+        // replaces it) so the keybinding is not registered twice. The override
+        // routes through a conflict-aware flow that can pop the overwrite dialog.
+        this.register(
+            commands.register(
+                "workbench.action.files.save",
+                () => {
+                    void this.runSave();
+                },
+                "File: Save",
+            ),
+        );
+        this.register(
+            commands.register(
+                "workbench.files.action.refreshFilesExplorer",
+                () => {
+                    void this.fileTreeController.refresh();
+                },
+                "File: Refresh Explorer",
             ),
         );
         this.register(
@@ -743,7 +777,10 @@ export class AppController extends Disposable implements IController {
             this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
                 /* v8 ignore stop */
                 onSave: () => {
-                    void editor.save().then(() => {
+                    // Explicit "Save" while closing a modified tab: honour the
+                    // user's edits even against an external change (overwrite),
+                    // so choosing Save never silently drops their work.
+                    void editor.save({ overwrite: true }).then(() => {
                         this.editorGroupController.closeTab(index);
                     });
                 },
@@ -815,6 +852,7 @@ export class AppController extends Disposable implements IController {
         this.confirmDialog?.applyTheme(theme);
         this.aboutDialog?.applyTheme(theme);
         this.findController.applyTheme(theme);
+        this.menuBar?.applyTheme(theme);
         this.workbenchLayout.setSashHoverColor(theme.getColor("sash.hoverBorder"));
     }
 
@@ -1120,6 +1158,7 @@ export class AppController extends Disposable implements IController {
                 mnemonic: "g",
                 entries: [
                     item("Go to File...", "workbench.action.quickOpen"),
+                    item("Go to Line/Column...", "workbench.action.gotoLine"),
                     sep(),
                     item("Next Editor", "workbench.action.nextEditorInGroup"),
                     item("Previous Editor", "workbench.action.previousEditorInGroup"),
@@ -1135,6 +1174,8 @@ export class AppController extends Disposable implements IController {
         ];
 
         const menuBar = new MenuBarElement(menuItems);
+        menuBar.applyTheme(this.themeService.theme);
+        this.menuBar = menuBar;
         this.view.setMenuBar(menuBar);
     }
 
@@ -1310,6 +1351,44 @@ export class AppController extends Disposable implements IController {
     }
 
     /**
+     * Explicit Save (Ctrl+S / menu). Saves the active editor; if the file was
+     * modified on disk by another process since it was opened, the write is
+     * blocked (to avoid clobbering the parallel changes) and an Overwrite/Cancel
+     * dialog is shown instead — mirroring VS Code's dirty-write protection.
+     */
+    private async runSave(): Promise<void> {
+        const editor = this.editorGroupController.getActiveEditor();
+        if (editor === null) return;
+        const outcome = await editor.save();
+        if (outcome === "conflict") {
+            /* v8 ignore start -- defensive: editors opened via openFile() always have a file path, so fileName is never null */
+            const name = editor.fileName ?? "untitled";
+            /* v8 ignore stop */
+            this.showConfirmDialog(
+                {
+                    title: "Overwrite",
+                    message: [
+                        `The file "${name}" has been changed on disk.`,
+                        "Do you want to overwrite the version on disk with your changes?",
+                    ],
+                    confirmLabel: "Overwrite",
+                    cancelLabel: "Cancel",
+                    defaultButton: "cancel",
+                },
+                {
+                    onConfirm: () => {
+                        void editor.save({ overwrite: true }).then(() => {
+                            this.statusBarController.update();
+                        });
+                    },
+                },
+            );
+            return;
+        }
+        this.statusBarController.update();
+    }
+
+    /**
      * Save As flow: prompt for a target path (InputBox), confirm overwrite if a
      * different file already exists, then write via {@link EditorController.saveAs}.
      */
@@ -1458,9 +1537,20 @@ export class AppController extends Disposable implements IController {
                     this.commands.execute("fileOperations.deleteFile", filePath);
                 },
             },
+            { type: "separator" },
+            {
+                // Re-read the directory contents from disk (external changes the
+                // live watcher might have missed — network shares, ignored paths).
+                label: "Refresh Explorer",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("workbench.files.action.refreshFilesExplorer");
+                },
+            },
         );
 
         const menu = new PopupMenuElement(entries);
+        menu.applyTheme(this.themeService.theme);
         menu.tabIndex = 0;
 
         let session: OverlaySessionHandle | null = null;
@@ -1536,7 +1626,9 @@ export class AppController extends Disposable implements IController {
         this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
             /* v8 ignore stop */
             onSave: () => {
-                void editor.save().then(() => {
+                // Explicit "Save" during quit: overwrite so the user's edits win
+                // over an external change (choosing Save must not drop their work).
+                void editor.save({ overwrite: true }).then(() => {
                     if (rest.length === 0) {
                         this.doQuit(accessor);
                     } else {

@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import type { IThemeFile } from "../Theme/IThemeFile.ts";
+import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
@@ -118,6 +121,23 @@ describe("EditorElement — right-click context menu", () => {
         fireMouseDown(editor, 10, 0, "right");
 
         expect(app.root.overlayLayer.getItems().length).toBe(1);
+    });
+
+    it("applies menuTheme colors to the context menu popup", () => {
+        const { app, editor } = createEditor("hello world");
+        const theme = WorkbenchTheme.fromThemeFile({
+            colors: { "menu.background": "#123456" },
+        } as unknown as IThemeFile);
+        editor.menuTheme = theme;
+        editor.contextMenuEntries = [{ label: "Copy" }];
+
+        fireMouseDown(editor, 5, 0, "right");
+        app.render();
+
+        const item = app.root.overlayLayer.getItems()[0];
+        // Top-left rounded corner cell carries the themed menu.background.
+        const bg = app.backend.getBgAt(new Point(item.position.x, item.position.y));
+        expect(bg).toBe(packRgb(0x12, 0x34, 0x56));
     });
 
     it("popup is positioned at the click coordinates", () => {

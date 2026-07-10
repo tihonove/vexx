@@ -76,16 +76,16 @@ describe("gutter rendering", () => {
         expect(backend.getTextAt(new Point(0, 11), 5)).toBe("  12 ");
     });
 
-    it("renders tildes past end of document with empty gutter", () => {
+    it("renders empty gutter and content past end of document (no tildes)", () => {
         const { app } = createEditor("One\nTwo", 15, 5);
         app.render();
 
         const backend = app.backend;
-        // Lines 0,1 have content; lines 2,3,4 should have empty gutter + tilde
+        // Lines 0,1 have content; lines 2,3,4 should be fully blank (no vim-style tildes)
         // gutterWidth = 4
-        expect(backend.getTextAt(new Point(0, 2), 5)).toBe("    ~");
-        expect(backend.getTextAt(new Point(0, 3), 5)).toBe("    ~");
-        expect(backend.getTextAt(new Point(0, 4), 5)).toBe("    ~");
+        expect(backend.getTextAt(new Point(0, 2), 5)).toBe("     ");
+        expect(backend.getTextAt(new Point(0, 3), 5)).toBe("     ");
+        expect(backend.getTextAt(new Point(0, 4), 5)).toBe("     ");
     });
 
     it("renders content shifted right by gutterWidth", () => {
@@ -106,8 +106,8 @@ describe("gutter rendering", () => {
         expect(backend.getTextAt(new Point(0, 0), 10)).toBe("  1 AB    ");
         expect(backend.getTextAt(new Point(0, 1), 10)).toBe("  2 CD    ");
         expect(backend.getTextAt(new Point(0, 2), 10)).toBe("  3 EF    ");
-        expect(backend.getTextAt(new Point(0, 3), 10)).toBe("    ~     ");
-        expect(backend.getTextAt(new Point(0, 4), 10)).toBe("    ~     ");
+        expect(backend.getTextAt(new Point(0, 3), 10)).toBe("          ");
+        expect(backend.getTextAt(new Point(0, 4), 10)).toBe("          ");
     });
 });
 
@@ -231,8 +231,8 @@ describe("content area rendering", () => {
         const backend = app.backend;
         // Line 0: "  1 " gutter + empty content
         expect(backend.getTextAt(new Point(0, 0), 4)).toBe("  1 ");
-        // Past end: tildes
-        expect(backend.getTextAt(new Point(4, 1), 1)).toBe("~");
+        // Past end: fully blank, no tildes
+        expect(backend.getTextAt(new Point(4, 1), 1)).toBe(" ");
     });
 
     it("correctly shows selection background in content area", () => {
@@ -282,7 +282,7 @@ describe("scrolling", () => {
             expect(backend.getTextAt(new Point(5, 1), 5)).toBe("Line5");
         });
 
-        it("shows tildes when scrolled near end of document", () => {
+        it("shows blank rows when scrolled near end of document", () => {
             const { app, editor } = createEditor(tenLines, 20, 4);
             editor.viewState.scrollTop = 8;
             app.render();
@@ -291,9 +291,9 @@ describe("scrolling", () => {
             // Lines 9,10 are visible + 2 rows past end
             expect(backend.getTextAt(new Point(0, 0), 5)).toBe("   9 ");
             expect(backend.getTextAt(new Point(0, 1), 5)).toBe("  10 ");
-            // Past end — empty gutter + tilde
-            expect(backend.getTextAt(new Point(0, 2), 6)).toBe("     ~");
-            expect(backend.getTextAt(new Point(0, 3), 6)).toBe("     ~");
+            // Past end — fully blank gutter + content, no tildes
+            expect(backend.getTextAt(new Point(0, 2), 6)).toBe("      ");
+            expect(backend.getTextAt(new Point(0, 3), 6)).toBe("      ");
         });
 
         it("highlights active line number after scroll", () => {

@@ -64,6 +64,7 @@ export default defineConfig({
 
         // --- Непокрываемо юнит-тестами (есть e2e) ---
         "src/Backend/NodeTerminalBackend.ts", // реальный tty/stdin/stdout
+        "src/Controllers/ChokidarFileWatcher.ts", // реальный fs-watcher (chokidar), e2e
         "src/Common/IsSea.ts", // node:sea, только в SEA-бинаре
         "src/Common/Assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
         "src/Extensions/Host/ExtensionHostSubprocess.ts", // точка входа subprocess + IPC

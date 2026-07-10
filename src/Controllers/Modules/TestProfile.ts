@@ -14,6 +14,7 @@ import { commandsModule } from "./CommandsModule.ts";
 import { configurationModuleDefault } from "./ConfigurationModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModuleLate } from "./CoreModule.ts";
+import { fileWatcherModuleDefault } from "./FileWatcherModule.ts";
 import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 import { loggingModuleDefault } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
@@ -52,6 +53,7 @@ export function createTestContainer(): TestContainerHandle {
         .use(terminalEnvironmentModule, { backend: new MockTerminalBackend() })
         .use(keybindingsModuleDefault)
         .use(workspaceModule)
+        .use(fileWatcherModuleDefault)
         .use(controllersModule);
 
     return {

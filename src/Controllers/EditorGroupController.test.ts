@@ -17,6 +17,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
+import { NULL_FILE_WATCHER } from "./IFileWatcher.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function createEditorGroupController(
@@ -35,6 +36,7 @@ function createEditorGroupController(
         overrides.languageService ?? NULL_LANGUAGE_SERVICE,
         overrides.configurationService ?? NULL_CONFIGURATION_SERVICE,
         new UndoRedoService(),
+        NULL_FILE_WATCHER,
     );
 }
 
@@ -540,6 +542,18 @@ describe("EditorGroupController", () => {
             const editor = ctrl.getActiveEditor()!;
             expect(editor.viewState.tabSize).toBe(2);
             expect(editor.viewState.insertSpaces).toBe(true);
+        });
+
+        it("seeds cursorSurroundingLines from the configuration service", () => {
+            const ctrl = createEditorGroupController({
+                configurationService: stubConfigurationService({
+                    "editor.cursorSurroundingLines": 5,
+                }),
+            });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+
+            expect(ctrl.getActiveEditor()!.viewState.cursorSurroundingLines).toBe(5);
         });
     });
 

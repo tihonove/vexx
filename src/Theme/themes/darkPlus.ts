@@ -31,7 +31,7 @@ export const darkPlusTheme: IThemeFile = {
         "activityBar.foreground": "#FFFFFF",
 
         // ── Side Bar ────────────────────────────────────
-        "sideBar.background": "#2D2D2D",
+        "sideBar.background": "#252526",
         "sideBar.foreground": "#CCCCCC",
 
         // ── Title Bar ───────────────────────────────────

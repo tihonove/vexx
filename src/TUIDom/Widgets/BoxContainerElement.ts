@@ -4,6 +4,8 @@ import type { JsxChild } from "../JSX/jsx-runtime.ts";
 import { normalizeChildren, reconcileChildren } from "../JSX/reconcile.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
+import { BORDER } from "./BorderGlyphs.ts";
+
 export interface BoxContainerProps {
     bg?: number;
     fg?: number;
@@ -133,9 +135,9 @@ export class BoxContainerElement extends TUIElement {
         }
 
         // Top border
-        context.setCell(0, 0, { char: "┌", fg: this.borderFg, bg: this.bg });
+        context.setCell(0, 0, { char: BORDER.topLeft, fg: this.borderFg, bg: this.bg });
         for (let x = 1; x < w - 1; x++) context.setCell(x, 0, { char: "─", fg: this.borderFg, bg: this.bg });
-        context.setCell(w - 1, 0, { char: "┐", fg: this.borderFg, bg: this.bg });
+        context.setCell(w - 1, 0, { char: BORDER.topRight, fg: this.borderFg, bg: this.bg });
 
         // Side borders
         for (let y = 1; y < h - 1; y++) {
@@ -144,9 +146,9 @@ export class BoxContainerElement extends TUIElement {
         }
 
         // Bottom border
-        context.setCell(0, h - 1, { char: "└", fg: this.borderFg, bg: this.bg });
+        context.setCell(0, h - 1, { char: BORDER.bottomLeft, fg: this.borderFg, bg: this.bg });
         for (let x = 1; x < w - 1; x++) context.setCell(x, h - 1, { char: "─", fg: this.borderFg, bg: this.bg });
-        context.setCell(w - 1, h - 1, { char: "┘", fg: this.borderFg, bg: this.bg });
+        context.setCell(w - 1, h - 1, { char: BORDER.bottomRight, fg: this.borderFg, bg: this.bg });
 
         // Title row (y=1)
         if (this.title) {

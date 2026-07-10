@@ -116,7 +116,7 @@ describe("loadConfiguration", () => {
 
     it("getValue returns nested subtree", async () => {
         const cfg = await loadConfiguration(paths());
-        expect(cfg.getValue("editor")).toEqual({ tabSize: 4, insertSpaces: true });
+        expect(cfg.getValue("editor")).toEqual({ tabSize: 4, insertSpaces: true, cursorSurroundingLines: 3 });
     });
 
     it("onDidChangeConfiguration returns a disposable no-op subscription", async () => {

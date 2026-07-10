@@ -583,20 +583,20 @@ export interface IWorkbenchColors {
     // "menubar.selectionBackground"?: number;
     // /** Border color of the selected menu item in the menubar. */
     // "menubar.selectionBorder"?: number;
-    // /** Foreground color of menu items. */
-    // "menu.foreground"?: number;
-    // /** Background color of menu items. */
-    // "menu.background"?: number;
-    // /** Foreground color of the selected menu item in menus. */
-    // "menu.selectionForeground"?: number;
-    // /** Background color of the selected menu item in menus. */
-    // "menu.selectionBackground"?: number;
+    /** Foreground color of menu items. */
+    "menu.foreground"?: number;
+    /** Background color of menu items. */
+    "menu.background"?: number;
+    /** Foreground color of the selected menu item in menus. */
+    "menu.selectionForeground"?: number;
+    /** Background color of the selected menu item in menus. */
+    "menu.selectionBackground"?: number;
     // /** Border color of the selected menu item in menus. */
     // "menu.selectionBorder"?: number;
-    // /** Color of a separator menu item in menus. */
-    // "menu.separatorBackground"?: number;
-    // /** Border color of menus. */
-    // "menu.border"?: number;
+    /** Color of a separator menu item in menus. */
+    "menu.separatorBackground"?: number;
+    /** Border color of menus. */
+    "menu.border"?: number;
 
     // ── Command Center colors ───────────────────────────────
     // /** Foreground color of the Command Center. */

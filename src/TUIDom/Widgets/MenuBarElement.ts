@@ -1,4 +1,5 @@
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
@@ -28,6 +29,16 @@ export class MenuBarElement extends TUIElement {
     private hflex: HFlexElement;
     private previousFocusedElement: TUIElement | null = null;
     private parentMnemonicHandler: ((event: TUIKeyboardEvent) => void) | null = null;
+    private currentTheme: WorkbenchTheme | null = null;
+
+    /**
+     * Кэширует активную тему, чтобы прокинуть её цвета `menu.*` в дропдаун,
+     * который меню-бар создаёт при открытии (сам виджет полосы не тематизируется).
+     */
+    public applyTheme(theme: WorkbenchTheme): void {
+        this.currentTheme = theme;
+        this.activeMenu?.applyTheme(theme);
+    }
 
     private updateItemActiveStates(): void {
         for (let i = 0; i < this.itemElements.length; i++) {
@@ -49,6 +60,12 @@ export class MenuBarElement extends TUIElement {
                     this.closePopup();
                 } else {
                     this.focus();
+                    this.openMenu(index);
+                }
+            };
+            // While a menu is open, hovering another top-level item switches to it (VS Code behavior).
+            el.onHover = () => {
+                if (this.activeMenu && this.activeIndex !== index) {
                     this.openMenu(index);
                 }
             };
@@ -227,6 +244,9 @@ export class MenuBarElement extends TUIElement {
         this.activeIndex = index;
         this.updateItemActiveStates();
         const menu = new PopupMenuElement(wrappedEntries);
+        if (this.currentTheme) {
+            menu.applyTheme(this.currentTheme);
+        }
         this.activeMenu = menu;
 
         const layer = this.getOverlayLayer();

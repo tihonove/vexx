@@ -20,6 +20,7 @@ import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { EditorController } from "./EditorController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FindController } from "./FindController.ts";
+import { NULL_FILE_WATCHER } from "./IFileWatcher.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function makeGroup(): EditorGroupController {
@@ -31,6 +32,7 @@ function makeGroup(): EditorGroupController {
         NULL_LANGUAGE_SERVICE,
         NULL_CONFIGURATION_SERVICE,
         new UndoRedoService(),
+        NULL_FILE_WATCHER,
     );
 }
 
@@ -138,9 +140,9 @@ describe("FindController", () => {
 
         // 1-col margin: the group's last column stays empty, the corner sits just inside it.
         expect(charAt(groupWidth - 1)).toBe(" ");
-        expect(charAt(groupWidth - 2)).toBe("┐");
+        expect(charAt(groupWidth - 2)).toBe("╮");
         // Top-left corner lands exactly widgetW columns to the left of the corner.
-        expect(charAt(groupWidth - 1 - widgetW)).toBe("┌");
+        expect(charAt(groupWidth - 1 - widgetW)).toBe("╭");
     });
 
     it("seeds the query from a single-line selection on open", () => {
