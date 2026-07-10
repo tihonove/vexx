@@ -358,6 +358,11 @@ export class EditorGroupController extends Disposable implements IController {
      * `setIndentOptions` оставит существующее значение (auto-detect и т.п.).
      */
     private applyConfigurationToEditor(editor: EditorController): void {
+        // `editor.occurrencesHighlight`: "off" disables; "singleFile"/"multiFile"
+        // (and unset → VS Code default) enable. We only support single-file scope.
+        const occurrencesHighlight = this.configurationService.get<string>("editor.occurrencesHighlight");
+        editor.setOccurrenceHighlightEnabled(occurrencesHighlight !== "off");
+
         const tabSize = this.configurationService.get<number>("editor.tabSize");
         const insertSpaces = this.configurationService.get<boolean>("editor.insertSpaces");
         if (tabSize === undefined && insertSpaces === undefined) return;

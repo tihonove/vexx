@@ -426,6 +426,16 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
+     * Enables/disables highlighting occurrences of the word under the cursor
+     * (VS Code `editor.occurrencesHighlight`). Repaints so the change is visible.
+     */
+    public setOccurrenceHighlightEnabled(enabled: boolean): void {
+        if (this.editor.occurrenceHighlightEnabled === enabled) return;
+        this.editor.occurrenceHighlightEnabled = enabled;
+        this.editor.markDirty();
+    }
+
+    /**
      * Sets the search-match decorations rendered by the editor and repaints.
      * `currentIndex` is the active match (highlighted distinctly), or -1.
      */
@@ -462,6 +472,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.gutterBackground = theme.getColor("editorGutter.background") ?? bg;
         this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
         this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
+        this.editor.occurrenceHighlightBackground = theme.getColor("editor.wordHighlightBackground");
     }
 
     /**

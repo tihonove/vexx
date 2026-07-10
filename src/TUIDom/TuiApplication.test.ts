@@ -108,6 +108,7 @@ describe("TuiApplication", () => {
         const doc = new TextDocument("hello");
         const viewState = new EditorViewState(doc);
         const editor = new EditorElement(viewState);
+        editor.occurrenceHighlightEnabled = false; // isolate selection-bg clearing from word highlighting
         const body = new BodyElement();
         body.setContent(editor);
         app.root = body;

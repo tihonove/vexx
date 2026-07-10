@@ -80,6 +80,7 @@ describe("EditorElement — token rendering edge cases", () => {
         const viewState = new EditorViewState(doc);
         viewState.tokenStore = new DocumentTokenStore(doc, new EmptyTokenizer());
         const editor = new EditorElement(viewState);
+        editor.occurrenceHighlightEnabled = false; // isolate token-bg fallback from word highlighting
         editor.tokenStyleResolver = new FullStyleResolver();
         const app = TestApp.createWithContent(editor, new Size(30, 4));
         app.render();
@@ -96,6 +97,7 @@ describe("EditorElement — token rendering edge cases", () => {
         const viewState = new EditorViewState(doc);
         viewState.tokenStore = new DocumentTokenStore(doc, new WholeLineTokenizer());
         const editor = new EditorElement(viewState);
+        editor.occurrenceHighlightEnabled = false; // isolate token-bg from word highlighting
         editor.tokenStyleResolver = new FullStyleResolver();
         const app = TestApp.createWithContent(editor, new Size(30, 4));
         app.render();

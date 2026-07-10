@@ -13,6 +13,7 @@ import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
+import { computeWordOccurrences } from "./computeWordOccurrences.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import type { ILineTokens, IToken } from "./ILineTokens.ts";
 import type { IRange } from "./IRange.ts";
@@ -26,6 +27,10 @@ const SELECTION_BG = packRgb(38, 79, 120);
 // Find-in-file highlights: all matches get a dim background; the current match a brighter one.
 const FIND_MATCH_BG = packRgb(98, 91, 23);
 const FIND_MATCH_CURRENT_BG = packRgb(168, 109, 0);
+// Occurrences of the word under the cursor. Opaque approximation of VS Code's
+// `editor.wordHighlightBackground` (#575757b8) composited over the editor bg.
+const DEFAULT_OCCURRENCE_HIGHLIGHT_BG = packRgb(71, 71, 71);
+const NO_RANGES: readonly IRange[] = [];
 const GUTTER_LEFT_PADDING = 2;
 
 const DEFAULT_LINE_NUMBER_FG = packRgb(133, 133, 133);
@@ -67,10 +72,15 @@ export class EditorElement extends TUIElement implements IScrollable {
     public gutterBackground: number | undefined;
     public lineNumberForeground: number | undefined;
     public lineNumberActiveForeground: number | undefined;
+    /** Background used to highlight occurrences of the word under the cursor. */
+    public occurrenceHighlightBackground: number | undefined;
+    /** Whether to highlight occurrences of the word under the cursor (VS Code `editor.occurrencesHighlight`). */
+    public occurrenceHighlightEnabled = true;
 
     public contextMenuEntries: MenuEntry[] = [];
 
     private contentWidthCache: { versionId: number; value: number } | null = null;
+    private occurrenceCache: { versionId: number; line: number; character: number; ranges: IRange[] } | null = null;
     private activeContextMenuSession: OverlaySessionHandle | null = null;
 
     public get contentHeight(): number {
@@ -311,6 +321,13 @@ export class EditorElement extends TUIElement implements IScrollable {
             gutterW,
         };
 
+        // Highlight all occurrences of the word under the cursor (weakest layer,
+        // painted first so selections and search matches win where they overlap).
+        const occurrenceBg = this.occurrenceHighlightBackground ?? DEFAULT_OCCURRENCE_HIGHLIGHT_BG;
+        for (const range of this.getOccurrenceHighlights()) {
+            this.paintRangeBackground(context, range, occurrenceBg, geometry);
+        }
+
         // Highlight all search matches except the current one (drawn under selections).
         const searchMatches = this.viewState.searchMatches;
         const currentMatchIndex = this.viewState.currentSearchMatchIndex;
@@ -377,6 +394,37 @@ export class EditorElement extends TUIElement implements IScrollable {
                 context.setCell(geo.gutterW + screenX, screenY, { bg });
             }
         }
+    }
+
+    /**
+     * Ranges of every occurrence of the word under the primary cursor. Empty
+     * when disabled or when the primary selection is not collapsed (no
+     * highlight while text is selected — that mirrors VS Code, where a
+     * selection switches to the separate selection-highlight feature).
+     *
+     * Cached by document version + caret position so re-renders triggered by
+     * unrelated changes don't rescan the document.
+     */
+    private getOccurrenceHighlights(): readonly IRange[] {
+        if (!this.occurrenceHighlightEnabled) return NO_RANGES;
+        const primary = this.viewState.selections[0];
+        if (!isSelectionCollapsed(primary)) return NO_RANGES;
+
+        const doc = this.viewState.document;
+        const pos = primary.active;
+        const cache = this.occurrenceCache;
+        if (
+            cache !== null &&
+            cache.versionId === doc.versionId &&
+            cache.line === pos.line &&
+            cache.character === pos.character
+        ) {
+            return cache.ranges;
+        }
+
+        const ranges = computeWordOccurrences(doc, pos);
+        this.occurrenceCache = { versionId: doc.versionId, line: pos.line, character: pos.character, ranges };
+        return ranges;
     }
 
     private handleWheel(event: TUIMouseEvent): void {
