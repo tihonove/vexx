@@ -20,6 +20,8 @@ import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
+import type { IFileWatcher } from "./IFileWatcher.ts";
+import { IFileWatcherDIToken } from "./IFileWatcher.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
@@ -38,6 +40,7 @@ export class EditorGroupController extends Disposable implements IController {
         LanguageServiceDIToken,
         IConfigurationServiceDIToken,
         UndoRedoServiceDIToken,
+        IFileWatcherDIToken,
     ] as const;
 
     public readonly view: EditorGroupElement;
@@ -66,6 +69,7 @@ export class EditorGroupController extends Disposable implements IController {
     private languageService: ILanguageService;
     private configurationService: IConfigurationService;
     private undoRedoService: UndoRedoService;
+    private fileWatcher: IFileWatcher;
     private activeEditorListeners: ((editor: EditorController | null) => void)[] = [];
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
     private saveParticipantValue?: SaveParticipant;
@@ -128,6 +132,7 @@ export class EditorGroupController extends Disposable implements IController {
         languageService: ILanguageService,
         configurationService: IConfigurationService,
         undoRedoService: UndoRedoService,
+        fileWatcher: IFileWatcher,
     ) {
         super();
         this.themeService = themeService;
@@ -136,6 +141,7 @@ export class EditorGroupController extends Disposable implements IController {
         this.languageService = languageService;
         this.configurationService = configurationService;
         this.undoRedoService = undoRedoService;
+        this.fileWatcher = fileWatcher;
         this.view = new EditorGroupElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -187,9 +193,19 @@ export class EditorGroupController extends Disposable implements IController {
                 this.undoRedoService,
             ),
         );
+        // Наблюдатель ставим до openFile, чтобы слежение началось с первой загрузки.
+        editor.fileWatcher = this.fileWatcher;
         editor.openFile(filePath);
         editor.saveParticipant = this.saveParticipantValue;
         this.applyConfigurationToEditor(editor);
+        // Внешнее изменение файла (авто-перечитка чистого буфера / флаг конфликта
+        // для «грязного») отражаем в табах: перечитка меняет контент, конфликт —
+        // маркер модифицированности.
+        this.register(
+            editor.onDidChangeDiskState(() => {
+                this.syncTabs();
+            }),
+        );
         this.onEditorCreate?.(editor);
         this.register(
             editor.onDidChangeContent(() => {

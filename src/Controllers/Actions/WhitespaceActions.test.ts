@@ -17,6 +17,7 @@ import { registerAction } from "../CommandAction.ts";
 import { CommandRegistry } from "../CommandRegistry.ts";
 import { EditorGroupController } from "../EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
 import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 
@@ -34,6 +35,7 @@ function createGroup(): EditorGroupController {
         NULL_LANGUAGE_SERVICE,
         NULL_CONFIGURATION_SERVICE,
         new UndoRedoService(),
+        NULL_FILE_WATCHER,
     );
 }
 

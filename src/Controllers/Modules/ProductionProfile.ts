@@ -16,6 +16,7 @@ import { commandsModule } from "./CommandsModule.ts";
 import { configurationModule } from "./ConfigurationModule.ts";
 import { controllersModule } from "./ControllersModule.ts";
 import { coreModule } from "./CoreModule.ts";
+import { fileWatcherModule } from "./FileWatcherModule.ts";
 import { extensionHostModule } from "./ExtensionHostModule.ts";
 import { keybindingsModule } from "./KeybindingsModule.ts";
 import { loggingModule } from "./LoggingModule.ts";
@@ -56,6 +57,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
         .use(terminalEnvironmentModule, { backend: ctx.backend })
         .use(keybindingsModule, { rules: ctx.userKeybindings })
         .use(workspaceModule)
+        .use(fileWatcherModule)
         .use(controllersModule)
         .use(extensionHostModule);
 }

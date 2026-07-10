@@ -17,6 +17,7 @@ import type { CommandAction } from "../CommandAction.ts";
 import { registerAction } from "../CommandAction.ts";
 import { CommandRegistry } from "../CommandRegistry.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
 import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
@@ -34,6 +35,7 @@ function openEditor(content: string) {
         NULL_LANGUAGE_SERVICE,
         NULL_CONFIGURATION_SERVICE,
         new UndoRedoService(),
+        NULL_FILE_WATCHER,
     );
     ctrl.mount();
     const filePath = path.join(tmpDir, "doc.txt");

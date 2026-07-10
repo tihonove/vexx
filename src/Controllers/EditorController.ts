@@ -30,9 +30,23 @@ import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts"
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
+import type { IFileWatcher } from "./IFileWatcher.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");
+
+/**
+ * Итог сохранения. `conflict` — файл на диске изменился внешним процессом с
+ * момента открытия/последней записи, и запись отменена (чтобы не затереть
+ * параллельные правки); повторить с `{ overwrite: true }`.
+ */
+export type SaveOutcome = "saved" | "conflict" | "no-file";
+
+/** Снимок метаданных файла на диске для детекта внешних изменений (mtime + размер). */
+interface IDiskStat {
+    mtimeMs: number;
+    size: number;
+}
 
 export class EditorController extends Disposable implements IController {
     public static dependencies = [
@@ -57,9 +71,20 @@ export class EditorController extends Disposable implements IController {
     private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
     private eolSubscription: IDisposable | null = null;
     private eolChangeListeners: (() => void)[] = [];
+    private contentSubscription: IDisposable | null = null;
+    private contentChangeListeners: (() => void)[] = [];
     private filePath: string | null = null;
     private savedVersionId = 0;
     private savedEol: EndOfLine;
+    /**
+     * Метаданные файла на момент последнего чтения/записи. Сверяя их с текущим
+     * stat, мы отличаем внешнее изменение файла от собственной записи и от
+     * «файл не трогали». `null` — файла не было на диске при открытии.
+     */
+    private diskStat: IDiskStat | null = null;
+    private diskConflictValue = false;
+    private diskStateListeners: (() => void)[] = [];
+    private fileWatch: IDisposable | null = null;
     private readonly tokenizationRegistry: TokenizationRegistry;
     private readonly tokenStyleResolver: ITokenStyleResolver;
     private readonly languageService: ILanguageService;
@@ -83,6 +108,38 @@ export class EditorController extends Disposable implements IController {
     public onDidSave?: () => void;
 
     /**
+     * Наблюдатель за файлами (инъектируется группой перед openFile). Когда задан,
+     * контроллер следит за открытым файлом и реагирует на внешние изменения
+     * (авто-перечитка чистого буфера, флаг конфликта для «грязного»). По
+     * умолчанию `null` — без live-watch (юнит-тесты, если фейк не подставлен).
+     */
+    public fileWatcher: IFileWatcher | null = null;
+
+    /**
+     * `true`, если файл изменился на диске внешним процессом, а в буфере есть
+     * несохранённые правки (авто-перечитать нельзя — затрём пользователя). При
+     * следующем сохранении это приведёт к диалогу подтверждения перезаписи.
+     */
+    public get hasDiskConflict(): boolean {
+        return this.diskConflictValue;
+    }
+
+    /**
+     * Событие смены «дискового» состояния редактора: файл перечитан с диска
+     * (чистый буфер) либо взведён/снят флаг конфликта. Подписка живёт на
+     * контроллере и переживает пересоздание документа в openFile.
+     */
+    public onDidChangeDiskState(listener: () => void): IDisposable {
+        this.diskStateListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.diskStateListeners.indexOf(listener);
+                if (i >= 0) this.diskStateListeners.splice(i, 1);
+            },
+        };
+    }
+
+    /**
      * Save-участник (`onWillSaveTextDocument`): вызывается перед записью на диск,
      * возвращает undoable-правки (trim/insert-final-newline/EOL из editorconfig).
      * Инъектируется извне (EditorGroupController ← host/харнесс); ядро не знает
@@ -91,7 +148,13 @@ export class EditorController extends Disposable implements IController {
     public saveParticipant?: SaveParticipant;
 
     public onDidChangeContent(listener: () => void): IDisposable {
-        return this.doc.onDidChangeContent(listener);
+        this.contentChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.contentChangeListeners.indexOf(listener);
+                if (i >= 0) this.contentChangeListeners.splice(i, 1);
+            },
+        };
     }
 
     public onDidChangeCursorPosition(listener: () => void): IDisposable {
@@ -202,6 +265,8 @@ export class EditorController extends Disposable implements IController {
             dispose: () => {
                 this.languageSubscription?.dispose();
                 this.eolSubscription?.dispose();
+                this.contentSubscription?.dispose();
+                this.fileWatch?.dispose();
             },
         });
         // Очищаем историю отмены этого файла при закрытии вкладки.
@@ -210,7 +275,18 @@ export class EditorController extends Disposable implements IController {
 
     public openFile(filePath: string): void {
         this.filePath = filePath;
+        this.loadDocumentFromDisk(filePath);
+        this.startWatchingFile(filePath);
+    }
+
+    /**
+     * Читает файл с диска в свежий документ/view-state (сбрасывает undo, курсор,
+     * токен-кеш). Общий путь для {@link openFile} и {@link revertToDisk}.
+     * Обновляет снимок `diskStat` и снимает флаг конфликта.
+     */
+    private loadDocumentFromDisk(filePath: string): void {
         const content = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : "";
+        this.diskStat = this.readDiskStat(filePath);
         this.doc = new TextDocument(content, this.resolveLanguageId(filePath));
         this.editorViewState = new EditorViewState(this.doc);
         this.tokenStore.dispose();
@@ -225,11 +301,19 @@ export class EditorController extends Disposable implements IController {
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
         this.savedEol = this.doc.eol;
+        this.diskConflictValue = false;
         this.bindDocumentListeners();
     }
 
-    public async save(): Promise<void> {
-        if (this.filePath === null) return;
+    public async save(options?: { overwrite?: boolean }): Promise<SaveOutcome> {
+        if (this.filePath === null) return "no-file";
+        // Защита от затирания параллельных правок: если файл на диске изменился
+        // внешним процессом с момента открытия/последней записи — не пишем, а
+        // сообщаем о конфликте. Повторный вызов с overwrite: true форсит запись.
+        if (options?.overwrite !== true && this.hasExternalChange(this.filePath)) {
+            this.setDiskConflict(true);
+            return "conflict";
+        }
         // Когда участник не задан — до writeFileSync нет ни одного await, запись
         // остаётся синхронной в текущем тике (вызовы save() без await работают).
         const participant = this.saveParticipant;
@@ -237,9 +321,23 @@ export class EditorController extends Disposable implements IController {
             await this.runSaveParticipant(participant, this.filePath);
         }
         fs.writeFileSync(this.filePath, this.doc.serialize(), "utf-8");
+        this.diskStat = this.readDiskStat(this.filePath);
         this.savedVersionId = this.doc.versionId;
         this.savedEol = this.doc.eol;
+        this.setDiskConflict(false);
         this.onDidSave?.();
+        return "saved";
+    }
+
+    /**
+     * Перечитывает файл с диска, отбрасывая несохранённые правки (аналог
+     * `Revert File` в VS Code). Используется авто-перечиткой чистого буфера при
+     * внешнем изменении и вручную. Возвращает `false`, если файла нет.
+     */
+    public revertToDisk(): boolean {
+        if (this.filePath === null) return false;
+        this.loadDocumentFromDisk(this.filePath);
+        return true;
     }
 
     /**
@@ -336,10 +434,69 @@ export class EditorController extends Disposable implements IController {
             await this.runSaveParticipant(participant, newPath);
         }
         fs.writeFileSync(newPath, this.doc.serialize(), "utf-8");
+        this.diskStat = this.readDiskStat(newPath);
         this.doc.setLanguage(this.resolveLanguageId(newPath));
         this.savedVersionId = this.doc.versionId;
         this.savedEol = this.doc.eol;
+        this.setDiskConflict(false);
+        this.startWatchingFile(newPath);
         this.onDidSave?.();
+    }
+
+    /** Читает stat файла (mtime + размер) или `null`, если файла нет/недоступен. */
+    private readDiskStat(filePath: string): IDiskStat | null {
+        try {
+            const stat = fs.statSync(filePath);
+            return { mtimeMs: stat.mtimeMs, size: stat.size };
+        } catch {
+            return null;
+        }
+    }
+
+    /**
+     * Изменился ли файл на диске внешним процессом с момента последней
+     * синхронизации (`diskStat`). Сверяем mtime и размер — этого достаточно,
+     * чтобы поймать чужую запись и не спутать её с собственной. Отсутствие файла
+     * (удалён/недоступен) не считаем конфликтом: `save` просто пересоздаст его.
+     */
+    private hasExternalChange(filePath: string): boolean {
+        if (this.diskStat === null) return false;
+        const current = this.readDiskStat(filePath);
+        if (current === null) return false;
+        return current.mtimeMs !== this.diskStat.mtimeMs || current.size !== this.diskStat.size;
+    }
+
+    /** (Пере)подписывается на внешние изменения текущего файла через `fileWatcher`. */
+    private startWatchingFile(filePath: string): void {
+        this.fileWatch?.dispose();
+        this.fileWatch = this.fileWatcher?.watchFile(filePath, () => this.handleExternalFileChange(filePath)) ?? null;
+    }
+
+    /**
+     * Реакция на сигнал watcher'а. Собственную запись отсеиваем сверкой stat
+     * (после save `diskStat` уже обновлён). Реальное внешнее изменение: чистый
+     * буфер — тихо перечитываем с диска (как VS Code); «грязный» — взводим флаг
+     * конфликта, чтобы предупредить при сохранении. Удаление/недоступность
+     * игнорируем (частый промежуточный шаг атомарной записи чужим редактором).
+     */
+    private handleExternalFileChange(filePath: string): void {
+        if (!this.hasExternalChange(filePath)) return;
+        if (this.isModified) {
+            this.setDiskConflict(true);
+        } else {
+            this.revertToDisk();
+            this.fireDiskStateChange();
+        }
+    }
+
+    private setDiskConflict(value: boolean): void {
+        if (this.diskConflictValue === value) return;
+        this.diskConflictValue = value;
+        this.fireDiskStateChange();
+    }
+
+    private fireDiskStateChange(): void {
+        for (const listener of [...this.diskStateListeners]) listener();
     }
 
     public getText(): string {
@@ -500,6 +657,13 @@ export class EditorController extends Disposable implements IController {
         this.eolSubscription?.dispose();
         this.eolSubscription = this.doc.onDidChangeEol(() => {
             for (const listener of [...this.eolChangeListeners]) listener();
+        });
+        // Контент-подписка тоже ретранслируется через уровень контроллера, чтобы
+        // пережить пересоздание документа (revertToDisk перечитывает диск в новый
+        // TextDocument — прямые подписки на старый doc иначе бы протухли).
+        this.contentSubscription?.dispose();
+        this.contentSubscription = this.doc.onDidChangeContent(() => {
+            for (const listener of [...this.contentChangeListeners]) listener();
         });
     }
 }
