@@ -259,6 +259,36 @@ describe("FileTreeDataProvider", () => {
                 provider.unwatchDirectory(path.join(tmpDir, "never-watched"));
             }).not.toThrow();
         });
+
+        it("survives a watcher 'error' (e.g. ENOSPC) instead of crashing", async () => {
+            // Регрессия на исходный краш: chokidar при исчерпании лимита inotify делает
+            // emit('error'); без слушателя 'error' EventEmitter бросил бы исключение из
+            // своих async-потрохов, оно всплыло бы как unhandledRejection и убило процесс.
+            const onWatchError = vi.fn();
+            provider.onWatchError = onWatchError;
+
+            provider.watchDirectory(tmpDir);
+            await new Promise((r) => setTimeout(r, 300)); // дать chokidar устояться
+
+            const watchers = (
+                provider as unknown as {
+                    watchers: Map<string, { emit(event: string, ...args: unknown[]): boolean }>;
+                }
+            ).watchers;
+            const watcher = watchers.get(tmpDir);
+            expect(watcher).toBeDefined();
+
+            const err = Object.assign(new Error("ENOSPC: watch limit reached"), { code: "ENOSPC" });
+
+            // Эмит 'error' НЕ должен бросать (иначе — краш процесса).
+            expect(() => watcher?.emit("error", err)).not.toThrow();
+
+            // Ошибка проброшена наверх с путём каталога и объектом ошибки.
+            expect(onWatchError).toHaveBeenCalledWith(tmpDir, err);
+
+            // Неудавшийся watcher убран из карты — повторное раскрытие сможет попробовать снова.
+            expect(watchers.has(tmpDir)).toBe(false);
+        });
     });
 
     describe("debounce timer lifecycle", () => {
