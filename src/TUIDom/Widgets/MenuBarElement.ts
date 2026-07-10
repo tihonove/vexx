@@ -63,6 +63,12 @@ export class MenuBarElement extends TUIElement {
                     this.openMenu(index);
                 }
             };
+            // While a menu is open, hovering another top-level item switches to it (VS Code behavior).
+            el.onHover = () => {
+                if (this.activeMenu && this.activeIndex !== index) {
+                    this.openMenu(index);
+                }
+            };
             this.hflex.addChild(el, { width: hflexFit(), height: 1 });
             return el;
         });

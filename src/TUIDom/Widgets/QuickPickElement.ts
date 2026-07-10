@@ -4,6 +4,7 @@ import { abbreviatePath, truncateEnd } from "../../Common/TextTruncation.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { BORDER } from "./BorderGlyphs.ts";
@@ -163,6 +164,50 @@ export class QuickPickElement extends TUIElement {
                     break;
             }
         });
+    }
+
+    // ─── Mouse ──────────────────────────────────────────────────────────────
+
+    protected override performDefaultAction(event: TUIEventBase): void {
+        if (event.type === "mousemove") {
+            this.handleMouseMove(event as TUIMouseEvent);
+        } else if (event.type === "click") {
+            this.handleClick(event as TUIMouseEvent);
+        } else {
+            super.performDefaultAction(event);
+        }
+    }
+
+    /** Follow the mouse: hovering a list row moves the selection onto it (VS Code behavior). */
+    private handleMouseMove(event: TUIMouseEvent): void {
+        const index = this.itemIndexFromLocalY(event.localY);
+        if (index === null || index === this.selectedIndexValue) return;
+        this.selectedIndexValue = index;
+        this.markDirty();
+    }
+
+    /** Clicking a list row selects it and accepts it, mirroring Enter. */
+    private handleClick(event: TUIMouseEvent): void {
+        if (event.button !== "left") return;
+        const index = this.itemIndexFromLocalY(event.localY);
+        if (index === null) return;
+        this.selectedIndexValue = index;
+        this.markDirty();
+        if (this.validationMessage !== null && this.validationSeverity === "error") return;
+        this.onAccept?.(this.itemsValue[index], index);
+    }
+
+    /**
+     * Maps a y offset local to this element onto an item index, or null when it
+     * falls outside the visible list rows (border, input, message, separator).
+     */
+    private itemIndexFromLocalY(localY: number): number | null {
+        if (this.visibleItemCount === 0) return null;
+        const bodyTop = this.messageRow !== null ? 3 : 2;
+        const firstRowY = bodyTop + 1; // border/input/[message]/separator then rows
+        const row = localY - firstRowY;
+        if (row < 0 || row >= this.visibleItemCount) return null;
+        return this.scrollOffset + row;
     }
 
     // ─── Public API ─────────────────────────────────────────────────────────

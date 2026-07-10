@@ -47,7 +47,8 @@ export class PopupMenuElement extends TUIElement {
         const config = this.computeConfig();
         this.vstack = new VStackElement();
 
-        for (const entry of entries) {
+        for (let i = 0; i < entries.length; i++) {
+            const entry = entries[i];
             if (isSeparator(entry)) {
                 const separator = new PopupMenuSeparatorElement(this.colors);
                 this.separatorElements.push(separator);
@@ -55,6 +56,8 @@ export class PopupMenuElement extends TUIElement {
             } else {
                 const item = new PopupMenuItemElement(entry.label, config, entry.shortcut, entry.icon, this.colors);
                 item.onSelect = entry.onSelect;
+                const entryIndex = i;
+                item.onHover = () => this.selectByEntryIndex(entryIndex);
                 this.itemElements.push(item);
                 this.vstack.addChild(item, { width: "stretch", height: 1 });
             }
@@ -209,6 +212,16 @@ export class PopupMenuElement extends TUIElement {
                 itemIndex++;
             }
         }
+    }
+
+    /**
+     * Moves the selection onto the item at the given entry index. Only called
+     * from item hover callbacks, so `index` is always a selectable entry.
+     */
+    private selectByEntryIndex(index: number): void {
+        if (index === this.selectedIndex) return;
+        this.selectedIndex = index;
+        this.updateItemSelectedStates();
     }
 
     private moveSelection(direction: number): void {
