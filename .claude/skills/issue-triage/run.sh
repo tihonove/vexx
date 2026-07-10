@@ -55,16 +55,22 @@ launch() {
   fi
 
   # Per-worker launcher avoids tmux quoting hell.
+  # Interactive claude (not -p): the pane shows a live TUI you can attach to and steer.
+  # The worker signals completion by touching its sentinel as its final action (instructed
+  # in the prompt); if the session ever exits without one, we drop a fallback sentinel so
+  # the pool never stalls.
   runner="$RUN_DIR/run-$slug.sh"
   cat > "$runner" <<EOF
 #!/usr/bin/env bash
 cd '$wt' || { echo "no worktree" > '$sentinel'; exit 1; }
-claude -p --dangerously-skip-permissions "\$(cat '$abs_prompt')" 2>&1 | tee -a '$log'
-echo \${PIPESTATUS[0]} > '$sentinel'
+claude --dangerously-skip-permissions "\$(cat '$abs_prompt')"
+[ -f '$sentinel' ] || echo "exited-without-sentinel" > '$sentinel'
 EOF
   chmod +x "$runner"
 
   tmux new-window -t "$TMUX_SESSION" -n "$slug" "bash '$runner'"
+  # Capture the live pane to a log without breaking the interactive TUI.
+  tmux pipe-pane -t "$TMUX_SESSION:$slug" -o "cat >> '$log'" >/dev/null 2>&1 || true
   tmux set-window-option -t "$TMUX_SESSION:$slug" remain-on-exit on >/dev/null 2>&1 || true
   echo "launched: $slug (branch $branch, worktree $wt)"
 }

@@ -37,6 +37,7 @@ export V_REFS="$refs"
 export V_TITLE="$primary_title"
 export V_NUMBER="$PRIMARY"
 export V_BODY="$body"
+export V_SENTINEL="$RUN_DIR/sentinels/${SLUG}.done"
 
 python3 - <<'PY'
 import os
@@ -46,6 +47,7 @@ repl = {
     "{{TITLE}}":        os.environ["V_TITLE"],
     "{{ISSUE_NUMBER}}": os.environ["V_NUMBER"],
     "{{BODY}}":         os.environ["V_BODY"],
+    "{{SENTINEL}}":     os.environ["V_SENTINEL"],
 }
 s = open(os.environ["TEMPLATE"], encoding="utf-8").read()
 for k, v in repl.items():
