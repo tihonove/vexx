@@ -420,13 +420,15 @@ export class QuickPickElement extends TUIElement {
         const rowFg = isSelected ? this.activeSelectionFg : FG;
 
         // ── Row background ────────────────────────────────────────────────────
-        for (let x = 0; x < w; x++) {
+        // Fill only the interior; the border columns keep the box background so
+        // the selection highlight never bleeds onto the frame (see issue #94).
+        for (let x = 1; x < w - 1; x++) {
             context.setCell(x, rowY, { char: " ", fg: rowFg, bg: rowBg });
         }
 
         // ── Side borders ──────────────────────────────────────────────────────
-        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: rowBg });
-        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: rowBg });
+        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: BG });
+        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: BG });
 
         let x = 2;
 
