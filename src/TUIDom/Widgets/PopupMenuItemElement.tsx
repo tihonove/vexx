@@ -24,6 +24,8 @@ export class PopupMenuItemElement extends CompositeElement {
     public readonly shortcut: string | undefined;
     public readonly icon: string | undefined;
     public onSelect?: () => void;
+    /** Fired when the mouse moves over this item — used to follow the cursor with the selection. */
+    public onHover?: () => void;
     private readonly config: PopupMenuItemConfig;
     private selectedValue = false;
 
@@ -37,6 +39,12 @@ export class PopupMenuItemElement extends CompositeElement {
         this.addEventListener("click", (event) => {
             if (event.defaultPrevented) return;
             this.onSelect?.();
+        });
+
+        // Follow the mouse: hovering an item moves the menu selection onto it (VS Code behavior).
+        this.addEventListener("mousemove", (event) => {
+            if (event.defaultPrevented) return;
+            this.onHover?.();
         });
 
         this.rebuild();

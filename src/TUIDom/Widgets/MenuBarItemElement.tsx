@@ -16,6 +16,8 @@ export class MenuBarItemElement extends CompositeElement {
     public readonly label: string;
     public readonly mnemonic: string | undefined;
     public onActivate: (() => void) | null = null;
+    /** Fired when the mouse moves over this item — used to switch the open menu on hover. */
+    public onHover: (() => void) | null = null;
     private activeValue = false;
 
     public constructor(label: string, mnemonic?: string) {
@@ -26,6 +28,11 @@ export class MenuBarItemElement extends CompositeElement {
         this.addEventListener("click", (event) => {
             if (event.defaultPrevented) return;
             this.onActivate?.();
+        });
+
+        this.addEventListener("mousemove", (event) => {
+            if (event.defaultPrevented) return;
+            this.onHover?.();
         });
 
         this.rebuild();
