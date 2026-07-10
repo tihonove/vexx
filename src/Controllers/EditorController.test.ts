@@ -219,6 +219,31 @@ describe("EditorController", () => {
         });
     });
 
+    describe("setCursorSurroundingLines", () => {
+        it("normalizes fractional/negative values to a non-negative integer", () => {
+            const ctrl = createEditorController();
+            ctrl.openFile(writeFile("a.ts", "x"));
+
+            ctrl.setCursorSurroundingLines(3.9);
+            expect(ctrl.viewState.cursorSurroundingLines).toBe(3);
+
+            ctrl.setCursorSurroundingLines(-5);
+            expect(ctrl.viewState.cursorSurroundingLines).toBe(0);
+        });
+
+        it("is a no-op when the normalized value matches the current one", () => {
+            const ctrl = createEditorController();
+            ctrl.openFile(writeFile("a.ts", "x"));
+
+            ctrl.setCursorSurroundingLines(2);
+            expect(ctrl.viewState.cursorSurroundingLines).toBe(2);
+
+            // 2.4 normalizes back to 2 → early return, value unchanged.
+            ctrl.setCursorSurroundingLines(2.4);
+            expect(ctrl.viewState.cursorSurroundingLines).toBe(2);
+        });
+    });
+
     describe("theme with missing editor gutter colors", () => {
         it("falls back to the editor background when gutter colors are absent", () => {
             const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));

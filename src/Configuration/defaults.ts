@@ -11,6 +11,10 @@ export function getDefaultConfiguration(): Readonly<Record<string, unknown>> {
         editor: {
             tabSize: 4,
             insertSpaces: true,
+            // Сколько строк держать между курсором и краем окна при прокрутке его в
+            // видимую область (PgUp/PgDown, Ctrl+End и т.п.) — курсор «оттупает» от края.
+            // В VS Code дефолт 0; здесь держим небольшой отступ (issue #89).
+            cursorSurroundingLines: 3,
             // detectIndentation: true — добавим, когда EditorController станет читать из конфига.
         },
         explorer: {

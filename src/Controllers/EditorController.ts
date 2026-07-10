@@ -585,6 +585,18 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
+     * Sets how many lines to keep between the cursor and the viewport edge when
+     * scrolling it into view (VS Code's `editor.cursorSurroundingLines`). Negative
+     * or fractional values are normalized to a non-negative integer.
+     */
+    public setCursorSurroundingLines(lines: number): void {
+        const normalized = Math.max(0, Math.floor(lines));
+        if (this.editorViewState.cursorSurroundingLines === normalized) return;
+        this.editorViewState.cursorSurroundingLines = normalized;
+        this.editor.markDirty();
+    }
+
+    /**
      * Sets the search-match decorations rendered by the editor and repaints.
      * `currentIndex` is the active match (highlighted distinctly), or -1.
      */
