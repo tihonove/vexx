@@ -27,6 +27,20 @@ function isUtf8(encoding: string): boolean {
     return normalized === "utf8";
 }
 
+/**
+ * Определяет преобладающий EOL в тексте (мажоритарно `\r\n` vs одиночный `\n`).
+ * Ничьи и текст без переводов строк → LF. Совпадает с ядровой EOL-моделью WP5
+ * (`src/Editor/EndOfLine.ts`), но локально — subprocess-поверхность `vscode`
+ * держит свои value-типы без зависимости на `Editor`.
+ */
+function detectEndOfLine(text: string): EndOfLine {
+    let crlf = 0;
+    for (let i = text.indexOf("\r\n"); i !== -1; i = text.indexOf("\r\n", i + 2)) crlf++;
+    let totalLf = 0;
+    for (let i = text.indexOf("\n"); i !== -1; i = text.indexOf("\n", i + 1)) totalLf++;
+    return crlf > totalLf - crlf ? EndOfLine.CRLF : EndOfLine.LF;
+}
+
 /** Сериализует `vscode.TextEdit` в wire-форму (subprocess → host). */
 function serializeTextEdit(edit: TextEdit): WireTextEdit {
     if (edit.newEol !== undefined) {
@@ -242,7 +256,10 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
         }
         const text = await nodeFs.readFile(fsPath, "utf8");
         const doc = new ExtHostTextDocument(fsPath);
-        doc.applyFull({ fileName: fsPath, text });
+        // EOL детектим из содержимого (в отличие от захардкоженного LF раньше);
+        // encoding остаётся utf8 — реальное транскодирование зависит от charset
+        // в ядре и вне объёма (ядро utf-8-only).
+        doc.applyFull({ fileName: fsPath, text, eol: detectEndOfLine(text) });
         return doc as unknown as vscode.TextDocument;
     }
 

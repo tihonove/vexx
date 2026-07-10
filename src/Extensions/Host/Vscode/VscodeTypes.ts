@@ -325,6 +325,14 @@ export class FileSystemError extends Error {
         return new FileSystemError(messageOrUri, "FileExists");
     }
 
+    public static FileNotADirectory(messageOrUri?: string | Uri): FileSystemError {
+        return new FileSystemError(messageOrUri, "FileNotADirectory");
+    }
+
+    public static FileIsADirectory(messageOrUri?: string | Uri): FileSystemError {
+        return new FileSystemError(messageOrUri, "FileIsADirectory");
+    }
+
     public static NoPermissions(messageOrUri?: string | Uri): FileSystemError {
         return new FileSystemError(messageOrUri, "NoPermissions");
     }

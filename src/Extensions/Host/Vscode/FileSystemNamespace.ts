@@ -10,14 +10,28 @@ import { FileSystemError, FileType } from "./VscodeTypes.ts";
  *
  * Работает **локально через `node:fs`** — целевой файл живёт на той же машине и
  * не является открытым буфером ядра, поэтому RPC не нужен (в отличие от
- * will-save, который ходит за текстом активного документа на хост). Реализуем
- * только `stat`/`readFile`/`writeFile` — минимум, нужный команде
- * `EditorConfig.generate` и чтению `.editorconfig` с диска.
+ * will-save, который ходит за текстом активного документа на хост).
+ *
+ * Реализована полная запись/чтение поверхности `vscode.FileSystem`
+ * (`stat`/`readDirectory`/`createDirectory`/`readFile`/`writeFile`/`delete`/
+ * `rename`/`copy`/`isWritableFileSystem`) — расширение, зовущее любой из этих
+ * методов, получает ожидаемое поведение, а не `TypeError`.
  *
  * Ошибки `node` маппятся в {@link FileSystemError} с тем же `code`, что и в
  * VS Code, чтобы расширения ловили их по `err.code === "FileNotFound"`.
  */
-export type IFileSystemNamespace = Pick<vscode.FileSystem, "stat" | "readFile" | "writeFile">;
+export type IFileSystemNamespace = Pick<
+    vscode.FileSystem,
+    | "stat"
+    | "readDirectory"
+    | "createDirectory"
+    | "readFile"
+    | "writeFile"
+    | "delete"
+    | "rename"
+    | "copy"
+    | "isWritableFileSystem"
+>;
 
 /** Преобразует ошибку `node:fs` в {@link FileSystemError}; прочее пробрасывает. */
 export function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
@@ -27,6 +41,10 @@ export function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
             return FileSystemError.FileNotFound(uri);
         case "EEXIST":
             return FileSystemError.FileExists(uri);
+        case "ENOTDIR":
+            return FileSystemError.FileNotADirectory(uri);
+        case "EISDIR":
+            return FileSystemError.FileIsADirectory(uri);
         case "EACCES":
         case "EPERM":
             return FileSystemError.NoPermissions(uri);
@@ -65,6 +83,24 @@ export function createFileSystemNamespace(): IFileSystemNamespace {
         }
     }
 
+    async function readDirectory(uri: vscode.Uri): Promise<[string, vscode.FileType][]> {
+        try {
+            const entries = await fs.readdir(uri.fsPath, { withFileTypes: true });
+            return entries.map((e) => [e.name, fileTypeFromStats(e) as vscode.FileType]);
+        } catch (err) {
+            throw toFileSystemError(err, uri);
+        }
+    }
+
+    async function createDirectory(uri: vscode.Uri): Promise<void> {
+        try {
+            // VS Code: mkdirp-семантика — недостающие родители создаются автоматически.
+            await fs.mkdir(uri.fsPath, { recursive: true });
+        } catch (err) {
+            throw toFileSystemError(err, uri);
+        }
+    }
+
     async function readFile(uri: vscode.Uri): Promise<Uint8Array> {
         try {
             return await fs.readFile(uri.fsPath);
@@ -83,5 +119,65 @@ export function createFileSystemNamespace(): IFileSystemNamespace {
         }
     }
 
-    return { stat, readFile, writeFile };
+    async function del(uri: vscode.Uri, options?: { recursive?: boolean; useTrash?: boolean }): Promise<void> {
+        try {
+            // Корзину (`useTrash`) не поддерживаем — как и VS Code без backend'а,
+            // падаем на перманентное удаление.
+            await fs.rm(uri.fsPath, { recursive: options?.recursive ?? false });
+        } catch (err) {
+            throw toFileSystemError(err, uri);
+        }
+    }
+
+    async function rename(source: vscode.Uri, target: vscode.Uri, options?: { overwrite?: boolean }): Promise<void> {
+        try {
+            if (options?.overwrite !== true && (await exists(target.fsPath))) {
+                throw FileSystemError.FileExists(target);
+            }
+            await fs.mkdir(path.dirname(target.fsPath), { recursive: true });
+            await fs.rename(source.fsPath, target.fsPath);
+        } catch (err) {
+            throw toFileSystemError(err, source);
+        }
+    }
+
+    async function copy(source: vscode.Uri, target: vscode.Uri, options?: { overwrite?: boolean }): Promise<void> {
+        try {
+            if (options?.overwrite !== true && (await exists(target.fsPath))) {
+                throw FileSystemError.FileExists(target);
+            }
+            await fs.mkdir(path.dirname(target.fsPath), { recursive: true });
+            await fs.cp(source.fsPath, target.fsPath, { recursive: true, force: options?.overwrite ?? false });
+        } catch (err) {
+            throw toFileSystemError(err, source);
+        }
+    }
+
+    function isWritableFileSystem(scheme: string): boolean | undefined {
+        // Знаем только `file` (локальный диск) — он записываемый. Прочие схемы
+        // редактору неизвестны → `undefined`, как в VS Code.
+        return scheme === "file" ? true : undefined;
+    }
+
+    return {
+        stat,
+        readDirectory,
+        createDirectory,
+        readFile,
+        writeFile,
+        delete: del,
+        rename,
+        copy,
+        isWritableFileSystem,
+    };
+}
+
+/** `true`, если путь существует (без различения типа записи). */
+async function exists(fsPath: string): Promise<boolean> {
+    try {
+        await fs.stat(fsPath);
+        return true;
+    } catch {
+        return false;
+    }
 }

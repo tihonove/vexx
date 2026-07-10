@@ -114,7 +114,9 @@ export class ExtHostTextDocument {
 
     private lines(): string[] {
         if (this.lineCache === null) {
-            this.lineCache = this.text.split("\n");
+            // EOL-агностично: CRLF-документ (эфемерный disk-read) не должен
+            // протаскивать хвостовой "\r" в `lineAt().text` (как в VS Code).
+            this.lineCache = this.text.split(/\r\n|\n/);
         }
         return this.lineCache;
     }

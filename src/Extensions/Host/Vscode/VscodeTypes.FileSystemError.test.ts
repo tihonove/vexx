@@ -6,8 +6,15 @@ describe("FileSystemError", () => {
     it("фабрики выставляют соответствующий code", () => {
         expect(FileSystemError.FileNotFound("m").code).toBe("FileNotFound");
         expect(FileSystemError.FileExists("m").code).toBe("FileExists");
+        expect(FileSystemError.FileNotADirectory("m").code).toBe("FileNotADirectory");
+        expect(FileSystemError.FileIsADirectory("m").code).toBe("FileIsADirectory");
         expect(FileSystemError.NoPermissions("m").code).toBe("NoPermissions");
         expect(FileSystemError.Unavailable("m").code).toBe("Unavailable");
+    });
+
+    it("FileNotADirectory / FileIsADirectory: VS Code-совместимый name", () => {
+        expect(FileSystemError.FileNotADirectory("m").name).toBe("EntryNotADirectory (FileSystemError)");
+        expect(FileSystemError.FileIsADirectory("m").name).toBe("EntryIsADirectory (FileSystemError)");
     });
 
     it("это Error с VS Code-совместимым name (провайдерный код + суффикс)", () => {

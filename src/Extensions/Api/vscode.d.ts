@@ -798,6 +798,8 @@ declare module "vscode" {
 	export class FileSystemError extends Error {
 		static FileNotFound(messageOrUri?: string | Uri): FileSystemError;
 		static FileExists(messageOrUri?: string | Uri): FileSystemError;
+		static FileNotADirectory(messageOrUri?: string | Uri): FileSystemError;
+		static FileIsADirectory(messageOrUri?: string | Uri): FileSystemError;
 		static NoPermissions(messageOrUri?: string | Uri): FileSystemError;
 		static Unavailable(messageOrUri?: string | Uri): FileSystemError;
 		constructor(messageOrUri?: string | Uri);
@@ -806,18 +808,30 @@ declare module "vscode" {
 	}
 
 	/**
-	 * Подмножество `vscode.FileSystem` (workspace.fs). Реализовано локально через
-	 * `node:fs` в subprocess — целевой файл на той же машине, не открытый буфер.
-	 * Реализованы только stat/readFile/writeFile (нужны команде generate и чтению
-	 * `.editorconfig` с диска); прочие методы vscode.FileSystem не поддержаны.
+	 * `vscode.FileSystem` (workspace.fs). Реализовано локально через `node:fs`
+	 * в subprocess — целевой файл на той же машине, не открытый буфер ядра.
+	 * Ядро Vexx utf-8/LF-only; кодировки/EOL при чтении не транскодируются
+	 * (см. `openTextDocument`), но байтовая поверхность ФС реализована полностью.
 	 */
 	export interface FileSystem {
 		/** Retrieve metadata about a file. Throws {@link FileSystemError.FileNotFound} when missing. */
 		stat(uri: Uri): Thenable<FileStat>;
+		/** Retrieve all entries of a {@link FileType.Directory directory}. */
+		readDirectory(uri: Uri): Thenable<[string, FileType][]>;
+		/** Create a new directory (`mkdirp` semantics — missing parents are created). */
+		createDirectory(uri: Uri): Thenable<void>;
 		/** Read the entire contents of a file. */
 		readFile(uri: Uri): Thenable<Uint8Array>;
 		/** Write data to a file, replacing its entire contents. Creates missing parent directories. */
 		writeFile(uri: Uri, content: Uint8Array): Thenable<void>;
+		/** Delete a file or folder. */
+		delete(uri: Uri, options?: { recursive?: boolean; useTrash?: boolean }): Thenable<void>;
+		/** Rename a file or folder. */
+		rename(source: Uri, target: Uri, options?: { overwrite?: boolean }): Thenable<void>;
+		/** Copy files or folders. */
+		copy(source: Uri, target: Uri, options?: { overwrite?: boolean }): Thenable<void>;
+		/** Check whether a given filesystem scheme supports writing. */
+		isWritableFileSystem(scheme: string): boolean | undefined;
 	}
 
 	export enum CompletionItemKind {

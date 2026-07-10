@@ -195,6 +195,28 @@ describe("WorkspaceNamespace — openTextDocument от диска (WP7)", () => 
         expect(ctx.registry.get(file)).toBeUndefined();
     });
 
+    it("детектит EOL диск-документа: LF → EndOfLine.LF", async () => {
+        const { workspace } = makeCtx();
+        const file = path.join(tmpDir, "lf.txt");
+        fs.writeFileSync(file, "a\nb\nc\n", "utf8");
+        const doc = (await workspace.openTextDocument(file)) as unknown as { eol: EndOfLine };
+        expect(doc.eol).toBe(EndOfLine.LF);
+    });
+
+    it("детектит EOL диск-документа: CRLF → EndOfLine.CRLF, без хвостового \\r в строках", async () => {
+        const { workspace } = makeCtx();
+        const file = path.join(tmpDir, "crlf.txt");
+        fs.writeFileSync(file, "a\r\nb\r\nc\r\n", "utf8");
+        const doc = (await workspace.openTextDocument(file)) as unknown as {
+            eol: EndOfLine;
+            lineCount: number;
+            lineAt(n: number): { text: string };
+        };
+        expect(doc.eol).toBe(EndOfLine.CRLF);
+        expect(doc.lineAt(0).text).toBe("a");
+        expect(doc.lineAt(1).text).toBe("b");
+    });
+
     it("несуществующий файл → reject", async () => {
         const { workspace } = makeCtx();
         await expect(workspace.openTextDocument(path.join(tmpDir, "nope.txt"))).rejects.toThrow();
