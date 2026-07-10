@@ -15,7 +15,8 @@
 #
 # Queue file naming: NN-<slug>.prompt.md  (NN = order, <slug> = worktree/branch slug)
 
-set -uo pipefail
+# Note: no `set -u` — iterating an empty associative array (RUNNING) trips it on bash 4.3.
+set -o pipefail
 
 CONCURRENCY="${CONCURRENCY:-5}"
 POLL="${POLL:-20}"
