@@ -12,7 +12,21 @@ import { CommandRegistry } from "./CommandRegistry.ts";
 import { ContextKeyService } from "./ContextKeyService.ts";
 import type { FileSearchEntry, FileSearchResult, FileSearchService } from "./FileSearchService.ts";
 import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+import type { IGotoLineEditor } from "./QuickOpenController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
+
+interface FakeGotoLineEditor extends IGotoLineEditor {
+    goToPosition: ReturnType<typeof vi.fn<(line: number, column?: number) => void>>;
+}
+
+function makeGotoLineEditor(lineCount = 100, cursorLine = 4, cursorColumn = 2): FakeGotoLineEditor {
+    return {
+        lineCount,
+        primaryCursorLine: cursorLine,
+        primaryCursorColumn: cursorColumn,
+        goToPosition: vi.fn<(line: number, column?: number) => void>(),
+    };
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -689,5 +703,157 @@ describe("QuickOpenController — file-search debounce", () => {
         } finally {
             vi.useRealTimers();
         }
+    });
+});
+
+describe("QuickOpenController — go to line mode", () => {
+    it("open('line') seeds a ':' query", () => {
+        const { controller } = createController();
+        controller.getActiveEditor = () => makeGotoLineEditor();
+        controller.open("line");
+        expect(controller.view.getQuery()).toBe(":");
+    });
+
+    it("placeholder reports the current position and line count", () => {
+        const { controller } = createController();
+        controller.getActiveEditor = () => makeGotoLineEditor(340, 11, 6);
+        controller.open("line");
+        expect(controller.view.placeholder).toBe(
+            "Current Line: 12, Character: 7. Type a line number between 1 and 340 to navigate to.",
+        );
+    });
+
+    it("shows an info hint before a number is typed", () => {
+        const { controller } = createController();
+        controller.getActiveEditor = () => makeGotoLineEditor(200);
+        controller.open("line");
+        expect(controller.view.items).toHaveLength(1);
+        expect(controller.view.items[0].label).toBe("Type a line number between 1 and 200 to navigate to");
+    });
+
+    it("shows an actionable 'Go to line N' item once a number is typed", () => {
+        const { controller } = createController();
+        controller.getActiveEditor = () => makeGotoLineEditor();
+        controller.open("line");
+        controller.view.onQueryChange?.(":42");
+        expect(controller.view.items[0].label).toBe("Go to line 42");
+    });
+
+    it("includes the column in the 'Go to line' label", () => {
+        const { controller } = createController();
+        controller.getActiveEditor = () => makeGotoLineEditor();
+        controller.open("line");
+        controller.view.onQueryChange?.(":42:8");
+        expect(controller.view.items[0].label).toBe("Go to line 42:8");
+    });
+
+    it("accepting navigates the active editor to the 0-based position and closes", async () => {
+        const editor = makeGotoLineEditor();
+        const { controller, body } = createController();
+        controller.getActiveEditor = () => editor;
+        controller.open("line");
+        controller.view.onQueryChange?.(":42:8");
+
+        controller.view.onAccept?.(controller.view.items[0], 0);
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
+
+        // 1-based UI → 0-based document coordinates.
+        expect(editor.goToPosition).toHaveBeenCalledWith(41, 7);
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("accepting the info hint is a no-op and keeps the picker open", async () => {
+        const editor = makeGotoLineEditor();
+        const { controller, body } = createController();
+        controller.getActiveEditor = () => editor;
+        controller.open("line");
+
+        controller.view.onAccept?.(controller.view.items[0], 0);
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
+
+        expect(editor.goToPosition).not.toHaveBeenCalled();
+        expect(body.overlayLayer.hasVisibleItems()).toBe(true);
+    });
+
+    it("accepting is a safe no-op if the active editor vanished before accept", async () => {
+        const editor = makeGotoLineEditor();
+        const { controller, body } = createController();
+        // Present while building the item, gone by the time accept navigates.
+        controller.getActiveEditor = () => editor;
+        controller.open("line");
+        controller.view.onQueryChange?.(":5");
+        controller.getActiveEditor = () => null;
+
+        controller.view.onAccept?.(controller.view.items[0], 0);
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
+
+        expect(editor.goToPosition).not.toHaveBeenCalled();
+        expect(body.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("shows a fallback when there is no active editor", () => {
+        const { controller } = createController();
+        controller.getActiveEditor = () => null;
+        controller.open("line");
+        expect(controller.view.placeholder).toBe("Go to line");
+        expect(controller.view.items[0].label).toBe("No active editor to navigate");
+    });
+});
+
+describe("QuickOpenController — file:line suffix", () => {
+    it("strips the ':line' suffix before searching so the colon does not pollute the filter", () => {
+        const { controller, fileSearch } = createController([makeSearchResult("src/main.ts")]);
+        controller.open("files");
+        controller.view.onQueryChange?.("main:42");
+        expect(fileSearch.search).toHaveBeenLastCalledWith("main", 50);
+    });
+
+    it("strips a bare trailing colon (mid-typing) from the search query", () => {
+        const { controller, fileSearch } = createController([makeSearchResult("src/main.ts")]);
+        controller.open("files");
+        controller.view.onQueryChange?.("main:");
+        expect(fileSearch.search).toHaveBeenLastCalledWith("main", 50);
+    });
+
+    it("opens the file then jumps to the parsed position", async () => {
+        const editor = makeGotoLineEditor();
+        const results = [makeSearchResult("src/main.ts")];
+        const { controller } = createController(results);
+        const execSpy = vi.fn();
+        controller.onExecuteCommand = execSpy;
+        controller.getActiveEditor = () => editor;
+        controller.open("files");
+        controller.view.onQueryChange?.("main:42:8");
+
+        controller.view.onAccept?.(controller.view.items[0], 0);
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
+
+        expect(execSpy).toHaveBeenCalledWith("workbench.openFile", "/root/src/main.ts");
+        expect(editor.goToPosition).toHaveBeenCalledWith(41, 7);
+    });
+
+    it("opens the file without navigating when there is no line suffix", async () => {
+        const editor = makeGotoLineEditor();
+        const results = [makeSearchResult("src/main.ts")];
+        const { controller } = createController(results);
+        controller.onExecuteCommand = vi.fn();
+        controller.getActiveEditor = () => editor;
+        controller.open("files");
+        controller.view.onQueryChange?.("main");
+
+        controller.view.onAccept?.(controller.view.items[0], 0);
+        await new Promise<void>((r) => {
+            queueMicrotask(r);
+        });
+
+        expect(editor.goToPosition).not.toHaveBeenCalled();
     });
 });
