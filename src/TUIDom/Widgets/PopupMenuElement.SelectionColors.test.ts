@@ -60,15 +60,15 @@ describe("PopupMenuElement selection colors", () => {
         const { backend } = setup(simpleItems());
         backend.sendKey("Tab");
         backend.sendKey("ArrowDown");
-        // Popup at y=1 (border), first item "New" at y=2, content starts at x=2 (popup shifted right by spacer)
-        expect(backend.getBgAt(new Point(2, 2))).toBe(HIGHLIGHT_BG);
+        // Popup at y=1 (border), first item "New" at y=2, content starts at x=3 (popup shifted right by 2-col spacer)
+        expect(backend.getBgAt(new Point(3, 2))).toBe(HIGHLIGHT_BG);
     });
 
     it("first item has highlight foreground when popup opens", () => {
         const { backend } = setup(simpleItems());
         backend.sendKey("Tab");
         backend.sendKey("ArrowDown");
-        expect(backend.getFgAt(new Point(2, 2))).toBe(HIGHLIGHT_FG);
+        expect(backend.getFgAt(new Point(3, 2))).toBe(HIGHLIGHT_FG);
     });
 
     it("ArrowDown moves highlight to second item", () => {
@@ -76,7 +76,7 @@ describe("PopupMenuElement selection colors", () => {
         backend.sendKey("Tab");
         backend.sendKey("ArrowDown");
         backend.sendKey("ArrowDown");
-        expect(backend.getBgAt(new Point(2, 2))).not.toBe(HIGHLIGHT_BG);
-        expect(backend.getBgAt(new Point(2, 3))).toBe(HIGHLIGHT_BG);
+        expect(backend.getBgAt(new Point(3, 2))).not.toBe(HIGHLIGHT_BG);
+        expect(backend.getBgAt(new Point(3, 3))).toBe(HIGHLIGHT_BG);
     });
 });
