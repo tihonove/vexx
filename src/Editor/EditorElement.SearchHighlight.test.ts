@@ -22,6 +22,7 @@ function createEditor(
     const doc = new TextDocument(text);
     const viewState = new EditorViewState(doc);
     const editor = new EditorElement(viewState);
+    editor.occurrenceHighlightEnabled = false; // these cases isolate search-match highlighting
     const app = TestApp.createWithContent(editor, new Size(width, height));
     return { app, editor, viewState, gw: editor.gutterWidth };
 }

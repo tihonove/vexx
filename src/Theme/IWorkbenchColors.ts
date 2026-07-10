@@ -321,8 +321,8 @@ export interface IWorkbenchColors {
     "editor.lineHighlightBackground"?: number;
     // /** Background color for the border around the line at the cursor position. */
     // "editor.lineHighlightBorder"?: number;
-    // /** Background color of a symbol during read-access, for example when reading a variable. */
-    // "editor.wordHighlightBackground"?: number;
+    /** Background color of a symbol during read-access, for example when reading a variable. */
+    "editor.wordHighlightBackground"?: number;
     // /** Border color of a symbol during read-access. */
     // "editor.wordHighlightBorder"?: number;
     // /** Background color of a symbol during write-access. */

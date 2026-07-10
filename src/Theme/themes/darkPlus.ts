@@ -22,6 +22,8 @@ export const darkPlusTheme: IThemeFile = {
         "editorCursor.foreground": "#AEAFAD",
         "editor.selectionBackground": "#264F78",
         "editor.lineHighlightBackground": "#2A2D2E",
+        // Opaque approximation of VS Code's #575757b8 composited over the editor bg.
+        "editor.wordHighlightBackground": "#474747",
         "editorGutter.background": "#1E1E1E",
 
         // ── Activity Bar ────────────────────────────────

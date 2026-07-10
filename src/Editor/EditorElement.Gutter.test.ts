@@ -154,6 +154,7 @@ describe("gutter colors", () => {
     it("uses editor resolved style bg for content area", () => {
         const editorBg = packRgb(30, 30, 30);
         const { app, editor } = createEditor("Hi", 15, 3);
+        editor.occurrenceHighlightEnabled = false; // isolate editor-bg from word highlighting
         editor.style = { bg: editorBg };
         app.render();
 

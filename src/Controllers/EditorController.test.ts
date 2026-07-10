@@ -4,14 +4,18 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createCursorSelection } from "../Editor/ISelection.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { EditorController } from "./EditorController.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
@@ -256,6 +260,38 @@ describe("EditorController", () => {
             expect(() => {
                 themeService.setTheme(sparseTheme);
             }).not.toThrow();
+        });
+    });
+
+    describe("occurrence highlight", () => {
+        // Occurrence-highlight background from darkPlus (#474747).
+        const OCCURRENCE_BG = packRgb(71, 71, 71);
+
+        function renderRow0Bg(ctrl: EditorController, col: number): number {
+            const app = TestApp.createWithContent(ctrl.view, new Size(20, 3));
+            app.render();
+            return app.backend.getBgAt(new Point(col, 0));
+        }
+
+        it("highlights the word under the cursor using the theme's wordHighlight color", () => {
+            const ctrl = createEditorController();
+            ctrl.openFile(writeFile("a.txt", "foo foo"));
+            ctrl.viewState.selections = [createCursorSelection(0, 0)];
+
+            // gutterWidth = 4 (2 pad + 1 digit + 1 sep); content col 0 is the first "foo".
+            expect(renderRow0Bg(ctrl, 4)).toBe(OCCURRENCE_BG);
+        });
+
+        it("stops highlighting once disabled via setOccurrenceHighlightEnabled", () => {
+            const ctrl = createEditorController();
+            ctrl.openFile(writeFile("a.txt", "foo foo"));
+            ctrl.viewState.selections = [createCursorSelection(0, 0)];
+
+            ctrl.setOccurrenceHighlightEnabled(false);
+            // Toggling to the same value again is a no-op (covers the early return).
+            ctrl.setOccurrenceHighlightEnabled(false);
+
+            expect(renderRow0Bg(ctrl, 4)).not.toBe(OCCURRENCE_BG);
         });
     });
 

@@ -375,6 +375,11 @@ export class EditorGroupController extends Disposable implements IController {
      * (`setIndentOptions` оставит существующее значение — auto-detect и т.п.).
      */
     private applyConfigurationToEditor(editor: EditorController): void {
+        // `editor.occurrencesHighlight`: "off" disables; "singleFile"/"multiFile"
+        // (and unset → VS Code default) enable. We only support single-file scope.
+        const occurrencesHighlight = this.configurationService.get<string>("editor.occurrencesHighlight");
+        editor.setOccurrenceHighlightEnabled(occurrencesHighlight !== "off");
+
         const surroundingLines = this.configurationService.get<number>("editor.cursorSurroundingLines");
         if (surroundingLines !== undefined) {
             editor.setCursorSurroundingLines(surroundingLines);

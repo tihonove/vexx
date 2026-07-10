@@ -585,6 +585,16 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
+     * Enables/disables highlighting occurrences of the word under the cursor
+     * (VS Code `editor.occurrencesHighlight`). Repaints so the change is visible.
+     */
+    public setOccurrenceHighlightEnabled(enabled: boolean): void {
+        if (this.editor.occurrenceHighlightEnabled === enabled) return;
+        this.editor.occurrenceHighlightEnabled = enabled;
+        this.editor.markDirty();
+    }
+
+    /**
      * Sets how many lines to keep between the cursor and the viewport edge when
      * scrolling it into view (VS Code's `editor.cursorSurroundingLines`). Negative
      * or fractional values are normalized to a non-negative integer.
@@ -658,6 +668,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.gutterBackground = theme.getColor("editorGutter.background") ?? bg;
         this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
         this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
+        this.editor.occurrenceHighlightBackground = theme.getColor("editor.wordHighlightBackground");
         this.editor.menuTheme = theme;
     }
 

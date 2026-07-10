@@ -22,6 +22,7 @@ import type { ITextEdit } from "./ITextEdit.ts";
 import { createTextEdit } from "./ITextEdit.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
 import type { DocumentTokenStore } from "./Tokenization/DocumentTokenStore.ts";
+import { charClass } from "./WordClassification.ts";
 
 /**
  * Represents the view state for one editor pane.
@@ -1194,14 +1195,6 @@ export class EditorViewState {
 }
 
 // ─── Word Boundary Helpers ──────────────────────────────────
-
-const WORD_SEPARATORS = new Set(" \t\r\n`~!@#$%^&*()-=+[{]}\\|;:'\",.<>/?");
-
-function charClass(ch: string): number {
-    if (ch === " " || ch === "\t") return 0; // whitespace
-    if (WORD_SEPARATORS.has(ch)) return 1; // punctuation
-    return 2; // word character
-}
 
 /**
  * Finds the start of the previous word boundary, scanning left from `offset`.
