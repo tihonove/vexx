@@ -507,6 +507,28 @@ export class AppController extends Disposable implements IController {
                 "Trigger Suggest",
             ),
         );
+        // fileSaveAction registers the ctrl+s keybinding + placeholder in the
+        // builtinActions loop; override just the command handler here (Map.set
+        // replaces it) so the keybinding is not registered twice. The override
+        // routes through a conflict-aware flow that can pop the overwrite dialog.
+        this.register(
+            commands.register(
+                "workbench.action.files.save",
+                () => {
+                    void this.runSave();
+                },
+                "File: Save",
+            ),
+        );
+        this.register(
+            commands.register(
+                "workbench.files.action.refreshFilesExplorer",
+                () => {
+                    void this.fileTreeController.refresh();
+                },
+                "File: Refresh Explorer",
+            ),
+        );
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...nextMatchAction,
@@ -755,7 +777,10 @@ export class AppController extends Disposable implements IController {
             this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
                 /* v8 ignore stop */
                 onSave: () => {
-                    void editor.save().then(() => {
+                    // Explicit "Save" while closing a modified tab: honour the
+                    // user's edits even against an external change (overwrite),
+                    // so choosing Save never silently drops their work.
+                    void editor.save({ overwrite: true }).then(() => {
                         this.editorGroupController.closeTab(index);
                     });
                 },
@@ -1326,6 +1351,44 @@ export class AppController extends Disposable implements IController {
     }
 
     /**
+     * Explicit Save (Ctrl+S / menu). Saves the active editor; if the file was
+     * modified on disk by another process since it was opened, the write is
+     * blocked (to avoid clobbering the parallel changes) and an Overwrite/Cancel
+     * dialog is shown instead — mirroring VS Code's dirty-write protection.
+     */
+    private async runSave(): Promise<void> {
+        const editor = this.editorGroupController.getActiveEditor();
+        if (editor === null) return;
+        const outcome = await editor.save();
+        if (outcome === "conflict") {
+            /* v8 ignore start -- defensive: editors opened via openFile() always have a file path, so fileName is never null */
+            const name = editor.fileName ?? "untitled";
+            /* v8 ignore stop */
+            this.showConfirmDialog(
+                {
+                    title: "Overwrite",
+                    message: [
+                        `The file "${name}" has been changed on disk.`,
+                        "Do you want to overwrite the version on disk with your changes?",
+                    ],
+                    confirmLabel: "Overwrite",
+                    cancelLabel: "Cancel",
+                    defaultButton: "cancel",
+                },
+                {
+                    onConfirm: () => {
+                        void editor.save({ overwrite: true }).then(() => {
+                            this.statusBarController.update();
+                        });
+                    },
+                },
+            );
+            return;
+        }
+        this.statusBarController.update();
+    }
+
+    /**
      * Save As flow: prompt for a target path (InputBox), confirm overwrite if a
      * different file already exists, then write via {@link EditorController.saveAs}.
      */
@@ -1474,6 +1537,16 @@ export class AppController extends Disposable implements IController {
                     this.commands.execute("fileOperations.deleteFile", filePath);
                 },
             },
+            { type: "separator" },
+            {
+                // Re-read the directory contents from disk (external changes the
+                // live watcher might have missed — network shares, ignored paths).
+                label: "Refresh Explorer",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("workbench.files.action.refreshFilesExplorer");
+                },
+            },
         );
 
         const menu = new PopupMenuElement(entries);
@@ -1553,7 +1626,9 @@ export class AppController extends Disposable implements IController {
         this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
             /* v8 ignore stop */
             onSave: () => {
-                void editor.save().then(() => {
+                // Explicit "Save" during quit: overwrite so the user's edits win
+                // over an external change (choosing Save must not drop their work).
+                void editor.save({ overwrite: true }).then(() => {
                     if (rest.length === 0) {
                         this.doQuit(accessor);
                     } else {

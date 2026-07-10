@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { CommandRegistry } from "../Controllers/CommandRegistry.ts";
 import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
+import { NULL_FILE_WATCHER } from "../Controllers/IFileWatcher.ts";
 import { UndoRedoService } from "../Controllers/Workspace/UndoRedoService.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
@@ -94,6 +95,7 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         options.languageService ?? NULL_LANGUAGE_SERVICE,
         NULL_CONFIGURATION_SERVICE,
         new UndoRedoService(),
+        NULL_FILE_WATCHER,
     );
     group.mount();
 

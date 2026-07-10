@@ -1,7 +1,5 @@
 import type { CommandAction } from "../CommandAction.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
-import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 
 export const fileSaveAction: CommandAction = {
     id: "workbench.action.files.save",
@@ -9,10 +7,11 @@ export const fileSaveAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+s"),
     // Additional chord binding for save: Ctrl+K then S.
     keybindings: [parseChord("ctrl+k s")],
-    async run(accessor) {
-        await accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.save();
-        accessor.get(StatusBarControllerDIToken).update();
+    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime (conflict-aware save needs the overwrite dialog) */
+    run() {
+        // Overridden in AppController.
     },
+    /* v8 ignore stop */
 };
 
 export const fileSaveAsAction: CommandAction = {

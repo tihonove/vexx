@@ -10,6 +10,7 @@ import { OscClipboard } from "../../Common/OscClipboard.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { createCursorSelection, createSelection } from "../../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
 import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
@@ -49,6 +50,7 @@ function createGroup(): EditorGroupController {
         NULL_LANGUAGE_SERVICE,
         NULL_CONFIGURATION_SERVICE,
         new UndoRedoService(),
+        NULL_FILE_WATCHER,
     );
 }
 
