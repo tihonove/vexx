@@ -218,6 +218,28 @@ describe("QuickPickElement — selection", () => {
         expect(selectedBg).toBe(picker.activeSelectionBg);
     });
 
+    it("selection highlight does not bleed onto the side borders (issue #94)", () => {
+        const picker = new QuickPickElement();
+        picker.items = [{ label: "Alpha" }, { label: "Beta" }];
+        const backend = renderPicker(picker, 30);
+
+        // Row 3 is the selected item. Its interior is highlighted, but the
+        // border columns must keep the plain box background — not the selection.
+        const interiorBg = backend.getBgAt(new Point(5, 3));
+        const leftBorderBg = backend.getBgAt(new Point(0, 3));
+        const rightBorderBg = backend.getBgAt(new Point(29, 3));
+
+        expect(interiorBg).toBe(picker.activeSelectionBg);
+        expect(leftBorderBg).not.toBe(picker.activeSelectionBg);
+        expect(rightBorderBg).not.toBe(picker.activeSelectionBg);
+        // Border columns match the background of a non-selected row's border.
+        expect(leftBorderBg).toBe(backend.getBgAt(new Point(0, 4)));
+        expect(rightBorderBg).toBe(backend.getBgAt(new Point(29, 4)));
+        // The border glyphs are still drawn.
+        expect(backend.getTextAt(new Point(0, 3), 1)).toBe("│");
+        expect(backend.getTextAt(new Point(29, 3), 1)).toBe("│");
+    });
+
     it("resets selectedIndex to 0 when items are replaced", () => {
         const picker = new QuickPickElement();
         picker.items = makeItems(5);
