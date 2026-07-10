@@ -12,8 +12,23 @@ import type { ContextKeyService } from "./ContextKeyService.ts";
 import type { FileSearchResult, FileSearchService } from "./FileSearchService.ts";
 import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { formatKeybinding } from "./KeybindingRegistry.ts";
+import type { ParsedGoto } from "./QuickOpenParsing.ts";
+import { parseGotoLineQuery, splitFileQuery } from "./QuickOpenParsing.ts";
 
-type OpenMode = "files" | "commands";
+type OpenMode = "files" | "commands" | "line";
+
+/**
+ * The active editor as seen by Go-to-Line. Structurally satisfied by
+ * {@link import("./EditorController.ts").EditorController}; kept as a narrow
+ * interface so the controller does not depend on the whole editor. All values
+ * are 0-based (document coordinates).
+ */
+export interface IGotoLineEditor {
+    readonly lineCount: number;
+    readonly primaryCursorLine: number;
+    readonly primaryCursorColumn: number;
+    goToPosition(line: number, column?: number): void;
+}
 
 /**
  * Debounce window for file-mode search. A single keystroke after an idle period
@@ -26,6 +41,10 @@ const SEARCH_DEBOUNCE_MS = 16;
 interface QuickPickItemWithMeta extends QuickPickItem {
     absolutePath?: string;
     commandId?: string;
+    /** 1-based line to navigate to after accept (active editor, or the opened file). */
+    gotoLine?: number;
+    /** 1-based column to navigate to; defaults to the line start when absent. */
+    gotoColumn?: number;
 }
 
 export class QuickOpenController extends Disposable {
@@ -45,6 +64,14 @@ export class QuickOpenController extends Disposable {
     private pendingQuery: string | null = null;
 
     public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
+
+    /**
+     * Resolves the editor targeted by Go-to-Line (`:` mode and `file:line`
+     * accepts). Set by {@link import("./AppController.ts").AppController} to the
+     * active editor. For `file:line` it is read *after* the file opens, so it
+     * returns the freshly-activated editor.
+     */
+    public getActiveEditor: (() => IGotoLineEditor | null) | null = null;
 
     public constructor(
         fileSearch: FileSearchService,
@@ -97,10 +124,10 @@ export class QuickOpenController extends Disposable {
 
         if (mode === "commands") {
             this.view.setQuery(">");
-            this.view.placeholder = "Show All Commands";
+        } else if (mode === "line") {
+            this.view.setQuery(":");
         } else {
             this.view.setQuery("");
-            this.view.placeholder = "Go to File...";
             // Kick a throttled background re-index and refresh the list live as
             // it grows (the index builds in the background, not on a watcher).
             this.fileSearch.refreshIfStale();
@@ -108,6 +135,7 @@ export class QuickOpenController extends Disposable {
                 this.handleIndexChanged();
             };
         }
+        this.applyPlaceholder(mode);
 
         this.updatePosition();
         this.updateItems(this.view.getQuery());
@@ -139,14 +167,15 @@ export class QuickOpenController extends Disposable {
     }
 
     private handleQueryChange(query: string): void {
-        const isCommandMode = query.startsWith(">");
-        if (isCommandMode !== (this.currentMode === "commands")) {
-            this.currentMode = isCommandMode ? "commands" : "files";
+        const mode = detectMode(query);
+        if (mode !== this.currentMode) {
+            this.currentMode = mode;
+            this.applyPlaceholder(mode);
         }
 
-        // Command mode is cheap (small list, substring filter) — run it
-        // synchronously and drop any pending file search.
-        if (this.currentMode === "commands") {
+        // Command and line modes are cheap (tiny synchronous item list) — run
+        // them immediately and drop any pending file search.
+        if (this.currentMode !== "files") {
             this.cancelPendingSearch();
             this.updateItems(query);
             return;
@@ -193,14 +222,30 @@ export class QuickOpenController extends Disposable {
             } else if (meta.absolutePath !== undefined) {
                 this.close();
                 this.onExecuteCommand?.("workbench.openFile", meta.absolutePath);
+                // Read the active editor *after* the file opened above so a
+                // `file:line` accept jumps in the just-opened editor.
+                if (meta.gotoLine !== undefined) {
+                    this.navigateActiveEditor(meta.gotoLine, meta.gotoColumn);
+                }
+            } else if (meta.gotoLine !== undefined) {
+                // Pure Go-to-Line (`:` mode): jump in the current editor.
+                this.close();
+                this.navigateActiveEditor(meta.gotoLine, meta.gotoColumn);
             }
+            // Otherwise an info-only item (e.g. "type a line number") — no-op,
+            // keep the picker open so the user can keep typing.
         });
     }
 
+    /** Jumps the active editor to a 1-based line/column, converting to 0-based. */
+    private navigateActiveEditor(line: number, column: number | undefined): void {
+        const editor = this.getActiveEditor?.() ?? null;
+        if (editor === null) return;
+        editor.goToPosition(line - 1, column !== undefined ? column - 1 : 0);
+    }
+
     private updateItems(query: string, preserveSelection = false): void {
-        const items = query.startsWith(">")
-            ? this.buildCommandItems(query.slice(1).trimStart())
-            : this.buildFileItems(this.fileSearch.search(query, 50));
+        const items = this.buildItems(query);
 
         if (preserveSelection) {
             this.view.refreshItems(items);
@@ -209,7 +254,43 @@ export class QuickOpenController extends Disposable {
         }
     }
 
-    private buildFileItems(results: FileSearchResult[]): QuickPickItem[] {
+    private buildItems(query: string): QuickPickItem[] {
+        if (query.startsWith(">")) {
+            return this.buildCommandItems(query.slice(1).trimStart());
+        }
+        if (query.startsWith(":")) {
+            return this.buildLineItems(query);
+        }
+        const { filePart, goto } = splitFileQuery(query);
+        return this.buildFileItems(this.fileSearch.search(filePart, 50), goto);
+    }
+
+    /**
+     * Builds the single row shown in Go-to-Line mode: an actionable "Go to line
+     * N" once a number is typed, otherwise an info hint. VS Code shows the same
+     * one-line affordance instead of a list.
+     */
+    private buildLineItems(query: string): QuickPickItem[] {
+        const editor = this.getActiveEditor?.() ?? null;
+        if (editor === null) {
+            return [{ label: "No active editor to navigate" }];
+        }
+
+        const goto = parseGotoLineQuery(query);
+        if (goto === null) {
+            return [{ label: `Type a line number between 1 and ${editor.lineCount} to navigate to` }];
+        }
+
+        const columnSuffix = goto.column !== undefined ? `:${goto.column}` : "";
+        const lineItem: QuickPickItemWithMeta = {
+            label: `Go to line ${goto.line}${columnSuffix}`,
+            gotoLine: goto.line,
+            gotoColumn: goto.column,
+        };
+        return [lineItem];
+    }
+
+    private buildFileItems(results: FileSearchResult[], goto: ParsedGoto | null): QuickPickItem[] {
         return results.map((r) => {
             const basename = nodePath.basename(r.entry.relativePath);
             const dir = nodePath.dirname(r.entry.relativePath);
@@ -242,6 +323,8 @@ export class QuickOpenController extends Disposable {
                 labelMatchRanges: labelRanges,
                 descriptionMatchRanges: descRanges,
                 absolutePath: r.entry.absolutePath,
+                gotoLine: goto?.line,
+                gotoColumn: goto?.column,
             };
             return fileItem;
         });
@@ -263,6 +346,25 @@ export class QuickOpenController extends Disposable {
         });
     }
 
+    private applyPlaceholder(mode: OpenMode): void {
+        if (mode === "commands") {
+            this.view.placeholder = "Show All Commands";
+        } else if (mode === "line") {
+            this.view.placeholder = this.gotoLinePlaceholder();
+        } else {
+            this.view.placeholder = "Go to File...";
+        }
+    }
+
+    /** VS Code-style hint for Go-to-Line mode, showing the current position. */
+    private gotoLinePlaceholder(): string {
+        const editor = this.getActiveEditor?.() ?? null;
+        if (editor === null) return "Go to line";
+        const line = editor.primaryCursorLine + 1;
+        const character = editor.primaryCursorColumn + 1;
+        return `Current Line: ${line}, Character: ${character}. Type a line number between 1 and ${editor.lineCount} to navigate to.`;
+    }
+
     private updatePosition(): void {
         if (!this.hostBody) return;
 
@@ -277,4 +379,11 @@ export class QuickOpenController extends Disposable {
         this.view.preferredWidth = pickerW;
         this.quickOpenSession?.setPosition(new Point(px, py));
     }
+}
+
+/** Picks the Quick Open mode from the query's leading sigil (`>` / `:`). */
+function detectMode(query: string): OpenMode {
+    if (query.startsWith(">")) return "commands";
+    if (query.startsWith(":")) return "line";
+    return "files";
 }

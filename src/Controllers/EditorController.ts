@@ -441,6 +441,30 @@ export class EditorController extends Disposable implements IController {
         this.editor.markDirty();
     }
 
+    /** Logical line count of the open document. */
+    public get lineCount(): number {
+        return this.editorViewState.lineCount;
+    }
+
+    /** 0-based line of the primary cursor. */
+    public get primaryCursorLine(): number {
+        return this.editorViewState.primaryCursorLine;
+    }
+
+    /** 0-based character offset of the primary cursor. */
+    public get primaryCursorColumn(): number {
+        return this.editorViewState.primaryCursorColumn;
+    }
+
+    /**
+     * Moves the primary cursor to (`line`, `column`) — both 0-based — clamping to
+     * document bounds and revealing the target. Backs Go-to-Line navigation.
+     */
+    public goToPosition(line: number, column = 0): void {
+        this.editorViewState.goToPosition(line, column);
+        this.editor.markDirty();
+    }
+
     /* v8 ignore start -- placeholder lifecycle hook; editor-specific subscriptions are added later */
     public mount(): void {
         // Future: subscribe to editor-specific events

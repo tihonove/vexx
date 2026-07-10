@@ -114,7 +114,7 @@ import {
     listFocusPageDownAction,
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
-import { quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
+import { gotoLineAction, quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import {
     insertFinalNewLineAction,
@@ -430,6 +430,9 @@ export class AppController extends Disposable implements IController {
         this.quickOpenController.onExecuteCommand = (id, ...args) => {
             this.commands.execute(id, ...args);
         };
+        // Go-to-Line targets the active editor (read lazily, so a `file:line`
+        // accept jumps in the editor opened by the same accept).
+        this.quickOpenController.getActiveEditor = () => this.editorGroupController.getActiveEditor();
 
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
@@ -464,6 +467,14 @@ export class AppController extends Disposable implements IController {
                 ...showCommandsAction,
                 run: () => {
                     this.quickOpenController.open("commands");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...gotoLineAction,
+                run: () => {
+                    this.quickOpenController.open("line");
                 },
             }),
         );
@@ -1120,6 +1131,7 @@ export class AppController extends Disposable implements IController {
                 mnemonic: "g",
                 entries: [
                     item("Go to File...", "workbench.action.quickOpen"),
+                    item("Go to Line/Column...", "workbench.action.gotoLine"),
                     sep(),
                     item("Next Editor", "workbench.action.nextEditorInGroup"),
                     item("Previous Editor", "workbench.action.previousEditorInGroup"),
