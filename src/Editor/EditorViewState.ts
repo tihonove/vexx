@@ -143,6 +143,70 @@ export class EditorViewState {
     }
 
     /**
+     * Returns the innermost region covering `line` (header line included) that
+     * satisfies `accept`, or `undefined`. "Innermost" = the candidate with the
+     * greatest `startLine`.
+     */
+    private innermostRegionContaining(
+        line: number,
+        accept: (region: IFoldingRegion) => boolean,
+    ): IFoldingRegion | undefined {
+        let best: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            const covers = region.startLine <= line && line <= region.endLine && accept(region);
+            if (covers && (best === undefined || region.startLine > best.startLine)) {
+                best = region;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Returns the innermost folding region that spans `line` (header line
+     * included), or `undefined` when no region covers it.
+     */
+    public foldingRegionContaining(line: number): IFoldingRegion | undefined {
+        return this.innermostRegionContaining(line, () => true);
+    }
+
+    /**
+     * Collapses the innermost expanded region covering `line`. Repeated calls
+     * fold outward (each pass collapses the next enclosing region). No-op when
+     * no expanded region covers the line.
+     */
+    public foldRegionContaining(line: number): void {
+        const target = this.innermostRegionContaining(line, (region) => !region.isCollapsed);
+        if (target !== undefined) {
+            target.isCollapsed = true;
+            this.foldsVersion++;
+        }
+    }
+
+    /**
+     * Expands the innermost collapsed region covering `line`. No-op when no
+     * collapsed region covers the line.
+     */
+    public unfoldRegionContaining(line: number): void {
+        const target = this.innermostRegionContaining(line, (region) => region.isCollapsed);
+        if (target !== undefined) {
+            target.isCollapsed = false;
+            this.foldsVersion++;
+        }
+    }
+
+    /**
+     * Toggles the collapsed state of the innermost region covering `line`.
+     * No-op when no region covers the line.
+     */
+    public toggleFoldContaining(line: number): void {
+        const region = this.foldingRegionContaining(line);
+        if (region !== undefined) {
+            region.isCollapsed = !region.isCollapsed;
+            this.foldsVersion++;
+        }
+    }
+
+    /**
      * Collapses all folding regions.
      */
     public foldAll(): void {

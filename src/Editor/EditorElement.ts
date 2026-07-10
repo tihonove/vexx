@@ -36,6 +36,13 @@ const GUTTER_LEFT_PADDING = 2;
 
 const DEFAULT_LINE_NUMBER_FG = packRgb(133, 133, 133);
 const DEFAULT_LINE_NUMBER_ACTIVE_FG = packRgb(198, 198, 198);
+const DEFAULT_FOLDING_CONTROL_FG = packRgb(197, 197, 197);
+
+// Nerd Font chevron glyphs, matching the file-tree directory arrows.
+const FOLD_ICON_EXPANDED = ""; //  nf-fa-angle_down
+const FOLD_ICON_COLLAPSED = ""; //  nf-fa-angle_right
+// Marker drawn after a collapsed region's header line, standing in for the hidden body.
+const FOLD_COLLAPSED_MARKER = "⋯"; // ⋯ horizontal ellipsis
 
 /** Viewport geometry shared by the range-background highlight passes. */
 interface RangeHighlightGeometry {
@@ -77,6 +84,7 @@ export class EditorElement extends TUIElement implements IScrollable {
     public occurrenceHighlightBackground: number | undefined;
     /** Whether to highlight occurrences of the word under the cursor (VS Code `editor.occurrencesHighlight`). */
     public occurrenceHighlightEnabled = true;
+    public foldingControlForeground: number | undefined;
 
     public contextMenuEntries: MenuEntry[] = [];
     /** Тема для тематизации контекстного меню (`menu.*`); задаётся контроллером. */
@@ -206,6 +214,14 @@ export class EditorElement extends TUIElement implements IScrollable {
 
         const primaryLine = this.viewState.selections[0].active.line;
         const digitCount = gutterW - GUTTER_LEFT_PADDING - 1;
+        const foldFg = this.foldingControlForeground ?? DEFAULT_FOLDING_CONTROL_FG;
+
+        // Fold-region headers by their (logical) start line, so the gutter can draw
+        // a chevron and the header line a collapsed marker without scanning per cell.
+        const foldHeaderByLine = new Map<number, boolean>();
+        for (const region of this.viewState.foldedRegions) {
+            foldHeaderByLine.set(region.startLine, region.isCollapsed);
+        }
 
         // Bring the token cache up to the bottom of the viewport before reading.
         const tokenStore = this.viewState.tokenStore;
@@ -245,8 +261,15 @@ export class EditorElement extends TUIElement implements IScrollable {
                 for (let d = 0; d < digitCount; d++) {
                     context.setCell(GUTTER_LEFT_PADDING + d, screenY, { char: lineNumStr[d], fg: numFg, bg: gutBg });
                 }
-                // Right separator space
-                context.setCell(gutterW - 1, screenY, { char: " ", fg: numFg, bg: gutBg });
+                // Right separator column, doubling as the folding control for
+                // foldable header lines (chevron down = expanded, right = collapsed).
+                const foldState = foldHeaderByLine.get(logLine);
+                if (foldState === undefined) {
+                    context.setCell(gutterW - 1, screenY, { char: " ", fg: numFg, bg: gutBg });
+                } else {
+                    const icon = foldState ? FOLD_ICON_COLLAPSED : FOLD_ICON_EXPANDED;
+                    context.setCell(gutterW - 1, screenY, { char: icon, fg: foldFg, bg: gutBg });
+                }
             } else {
                 // Past end of document — empty gutter
                 for (let x = 0; x < gutterW; x++) {
@@ -309,6 +332,19 @@ export class EditorElement extends TUIElement implements IScrollable {
                 } else {
                     context.setCell(gutterW + screenX, screenY, { char, fg, bg, style, width });
                     screenX += width;
+                }
+            }
+
+            // Collapsed region: draw a marker after the header line's content,
+            // standing in for the hidden body (VS Code's inline "⋯").
+            if (foldHeaderByLine.get(this.viewState.visualToLogicalLine(viewLine)) === true) {
+                const markerCol = dl.displayWidth + 1 - scrollLeft;
+                if (markerCol >= 0 && markerCol < contentCols) {
+                    context.setCell(gutterW + markerCol, screenY, {
+                        char: FOLD_COLLAPSED_MARKER,
+                        fg: foldFg,
+                        bg: editorBg,
+                    });
                 }
             }
         }
@@ -479,6 +515,12 @@ export class EditorElement extends TUIElement implements IScrollable {
         if (this.viewState.getViewLineCount() === 0) return;
         /* v8 ignore stop */
 
+        // Click on the folding control column toggles the region on that line.
+        if (this.tryToggleFoldAtGutter(event.localX, event.localY)) {
+            this.markDirty();
+            return;
+        }
+
         const pos = this.screenToDocPosition(event.localX, event.localY);
 
         if (event.shiftKey && this.viewState.selections.length > 0) {
@@ -489,6 +531,26 @@ export class EditorElement extends TUIElement implements IScrollable {
             this.dragAnchor = { line: pos.line, character: pos.character };
             this.viewState.selections = [createCursorSelection(pos.line, pos.character)];
         }
+    }
+
+    /**
+     * If `(localX, localY)` lands on the folding control column of a foldable
+     * header line, toggles that region and returns true. Returns false otherwise
+     * (so the caller falls back to normal cursor placement).
+     */
+    private tryToggleFoldAtGutter(localX: number, localY: number): boolean {
+        const gutterW = this.gutterWidth;
+        if (localX !== gutterW - 1) return false;
+
+        const viewLine = this.viewState.scrollTop + localY;
+        if (viewLine < 0 || viewLine >= this.viewState.getViewLineCount()) return false;
+
+        const logLine = this.viewState.visualToLogicalLine(viewLine);
+        const region = this.viewState.foldedRegions.find((r) => r.startLine === logLine);
+        if (region === undefined) return false;
+
+        this.viewState.toggleFold(logLine);
+        return true;
     }
 
     private openContextMenu(screenX: number, screenY: number): void {
