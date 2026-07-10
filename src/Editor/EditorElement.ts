@@ -243,9 +243,8 @@ export class EditorElement extends TUIElement implements IScrollable {
 
             // --- Content area ---
             if (viewLine >= viewLineCount) {
-                // Past end of document — draw tilde like vim
-                context.setCell(gutterW, screenY, { char: "~", fg: editorFg, bg: editorBg });
-                for (let x = 1; x < contentCols; x++) {
+                // Past end of document — empty content area (VS Code draws no vim-style tildes)
+                for (let x = 0; x < contentCols; x++) {
                     context.setCell(gutterW + x, screenY, { char: " ", fg: editorFg, bg: editorBg });
                 }
                 continue;
