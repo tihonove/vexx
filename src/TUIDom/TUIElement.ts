@@ -3,6 +3,7 @@ import { BoxConstraints, Offset, Point, Rect, Size } from "../Common/GeometryPro
 import type { CellPatch } from "../Rendering/Grid.ts";
 import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
 
+import { BORDER_ROUNDED, type BorderStyle } from "./BorderStyle.ts";
 import type { FocusManager } from "./Events/FocusManager.ts";
 import { EventPhase, TUIEventBase } from "./Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "./Events/TUIFocusEvent.ts";
@@ -99,6 +100,75 @@ export class RenderContext {
             }
         }
         return col;
+    }
+
+    /**
+     * Отрисовывает прямоугольную рамку box-drawing глифами — единый хелпер для
+     * всех бордер-виджетов (см. {@link BorderStyle}). Рисует углы, верхнюю/нижнюю
+     * горизонтали и боковые вертикали; строки из `separators` (offset от верха
+     * рамки, 1-based относительно `y`) рисуются как T-коннекторы `├───┤`.
+     *
+     * Координаты локальные (как у {@link drawText}). Клиппинг/оффсет применяются
+     * через {@link setCell}.
+     *
+     * @param x       Левый столбец рамки
+     * @param y       Верхняя строка рамки
+     * @param width   Ширина рамки в столбцах (>= 2)
+     * @param height  Высота рамки в строках (>= 2)
+     * @param options fg/bg, пресет `style` (по умолчанию {@link BORDER_ROUNDED} —
+     *                канонический стиль оверлеев Vexx), `fill` (залить фон внутри
+     *                рамки), `separators` (ряды-разделители)
+     */
+    public drawBox(
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        options: {
+            fg?: number;
+            bg?: number;
+            style?: BorderStyle;
+            fill?: boolean;
+            separators?: readonly number[];
+        } = {},
+    ): void {
+        const style = options.style ?? BORDER_ROUNDED;
+        const fg = options.fg;
+        const bg = options.bg;
+        const right = x + width - 1;
+        const bottom = y + height - 1;
+
+        if (options.fill === true) {
+            for (let yy = y; yy <= bottom; yy++) {
+                for (let xx = x; xx <= right; xx++) {
+                    this.setCell(xx, yy, { char: " ", fg, bg });
+                }
+            }
+        }
+
+        const separators = new Set(options.separators);
+
+        // Top border.
+        this.setCell(x, y, { char: style.topLeft, fg, bg });
+        this.setCell(right, y, { char: style.topRight, fg, bg });
+        for (let xx = x + 1; xx < right; xx++) this.setCell(xx, y, { char: style.horizontal, fg, bg });
+
+        // Side borders (+ separator T-connectors).
+        for (let yy = y + 1; yy < bottom; yy++) {
+            if (separators.has(yy - y)) {
+                this.setCell(x, yy, { char: style.leftJoint, fg, bg });
+                this.setCell(right, yy, { char: style.rightJoint, fg, bg });
+                for (let xx = x + 1; xx < right; xx++) this.setCell(xx, yy, { char: style.horizontal, fg, bg });
+            } else {
+                this.setCell(x, yy, { char: style.vertical, fg, bg });
+                this.setCell(right, yy, { char: style.vertical, fg, bg });
+            }
+        }
+
+        // Bottom border.
+        this.setCell(x, bottom, { char: style.bottomLeft, fg, bg });
+        this.setCell(right, bottom, { char: style.bottomRight, fg, bg });
+        for (let xx = x + 1; xx < right; xx++) this.setCell(xx, bottom, { char: style.horizontal, fg, bg });
     }
 }
 

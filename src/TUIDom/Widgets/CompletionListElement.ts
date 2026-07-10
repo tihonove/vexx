@@ -6,7 +6,6 @@ import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { BORDER } from "./BorderGlyphs.ts";
 import { kindIcon } from "./CompletionItemKindIcon.ts";
 
 // ─── Colors (NvChad-подобная палитра) ────────────────────────────────────────
@@ -165,28 +164,14 @@ export class CompletionListElement extends TUIElement {
         const w = this.layoutSize.width;
         const h = this.boxHeight;
 
-        // Фон
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                context.setCell(x, y, { char: " ", fg: FG, bg: BG });
-            }
-        }
-
-        // Рамка сверху ╭───╮ (единый стиль углов с остальными оверлеями)
-        context.setCell(0, 0, { char: BORDER.topLeft, fg: BORDER_FG, bg: BG });
-        for (let x = 1; x < w - 1; x++) context.setCell(x, 0, { char: "─", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, 0, { char: BORDER.topRight, fg: BORDER_FG, bg: BG });
+        // Фон + рамка (единый стиль углов с остальными оверлеями). Боковые
+        // рамки рядов переопределяются в renderRow под фон выбранной строки.
+        context.drawBox(0, 0, w, h, { fg: BORDER_FG, bg: BG, fill: true });
 
         // Ряды
         for (let i = 0; i < this.visibleItemCount; i++) {
             this.renderRow(context, w, 1 + i, this.scrollOffset + i);
         }
-
-        // Рамка снизу ╰───╯
-        const bottomY = h - 1;
-        context.setCell(0, bottomY, { char: BORDER.bottomLeft, fg: BORDER_FG, bg: BG });
-        for (let x = 1; x < w - 1; x++) context.setCell(x, bottomY, { char: "─", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, bottomY, { char: BORDER.bottomRight, fg: BORDER_FG, bg: BG });
     }
 
     private renderRow(context: RenderContext, w: number, rowY: number, itemIndex: number): void {

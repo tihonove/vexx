@@ -4,8 +4,6 @@ import type { JsxChild } from "../JSX/jsx-runtime.ts";
 import { normalizeChildren, reconcileChildren } from "../JSX/reconcile.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { BORDER } from "./BorderGlyphs.ts";
-
 export interface BoxContainerProps {
     bg?: number;
     fg?: number;
@@ -127,40 +125,14 @@ export class BoxContainerElement extends TUIElement {
         const w = this.layoutSize.width;
         const h = this.layoutSize.height;
 
-        // Fill background
-        for (let y = 0; y < h; y++) {
-            for (let x = 0; x < w; x++) {
-                context.setCell(x, y, { char: " ", fg: this.fg, bg: this.bg });
-            }
-        }
-
-        // Top border
-        context.setCell(0, 0, { char: BORDER.topLeft, fg: this.borderFg, bg: this.bg });
-        for (let x = 1; x < w - 1; x++) context.setCell(x, 0, { char: "─", fg: this.borderFg, bg: this.bg });
-        context.setCell(w - 1, 0, { char: BORDER.topRight, fg: this.borderFg, bg: this.bg });
-
-        // Side borders
-        for (let y = 1; y < h - 1; y++) {
-            context.setCell(0, y, { char: "│", fg: this.borderFg, bg: this.bg });
-            context.setCell(w - 1, y, { char: "│", fg: this.borderFg, bg: this.bg });
-        }
-
-        // Bottom border
-        context.setCell(0, h - 1, { char: BORDER.bottomLeft, fg: this.borderFg, bg: this.bg });
-        for (let x = 1; x < w - 1; x++) context.setCell(x, h - 1, { char: "─", fg: this.borderFg, bg: this.bg });
-        context.setCell(w - 1, h - 1, { char: BORDER.bottomRight, fg: this.borderFg, bg: this.bg });
+        // Fill background + frame (separator row when title has one).
+        const separators = this.title && this.hasSeparator ? [2] : undefined;
+        context.drawBox(0, 0, w, h, { fg: this.borderFg, bg: this.bg, fill: true, separators });
 
         // Title row (y=1)
         if (this.title) {
             const titleX = Math.floor((w - this.title.length) / 2);
             context.drawText(titleX, 1, this.title, { fg: this.titleFg, bg: this.bg });
-
-            // Separator (y=2)
-            if (this.hasSeparator) {
-                context.setCell(0, 2, { char: "├", fg: this.borderFg, bg: this.bg });
-                for (let x = 1; x < w - 1; x++) context.setCell(x, 2, { char: "─", fg: this.borderFg, bg: this.bg });
-                context.setCell(w - 1, 2, { char: "┤", fg: this.borderFg, bg: this.bg });
-            }
         }
 
         // Render child
