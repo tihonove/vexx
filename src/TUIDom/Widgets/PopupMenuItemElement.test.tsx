@@ -29,6 +29,10 @@ function fireClickOn(el: TUIElement): void {
     el.dispatchEvent(new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
 }
 
+function fireMouseMoveOn(el: TUIElement): void {
+    el.dispatchEvent(new TUIMouseEvent("mousemove", { button: "none", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
+}
+
 function findDeepestChild(el: TUIElement): TUIElement {
     const children = el.getChildren();
     if (children.length === 0) return el;
@@ -104,6 +108,46 @@ describe("PopupMenuItemElement", () => {
             fireClickOn(item);
 
             expect(handler).toHaveBeenCalledOnce();
+        });
+    });
+
+    describe("hover handling", () => {
+        it("calls onHover on mousemove", () => {
+            const item = new PopupMenuItemElement("Cut", simpleConfig);
+            item.setAsRoot();
+            const handler = vi.fn();
+            item.onHover = handler;
+
+            fireMouseMoveOn(item);
+
+            expect(handler).toHaveBeenCalledOnce();
+        });
+
+        it("does not call onHover when event is defaultPrevented", () => {
+            const item = new PopupMenuItemElement("Cut", simpleConfig);
+            item.setAsRoot();
+            const handler = vi.fn();
+            item.onHover = handler;
+
+            const event = new TUIMouseEvent("mousemove", {
+                button: "none",
+                screenX: 0,
+                screenY: 0,
+                localX: 0,
+                localY: 0,
+            });
+            event.preventDefault();
+            item.dispatchEvent(event);
+
+            expect(handler).not.toHaveBeenCalled();
+        });
+
+        it("does not throw on mousemove without an onHover handler", () => {
+            const item = new PopupMenuItemElement("Cut", simpleConfig);
+            item.setAsRoot();
+            expect(() => {
+                fireMouseMoveOn(item);
+            }).not.toThrow();
         });
     });
 

@@ -27,6 +27,10 @@ function clickEvent(): TUIMouseEvent {
     return new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 });
 }
 
+function mousemoveEvent(): TUIMouseEvent {
+    return new TUIMouseEvent("mousemove", { button: "none", screenX: 0, screenY: 0, localX: 0, localY: 0 });
+}
+
 describe("MenuBarItemElement — metadata", () => {
     it("exposes label and mnemonic", () => {
         const item = new MenuBarItemElement("File", "F");
@@ -82,6 +86,35 @@ describe("MenuBarItemElement — activation", () => {
     it("does not throw on click without an onActivate handler", () => {
         const item = new MenuBarItemElement("File");
         expect(() => item.dispatchEvent(clickEvent())).not.toThrow();
+    });
+});
+
+describe("MenuBarItemElement — hover", () => {
+    it("invokes onHover on mousemove", () => {
+        const item = new MenuBarItemElement("File");
+        const onHover = vi.fn();
+        item.onHover = onHover;
+
+        item.dispatchEvent(mousemoveEvent());
+
+        expect(onHover).toHaveBeenCalledOnce();
+    });
+
+    it("does nothing on mousemove when default is prevented", () => {
+        const item = new MenuBarItemElement("File");
+        const onHover = vi.fn();
+        item.onHover = onHover;
+
+        const event = mousemoveEvent();
+        event.preventDefault();
+        item.dispatchEvent(event);
+
+        expect(onHover).not.toHaveBeenCalled();
+    });
+
+    it("does not throw on mousemove without an onHover handler", () => {
+        const item = new MenuBarItemElement("File");
+        expect(() => item.dispatchEvent(mousemoveEvent())).not.toThrow();
     });
 });
 
