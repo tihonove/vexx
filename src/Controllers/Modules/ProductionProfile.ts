@@ -2,6 +2,7 @@ import type { ITerminalBackend } from "../../Backend/ITerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
 import type { ILogService } from "../../Common/Logging/ILogService.ts";
+import type { IUserDataPaths } from "../../Common/UserDataPaths.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService.ts";
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
@@ -21,6 +22,7 @@ import { keybindingsModule } from "./KeybindingsModule.ts";
 import { loggingModule } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { userDataPathsModule } from "./UserDataPathsModule.ts";
 import { workspaceModule } from "./WorkspaceModule.ts";
 
 export interface ProductionProfileContext {
@@ -33,6 +35,7 @@ export interface ProductionProfileContext {
     languageService: ILanguageService;
     configurationService: IConfigurationService;
     userKeybindings: readonly IUserKeybindingRule[];
+    userDataPaths: IUserDataPaths;
     logService: ILogService;
 }
 
@@ -55,6 +58,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
         .use(configurationModule, { configurationService: ctx.configurationService })
         .use(terminalEnvironmentModule, { backend: ctx.backend })
         .use(keybindingsModule, { rules: ctx.userKeybindings })
+        .use(userDataPathsModule, { userDataPaths: ctx.userDataPaths })
         .use(workspaceModule)
         .use(controllersModule)
         .use(extensionHostModule);

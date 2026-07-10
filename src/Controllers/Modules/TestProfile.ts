@@ -18,6 +18,7 @@ import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 import { loggingModuleDefault } from "./LoggingModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { userDataPathsModuleDefault } from "./UserDataPathsModule.ts";
 import { workspaceModule } from "./WorkspaceModule.ts";
 
 /**
@@ -51,6 +52,7 @@ export function createTestContainer(): TestContainerHandle {
         .use(configurationModuleDefault)
         .use(terminalEnvironmentModule, { backend: new MockTerminalBackend() })
         .use(keybindingsModuleDefault)
+        .use(userDataPathsModuleDefault)
         .use(workspaceModule)
         .use(controllersModule);
 

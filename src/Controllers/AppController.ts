@@ -8,6 +8,7 @@ import { Point } from "../Common/GeometryPromitives.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { ILogService } from "../Common/Logging/ILogService.ts";
 import type { IFileClipboard } from "../Common/IFileClipboard.ts";
+import type { IUserDataPaths } from "../Common/UserDataPaths.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
@@ -74,6 +75,7 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
 import { fileSaveAction, fileSaveAsAction } from "./Actions/FileActions.ts";
+import { openKeybindingsJsonAction, openSettingsJsonAction } from "./Actions/PreferencesActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import {
     buildPasteEdits,
@@ -139,6 +141,7 @@ import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidg
 import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
+import { UserDataPathsDIToken } from "./Modules/UserDataPathsModule.ts";
 import { QuickInputController } from "./QuickInputController.ts";
 import { CompletionController } from "./CompletionController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
@@ -252,6 +255,11 @@ const CHORD_TIMEOUT_MS = 5000;
 // How long the "… is not a command" status message lingers after a broken chord.
 const CHORD_NOT_FOUND_MS = 4000;
 
+// Seed content written when settings.json / keybindings.json don't exist yet, so the
+// opened editor is non-empty and immediately writable (mirrors VS Code's first-open seed).
+const EMPTY_SETTINGS_JSON = "{\n    \n}\n";
+const EMPTY_KEYBINDINGS_JSON = "// Place your key bindings in this file to override the defaults\n[\n]\n";
+
 // Context keys that reflect WHAT IS FOCUSED (set from `activeElement` in updateContextKeys).
 // A keybinding whose `when` names one of these is scoped to the focused input/list/editor —
 // e.g. clipboard / undo / cursor commands that edit the focused widget. While a capturing overlay
@@ -319,6 +327,7 @@ export class AppController extends Disposable implements IController {
     private workspaceEditService: WorkspaceEditService;
     private undoRedoService: UndoRedoService;
     private configurationService: IConfigurationService;
+    private userDataPaths: IUserDataPaths;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
     private quickInputController: QuickInputController;
@@ -361,6 +370,7 @@ export class AppController extends Disposable implements IController {
         this.workspaceEditService = accessor.get(WorkspaceEditServiceDIToken);
         this.undoRedoService = accessor.get(UndoRedoServiceDIToken);
         this.configurationService = accessor.get(IConfigurationServiceDIToken);
+        this.userDataPaths = accessor.get(UserDataPathsDIToken);
         // Подсветка «вырезанных» файлов в дереве следует за состоянием буфера.
         this.register(
             this.fileClipboard.onDidChange((entry) => {
@@ -472,6 +482,22 @@ export class AppController extends Disposable implements IController {
                 ...fileSaveAsAction,
                 run: () => {
                     void this.runSaveAs();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...openSettingsJsonAction,
+                run: () => {
+                    this.openUserJsonFile(this.userDataPaths.settingsFile, EMPTY_SETTINGS_JSON);
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...openKeybindingsJsonAction,
+                run: () => {
+                    this.openUserJsonFile(this.userDataPaths.keybindingsFile, EMPTY_KEYBINDINGS_JSON);
                 },
             }),
         );
@@ -787,6 +813,25 @@ export class AppController extends Disposable implements IController {
         this.statusBarController.update();
     }
 
+    /**
+     * Opens a user config file (settings.json / keybindings.json) in the editor,
+     * creating its directory and seeding default content if the file is missing —
+     * so the tab is non-empty and can be saved right away (à la VS Code).
+     */
+    private openUserJsonFile(filePath: string, seedContent: string): void {
+        try {
+            fs.mkdirSync(path.dirname(filePath), { recursive: true });
+            if (!fs.existsSync(filePath)) {
+                fs.writeFileSync(filePath, seedContent, "utf-8");
+            }
+        } catch (error) {
+            /* v8 ignore start -- defensive: surfaces a filesystem error (permissions/disk); not reproducible in tests */
+            this.logger.error("Failed to prepare user config file", { path: filePath, error: String(error) });
+            /* v8 ignore stop */
+        }
+        this.openFile(filePath);
+    }
+
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
@@ -1072,6 +1117,9 @@ export class AppController extends Disposable implements IController {
                 entries: [
                     item("Save", "workbench.action.files.save"),
                     item("Save As...", "workbench.action.files.saveAs"),
+                    sep(),
+                    item("Settings", "workbench.action.openSettingsJson"),
+                    item("Keyboard Shortcuts", "workbench.action.openGlobalKeybindingsFile"),
                     sep(),
                     item("Exit", "workbench.action.quit"),
                 ],

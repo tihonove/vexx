@@ -267,7 +267,7 @@ describe("AppController — chords", () => {
         }
     });
 
-    it("Ctrl+K then Ctrl+S breaks the chord and is consumed (no save, no leak)", () => {
+    it("Ctrl+K then Ctrl+S opens keybindings (VS Code chord), not the save chord", () => {
         const { testApp, controller, commandRegistry } = createTestAppController();
         controller.openFile("/tmp/chord-ctrls.txt");
         controller.focusEditor();
@@ -276,8 +276,9 @@ describe("AppController — chords", () => {
         testApp.sendKey("Ctrl+K");
         testApp.sendKey("Ctrl+S");
 
+        // Ctrl+K Ctrl+S is Open Keyboard Shortcuts, distinct from the Ctrl+K S save chord.
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.openGlobalKeybindingsFile");
         expect(executeSpy).not.toHaveBeenCalledWith("workbench.action.files.save");
-        expect(editorText(testApp)).toBe("");
     });
 
     it("resolves the chord through the full Kitty key lifecycle (down/up incl. release)", () => {

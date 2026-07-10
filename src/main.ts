@@ -180,6 +180,7 @@ async function runEditor(): Promise<void> {
         languageService: languageRegistry,
         configurationService,
         userKeybindings,
+        userDataPaths,
         logService,
     });
 
