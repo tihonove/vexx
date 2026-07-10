@@ -150,3 +150,62 @@ describe("loadConfiguration", () => {
         );
     });
 });
+
+describe("ConfigurationService.updateUserValue", () => {
+    let tmpRoot: string;
+
+    beforeEach(() => {
+        tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-cfg-write-"));
+    });
+
+    afterEach(() => {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+    });
+
+    function paths(profile?: string) {
+        return resolveUserDataPaths({ homedir: "/never", userDataDir: tmpRoot, profile });
+    }
+
+    it("writes the key to settings.json when the file did not exist", async () => {
+        const p = paths();
+        const cfg = await loadConfiguration(p);
+        await cfg.updateUserValue?.("workbench.colorTheme", "Monokai");
+
+        const written = fs.readFileSync(p.settingsFile, "utf-8");
+        expect(JSON.parse(written)).toEqual({ "workbench.colorTheme": "Monokai" });
+        // In-memory model reflects the write immediately (no reload needed).
+        expect(cfg.get<string>("workbench.colorTheme")).toBe("Monokai");
+    });
+
+    it("preserves existing keys and comments in settings.json", async () => {
+        const p = paths();
+        fs.mkdirSync(path.dirname(p.settingsFile), { recursive: true });
+        fs.writeFileSync(
+            p.settingsFile,
+            `{
+    // keep me
+    "editor.tabSize": 2
+}
+`,
+        );
+        const cfg = await loadConfiguration(p);
+        await cfg.updateUserValue?.("workbench.colorTheme", "Light Modern");
+
+        const written = fs.readFileSync(p.settingsFile, "utf-8");
+        expect(written).toContain("// keep me");
+        expect(written).toContain(`"editor.tabSize": 2`);
+        expect(written).toContain(`"workbench.colorTheme": "Light Modern"`);
+        expect(cfg.get<number>("editor.tabSize")).toBe(2);
+        expect(cfg.get<string>("workbench.colorTheme")).toBe("Light Modern");
+    });
+
+    it("writes to the profile settings file for a named profile", async () => {
+        const p = paths("compact");
+        const cfg = await loadConfiguration(p);
+        await cfg.updateUserValue?.("workbench.colorTheme", "Dark+");
+
+        expect(fs.existsSync(p.settingsFile)).toBe(true);
+        expect(JSON.parse(fs.readFileSync(p.settingsFile, "utf-8"))).toEqual({ "workbench.colorTheme": "Dark+" });
+        expect(cfg.get<string>("workbench.colorTheme")).toBe("Dark+");
+    });
+});

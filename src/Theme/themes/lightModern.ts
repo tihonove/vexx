@@ -2,47 +2,167 @@
 // Do not edit by hand — re-run the script to refresh.
 import type { IThemeFile } from "../IThemeFile.ts";
 
-export const darkPlusTheme: IThemeFile = {
-    "name": "Dark+",
-    "type": "dark",
+export const lightModernTheme: IThemeFile = {
+    "name": "Light Modern",
+    "type": "light",
     "colors": {
-        "checkbox.border": "#6B6B6B",
-        "editor.background": "#1E1E1E",
-        "editor.foreground": "#D4D4D4",
-        "editor.inactiveSelectionBackground": "#3A3D41",
-        "editorIndentGuide.background1": "#404040",
-        "editorIndentGuide.activeBackground1": "#707070",
-        "editor.selectionHighlightBackground": "#ADD6FF26",
-        "list.dropBackground": "#383B3D",
-        "activityBarBadge.background": "#007ACC",
-        "sideBarTitle.foreground": "#BBBBBB",
-        "input.placeholderForeground": "#A6A6A6",
-        "menu.background": "#252526",
-        "menu.foreground": "#CCCCCC",
-        "menu.separatorBackground": "#454545",
-        "menu.border": "#454545",
-        "menu.selectionBackground": "#0078d4",
-        "statusBarItem.remoteForeground": "#FFF",
-        "statusBarItem.remoteBackground": "#16825D",
+        "checkbox.border": "#CECECE",
+        "editor.background": "#FFFFFF",
+        "editor.foreground": "#3B3B3B",
+        "editor.inactiveSelectionBackground": "#E5EBF1",
+        "editorIndentGuide.background1": "#D3D3D3",
+        "editorIndentGuide.activeBackground1": "#939393",
+        "editor.selectionHighlightBackground": "#ADD6FF80",
+        "editorSuggestWidget.background": "#F8F8F8",
+        "activityBarBadge.background": "#005FB8",
+        "sideBarTitle.foreground": "#3B3B3B",
+        "list.hoverBackground": "#F2F2F2",
+        "menu.border": "#CECECE",
+        "input.placeholderForeground": "#767676",
+        "searchEditor.textInputBorder": "#CECECE",
+        "settings.textInputBorder": "#CECECE",
+        "settings.numberInputBorder": "#CECECE",
+        "statusBarItem.remoteForeground": "#FFFFFF",
+        "statusBarItem.remoteBackground": "#005FB8",
         "ports.iconRunningProcessForeground": "#369432",
-        "sideBarSectionHeader.background": "#0000",
-        "sideBarSectionHeader.border": "#ccc3",
-        "tab.selectedBackground": "#222222",
-        "tab.selectedForeground": "#ffffffa0",
-        "tab.lastPinnedBorder": "#ccc3",
-        "list.activeSelectionIconForeground": "#FFF",
-        "terminal.inactiveSelectionBackground": "#3A3D41",
-        "widget.border": "#303031",
-        "actionBar.toggledBackground": "#383a49",
-        "agentsPanel.border": "#303031",
-        "agentsChatInput.border": "#303031",
-        "agentsChatInput.focusBorder": "#007ACC",
-        "agentsNewSessionButton.border": "#303031"
+        "sideBarSectionHeader.background": "#F8F8F8",
+        "sideBarSectionHeader.border": "#E5E5E5",
+        "tab.selectedForeground": "#333333b3",
+        "tab.selectedBackground": "#ffffffa5",
+        "tab.lastPinnedBorder": "#D4D4D4",
+        "notebook.cellBorderColor": "#E5E5E5",
+        "notebook.selectedCellBackground": "#C8DDF150",
+        "statusBarItem.errorBackground": "#C72E0F",
+        "list.activeSelectionIconForeground": "#000000",
+        "list.focusAndSelectionOutline": "#005FB8",
+        "terminal.inactiveSelectionBackground": "#E5EBF1",
+        "widget.border": "#E5E5E5",
+        "actionBar.toggledBackground": "#dddddd",
+        "diffEditor.unchangedRegionBackground": "#f8f8f8",
+        "agentsNewSessionButton.border": "#D8D8D8",
+        "agentsChatInput.border": "#D8D8D8",
+        "activityBar.activeBorder": "#005FB8",
+        "activityBar.background": "#F8F8F8",
+        "activityBar.border": "#E5E5E5",
+        "activityBar.foreground": "#1F1F1F",
+        "activityBar.inactiveForeground": "#616161",
+        "activityBarBadge.foreground": "#FFFFFF",
+        "badge.background": "#CCCCCC",
+        "badge.foreground": "#3B3B3B",
+        "button.background": "#005FB8",
+        "button.border": "#0000001a",
+        "button.foreground": "#FFFFFF",
+        "button.hoverBackground": "#0258A8",
+        "button.secondaryBackground": "#E5E5E5",
+        "button.secondaryForeground": "#3B3B3B",
+        "button.secondaryHoverBackground": "#CCCCCC",
+        "chat.slashCommandBackground": "#ADCEFF7A",
+        "chat.slashCommandForeground": "#26569E",
+        "chat.editedFileForeground": "#895503",
+        "checkbox.background": "#F8F8F8",
+        "descriptionForeground": "#3B3B3B",
+        "dropdown.background": "#FFFFFF",
+        "dropdown.border": "#CECECE",
+        "dropdown.foreground": "#3B3B3B",
+        "dropdown.listBackground": "#FFFFFF",
+        "editorGroup.border": "#E5E5E5",
+        "editorGroupHeader.tabsBackground": "#F8F8F8",
+        "editorGroupHeader.tabsBorder": "#E5E5E5",
+        "editorGutter.addedBackground": "#2EA043",
+        "editorGutter.deletedBackground": "#F85149",
+        "editorGutter.modifiedBackground": "#005FB8",
+        "editorLineNumber.activeForeground": "#171184",
+        "editorLineNumber.foreground": "#6E7681",
+        "editorOverviewRuler.border": "#E5E5E5",
+        "editorWidget.background": "#F8F8F8",
+        "errorForeground": "#F85149",
+        "focusBorder": "#005FB8",
+        "foreground": "#3B3B3B",
+        "icon.foreground": "#3B3B3B",
+        "input.background": "#FFFFFF",
+        "input.border": "#CECECE",
+        "input.foreground": "#3B3B3B",
+        "inputOption.activeBackground": "#BED6ED",
+        "inputOption.activeBorder": "#005FB8",
+        "inputOption.activeForeground": "#000000",
+        "keybindingLabel.foreground": "#3B3B3B",
+        "list.activeSelectionBackground": "#E8E8E8",
+        "list.activeSelectionForeground": "#000000",
+        "menu.selectionBackground": "#005FB8",
+        "menu.selectionForeground": "#ffffff",
+        "notificationCenterHeader.background": "#FFFFFF",
+        "notificationCenterHeader.foreground": "#3B3B3B",
+        "notifications.background": "#FFFFFF",
+        "notifications.border": "#E5E5E5",
+        "notifications.foreground": "#3B3B3B",
+        "panel.background": "#F8F8F8",
+        "panel.border": "#E5E5E5",
+        "panelInput.border": "#E5E5E5",
+        "panelTitle.activeBorder": "#005FB8",
+        "panelTitle.activeForeground": "#3B3B3B",
+        "panelTitle.inactiveForeground": "#3B3B3B",
+        "peekViewEditor.matchHighlightBackground": "#BB800966",
+        "peekViewResult.background": "#FFFFFF",
+        "peekViewResult.matchHighlightBackground": "#BB800966",
+        "pickerGroup.border": "#E5E5E5",
+        "pickerGroup.foreground": "#8B949E",
+        "progressBar.background": "#005FB8",
+        "quickInput.background": "#F8F8F8",
+        "quickInput.foreground": "#3B3B3B",
+        "settings.dropdownBackground": "#FFFFFF",
+        "settings.dropdownBorder": "#CECECE",
+        "settings.headerForeground": "#1F1F1F",
+        "settings.modifiedItemIndicator": "#BB800966",
+        "sideBar.background": "#F8F8F8",
+        "sideBar.border": "#E5E5E5",
+        "sideBar.foreground": "#3B3B3B",
+        "sideBarSectionHeader.foreground": "#3B3B3B",
+        "statusBar.background": "#F8F8F8",
+        "statusBar.foreground": "#3B3B3B",
+        "statusBar.border": "#E5E5E5",
+        "statusBarItem.hoverBackground": "#1F1F1F11",
+        "statusBarItem.hoverForeground": "#000000",
+        "statusBarItem.compactHoverBackground": "#CCCCCC",
+        "statusBar.debuggingBackground": "#FD716C",
+        "statusBar.debuggingForeground": "#000000",
+        "statusBar.focusBorder": "#005FB8",
+        "statusBar.noFolderBackground": "#F8F8F8",
+        "statusBarItem.focusBorder": "#005FB8",
+        "statusBarItem.prominentBackground": "#6E768166",
+        "tab.activeBackground": "#FFFFFF",
+        "tab.activeBorder": "#F8F8F8",
+        "tab.activeBorderTop": "#005FB8",
+        "tab.activeForeground": "#3B3B3B",
+        "tab.selectedBorderTop": "#68a3da",
+        "tab.border": "#E5E5E5",
+        "tab.hoverBackground": "#FFFFFF",
+        "tab.inactiveBackground": "#F8F8F8",
+        "tab.inactiveForeground": "#868686",
+        "tab.unfocusedActiveBorder": "#F8F8F8",
+        "tab.unfocusedActiveBorderTop": "#E5E5E5",
+        "tab.unfocusedHoverBackground": "#F8F8F8",
+        "terminalCursor.foreground": "#005FB8",
+        "terminal.foreground": "#3B3B3B",
+        "terminal.tab.activeBorder": "#005FB8",
+        "textBlockQuote.background": "#F8F8F8",
+        "textBlockQuote.border": "#E5E5E5",
+        "textCodeBlock.background": "#F8F8F8",
+        "textLink.activeForeground": "#005FB8",
+        "textLink.foreground": "#005FB8",
+        "textPreformat.foreground": "#3B3B3B",
+        "textPreformat.background": "#0000001F",
+        "textSeparator.foreground": "#21262D",
+        "titleBar.activeBackground": "#F8F8F8",
+        "titleBar.activeForeground": "#1E1E1E",
+        "titleBar.border": "#E5E5E5",
+        "titleBar.inactiveBackground": "#F8F8F8",
+        "titleBar.inactiveForeground": "#8B949E",
+        "welcomePage.tileBackground": "#F3F3F3"
     },
     "tokenColors": [
         {
             "settings": {
-                "foreground": "#D4D4D4"
+                "foreground": "#000000ff"
             },
             "scope": [
                 "meta.embedded",
@@ -67,23 +187,23 @@ export const darkPlusTheme: IThemeFile = {
             "settings": {
                 "foreground": "#000080"
             },
-            "scope": "header"
+            "scope": "meta.diff.header"
         },
         {
             "settings": {
-                "foreground": "#6A9955"
+                "foreground": "#008000"
             },
             "scope": "comment"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": "constant.language"
         },
         {
             "settings": {
-                "foreground": "#b5cea8"
+                "foreground": "#098658"
             },
             "scope": [
                 "constant.numeric",
@@ -94,34 +214,32 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#646695"
+                "foreground": "#811f3f"
             },
             "scope": "constant.regexp"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#800000"
             },
+            "name": "css tags in selectors, xml tags",
             "scope": "entity.name.tag"
         },
         {
             "settings": {
-                "foreground": "#d7ba7d"
+                "foreground": "#800000"
             },
-            "scope": [
-                "entity.name.tag.css",
-                "entity.name.tag.less"
-            ]
+            "scope": "entity.name.selector"
         },
         {
             "settings": {
-                "foreground": "#9cdcfe"
+                "foreground": "#e50000"
             },
             "scope": "entity.other.attribute-name"
         },
         {
             "settings": {
-                "foreground": "#d7ba7d"
+                "foreground": "#800000"
             },
             "scope": [
                 "entity.other.attribute-name.class.css",
@@ -137,7 +255,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#f44747"
+                "foreground": "#cd3131"
             },
             "scope": "invalid"
         },
@@ -149,21 +267,21 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#569cd6",
+                "foreground": "#000080",
                 "fontStyle": "bold"
             },
             "scope": "markup.bold"
         },
         {
             "settings": {
-                "foreground": "#569cd6",
+                "foreground": "#800000",
                 "fontStyle": "bold"
             },
             "scope": "markup.heading"
         },
         {
             "settings": {
-                "foreground": "#C586C0",
+                "foreground": "#800080",
                 "fontStyle": "italic"
             },
             "scope": "markup.italic"
@@ -176,50 +294,47 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#b5cea8"
+                "foreground": "#098658"
             },
             "scope": "markup.inserted"
         },
         {
             "settings": {
-                "foreground": "#ce9178"
+                "foreground": "#a31515"
             },
             "scope": "markup.deleted"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0451a5"
             },
             "scope": "markup.changed"
         },
         {
             "settings": {
-                "foreground": "#6A9955"
+                "foreground": "#0451a5"
             },
-            "scope": "punctuation.definition.quote.begin.markdown"
+            "scope": [
+                "punctuation.definition.quote.begin.markdown",
+                "punctuation.definition.list.begin.markdown"
+            ]
         },
         {
             "settings": {
-                "foreground": "#6796e6"
-            },
-            "scope": "punctuation.definition.list.begin.markdown"
-        },
-        {
-            "settings": {
-                "foreground": "#ce9178"
+                "foreground": "#800000"
             },
             "scope": "markup.inline.raw"
         },
         {
             "settings": {
-                "foreground": "#808080"
+                "foreground": "#800000"
             },
             "name": "brackets of XML/HTML tags",
             "scope": "punctuation.definition.tag"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": [
                 "meta.preprocessor",
@@ -228,43 +343,37 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#ce9178"
+                "foreground": "#a31515"
             },
             "scope": "meta.preprocessor.string"
         },
         {
             "settings": {
-                "foreground": "#b5cea8"
+                "foreground": "#098658"
             },
             "scope": "meta.preprocessor.numeric"
         },
         {
             "settings": {
-                "foreground": "#9cdcfe"
+                "foreground": "#0451a5"
             },
             "scope": "meta.structure.dictionary.key.python"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
-            },
-            "scope": "meta.diff.header"
-        },
-        {
-            "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": "storage"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": "storage.type"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": [
                 "storage.modifier",
@@ -273,7 +382,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#ce9178"
+                "foreground": "#a31515"
             },
             "scope": [
                 "string",
@@ -282,25 +391,35 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#ce9178"
+                "foreground": "#0000ff"
             },
-            "scope": "string.tag"
+            "scope": [
+                "string.comment.buffered.block.pug",
+                "string.quoted.pug",
+                "string.interpolated.pug",
+                "string.unquoted.plain.in.yaml",
+                "string.unquoted.plain.out.yaml",
+                "string.unquoted.block.yaml",
+                "string.quoted.single.yaml",
+                "string.quoted.double.xml",
+                "string.quoted.single.xml",
+                "string.unquoted.cdata.xml",
+                "string.quoted.double.html",
+                "string.quoted.single.html",
+                "string.unquoted.html",
+                "string.quoted.single.handlebars",
+                "string.quoted.double.handlebars"
+            ]
         },
         {
             "settings": {
-                "foreground": "#ce9178"
-            },
-            "scope": "string.value"
-        },
-        {
-            "settings": {
-                "foreground": "#d16969"
+                "foreground": "#811f3f"
             },
             "scope": "string.regexp"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "name": "String interpolation",
             "scope": [
@@ -311,7 +430,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#d4d4d4"
+                "foreground": "#000000"
             },
             "name": "Reset JavaScript string interpolation expression",
             "scope": [
@@ -320,7 +439,21 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#9cdcfe"
+                "foreground": "#0451a5"
+            },
+            "scope": [
+                "support.constant.property-value",
+                "support.constant.font-name",
+                "support.constant.media-type",
+                "support.constant.media",
+                "constant.other.color.rgb-value",
+                "constant.other.rgb-value",
+                "support.constant.color"
+            ]
+        },
+        {
+            "settings": {
+                "foreground": "#e50000"
             },
             "scope": [
                 "support.type.vendored.property-name",
@@ -331,25 +464,33 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0451a5"
+            },
+            "scope": [
+                "support.type.property-name.json"
+            ]
+        },
+        {
+            "settings": {
+                "foreground": "#0000ff"
             },
             "scope": "keyword"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": "keyword.control"
         },
         {
             "settings": {
-                "foreground": "#d4d4d4"
+                "foreground": "#000000"
             },
             "scope": "keyword.operator"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": [
                 "keyword.operator.new",
@@ -366,13 +507,13 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#b5cea8"
+                "foreground": "#098658"
             },
             "scope": "keyword.other.unit"
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#800000"
             },
             "scope": [
                 "punctuation.section.embedded.begin.php",
@@ -381,19 +522,19 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#9cdcfe"
+                "foreground": "#0451a5"
             },
             "scope": "support.function.git-rebase"
         },
         {
             "settings": {
-                "foreground": "#b5cea8"
+                "foreground": "#098658"
             },
             "scope": "constant.sha.git-rebase"
         },
         {
             "settings": {
-                "foreground": "#d4d4d4"
+                "foreground": "#000000"
             },
             "name": "coloring of the Java import and package identifiers",
             "scope": [
@@ -404,14 +545,14 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "name": "this.self",
             "scope": "variable.language"
         },
         {
             "settings": {
-                "foreground": "#DCDCAA"
+                "foreground": "#795E26"
             },
             "name": "Function declarations",
             "scope": [
@@ -424,7 +565,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#4EC9B0"
+                "foreground": "#267f99"
             },
             "name": "Types declaration and references",
             "scope": [
@@ -464,7 +605,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#4EC9B0"
+                "foreground": "#267f99"
             },
             "name": "Types declaration and references, TS grammar specific",
             "scope": [
@@ -479,13 +620,13 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#C586C0"
+                "foreground": "#AF00DB"
             },
             "name": "Control flow / Special keywords",
             "scope": [
                 "keyword.control",
                 "source.cpp keyword.operator.new",
-                "keyword.operator.delete",
+                "source.cpp keyword.operator.delete",
                 "keyword.other.using",
                 "keyword.other.directive.using",
                 "keyword.other.operator",
@@ -494,7 +635,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#9CDCFE"
+                "foreground": "#001080"
             },
             "name": "Variable and parameter name",
             "scope": [
@@ -507,7 +648,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#4FC1FF"
+                "foreground": "#0070C1"
             },
             "name": "Constants and enums",
             "scope": [
@@ -517,7 +658,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#9CDCFE"
+                "foreground": "#001080"
             },
             "name": "Object keys, TS grammar specific",
             "scope": [
@@ -526,7 +667,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#CE9178"
+                "foreground": "#0451a5"
             },
             "name": "CSS property value",
             "scope": [
@@ -541,7 +682,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#CE9178"
+                "foreground": "#d16969"
             },
             "name": "Regular expression groups",
             "scope": [
@@ -556,7 +697,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#d16969"
+                "foreground": "#811f3f"
             },
             "scope": [
                 "constant.character.character-class.regexp",
@@ -567,7 +708,13 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#DCDCAA"
+                "foreground": "#000000"
+            },
+            "scope": "keyword.operator.quantifier.regexp"
+        },
+        {
+            "settings": {
+                "foreground": "#EE0000"
             },
             "scope": [
                 "keyword.operator.or.regexp",
@@ -576,13 +723,7 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#d7ba7d"
-            },
-            "scope": "keyword.operator.quantifier.regexp"
-        },
-        {
-            "settings": {
-                "foreground": "#569cd6"
+                "foreground": "#0000ff"
             },
             "scope": [
                 "constant.character",
@@ -591,13 +732,13 @@ export const darkPlusTheme: IThemeFile = {
         },
         {
             "settings": {
-                "foreground": "#d7ba7d"
+                "foreground": "#EE0000"
             },
             "scope": "constant.character.escape"
         },
         {
             "settings": {
-                "foreground": "#C8C8C8"
+                "foreground": "#000000"
             },
             "scope": "entity.name.label"
         }

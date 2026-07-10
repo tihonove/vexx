@@ -1,0 +1,68 @@
+import type { IThemeFile } from "./IThemeFile.ts";
+import { builtinThemes } from "./themes/builtinThemes.ts";
+import { WorkbenchTheme } from "./WorkbenchTheme.ts";
+
+/** A theme entry as surfaced to the theme picker. */
+export interface IThemeDescriptor {
+    /** Display name / picker label (`IThemeFile.name`). */
+    readonly label: string;
+    /** Base theme type — used to group dark vs light in the picker. */
+    readonly type: "dark" | "light" | "hc" | "hcLight";
+}
+
+/**
+ * Registry of available color themes, keyed by display name (the label shown in
+ * the theme picker and stored in the `workbench.colorTheme` setting).
+ *
+ * Mirrors VS Code's theme service: built-in themes are seeded here, and the
+ * active theme is selected by label. Themes contributed by extensions
+ * (`contributes.themes`) will register into the same registry — see
+ * docs/TODO/Theming.md.
+ */
+export class ThemeRegistry {
+    private readonly themes = new Map<string, IThemeFile>();
+
+    public constructor(initial: readonly IThemeFile[] = []) {
+        for (const theme of initial) this.register(theme);
+    }
+
+    /**
+     * Register a theme, keyed by its `name`. A later registration with the same
+     * name replaces the earlier one (matching VS Code, where a user extension
+     * can shadow a built-in theme). Themes without a `name` are ignored.
+     */
+    public register(theme: IThemeFile): void {
+        if (theme.name === undefined) return;
+        this.themes.set(theme.name, theme);
+    }
+
+    public has(label: string): boolean {
+        return this.themes.has(label);
+    }
+
+    public getThemeFile(label: string): IThemeFile | undefined {
+        return this.themes.get(label);
+    }
+
+    /** Descriptors for every registered theme, in registration order. */
+    public list(): IThemeDescriptor[] {
+        return [...this.themes.values()].map((theme) => ({
+            label: theme.name ?? "Unnamed",
+            type: theme.type ?? "dark",
+        }));
+    }
+
+    /**
+     * Resolve a theme label to a {@link WorkbenchTheme}, or `undefined` if no
+     * theme with that label is registered.
+     */
+    public resolve(label: string): WorkbenchTheme | undefined {
+        const themeFile = this.themes.get(label);
+        return themeFile === undefined ? undefined : WorkbenchTheme.fromThemeFile(themeFile);
+    }
+}
+
+/** A {@link ThemeRegistry} seeded with all built-in themes. */
+export function createBuiltinThemeRegistry(): ThemeRegistry {
+    return new ThemeRegistry(builtinThemes);
+}

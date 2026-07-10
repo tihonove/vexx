@@ -2,6 +2,7 @@ import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
+import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
 /**
@@ -24,21 +25,43 @@ export interface InputBoxOptions {
 }
 
 /**
- * VS Code-style QuickInput service (the reusable "enter a value" control).
+ * Options for a list pick, mirroring VS Code's `showQuickPick`.
+ */
+export interface QuickPickOptions {
+    /** Title drawn in the overlay's top border. */
+    title?: string;
+    /** Ghost text shown when the query field is empty. */
+    placeholder?: string;
+    /** The items to choose from. Filtered live by their `label` as the user types. */
+    items: readonly QuickPickItem[];
+    /** Row to pre-highlight when the picker opens (clamped into range; default 0). */
+    activeIndex?: number;
+    /**
+     * Fired as the highlighted item changes (open, arrow navigation, filtering) —
+     * the hook behind live preview (e.g. applying a theme while browsing). Receives
+     * `undefined` when the filtered list is empty.
+     */
+    onDidChangeActive?: (item: QuickPickItem | undefined, index: number) => void;
+}
+
+/**
+ * VS Code-style QuickInput service (the reusable "enter a value" / "pick from a
+ * list" control).
  *
  * Owns ONE reusable {@link QuickPickElement} hosted in a single overlay session,
  * mirroring {@link import("./QuickOpenController.ts").QuickOpenController}. Only
  * one quick-input is ever active at a time; a new call cancels any previous one.
  *
- * Currently exposes the InputBox flavor (`input()`). The list-pick and
- * file-dialog flavors reuse the same widget/session and are future additions.
+ * Exposes the InputBox flavor (`input()`) and the list-pick flavor
+ * (`quickPick()`). The file-dialog flavor reuses the same widget/session and is a
+ * future addition.
  */
 export class QuickInputController extends Disposable {
     public readonly view: QuickPickElement;
 
     private hostBody: BodyElement | null = null;
     private session: OverlaySessionHandle | null = null;
-    private pendingResolve: ((value: string | undefined) => void) | null = null;
+    private pendingResolve: ((value: string | QuickPickItem | undefined) => void) | null = null;
 
     public constructor() {
         super();
@@ -88,7 +111,7 @@ export class QuickInputController extends Disposable {
         this.settle(undefined);
 
         return new Promise<string | undefined>((resolve) => {
-            this.pendingResolve = resolve;
+            this.pendingResolve = resolve as (value: string | QuickPickItem | undefined) => void;
 
             const view = this.view;
             view.acceptMode = "value";
@@ -97,6 +120,9 @@ export class QuickInputController extends Disposable {
             view.prompt = opts.prompt;
             view.placeholder = opts.placeholder ?? "";
             view.validationSeverity = "error";
+            // Clear any list-pick leftovers so a prior quickPick() can't fire here.
+            view.onAccept = null;
+            view.onActiveItemChanged = null;
 
             const validate = opts.validateInput;
             view.onQueryChange = (query) => {
@@ -114,8 +140,69 @@ export class QuickInputController extends Disposable {
         });
     }
 
+    /**
+     * Present a filterable list and resolve with the chosen {@link QuickPickItem}
+     * on Enter, or `undefined` if dismissed (Escape / outside click / superseded).
+     *
+     * The list is filtered live by a case-insensitive substring match on each
+     * item's `label`. `onDidChangeActive` fires whenever the highlighted item
+     * changes (open, navigation, filtering) — the seam for live preview.
+     */
+    public quickPick(opts: QuickPickOptions): Promise<QuickPickItem | undefined> {
+        // A previous prompt still open? Cancel it before starting a new one.
+        this.settle(undefined);
+
+        return new Promise<QuickPickItem | undefined>((resolve) => {
+            this.pendingResolve = resolve as (value: string | QuickPickItem | undefined) => void;
+
+            const allItems = opts.items;
+            const view = this.view;
+            view.acceptMode = "item";
+            view.title = opts.title;
+            view.prompt = undefined;
+            view.placeholder = opts.placeholder ?? "";
+            view.validationMessage = null;
+
+            const notifyActive = (): void => {
+                const index = view.selectedIndex;
+                opts.onDidChangeActive?.(view.items[index], index);
+            };
+
+            const applyFilter = (query: string): void => {
+                const needle = query.trim().toLowerCase();
+                view.items =
+                    needle === "" ? allItems : allItems.filter((it) => it.label.toLowerCase().includes(needle));
+                // `items =` resets the highlight to the top; surface that as an active change.
+                notifyActive();
+            };
+
+            view.onQueryChange = (query) => {
+                applyFilter(query);
+            };
+            view.onActiveItemChanged = () => {
+                notifyActive();
+            };
+            view.onAccept = (item) => {
+                // Mirror the InputBox flavor: defer the close so the trailing key
+                // event of this Enter does not land in the newly-focused editor.
+                queueMicrotask(() => {
+                    this.settle(item);
+                });
+            };
+
+            view.setQuery("");
+            view.items = allItems;
+            if (opts.activeIndex !== undefined) view.setActiveIndex(opts.activeIndex);
+            notifyActive();
+
+            this.updatePosition();
+            this.session?.open();
+            view.focus();
+        });
+    }
+
     /** Resolve the pending promise exactly once and close the overlay. */
-    private settle(value: string | undefined): void {
+    private settle(value: string | QuickPickItem | undefined): void {
         const resolve = this.pendingResolve;
         if (resolve === null) return;
         this.pendingResolve = null;

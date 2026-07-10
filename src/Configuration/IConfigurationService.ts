@@ -39,6 +39,17 @@ export interface IConfigurationService {
      * потребителей.
      */
     onDidChangeConfiguration(listener: (event: IConfigurationChangeEvent) => void): IDisposable;
+
+    /**
+     * Записывает значение в settings.json активного профиля (аналог
+     * `ConfigurationTarget.USER` в VS Code) и обновляет in-memory модель, чтобы
+     * последующие `get`/`inspect` сразу видели новое значение. JSONC-правка
+     * сохраняет комментарии и форматирование файла (`jsonc-parser.modify`).
+     *
+     * Опционально: заглушки (`NULL_CONFIGURATION_SERVICE`, тестовые моки) persist
+     * не поддерживают — потребитель вызывает через optional chaining.
+     */
+    updateUserValue?(key: string, value: unknown): Promise<void>;
 }
 
 export interface IConfigurationInspectResult<T> {

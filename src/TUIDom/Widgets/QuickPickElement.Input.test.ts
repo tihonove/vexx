@@ -44,6 +44,47 @@ describe("QuickPickElement — ArrowDown / ArrowUp navigation", () => {
         expect(picker.selectedIndex).toBe(3);
     });
 
+    it("fires onActiveItemChanged with the new item on navigation", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(5);
+        const app = createApp(picker);
+        const onActive = vi.fn();
+        picker.onActiveItemChanged = onActive;
+
+        app.sendKey("ArrowDown");
+        expect(onActive).toHaveBeenCalledExactlyOnceWith({ label: "item-2" }, 1);
+        app.sendKey("ArrowUp");
+        expect(onActive).toHaveBeenLastCalledWith({ label: "item-1" }, 0);
+    });
+
+    it("does not fire onActiveItemChanged when the edge blocks movement", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(2);
+        const app = createApp(picker);
+        const onActive = vi.fn();
+        picker.onActiveItemChanged = onActive;
+
+        // Already at the top — ArrowUp is a no-op and must not notify.
+        app.sendKey("ArrowUp");
+        expect(onActive).not.toHaveBeenCalled();
+    });
+
+    it("setActiveIndex repositions the highlight without firing onActiveItemChanged", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(5);
+        createApp(picker);
+        const onActive = vi.fn();
+        picker.onActiveItemChanged = onActive;
+
+        picker.setActiveIndex(3);
+        expect(picker.selectedIndex).toBe(3);
+        expect(onActive).not.toHaveBeenCalled();
+
+        // Out-of-range is clamped into bounds.
+        picker.setActiveIndex(99);
+        expect(picker.selectedIndex).toBe(4);
+    });
+
     it("ArrowDown does not go past last item (no wrap)", () => {
         const picker = new QuickPickElement();
         picker.items = makeItems(3);

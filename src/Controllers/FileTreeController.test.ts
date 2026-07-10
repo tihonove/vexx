@@ -283,7 +283,11 @@ describe("FileTreeController with ThemeService", () => {
     });
 
     it("applies sideBar.background from theme after setRootPath", async () => {
-        const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+        const themeFile = {
+            ...darkPlusTheme,
+            colors: { ...darkPlusTheme.colors, "sideBar.background": "#2D2D2D" },
+        };
+        const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(themeFile));
         const controller = new FileTreeController(themeService);
         controller.setRootPath(tmpDir);
         controller.mount();

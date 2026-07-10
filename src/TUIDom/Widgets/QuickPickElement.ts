@@ -112,6 +112,13 @@ export class QuickPickElement extends TUIElement {
     public onQueryChange: ((query: string) => void) | null = null;
     public onAccept: ((item: QuickPickItem, index: number) => void) | null = null;
     public onCancel: (() => void) | null = null;
+    /**
+     * Fired when the highlighted (active) item changes via keyboard navigation —
+     * used for live preview (e.g. the color-theme picker applies the theme as you
+     * arrow through the list). NOT fired by `items =` / `refreshItems` /
+     * `setActiveIndex` (those are programmatic repositioning, not user intent).
+     */
+    public onActiveItemChanged: ((item: QuickPickItem, index: number) => void) | null = null;
 
     public readonly inputElement: InputElement;
 
@@ -542,6 +549,20 @@ export class QuickPickElement extends TUIElement {
         if (next === this.selectedIndexValue) return;
         this.selectedIndexValue = next;
         this.ensureVisible(next);
+        this.markDirty();
+        this.onActiveItemChanged?.(this.itemsValue[next], next);
+    }
+
+    /**
+     * Move the highlight to `index` programmatically (e.g. pre-select the current
+     * theme when the picker opens). Clamped into range; keeps the row on-screen.
+     * Does NOT fire {@link onActiveItemChanged} — this is not a user navigation.
+     */
+    public setActiveIndex(index: number): void {
+        if (this.itemsValue.length === 0) return;
+        const clamped = Math.max(0, Math.min(this.itemsValue.length - 1, index));
+        this.selectedIndexValue = clamped;
+        this.ensureVisible(clamped);
         this.markDirty();
     }
 
