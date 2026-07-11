@@ -9,7 +9,7 @@ fi
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_BINARY="${ROOT_DIR}/dist/vexx"
-TARGET_DIR="${HOME}/.local/bin"
+TARGET_DIR="${HOME}/.dotfiles.scripts"
 TARGET_BINARY="${TARGET_DIR}/vexx"
 
 echo "> Building SEA binary"
