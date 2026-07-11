@@ -24,9 +24,13 @@ export function validateSettingsJson(text: string, isKnownKey: (key: string) => 
     // parseTree guarantees an object node carries a `children` array and each of
     // its property children carries a string key node at index 0 (malformed keys
     // never produce a property), so no runtime guards are needed here.
+    /* v8 ignore start -- defensive: parseTree guarantees an object node carries a `children` array */
     for (const property of root.children ?? []) {
+        /* v8 ignore stop */
         const keyNode = property.children?.[0];
+        /* v8 ignore start -- defensive: each property child carries a string key node at index 0 */
         if (keyNode === undefined) continue;
+        /* v8 ignore stop */
         const key = keyNode.value as string;
         if (isKnownKey(key)) continue;
 

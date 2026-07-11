@@ -123,7 +123,9 @@ export class Range {
         let end: Position;
         if (typeof startOrStartLine === "number") {
             start = new Position(startOrStartLine, endOrStartCharacter as number);
+            /* v8 ignore start -- defensive: the numeric overload always supplies endLine/endCharacter */
             end = new Position(endLine ?? 0, endCharacter ?? 0);
+            /* v8 ignore stop */
         } else {
             start = startOrStartLine;
             end = endOrStartCharacter as Position;

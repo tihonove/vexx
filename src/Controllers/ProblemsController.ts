@@ -112,7 +112,9 @@ export class ProblemsController extends Disposable {
         // openFile always opens/activates an editor for the resource.
         this.editorGroup.openFile(node.resource);
         const editor = this.editorGroup.getActiveEditor();
+        /* v8 ignore start -- defensive: openFile always opens/activates an editor for the resource */
         if (editor === null) return;
+        /* v8 ignore stop */
         const start = node.marker.range.start;
         editor.goToPosition(start.line, start.character);
         editor.revealRange(node.marker.range);

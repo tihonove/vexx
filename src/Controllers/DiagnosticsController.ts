@@ -91,7 +91,9 @@ export class DiagnosticsController extends Disposable {
         // through the group, which always opens files with a resolved path.
         if (this.settingsResource === null) return;
         const resource = editor.absoluteFilePath;
+        /* v8 ignore start -- defensive: editors reach validate only through the group, which always opens files with a resolved path */
         if (resource === null) return;
+        /* v8 ignore stop */
         if (path.resolve(resource) !== this.settingsResource) return;
 
         const markers = validateSettingsJson(editor.getText(), (key) => this.knownSettingKeys.has(key));
@@ -116,7 +118,9 @@ export class DiagnosticsController extends Disposable {
         for (let i = 0; i < this.editorGroup.editorCount; i++) {
             // i is bounded by editorCount, and open editors always have a path.
             const editor = this.editorGroup.getEditor(i);
+            /* v8 ignore start -- defensive: i is bounded by editorCount, so getEditor always returns an open editor */
             if (editor === null) continue;
+            /* v8 ignore stop */
             const editorPath = editor.absoluteFilePath;
             if (editorPath !== null && path.resolve(editorPath) === resolved) result.push(editor);
         }
