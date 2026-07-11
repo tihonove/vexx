@@ -92,6 +92,29 @@ describe("parseCliArgs", () => {
         expect(() => parseCliArgs(["--inspect-tui=host:70000"])).toThrow(/port in 0\.\.65535/);
     });
 
+    it("defaults headless to undefined", () => {
+        expect(parseCliArgs(["file.ts"]).headless).toBeUndefined();
+    });
+
+    it("parses bare --headless to the default size (with --inspect-tui)", () => {
+        expect(parseCliArgs(["--headless", "--inspect-tui", "file.ts"]).headless).toEqual({ cols: 120, rows: 32 });
+    });
+
+    it("parses --headless=<cols>x<rows>", () => {
+        expect(parseCliArgs(["--headless=160x48", "--inspect-tui"]).headless).toEqual({ cols: 160, rows: 48 });
+        expect(parseCliArgs(["--headless=80X24", "--inspect-tui"]).headless).toEqual({ cols: 80, rows: 24 });
+    });
+
+    it("throws on malformed --headless size", () => {
+        expect(() => parseCliArgs(["--headless=120", "--inspect-tui"])).toThrow(/<cols>x<rows>/);
+        expect(() => parseCliArgs(["--headless=0x24", "--inspect-tui"])).toThrow(/positive dimensions/);
+    });
+
+    it("requires --inspect-tui alongside --headless", () => {
+        expect(() => parseCliArgs(["--headless"])).toThrow(/--headless requires --inspect-tui/);
+        expect(() => parseCliArgs(["--headless=100x40"])).toThrow(/--headless requires --inspect-tui/);
+    });
+
     it("parses --install-extension with separate value and =form", () => {
         expect(parseCliArgs(["--install-extension", "/tmp/ext.vsix"]).installExtension).toBe("/tmp/ext.vsix");
         expect(parseCliArgs(["--install-extension=/tmp/ext.vsix"]).installExtension).toBe("/tmp/ext.vsix");

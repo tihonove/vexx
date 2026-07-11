@@ -205,6 +205,17 @@ expectScreen(backend, screen`
 
 `npm run test:e2e` (отдельный конфиг `vitest.e2e.config.ts`) собирает SEA-бинарь и гоняет его через `node-pty` + ANSI-парсер. Сьюты и helpers — в `e2e/`. Детали и roadmap — [TODO/E2E.md](TODO/E2E.md).
 
+### Скриншот-демо (screenshots)
+
+Визуальные фичи демонстрируются **сценариями** в `e2e/scenarios/` (`*.scenario.ts`). Сценарий — это `defineScenario({ name, open, run })`: `run(editor)` получает драйвер над настоящим бинарём (headless) и шлёт команды (`sendKey`, `sendText`, `waitForText`) + снимает кадры (`capture("shot")`). Механика захвата: `HeadlessSession` (реальный SEA-бинарь с `--headless` + инспектор по WebSocket) → `GridSnapshot` → `gridToSvg` → PNG через resvg (всё в `e2e/helpers/`; растеризатор — только тулинг, не в редакторе).
+
+- `npm run screenshots` — прогоняет все сценарии, пишет PNG в `screenshots/` (в `.gitignore`) + `screenshots/INDEX.md`-галерею.
+- `e2e/scenarios.test.ts` гоняет те же сценарии в `npm run test:e2e` (и в CI) — страховка, чтобы демо не протухли; функциональных ассертов там нет.
+
+### Политика: визуальные фичи требуют скриншот-демо
+
+Фича с видимой/внешней составляющей обязана добавить/обновить сценарий в `e2e/scenarios/` и приложить PNG к PR (правило — в [AGENTS.md](../AGENTS.md)).
+
 ---
 
 ## Покрытие (Coverage)

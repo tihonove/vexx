@@ -5,7 +5,7 @@ Vexx — терминальный текстовый редактор (клон 
 - docs/ARCHITECTURE.md — слои, каталоги src/, правила зависимостей (единственный источник правды)
 - docs/DI.md — справочник по DI-контейнеру (токены, модули, профили)
 - docs/LAYOUT.md — система layout и позиционирования в TUIDom
-- docs/TESTING.md — как тестировать каждый слой
+- docs/TESTING.md — как тестировать каждый слой; скриншот-демо для визуальных фич
 - docs/TODO/ — трекер задач (индекс — README.md)
 
 # Трекер задач
@@ -49,6 +49,34 @@ Vexx — терминальный текстовый редактор (клон 
 - `fix: correct Bash command syntax in settings.json` → `chore: correct Bash command syntax in settings.json` (это конфиг)
 - `fix: update nightly release process` → `ci: update nightly release process` (это workflow)
 - `fix: correct import order and syntax in various files` → `style: fix import order and lint issues` (это линт/форматирование, а не баг)
+
+# Скриншот-демо для визуальных фич
+
+Любая фича с видимой/внешней составляющей (новый виджет, оверлей, изменение layout, темизации, статус-бара, дерева файлов и т.п.) обязана принести **сценарий-демо и скриншот в PR**:
+
+1. Добавь или обнови сценарий в `e2e/scenarios/` (`*.scenario.ts`) — код, который поднимает настоящий редактор headless, шлёт нужные команды и снимает кадр(ы). Формат — `defineScenario({ name, open, run })`; за образец возьми `e2e/scenarios/quickOpen.scenario.ts`.
+2. Прогони `npm run screenshots` — сгенерит PNG в `screenshots/` (каталог в `.gitignore`) + `screenshots/INDEX.md`.
+3. Приложи получившиеся PNG к телу PR (способ — ниже).
+
+## Как приложить PNG к PR (агенту, без раздувания репо)
+
+GitHub показывает картинки в теле PR только по URL, а из CLI нельзя залить их в user-content CDN (это только drag-drop в вебе). Поэтому кладём PNG в **эфемерную orphan-ветку** `pr-assets/<имя-фича-ветки>` (без общей истории — только блобы картинок) и ссылаемся по commit-SHA. Пламбинг ниже **не трогает рабочее дерево**:
+
+```bash
+# из корня репо, после `npm run screenshots`; репо должен быть публичным (иначе camo не отрендерит raw)
+E=$(git hash-object -w screenshots/<shot1>.png)
+O=$(git hash-object -w screenshots/<shot2>.png)
+R=$(printf 'Ephemeral screenshot assets for the <branch> PR. Safe to delete after merge.\n' | git hash-object -w --stdin)
+T=$(printf '100644 blob %s\t<shot1>.png\n100644 blob %s\t<shot2>.png\n100644 blob %s\tREADME.md\n' "$E" "$O" "$R" | git mktree)
+C=$(git commit-tree "$T" -m "chore: ephemeral screenshot assets for <branch> PR")   # orphan: без -p
+git push origin "$C:refs/heads/pr-assets/<branch>"
+# в теле PR ссылайся по SHA (однозначно, без проблем со слэшем в имени ветки):
+#   ![editor](https://raw.githubusercontent.com/<owner>/<repo>/$C/<shot1>.png)
+```
+
+После мерджа/закрытия PR ветку чистим: `git push origin --delete pr-assets/<branch>`.
+
+Подробности и как это гоняется в CI — docs/TESTING.md (раздел «E2E → Скриншот-демо»).
 
 # Файловая структура
 Файлы с тестам не должны быть слишком большими -- у нас может быть много кейсов поэтому надо писать тесты не в одном 
