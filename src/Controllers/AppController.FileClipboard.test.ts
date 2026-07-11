@@ -117,7 +117,8 @@ describe("File explorer context menu — clipboard entries", () => {
         fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    // Порядок пунктов: Copy, Cut, [Paste — если буфер не пуст], (separator), Delete.
+    // Порядок пунктов: New File, New Folder, (sep), Copy, Cut, [Paste — если буфер
+    // не пуст], (sep), Copy Path, Copy Relative Path, (sep), Delete.
     function rightClickRow(row: number): void {
         clickTree(row, "right");
     }
@@ -135,7 +136,9 @@ describe("File explorer context menu — clipboard entries", () => {
 
     it("Copy entry puts the clicked file on the clipboard", () => {
         rightClickRow(1); // a.txt
-        ctx.testApp.sendKey("Enter"); // первый пункт — Copy
+        ctx.testApp.sendKey("ArrowDown"); // New Folder
+        ctx.testApp.sendKey("ArrowDown"); // Copy
+        ctx.testApp.sendKey("Enter");
         ctx.testApp.render();
         expect(ctx.testApp.querySelector("PopupMenuElement")).toBeNull();
 
@@ -147,6 +150,8 @@ describe("File explorer context menu — clipboard entries", () => {
 
     it("Cut entry moves the file on the next paste", () => {
         rightClickRow(1); // a.txt
+        ctx.testApp.sendKey("ArrowDown"); // New Folder
+        ctx.testApp.sendKey("ArrowDown"); // Copy
         ctx.testApp.sendKey("ArrowDown"); // Cut
         ctx.testApp.sendKey("Enter");
         ctx.testApp.render();
@@ -165,6 +170,8 @@ describe("File explorer context menu — clipboard entries", () => {
 
         rightClickRow(0); // target/
         expect(ctx.testApp.backend.screenToString()).toContain("Paste");
+        ctx.testApp.sendKey("ArrowDown"); // New Folder
+        ctx.testApp.sendKey("ArrowDown"); // Copy
         ctx.testApp.sendKey("ArrowDown"); // Cut
         ctx.testApp.sendKey("ArrowDown"); // Paste
         ctx.testApp.sendKey("Enter");
@@ -174,10 +181,13 @@ describe("File explorer context menu — clipboard entries", () => {
         expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
     });
 
-    // Order (empty clipboard): Copy, Cut, (sep), Copy Path, Copy Relative Path, (sep), Delete.
+    // Order (empty clipboard): New File, New Folder, (sep), Copy, Cut, (sep),
+    // Copy Path, Copy Relative Path, (sep), Delete.
     it("Copy Path entry puts the clicked file's absolute path on the clipboard", async () => {
         rightClickRow(1); // a.txt
         expect(ctx.testApp.backend.screenToString()).toContain("Copy Path");
+        ctx.testApp.sendKey("ArrowDown"); // New Folder
+        ctx.testApp.sendKey("ArrowDown"); // Copy
         ctx.testApp.sendKey("ArrowDown"); // Cut
         ctx.testApp.sendKey("ArrowDown"); // Copy Path
         ctx.testApp.sendKey("Enter");
@@ -190,6 +200,8 @@ describe("File explorer context menu — clipboard entries", () => {
     it("Copy Relative Path entry puts the workspace-relative path on the clipboard", async () => {
         rightClickRow(1); // a.txt
         expect(ctx.testApp.backend.screenToString()).toContain("Copy Relative Path");
+        ctx.testApp.sendKey("ArrowDown"); // New Folder
+        ctx.testApp.sendKey("ArrowDown"); // Copy
         ctx.testApp.sendKey("ArrowDown"); // Cut
         ctx.testApp.sendKey("ArrowDown"); // Copy Path
         ctx.testApp.sendKey("ArrowDown"); // Copy Relative Path

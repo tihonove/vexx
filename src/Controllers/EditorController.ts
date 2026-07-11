@@ -73,6 +73,12 @@ export class EditorController extends Disposable implements IController {
     private contentSubscription: IDisposable | null = null;
     private contentChangeListeners: (() => void)[] = [];
     private filePath: string | null = null;
+    /**
+     * Порядковый номер безымянного буфера (`Untitled-N`), назначаемый группой при
+     * создании; `null` — у буфера есть путь (или он ещё не безымянный). Используется
+     * только для метки вкладки; на модель документа не влияет.
+     */
+    public untitledNumber: number | null = null;
     private savedVersionId = 0;
     private savedEol: EndOfLine;
     /**

@@ -72,6 +72,12 @@ export class EditorGroupController extends Disposable implements IController {
     private activeEditorListeners: ((editor: EditorController | null) => void)[] = [];
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
     private saveParticipantValue?: SaveParticipant;
+    /**
+     * Монотонный счётчик номеров безымянных буферов (`Untitled-1`, `Untitled-2`, …).
+     * Не переиспользуется при закрытии вкладок — как в VS Code, номер стабилен за
+     * буфером всю его жизнь.
+     */
+    private untitledCounter = 0;
 
     public onRequestConfirmClose?: (index: number) => void;
     public onEditorCreate?: (controller: EditorController) => void;
@@ -183,6 +189,40 @@ export class EditorGroupController extends Disposable implements IController {
             return;
         }
 
+        const editor = this.createAndWireEditor();
+        // Наблюдатель проставлен в createAndWireEditor до openFile, чтобы слежение
+        // началось с первой загрузки.
+        editor.openFile(filePath);
+        // Конфиг применяем после openFile: загрузка пересоздаёт view-state, и
+        // настройки отступов надо писать уже в новое состояние.
+        this.applyConfigurationToEditor(editor);
+        this.editors.push(editor);
+        this.activateTab(this.editors.length - 1, { focus });
+    }
+
+    /**
+     * Открывает новый безымянный буфер (VS Code `workbench.action.files.newUntitledFile`).
+     * В отличие от {@link openFile}, не загружает файл и не ставит слежение —
+     * `filePath` остаётся `null`, путь запрашивается при первом сохранении (Save As).
+     */
+    public newUntitled({ focus = true }: { focus?: boolean } = {}): void {
+        const editor = this.createAndWireEditor();
+        // Файл не грузим (view-state из конструктора не пересоздаётся) — конфиг
+        // применяем сразу.
+        this.applyConfigurationToEditor(editor);
+        editor.untitledNumber = ++this.untitledCounter;
+        this.editors.push(editor);
+        this.activateTab(this.editors.length - 1, { focus });
+    }
+
+    /**
+     * Создаёт `EditorController` и навешивает общую обвязку группы (watcher,
+     * save-участник, подписки на изменения → `syncTabs`, `onDidSave`,
+     * `onEditorCreate`) — всё, кроме загрузки файла и применения конфига (их
+     * порядок относительно openFile важен, поэтому они на стороне вызывающего).
+     * Общая часть {@link openFile} и {@link newUntitled}.
+     */
+    private createAndWireEditor(): EditorController {
         const editor = this.register(
             new EditorController(
                 this.themeService,
@@ -192,11 +232,10 @@ export class EditorGroupController extends Disposable implements IController {
                 this.undoRedoService,
             ),
         );
-        // Наблюдатель ставим до openFile, чтобы слежение началось с первой загрузки.
+        // Наблюдатель ставим до возможного openFile, чтобы слежение началось с
+        // первой загрузки.
         editor.fileWatcher = this.fileWatcher;
-        editor.openFile(filePath);
         editor.saveParticipant = this.saveParticipantValue;
-        this.applyConfigurationToEditor(editor);
         // Внешнее изменение файла (авто-перечитка чистого буфера / флаг конфликта
         // для «грязного») отражаем в табах: перечитка меняет контент, конфликт —
         // маркер модифицированности.
@@ -223,8 +262,7 @@ export class EditorGroupController extends Disposable implements IController {
             this.syncTabs();
             this.fireEditorSaved(editor);
         };
-        this.editors.push(editor);
-        this.activateTab(this.editors.length - 1, { focus });
+        return editor;
     }
 
     public activateTab(index: number, { focus = true, mru = false }: { focus?: boolean; mru?: boolean } = {}): void {
@@ -412,13 +450,20 @@ export class EditorGroupController extends Disposable implements IController {
         this.getActiveEditor()?.focusEditor();
     }
 
+    /**
+     * Имя буфера для вкладки/иконки: имя файла, либо `Untitled-N` для безымянного.
+     */
+    private displayName(editor: EditorController): string {
+        if (editor.fileName !== null) return editor.fileName;
+        /* v8 ignore start -- defensive: безымянный буфер всегда получает номер в newUntitled */
+        return editor.untitledNumber !== null ? `Untitled-${editor.untitledNumber}` : "untitled";
+        /* v8 ignore stop */
+    }
+
     public syncTabs(): void {
         const labels = this.computeTabLabels();
         const tabs: TabInfo[] = this.editors.map((editor, i) => {
-            /* v8 ignore start -- defensive: editors are only added via openFile(), which always sets a file path, so fileName is never null here */
-            const fileName = editor.fileName ?? "untitled";
-            /* v8 ignore stop */
-            const fi = getFileIcon(fileName);
+            const fi = getFileIcon(this.displayName(editor));
             return {
                 label: labels[i],
                 icon: fi.icon,
@@ -437,11 +482,7 @@ export class EditorGroupController extends Disposable implements IController {
      * родительского пути (как в VS Code), чтобы вкладки нельзя было спутать.
      */
     private computeTabLabels(): string[] {
-        const names = this.editors.map((editor) => {
-            /* v8 ignore start -- fileName is null only without a path; open editors always have one */
-            return editor.fileName ?? "untitled";
-            /* v8 ignore stop */
-        });
+        const names = this.editors.map((editor) => this.displayName(editor));
         const groups = new Map<string, number[]>();
         names.forEach((name, i) => {
             const arr = groups.get(name);

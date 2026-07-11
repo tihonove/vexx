@@ -149,6 +149,43 @@ describe("EditorGroupController", () => {
         });
     });
 
+    describe("newUntitled", () => {
+        it("opens a path-less buffer labeled Untitled-1, incrementing per buffer", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            ctrl.newUntitled();
+            expect(ctrl.editorCount).toBe(1);
+            expect(ctrl.getActiveEditor()?.absoluteFilePath).toBeNull();
+            expect(tabLabels(ctrl)).toEqual(["Untitled-1"]);
+
+            ctrl.newUntitled();
+            expect(tabLabels(ctrl)).toEqual(["Untitled-1", "Untitled-2"]);
+        });
+
+        it("does not reuse a number after an untitled buffer is closed", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            ctrl.newUntitled();
+            ctrl.newUntitled();
+            ctrl.closeTab(0);
+            ctrl.newUntitled();
+
+            expect(tabLabels(ctrl)).toEqual(["Untitled-2", "Untitled-3"]);
+        });
+
+        it("relabels to the basename after the buffer is saved to a path", async () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            ctrl.newUntitled();
+            await ctrl.getActiveEditor()!.saveAs(path.join(tmpDir, "note.txt"));
+
+            expect(tabLabels(ctrl)).toEqual(["note.txt"]);
+        });
+    });
+
     describe("activateTab", () => {
         it("switches to the specified tab", () => {
             const ctrl = createEditorGroupController();

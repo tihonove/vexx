@@ -75,9 +75,10 @@ describe("AppController — Refresh Explorer", () => {
 
         fs.writeFileSync(path.join(tmpDir, "aaa-new.txt"), "new");
 
-        // Menu order (no clipboard): Copy, Cut, Copy Path, Copy Relative Path,
-        // Delete, Refresh Explorer (separators skipped) — 5 steps down, then Enter.
-        for (let i = 0; i < 5; i++) testApp.sendKey("ArrowDown");
+        // Menu order (no clipboard): New File, New Folder, Copy, Cut, Copy Path,
+        // Copy Relative Path, Delete, Refresh Explorer (separators skipped) —
+        // 7 steps down, then Enter.
+        for (let i = 0; i < 7; i++) testApp.sendKey("ArrowDown");
         testApp.sendKey("Enter");
         await flushMicrotasks();
         testApp.render();

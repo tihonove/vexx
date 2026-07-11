@@ -120,10 +120,46 @@ export class WorkspaceEditService {
                 // Безвозвратно — отменить нельзя, шаг в историю не пишем.
                 fs.rmSync(from, { recursive: true, force: true });
             }
+        } else if (edit.kind === "create") {
+            const to = edit.to!;
+            // Явное имя от пользователя: коллизия — жёсткая ошибка (перехватывается
+            // per-edit try/catch → чистый no-op, в историю ничего не пишем). Реальная
+            // защита от коллизий — валидация в промпте создания.
+            if (fs.existsSync(to)) throw new Error(`Уже существует: ${to}`);
+
+            // Самый верхний из создаваемых предков — чтобы undo убрал ровно то, что
+            // добавило create (и не тронул уже существовавшие каталоги).
+            const createdRoot = shallowestMissingAncestor(to);
+            const doCreate = (): void => {
+                fs.mkdirSync(path.dirname(to), { recursive: true });
+                if (edit.directory) fs.mkdirSync(to);
+                else fs.writeFileSync(to, "");
+            };
+            doCreate();
+            resources.push(to);
+            ops.push({
+                undo: () => {
+                    fs.rmSync(createdRoot, { recursive: true, force: true });
+                },
+                redo: () => {
+                    doCreate();
+                },
+            });
         } else {
             throw new Error(`Неподдерживаемый вид правки: ${edit.kind}`);
         }
     }
+}
+
+/** Ближайший к корню несуществующий предок `target` (или сам target). */
+function shallowestMissingAncestor(target: string): string {
+    let current = target;
+    let parent = path.dirname(current);
+    while (parent !== current && !fs.existsSync(parent)) {
+        current = parent;
+        parent = path.dirname(current);
+    }
+    return current;
 }
 
 /** Возвращает `src` на `originalPath` (или рядом, если место занято). Возвращает итоговый путь. */

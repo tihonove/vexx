@@ -92,6 +92,60 @@ describe("WorkspaceEditService — copy", () => {
     });
 });
 
+describe("WorkspaceEditService — create", () => {
+    it("creates an empty file; undo removes it, redo recreates it", async () => {
+        const { service, undoRedo } = makeService();
+        const dest = path.join(tmpDir, "new.txt");
+
+        const element = service.applyFileEdits([{ kind: "create", to: dest }], "New File");
+        expect(element).not.toBeNull();
+        expect(fs.readFileSync(dest, "utf8")).toBe("");
+        expect(undoRedo.canUndo(WORKSPACE_UNDO_CONTEXT)).toBe(true);
+
+        await element!.undo();
+        expect(fs.existsSync(dest)).toBe(false);
+
+        await element!.redo();
+        expect(fs.existsSync(dest)).toBe(true);
+    });
+
+    it("creates a directory when directory:true; undo removes it", async () => {
+        const { service } = makeService();
+        const dest = path.join(tmpDir, "newdir");
+
+        const element = service.applyFileEdits([{ kind: "create", to: dest, directory: true }], "New Folder");
+        expect(element).not.toBeNull();
+        expect(fs.statSync(dest).isDirectory()).toBe(true);
+
+        await element!.undo();
+        expect(fs.existsSync(dest)).toBe(false);
+    });
+
+    it("creates intermediate dirs and undo removes only what it created", async () => {
+        const { service } = makeService();
+        const dest = path.join(tmpDir, "foo", "bar", "baz.txt");
+
+        const element = service.applyFileEdits([{ kind: "create", to: dest }], "New File");
+        expect(fs.existsSync(dest)).toBe(true);
+        expect(fs.existsSync(path.join(tmpDir, "foo"))).toBe(true);
+
+        // undo вычищает самый верхний созданный предок (`foo/`), не трогая tmpDir.
+        await element!.undo();
+        expect(fs.existsSync(path.join(tmpDir, "foo"))).toBe(false);
+        expect(fs.existsSync(tmpDir)).toBe(true);
+    });
+
+    it("no-ops on collision: existing file untouched, nothing recorded", () => {
+        const { service, undoRedo } = makeService();
+        const dest = write("exists.txt", "keep");
+
+        const element = service.applyFileEdits([{ kind: "create", to: dest }], "New File");
+        expect(element).toBeNull();
+        expect(fs.readFileSync(dest, "utf8")).toBe("keep");
+        expect(undoRedo.canUndo(WORKSPACE_UNDO_CONTEXT)).toBe(false);
+    });
+});
+
 describe("WorkspaceEditService — delete (permanent)", () => {
     it("deletes permanently and records nothing undoable when trash is disabled", () => {
         const { service, undoRedo } = makeService(false);
@@ -106,15 +160,14 @@ describe("WorkspaceEditService — delete (permanent)", () => {
 });
 
 describe("WorkspaceEditService — edge cases", () => {
-    it("ignores unsupported edit kinds (returns null, records nothing)", () => {
+    it("ignores an unsupported edit kind (returns null, records nothing)", () => {
         const { service, undoRedo } = makeService();
-        const dest = path.join(tmpDir, "x.txt");
-
-        // "create" объявлен в модели, но сервисом пока не поддержан — запись молча пропускается.
-        const element = service.applyFileEdits([{ kind: "create", to: dest }], "Create");
-
+        // Приводим заведомо неизвестный вид — applyOne бросит, ошибка проглотится.
+        const element = service.applyFileEdits(
+            [{ kind: "bogus" as unknown as "create", to: path.join(tmpDir, "x.txt") }],
+            "Bogus",
+        );
         expect(element).toBeNull();
-        expect(fs.existsSync(dest)).toBe(false);
         expect(undoRedo.canUndo(WORKSPACE_UNDO_CONTEXT)).toBe(false);
     });
 
