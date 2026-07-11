@@ -36,9 +36,10 @@ import type { ICommandContribution, IConfigurationContribution } from "./Extensi
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
 import { attachInspector } from "./Inspector/index.ts";
-import { darkPlusTheme } from "./Theme/themes/darkPlus.ts";
+import { createBuiltinThemeRegistry } from "./Theme/ThemeRegistry.ts";
+import { DEFAULT_COLOR_THEME } from "./Theme/themes/builtinThemes.ts";
+import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
-import { WorkbenchTheme } from "./Theme/WorkbenchTheme.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 
 // ── Subprocess branch ─────────────────────────────────────
@@ -129,7 +130,15 @@ async function runEditor(): Promise<void> {
         backend.writeOscSequence(seq);
     });
 
-    const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
+    // Реестр встроенных тем + выбор активной по `workbench.colorTheme`. Неизвестное
+    // имя (тема из ещё не установленного расширения, опечатка) — откат на дефолт.
+    const themeRegistry = createBuiltinThemeRegistry();
+    const colorThemeLabel = configurationService.get<string>("workbench.colorTheme") ?? DEFAULT_COLOR_THEME;
+    const initialTheme =
+        themeRegistry.resolve(colorThemeLabel) ?? themeRegistry.resolve(DEFAULT_COLOR_THEME) ?? undefined;
+    if (initialTheme === undefined) {
+        throw new Error(`No built-in theme available (looked up "${colorThemeLabel}" and "${DEFAULT_COLOR_THEME}")`);
+    }
 
     // ── Загрузка расширений ────────────────────────────────────
     // Builtin: либо SEA-bundle, либо `src/Extensions/builtin/` в dev.
@@ -170,17 +179,28 @@ async function runEditor(): Promise<void> {
     const grammarsLoading = tokenizationContributor.apply();
 
     // ── Bootstrap через DI-контейнер ────────────────────────────
+    const tokenStyleResolver = new TokenThemeResolver(initialTheme.tokenTheme);
+
     const container = createProductionContainer({
         app: application,
         backend,
         theme: initialTheme,
+        themeRegistry,
         clipboard,
         tokenizationRegistry,
-        tokenStyleResolver: new TokenThemeResolver(initialTheme.tokenTheme),
+        tokenStyleResolver,
         languageService: languageRegistry,
         configurationService,
         userKeybindings,
         logService,
+    });
+
+    // Смена цветовой темы должна перекрашивать и синтаксис: пересаживаем token-тему
+    // в резолвер скоупов. Редакторы сами перерисовываются по своему
+    // `ThemeService.onThemeChange` (deferred render), поэтому достаточно синхронно
+    // обновить резолвер в этом же broadcast'е.
+    container.get(ThemeServiceDIToken).onThemeChange((theme) => {
+        tokenStyleResolver.setTheme(theme.tokenTheme);
     });
 
     const app = container.get(TuiApplicationDIToken);

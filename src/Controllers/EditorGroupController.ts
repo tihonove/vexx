@@ -10,7 +10,6 @@ import type { SaveParticipant } from "../Editor/ISaveParticipant.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -396,18 +395,16 @@ export class EditorGroupController extends Disposable implements IController {
 
     private applyTheme(theme: WorkbenchTheme): void {
         const strip = this.view.tabStrip;
-        strip.activeFg = theme.getColorOrDefault("tab.activeForeground", packRgb(255, 255, 255));
-        strip.activeBg = theme.getColorOrDefault("tab.activeBackground", packRgb(30, 30, 30));
-        strip.inactiveFg = theme.getColorOrDefault("tab.inactiveForeground", packRgb(150, 150, 150));
-        strip.inactiveBg = theme.getColorOrDefault("tab.inactiveBackground", packRgb(45, 45, 45));
-        strip.stripBg = theme.getColorOrDefault("editorGroupHeader.tabsBackground", packRgb(37, 37, 38));
+        strip.activeFg = theme.getRequiredColor("tab.activeForeground");
+        strip.activeBg = theme.getRequiredColor("tab.activeBackground");
+        strip.inactiveFg = theme.getRequiredColor("tab.inactiveForeground");
+        strip.inactiveBg = theme.getRequiredColor("tab.inactiveBackground");
+        strip.stripBg = theme.getRequiredColor("editorGroupHeader.tabsBackground");
         strip.updateItemStyles();
 
-        const editorBg = theme.getColor("editor.background");
-        const editorFg = theme.getColor("editor.foreground");
         this.view.style = {
-            ...(editorFg !== undefined ? { fg: editorFg } : {}),
-            ...(editorBg !== undefined ? { bg: editorBg } : {}),
+            fg: theme.getRequiredColor("editor.foreground"),
+            bg: theme.getRequiredColor("editor.background"),
         };
     }
 

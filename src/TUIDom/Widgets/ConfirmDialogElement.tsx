@@ -66,12 +66,12 @@ export class ConfirmDialogElement extends CompositeElement {
 
     public applyTheme(theme: WorkbenchTheme): void {
         for (const button of [this.confirmButton, this.cancelButton]) {
-            button.focusedBg = theme.getColorOrDefault("button.background", packRgb(0, 120, 215));
-            button.focusedFg = theme.getColorOrDefault("button.foreground", packRgb(255, 255, 255));
-            button.focusedHoverBg = theme.getColorOrDefault("button.hoverBackground", packRgb(26, 134, 224));
-            button.normalBg = theme.getColorOrDefault("button.secondaryBackground", packRgb(60, 60, 60));
-            button.normalFg = theme.getColorOrDefault("button.secondaryForeground", packRgb(204, 204, 204));
-            button.normalHoverBg = theme.getColorOrDefault("button.secondaryHoverBackground", packRgb(69, 73, 78));
+            button.focusedBg = theme.getRequiredColor("button.background");
+            button.focusedFg = theme.getRequiredColor("button.foreground");
+            button.focusedHoverBg = theme.getRequiredColor("button.hoverBackground");
+            button.normalBg = theme.getRequiredColor("button.secondaryBackground");
+            button.normalFg = theme.getRequiredColor("button.secondaryForeground");
+            button.normalHoverBg = theme.getRequiredColor("button.secondaryHoverBackground");
             button.markDirty();
         }
     }

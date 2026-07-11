@@ -76,16 +76,33 @@ function scopeMatches(ruleScope: string, scope: string): boolean {
  * `-bar`, weighted matches) are NOT implemented yet — see TODO.
  */
 export class TokenThemeResolver implements ITokenStyleResolver {
-    private readonly rules: CompiledRule[];
+    private rules: CompiledRule[];
     private readonly cache = new Map<string, ResolvedTokenStyle>();
 
     public constructor(theme: IEditorTokenTheme) {
-        this.rules = compileRules(theme.rules);
+        this.rules = TokenThemeResolver.compile(theme);
+    }
+
+    /**
+     * Swap in a new token theme (on color-theme change). Recompiles the rules and
+     * drops the scope→style cache so the next `resolve` reflects the new colors.
+     * The editor re-renders on its own `ThemeService.onThemeChange` handler; since
+     * that render is deferred (markDirty → next tick), clearing the cache here —
+     * synchronously during the same theme broadcast — is enough for correctness.
+     */
+    public setTheme(theme: IEditorTokenTheme): void {
+        this.rules = TokenThemeResolver.compile(theme);
+        this.cache.clear();
+    }
+
+    private static compile(theme: IEditorTokenTheme): CompiledRule[] {
+        const rules = compileRules(theme.rules);
         // Sort by specificity desc, then by definition order desc (later wins).
-        this.rules.sort((a, b) => {
+        rules.sort((a, b) => {
             if (a.segments !== b.segments) return b.segments - a.segments;
             return b.order - a.order;
         });
+        return rules;
     }
 
     public resolve(scopes: readonly string[]): ResolvedTokenStyle {

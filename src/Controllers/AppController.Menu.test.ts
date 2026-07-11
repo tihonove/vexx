@@ -206,6 +206,7 @@ describe("AppController — menu bar wiring", () => {
         const popup = openMenu(testApp, "v");
         expect(itemLabels(popup)).toEqual([
             "Command Palette...",
+            "Color Theme",
             "Explorer",
             "Toggle Primary Side Bar",
             "Increase Side Bar Width",

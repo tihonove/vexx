@@ -283,7 +283,11 @@ describe("FileTreeController with ThemeService", () => {
     });
 
     it("applies sideBar.background from theme after setRootPath", async () => {
-        const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+        const themeFile = {
+            ...darkPlusTheme,
+            colors: { ...darkPlusTheme.colors, "sideBar.background": "#2D2D2D" },
+        };
+        const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(themeFile));
         const controller = new FileTreeController(themeService);
         controller.setRootPath(tmpDir);
         controller.mount();
@@ -322,9 +326,9 @@ describe("FileTreeController with ThemeService", () => {
         controller.dispose();
     });
 
-    it("omits sidebar fg/bg style when the theme defines neither (branches 123/124)", async () => {
+    it("uses default registry sidebar fg/bg when the theme defines neither", async () => {
         // A theme with no colors at all: sideBar.foreground and sideBar.background are
-        // both undefined, so applyTheme takes the false side of both ternaries.
+        // supplied by the dark default color registry, so the sidebar is always colored.
         const bareThemeFile = { ...darkPlusTheme, colors: {} };
         const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(bareThemeFile));
         const controller = new FileTreeController(themeService);
@@ -335,9 +339,9 @@ describe("FileTreeController with ThemeService", () => {
         await controller.activate();
         app.render();
 
-        // No sidebar colors → view.style carries neither fg nor bg.
-        expect(controller.view.style.fg).toBeUndefined();
-        expect(controller.view.style.bg).toBeUndefined();
+        // Sidebar colors come from the dark default registry.
+        expect(controller.view.style.fg).toBe(0xcccccc); // default dark "sideBar.foreground"
+        expect(controller.view.style.bg).toBe(0x252526); // default dark "sideBar.background"
         // Still renders its contents.
         expect(app.backend.screenToString()).toContain("index.ts");
 

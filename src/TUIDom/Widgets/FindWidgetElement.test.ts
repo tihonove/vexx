@@ -117,18 +117,19 @@ describe("FindWidgetElement — hover", () => {
 
 describe("FindWidgetElement — applyTheme", () => {
     it("pushes the theme's secondary button colors into the buttons", () => {
-        const SECONDARY_BG = packRgb(11, 22, 33);
-        const SECONDARY_HOVER_BG = packRgb(44, 55, 66);
-        const theme = new WorkbenchTheme(
-            "test",
-            "dark",
-            {
-                "button.secondaryBackground": SECONDARY_BG,
-                "button.secondaryForeground": packRgb(200, 200, 200),
-                "button.secondaryHoverBackground": SECONDARY_HOVER_BG,
+        const SECONDARY_BG = packRgb(0x0b, 0x16, 0x21);
+        const SECONDARY_HOVER_BG = packRgb(0x2c, 0x37, 0x42);
+        // Overrides only the secondary button colors; the focused (primary)
+        // button.* tokens are supplied by the default color registry.
+        const theme = WorkbenchTheme.fromThemeFile({
+            name: "test",
+            type: "dark",
+            colors: {
+                "button.secondaryBackground": "#0B1621",
+                "button.secondaryForeground": "#C8C8C8",
+                "button.secondaryHoverBackground": "#2C3742",
             },
-            { rules: [] },
-        );
+        });
 
         const widget = new FindWidgetElement();
         widget.applyTheme(theme);

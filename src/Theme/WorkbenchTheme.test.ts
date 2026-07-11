@@ -49,19 +49,45 @@ describe("WorkbenchTheme", () => {
         expect(theme.getColor("editor.background")).toBe(packRgb(0x1e, 0x1e, 0x1e));
     });
 
-    it("getColor returns undefined for missing keys", () => {
+    it("getColor returns undefined for a key absent from theme and default registry", () => {
         const theme = WorkbenchTheme.fromThemeFile(sampleTheme);
-        expect(theme.getColor("editorCursor.foreground")).toBeUndefined();
+        // editorGutter.background has no registry default (genuinely optional).
+        expect(theme.getColor("editorGutter.background")).toBeUndefined();
     });
 
-    it("getColorOrDefault returns color when defined", () => {
+    it("layers the default color registry under the theme's own colors", () => {
+        // sampleTheme does not define list.hoverBackground; the dark default fills it.
         const theme = WorkbenchTheme.fromThemeFile(sampleTheme);
-        expect(theme.getColorOrDefault("editor.background", 0)).toBe(packRgb(0x1e, 0x1e, 0x1e));
+        expect(theme.getColor("list.hoverBackground")).toBe(packRgb(0x2a, 0x2d, 0x2e));
     });
 
-    it("getColorOrDefault returns default for missing keys", () => {
+    it("lets the theme's own color win over the default registry", () => {
+        const theme = WorkbenchTheme.fromThemeFile({
+            type: "dark",
+            colors: { "list.hoverBackground": "#123456" },
+        });
+        expect(theme.getColor("list.hoverBackground")).toBe(packRgb(0x12, 0x34, 0x56));
+    });
+
+    it("applies light defaults for light themes", () => {
+        const theme = WorkbenchTheme.fromThemeFile({ type: "light", colors: {} });
+        expect(theme.getColor("list.hoverBackground")).toBe(packRgb(0xf2, 0xf2, 0xf2));
+    });
+
+    it("getRequiredColor returns color when defined", () => {
         const theme = WorkbenchTheme.fromThemeFile(sampleTheme);
-        expect(theme.getColorOrDefault("editorCursor.foreground", 42)).toBe(42);
+        expect(theme.getRequiredColor("editor.background")).toBe(packRgb(0x1e, 0x1e, 0x1e));
+    });
+
+    it("getRequiredColor resolves from the default registry when the theme omits the key", () => {
+        // sampleTheme omits sideBar.background; the dark default (#252526) resolves it.
+        const theme = WorkbenchTheme.fromThemeFile(sampleTheme);
+        expect(theme.getRequiredColor("sideBar.background")).toBe(packRgb(0x25, 0x25, 0x26));
+    });
+
+    it("getRequiredColor throws for a key absent from theme and registry", () => {
+        const theme = WorkbenchTheme.fromThemeFile(sampleTheme);
+        expect(() => theme.getRequiredColor("editorGutter.background")).toThrow(/editorGutter\.background/);
     });
 
     it("defaults to 'dark' type and 'Unnamed' when not specified", () => {

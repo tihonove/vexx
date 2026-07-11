@@ -122,4 +122,24 @@ describe("TokenThemeResolver", () => {
         const other = resolver.resolve(["source", "variable.other"]);
         expect(other.fg).toBe(RED);
     });
+
+    describe("setTheme (color-theme swap)", () => {
+        it("resolves with the new theme's colors after a swap", () => {
+            const resolver = new TokenThemeResolver(theme([{ scope: "keyword", settings: { foreground: "#ff0000" } }]));
+            expect(resolver.resolve(["source", "keyword"]).fg).toBe(RED);
+
+            resolver.setTheme(theme([{ scope: "keyword", settings: { foreground: "#0000ff" } }]));
+            // Same scope, new color — the cached RED must not leak through.
+            expect(resolver.resolve(["source", "keyword"]).fg).toBe(BLUE);
+        });
+
+        it("drops rules that the new theme no longer defines", () => {
+            const resolver = new TokenThemeResolver(theme([{ scope: "keyword", settings: { foreground: "#ff0000" } }]));
+            expect(resolver.resolve(["source", "keyword"]).fg).toBe(RED);
+
+            resolver.setTheme(theme([{ scope: "comment", settings: { foreground: "#00ff00" } }]));
+            expect(resolver.resolve(["source", "keyword"]).fg).toBeUndefined();
+            expect(resolver.resolve(["source", "comment"]).fg).toBe(GREEN);
+        });
+    });
 });

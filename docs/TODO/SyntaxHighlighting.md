@@ -92,15 +92,8 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 ### [x] Hot-swap токенайзера
 Реализовано на уровне `EditorController`, а не `DocumentTokenStore` (store не знает про languageId — он у документа): контроллер подписан на `TokenizationRegistry.onDidChange(languageId)` и на `document.onDidChangeLanguage`; при совпадении с языком текущего документа вызывает `DocumentTokenStore.setTokenizationSupport` (полная инвалидация кеша) + `markDirty`. Закрыт пробел «файл открыт до async-загрузки грамматики → навсегда PlainTextTokenizer».
 
-### [ ] Cache scope-to-style на смене темы
-`TokenThemeResolver` создаётся один раз и держит свой кеш по `scopes.join(" ")`.
-
-**План:**
-1. При смене темы (`themeService.onThemeChange`) — `main.ts` биндинг должен пересоздавать `TokenThemeResolver` (или у резолвера должен быть `setTheme(tokenTheme)`, который чистит кеш).
-2. Per-frame кеш в `EditorElement.render` — самоочищается, отдельных действий не нужно.
-3. После смены темы — `editor.scheduleRender()` (уже триггерится из `themeService.onThemeChange` в `EditorController`).
-
-**Тест:** `TokenThemeResolver.ThemeSwap.test.ts` — установить scope, запросить style, поменять тему через `setTheme`, убедиться что вернулся новый цвет.
+### [x] Cache scope-to-style на смене темы
+`TokenThemeResolver.setTheme(tokenTheme)` пересобирает правила и чистит кеш по `scopes.join(" ")`. `main.ts` подписывает его на `ThemeService.onThemeChange`, поэтому смена цветовой темы (пикер / live preview) перекрашивает и синтаксис. Per-frame кеш в `EditorElement.render` самоочищается; редактор перерисовывается своим `onThemeChange` (deferred render — резолвер к этому моменту уже свежий). Тест — `TokenThemeResolver.test.ts` → «setTheme (color-theme swap)». Детали — [Theming.md](Theming.md).
 
 ### [ ] Bracket pair colorization (низкий приоритет)
 VS Code держит отдельный bracket pair index поверх токенов. Можно отложить до полного TM. Точка интеграции — `TokenIndex` в `EditorElement.render` мог бы дополнительно отдавать bracket-level для оверрайда цвета.

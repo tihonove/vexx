@@ -254,8 +254,14 @@ describe("EditorController", () => {
             const ctrl = createEditorController({ themeService });
             ctrl.openFile(writeFile("a.ts", "x"));
 
-            // A theme that defines a background but no gutter/line-number colors.
-            const sparseTheme = new WorkbenchTheme("sparse", "dark", { "editor.background": 0x112233 }, { rules: [] });
+            // A theme that overrides the background but defines no gutter color.
+            // editorGutter.background has no registry default (genuinely optional),
+            // so the gutter falls back to the editor background without throwing.
+            const sparseTheme = WorkbenchTheme.fromThemeFile({
+                name: "sparse",
+                type: "dark",
+                colors: { "editor.background": "#112233" },
+            });
 
             expect(() => {
                 themeService.setTheme(sparseTheme);

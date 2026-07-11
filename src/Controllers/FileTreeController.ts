@@ -1,7 +1,6 @@
 import * as path from "node:path";
 
 import { Disposable } from "../Common/Disposable.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
@@ -162,26 +161,18 @@ export class FileTreeController extends Disposable implements IController {
 
     private applyTheme(theme: WorkbenchTheme): void {
         if (!this.tree) return;
-        this.tree.activeSelectionBg = theme.getColorOrDefault("list.activeSelectionBackground", packRgb(4, 57, 94));
-        this.tree.activeSelectionFg = theme.getColorOrDefault("list.activeSelectionForeground", packRgb(255, 255, 255));
-        this.tree.inactiveSelectionBg = theme.getColorOrDefault(
-            "list.inactiveSelectionBackground",
-            packRgb(55, 55, 61),
-        );
-        this.tree.inactiveSelectionFg = theme.getColorOrDefault(
-            "list.inactiveSelectionForeground",
-            packRgb(204, 204, 204),
-        );
-        this.tree.hoverBg = theme.getColor("list.hoverBackground");
+        this.tree.activeSelectionBg = theme.getRequiredColor("list.activeSelectionBackground");
+        this.tree.activeSelectionFg = theme.getRequiredColor("list.activeSelectionForeground");
+        this.tree.inactiveSelectionBg = theme.getRequiredColor("list.inactiveSelectionBackground");
+        this.tree.inactiveSelectionFg = theme.getRequiredColor("list.inactiveSelectionForeground");
+        this.tree.hoverBg = theme.getRequiredColor("list.hoverBackground");
         this.tree.hoverFg = theme.getColor("list.hoverForeground");
-        this.tree.cutFg = theme.getColorOrDefault("list.deemphasizedForeground", packRgb(128, 128, 128));
-        this.tree.symlinkFg = theme.getColorOrDefault("list.deemphasizedForeground", packRgb(128, 128, 128));
+        this.tree.cutFg = theme.getRequiredColor("list.deemphasizedForeground");
+        this.tree.symlinkFg = theme.getRequiredColor("list.deemphasizedForeground");
 
-        const sidebarBg = theme.getColor("sideBar.background");
-        const sidebarFg = theme.getColor("sideBar.foreground");
         this.view.style = {
-            ...(sidebarFg !== undefined ? { fg: sidebarFg } : {}),
-            ...(sidebarBg !== undefined ? { bg: sidebarBg } : {}),
+            fg: theme.getRequiredColor("sideBar.foreground"),
+            bg: theme.getRequiredColor("sideBar.background"),
         };
     }
 }

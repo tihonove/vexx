@@ -15,7 +15,7 @@ const userDataPath = resolve(here, "fixtures", "user-data-with-hello");
 const tabbedFixturePath = resolve(here, "fixtures", "tabbed.txt");
 const tabSetterUserDataPath = resolve(here, "fixtures", "user-data-with-tab-setter");
 
-const KEYWORD_FG = packRgb(0x56, 0x9c, 0xd6); // keyword.control — Dark+ blue
+const KEYWORD_FG = packRgb(0xc5, 0x86, 0xc0); // keyword.control — Dark Modern / Dark+ purple
 const STRING_FG = packRgb(0xce, 0x91, 0x78); // string — Dark+ orange
 const COMMENT_FG = packRgb(0x6a, 0x99, 0x55); // comment — Dark+ green
 const NUMBER_FG = packRgb(0xb5, 0xce, 0xa8); // constant.numeric — Dark+ light green

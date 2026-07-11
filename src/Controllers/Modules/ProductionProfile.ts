@@ -7,6 +7,7 @@ import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import type { ThemeRegistry } from "../../Theme/ThemeRegistry.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
 import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
@@ -28,6 +29,7 @@ export interface ProductionProfileContext {
     app: TuiApplication;
     backend: ITerminalBackend;
     theme: WorkbenchTheme;
+    themeRegistry: ThemeRegistry;
     clipboard: IClipboard;
     tokenizationRegistry: TokenizationRegistry;
     tokenStyleResolver: ITokenStyleResolver;
@@ -46,7 +48,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
         .use(coreModule, { app: ctx.app })
         .use(loggingModule, { logService: ctx.logService })
         .use(commandsModule)
-        .use(themeModule, { theme: ctx.theme })
+        .use(themeModule, { theme: ctx.theme, themeRegistry: ctx.themeRegistry })
         .use(backendModule, { clipboard: ctx.clipboard })
         .use(tokenizationModule, {
             tokenizationRegistry: ctx.tokenizationRegistry,

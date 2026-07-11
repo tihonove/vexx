@@ -67,19 +67,20 @@ export class PopupMenuElement extends TUIElement {
     }
 
     /**
-     * Применяет цвета из активной темы (ключи VS Code `menu.*`). Значения, не
-     * заданные темой, берутся из {@link DEFAULT_MENU_COLORS} (палитра VS Code Dark+).
+     * Применяет цвета из активной темы (ключи VS Code `menu.*`). `menu.*` цвета
+     * гарантированы реестром дефолтов (см. {@link defaultWorkbenchColors}), а
+     * `shortcutFg` не имеет темизируемого ключа VS Code и берётся из
+     * {@link DEFAULT_MENU_COLORS} (baseline для меню без темы).
      */
     public applyTheme(theme: WorkbenchTheme): void {
-        const d = DEFAULT_MENU_COLORS;
         this.colors = {
-            fg: theme.getColorOrDefault("menu.foreground", d.fg),
-            bg: theme.getColorOrDefault("menu.background", d.bg),
-            highlightFg: theme.getColorOrDefault("menu.selectionForeground", d.highlightFg),
-            highlightBg: theme.getColorOrDefault("menu.selectionBackground", d.highlightBg),
-            shortcutFg: d.shortcutFg,
-            borderFg: theme.getColorOrDefault("menu.border", d.borderFg),
-            separatorFg: theme.getColorOrDefault("menu.separatorBackground", d.separatorFg),
+            fg: theme.getRequiredColor("menu.foreground"),
+            bg: theme.getRequiredColor("menu.background"),
+            highlightFg: theme.getRequiredColor("menu.selectionForeground"),
+            highlightBg: theme.getRequiredColor("menu.selectionBackground"),
+            shortcutFg: DEFAULT_MENU_COLORS.shortcutFg,
+            borderFg: theme.getRequiredColor("menu.border"),
+            separatorFg: theme.getRequiredColor("menu.separatorBackground"),
         };
         for (const item of this.itemElements) {
             item.colors = this.colors;

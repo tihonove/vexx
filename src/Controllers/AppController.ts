@@ -13,8 +13,9 @@ import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationSer
 import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
 import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
+import type { ThemeRegistry } from "../Theme/ThemeRegistry.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
@@ -115,6 +116,7 @@ import {
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
 import { gotoLineAction, quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
+import { selectThemeAction } from "./Actions/ThemeActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import {
     insertFinalNewLineAction,
@@ -290,6 +292,20 @@ function eventToKeybinding(event: TUIKeyboardEvent): Keybinding {
     };
 }
 
+/** Human-readable base-type label shown next to a theme in the picker. */
+export function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {
+    switch (type) {
+        case "light":
+            return "light";
+        case "hc":
+            return "high contrast";
+        case "hcLight":
+            return "high contrast light";
+        default:
+            return "dark";
+    }
+}
+
 export class AppController extends Disposable implements IController {
     public static dependencies = [
         EditorGroupControllerDIToken,
@@ -330,6 +346,7 @@ export class AppController extends Disposable implements IController {
     private contextKeys: ContextKeyService;
     private inputWidgetController: InputWidgetController;
     private themeService: ThemeService;
+    private themeRegistry: ThemeRegistry;
     private menuBar: MenuBarElement | null = null;
     private terminalEnv: TerminalEnvironmentService;
     private armory: ModifierReleaseArmory;
@@ -355,6 +372,7 @@ export class AppController extends Disposable implements IController {
         this.logger = logService.createLogger("input.keybindings");
         this.terminalEnv = terminalEnv;
         this.themeService = themeService;
+        this.themeRegistry = accessor.get(ThemeRegistryDIToken);
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
         // Ошибка файлового watcher'а больше не роняет процесс (см. FileTreeDataProvider):
@@ -405,7 +423,7 @@ export class AppController extends Disposable implements IController {
         );
 
         this.workbenchLayout = new WorkbenchLayoutElement();
-        this.workbenchLayout.setSashHoverColor(themeService.theme.getColor("sash.hoverBorder"));
+        this.workbenchLayout.setSashHoverColor(themeService.theme.getRequiredColor("sash.hoverBorder"));
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
 
         this.view = new BodyElement();
@@ -480,6 +498,14 @@ export class AppController extends Disposable implements IController {
                 ...showCommandsAction,
                 run: () => {
                     this.quickOpenController.open("commands");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...selectThemeAction,
+                run: () => {
+                    void this.selectColorTheme();
                 },
             }),
         );
@@ -855,17 +881,15 @@ export class AppController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        const fg = theme.getColor("foreground");
-        const bg = theme.getColor("editor.background");
         this.view.style = {
-            ...(fg !== undefined ? { fg } : {}),
-            ...(bg !== undefined ? { bg } : {}),
+            fg: theme.getRequiredColor("foreground"),
+            bg: theme.getRequiredColor("editor.background"),
         };
         this.confirmDialog?.applyTheme(theme);
         this.aboutDialog?.applyTheme(theme);
         this.findController.applyTheme(theme);
         this.menuBar?.applyTheme(theme);
-        this.workbenchLayout.setSashHoverColor(theme.getColor("sash.hoverBorder"));
+        this.workbenchLayout.setSashHoverColor(theme.getRequiredColor("sash.hoverBorder"));
     }
 
     // Capture phase: while a chord is in progress, intercept the next key
@@ -1156,6 +1180,8 @@ export class AppController extends Disposable implements IController {
                 mnemonic: "v",
                 entries: [
                     item("Command Palette...", "workbench.action.showCommands"),
+                    sep(),
+                    item("Color Theme", "workbench.action.selectTheme"),
                     sep(),
                     item("Explorer", "workbench.view.explorer"),
                     item("Toggle Primary Side Bar", "workbench.action.toggleSidebarVisibility"),
@@ -1456,6 +1482,52 @@ export class AppController extends Disposable implements IController {
             return;
         }
         void doSave();
+    }
+
+    /**
+     * Color-theme picker (VS Code `workbench.action.selectTheme`). Lists every
+     * registered theme, applies it live as you arrow through the list, and on
+     * Enter persists the choice to `workbench.colorTheme`. Escape / dismiss
+     * restores the theme that was active before the picker opened.
+     */
+    private async selectColorTheme(): Promise<void> {
+        const originalTheme = this.themeService.theme;
+        const descriptors = this.themeRegistry.list();
+
+        const items = descriptors.map((d) => ({
+            label: d.label,
+            description: themeTypeLabel(d.type),
+        }));
+        const activeIndex = Math.max(
+            0,
+            descriptors.findIndex((d) => d.label === originalTheme.name),
+        );
+
+        const applyByLabel = (label: string): void => {
+            const theme = this.themeRegistry.resolve(label);
+            /* v8 ignore start -- defensive: `label` always originates from the registry's own list()/picker items, so resolve() never returns undefined */
+            if (theme) this.themeService.setTheme(theme);
+            /* v8 ignore stop */
+        };
+
+        const picked = await this.quickInputController.quickPick({
+            title: "Color Theme",
+            placeholder: "Select Color Theme (Up/Down Keys to Preview)",
+            items,
+            activeIndex,
+            onDidChangeActive: (item) => {
+                if (item) applyByLabel(item.label);
+            },
+        });
+
+        if (picked === undefined) {
+            // Cancelled — undo any live preview by restoring the original theme.
+            this.themeService.setTheme(originalTheme);
+            return;
+        }
+
+        applyByLabel(picked.label);
+        void this.configurationService.updateUserValue?.("workbench.colorTheme", picked.label);
     }
 
     public showAboutDialog(): void {

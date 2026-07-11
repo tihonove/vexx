@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
+import { applyEdits, modify, parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
 
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
@@ -33,19 +33,32 @@ import type {
  */
 export class ConfigurationService extends Disposable implements IConfigurationService {
     private readonly defaultsLayer: ConfigurationModel;
-    private readonly userLayer: ConfigurationModel;
-    private readonly profileLayer: ConfigurationModel;
-    private readonly merged: ConfigurationModel;
+    private userLayer: ConfigurationModel;
+    private profileLayer: ConfigurationModel;
+    private merged: ConfigurationModel;
+    /**
+     * settings.json активного профиля — цель для {@link updateUserValue}. Для
+     * default-профиля это `User/settings.json` (совпадает с user-слоем); для
+     * именованного — файл профиля (profile-слой).
+     */
+    private readonly writeTargetPath: string | undefined;
+    private readonly writesToProfileLayer: boolean;
 
     public constructor(input: {
         readonly defaultsLayer: ConfigurationModel;
         readonly userLayer: ConfigurationModel;
         readonly profileLayer: ConfigurationModel;
+        /** Путь к settings.json активного профиля; без него запись недоступна. */
+        readonly writeTargetPath?: string;
+        /** true → правка ложится в profile-слой (именованный профиль). */
+        readonly writesToProfileLayer?: boolean;
     }) {
         super();
         this.defaultsLayer = input.defaultsLayer;
         this.userLayer = input.userLayer;
         this.profileLayer = input.profileLayer;
+        this.writeTargetPath = input.writeTargetPath;
+        this.writesToProfileLayer = input.writesToProfileLayer ?? false;
         this.merged = ConfigurationModel.merge(this.defaultsLayer, this.userLayer, this.profileLayer);
     }
 
@@ -76,6 +89,40 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
             },
         };
     }
+
+    public async updateUserValue(key: string, value: unknown): Promise<void> {
+        if (this.writeTargetPath === undefined) return;
+
+        let content = "";
+        try {
+            content = await fs.promises.readFile(this.writeTargetPath, "utf-8");
+        } catch (err) {
+            if (!isFileNotFound(err)) throw err;
+            // Файла ещё нет — стартуем с пустого объекта, каталог создаём ниже.
+        }
+
+        // Пишем плоский dotted-ключ (`"workbench.colorTheme": …`) — так же, как это
+        // делает VS Code и как выглядят фикстуры/дефолты. `ConfigurationModel`
+        // при чтении сам разворачивает точечные ключи во вложенное дерево. Поэтому
+        // ключ идёт ОДНИМ сегментом JSONPath, а не `key.split(".")`.
+        const edits = modify(content, [key], value, {
+            formattingOptions: { insertSpaces: true, tabSize: 4 },
+        });
+        const next = applyEdits(content, edits);
+
+        await fs.promises.mkdir(path.dirname(this.writeTargetPath), { recursive: true });
+        await fs.promises.writeFile(this.writeTargetPath, next, "utf-8");
+
+        // Обновляем in-memory слой, чтобы get/inspect сразу видели новое значение.
+        const parsed: unknown = parseJsonc(next, [], { allowTrailingComma: true });
+        const model = ConfigurationModel.fromRaw(parsed);
+        if (this.writesToProfileLayer) {
+            this.profileLayer = model;
+        } else {
+            this.userLayer = model;
+        }
+        this.merged = ConfigurationModel.merge(this.defaultsLayer, this.userLayer, this.profileLayer);
+    }
 }
 
 /**
@@ -99,7 +146,14 @@ export async function loadConfiguration(paths: IUserDataPaths, logger?: ILogger)
         profileLayer = await loadSettingsLayer(paths.settingsFile, logger);
     }
 
-    return new ConfigurationService({ defaultsLayer, userLayer, profileLayer });
+    return new ConfigurationService({
+        defaultsLayer,
+        userLayer,
+        profileLayer,
+        // Запись идёт в settings.json активного профиля (default → User/settings.json).
+        writeTargetPath: paths.settingsFile,
+        writesToProfileLayer: !paths.isDefaultProfile,
+    });
 }
 
 async function loadSettingsLayer(filePath: string, logger: ILogger | undefined): Promise<ConfigurationModel> {

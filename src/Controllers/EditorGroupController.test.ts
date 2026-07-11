@@ -664,17 +664,21 @@ describe("EditorGroupController", () => {
     });
 
     describe("applyTheme with missing colors", () => {
-        it("does not throw when the theme omits editor foreground/background", () => {
-            const emptyTheme = new WorkbenchTheme("empty", "dark", {}, { rules: [] });
+        it("uses the default color registry when the theme omits editor foreground/background", () => {
+            // A theme with no colors at all: the dark default registry supplies
+            // editor.foreground / editor.background, so applyTheme never throws and
+            // the editor group is always colored.
+            const emptyTheme = WorkbenchTheme.fromThemeFile({ name: "empty", type: "dark", colors: {} });
             const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
             const ctrl = createEditorGroupController({ themeService });
             ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "a"));
 
-            // Re-applies the theme with no editor.foreground / editor.background defined.
             expect(() => {
                 themeService.setTheme(emptyTheme);
             }).not.toThrow();
+            expect(ctrl.view.style.fg).toBe(0xd4d4d4); // default dark "editor.foreground"
+            expect(ctrl.view.style.bg).toBe(0x1e1e1e); // default dark "editor.background"
         });
     });
 

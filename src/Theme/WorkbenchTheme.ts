@@ -1,4 +1,5 @@
 import { parseHexColor } from "./ColorUtils.ts";
+import { defaultWorkbenchColors, themeKindOf } from "./defaultColors.ts";
 import type { IEditorTokenTheme } from "./IEditorTokenTheme.ts";
 import type { IThemeFile } from "./IThemeFile.ts";
 import type { IWorkbenchColors } from "./IWorkbenchColors.ts";
@@ -28,11 +29,18 @@ export class WorkbenchTheme {
 
     /**
      * Create a WorkbenchTheme from a VS Code theme JSON object.
+     *
+     * The default color registry for the theme's kind (dark/light) is layered
+     * UNDER the theme's own colors, so any workbench color the app reads
+     * resolves on every theme — mirroring how VS Code fills unset colors from
+     * its built-in defaults. See {@link defaultWorkbenchColors}.
+     *
      * All hex color strings are converted to packed 24-bit RGB integers.
      */
     public static fromThemeFile(json: IThemeFile): WorkbenchTheme {
+        const merged = { ...defaultWorkbenchColors(themeKindOf(json.type)), ...json.colors };
         const colors: IWorkbenchColors = {};
-        for (const [key, value] of Object.entries(json.colors)) {
+        for (const [key, value] of Object.entries(merged)) {
             (colors as Record<string, number>)[key] = parseHexColor(value);
         }
 
@@ -44,17 +52,33 @@ export class WorkbenchTheme {
     }
 
     /**
-     * Get a color by its VS Code key (e.g. `"editor.background"`).
-     * Returns `undefined` if the color is not defined in the theme.
+     * Get an optional color by its VS Code key (e.g. `"editor.background"`).
+     *
+     * Returns `undefined` only for colors with no default in the registry —
+     * genuinely optional overrides the consumer must handle (e.g.
+     * `list.hoverForeground`, `editorGutter.background`). For chrome that must
+     * always render, use {@link getRequiredColor}.
      */
     public getColor(key: keyof IWorkbenchColors): number | undefined {
         return this.colors[key];
     }
 
     /**
-     * Get a color by its VS Code key, falling back to a default value.
+     * Get a required color by its VS Code key.
+     *
+     * Throws if the color is defined neither by the theme nor the default color
+     * registry — a programming error meaning the key is missing from
+     * {@link defaultWorkbenchColors}. This enforces the invariant that every
+     * color the app relies on has a default and resolves on every theme.
      */
-    public getColorOrDefault(key: keyof IWorkbenchColors, defaultValue: number): number {
-        return this.colors[key] ?? defaultValue;
+    public getRequiredColor(key: keyof IWorkbenchColors): number {
+        const color = this.colors[key];
+        if (color === undefined) {
+            throw new Error(
+                `Workbench color "${key}" is not defined by theme "${this.name}" ` +
+                    `and has no entry in the default color registry (src/Theme/defaultColors.ts).`,
+            );
+        }
+        return color;
     }
 }
