@@ -21,6 +21,7 @@ import { fileWatcherModule } from "./FileWatcherModule.ts";
 import { extensionHostModule } from "./ExtensionHostModule.ts";
 import { keybindingsModule } from "./KeybindingsModule.ts";
 import { loggingModule } from "./LoggingModule.ts";
+import { markersModule } from "./MarkersModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
 import { workspaceModule } from "./WorkspaceModule.ts";
@@ -37,6 +38,8 @@ export interface ProductionProfileContext {
     configurationService: IConfigurationService;
     userKeybindings: readonly IUserKeybindingRule[];
     logService: ILogService;
+    /** Absolute path of the active-profile Vexx settings.json (for diagnostics scoping). */
+    settingsResource: string;
 }
 
 /**
@@ -60,6 +63,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
         .use(keybindingsModule, { rules: ctx.userKeybindings })
         .use(workspaceModule)
         .use(fileWatcherModule)
+        .use(markersModule, { settingsResource: ctx.settingsResource })
         .use(controllersModule)
         .use(extensionHostModule);
 }

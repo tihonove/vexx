@@ -199,4 +199,45 @@ describe("SashElement", () => {
         vi.advanceTimersByTime(300);
         expect(renderTopChar(sash)).toBe(" ");
     });
+
+    describe("horizontal orientation", () => {
+        /** A horizontal sash at screenY=10 spanning an 80-wide root, with a drag log. */
+        function buildHScene(): { root: ContainerElement; sash: SashElement; drags: number[] } {
+            const root = new ContainerElement();
+            root.setAsRoot();
+            root.globalPosition = new Point(0, 0);
+            root.performLayout(BoxConstraints.tight(new Size(80, 24)));
+
+            const sash = new SashElement("horizontal");
+            sash.globalPosition = new Point(0, 10);
+            sash.performLayout(BoxConstraints.tight(new Size(80, 1)));
+            root.addChild(sash);
+
+            const drags: number[] = [];
+            sash.onDrag = (y) => drags.push(y);
+            return { root, sash, drags };
+        }
+
+        it("reports the absolute boundary row while dragging", () => {
+            const { root, drags } = buildHScene();
+            const dispatcher = new MouseEventDispatcher();
+
+            dispatcher.handleMouseToken(makeToken({ action: "press", x: 5, y: 11 }), root); // screenY 10
+            dispatcher.handleMouseToken(makeToken({ action: "move", x: 5, y: 16 }), root); // screenY 15
+            dispatcher.handleMouseToken(makeToken({ action: "release", x: 5, y: 16 }), root);
+
+            expect(drags).toEqual([15]);
+        });
+
+        it("paints a horizontal hover line", () => {
+            vi.useFakeTimers();
+            const { root, sash } = buildHScene();
+            sash.hoverBorderColor = HOVER_COLOR;
+            const dispatcher = new MouseEventDispatcher();
+
+            dispatcher.handleMouseToken(makeToken({ action: "move", x: 5, y: 11 }), root);
+            vi.advanceTimersByTime(300);
+            expect(renderTopChar(sash)).toBe("─");
+        });
+    });
 });

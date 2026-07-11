@@ -109,6 +109,14 @@ export class TreeViewElement<T> extends ScrollableElement {
         this.markDirty();
     }
 
+    /** Раскрывает узел (идемпотентно, без прокрутки/выделения) и перестраивает список. */
+    public async expand(element: T): Promise<void> {
+        if (this.expandedKeys.has(this.provider.getKey(element))) return;
+        await this.expandElement(element);
+        this.rebuildFlatList();
+        this.markDirty();
+    }
+
     /** Раскрывает узел (загружая детей в кеш), если он ещё не раскрыт. No-op для уже раскрытого. */
     private async expandElement(element: T): Promise<void> {
         const key = this.provider.getKey(element);

@@ -19,6 +19,8 @@ import { EditorViewState } from "./EditorViewState.ts";
 import { computeIndentLevel } from "./FoldingRangeProvider.ts";
 import type { IFoldingRegion } from "./IFoldingRegion.ts";
 import type { ILineTokens, IToken } from "./ILineTokens.ts";
+import type { IMarkerDecoration } from "./Markers/IMarker.ts";
+import { MarkerSeverity } from "./Markers/IMarker.ts";
 import type { IRange } from "./IRange.ts";
 import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "./ISelection.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
@@ -34,6 +36,13 @@ const FIND_MATCH_CURRENT_BG = packRgb(168, 109, 0);
 // `editor.wordHighlightBackground` (#575757b8) composited over the editor bg.
 const DEFAULT_OCCURRENCE_HIGHLIGHT_BG = packRgb(71, 71, 71);
 const NO_RANGES: readonly IRange[] = [];
+const NO_MARKER_DECORATIONS: readonly IMarkerDecoration[] = [];
+// Fallbacks for diagnostic squiggle colours when the theme has not been applied
+// yet (mirror the VS Code dark defaults for editorError/Warning/Info/Hint).
+const DEFAULT_ERROR_FG = packRgb(0xf1, 0x4c, 0x4c);
+const DEFAULT_WARNING_FG = packRgb(0xcc, 0xa7, 0x00);
+const DEFAULT_INFO_FG = packRgb(0x37, 0x94, 0xff);
+const DEFAULT_HINT_FG = packRgb(0xee, 0xee, 0xee);
 const GUTTER_LEFT_PADDING = 2;
 
 const DEFAULT_LINE_NUMBER_FG = packRgb(133, 133, 133);
@@ -104,6 +113,14 @@ export class EditorElement extends TUIElement implements IScrollable {
     public indentGuideForeground: number | undefined;
     /** Colour of the active indentation guide (VS Code `editorIndentGuide.activeBackground1`). */
     public indentGuideActiveForeground: number | undefined;
+
+    /** Diagnostic squiggle decorations for the open document (pushed by the controller). */
+    public markerDecorations: readonly IMarkerDecoration[] = NO_MARKER_DECORATIONS;
+    /** Squiggle foreground per severity (`editorError/Warning/Info/Hint.foreground`). */
+    public errorForeground: number | undefined;
+    public warningForeground: number | undefined;
+    public infoForeground: number | undefined;
+    public hintForeground: number | undefined;
 
     public contextMenuEntries: MenuEntry[] = [];
     /** Тема для тематизации контекстного меню (`menu.*`); задаётся контроллером. */
@@ -421,6 +438,12 @@ export class EditorElement extends TUIElement implements IScrollable {
             this.paintRangeBackground(context, searchMatches[currentMatchIndex], FIND_MATCH_CURRENT_BG, geometry);
         }
 
+        // Diagnostic squiggles on top of the content — painted last (after the
+        // background passes) so the severity colour and undercurl win.
+        for (const decoration of this.markerDecorations) {
+            this.paintMarkerDecoration(context, decoration, geometry);
+        }
+
         // Position hardware cursor at the primary selection's active position
         const primary = this.viewState.selections[0];
         const cursorVisualLine = this.viewState.logicalToVisualLine(primary.active.line);
@@ -515,6 +538,40 @@ export class EditorElement extends TUIElement implements IScrollable {
      * preserved. Used by both the selection and search-match highlight passes.
      */
     private paintRangeBackground(context: RenderContext, range: IRange, bg: number, geo: RangeHighlightGeometry): void {
+        this.forEachRangeCell(range, geo, (screenX, screenY) => {
+            context.setCell(screenX, screenY, { bg });
+        });
+    }
+
+    /**
+     * Paints a diagnostic squiggle over the cells covered by a marker: sets the
+     * severity foreground colour and an undercurl (SGR 4:3, wavy underline).
+     * Terminals without undercurl support still show the colour, keeping the
+     * marker visible. `bg` is left untouched so a selection/find highlight under
+     * the squiggle survives.
+     */
+    private paintMarkerDecoration(
+        context: RenderContext,
+        decoration: IMarkerDecoration,
+        geo: RangeHighlightGeometry,
+    ): void {
+        const fg = this.severityForeground(decoration.severity);
+        this.forEachRangeCell(decoration.range, geo, (screenX, screenY) => {
+            context.setCell(screenX, screenY, { fg, style: StyleFlags.Undercurl });
+        });
+    }
+
+    /**
+     * Walks every screen cell covered by `range` within the visible viewport and
+     * invokes `visit(screenX, screenY)` (absolute grid coordinates). Shared by the
+     * background-highlight and diagnostic-squiggle passes so the viewport/column
+     * math lives in one place.
+     */
+    private forEachRangeCell(
+        range: IRange,
+        geo: RangeHighlightGeometry,
+        visit: (screenX: number, screenY: number) => void,
+    ): void {
         for (let screenY = 0; screenY < geo.visibleLines; screenY++) {
             const viewLine = geo.scrollTop + screenY;
             if (viewLine >= geo.viewLineCount) break;
@@ -534,8 +591,21 @@ export class EditorElement extends TUIElement implements IScrollable {
             const screenXEnd = Math.min(geo.contentCols, endCol - geo.scrollLeft);
 
             for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
-                context.setCell(geo.gutterW + screenX, screenY, { bg });
+                visit(geo.gutterW + screenX, screenY);
             }
+        }
+    }
+
+    private severityForeground(severity: MarkerSeverity): number {
+        switch (severity) {
+            case MarkerSeverity.Error:
+                return this.errorForeground ?? DEFAULT_ERROR_FG;
+            case MarkerSeverity.Warning:
+                return this.warningForeground ?? DEFAULT_WARNING_FG;
+            case MarkerSeverity.Info:
+                return this.infoForeground ?? DEFAULT_INFO_FG;
+            case MarkerSeverity.Hint:
+                return this.hintForeground ?? DEFAULT_HINT_FG;
         }
     }
 

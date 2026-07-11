@@ -407,24 +407,24 @@ export interface IWorkbenchColors {
     // "editorOverviewRuler.bracketMatchForeground"?: number;
 
     // ── Editor — Errors and warnings ────────────────────────
-    // /** Foreground color of error squiggles in the editor. */
-    // "editorError.foreground"?: number;
+    /** Foreground color of error squiggles in the editor. */
+    "editorError.foreground"?: number;
     // /** Border color of error boxes in the editor. */
     // "editorError.border"?: number;
     // /** Background color of error text in the editor. */
     // "editorError.background"?: number;
-    // /** Foreground color of warning squiggles in the editor. */
-    // "editorWarning.foreground"?: number;
+    /** Foreground color of warning squiggles in the editor. */
+    "editorWarning.foreground"?: number;
     // /** Border color of warning boxes in the editor. */
     // "editorWarning.border"?: number;
     // /** Background color of warning text in the editor. */
     // "editorWarning.background"?: number;
-    // /** Foreground color of info squiggles in the editor. */
-    // "editorInfo.foreground"?: number;
+    /** Foreground color of info squiggles in the editor. */
+    "editorInfo.foreground"?: number;
     // /** Border color of info boxes in the editor. */
     // "editorInfo.border"?: number;
-    // /** Foreground color of hints in the editor. */
-    // "editorHint.foreground"?: number;
+    /** Foreground color of hints in the editor. */
+    "editorHint.foreground"?: number;
 
     // ── Editor — Gutter ─────────────────────────────────────
     /** Background color of the editor gutter. */
@@ -527,16 +527,16 @@ export interface IWorkbenchColors {
     // "merge.border"?: number;
 
     // ── Panel colors ────────────────────────────────────────
-    // /** Panel background color. */
-    // "panel.background"?: number;
-    // /** Panel border color to separate the panel from the editor. */
-    // "panel.border"?: number;
-    // /** Border color for the active panel title. */
-    // "panelTitle.activeBorder"?: number;
-    // /** Title color for the active panel. */
-    // "panelTitle.activeForeground"?: number;
-    // /** Title color for the inactive panel. */
-    // "panelTitle.inactiveForeground"?: number;
+    /** Panel background color. */
+    "panel.background"?: number;
+    /** Panel border color to separate the panel from the editor. */
+    "panel.border"?: number;
+    /** Border color for the active panel title. */
+    "panelTitle.activeBorder"?: number;
+    /** Title color for the active panel. */
+    "panelTitle.activeForeground"?: number;
+    /** Title color for the inactive panel. */
+    "panelTitle.inactiveForeground"?: number;
     // /** Input box border for inputs in the panel. */
     // "panelInput.border"?: number;
 

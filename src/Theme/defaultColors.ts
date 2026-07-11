@@ -44,6 +44,19 @@ const darkDefaults: Record<string, string> = {
     // Opaque approximation of VS Code's #575757b8 composited over the editor bg.
     "editor.wordHighlightBackground": "#474747",
 
+    // ── Editor — diagnostics squiggles ──────────────────────
+    "editorError.foreground": "#F14C4C",
+    "editorWarning.foreground": "#CCA700",
+    "editorInfo.foreground": "#3794FF",
+    "editorHint.foreground": "#EEEEEE",
+
+    // ── Panel (Problems/Output/…) ───────────────────────────
+    "panel.background": "#181818",
+    "panel.border": "#2B2B2B",
+    "panelTitle.activeBorder": "#E7E7E7",
+    "panelTitle.activeForeground": "#E7E7E7",
+    "panelTitle.inactiveForeground": "#8E8E8E",
+
     // ── Editor groups & tabs ────────────────────────────────
     "editorGroupHeader.tabsBackground": "#252526",
     "tab.activeBackground": "#1E1E1E",
@@ -98,6 +111,19 @@ const lightDefaults: Record<string, string> = {
     "editorCursor.foreground": "#000000",
     // Opaque approximation of VS Code's #57575740 composited over white.
     "editor.wordHighlightBackground": "#C6C6C6",
+
+    // ── Editor — diagnostics squiggles ──────────────────────
+    "editorError.foreground": "#E51400",
+    "editorWarning.foreground": "#BF8803",
+    "editorInfo.foreground": "#1A85FF",
+    "editorHint.foreground": "#6C6C6C",
+
+    // ── Panel (Problems/Output/…) ───────────────────────────
+    "panel.background": "#F8F8F8",
+    "panel.border": "#E5E5E5",
+    "panelTitle.activeBorder": "#3B3B3B",
+    "panelTitle.activeForeground": "#3B3B3B",
+    "panelTitle.inactiveForeground": "#8C8C8C",
 
     // ── Editor groups & tabs ────────────────────────────────
     "editorGroupHeader.tabsBackground": "#F8F8F8",

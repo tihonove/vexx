@@ -8,6 +8,7 @@ import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import { computeIndentationFolds } from "../Editor/FoldingRangeProvider.ts";
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
+import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import { createRange } from "../Editor/IRange.ts";
 import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "../Editor/ISaveParticipant.ts";
@@ -629,6 +630,15 @@ export class EditorController extends Disposable implements IController {
         this.editor.markDirty();
     }
 
+    /**
+     * Sets the diagnostic squiggle decorations rendered by the editor and
+     * repaints. Pushed by the diagnostics controller from the marker service.
+     */
+    public setMarkerDecorations(decorations: readonly IMarkerDecoration[]): void {
+        this.editor.markerDecorations = decorations;
+        this.editor.markDirty();
+    }
+
     /** Scrolls a range into view (expanding folds if needed) and repaints. */
     public revealRange(range: IRange): void {
         this.editorViewState.revealRange(range);
@@ -682,6 +692,10 @@ export class EditorController extends Disposable implements IController {
         this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
         this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
         this.editor.occurrenceHighlightBackground = theme.getColor("editor.wordHighlightBackground");
+        this.editor.errorForeground = theme.getColor("editorError.foreground");
+        this.editor.warningForeground = theme.getColor("editorWarning.foreground");
+        this.editor.infoForeground = theme.getColor("editorInfo.foreground");
+        this.editor.hintForeground = theme.getColor("editorHint.foreground");
         this.editor.menuTheme = theme;
         this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
         this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");

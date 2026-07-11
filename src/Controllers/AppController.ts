@@ -162,6 +162,9 @@ import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+import { DiagnosticsController, DiagnosticsControllerDIToken } from "./DiagnosticsController.ts";
+import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
+import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { QuickInputController } from "./QuickInputController.ts";
 import { CompletionController } from "./CompletionController.ts";
@@ -378,6 +381,9 @@ export class AppController extends Disposable implements IController {
     private completionController: CompletionController;
     private findController: FindController;
     private statusBarController: StatusBarController;
+    private diagnosticsController: DiagnosticsController;
+    private panelController: PanelController;
+    private problemsController: ProblemsController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
@@ -444,6 +450,9 @@ export class AppController extends Disposable implements IController {
         this.findController = this.register(new FindController(this.editorGroupController));
         this.findController.applyTheme(themeService.theme);
         this.statusBarController = this.register(statusBarController);
+        this.diagnosticsController = this.register(accessor.get(DiagnosticsControllerDIToken));
+        this.panelController = this.register(accessor.get(PanelControllerDIToken));
+        this.problemsController = this.register(accessor.get(ProblemsControllerDIToken));
         this.commands = commands;
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
@@ -462,6 +471,7 @@ export class AppController extends Disposable implements IController {
         this.workbenchLayout = new WorkbenchLayoutElement();
         this.workbenchLayout.setSashHoverColor(themeService.theme.getRequiredColor("sash.hoverBorder"));
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
+        this.workbenchLayout.setBottomPanel(this.panelController.view);
 
         this.view = new BodyElement();
         this.view.setContent(this.workbenchLayout);
@@ -724,6 +734,36 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
+        // Bottom Panel (Problems/Output/…) visibility.
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.togglePanel",
+                title: "View: Toggle Panel Visibility",
+                keybinding: parseKeybinding("ctrl+j"),
+                run: () => {
+                    this.setPanelVisible(!this.workbenchLayout.getBottomPanelVisible());
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.actions.view.problems",
+                title: "View: Toggle Problems (Errors, Warnings, Infos)",
+                keybinding: parseKeybinding("ctrl+shift+m"),
+                run: () => {
+                    // Toggle like VS Code: show + focus Problems, or hide the panel if
+                    // Problems is already the visible view.
+                    const showing = this.workbenchLayout.getBottomPanelVisible() && this.panelController.isProblemsActive();
+                    if (showing) {
+                        this.setPanelVisible(false);
+                    } else {
+                        this.panelController.showProblems();
+                        this.setPanelVisible(true);
+                        this.problemsController.focus();
+                    }
+                },
+            }),
+        );
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...fileDeleteAction,
@@ -924,6 +964,9 @@ export class AppController extends Disposable implements IController {
             this.showFileTreeContextMenu(node.path, screenX, screenY);
         };
         this.statusBarController.mount();
+        this.diagnosticsController.mount();
+        this.panelController.mount();
+        this.problemsController.mount();
     }
 
     public async activate(): Promise<void> {
@@ -936,6 +979,7 @@ export class AppController extends Disposable implements IController {
         await this.editorGroupController.activate();
         await this.fileTreeController.activate();
         await this.statusBarController.activate();
+        await this.panelController.activate();
     }
 
     public openFile(filePath: string): void {
@@ -1175,6 +1219,13 @@ export class AppController extends Disposable implements IController {
         }
     }
 
+    /** Shows/hides the bottom Panel and keeps the `panelVisible` context key in sync. */
+    private setPanelVisible(visible: boolean): void {
+        this.workbenchLayout.setBottomPanelVisible(visible);
+        this.workbenchLayout.markDirty();
+        this.contextKeys.set("panelVisible", visible);
+    }
+
     private updateContextKeys(): void {
         const active = this.view.focusManager?.activeElement ?? null;
         const editorCount = this.editorGroupController.editorCount;
@@ -1185,6 +1236,7 @@ export class AppController extends Disposable implements IController {
         this.inputWidgetController.setActive(active instanceof InputElement ? active : null);
         this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
+        this.contextKeys.set("panelVisible", this.workbenchLayout.getBottomPanelVisible());
         this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
 
         // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
@@ -1273,7 +1325,9 @@ export class AppController extends Disposable implements IController {
                     item("Color Theme", "workbench.action.selectTheme"),
                     sep(),
                     item("Explorer", "workbench.view.explorer"),
+                    item("Problems", "workbench.actions.view.problems"),
                     item("Toggle Primary Side Bar", "workbench.action.toggleSidebarVisibility"),
+                    item("Toggle Panel", "workbench.action.togglePanel"),
                     sep(),
                     item("Increase Side Bar Width", "workbench.action.increaseSidebarWidth"),
                     item("Decrease Side Bar Width", "workbench.action.decreaseSidebarWidth"),
