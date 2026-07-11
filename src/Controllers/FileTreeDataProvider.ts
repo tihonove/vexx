@@ -23,6 +23,13 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
 
     public onChange?: (element?: FileTreeNode) => void;
 
+    // Ошибка файлового watcher'а (например ENOSPC — исчерпан лимит inotify-watch'ей).
+    // Провайдер сам её не логирует и не показывает — он лишь отдаёт наверх, где есть
+    // логгер/UI. Наличие обработчика важно и функционально: без слушателя 'error'
+    // EventEmitter chokidar'а бросает исключение из своих async-потрохов, которое
+    // всплывает как unhandledRejection и убивает процесс.
+    public onWatchError?: (dirPath: string, error: Error) => void;
+
     public constructor(rootPath: string) {
         super();
         this.rootPath = rootPath;
@@ -72,6 +79,14 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
 
         watcher.on("all", () => {
             this.debouncedNotify(dirPath);
+        });
+
+        watcher.on("error", (err) => {
+            // Роняем неудавшийся watcher, чтобы повторное раскрытие папки могло
+            // попробовать снова (лимит мог освободиться), и сообщаем наверх.
+            void watcher.close();
+            this.watchers.delete(dirPath);
+            this.onWatchError?.(dirPath, err as Error);
         });
 
         this.watchers.set(dirPath, watcher);

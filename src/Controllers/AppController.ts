@@ -357,6 +357,18 @@ export class AppController extends Disposable implements IController {
         this.themeService = themeService;
         this.editorGroupController = this.register(editorGroupController);
         this.fileTreeController = this.register(new FileTreeController(themeService));
+        // Ошибка файлового watcher'а больше не роняет процесс (см. FileTreeDataProvider):
+        // ловим её здесь и пишем в лог. ENOSPC/EMFILE — исчерпан лимит inotify; даём
+        // самодокументирующуюся подсказку, как в уведомлении VS Code.
+        const watcherLogger = logService.createLogger("filetree.watcher");
+        this.fileTreeController.onWatchError = (dirPath, error) => {
+            const code = (error as NodeJS.ErrnoException).code;
+            const hint =
+                code === "ENOSPC" || code === "EMFILE"
+                    ? " — inotify watch limit reached; increase fs.inotify.max_user_watches"
+                    : "";
+            watcherLogger.warn(`file watcher error${hint}`, { dirPath, code, error: String(error) });
+        };
         this.armory = accessor.get(ModifierReleaseArmoryDIToken);
         this.fileClipboard = accessor.get(FileClipboardDIToken);
         this.workspaceEditService = accessor.get(WorkspaceEditServiceDIToken);

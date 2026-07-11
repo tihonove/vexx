@@ -17,6 +17,9 @@ export class FileTreeController extends Disposable implements IController {
     public view!: TUIElement;
     public onFileActivate: ((filePath: string) => void) | null = null;
     public onFileContextMenu: ((node: FileTreeNode, screenX: number, screenY: number) => void) | null = null;
+    // Ошибка файлового watcher'а дерева (например ENOSPC — исчерпан лимит inotify).
+    // Пробрасывается из провайдера наверх, где её логируют (см. AppController).
+    public onWatchError: ((dirPath: string, error: Error) => void) | null = null;
     private provider: FileTreeDataProvider | null = null;
     private tree: TreeViewElement<FileTreeNode> | null = null;
     private rootPath: string | null = null;
@@ -38,6 +41,9 @@ export class FileTreeController extends Disposable implements IController {
     public setRootPath(rootPath: string): void {
         this.rootPath = rootPath;
         this.provider = this.register(new FileTreeDataProvider(rootPath));
+        this.provider.onWatchError = (dirPath, error) => {
+            this.onWatchError?.(dirPath, error);
+        };
         this.tree = new TreeViewElement(this.provider);
         this.view = new TitledPanelElement(
             "  EXPLORER",
