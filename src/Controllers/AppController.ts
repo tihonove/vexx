@@ -1179,6 +1179,10 @@ export class AppController extends Disposable implements IController {
                 label: "File",
                 mnemonic: "f",
                 entries: [
+                    item("New Untitled File", "workbench.action.files.newUntitledFile"),
+                    item("New File...", "explorer.newFile"),
+                    item("New Folder...", "explorer.newFolder"),
+                    sep(),
                     item("Save", "workbench.action.files.save"),
                     item("Save As...", "workbench.action.files.saveAs"),
                     sep(),
