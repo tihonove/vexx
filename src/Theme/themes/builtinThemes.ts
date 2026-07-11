@@ -1,5 +1,6 @@
 import type { IThemeFile } from "../IThemeFile.ts";
 
+import { dark2026Theme } from "./dark2026.ts";
 import { darkModernTheme } from "./darkModern.ts";
 import { darkPlusTheme } from "./darkPlus.ts";
 import { lightModernTheme } from "./lightModern.ts";
@@ -16,6 +17,7 @@ import { monokaiTheme } from "./monokai.ts";
  * a follow-up — see docs/TODO/Theming.md.
  */
 export const builtinThemes: readonly IThemeFile[] = [
+    dark2026Theme,
     darkModernTheme,
     darkPlusTheme,
     monokaiTheme,
@@ -24,8 +26,8 @@ export const builtinThemes: readonly IThemeFile[] = [
 ];
 
 /**
- * Default active theme, matching VS Code's out-of-the-box default
- * (`workbench.colorTheme`). Used when the setting is unset or names an unknown
- * theme.
+ * Default active theme. Used when the `workbench.colorTheme` setting is unset or
+ * names an unknown theme. Mirrored by the configuration default in
+ * `src/Configuration/defaults.ts`.
  */
-export const DEFAULT_COLOR_THEME = "Dark Modern";
+export const DEFAULT_COLOR_THEME = "Dark 2026";

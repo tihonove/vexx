@@ -34,6 +34,12 @@ const OUT_DIR = resolve(SCRIPT_DIR, "..", "src", "Theme", "themes");
  */
 const THEMES = [
     {
+        export: "dark2026Theme",
+        name: "Dark 2026",
+        type: "dark",
+        entry: "theme-defaults/themes/2026-dark.json",
+    },
+    {
         export: "darkModernTheme",
         name: "Dark Modern",
         type: "dark",
