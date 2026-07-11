@@ -1,4 +1,5 @@
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
@@ -88,7 +89,13 @@ import {
     unfoldAllAction,
     unfoldRecursivelyAction,
 } from "./Actions/FoldingActions.ts";
-import { fileSaveAction, fileSaveAsAction, newUntitledFileAction } from "./Actions/FileActions.ts";
+import {
+    fileOpenAction,
+    fileOpenFolderAction,
+    fileSaveAction,
+    fileSaveAsAction,
+    newUntitledFileAction,
+} from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import {
     buildPasteEdits,
@@ -552,6 +559,22 @@ export class AppController extends Disposable implements IController {
                 ...fileSaveAsAction,
                 run: () => {
                     void this.runSaveAs();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileOpenAction,
+                run: () => {
+                    void this.runOpenFile();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileOpenFolderAction,
+                run: () => {
+                    void this.runOpenFolder();
                 },
             }),
         );
@@ -1207,6 +1230,9 @@ export class AppController extends Disposable implements IController {
                     item("New File...", "explorer.newFile"),
                     item("New Folder...", "explorer.newFolder"),
                     sep(),
+                    item("Open File...", "workbench.action.files.openFile"),
+                    item("Open Folder...", "workbench.action.files.openFolder"),
+                    sep(),
                     item("Save", "workbench.action.files.save"),
                     item("Save As...", "workbench.action.files.saveAs"),
                     sep(),
@@ -1597,6 +1623,72 @@ export class AppController extends Disposable implements IController {
             this.updateContextKeys();
             this.statusBarController.update();
         }
+    }
+
+    /**
+     * Expand a leading `~` to the home directory, then resolve the path against
+     * the current workspace root (falling back to the process cwd). Returns null
+     * for an empty input.
+     */
+    private resolveInputPath(value: string): string | null {
+        const trimmed = value.trim();
+        if (trimmed === "") return null;
+        const expanded =
+            trimmed === "~" || trimmed.startsWith("~/") ? path.join(os.homedir(), trimmed.slice(1)) : trimmed;
+        return path.resolve(this.workspaceRoot(), expanded);
+    }
+
+    /** Current workspace root, or the process cwd when no folder is open. */
+    private workspaceRoot(): string {
+        return this.fileTreeController.getRootPath() ?? process.cwd();
+    }
+
+    /**
+     * Open File flow: prompt for a path (InputBox), validate it points at an
+     * existing file, then open it in the active editor group. The prompt opens
+     * empty; a relative path is resolved against the workspace root.
+     */
+    private async runOpenFile(): Promise<void> {
+        const target = await this.quickInputController.input({
+            title: "Open File",
+            placeholder: "Enter a file path",
+            validateInput: (value) => {
+                const resolved = this.resolveInputPath(value);
+                // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
+                if (!resolved) return null;
+                if (!fs.existsSync(resolved)) return `File does not exist: ${resolved}`;
+                if (fs.statSync(resolved).isDirectory()) return "That is a folder, not a file";
+                return null;
+            },
+        });
+        if (target === undefined) return;
+        // An accepted-but-empty value resolves to null → nothing to open.
+        const resolved = this.resolveInputPath(target);
+        if (resolved) this.openFile(resolved);
+    }
+
+    /**
+     * Open Folder flow: prompt for a path (InputBox), validate it points at an
+     * existing directory, then swap the workspace root to it (file tree, side
+     * panel and the Quick Open search index all re-target the new folder).
+     */
+    private async runOpenFolder(): Promise<void> {
+        const target = await this.quickInputController.input({
+            title: "Open Folder",
+            placeholder: "Enter a folder path",
+            validateInput: (value) => {
+                const resolved = this.resolveInputPath(value);
+                // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
+                if (!resolved) return null;
+                if (!fs.existsSync(resolved)) return `Folder does not exist: ${resolved}`;
+                if (!fs.statSync(resolved).isDirectory()) return "That is a file, not a folder";
+                return null;
+            },
+        });
+        if (target === undefined) return;
+        // An accepted-but-empty value resolves to null → nothing to swap to.
+        const resolved = this.resolveInputPath(target);
+        if (resolved) this.setWorkspaceFolder(resolved);
     }
 
     /**
