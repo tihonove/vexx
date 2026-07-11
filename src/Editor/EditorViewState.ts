@@ -231,6 +231,86 @@ export class EditorViewState {
     }
 
     /**
+     * Collapses the innermost region at `line` together with every region nested
+     * inside it (VS Code's "Fold Recursively").
+     */
+    public foldRecursively(line: number): void {
+        this.setCollapsedRecursively(line, true);
+    }
+
+    /**
+     * Expands the innermost region at `line` together with every region nested
+     * inside it (VS Code's "Unfold Recursively").
+     */
+    public unfoldRecursively(line: number): void {
+        this.setCollapsedRecursively(line, false);
+    }
+
+    private setCollapsedRecursively(line: number, collapsed: boolean): void {
+        const root = this.foldingRegionContaining(line);
+        if (root === undefined) return;
+        for (const region of this.foldedRegions) {
+            if (region.startLine >= root.startLine && region.endLine <= root.endLine) {
+                region.isCollapsed = collapsed;
+            }
+        }
+        this.foldsVersion++;
+        if (collapsed) this.reconcileHiddenCursors();
+    }
+
+    /**
+     * Folds every region at nesting level ≥ `level` and unfolds the rest, showing
+     * the document structure down to that level (VS Code's "Fold Level N").
+     */
+    public foldLevel(level: number): void {
+        for (const region of this.foldedRegions) {
+            region.isCollapsed = this.regionNestingLevel(region) >= level;
+        }
+        this.foldsVersion++;
+        this.reconcileHiddenCursors();
+    }
+
+    /** 1-based nesting depth: 1 for an outermost region, +1 per enclosing region. */
+    private regionNestingLevel(region: IFoldingRegion): number {
+        let level = 1;
+        for (const other of this.foldedRegions) {
+            if (other === region) continue;
+            if (other.startLine <= region.startLine && region.endLine <= other.endLine) {
+                level++;
+            }
+        }
+        return level;
+    }
+
+    /**
+     * Moves the caret to the header of the next foldable region below `line`,
+     * revealing it if hidden. No-op when there is no later region.
+     */
+    public gotoNextFold(line: number): void {
+        let target: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            if (region.startLine > line && (target === undefined || region.startLine < target.startLine)) {
+                target = region;
+            }
+        }
+        if (target !== undefined) this.goToPosition(target.startLine, 0);
+    }
+
+    /**
+     * Moves the caret to the header of the previous foldable region above `line`.
+     * No-op when there is no earlier region.
+     */
+    public gotoPreviousFold(line: number): void {
+        let target: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            if (region.startLine < line && (target === undefined || region.startLine > target.startLine)) {
+                target = region;
+            }
+        }
+        if (target !== undefined) this.goToPosition(target.startLine, 0);
+    }
+
+    /**
      * The collapsed region hiding `line` with the smallest `startLine` — the
      * outermost one, whose header line is always visible. `undefined` if `line`
      * is not hidden by any collapsed region.

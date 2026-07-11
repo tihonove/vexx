@@ -77,9 +77,14 @@ import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actio
 import {
     foldAction,
     foldAllAction,
+    foldLevelActions,
+    foldRecursivelyAction,
+    gotoNextFoldAction,
+    gotoPreviousFoldAction,
     toggleFoldAction,
     unfoldAction,
     unfoldAllAction,
+    unfoldRecursivelyAction,
 } from "./Actions/FoldingActions.ts";
 import { fileSaveAction, fileSaveAsAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
@@ -212,6 +217,11 @@ const builtinActions = [
     toggleFoldAction,
     foldAllAction,
     unfoldAllAction,
+    foldRecursivelyAction,
+    unfoldRecursivelyAction,
+    ...foldLevelActions,
+    gotoNextFoldAction,
+    gotoPreviousFoldAction,
 
     // Whitespace
     trimTrailingWhitespaceAction,

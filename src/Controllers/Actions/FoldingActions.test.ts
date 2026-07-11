@@ -20,7 +20,18 @@ import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
 import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 
-import { foldAction, foldAllAction, toggleFoldAction, unfoldAction, unfoldAllAction } from "./FoldingActions.ts";
+import {
+    foldAction,
+    foldAllAction,
+    foldLevelActions,
+    foldRecursivelyAction,
+    gotoNextFoldAction,
+    gotoPreviousFoldAction,
+    toggleFoldAction,
+    unfoldAction,
+    unfoldAllAction,
+    unfoldRecursivelyAction,
+} from "./FoldingActions.ts";
 
 let tmpDir: string;
 
@@ -171,13 +182,59 @@ describe("FoldingActions", () => {
         expect(editor.viewState.foldedRegions).toHaveLength(0);
     });
 
+    it("Fold Recursively collapses the region at the cursor and everything nested", () => {
+        const { editor, exec } = openEditor(NESTED); // cursor at line 0 → outer + inner
+        exec(foldRecursivelyAction);
+        expect(editor.viewState.foldedRegions.every((r) => r.isCollapsed)).toBe(true);
+    });
+
+    it("Unfold Recursively expands the region and everything nested", () => {
+        const { editor, exec } = openEditor(NESTED);
+        exec(foldAllAction);
+        exec(unfoldRecursivelyAction);
+        expect(editor.viewState.foldedRegions.every((r) => !r.isCollapsed)).toBe(true);
+    });
+
+    it("Fold Level 2 folds the nested region but leaves the top level open", () => {
+        const { editor, exec } = openEditor(NESTED);
+        exec(foldLevelActions[1]); // Fold Level 2
+        expect(editor.viewState.foldedRegions.find((r) => r.startLine === 0)?.isCollapsed).toBe(false);
+        expect(editor.viewState.foldedRegions.find((r) => r.startLine === 1)?.isCollapsed).toBe(true);
+    });
+
+    it("every Fold Level action (1..7) executes", () => {
+        const { editor, exec } = openEditor(NESTED);
+        for (const action of foldLevelActions) exec(action);
+        // Fold Level 7 is deeper than the tree → everything ends up expanded.
+        expect(editor.viewState.foldedRegions.every((r) => !r.isCollapsed)).toBe(true);
+    });
+
+    it("Go to Next / Previous Fold move the cursor between region headers", () => {
+        const { editor, exec } = openEditor(NESTED);
+        exec(gotoNextFoldAction); // from line 0 → inner header
+        expect(editor.viewState.selections[0].active.line).toBe(1);
+        exec(gotoPreviousFoldAction); // back to the outer header
+        expect(editor.viewState.selections[0].active.line).toBe(0);
+    });
+
     it("actions are no-ops when there is no active editor", () => {
         const commands = new CommandRegistry();
         const keybindings = new KeybindingRegistry();
         const accessor = new Container();
         accessor.bind(EditorGroupControllerDIToken, () => ({ getActiveEditor: () => null }) as never);
 
-        for (const action of [foldAction, unfoldAction, toggleFoldAction, foldAllAction, unfoldAllAction]) {
+        for (const action of [
+            foldAction,
+            unfoldAction,
+            toggleFoldAction,
+            foldAllAction,
+            unfoldAllAction,
+            foldRecursivelyAction,
+            unfoldRecursivelyAction,
+            gotoNextFoldAction,
+            gotoPreviousFoldAction,
+            ...foldLevelActions,
+        ]) {
             registerAction(commands, keybindings, accessor, action);
             expect(() => commands.execute(action.id)).not.toThrow();
         }

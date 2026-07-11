@@ -799,4 +799,34 @@ export class EditorController extends Disposable implements IController {
         this.editorViewState.unfoldAll();
         this.editor.markDirty();
     }
+
+    /** Collapses the innermost region at the cursor and every region nested inside it. */
+    public foldRecursivelyAtCursor(): void {
+        this.editorViewState.foldRecursively(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Expands the innermost region at the cursor and every region nested inside it. */
+    public unfoldRecursivelyAtCursor(): void {
+        this.editorViewState.unfoldRecursively(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Folds the document down to the given nesting level. */
+    public foldLevel(level: number): void {
+        this.editorViewState.foldLevel(level);
+        this.editor.markDirty();
+    }
+
+    /** Moves the caret to the header of the next foldable region. */
+    public gotoNextFold(): void {
+        this.editorViewState.gotoNextFold(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Moves the caret to the header of the previous foldable region. */
+    public gotoPreviousFold(): void {
+        this.editorViewState.gotoPreviousFold(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
 }
