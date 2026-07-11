@@ -423,7 +423,7 @@ export class AppController extends Disposable implements IController {
         );
 
         this.workbenchLayout = new WorkbenchLayoutElement();
-        this.workbenchLayout.setSashHoverColor(themeService.theme.getColor("sash.hoverBorder"));
+        this.workbenchLayout.setSashHoverColor(themeService.theme.getRequiredColor("sash.hoverBorder"));
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
 
         this.view = new BodyElement();
@@ -881,17 +881,15 @@ export class AppController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        const fg = theme.getColor("foreground");
-        const bg = theme.getColor("editor.background");
         this.view.style = {
-            ...(fg !== undefined ? { fg } : {}),
-            ...(bg !== undefined ? { bg } : {}),
+            fg: theme.getRequiredColor("foreground"),
+            bg: theme.getRequiredColor("editor.background"),
         };
         this.confirmDialog?.applyTheme(theme);
         this.aboutDialog?.applyTheme(theme);
         this.findController.applyTheme(theme);
         this.menuBar?.applyTheme(theme);
-        this.workbenchLayout.setSashHoverColor(theme.getColor("sash.hoverBorder"));
+        this.workbenchLayout.setSashHoverColor(theme.getRequiredColor("sash.hoverBorder"));
     }
 
     // Capture phase: while a chord is in progress, intercept the next key

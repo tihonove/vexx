@@ -2,7 +2,6 @@ import { token } from "../Common/DiContainer.ts";
 import { DisplayLine } from "../Common/DisplayLine.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -94,8 +93,8 @@ export class StatusBarController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        const bg = theme.getColorOrDefault("statusBar.background", packRgb(0, 122, 204));
-        const fg = theme.getColorOrDefault("statusBar.foreground", packRgb(255, 255, 255));
+        const bg = theme.getRequiredColor("statusBar.background");
+        const fg = theme.getRequiredColor("statusBar.foreground");
         this.view.style = { fg, bg };
     }
 

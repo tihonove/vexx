@@ -33,30 +33,30 @@ function createTestAppController(size: Size = new Size(80, 24)): TestAppContext 
 }
 
 describe("AppController — theme application", () => {
-    it("applies foreground/background colors when the theme defines them", () => {
+    it("applies foreground/background colors the theme defines", () => {
         const { controller, themeService } = createTestAppController();
 
-        const theme = new WorkbenchTheme(
-            "colored",
-            "dark",
-            { foreground: 0xaabbcc, "editor.background": 0x102030 },
-            { rules: [] },
-        );
+        const theme = WorkbenchTheme.fromThemeFile({
+            name: "colored",
+            type: "dark",
+            colors: { foreground: "#AABBCC", "editor.background": "#102030" },
+        });
         themeService.setTheme(theme);
 
         expect(controller.view.style.fg).toBe(0xaabbcc);
         expect(controller.view.style.bg).toBe(0x102030);
     });
 
-    it("omits colors the theme does not define (no foreground/background)", () => {
+    it("falls back to the default color registry when the theme omits foreground/background", () => {
         const { controller, themeService } = createTestAppController();
 
-        // A theme with neither "foreground" nor "editor.background".
-        const sparseTheme = new WorkbenchTheme("sparse", "dark", {}, { rules: [] });
+        // A theme with neither "foreground" nor "editor.background": the dark
+        // default registry supplies both, so the workbench is never left uncolored.
+        const sparseTheme = WorkbenchTheme.fromThemeFile({ name: "sparse", type: "dark", colors: {} });
         themeService.setTheme(sparseTheme);
 
-        expect(controller.view.style.fg).toBeUndefined();
-        expect(controller.view.style.bg).toBeUndefined();
+        expect(controller.view.style.fg).toBe(0xcccccc); // default dark "foreground"
+        expect(controller.view.style.bg).toBe(0x1e1e1e); // default dark "editor.background"
     });
 });
 

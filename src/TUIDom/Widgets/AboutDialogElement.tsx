@@ -41,12 +41,12 @@ export class AboutDialogElement extends CompositeElement {
 
     /** Push button colors from the active theme (mirrors ConfirmSaveDialogElement). */
     public applyTheme(theme: WorkbenchTheme): void {
-        this.okButton.focusedBg = theme.getColorOrDefault("button.background", packRgb(0, 120, 215));
-        this.okButton.focusedFg = theme.getColorOrDefault("button.foreground", packRgb(255, 255, 255));
-        this.okButton.focusedHoverBg = theme.getColorOrDefault("button.hoverBackground", packRgb(26, 134, 224));
-        this.okButton.normalBg = theme.getColorOrDefault("button.secondaryBackground", packRgb(60, 60, 60));
-        this.okButton.normalFg = theme.getColorOrDefault("button.secondaryForeground", packRgb(204, 204, 204));
-        this.okButton.normalHoverBg = theme.getColorOrDefault("button.secondaryHoverBackground", packRgb(69, 73, 78));
+        this.okButton.focusedBg = theme.getRequiredColor("button.background");
+        this.okButton.focusedFg = theme.getRequiredColor("button.foreground");
+        this.okButton.focusedHoverBg = theme.getRequiredColor("button.hoverBackground");
+        this.okButton.normalBg = theme.getRequiredColor("button.secondaryBackground");
+        this.okButton.normalFg = theme.getRequiredColor("button.secondaryForeground");
+        this.okButton.normalHoverBg = theme.getRequiredColor("button.secondaryHoverBackground");
         this.okButton.markDirty();
     }
 

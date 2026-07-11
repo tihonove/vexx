@@ -20,7 +20,6 @@ import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.t
 import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -662,8 +661,8 @@ export class EditorController extends Disposable implements IController {
 
     private applyTheme(theme: WorkbenchTheme): void {
         this.currentTheme = theme;
-        const fg = theme.getColorOrDefault("editor.foreground", packRgb(212, 212, 212));
-        const bg = theme.getColorOrDefault("editor.background", packRgb(30, 30, 30));
+        const fg = theme.getRequiredColor("editor.foreground");
+        const bg = theme.getRequiredColor("editor.background");
         this.editor.style = { fg, bg };
         this.editor.gutterBackground = theme.getColor("editorGutter.background") ?? bg;
         this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
