@@ -69,6 +69,8 @@ import {
     deleteRightAction,
     deleteWordLeftAction,
     deleteWordRightAction,
+    indentLinesAction,
+    outdentLinesAction,
     redoAction,
     selectAllAction,
     undoAction,
@@ -193,6 +195,8 @@ const builtinActions = [
     undoAction,
     redoAction,
     selectAllAction,
+    indentLinesAction,
+    outdentLinesAction,
 
     // End of line
     convertToLfAction,
