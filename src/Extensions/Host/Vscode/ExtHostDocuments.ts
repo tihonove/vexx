@@ -113,9 +113,7 @@ export class ExtHostTextDocument {
     }
 
     private lines(): string[] {
-        if (this.lineCache === null) {
-            this.lineCache = this.text.split("\n");
-        }
+        this.lineCache ??= this.text.split("\n");
         return this.lineCache;
     }
 }

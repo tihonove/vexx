@@ -54,12 +54,7 @@ interface OverlaySessionState {
     options: Required<
         Pick<
             OverlaySessionOptions,
-            | "restoreFocus"
-            | "focusOnOpen"
-            | "closeOnEscape"
-            | "pointerPolicy"
-            | "capturesKeyboard"
-            | "disposeOnClose"
+            "restoreFocus" | "focusOnOpen" | "closeOnEscape" | "pointerPolicy" | "capturesKeyboard" | "disposeOnClose"
         >
     >;
     visible: boolean;
@@ -126,7 +121,7 @@ export class OverlayLayer extends TUIElement {
                 focusOnOpen: options.focusOnOpen ?? false,
                 closeOnEscape: options.closeOnEscape ?? false,
                 pointerPolicy: options.pointerPolicy,
-                capturesKeyboard: options.capturesKeyboard ?? (options.pointerPolicy !== "passthrough"),
+                capturesKeyboard: options.capturesKeyboard ?? options.pointerPolicy !== "passthrough",
                 disposeOnClose: options.disposeOnClose ?? false,
             },
             visible: false,

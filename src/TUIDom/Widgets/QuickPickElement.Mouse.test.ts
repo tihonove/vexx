@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Size } from "../../Common/GeometryPromitives.ts";
-import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 
 import type { QuickPickItem } from "./QuickPickElement.ts";
 import { QuickPickElement } from "./QuickPickElement.ts";
@@ -23,10 +23,13 @@ function makeItems(count: number, prefix = "item-"): QuickPickItem[] {
  * Dispatch a mouse event straight at the picker with a y offset local to it.
  * Row layout (no message row): border=0, input=1, separator=2, first item=3.
  */
-function mouse(picker: QuickPickElement, type: "mousemove" | "click", localY: number, button: "left" | "none" = "none"): void {
-    picker.dispatchEvent(
-        new TUIMouseEvent(type, { button, screenX: 0, screenY: localY, localX: 5, localY }),
-    );
+function mouse(
+    picker: QuickPickElement,
+    type: "mousemove" | "click",
+    localY: number,
+    button: "left" | "none" = "none",
+): void {
+    picker.dispatchEvent(new TUIMouseEvent(type, { button, screenX: 0, screenY: localY, localX: 5, localY }));
 }
 
 // ─── Hover moves selection ────────────────────────────────────────────────────
@@ -47,7 +50,9 @@ describe("QuickPickElement — mouse hover moves selection", () => {
         picker.items = makeItems(5);
         createApp(picker);
 
-        picker.dispatchEvent(new TUIMouseEvent("mousemove", { button: "none", screenX: 0, screenY: 0, localX: 5, localY: 3 }));
+        picker.dispatchEvent(
+            new TUIMouseEvent("mousemove", { button: "none", screenX: 0, screenY: 0, localX: 5, localY: 3 }),
+        );
         expect(picker.selectedIndex).toBe(0);
     });
 
@@ -102,7 +107,9 @@ describe("QuickPickElement — mouse hover moves selection", () => {
         picker.items = [];
         createApp(picker);
 
-        expect(() => mouse(picker, "mousemove", 3)).not.toThrow();
+        expect(() => {
+            mouse(picker, "mousemove", 3);
+        }).not.toThrow();
         expect(picker.selectedIndex).toBe(0);
     });
 

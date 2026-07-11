@@ -6,12 +6,12 @@ import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
+import type { IFileClipboard } from "../Common/IFileClipboard.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { ILogService } from "../Common/Logging/ILogService.ts";
-import type { IFileClipboard } from "../Common/IFileClipboard.ts";
+import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
-import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
 import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import type { ThemeRegistry } from "../Theme/ThemeRegistry.ts";
@@ -78,18 +78,6 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
 import {
-    foldAction,
-    foldAllAction,
-    foldLevelActions,
-    foldRecursivelyAction,
-    gotoNextFoldAction,
-    gotoPreviousFoldAction,
-    toggleFoldAction,
-    unfoldAction,
-    unfoldAllAction,
-    unfoldRecursivelyAction,
-} from "./Actions/FoldingActions.ts";
-import {
     fileOpenAction,
     fileOpenFolderAction,
     fileSaveAction,
@@ -107,6 +95,18 @@ import {
 } from "./Actions/FileTreeClipboardActions.ts";
 import { explorerNewFileAction, explorerNewFolderAction } from "./Actions/FileTreeCreateActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
+import {
+    foldAction,
+    foldAllAction,
+    foldLevelActions,
+    foldRecursivelyAction,
+    gotoNextFoldAction,
+    gotoPreviousFoldAction,
+    toggleFoldAction,
+    unfoldAction,
+    unfoldAllAction,
+    unfoldRecursivelyAction,
+} from "./Actions/FoldingActions.ts";
 import {
     inputCopyAction,
     inputCursorEndAction,
@@ -138,23 +138,24 @@ import {
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
 import { gotoLineAction, quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
-import { selectThemeAction } from "./Actions/ThemeActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
+import { selectThemeAction } from "./Actions/ThemeActions.ts";
 import {
     insertFinalNewLineAction,
-    trimTrailingWhitespaceAction,
     triggerSuggestAction,
+    trimTrailingWhitespaceAction,
 } from "./Actions/WhitespaceActions.ts";
 import { registerAction } from "./CommandAction.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { CompletionController } from "./CompletionController.ts";
 import { registerContextKeys } from "./ContextKeys.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { ClipboardDIToken, FileClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
+import { DiagnosticsController, DiagnosticsControllerDIToken } from "./DiagnosticsController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
-import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
 import { FileSearchService } from "./FileSearchService.ts";
 import { FileTreeController } from "./FileTreeController.ts";
 import { FindController } from "./FindController.ts";
@@ -162,19 +163,18 @@ import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
-import { DiagnosticsController, DiagnosticsControllerDIToken } from "./DiagnosticsController.ts";
+import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
+import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
-import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { QuickInputController } from "./QuickInputController.ts";
-import { CompletionController } from "./CompletionController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
-import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
-import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
 import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
+import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
@@ -438,7 +438,7 @@ export class AppController extends Disposable implements IController {
         // Подсветка «вырезанных» файлов в дереве следует за состоянием буфера.
         this.register(
             this.fileClipboard.onDidChange((entry) => {
-                this.fileTreeController.setCutPaths(entry && entry.mode === "cut" ? entry.paths : []);
+                this.fileTreeController.setCutPaths(entry?.mode === "cut" ? entry.paths : []);
             }),
         );
         this.fileSearchService = this.register(new FileSearchService());
@@ -753,7 +753,8 @@ export class AppController extends Disposable implements IController {
                 run: () => {
                     // Toggle like VS Code: show + focus Problems, or hide the panel if
                     // Problems is already the visible view.
-                    const showing = this.workbenchLayout.getBottomPanelVisible() && this.panelController.isProblemsActive();
+                    const showing =
+                        this.workbenchLayout.getBottomPanelVisible() && this.panelController.isProblemsActive();
                     if (showing) {
                         this.setPanelVisible(false);
                     } else {
@@ -1520,7 +1521,10 @@ export class AppController extends Disposable implements IController {
         const dialogW = dialog.getMaxIntrinsicWidth(0);
         const dialogH = dialog.getMaxIntrinsicHeight(dialogW);
         session.setPosition(
-            new Point(Math.max(0, Math.floor((screenW - dialogW) / 2)), Math.max(0, Math.floor((screenH - dialogH) / 2))),
+            new Point(
+                Math.max(0, Math.floor((screenW - dialogW) / 2)),
+                Math.max(0, Math.floor((screenH - dialogH) / 2)),
+            ),
         );
         session.open();
         dialog.focusDefault();

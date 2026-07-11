@@ -266,7 +266,11 @@ describe("LanguageRegistry", () => {
         // переопределить builtin (иначе completion-селектор {language:'editorconfig'}
         // не сматчит и подсказки в .editorconfig не работают).
         registry.register(
-            makeExt("editorconfig", [{ id: "editorconfig", extensions: [".editorconfig"], filenames: [] }], "UserExtensions/ec/"),
+            makeExt(
+                "editorconfig",
+                [{ id: "editorconfig", extensions: [".editorconfig"], filenames: [] }],
+                "UserExtensions/ec/",
+            ),
         );
         expect(registry.getLanguageIdForResource("/p/.editorconfig")).toBe("editorconfig");
         // Расширение .ini у 'properties' не затронуто.

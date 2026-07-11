@@ -331,17 +331,17 @@ export class EditorViewState {
      * than stranding it on an invisible line). No-op for cursors still visible.
      */
     private reconcileHiddenCursors(): void {
-        let changed = false;
-        this.selections = this.selections.map((sel) => {
+        const previous = this.selections;
+        this.selections = previous.map((sel) => {
             if (this.logicalToVisualLine(sel.active.line) >= 0) return sel;
             const region = this.outermostCollapsedRegionHiding(sel.active.line);
             /* v8 ignore start -- defensive: fold ops only hide valid document lines, which are always inside a collapsed region here */
             if (region === undefined) return sel;
             /* v8 ignore stop */
-            changed = true;
             const char = Math.min(sel.active.character, this.document.getLineLength(region.startLine));
             return createCursorSelection(region.startLine, char);
         });
+        const changed = this.selections.some((sel, i) => sel !== previous[i]);
         if (changed) {
             this.normalizeSelections();
             this.ensureCursorVisible();
@@ -1533,7 +1533,7 @@ export class EditorViewState {
  */
 function computeOutdentRemoval(content: string, tabSize: number): number {
     if (content.length === 0) return 0;
-    if (content[0] === "\t") return 1;
+    if (content.startsWith("\t")) return 1;
     let count = 0;
     while (count < tabSize && content[count] === " ") {
         count++;

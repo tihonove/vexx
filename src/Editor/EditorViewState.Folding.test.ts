@@ -112,7 +112,9 @@ describe("toggleFoldContaining", () => {
 
     it("is a no-op when no region covers the line", () => {
         const state = stateWithRegions();
-        expect(() => state.toggleFoldContaining(6)).not.toThrow();
+        expect(() => {
+            state.toggleFoldContaining(6);
+        }).not.toThrow();
     });
 });
 
@@ -164,7 +166,9 @@ describe("setFoldingRegions – adversarial input", () => {
         const doc = new TextDocument("a\n  b\n    c\n  d\ne");
         const state = new EditorViewState(doc);
         state.setFoldingRegions([createFoldingRegion(1, 3), createFoldingRegion(1, 2)]);
-        expect(() => state.toggleFold(1)).not.toThrow(); // toggles the first match only
+        expect(() => {
+            state.toggleFold(1);
+        }).not.toThrow(); // toggles the first match only
         expect(() => state.getViewLineCount()).not.toThrow();
         expect(state.visualToLogicalLine(0)).toBe(0);
     });

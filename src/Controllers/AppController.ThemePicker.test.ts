@@ -24,8 +24,9 @@ function createThemeApp(writes: { key: string; value: unknown }[] = []): ThemeCo
     // Config with a recording updateUserValue so we can assert persistence wiring.
     container.bind(IConfigurationServiceDIToken, () => ({
         ...NULL_CONFIGURATION_SERVICE,
-        updateUserValue: async (key: string, value: unknown) => {
+        updateUserValue: (key: string, value: unknown) => {
             writes.push({ key, value });
+            return Promise.resolve();
         },
     }));
     const controller = container.get(AppControllerDIToken);
@@ -37,7 +38,10 @@ function createThemeApp(writes: { key: string; value: unknown }[] = []): ThemeCo
     return { testApp, controller, commands, themeService, writes };
 }
 
-const flush = (): Promise<void> => new Promise((r) => queueMicrotask(r));
+const flush = (): Promise<void> =>
+    new Promise((r) => {
+        queueMicrotask(r);
+    });
 
 describe("AppController color-theme picker", () => {
     it("registers the select-theme command", () => {

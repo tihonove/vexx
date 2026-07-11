@@ -90,7 +90,7 @@ describe("fileTypeFromStats", () => {
 });
 
 describe("toFileSystemError — маппинг errno", () => {
-    const u = uri("/x") as never;
+    const u = uri("/x");
     it("ENOENT → FileNotFound", () => {
         expect(toFileSystemError({ code: "ENOENT" }, u)).toMatchObject({ code: "FileNotFound" });
     });

@@ -78,9 +78,7 @@ export class WorkspaceConfigStore {
     }
 
     private merged(): Record<string, unknown> {
-        if (this.mergedCache === null) {
-            this.mergedCache = deepMerge(this.defaultsTree, this.userTree);
-        }
+        this.mergedCache ??= deepMerge(this.defaultsTree, this.userTree);
         return this.mergedCache;
     }
 }

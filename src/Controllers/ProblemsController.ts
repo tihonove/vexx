@@ -9,7 +9,7 @@ import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts"
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { MarkerServiceDIToken } from "./CoreTokens.ts";
-import { ProblemsTreeDataProvider, type ProblemNode } from "./Diagnostics/ProblemsTreeDataProvider.ts";
+import { type ProblemNode, ProblemsTreeDataProvider } from "./Diagnostics/ProblemsTreeDataProvider.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { PanelController, PanelControllerDIToken, PROBLEMS_VIEW_ID } from "./PanelController.ts";
 
@@ -111,7 +111,8 @@ export class ProblemsController extends Disposable {
         if (node.kind !== "marker") return;
         // openFile always opens/activates an editor for the resource.
         this.editorGroup.openFile(node.resource);
-        const editor = this.editorGroup.getActiveEditor()!;
+        const editor = this.editorGroup.getActiveEditor();
+        if (editor === null) return;
         const start = node.marker.range.start;
         editor.goToPosition(start.line, start.character);
         editor.revealRange(node.marker.range);

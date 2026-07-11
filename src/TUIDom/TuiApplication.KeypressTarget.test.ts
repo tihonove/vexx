@@ -3,12 +3,11 @@ import { describe, expect, it } from "vitest";
 import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 
+import { TuiApplication } from "./TuiApplication.ts";
 import type { TUIElement } from "./TUIElement.ts";
 import { BodyElement } from "./Widgets/BodyElement.ts";
 import { BoxElement } from "./Widgets/BoxElement.ts";
 import { VStackElement } from "./Widgets/VStackElement.ts";
-
-import { TuiApplication } from "./TuiApplication.ts";
 
 // Одно физическое нажатие = keydown + синтезированный keypress. Цель keypress
 // закрепляется за целью его keydown: если обработчик keydown сменил фокус

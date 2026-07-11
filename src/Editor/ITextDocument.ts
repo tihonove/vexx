@@ -1,7 +1,7 @@
 import type { IDisposable } from "../Common/Disposable.ts";
 
-import type { IDocumentContentChange } from "./IDocumentContentChange.ts";
 import type { EndOfLine } from "./EndOfLine.ts";
+import type { IDocumentContentChange } from "./IDocumentContentChange.ts";
 import type { IDocumentLanguageChange } from "./IDocumentLanguageChange.ts";
 import type { IRange } from "./IRange.ts";
 import type { ITextEdit } from "./ITextEdit.ts";

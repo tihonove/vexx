@@ -36,12 +36,7 @@ const SAMPLE = [
 const GUIDE_FG = packRgb(0x40, 0x40, 0x40); // default editorIndentGuide.background1
 const GUIDE_ACTIVE_FG = packRgb(0x70, 0x70, 0x70); // default editorIndentGuide.activeBackground1
 
-function createEditor(
-    text: string,
-    cursorLine = 0,
-    width = 34,
-    height = 9,
-): { app: TestApp; editor: EditorElement } {
+function createEditor(text: string, cursorLine = 0, width = 34, height = 9): { app: TestApp; editor: EditorElement } {
     const doc = new TextDocument(text);
     const viewState = new EditorViewState(doc);
     viewState.setFoldingRegions(computeIndentationFolds(doc, viewState.tabSize));

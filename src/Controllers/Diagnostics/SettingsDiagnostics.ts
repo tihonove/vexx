@@ -17,15 +17,16 @@ import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
  */
 export function validateSettingsJson(text: string, isKnownKey: (key: string) => boolean): IMarkerData[] {
     const root = parseTree(text);
-    if (root === undefined || root.type !== "object") return [];
+    if (root?.type !== "object") return [];
 
     const lineStarts = computeLineStarts(text);
     const markers: IMarkerData[] = [];
     // parseTree guarantees an object node carries a `children` array and each of
     // its property children carries a string key node at index 0 (malformed keys
     // never produce a property), so no runtime guards are needed here.
-    for (const property of root.children!) {
-        const keyNode = property.children![0];
+    for (const property of root.children ?? []) {
+        const keyNode = property.children?.[0];
+        if (keyNode === undefined) continue;
         const key = keyNode.value as string;
         if (isKnownKey(key)) continue;
 

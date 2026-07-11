@@ -85,10 +85,10 @@ describe("EolActions", () => {
         expect(editor.eol).toBe(EndOfLine.LF);
     });
 
-    it("Convert to CRLF then save writes CRLF bytes to disk", () => {
+    it("Convert to CRLF then save writes CRLF bytes to disk", async () => {
         const { editor, exec, filePath } = openEditor("a\nb\nc");
         exec(convertToCrlfAction);
-        editor.save();
+        await editor.save();
         expect(fs.readFileSync(filePath, "utf-8")).toBe("a\r\nb\r\nc");
     });
 

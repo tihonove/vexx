@@ -66,11 +66,23 @@ describe("EditorController — save participant", () => {
         controller.saveParticipant = () =>
             Promise.resolve<ISaveEdit[]>([
                 // line/char за верхней границей → (последняя строка, её длина)
-                { kind: "text", range: { start: { line: 99, character: 99 }, end: { line: 99, character: 99 } }, text: "A" },
+                {
+                    kind: "text",
+                    range: { start: { line: 99, character: 99 }, end: { line: 99, character: 99 } },
+                    text: "A",
+                },
                 // отрицательные line/char → (0, 0)
-                { kind: "text", range: { start: { line: -1, character: -1 }, end: { line: -1, character: -1 } }, text: "B" },
+                {
+                    kind: "text",
+                    range: { start: { line: -1, character: -1 }, end: { line: -1, character: -1 } },
+                    text: "B",
+                },
                 // в границах → без изменений позиции
-                { kind: "text", range: { start: { line: 0, character: 1 }, end: { line: 0, character: 1 } }, text: "C" },
+                {
+                    kind: "text",
+                    range: { start: { line: 0, character: 1 }, end: { line: 0, character: 1 } },
+                    text: "C",
+                },
             ]);
 
         await controller.save();

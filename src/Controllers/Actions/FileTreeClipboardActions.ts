@@ -60,6 +60,8 @@ export const fileCopyRelativePathAction = {
  * на стороне `WorkspaceEditService.applyFileEdits`.
  */
 export function buildPasteEdits(entry: FileClipboardEntry, targetDir: string): ResourceFileEdit[] {
-    const kind = entry.mode === "cut" ? "move" : "copy";
-    return entry.paths.map((from) => ({ kind, from, to: targetDir }));
+    return entry.paths.map(
+        (from): ResourceFileEdit =>
+            entry.mode === "cut" ? { kind: "move", from, to: targetDir } : { kind: "copy", from, to: targetDir },
+    );
 }

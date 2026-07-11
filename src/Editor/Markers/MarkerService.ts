@@ -35,12 +35,11 @@ export class MarkerService {
      */
     public changeOne(owner: string, resource: string, markers: readonly IMarkerData[]): void {
         let byResource = this.byOwner.get(owner);
-        const hadMarkers = byResource !== undefined && byResource.has(resource);
 
         if (markers.length === 0) {
-            if (!hadMarkers) return;
-            byResource!.delete(resource);
-            if (byResource!.size === 0) this.byOwner.delete(owner);
+            if (byResource?.has(resource) !== true) return;
+            byResource.delete(resource);
+            if (byResource.size === 0) this.byOwner.delete(owner);
             this.fireChange([resource]);
             return;
         }

@@ -58,7 +58,7 @@ export class ConfirmDialogElement extends CompositeElement {
         this.cancelButton.layoutStyle = { width: hflexFit(), height: 1 };
 
         this.addEventListener("keydown", (event) => {
-            this.handleDialogKeydown(event as TUIKeyboardEvent);
+            this.handleDialogKeydown(event);
         });
 
         this.rebuild();
@@ -119,7 +119,14 @@ export class ConfirmDialogElement extends CompositeElement {
         ];
 
         return (
-            <BoxContainer bg={BG} fg={FG} borderFg={BORDER_FG} title={this.options.title} titleFg={TITLE_FG} hasSeparator>
+            <BoxContainer
+                bg={BG}
+                fg={FG}
+                borderFg={BORDER_FG}
+                title={this.options.title}
+                titleFg={TITLE_FG}
+                hasSeparator
+            >
                 <PaddingContainer left={2} right={2} bg={BG}>
                     <VStack>{children}</VStack>
                 </PaddingContainer>

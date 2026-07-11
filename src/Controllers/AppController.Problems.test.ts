@@ -5,8 +5,8 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -15,7 +15,7 @@ import { SettingsResourceDIToken } from "./CoreTokens.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 
-const UNKNOWN_SETTINGS = ['{', '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
+const UNKNOWN_SETTINGS = ["{", '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
 
 const flush = async (): Promise<void> => {
     await new Promise((r) => setTimeout(r, 0));

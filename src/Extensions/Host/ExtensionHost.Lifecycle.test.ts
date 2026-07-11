@@ -379,7 +379,12 @@ describe("ExtensionHost — commands RPC handlers", () => {
         const commands = new FakeCommandService();
         await readyHostWithCommands(child, commands);
 
-        child.receiveFromHostPeer({ kind: "req", id: 210, method: "commands.executeCommand", params: { id: "core.bare" } });
+        child.receiveFromHostPeer({
+            kind: "req",
+            id: 210,
+            method: "commands.executeCommand",
+            params: { id: "core.bare" },
+        });
 
         await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 210));
         expect(commands.executed).toEqual([{ id: "core.bare", args: [] }]);
@@ -393,7 +398,7 @@ describe("ExtensionHost — commands RPC handlers", () => {
 
         await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 201));
         const res = child.sent.find((m) => m.kind === "res" && m.id === 201);
-        expect(res).toMatchObject({ error: { message: expect.stringContaining("must be an object") } });
+        expect(res).toMatchObject({ error: { message: expect.stringContaining("must be an object") as string } });
     });
 
     it("rejects commands.executeCommand with a missing/empty id", async () => {
@@ -404,7 +409,7 @@ describe("ExtensionHost — commands RPC handlers", () => {
 
         await waitUntil(() => child.sent.some((m) => m.kind === "res" && m.id === 202));
         const res = child.sent.find((m) => m.kind === "res" && m.id === 202);
-        expect(res).toMatchObject({ error: { message: expect.stringContaining("non-empty string") } });
+        expect(res).toMatchObject({ error: { message: expect.stringContaining("non-empty string") as string } });
     });
 
     it("registers a proxy on commands.registerCommand whose invoke calls back into the subprocess", async () => {
@@ -419,11 +424,17 @@ describe("ExtensionHost — commands RPC handlers", () => {
         void commands.last("ext.cmd").invoke([9]);
         await waitUntil(() =>
             child.sent.some(
-                (m) => m.kind === "req" && m.method === "commands.executeCommand" && (m.params as { id: string }).id === "ext.cmd",
+                (m) =>
+                    m.kind === "req" &&
+                    m.method === "commands.executeCommand" &&
+                    (m.params as { id: string }).id === "ext.cmd",
             ),
         );
         const req = child.sent.find(
-            (m) => m.kind === "req" && m.method === "commands.executeCommand" && (m.params as { id: string }).id === "ext.cmd",
+            (m) =>
+                m.kind === "req" &&
+                m.method === "commands.executeCommand" &&
+                (m.params as { id: string }).id === "ext.cmd",
         );
         expect(req).toMatchObject({ params: { id: "ext.cmd", args: [9] } });
     });
@@ -577,7 +588,10 @@ describe("ExtensionHost — readiness failures", () => {
     it("rejects when the subprocess does not become ready in time", async () => {
         const child = new FakeChild();
         spawnMock.mockReturnValue(child as never); // never emits ready
-        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs, readyTimeoutMs: 20 });
+        const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, {
+            spawnArgs,
+            readyTimeoutMs: 20,
+        });
 
         await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/did not become ready/);
     });
@@ -664,9 +678,7 @@ describe("ExtensionHost — WP3 config/window bridge", () => {
         });
 
         cfg.fire(["editor.tabSize"]);
-        const changed = child.sent.filter(
-            (m) => m.kind === "notif" && m.method === "workspace.configurationChanged",
-        );
+        const changed = child.sent.filter((m) => m.kind === "notif" && m.method === "workspace.configurationChanged");
         expect(changed.at(-1)).toMatchObject({
             params: { configuration: { editor: { tabSize: 2 } }, affectedKeys: ["editor.tabSize"] },
         });
@@ -680,8 +692,9 @@ describe("ExtensionHost — WP3 config/window bridge", () => {
         const host = spawnReadyHost(child, new FakeEditorOptions(), { logger });
         await host.registerExtension(makeReg("ext.a", "/a.js"));
 
-        const send = (severity: string, message: unknown): void =>
+        const send = (severity: string, message: unknown): void => {
             child.receiveFromHostPeer({ kind: "notif", method: "window.showMessage", params: { severity, message } });
+        };
         send("error", "boom");
         send("warn", "careful");
         send("info", "fyi");

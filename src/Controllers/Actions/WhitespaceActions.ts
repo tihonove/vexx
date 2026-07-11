@@ -50,10 +50,7 @@ export const insertFinalNewLineAction: CommandAction = {
 
         const lines = text.split("\n");
         const lastLine = lines.length - 1;
-        editor.applyExternalEdits(
-            [createInsertEdit(lastLine, lines[lastLine].length, "\n")],
-            "Insert Final Newline",
-        );
+        editor.applyExternalEdits([createInsertEdit(lastLine, lines[lastLine].length, "\n")], "Insert Final Newline");
     },
 };
 

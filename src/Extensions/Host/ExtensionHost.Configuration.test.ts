@@ -4,15 +4,12 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
+
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 
 const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
 
-function reg(
-    id: string,
-    file: string,
-    configDefaults?: Record<string, unknown>,
-): IExtensionRegistration {
+function reg(id: string, file: string, configDefaults?: Record<string, unknown>): IExtensionRegistration {
     return {
         id,
         manifest: { name: id, publisher: "test", version: "0.0.1" },

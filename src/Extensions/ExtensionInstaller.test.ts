@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import yazl from "yazl";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import yazl from "yazl";
 
 import { FsAssetAccess } from "../Common/Assets/FsAssetAccess.ts";
 
@@ -29,7 +29,9 @@ function buildVsix(vsixPath: string, entries: Record<string, string>): Promise<v
             zip.addBuffer(Buffer.from(content), name);
         }
         const out = fs.createWriteStream(vsixPath);
-        out.on("close", () => resolve());
+        out.on("close", () => {
+            resolve();
+        });
         out.on("error", reject);
         zip.outputStream.on("error", reject);
         zip.outputStream.pipe(out);
@@ -113,8 +115,14 @@ describe("ExtensionInstaller", () => {
 
     it("переустановка той же версии перезаписывает каталог без дубликатов", async () => {
         const manifest = { name: "hello", publisher: "acme", version: "1.0.0" };
-        await installVsix(await makeVsix("a.vsix", vsixEntries(manifest, { "extension/a.txt": "first" })), extensionsDir);
-        await installVsix(await makeVsix("b.vsix", vsixEntries(manifest, { "extension/b.txt": "second" })), extensionsDir);
+        await installVsix(
+            await makeVsix("a.vsix", vsixEntries(manifest, { "extension/a.txt": "first" })),
+            extensionsDir,
+        );
+        await installVsix(
+            await makeVsix("b.vsix", vsixEntries(manifest, { "extension/b.txt": "second" })),
+            extensionsDir,
+        );
 
         const dir = path.join(extensionsDir, "acme.hello-1.0.0");
         expect(fs.existsSync(path.join(dir, "a.txt"))).toBe(false);

@@ -17,8 +17,8 @@ import { MarkerServiceDIToken, SettingsResourceDIToken } from "./CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
-const UNKNOWN_SETTINGS = ['{', '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
-const KNOWN_SETTINGS = ['{', '    "editor.tabSize": 2', "}"].join("\n");
+const UNKNOWN_SETTINGS = ["{", '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
+const KNOWN_SETTINGS = ["{", '    "editor.tabSize": 2', "}"].join("\n");
 
 interface Harness {
     testApp: TestApp;
@@ -154,11 +154,11 @@ describe("DiagnosticsController — settings.json validation", () => {
 
         // A marker for a file that is not open must not throw and must not touch
         // the active editor's decorations.
-        expect(() =>
+        expect(() => {
             h.markerService.changeOne("other", path.join(tmpDir, "closed.json"), [
                 { severity: MarkerSeverity.Error, range: createInsertEdit(0, 0, "").range, message: "x" },
-            ]),
-        ).not.toThrow();
+            ]);
+        }).not.toThrow();
         expect(activeEditorElement(h).markerDecorations).toHaveLength(1);
 
         h.controller.dispose();

@@ -177,8 +177,7 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
         // Опциональное значение: голый `--headless` → дефолт, иначе `=<cols>x<rows>`.
         if (arg === "--headless" || arg.startsWith("--headless=")) {
             const eqIndex = arg.indexOf("=");
-            headless =
-                eqIndex === -1 ? { ...DEFAULT_HEADLESS_SIZE } : parseHeadlessSize(arg.slice(eqIndex + 1));
+            headless = eqIndex === -1 ? { ...DEFAULT_HEADLESS_SIZE } : parseHeadlessSize(arg.slice(eqIndex + 1));
             i += 1;
             continue;
         }

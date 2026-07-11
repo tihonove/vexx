@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createCursorSelection, createSelection } from "./ISelection.ts";
 import { EditorViewState } from "./EditorViewState.ts";
+import { createCursorSelection, createSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
 
 type Sel = ReturnType<typeof createCursorSelection>;

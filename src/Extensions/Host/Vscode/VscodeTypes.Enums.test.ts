@@ -1,12 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-    CompletionItem,
-    CompletionItemKind,
-    EndOfLine,
-    FileType,
-    TextDocumentSaveReason,
-} from "./VscodeTypes.ts";
+import { CompletionItem, CompletionItemKind, EndOfLine, FileType, TextDocumentSaveReason } from "./VscodeTypes.ts";
 
 describe("VscodeTypes — enums", () => {
     it("EndOfLine", () => {

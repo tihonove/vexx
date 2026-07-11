@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import type { IDocumentLanguageChange } from "./IDocumentLanguageChange.ts";
-
 import { TextDocument } from "./TextDocument.ts";
 
 describe("TextDocument — language", () => {

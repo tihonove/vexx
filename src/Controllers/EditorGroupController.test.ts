@@ -472,7 +472,7 @@ describe("EditorGroupController", () => {
             expect(items[0].getModified()).toBe(true);
         });
 
-        it("tab becomes not-modified after save", () => {
+        it("tab becomes not-modified after save", async () => {
             const ctrl = createEditorGroupController();
             ctrl.mount();
             const fp = writeFile("a.ts", "const x = 1;");
@@ -480,7 +480,7 @@ describe("EditorGroupController", () => {
             ctrl.openFile(fp);
             const editor = ctrl.getActiveEditor()!;
             editor.viewState.insertText("y");
-            editor.save();
+            await editor.save();
 
             const items = ctrl.view.tabStrip.getItemElements();
             expect(items[0].getModified()).toBe(false);

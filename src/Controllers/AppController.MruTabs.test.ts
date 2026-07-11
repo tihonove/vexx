@@ -57,7 +57,9 @@ describe("AppController — modifier-release routing (Ctrl release commits MRU c
     it("routes a modifier keyup into the armory, committing the in-progress MRU cycle", () => {
         // Mimic what the Ctrl+Tab action does: step + arm on Control release.
         group.cycleMru(1); // → a (frozen, not yet committed)
-        armory.arm("Control", () => group.endMruCycle());
+        armory.arm("Control", () => {
+            group.endMruCycle();
+        });
         expect(group.getActiveEditor()?.fileName).toBe("a.ts");
 
         keyup("Control"); // release Ctrl → armory fires → commit

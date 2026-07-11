@@ -172,7 +172,9 @@ describe("EditorViewState.ensureCursorVisible — guard branches", () => {
         const doc = new TextDocument("a\nb\nc");
         const state = new EditorViewState(doc);
         state.selections = [];
-        expect(() => state.ensurePrimaryCursorVisible()).not.toThrow();
+        expect(() => {
+            state.ensurePrimaryCursorVisible();
+        }).not.toThrow();
     });
 });
 

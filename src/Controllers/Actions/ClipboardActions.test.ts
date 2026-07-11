@@ -10,8 +10,6 @@ import { OscClipboard } from "../../Common/OscClipboard.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { createCursorSelection, createSelection } from "../../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
-import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
-import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
@@ -23,7 +21,9 @@ import { CommandRegistry } from "../CommandRegistry.ts";
 import { ClipboardDIToken } from "../CoreTokens.ts";
 import { EditorGroupController } from "../EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
+import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./ClipboardActions.ts";
 

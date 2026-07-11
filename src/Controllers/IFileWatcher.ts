@@ -24,6 +24,10 @@ export const IFileWatcherDIToken = token<IFileWatcher>("IFileWatcher");
 /** No-op наблюдатель: ничего не отслеживает (тесты, окружения без live-watch). */
 export const NULL_FILE_WATCHER: IFileWatcher = {
     watchFile(): IDisposable {
-        return { dispose: () => {} };
+        return {
+            dispose: () => {
+                /* no-op */
+            },
+        };
     },
 };

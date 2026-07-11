@@ -15,7 +15,9 @@ import { ModifierReleaseArmoryDIToken } from "../ModifierReleaseArmory.ts";
 function cycleMruStep(accessor: ServiceAccessor, direction: 1 | -1): void {
     const group = accessor.get(EditorGroupControllerDIToken);
     group.cycleMru(direction);
-    accessor.get(ModifierReleaseArmoryDIToken).armOnHoldRelease(() => group.endMruCycle());
+    accessor.get(ModifierReleaseArmoryDIToken).armOnHoldRelease(() => {
+        group.endMruCycle();
+    });
 }
 
 export const nextEditorInGroupAction: CommandAction = {

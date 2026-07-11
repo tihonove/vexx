@@ -38,7 +38,11 @@ export class DiagnosticsController extends Disposable {
     private settingsResource: string | null;
     private activeContentSubscription: IDisposable | null = null;
 
-    public constructor(editorGroup: EditorGroupController, markerService: MarkerService, settingsResource: string | null) {
+    public constructor(
+        editorGroup: EditorGroupController,
+        markerService: MarkerService,
+        settingsResource: string | null,
+    ) {
         super();
         this.editorGroup = editorGroup;
         this.markerService = markerService;
@@ -86,7 +90,8 @@ export class DiagnosticsController extends Disposable {
         // workspace .vscode/settings.json) is left alone. Editors reach validate only
         // through the group, which always opens files with a resolved path.
         if (this.settingsResource === null) return;
-        const resource = editor.absoluteFilePath!;
+        const resource = editor.absoluteFilePath;
+        if (resource === null) return;
         if (path.resolve(resource) !== this.settingsResource) return;
 
         const markers = validateSettingsJson(editor.getText(), (key) => this.knownSettingKeys.has(key));
@@ -110,8 +115,10 @@ export class DiagnosticsController extends Disposable {
         const result: EditorController[] = [];
         for (let i = 0; i < this.editorGroup.editorCount; i++) {
             // i is bounded by editorCount, and open editors always have a path.
-            const editor = this.editorGroup.getEditor(i)!;
-            if (path.resolve(editor.absoluteFilePath!) === resolved) result.push(editor);
+            const editor = this.editorGroup.getEditor(i);
+            if (editor === null) continue;
+            const editorPath = editor.absoluteFilePath;
+            if (editorPath !== null && path.resolve(editorPath) === resolved) result.push(editor);
         }
         return result;
     }

@@ -10,7 +10,7 @@ import { moveToPath } from "./fileClipboardFs.ts";
 // детерминированно сымитировать cross-device (EXDEV) — настоящие две ФС в юнит-тесте
 // не поднять. Остальные функции fs — настоящие.
 vi.mock("node:fs", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("node:fs")>();
+    const actual = await importOriginal<typeof fs>();
     return { ...actual, renameSync: vi.fn(actual.renameSync) };
 });
 
@@ -64,7 +64,9 @@ describe("moveToPath", () => {
         const src = write("a.txt");
         const dest = path.join(tmpDir, "no-such-dir", "a.txt");
 
-        expect(() => moveToPath(src, dest)).toThrow();
+        expect(() => {
+            moveToPath(src, dest);
+        }).toThrow();
         expect(fs.existsSync(src)).toBe(true); // источник не тронут
     });
 });

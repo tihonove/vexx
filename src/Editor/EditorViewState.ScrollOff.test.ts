@@ -9,7 +9,12 @@ function makeDoc(lineCount: number): TextDocument {
     return new TextDocument(lines.join("\n"));
 }
 
-function makeState(lineCount: number, cursorLine: number, viewportHeight: number, surroundingLines: number): EditorViewState {
+function makeState(
+    lineCount: number,
+    cursorLine: number,
+    viewportHeight: number,
+    surroundingLines: number,
+): EditorViewState {
     const doc = makeDoc(lineCount);
     const state = new EditorViewState(doc, [createCursorSelection(cursorLine, 0)]);
     state.viewportHeight = viewportHeight;

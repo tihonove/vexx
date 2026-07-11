@@ -8,13 +8,13 @@ import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import { computeIndentationFolds } from "../Editor/FoldingRangeProvider.ts";
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
-import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import { createRange } from "../Editor/IRange.ts";
 import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "../Editor/ISaveParticipant.ts";
 import type { ITextEdit } from "../Editor/ITextEdit.ts";
 import { createTextEdit } from "../Editor/ITextEdit.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
+import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import { DocumentTokenStore } from "../Editor/Tokenization/DocumentTokenStore.ts";
@@ -283,7 +283,11 @@ export class EditorController extends Disposable implements IController {
             },
         });
         // Очищаем историю отмены этого файла при закрытии вкладки.
-        this.register({ dispose: () => this.undoRedoService.clear(this.undoContext()) });
+        this.register({
+            dispose: () => {
+                this.undoRedoService.clear(this.undoContext());
+            },
+        });
     }
 
     public openFile(filePath: string): void {
@@ -483,7 +487,10 @@ export class EditorController extends Disposable implements IController {
     /** (Пере)подписывается на внешние изменения текущего файла через `fileWatcher`. */
     private startWatchingFile(filePath: string): void {
         this.fileWatch?.dispose();
-        this.fileWatch = this.fileWatcher?.watchFile(filePath, () => this.handleExternalFileChange(filePath)) ?? null;
+        this.fileWatch =
+            this.fileWatcher?.watchFile(filePath, () => {
+                this.handleExternalFileChange(filePath);
+            }) ?? null;
     }
 
     /**

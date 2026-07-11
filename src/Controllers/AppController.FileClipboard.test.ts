@@ -5,11 +5,10 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+import type { IClipboard } from "../Common/IClipboard.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
-
-import type { IClipboard } from "../Common/IClipboard.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
@@ -65,7 +64,7 @@ describe("File explorer copy/cut/paste commands", () => {
         fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
-    it("copies a file into a folder, leaving the original", async () => {
+    it("copies a file into a folder, leaving the original", () => {
         ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
         ctx.commands.execute("fileOperations.copy");
         ctx.testApp.sendKey("ArrowUp"); // cursor on target/
@@ -75,7 +74,7 @@ describe("File explorer copy/cut/paste commands", () => {
         expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
     });
 
-    it("cuts a file into a folder, removing the original and clearing the clipboard", async () => {
+    it("cuts a file into a folder, removing the original and clearing the clipboard", () => {
         ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
         ctx.commands.execute("fileOperations.cut");
         ctx.testApp.sendKey("ArrowUp"); // cursor on target/
@@ -89,7 +88,7 @@ describe("File explorer copy/cut/paste commands", () => {
         expect(fs.existsSync(path.join(tmpDir, "target", "a copy.txt"))).toBe(false);
     });
 
-    it("auto-renames when pasting a copy alongside the original", async () => {
+    it("auto-renames when pasting a copy alongside the original", () => {
         ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
         ctx.commands.execute("fileOperations.copy");
         // cursor stays on a.txt → target dir is the workspace root, where a.txt already exists

@@ -422,7 +422,12 @@ export class QuickPickElement extends TUIElement {
     }
 
     /** Draws the prompt / validation message row under the input. */
-    private renderMessageRow(context: RenderContext, w: number, rowY: number, message: { text: string; fg: number }): void {
+    private renderMessageRow(
+        context: RenderContext,
+        w: number,
+        rowY: number,
+        message: { text: string; fg: number },
+    ): void {
         for (let x = 0; x < w; x++) {
             context.setCell(x, rowY, { char: " ", fg: message.fg, bg: BG });
         }

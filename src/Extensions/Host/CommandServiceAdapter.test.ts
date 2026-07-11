@@ -51,6 +51,8 @@ describe("NULL_COMMAND_SERVICE", () => {
 
     it("registerProxy — no-op возвращает безопасный Disposable", () => {
         const disposable = NULL_COMMAND_SERVICE.registerProxy("any", () => undefined);
-        expect(() => disposable.dispose()).not.toThrow();
+        expect(() => {
+            disposable.dispose();
+        }).not.toThrow();
     });
 });

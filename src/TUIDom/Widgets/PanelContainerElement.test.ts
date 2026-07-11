@@ -31,8 +31,10 @@ class ContainerElement extends TUIElement {
 
 /** A content element that paints one char at its top-left so we can spot it. */
 class MarkerContent extends TUIElement {
-    public constructor(private readonly marker: string) {
+    private readonly marker: string;
+    public constructor(marker: string) {
         super();
+        this.marker = marker;
     }
     public override render(context: RenderContext): void {
         context.setCell(0, 0, { char: this.marker });
@@ -40,7 +42,17 @@ class MarkerContent extends TUIElement {
 }
 
 function makeToken(overrides: Partial<MouseToken> & { action: MouseToken["action"] }): MouseToken {
-    return { kind: "mouse", button: "left", x: 1, y: 1, shiftKey: false, altKey: false, ctrlKey: false, raw: "", ...overrides };
+    return {
+        kind: "mouse",
+        button: "left",
+        x: 1,
+        y: 1,
+        shiftKey: false,
+        altKey: false,
+        ctrlKey: false,
+        raw: "",
+        ...overrides,
+    };
 }
 
 function themed(): PanelContainerElement {
@@ -235,7 +247,9 @@ describe("PanelContainerElement", () => {
             const { root, panel } = scene();
             panel.onActivateView = undefined;
             const dispatcher = new MouseEventDispatcher();
-            expect(() => dispatcher.handleMouseToken(makeToken({ action: "press", x: 13, y: 2 }), root)).not.toThrow();
+            expect(() => {
+                dispatcher.handleMouseToken(makeToken({ action: "press", x: 13, y: 2 }), root);
+            }).not.toThrow();
             expect(panel.getActiveViewId()).toBe("b");
         });
     });

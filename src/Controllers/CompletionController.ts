@@ -141,7 +141,7 @@ export class CompletionController extends Disposable {
         const range = core?.range ?? this.prefixRange;
         const command = core?.command;
         this.close();
-        if (editor === null || core === undefined || range === null || range === undefined) return;
+        if (editor === null || core === undefined || range === null) return;
 
         editor.applyExternalEdits([createTextEdit(range, core.insertText)], "Accept Completion");
 

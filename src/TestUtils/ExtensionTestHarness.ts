@@ -119,7 +119,9 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
 
     // Save-pipeline (WP6): проброс will-save/did-save между группой и хостом.
     group.saveParticipant = (snapshot) => host.willSaveTextDocument(snapshot);
-    group.onEditorSaved((meta) => host.didSaveTextDocument(meta));
+    group.onEditorSaved((meta) => {
+        host.didSaveTextDocument(meta);
+    });
     // Completion (WP8): источник автодополнений — провайдеры расширений через host.
     group.completionSource = (req) => host.provideCompletionItems(req);
 

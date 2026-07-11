@@ -494,7 +494,9 @@ describe("WorkbenchLayoutElement", () => {
 
         it("tolerates being shown with no bottom panel set", () => {
             const layout = new WorkbenchLayoutElement();
-            expect(() => layout.setBottomPanelVisible(true)).not.toThrow();
+            expect(() => {
+                layout.setBottomPanelVisible(true);
+            }).not.toThrow();
             expect(layout.getBottomPanelVisible()).toBe(true);
         });
 

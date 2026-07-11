@@ -499,7 +499,12 @@ function sanitizeOptionsPatch(raw: unknown): IEditorOptionsPatch {
     }
     // `indentSize` — алиас tabSize (Vexx пока не различает их): применяем только
     // если явного tabSize нет. editorconfig шлёт indent_size именно так.
-    if (patch.tabSize === undefined && typeof obj.indentSize === "number" && Number.isFinite(obj.indentSize) && obj.indentSize > 0) {
+    if (
+        patch.tabSize === undefined &&
+        typeof obj.indentSize === "number" &&
+        Number.isFinite(obj.indentSize) &&
+        obj.indentSize > 0
+    ) {
         patch.tabSize = Math.floor(obj.indentSize);
     }
     if (typeof obj.insertSpaces === "boolean") {

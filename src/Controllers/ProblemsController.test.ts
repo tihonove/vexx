@@ -76,7 +76,7 @@ describe("ProblemsController", () => {
         expect(screen).toContain("[Ln 2, Col 1]");
     });
 
-    it("falls back to the placeholder when the markers clear", async () => {
+    it("falls back to the placeholder when the markers clear", () => {
         const resource = path.join(tmpDir, "settings.json");
         markerService.changeOne("settings", resource, [warning("x")]);
         expect(panel.view.getChildren()).toHaveLength(1);
@@ -93,7 +93,13 @@ describe("ProblemsController", () => {
         const markerNode: ProblemNode = {
             kind: "marker",
             resource: file,
-            marker: { owner: "settings", resource: file, severity: MarkerSeverity.Warning, range: createRange(2, 2, 2, 7), message: "bad" },
+            marker: {
+                owner: "settings",
+                resource: file,
+                severity: MarkerSeverity.Warning,
+                range: createRange(2, 2, 2, 7),
+                message: "bad",
+            },
             index: 0,
         };
         controller.tree.onActivate?.(markerNode);
@@ -123,7 +129,9 @@ describe("ProblemsController", () => {
 
     it("focus is a no-op when there are no problems (tree detached)", () => {
         // With no markers the tree is not attached to the panel; focus must not throw.
-        expect(() => controller.focus()).not.toThrow();
+        expect(() => {
+            controller.focus();
+        }).not.toThrow();
     });
 
     it("keeps file nodes expanded across successive marker updates", async () => {

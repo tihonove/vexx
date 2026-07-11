@@ -78,7 +78,14 @@ describe("WireTypes — requestWillSaveEdits (InProcessChannelPair)", () => {
         const [a, b] = createInProcessChannelPair();
         const host = new RpcEndpoint(a);
         const sub = new RpcEndpoint(b);
-        return { host, sub, dispose: () => { host.dispose(); sub.dispose(); } };
+        return {
+            host,
+            sub,
+            dispose: () => {
+                host.dispose();
+                sub.dispose();
+            },
+        };
     }
 
     it("десериализует правки, вернувшиеся от subprocess'а", async () => {
@@ -240,7 +247,14 @@ describe("WireTypes — requestCompletionItems (InProcessChannelPair)", () => {
         const [a, b] = createInProcessChannelPair();
         const host = new RpcEndpoint(a);
         const sub = new RpcEndpoint(b);
-        return { host, sub, dispose: () => { host.dispose(); sub.dispose(); } };
+        return {
+            host,
+            sub,
+            dispose: () => {
+                host.dispose();
+                sub.dispose();
+            },
+        };
     }
 
     it("десериализует элементы, вернувшиеся от subprocess'а", async () => {

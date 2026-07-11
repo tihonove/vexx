@@ -23,7 +23,11 @@ export interface TrashEntry {
  */
 export class TrashService {
     private trashHome(): string {
-        const dataHome = process.env.XDG_DATA_HOME || path.join(os.homedir(), ".local", "share");
+        // Пустой XDG_DATA_HOME по спеке трактуем как незаданный (отсюда явная проверка, а не `??`).
+        let dataHome = process.env.XDG_DATA_HOME;
+        if (dataHome === undefined || dataHome === "") {
+            dataHome = path.join(os.homedir(), ".local", "share");
+        }
         return path.join(dataHome, "Trash");
     }
 

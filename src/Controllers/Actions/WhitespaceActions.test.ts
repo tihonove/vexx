@@ -22,7 +22,7 @@ import { KeybindingRegistry } from "../KeybindingRegistry.ts";
 import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 
 import { redoAction, undoAction } from "./EditorEditActions.ts";
-import { insertFinalNewLineAction, trimTrailingWhitespaceAction, triggerSuggestAction } from "./WhitespaceActions.ts";
+import { insertFinalNewLineAction, triggerSuggestAction, trimTrailingWhitespaceAction } from "./WhitespaceActions.ts";
 
 let tmpDir: string;
 

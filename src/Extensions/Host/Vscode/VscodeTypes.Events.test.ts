@@ -58,7 +58,9 @@ describe("VscodeTypes — EventEmitter", () => {
             throw new Error("boom");
         });
         em.event(() => seen.push("ok"));
-        expect(() => em.fire()).not.toThrow();
+        expect(() => {
+            em.fire();
+        }).not.toThrow();
         expect(seen).toEqual(["ok"]);
     });
 

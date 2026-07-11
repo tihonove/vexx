@@ -1,5 +1,6 @@
 import type * as vscode from "vscode";
 
+import type { RpcEndpoint } from "./RpcEndpoint.ts";
 import { buildCommandsNamespace } from "./Vscode/CommandsNamespace.ts";
 import { DocumentRegistry } from "./Vscode/ExtHostDocuments.ts";
 import { createLanguagesNamespace } from "./Vscode/LanguagesNamespace.ts";
@@ -21,7 +22,6 @@ import {
 import { createWindowNamespace } from "./Vscode/WindowNamespace.ts";
 import { WorkspaceConfigStore } from "./Vscode/WorkspaceConfigStore.ts";
 import { createWorkspaceNamespace } from "./Vscode/WorkspaceNamespace.ts";
-import type { RpcEndpoint } from "./RpcEndpoint.ts";
 
 /**
  * Результат сборки шима: сам объект `vscode` (раздаётся расширениям через

@@ -81,9 +81,7 @@ describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
                 const lines = editor.getText().split("\n");
                 const edits = lines.flatMap((line, i) => {
                     const trimmed = line.replace(/[ \t]+$/, "");
-                    return trimmed.length !== line.length
-                        ? [createDeleteEdit(i, trimmed.length, i, line.length)]
-                        : [];
+                    return trimmed.length !== line.length ? [createDeleteEdit(i, trimmed.length, i, line.length)] : [];
                 });
                 editor.applyExternalEdits(edits, "trim");
             });

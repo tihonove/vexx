@@ -213,7 +213,9 @@ describe("AppController — Open File / Open Folder", () => {
         const input = openInputBox(testApp, "Open File");
 
         input.onQueryChange?.("~/definitely-nonexistent-xyz");
-        expect(input.validationMessage).toBe(`File does not exist: ${path.join(os.homedir(), "definitely-nonexistent-xyz")}`);
+        expect(input.validationMessage).toBe(
+            `File does not exist: ${path.join(os.homedir(), "definitely-nonexistent-xyz")}`,
+        );
     });
 
     it("Escape cancels Open Folder without swapping the root", async () => {

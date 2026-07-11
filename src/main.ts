@@ -24,11 +24,7 @@ import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
-import {
-    installVsix,
-    listInstalledExtensions,
-    uninstallExtension,
-} from "./Extensions/ExtensionInstaller.ts";
+import { installVsix, listInstalledExtensions, uninstallExtension } from "./Extensions/ExtensionInstaller.ts";
 import { scanExtensions } from "./Extensions/ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
@@ -240,9 +236,15 @@ async function runEditor(): Promise<void> {
             headlessBackend === null
                 ? undefined
                 : {
-                      sendKey: (name) => headlessBackend.sendKey(name),
-                      sendText: (text) => headlessBackend.sendPaste(text),
-                      resize: (cols, rows) => headlessBackend.resize(new Size(cols, rows)),
+                      sendKey: (name) => {
+                          headlessBackend.sendKey(name);
+                      },
+                      sendText: (text) => {
+                          headlessBackend.sendPaste(text);
+                      },
+                      resize: (cols, rows) => {
+                          headlessBackend.resize(new Size(cols, rows));
+                      },
                       captureFrame: async () => {
                           // Слить кадр, отложенный на setImmediate (scheduleRender),
                           // прежде чем снять снимок.
@@ -366,7 +368,7 @@ function flattenConfigDefaults(
     for (const block of blocks as readonly IConfigurationContribution[]) {
         const properties = block.properties;
         if (properties === undefined) continue;
-        for (const [key, schema] of Object.entries(properties)) {
+        for (const [key, schema] of Object.entries(properties) as [string, unknown][]) {
             if (schema !== null && typeof schema === "object" && "default" in schema) {
                 defaults[key] = schema.default;
             }

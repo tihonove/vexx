@@ -205,13 +205,16 @@ describe("WorkspaceNamespace — openTextDocument от диска (WP7)", () => 
         const file = path.join(tmpDir, "a.txt");
         fs.writeFileSync(file, "abc\n", "utf8");
 
-        const doc = (await workspace.openTextDocument(Uri.file(file) as never, {
-            encoding: "latin1",
-        } as never)) as unknown as { getText(): string };
+        const doc = (await workspace.openTextDocument(
+            Uri.file(file) as never,
+            {
+                encoding: "latin1",
+            } as never,
+        )) as unknown as { getText(): string };
         expect(doc.getText()).toBe("abc\n");
         expect(stub.notifies).toContainEqual({
             method: "window.showMessage",
-            params: expect.objectContaining({ severity: "warn" }),
+            params: expect.objectContaining({ severity: "warn" }) as unknown,
         });
     });
 
@@ -292,25 +295,29 @@ describe("WorkspaceNamespace — will-save request handler", () => {
             e.waitUntil(Promise.resolve([TextEdit.delete(new Range(0, 3, 0, 6))]));
         });
         const result = await stub.callRequest(REQUEST, paramsFor("abc   \n"));
-        expect(result).toEqual([
-            { range: { startLine: 0, startCharacter: 3, endLine: 0, endCharacter: 6 }, text: "" },
-        ]);
+        expect(result).toEqual([{ range: { startLine: 0, startCharacter: 3, endLine: 0, endCharacter: 6 }, text: "" }]);
         expect(ctx.registry.get("/f.txt")?.getText()).toBe("abc   \n");
     });
 
     it("сериализует setEndOfLine (CRLF→2, LF→1)", async () => {
         const crlf = makeCtx();
-        crlf.workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([TextEdit.setEndOfLine(EndOfLine.CRLF)])));
+        crlf.workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve([TextEdit.setEndOfLine(EndOfLine.CRLF)]));
+        });
         expect(await crlf.stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([{ setEndOfLine: 2 }]);
 
         const lf = makeCtx();
-        lf.workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([TextEdit.setEndOfLine(EndOfLine.LF)])));
+        lf.workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve([TextEdit.setEndOfLine(EndOfLine.LF)]));
+        });
         expect(await lf.stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([{ setEndOfLine: 1 }]);
     });
 
     it("прокидывает eol документа в реестр (для SetEndOfLine расширения)", async () => {
         const { stub, ctx, workspace } = makeCtx();
-        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([])));
+        workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve([]));
+        });
         await stub.callRequest(REQUEST, { ...paramsFor("a\n"), eol: 2 });
         expect(ctx.registry.get("/f.txt")?.eol).toBe(EndOfLine.CRLF);
     });
@@ -334,9 +341,15 @@ describe("WorkspaceNamespace — will-save request handler", () => {
 
     it("не-TextEdit и не-массив результаты отбрасываются", async () => {
         const { stub, workspace } = makeCtx();
-        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve("nope")));
-        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([{ notAnEdit: true }])));
-        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.resolve([TextEdit.insert(new Position(0, 0), "x")])));
+        workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve("nope"));
+        });
+        workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve([{ notAnEdit: true }]));
+        });
+        workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve([TextEdit.insert(new Position(0, 0), "x")]));
+        });
         expect(await stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([
             { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 0 }, text: "x" },
         ]);
@@ -344,7 +357,9 @@ describe("WorkspaceNamespace — will-save request handler", () => {
 
     it("отклонённый waitUntil-thenable трактуется как []", async () => {
         const { stub, workspace } = makeCtx();
-        workspace.onWillSaveTextDocument((e) => e.waitUntil(Promise.reject(new Error("boom"))));
+        workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.reject(new Error("boom")));
+        });
         expect(await stub.callRequest(REQUEST, paramsFor("a\n"))).toEqual([]);
     });
 
@@ -364,7 +379,9 @@ describe("WorkspaceNamespace — will-save request handler", () => {
         vi.useFakeTimers();
         try {
             const { stub, workspace } = makeCtx();
-            workspace.onWillSaveTextDocument((e) => e.waitUntil(new Promise(() => {})));
+            workspace.onWillSaveTextDocument((e) => {
+                e.waitUntil(new Promise(() => {}));
+            });
             const pending = stub.callRequest(REQUEST, paramsFor("a\n"));
             await vi.advanceTimersByTimeAsync(1500);
             expect(await pending).toEqual([]);

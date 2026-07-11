@@ -84,7 +84,7 @@ describe("TreeViewElement — reveal", () => {
 
         const expanded: string[] = [];
         tree.onExpandedChanged = (node, isExpanded) => {
-            if (isExpanded) expanded.push((node as TestNode).id);
+            if (isExpanded) expanded.push(node.id);
         };
 
         const src = NESTED_TREE[0];

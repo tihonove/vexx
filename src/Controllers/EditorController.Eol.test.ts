@@ -52,29 +52,29 @@ describe("EditorController EOL", () => {
         expect(ctrl.isModified).toBe(false);
     });
 
-    it("round-trips a CRLF file byte-for-byte on save", () => {
+    it("round-trips a CRLF file byte-for-byte on save", async () => {
         const original = "line1\r\nline2\r\nline3\r\n";
         const filePath = writeFile("crlf.txt", original);
         const ctrl = createEditorController();
 
         ctrl.openFile(filePath);
-        ctrl.save();
+        await ctrl.save();
 
         expect(fs.readFileSync(filePath, "utf-8")).toBe(original);
     });
 
-    it("round-trips an LF file byte-for-byte on save", () => {
+    it("round-trips an LF file byte-for-byte on save", async () => {
         const original = "line1\nline2\nline3\n";
         const filePath = writeFile("lf.txt", original);
         const ctrl = createEditorController();
 
         ctrl.openFile(filePath);
-        ctrl.save();
+        await ctrl.save();
 
         expect(fs.readFileSync(filePath, "utf-8")).toBe(original);
     });
 
-    it("setEol marks the document modified and writes the new sequence on save", () => {
+    it("setEol marks the document modified and writes the new sequence on save", async () => {
         const filePath = writeFile("lf.txt", "a\nb\nc");
         const ctrl = createEditorController();
         ctrl.openFile(filePath);
@@ -84,7 +84,7 @@ describe("EditorController EOL", () => {
         expect(ctrl.eol).toBe(EndOfLine.CRLF);
         expect(ctrl.isModified).toBe(true);
 
-        ctrl.save();
+        await ctrl.save();
         expect(fs.readFileSync(filePath, "utf-8")).toBe("a\r\nb\r\nc");
         expect(ctrl.isModified).toBe(false);
     });

@@ -170,7 +170,7 @@ describe("ConfigurationService.updateUserValue", () => {
     it("writes the key to settings.json when the file did not exist", async () => {
         const p = paths();
         const cfg = await loadConfiguration(p);
-        await cfg.updateUserValue?.("workbench.colorTheme", "Monokai");
+        await cfg.updateUserValue("workbench.colorTheme", "Monokai");
 
         const written = fs.readFileSync(p.settingsFile, "utf-8");
         expect(JSON.parse(written)).toEqual({ "workbench.colorTheme": "Monokai" });
@@ -190,7 +190,7 @@ describe("ConfigurationService.updateUserValue", () => {
 `,
         );
         const cfg = await loadConfiguration(p);
-        await cfg.updateUserValue?.("workbench.colorTheme", "Light Modern");
+        await cfg.updateUserValue("workbench.colorTheme", "Light Modern");
 
         const written = fs.readFileSync(p.settingsFile, "utf-8");
         expect(written).toContain("// keep me");
@@ -203,7 +203,7 @@ describe("ConfigurationService.updateUserValue", () => {
     it("writes to the profile settings file for a named profile", async () => {
         const p = paths("compact");
         const cfg = await loadConfiguration(p);
-        await cfg.updateUserValue?.("workbench.colorTheme", "Dark+");
+        await cfg.updateUserValue("workbench.colorTheme", "Dark+");
 
         expect(fs.existsSync(p.settingsFile)).toBe(true);
         expect(JSON.parse(fs.readFileSync(p.settingsFile, "utf-8"))).toEqual({ "workbench.colorTheme": "Dark+" });

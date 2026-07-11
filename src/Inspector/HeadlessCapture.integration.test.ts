@@ -43,9 +43,15 @@ function setup() {
         getFocused: () => app.focusManager?.activeElement ?? null,
     };
     const driver: InspectorDriver = {
-        sendKey: (name) => backend.sendKey(name),
-        sendText: (text) => backend.sendPaste(text),
-        resize: (cols, rows) => backend.resize(new Size(cols, rows)),
+        sendKey: (name) => {
+            backend.sendKey(name);
+        },
+        sendText: (text) => {
+            backend.sendPaste(text);
+        },
+        resize: (cols, rows) => {
+            backend.resize(new Size(cols, rows));
+        },
         captureFrame: async () => {
             await new Promise<void>((resolve) => setImmediate(resolve));
             return backend.captureFrame();

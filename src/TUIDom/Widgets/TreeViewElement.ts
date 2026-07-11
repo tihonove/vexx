@@ -613,7 +613,7 @@ export class TreeViewElement<T> extends ScrollableElement {
             this.typeaheadBuffer = "";
         }, TYPEAHEAD_TIMEOUT_MS);
         // Незавершённый таймер поиска не должен удерживать процесс от выхода.
-        this.typeaheadTimer.unref?.();
+        this.typeaheadTimer.unref();
     }
 
     private jumpToTypeaheadMatch(): void {
@@ -623,7 +623,7 @@ export class TreeViewElement<T> extends ScrollableElement {
         const buffer = this.typeaheadBuffer.toLowerCase();
         // Повтор одного символа ("aa", "aaa") трактуем как перебор совпадений по одной
         // букве, а не как буквальный префикс — так работает быстрый поиск в проводниках.
-        const allSameChar = [...buffer].every((c) => c === buffer[0]);
+        const allSameChar = Array.from(buffer).every((c) => c === buffer[0]);
         const prefix = allSameChar ? buffer[0] : buffer;
         // Перебор (следующая строка) — только когда пользователь реально жмёт ту же
         // клавишу повторно (буфер ≥ 2 и все символы одинаковы). Первое нажатие и

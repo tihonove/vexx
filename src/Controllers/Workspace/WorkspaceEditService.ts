@@ -29,11 +29,15 @@ export class WorkspaceEditService {
         IConfigurationServiceDIToken,
     ] as const;
 
-    public constructor(
-        private readonly undoRedo: UndoRedoService,
-        private readonly trash: TrashService,
-        private readonly config: IConfigurationService,
-    ) {}
+    private readonly undoRedo: UndoRedoService;
+    private readonly trash: TrashService;
+    private readonly config: IConfigurationService;
+
+    public constructor(undoRedo: UndoRedoService, trash: TrashService, config: IConfigurationService) {
+        this.undoRedo = undoRedo;
+        this.trash = trash;
+        this.config = config;
+    }
 
     /** Пойдёт ли удаление в корзину (настройка разрешает И корзина реально доступна). */
     public willMoveToTrash(): boolean {
@@ -64,11 +68,11 @@ export class WorkspaceEditService {
             label,
             resources,
             ...(confirmBeforeUndo ? { confirmBeforeUndo } : {}),
-            async undo() {
-                for (let i = ops.length - 1; i >= 0; i--) await ops[i].undo();
+            undo() {
+                for (let i = ops.length - 1; i >= 0; i--) ops[i].undo();
             },
-            async redo() {
-                for (const op of ops) await op.redo();
+            redo() {
+                for (const op of ops) op.redo();
             },
         };
         this.undoRedo.pushElement(element, WORKSPACE_UNDO_CONTEXT);
@@ -76,9 +80,16 @@ export class WorkspaceEditService {
     }
 
     private applyOne(edit: ResourceFileEdit, ops: ReversibleOp[], resources: string[]): void {
+        // Защита от значения, пришедшего в обход типов (kind типизирован строкой намеренно,
+        // чтобы проверка не считалась «всегда истинной» и оставалась осмысленной в рантайме).
+        const kind: string = edit.kind;
+        if (kind !== "move" && kind !== "copy" && kind !== "delete" && kind !== "create") {
+            throw new Error(`Неподдерживаемый вид правки: ${kind}`);
+        }
+
         if (edit.kind === "move") {
-            const from = edit.from!;
-            const toDir = edit.to!;
+            const from = edit.from;
+            const toDir = edit.to;
             let current = moveInto(from, toDir);
             resources.push(from, current);
             ops.push({
@@ -90,8 +101,8 @@ export class WorkspaceEditService {
                 },
             });
         } else if (edit.kind === "copy") {
-            const from = edit.from!;
-            const toDir = edit.to!;
+            const from = edit.from;
+            const toDir = edit.to;
             let created = copyInto(from, toDir);
             resources.push(created);
             ops.push({
@@ -104,7 +115,7 @@ export class WorkspaceEditService {
                 },
             });
         } else if (edit.kind === "delete") {
-            const from = edit.from!;
+            const from = edit.from;
             resources.push(from);
             if (this.willMoveToTrash()) {
                 let entry = this.trash.trash(from);
@@ -120,8 +131,8 @@ export class WorkspaceEditService {
                 // Безвозвратно — отменить нельзя, шаг в историю не пишем.
                 fs.rmSync(from, { recursive: true, force: true });
             }
-        } else if (edit.kind === "create") {
-            const to = edit.to!;
+        } else {
+            const to = edit.to;
             // Явное имя от пользователя: коллизия — жёсткая ошибка (перехватывается
             // per-edit try/catch → чистый no-op, в историю ничего не пишем). Реальная
             // защита от коллизий — валидация в промпте создания.
@@ -145,8 +156,6 @@ export class WorkspaceEditService {
                     doCreate();
                 },
             });
-        } else {
-            throw new Error(`Неподдерживаемый вид правки: ${edit.kind}`);
         }
     }
 }

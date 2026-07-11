@@ -4,18 +4,18 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { createCursorSelection } from "../Editor/ISelection.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
+import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { EditorController } from "./EditorController.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
@@ -71,7 +71,7 @@ describe("EditorController", () => {
             expect(ctrl.getCaretAnchor()).toBeNull();
         });
 
-        it("save() is a no-op when no file is open (no file written, no onDidSave)", () => {
+        it("save() is a no-op when no file is open (no file written, no onDidSave)", async () => {
             const ctrl = createEditorController();
             let saved = false;
             ctrl.onDidSave = () => {
@@ -79,7 +79,7 @@ describe("EditorController", () => {
             };
 
             // Must not throw and must not invoke the save callback.
-            ctrl.save();
+            await ctrl.save();
 
             expect(saved).toBe(false);
         });
@@ -96,7 +96,7 @@ describe("EditorController", () => {
     });
 
     describe("saveAs", () => {
-        it("writes content to the new path and re-points the editor", () => {
+        it("writes content to the new path and re-points the editor", async () => {
             const ctrl = createEditorController();
             ctrl.openFile(writeFile("a.txt", "content"));
             let saved = 0;
@@ -105,7 +105,7 @@ describe("EditorController", () => {
             };
 
             const newPath = path.join(tmpDir, "b.md");
-            ctrl.saveAs(newPath);
+            await ctrl.saveAs(newPath);
 
             expect(fs.readFileSync(newPath, "utf-8")).toBe("content");
             expect(ctrl.absoluteFilePath).toBe(newPath);
@@ -114,20 +114,20 @@ describe("EditorController", () => {
             expect(saved).toBe(1);
         });
 
-        it("persists in-memory edits and clears the dirty flag", () => {
+        it("persists in-memory edits and clears the dirty flag", async () => {
             const ctrl = createEditorController();
             ctrl.openFile(writeFile("a.txt", ""));
             ctrl.viewState.insertText("edited");
             expect(ctrl.isModified).toBe(true);
 
             const newPath = path.join(tmpDir, "b.txt");
-            ctrl.saveAs(newPath);
+            await ctrl.saveAs(newPath);
 
             expect(fs.readFileSync(newPath, "utf-8")).toBe("edited");
             expect(ctrl.isModified).toBe(false);
         });
 
-        it("re-picks the tokenizer for the new extension", () => {
+        it("re-picks the tokenizer for the new extension", async () => {
             const seen: string[] = [];
             const languageService: ILanguageService = {
                 getLanguageIdForResource: (p) => {
@@ -140,17 +140,17 @@ describe("EditorController", () => {
             ctrl.openFile(writeFile("a.txt", "x"));
 
             const newPath = path.join(tmpDir, "b.ts");
-            ctrl.saveAs(newPath);
+            await ctrl.saveAs(newPath);
 
             expect(seen).toContain(newPath);
         });
 
-        it("works for an editor that never had a file (untitled)", () => {
+        it("works for an editor that never had a file (untitled)", async () => {
             const ctrl = createEditorController();
             ctrl.viewState.insertText("hi");
 
             const newPath = path.join(tmpDir, "new.txt");
-            ctrl.saveAs(newPath);
+            await ctrl.saveAs(newPath);
 
             expect(fs.readFileSync(newPath, "utf-8")).toBe("hi");
             expect(ctrl.absoluteFilePath).toBe(newPath);

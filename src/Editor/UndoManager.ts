@@ -1,5 +1,5 @@
-import type { EndOfLine } from "./EndOfLine.ts";
 import type { EditorViewState } from "./EditorViewState.ts";
+import type { EndOfLine } from "./EndOfLine.ts";
 import type { ISelection } from "./ISelection.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
 import type { ITextEdit } from "./ITextEdit.ts";

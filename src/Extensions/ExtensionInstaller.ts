@@ -94,8 +94,8 @@ function readInstalled(extensionsDir: string): IInstalledExtension[] {
  * не тянул yauzl и не менял глобальную область. База — `process.execPath`
  * (абсолютный путь, валиден и на Windows; резолв builtin'ов от базы не зависит).
  */
-async function loadYauzl(): Promise<typeof import("yauzl")> {
-    const g = globalThis as { require?: NodeRequire };
+async function loadYauzl() {
+    const g = globalThis as { require?: NodeJS.Require };
     if (typeof g.require === "undefined") {
         g.require = createRequire(process.execPath);
     }
@@ -113,15 +113,19 @@ async function extractExtensionPayload(vsixPath: string, destDir: string): Promi
     const yauzl = await loadYauzl();
     return new Promise((resolve, reject) => {
         yauzl.open(vsixPath, { lazyEntries: true }, (openErr, zipfile) => {
-            if (openErr !== null || zipfile === undefined) {
+            if (openErr !== null) {
                 reject(new Error(`Not a valid .vsix (zip) archive: ${vsixPath}`));
                 return;
             }
 
             const destRoot = path.resolve(destDir);
             // yauzl эмитит "error" для битого архива и для имён с `..`.
-            zipfile.on("error", (err) => reject(err));
-            zipfile.on("end", () => resolve());
+            zipfile.on("error", (err: Error) => {
+                reject(err);
+            });
+            zipfile.on("end", () => {
+                resolve();
+            });
 
             zipfile.on("entry", (entry: Entry) => {
                 const name = entry.fileName;
@@ -147,9 +151,9 @@ async function extractExtensionPayload(vsixPath: string, destDir: string): Promi
                 zipfile.openReadStream(entry, (streamErr, readStream) => {
                     /* v8 ignore start -- defensive: openReadStream ошибается лишь на
                        повреждённых/неподдерживаемых записях, что не воспроизводится в тестах */
-                    if (streamErr !== null || readStream === undefined) {
+                    if (streamErr !== null) {
                         zipfile.close();
-                        reject(streamErr ?? new Error(`Failed to read zip entry: ${name}`));
+                        reject(streamErr);
                         return;
                     }
                     /* v8 ignore stop */
@@ -157,7 +161,9 @@ async function extractExtensionPayload(vsixPath: string, destDir: string): Promi
                     const writeStream = fs.createWriteStream(target);
                     readStream.on("error", reject);
                     writeStream.on("error", reject);
-                    writeStream.on("close", () => zipfile.readEntry());
+                    writeStream.on("close", () => {
+                        zipfile.readEntry();
+                    });
                     readStream.pipe(writeStream);
                 });
             });

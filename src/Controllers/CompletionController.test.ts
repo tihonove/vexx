@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
+import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
+import type { ITextEdit } from "../Editor/ITextEdit.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
@@ -11,7 +12,7 @@ import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
 interface FakeEditor {
-    applyExternalEdits: ReturnType<typeof vi.fn>;
+    applyExternalEdits: ReturnType<typeof vi.fn<(edits: ITextEdit[], label: string) => void>>;
     lineContent: string;
     character: number;
 }
@@ -21,7 +22,11 @@ function makeEditor(
     character: number,
     docText = lineContent,
 ): { editor: EditorController; fake: FakeEditor } {
-    const fake: FakeEditor = { applyExternalEdits: vi.fn(), lineContent, character };
+    const fake: FakeEditor = {
+        applyExternalEdits: vi.fn<(edits: ITextEdit[], label: string) => void>(),
+        lineContent,
+        character,
+    };
     const editor = {
         viewState: {
             selections: [{ active: { line: 0, character } }],
@@ -50,14 +55,9 @@ function makeGroup(
     } as unknown as EditorGroupController;
 }
 
-function setup(
-    items: readonly ICoreCompletionItem[],
-    lineContent = "ind",
-    character = 3,
-    docText = lineContent,
-) {
+function setup(items: readonly ICoreCompletionItem[], lineContent = "ind", character = 3, docText = lineContent) {
     const { editor, fake } = makeEditor(lineContent, character, docText);
-    const source = vi.fn(async () => items);
+    const source = vi.fn(() => Promise.resolve(items));
     const group = makeGroup(editor, source);
 
     const controller = new CompletionController(group);
@@ -160,7 +160,7 @@ describe("CompletionController", () => {
     it("word-based: собирает слова из всех открытых редакторов и дедупит с провайдерами", async () => {
         const { editor } = makeEditor("", 0, "alpha beta");
         const { editor: other } = makeEditor("", 0, "beta gamma indent_style");
-        const source = vi.fn(async () => ITEMS); // indent_style, indent_size, root
+        const source = vi.fn(() => Promise.resolve(ITEMS)); // indent_style, indent_size, root
         const controller = new CompletionController(makeGroup(editor, source, [other]));
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
@@ -193,7 +193,12 @@ describe("CompletionController", () => {
     it("каретка вне вьюпорта (anchor null) → попап не открывается", async () => {
         const { editor } = makeEditor("ind", 3, "ind");
         (editor as unknown as { getCaretAnchor: () => null }).getCaretAnchor = () => null;
-        const controller = new CompletionController(makeGroup(editor, vi.fn(async () => ITEMS)));
+        const controller = new CompletionController(
+            makeGroup(
+                editor,
+                vi.fn(() => Promise.resolve(ITEMS)),
+            ),
+        );
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
         controller.setHostView(body);
@@ -204,7 +209,7 @@ describe("CompletionController", () => {
     it("untitled (absoluteFilePath null) → fileName пустой в запросе", async () => {
         const { editor } = makeEditor("ind", 3, "ind");
         (editor as unknown as { absoluteFilePath: string | null }).absoluteFilePath = null;
-        const source = vi.fn(async () => ITEMS);
+        const source = vi.fn(() => Promise.resolve(ITEMS));
         const controller = new CompletionController(makeGroup(editor, source));
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
@@ -251,9 +256,7 @@ describe("CompletionController", () => {
     });
 
     it("item.command без arguments исполняется c пустым списком аргументов", async () => {
-        const items: ICoreCompletionItem[] = [
-            { label: "only", insertText: "only", command: { command: "c.noargs" } },
-        ];
+        const items: ICoreCompletionItem[] = [{ label: "only", insertText: "only", command: { command: "c.noargs" } }];
         const { controller, onExecuteCommand } = setup(items, "", 0, "");
         await controller.trigger();
         controller.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Enter" }));

@@ -23,7 +23,7 @@ export interface InspectorTarget {
     getFocused(): TUIElement | null;
 }
 
-type MethodHandler = (params: unknown) => unknown | Promise<unknown>;
+type MethodHandler = (params: unknown) => unknown;
 
 /**
  * Transport-agnostic inspector. Holds a read-only reference to the inspected

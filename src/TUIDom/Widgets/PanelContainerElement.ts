@@ -73,7 +73,7 @@ export class PanelContainerElement extends TUIElement {
     public addView(view: PanelView): void {
         this.views.push(view);
         if (view.content !== null) view.content.setParent(this);
-        if (this.activeId === null) this.activeId = view.id;
+        this.activeId ??= view.id;
         this.markDirty();
     }
 
@@ -129,7 +129,10 @@ export class PanelContainerElement extends TUIElement {
             const contentWidth = Math.max(0, containerSize.width - CONTENT_LEFT);
             const contentHeight = Math.max(0, containerSize.height - CONTENT_TOP);
             content.localPosition = new Offset(CONTENT_LEFT, CONTENT_TOP);
-            content.globalPosition = new Point(this.globalPosition.x + CONTENT_LEFT, this.globalPosition.y + CONTENT_TOP);
+            content.globalPosition = new Point(
+                this.globalPosition.x + CONTENT_LEFT,
+                this.globalPosition.y + CONTENT_TOP,
+            );
             content.performLayout(BoxConstraints.tight(new Size(contentWidth, contentHeight)));
         }
         return containerSize;

@@ -4,7 +4,7 @@ import type { WireCompletionItem } from "../WireTypes.ts";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
 import { createLanguagesNamespace } from "./LanguagesNamespace.ts";
-import { makeStubRpc, type IStubRpc } from "./testStubRpc.ts";
+import { type IStubRpc, makeStubRpc } from "./testStubRpc.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
 import { CompletionItem, CompletionItemKind, Range } from "./VscodeTypes.ts";
 import { WorkspaceConfigStore } from "./WorkspaceConfigStore.ts";
@@ -75,14 +75,12 @@ describe("LanguagesNamespace", () => {
         matching.command = { command: "editorconfig._triggerSuggestAfterDelay", title: "..." };
         const otherLangItem = new CompletionItem("should_not_appear");
 
-        languages.registerCompletionItemProvider(
-            { language: "editorconfig", pattern: "**/.editorconfig" },
-            { provideCompletionItems: () => [matching] } as never,
-        );
-        languages.registerCompletionItemProvider(
-            { language: "ini" },
-            { provideCompletionItems: () => [otherLangItem] } as never,
-        );
+        languages.registerCompletionItemProvider({ language: "editorconfig", pattern: "**/.editorconfig" }, {
+            provideCompletionItems: () => [matching],
+        } as never);
+        languages.registerCompletionItemProvider({ language: "ini" }, {
+            provideCompletionItems: () => [otherLangItem],
+        } as never);
 
         const result = (await stub.callRequest(
             "languages.provideCompletionItems",
@@ -105,18 +103,14 @@ describe("LanguagesNamespace", () => {
         withRange.insertText = "root = true";
         withRange.range = new Range(0, 0, 0, 3);
 
-        languages.registerCompletionItemProvider(
-            { language: "editorconfig" },
-            {
-                provideCompletionItems: () => {
-                    throw new Error("boom");
-                },
-            } as never,
-        );
-        languages.registerCompletionItemProvider(
-            { language: "editorconfig" },
-            { provideCompletionItems: () => ({ items: [withRange] }) } as never,
-        );
+        languages.registerCompletionItemProvider({ language: "editorconfig" }, {
+            provideCompletionItems: () => {
+                throw new Error("boom");
+            },
+        } as never);
+        languages.registerCompletionItemProvider({ language: "editorconfig" }, {
+            provideCompletionItems: () => ({ items: [withRange] }),
+        } as never);
 
         const result = (await stub.callRequest(
             "languages.provideCompletionItems",
@@ -131,10 +125,9 @@ describe("LanguagesNamespace", () => {
     it("provideCompletionItems без матчащих провайдеров → пустой массив", async () => {
         const { ctx, stub } = makeCtx();
         const { languages } = createLanguagesNamespace(ctx);
-        languages.registerCompletionItemProvider(
-            { language: "python" },
-            { provideCompletionItems: () => [new CompletionItem("x")] } as never,
-        );
+        languages.registerCompletionItemProvider({ language: "python" }, {
+            provideCompletionItems: () => [new CompletionItem("x")],
+        } as never);
         const result = await stub.callRequest("languages.provideCompletionItems", COMPLETION_PARAMS);
         expect(result).toEqual([]);
     });
@@ -168,10 +161,9 @@ describe("LanguagesNamespace", () => {
             },
             { label: "e", range: null }, // range null
         ];
-        languages.registerCompletionItemProvider(
-            { language: "editorconfig" },
-            { provideCompletionItems: () => items } as never,
-        );
+        languages.registerCompletionItemProvider({ language: "editorconfig" }, {
+            provideCompletionItems: () => items,
+        } as never);
 
         const result = (await stub.callRequest(
             "languages.provideCompletionItems",
@@ -213,18 +205,16 @@ describe("LanguagesNamespace", () => {
     it("normalizeResult: undefined и {items: не-массив} → пусто", async () => {
         const undef = makeCtx();
         const nsU = createLanguagesNamespace(undef.ctx);
-        nsU.languages.registerCompletionItemProvider(
-            { language: "editorconfig" },
-            { provideCompletionItems: () => undefined } as never,
-        );
+        nsU.languages.registerCompletionItemProvider({ language: "editorconfig" }, {
+            provideCompletionItems: () => undefined,
+        } as never);
         expect(await undef.stub.callRequest("languages.provideCompletionItems", COMPLETION_PARAMS)).toEqual([]);
 
         const bad = makeCtx();
         const nsB = createLanguagesNamespace(bad.ctx);
-        nsB.languages.registerCompletionItemProvider(
-            { language: "editorconfig" },
-            { provideCompletionItems: () => ({ items: 5 }) } as never,
-        );
+        nsB.languages.registerCompletionItemProvider({ language: "editorconfig" }, {
+            provideCompletionItems: () => ({ items: 5 }),
+        } as never);
         expect(await bad.stub.callRequest("languages.provideCompletionItems", COMPLETION_PARAMS)).toEqual([]);
     });
 });

@@ -118,12 +118,9 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
             return disposable;
         },
 
-        showErrorMessage: (message: string): Thenable<string | undefined> =>
-            showMessage(rpc, "error", message),
-        showWarningMessage: (message: string): Thenable<string | undefined> =>
-            showMessage(rpc, "warn", message),
-        showInformationMessage: (message: string): Thenable<string | undefined> =>
-            showMessage(rpc, "info", message),
+        showErrorMessage: (message: string): Thenable<string | undefined> => showMessage(rpc, "error", message),
+        showWarningMessage: (message: string): Thenable<string | undefined> => showMessage(rpc, "warn", message),
+        showInformationMessage: (message: string): Thenable<string | undefined> => showMessage(rpc, "info", message),
 
         createOutputChannel: (name: string): vscode.OutputChannel => {
             return {

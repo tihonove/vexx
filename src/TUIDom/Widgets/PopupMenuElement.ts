@@ -56,7 +56,9 @@ export class PopupMenuElement extends TUIElement {
                 const item = new PopupMenuItemElement(entry.label, config, entry.shortcut, entry.icon, this.colors);
                 item.onSelect = entry.onSelect;
                 const entryIndex = i;
-                item.onHover = () => this.selectByEntryIndex(entryIndex);
+                item.onHover = () => {
+                    this.selectByEntryIndex(entryIndex);
+                };
                 this.itemElements.push(item);
                 this.vstack.addChild(item, { width: "stretch", height: 1 });
             }

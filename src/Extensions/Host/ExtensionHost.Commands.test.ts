@@ -45,7 +45,10 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "main.ts", content: "x\n" },
             extensions: [
-                { ...reg("test.registersCommand", "registersCommand.cjs"), commandTitles: { "test.applyTab": "Apply Tab" } },
+                {
+                    ...reg("test.registersCommand", "registersCommand.cjs"),
+                    commandTitles: { "test.applyTab": "Apply Tab" },
+                },
             ],
         });
         try {
@@ -63,7 +66,9 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
             initialFile: { name: "main.ts", content: "x\n" },
         });
         try {
-            const disposable = await harness.host.registerExtension(reg("test.registersCommand", "registersCommand.cjs"));
+            const disposable = await harness.host.registerExtension(
+                reg("test.registersCommand", "registersCommand.cjs"),
+            );
             await settle();
             expect(harness.commandRegistry.has("test.applyTab")).toBe(true);
 

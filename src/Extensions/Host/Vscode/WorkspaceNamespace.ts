@@ -15,9 +15,11 @@ const WILL_SAVE_LISTENER_TIMEOUT_MS = 1500;
 /** Промис, резолвящийся пустым набором правок по истечении per-listener тайм-аута. */
 function listenerTimeout(): Promise<readonly TextEdit[]> {
     return new Promise((resolve) => {
-        const timer = setTimeout(() => resolve([]), WILL_SAVE_LISTENER_TIMEOUT_MS);
+        const timer = setTimeout(() => {
+            resolve([]);
+        }, WILL_SAVE_LISTENER_TIMEOUT_MS);
         // Не держим event loop живым из-за таймера, который проиграл гонку.
-        timer.unref?.();
+        timer.unref();
     });
 }
 
@@ -211,9 +213,7 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
             if (p === root || p.startsWith(root + "/")) {
                 const rel = p.slice(root.length).replace(/^\/+/, "");
                 if (rel === "") return p;
-                return includeWorkspaceFolder === true && workspaceFolders.length > 1
-                    ? folder.name + "/" + rel
-                    : rel;
+                return includeWorkspaceFolder === true && workspaceFolders.length > 1 ? folder.name + "/" + rel : rel;
             }
         }
         return p;
@@ -223,8 +223,7 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
         uriOrPath: vscode.Uri | string,
         options?: { encoding?: string },
     ): Promise<vscode.TextDocument> {
-        const fsPath =
-            typeof uriOrPath === "string" ? uriOrPath : (uriOrPath as unknown as Uri).fsPath;
+        const fsPath = typeof uriOrPath === "string" ? uriOrPath : (uriOrPath as unknown as Uri).fsPath;
         // Открытый документ — отдаём стабильный объект из реестра.
         const open = registry.get(fsPath);
         if (open !== undefined) return open as unknown as vscode.TextDocument;

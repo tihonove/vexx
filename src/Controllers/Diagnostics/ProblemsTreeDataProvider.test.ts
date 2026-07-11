@@ -52,7 +52,10 @@ describe("ProblemsTreeDataProvider", () => {
         const [file] = p.getChildren();
         // Re-snapshot with more markers; the previously-obtained `file` node must
         // still resolve the new markers (data is looked up by resource, not embedded).
-        p.setMarkers([marker("/a.json", MarkerSeverity.Error, 0, "x"), marker("/a.json", MarkerSeverity.Warning, 1, "y")]);
+        p.setMarkers([
+            marker("/a.json", MarkerSeverity.Error, 0, "x"),
+            marker("/a.json", MarkerSeverity.Warning, 1, "y"),
+        ]);
         expect(p.getChildren(file)).toHaveLength(2);
         expect(p.getTreeItem(file)).toMatchObject({ label: "a.json  (2)" });
 

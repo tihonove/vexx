@@ -149,7 +149,10 @@ describe("AppController — Go to Line", () => {
     beforeEach(async () => {
         tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-gotoline-"));
         // A 60-line file to navigate around.
-        fs.writeFileSync(path.join(tmpDir, "big.txt"), Array.from({ length: 60 }, (_, i) => `line ${i + 1}`).join("\n"));
+        fs.writeFileSync(
+            path.join(tmpDir, "big.txt"),
+            Array.from({ length: 60 }, (_, i) => `line ${i + 1}`).join("\n"),
+        );
         ({ testApp, controller, commands } = createQuickOpenApp(tmpDir));
         await controller.activate();
         await controller.fileIndexReady;

@@ -44,7 +44,7 @@ describe("validateSettingsJson", () => {
     });
 
     it("computes multi-line positions from offsets", () => {
-        const text = ['{', '  "editor.tabSize": 4,', '  "bogus": true', "}"].join("\n");
+        const text = ["{", '  "editor.tabSize": 4,', '  "bogus": true', "}"].join("\n");
         const [marker] = validateSettingsJson(text, isKnown);
         expect(marker.message).toContain("bogus");
         expect(marker.range.start).toEqual({ line: 2, character: 2 });
@@ -61,7 +61,7 @@ describe("validateSettingsJson", () => {
     });
 
     it("tolerates comments and trailing commas (JSONC)", () => {
-        const text = ['{', "  // a comment", '  "nope": 1,', "}"].join("\n");
+        const text = ["{", "  // a comment", '  "nope": 1,', "}"].join("\n");
         const markers = validateSettingsJson(text, isKnown);
         expect(markers.map((m) => m.message)).toHaveLength(1);
         expect(markers[0].message).toContain("nope");

@@ -116,7 +116,9 @@ export async function requestWillSaveEdits(
     const TIMEOUT = Symbol("timeout");
     let timer!: ReturnType<typeof setTimeout>;
     const timeout = new Promise<typeof TIMEOUT>((resolve) => {
-        timer = setTimeout(() => resolve(TIMEOUT), timeoutMs);
+        timer = setTimeout(() => {
+            resolve(TIMEOUT);
+        }, timeoutMs);
     });
     try {
         const outcome = await Promise.race([
@@ -274,7 +276,9 @@ export async function requestCompletionItems(
     const TIMEOUT = Symbol("timeout");
     let timer!: ReturnType<typeof setTimeout>;
     const timeout = new Promise<typeof TIMEOUT>((resolve) => {
-        timer = setTimeout(() => resolve(TIMEOUT), timeoutMs);
+        timer = setTimeout(() => {
+            resolve(TIMEOUT);
+        }, timeoutMs);
     });
     try {
         const outcome = await Promise.race([

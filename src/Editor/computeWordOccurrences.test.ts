@@ -11,10 +11,7 @@ function occurrences(text: string, line: number, character: number) {
 describe("computeWordOccurrences", () => {
     it("finds every occurrence of the word the cursor sits inside", () => {
         // "foo bar foo" — cursor inside the first "foo".
-        expect(occurrences("foo bar foo", 0, 1)).toEqual([
-            createRange(0, 0, 0, 3),
-            createRange(0, 8, 0, 11),
-        ]);
+        expect(occurrences("foo bar foo", 0, 1)).toEqual([createRange(0, 0, 0, 3), createRange(0, 8, 0, 11)]);
     });
 
     it("spans multiple lines in document order", () => {
@@ -32,18 +29,12 @@ describe("computeWordOccurrences", () => {
 
     it("treats the caret just past a word's end as being on that word", () => {
         // "foo bar" — caret at offset 3, immediately after "foo".
-        expect(occurrences("foo bar foo", 0, 3)).toEqual([
-            createRange(0, 0, 0, 3),
-            createRange(0, 8, 0, 11),
-        ]);
+        expect(occurrences("foo bar foo", 0, 3)).toEqual([createRange(0, 0, 0, 3), createRange(0, 8, 0, 11)]);
     });
 
     it("prefers the word at the caret over the one to its left", () => {
         // "foo.bar" — caret at offset 4 sits between '.' and 'bar' → picks "bar".
-        expect(occurrences("foo.bar bar", 0, 4)).toEqual([
-            createRange(0, 4, 0, 7),
-            createRange(0, 8, 0, 11),
-        ]);
+        expect(occurrences("foo.bar bar", 0, 4)).toEqual([createRange(0, 4, 0, 7), createRange(0, 8, 0, 11)]);
     });
 
     it("returns nothing when the cursor is on whitespace", () => {
@@ -62,10 +53,7 @@ describe("computeWordOccurrences", () => {
 
     it("is case-sensitive", () => {
         // Cursor on lower-case "foo"; "Foo" and "FOO" must not match.
-        expect(occurrences("foo Foo FOO foo", 0, 0)).toEqual([
-            createRange(0, 0, 0, 3),
-            createRange(0, 12, 0, 15),
-        ]);
+        expect(occurrences("foo Foo FOO foo", 0, 0)).toEqual([createRange(0, 0, 0, 3), createRange(0, 12, 0, 15)]);
     });
 
     it("returns nothing for an out-of-range line", () => {

@@ -36,7 +36,9 @@ function fireMouseMove(editor: EditorElement, localX: number, localY: number): v
 }
 
 function fireMouseLeave(editor: EditorElement): void {
-    editor.dispatchEvent(new TUIMouseEvent("mouseleave", { button: "none", screenX: 0, screenY: 0, localX: 0, localY: 0 }));
+    editor.dispatchEvent(
+        new TUIMouseEvent("mouseleave", { button: "none", screenX: 0, screenY: 0, localX: 0, localY: 0 }),
+    );
 }
 
 function chevronAt(app: TestApp, editor: EditorElement, row: number): string {

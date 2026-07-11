@@ -1,9 +1,9 @@
 import * as path from "node:path";
 
-import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { LogLevel } from "../../Common/Logging/LogLevel.ts";
+import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { CommandServiceAdapter } from "../../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import {
@@ -47,7 +47,9 @@ export const extensionHostModule: ContainerModule = (container) => {
             getSnapshot: () => configService.getValue(),
             getWorkspaceFolders: () => [{ uri: cwd, name: path.basename(cwd), index: 0 }],
             onDidChange: (cb) =>
-                configService.onDidChangeConfiguration((event) => cb(event.affectedKeys)),
+                configService.onDidChangeConfiguration((event) => {
+                    cb(event.affectedKeys);
+                }),
         };
 
         const host = new ExtensionHost(adapter, commandAdapter, {
@@ -62,7 +64,9 @@ export const extensionHostModule: ContainerModule = (container) => {
         // (onWillSaveTextDocument), а состоявшееся сохранение уходит обратно
         // в subprocess (onDidSaveTextDocument).
         group.saveParticipant = (snapshot) => host.willSaveTextDocument(snapshot);
-        group.onEditorSaved((meta) => host.didSaveTextDocument(meta));
+        group.onEditorSaved((meta) => {
+            host.didSaveTextDocument(meta);
+        });
 
         // Completion: провайдеры расширений (languages.provideCompletionItems)
         // подключаются как источник автодополнений группы (читает CompletionController).

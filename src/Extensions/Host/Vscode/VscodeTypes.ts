@@ -80,7 +80,7 @@ export class Position {
     ): Position {
         let lineDelta = 0;
         let charDelta = characterDelta;
-        if (typeof lineDeltaOrChange === "object" && lineDeltaOrChange !== null) {
+        if (typeof lineDeltaOrChange === "object") {
             lineDelta = lineDeltaOrChange.lineDelta ?? 0;
             charDelta = lineDeltaOrChange.characterDelta ?? 0;
         } else if (typeof lineDeltaOrChange === "number") {
@@ -92,13 +92,10 @@ export class Position {
 
     public with(line?: number, character?: number): Position;
     public with(change: { line?: number; character?: number }): Position;
-    public with(
-        lineOrChange?: number | { line?: number; character?: number },
-        character?: number,
-    ): Position {
+    public with(lineOrChange?: number | { line?: number; character?: number }, character?: number): Position {
         let newLine = this.line;
         let newCharacter = character ?? this.character;
-        if (typeof lineOrChange === "object" && lineOrChange !== null) {
+        if (typeof lineOrChange === "object") {
             newLine = lineOrChange.line ?? this.line;
             newCharacter = lineOrChange.character ?? this.character;
         } else if (typeof lineOrChange === "number") {
@@ -126,7 +123,7 @@ export class Range {
         let end: Position;
         if (typeof startOrStartLine === "number") {
             start = new Position(startOrStartLine, endOrStartCharacter as number);
-            end = new Position(endLine as number, endCharacter as number);
+            end = new Position(endLine ?? 0, endCharacter ?? 0);
         } else {
             start = startOrStartLine;
             end = endOrStartCharacter as Position;
@@ -174,10 +171,7 @@ export class Range {
 
     public with(start?: Position, end?: Position): Range;
     public with(change: { start?: Position; end?: Position }): Range;
-    public with(
-        startOrChange?: Position | { start?: Position; end?: Position },
-        end?: Position,
-    ): Range {
+    public with(startOrChange?: Position | { start?: Position; end?: Position }, end?: Position): Range {
         let newStart = this.start;
         let newEnd = end ?? this.end;
         if (startOrChange instanceof Position) {
@@ -269,7 +263,7 @@ export class Uri {
             return Uri.file(value);
         }
         const scheme = match[1];
-        const path = match[3] ?? "/";
+        const path = (match[3] as string | undefined) ?? "/";
         return new Uri(scheme, path);
     }
 

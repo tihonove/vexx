@@ -7,18 +7,17 @@ import type { ITextEdit } from "../../Editor/ITextEdit.ts";
 
 export type FileEditKind = "create" | "delete" | "move" | "copy";
 
-export interface ResourceFileEdit {
-    readonly kind: FileEditKind;
-    /** Источник: путь существующего файла/папки (для delete/move/copy). */
-    readonly from?: string;
-    /**
-     * Назначение. Для move/copy — целевой каталог (как при вставке).
-     * Для create — путь создаваемого файла.
-     */
-    readonly to?: string;
-    /** Только для kind "create": создать каталог, а не пустой файл. */
-    readonly directory?: boolean;
-}
+/**
+ * Файловая операция. Дискриминируется по `kind`: набор полей зависит от вида правки.
+ * - move/copy — источник `from` и целевой каталог `to` (как при вставке);
+ * - delete — только источник `from`;
+ * - create — путь создаваемого ресурса `to` (+ `directory` для каталога).
+ */
+export type ResourceFileEdit =
+    | { readonly kind: "move"; readonly from: string; readonly to: string }
+    | { readonly kind: "copy"; readonly from: string; readonly to: string }
+    | { readonly kind: "delete"; readonly from: string }
+    | { readonly kind: "create"; readonly to: string; readonly directory?: boolean };
 
 export interface ResourceTextEdit {
     readonly resource: string;

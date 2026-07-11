@@ -163,7 +163,10 @@ describe("InspectorCore", () => {
 
         it("returns the captured frame", async () => {
             const frame = emptyGridSnapshot(3, 2);
-            const core = new InspectorCore(makeTarget(), makeDriver({ captureFrame: vi.fn().mockResolvedValue(frame) }));
+            const core = new InspectorCore(
+                makeTarget(),
+                makeDriver({ captureFrame: vi.fn().mockResolvedValue(frame) }),
+            );
 
             const res = await core.dispatch({ id: 1, method: InspectorMethod.captureFrame });
 

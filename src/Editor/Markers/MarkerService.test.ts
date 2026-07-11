@@ -88,7 +88,9 @@ describe("MarkerService", () => {
         const service = new MarkerService();
         const subscription = service.onDidChangeMarkers(() => {});
         subscription.dispose();
-        expect(() => subscription.dispose()).not.toThrow();
+        expect(() => {
+            subscription.dispose();
+        }).not.toThrow();
     });
 
     it("does not fire when clearing a resource that has no markers", () => {

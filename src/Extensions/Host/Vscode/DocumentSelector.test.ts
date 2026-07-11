@@ -1,5 +1,5 @@
-import type * as vscode from "vscode";
 import { describe, expect, it } from "vitest";
+import type * as vscode from "vscode";
 
 import { matchDocumentSelector } from "./DocumentSelector.ts";
 import { DocumentRegistry } from "./ExtHostDocuments.ts";

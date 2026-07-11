@@ -76,7 +76,9 @@ describe("ModifierReleaseArmory", () => {
 
     it("fireRelease is a no-op when nothing is armed", () => {
         const armory = new ModifierReleaseArmory();
-        expect(() => armory.fireRelease("Control")).not.toThrow();
+        expect(() => {
+            armory.fireRelease("Control");
+        }).not.toThrow();
     });
 });
 
@@ -85,7 +87,9 @@ describe("armOnHoldRelease within a trigger context", () => {
         const armory = new ModifierReleaseArmory();
         const commit = vi.fn();
 
-        armory.withTrigger(trigger({ altKey: true }), () => armory.armOnHoldRelease(commit));
+        armory.withTrigger(trigger({ altKey: true }), () => {
+            armory.armOnHoldRelease(commit);
+        });
         armory.fireRelease("Alt");
 
         expect(commit).toHaveBeenCalledTimes(1);
@@ -105,7 +109,9 @@ describe("armOnHoldRelease within a trigger context", () => {
         const armory = new ModifierReleaseArmory();
         const commit = vi.fn();
 
-        armory.withTrigger(trigger({ shiftKey: true }), () => armory.armOnHoldRelease(commit));
+        armory.withTrigger(trigger({ shiftKey: true }), () => {
+            armory.armOnHoldRelease(commit);
+        });
         armory.fireRelease("Shift");
 
         expect(commit).not.toHaveBeenCalled();
@@ -117,7 +123,9 @@ describe("armOnHoldRelease within a trigger context", () => {
         const inner = vi.fn();
 
         armory.withTrigger(trigger({ ctrlKey: true }), () => {
-            armory.withTrigger(trigger({ altKey: true }), () => armory.armOnHoldRelease(inner));
+            armory.withTrigger(trigger({ altKey: true }), () => {
+                armory.armOnHoldRelease(inner);
+            });
             // Back in the outer (Ctrl) context after the nested run.
             armory.armOnHoldRelease(outer); // overwrites the inner arm
         });

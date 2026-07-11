@@ -109,7 +109,7 @@ describe("WindowNamespace", () => {
         const bag: { dispose(): unknown }[] = [];
         const d = window.onDidChangeActiveTextEditor(
             function (this: { tag: string }, e) {
-                received.push([this?.tag, e]);
+                received.push([this.tag, e]);
             },
             self,
             bag as never,
@@ -129,7 +129,10 @@ describe("WindowNamespace", () => {
         const { stub, window } = makeCtx();
         stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
         window.activeTextEditor!.options = { tabSize: "6", insertSpaces: "false" } as never;
-        expect(stub.requests.at(-1)).toEqual({ method: "editor.setOptions", params: { tabSize: 6, insertSpaces: false } });
+        expect(stub.requests.at(-1)).toEqual({
+            method: "editor.setOptions",
+            params: { tabSize: 6, insertSpaces: false },
+        });
         window.activeTextEditor!.options = { insertSpaces: "auto" } as never;
         expect(stub.requests.at(-1)).toEqual({ method: "editor.setOptions", params: { insertSpaces: true } });
         window.activeTextEditor!.options = { indentSize: "3" } as never;

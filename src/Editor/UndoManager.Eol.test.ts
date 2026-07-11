@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { EndOfLine } from "./EndOfLine.ts";
 import { EditorViewState } from "./EditorViewState.ts";
+import { EndOfLine } from "./EndOfLine.ts";
 import { createCursorSelection } from "./ISelection.ts";
 import type { IUndoElement } from "./IUndoElement.ts";
 import { TextDocument } from "./TextDocument.ts";

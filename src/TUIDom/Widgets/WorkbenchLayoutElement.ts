@@ -163,23 +163,23 @@ export class WorkbenchLayoutElement extends TUIElement {
 
     public override getChildren(): readonly TUIElement[] {
         const children: TUIElement[] = [];
-        const showLeft = this.leftPanel !== null && this.leftPanelVisible;
-        const showBottom = this.bottomPanel !== null && this.bottomPanelVisible;
-        if (showLeft) {
-            children.push(this.leftPanel!);
+        const leftPanel = this.leftPanelVisible ? this.leftPanel : null;
+        const bottomPanel = this.bottomPanelVisible ? this.bottomPanel : null;
+        if (leftPanel !== null) {
+            children.push(leftPanel);
         }
         if (this.centerContent) {
             children.push(this.centerContent);
         }
-        if (showBottom) {
-            children.push(this.bottomPanel!);
+        if (bottomPanel !== null) {
+            children.push(bottomPanel);
         }
         // Sashes are added last so they sit on top of the neighbouring content at the
         // boundary for hit-testing. Each is present only while its panel is shown.
-        if (showLeft) {
+        if (leftPanel !== null) {
             children.push(this.sash);
         }
-        if (showBottom) {
+        if (bottomPanel !== null) {
             children.push(this.bottomSash);
         }
         return children;
@@ -235,7 +235,10 @@ export class WorkbenchLayoutElement extends TUIElement {
         if (showBottom && this.bottomPanel) {
             const panelSize = new Size(centerWidth, panelHeight);
             this.bottomPanel.localPosition = new Offset(leftWidth, centerHeight);
-            this.bottomPanel.globalPosition = new Point(this.globalPosition.x + leftWidth, this.globalPosition.y + centerHeight);
+            this.bottomPanel.globalPosition = new Point(
+                this.globalPosition.x + leftWidth,
+                this.globalPosition.y + centerHeight,
+            );
             this.bottomPanel.performLayout(BoxConstraints.tight(panelSize));
         }
 
@@ -252,7 +255,10 @@ export class WorkbenchLayoutElement extends TUIElement {
             // 1-row hit target on the boundary between the editor and the bottom panel,
             // spanning the center width at the panel's top row.
             this.bottomSash.localPosition = new Offset(leftWidth, centerHeight);
-            this.bottomSash.globalPosition = new Point(this.globalPosition.x + leftWidth, this.globalPosition.y + centerHeight);
+            this.bottomSash.globalPosition = new Point(
+                this.globalPosition.x + leftWidth,
+                this.globalPosition.y + centerHeight,
+            );
             this.bottomSash.performLayout(BoxConstraints.tight(new Size(centerWidth, 1)));
         }
 

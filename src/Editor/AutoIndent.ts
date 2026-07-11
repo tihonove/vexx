@@ -62,11 +62,10 @@ export function computeNewLinePlan(params: NewLinePlanParams): NewLinePlan {
 
     const openChar = before.length > 0 ? before[before.length - 1] : "";
     const closeChar = OPEN_TO_CLOSE.get(openChar);
-    const isOpen = closeChar !== undefined;
 
-    if (isOpen) {
+    if (closeChar !== undefined) {
         const inner = base + unit;
-        if (after.length > 0 && after[0] === closeChar) {
+        if (after.startsWith(closeChar)) {
             // `{|}` → expand the block; closer drops to its own line at the base indent.
             return { editText: "\n" + inner + "\n" + base, blockExpand: true, cursorColumn: inner.length };
         }

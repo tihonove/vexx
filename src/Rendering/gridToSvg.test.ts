@@ -87,10 +87,10 @@ describe("gridToSvg", () => {
 
     it("draws background rects only for non-default backgrounds, merged per row", () => {
         const bg = packRgb(50, 60, 70);
-        const svg = gridToSvg(
-            snapshot([[cell({ bg }), cell({ bg }), cell({ bg: DEFAULT_COLOR })]]),
-            { cellWidth: 8, cellHeight: 16 },
-        );
+        const svg = gridToSvg(snapshot([[cell({ bg }), cell({ bg }), cell({ bg: DEFAULT_COLOR })]]), {
+            cellWidth: 8,
+            cellHeight: 16,
+        });
         // Two adjacent bg cells merge into one rect of width 16; the default one is skipped.
         expect(svg).toContain(`<rect x="0" y="0" width="16" height="16" fill="#323c46"/>`);
         // Only the page rect + one bg rect.
@@ -120,8 +120,7 @@ describe("gridToSvg", () => {
 
     it("encodes each text style", () => {
         const fg = packRgb(9, 9, 9);
-        const styled = (style: number): string =>
-            gridToSvg(snapshot([[cell({ char: "z", fg, style })]]));
+        const styled = (style: number): string => gridToSvg(snapshot([[cell({ char: "z", fg, style })]]));
         expect(styled(StyleFlags.Bold)).toContain(`font-weight="bold"`);
         expect(styled(StyleFlags.Italic)).toContain(`font-style="italic"`);
         expect(styled(StyleFlags.Underline)).toContain(`text-decoration="underline"`);
@@ -136,9 +135,7 @@ describe("gridToSvg", () => {
 
     it("escapes XML metacharacters in glyphs", () => {
         const fg = packRgb(1, 1, 1);
-        const svg = gridToSvg(
-            snapshot([[cell({ char: "<", fg }), cell({ char: "&", fg }), cell({ char: ">", fg })]]),
-        );
+        const svg = gridToSvg(snapshot([[cell({ char: "<", fg }), cell({ char: "&", fg }), cell({ char: ">", fg })]]));
         expect(svg).toContain(`&lt;&amp;&gt;`);
     });
 

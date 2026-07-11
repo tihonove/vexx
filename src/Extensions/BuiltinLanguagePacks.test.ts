@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { joinVirtualPath } from "../Common/Assets/AssetBundleFormat.ts";
 import { createDevAssetAccess } from "../Common/Assets/createDefaultAssetAccess.ts";
-import type { IExtension } from "./IExtension.ts";
 
-import { LanguageRegistry } from "./LanguageRegistry.ts";
 import { scanBuiltinExtensions } from "./ExtensionScanner.ts";
+import type { IExtension } from "./IExtension.ts";
+import { LanguageRegistry } from "./LanguageRegistry.ts";
 
 const ROOT_PREFIX = "Extensions/builtin/";
 

@@ -81,7 +81,9 @@ describe("QuickPickElement — message row rendering", () => {
         picker.validationMessage = "This validation message is far too long to fit in a narrow box";
         const app = createApp(picker, new Size(20, 8));
 
-        expect(() => app.render()).not.toThrow();
+        expect(() => {
+            app.render();
+        }).not.toThrow();
         // Some prefix is shown, but not the whole (too-wide) message.
         const text = app.backend.screenToString();
         expect(text).toContain("This");
@@ -95,7 +97,9 @@ describe("QuickPickElement — title too wide", () => {
         picker.title = "A really quite long title that will not fit";
         const app = createApp(picker, new Size(20, 8));
 
-        expect(() => app.render()).not.toThrow();
+        expect(() => {
+            app.render();
+        }).not.toThrow();
         expect(app.backend.screenToString()).not.toContain("A really quite long title");
     });
 });
