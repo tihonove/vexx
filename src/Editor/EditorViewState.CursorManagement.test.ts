@@ -484,6 +484,68 @@ describe("EditorViewState.CursorManagement", () => {
         expect(state.selections[0].active).toEqual({ line: 1, character: 0 });
     });
 
+    // ─── Smart Home (VS Code style) ────
+
+    it("cursorHome jumps to the first non-whitespace character on a space-indented line", () => {
+        const doc = new TextDocument("    hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 6)]);
+        state.cursorHome();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
+    });
+
+    it("cursorHome toggles between first non-whitespace and column 0", () => {
+        const doc = new TextDocument("    hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 6)]);
+        state.cursorHome(); // → first non-ws
+        expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
+        state.cursorHome(); // already at first non-ws → column 0
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+        state.cursorHome(); // back to first non-ws
+        expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
+    });
+
+    it("cursorHome jumps to first non-whitespace from within the indent", () => {
+        const doc = new TextDocument("    hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 2)]);
+        state.cursorHome(); // inside the indent, not yet at first non-ws → first non-ws
+        expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
+    });
+
+    it("cursorHome sets idealColumn to the display column of the target with tabs", () => {
+        const doc = new TextDocument("\thello\n\tworld");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.cursorHome(); // → char 1 (first non-ws), idealColumn = display col 4 (one tab)
+        expect(state.selections[0].active).toEqual({ line: 0, character: 1 });
+        state.cursorDown(); // idealColumn=4 → char 1 on next tab-indented line
+        expect(state.selections[0].active).toEqual({ line: 1, character: 1 });
+    });
+
+    it("cursorHome goes straight to column 0 on a line without indentation", () => {
+        const doc = new TextDocument("hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 3)]);
+        state.cursorHome();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+        state.cursorHome(); // firstNonWs is 0, so it stays at 0
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+    });
+
+    it("cursorHome toggles on an all-whitespace line without throwing", () => {
+        const doc = new TextDocument("    ");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 4)]);
+        state.cursorHome(); // active === firstNonWs (line length 4) → column 0
+        expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
+        state.cursorHome(); // → first non-ws == line length
+        expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
+    });
+
+    it("cursorHome smart-homes each cursor independently in multi-cursor mode", () => {
+        const doc = new TextDocument("    hello\n  world");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 6), createCursorSelection(1, 5)]);
+        state.cursorHome();
+        expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
+        expect(state.selections[1].active).toEqual({ line: 1, character: 2 });
+    });
+
     // ─── cursorLeft / cursorRight reset idealColumn ────
 
     it("cursorLeft resets idealColumn", () => {
@@ -564,6 +626,14 @@ describe("EditorViewState.CursorManagement", () => {
         state.cursorHome(true);
         expect(state.selections[0].active).toEqual({ line: 0, character: 0 });
         expect(state.selections[0].anchor).toEqual({ line: 0, character: 5 });
+    });
+
+    it("cursorHome with inSelectionMode selects to the first non-whitespace character", () => {
+        const doc = new TextDocument("    hello");
+        const state = new EditorViewState(doc, [createCursorSelection(0, 7)]);
+        state.cursorHome(true);
+        expect(state.selections[0].active).toEqual({ line: 0, character: 4 });
+        expect(state.selections[0].anchor).toEqual({ line: 0, character: 7 });
     });
 
     // ─── normalizeSelections sorts multi-cursors ────
