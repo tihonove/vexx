@@ -444,4 +444,138 @@ describe("WorkbenchLayoutElement", () => {
             expect(layout.getLeftPanelWidth()).toBe(60);
         });
     });
+
+    describe("bottom panel", () => {
+        function laidOut(options?: { withLeft?: boolean; height?: number }): {
+            layout: WorkbenchLayoutElement;
+            center: TUIElement;
+            panel: MarkerPanel;
+        } {
+            const layout = new WorkbenchLayoutElement();
+            const center = createPanel();
+            const panel = new MarkerPanel("B");
+            if (options?.withLeft) {
+                layout.setLeftPanel(createPanel());
+                layout.setLeftPanelWidth(20);
+            }
+            layout.setCenterContent(center);
+            layout.setBottomPanel(panel);
+            layout.setBottomPanelVisible(true);
+            if (options?.height !== undefined) layout.setBottomPanelHeight(options.height);
+            layout.globalPosition = new Point(0, 0);
+            layout.performLayout(BoxConstraints.tight(new Size(80, 24)));
+            return { layout, center, panel };
+        }
+
+        it("is hidden by default", () => {
+            const layout = new WorkbenchLayoutElement();
+            const center = createPanel();
+            layout.setCenterContent(center);
+            layout.setBottomPanel(createPanel());
+            expect(layout.getBottomPanelVisible()).toBe(false);
+            layout.globalPosition = new Point(0, 0);
+            layout.performLayout(BoxConstraints.tight(new Size(80, 24)));
+            // Hidden panel is absent from the tree and the center keeps full height.
+            expect(layout.getChildren()).toEqual([center]);
+            expect(center.layoutSize).toEqual(new Size(80, 24));
+        });
+
+        it("re-attaches a previously-hidden panel to the live root when shown", () => {
+            const layout = new WorkbenchLayoutElement();
+            const panel = createPanel();
+            layout.setBottomPanel(panel); // attached while layout has no root → panel.root null
+            layout.setAsRoot(); // setAsRoot does not propagate to (hidden) descendants
+            expect(panel.getRoot()).toBeNull();
+
+            layout.setBottomPanelVisible(true);
+            // Showing re-attaches the subtree so it picks up the current root.
+            expect(panel.getRoot()).toBe(layout);
+        });
+
+        it("tolerates being shown with no bottom panel set", () => {
+            const layout = new WorkbenchLayoutElement();
+            expect(() => layout.setBottomPanelVisible(true)).not.toThrow();
+            expect(layout.getBottomPanelVisible()).toBe(true);
+        });
+
+        it("exposes the configured panel and visibility/height", () => {
+            const layout = new WorkbenchLayoutElement();
+            const panel = createPanel();
+            layout.setBottomPanel(panel);
+            layout.setBottomPanelVisible(true);
+            layout.setBottomPanelHeight(9);
+            expect(layout.getBottomPanel()).toBe(panel);
+            expect(layout.getBottomPanelVisible()).toBe(true);
+            expect(layout.getBottomPanelHeight()).toBe(9);
+        });
+
+        it("replaces a previously set bottom panel", () => {
+            const layout = new WorkbenchLayoutElement();
+            const first = createPanel();
+            const second = createPanel();
+            layout.setBottomPanel(first);
+            layout.setBottomPanel(second);
+            expect(layout.getBottomPanel()).toBe(second);
+            expect(first.getParent()).toBeNull();
+        });
+
+        it("clears the bottom panel when set to null", () => {
+            const layout = new WorkbenchLayoutElement();
+            const panel = createPanel();
+            layout.setBottomPanel(panel);
+            layout.setBottomPanel(null);
+            expect(layout.getBottomPanel()).toBeNull();
+            expect(panel.getParent()).toBeNull();
+        });
+
+        it("shrinks the editor and pins the panel to the bottom at the center width", () => {
+            const { center, panel } = laidOut({ height: 8 });
+            expect(center.layoutSize).toEqual(new Size(80, 16));
+            expect(center.localPosition).toEqual(new Offset(0, 0));
+            expect(panel.layoutSize).toEqual(new Size(80, 8));
+            expect(panel.globalPosition).toEqual(new Point(0, 16));
+        });
+
+        it("aligns the panel to the editor width when the sidebar is shown", () => {
+            const { center, panel } = laidOut({ withLeft: true, height: 6 });
+            expect(center.layoutSize).toEqual(new Size(60, 18));
+            expect(panel.layoutSize).toEqual(new Size(60, 6));
+            expect(panel.globalPosition).toEqual(new Point(20, 18));
+        });
+
+        it("appends the panel then the horizontal sash to the children", () => {
+            const { layout } = laidOut({ height: 8 });
+            const children = layout.getChildren();
+            // center, bottom panel, horizontal sash.
+            expect(children).toHaveLength(3);
+            expect(children[2]).toBeInstanceOf(SashElement);
+        });
+
+        it("renders the visible bottom panel at its position", () => {
+            const { layout } = laidOut({ height: 8 });
+            const size = new Size(80, 24);
+            const backend = new MockTerminalBackend(size);
+            const screen = new TerminalScreen(size);
+            layout.render(new RenderContext(screen, new Offset(0, 0), new Rect(new Point(0, 0), size)));
+            screen.flush(backend);
+            expect(backend.getTextAt(new Point(0, 16), 1)).toBe("B");
+        });
+
+        it("resizes the panel height by dragging the horizontal sash", () => {
+            const { layout } = laidOut({ height: 8 });
+            const sash = layout.getChildren()[2] as SashElement;
+            // Panel bottom is pinned at row 24; dragging its top to row 14 → height 10.
+            sash.onDrag?.(14);
+            expect(layout.getBottomPanelHeight()).toBe(10);
+        });
+
+        it("clamps the panel height to its minimum and maximum", () => {
+            const { layout } = laidOut({ height: 8 });
+            const sash = layout.getChildren()[2] as SashElement;
+            sash.onDrag?.(23); // height 1 → clamped up to MIN (3)
+            expect(layout.getBottomPanelHeight()).toBe(3);
+            sash.onDrag?.(-100); // height 124 → clamped to containerHeight - MIN_EDITOR_HEIGHT (21)
+            expect(layout.getBottomPanelHeight()).toBe(21);
+        });
+    });
 });

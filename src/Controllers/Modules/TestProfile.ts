@@ -17,6 +17,7 @@ import { coreModuleLate } from "./CoreModule.ts";
 import { fileWatcherModuleDefault } from "./FileWatcherModule.ts";
 import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 import { loggingModuleDefault } from "./LoggingModule.ts";
+import { markersModule } from "./MarkersModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
 import { workspaceModule } from "./WorkspaceModule.ts";
@@ -54,6 +55,7 @@ export function createTestContainer(): TestContainerHandle {
         .use(keybindingsModuleDefault)
         .use(workspaceModule)
         .use(fileWatcherModuleDefault)
+        .use(markersModule, { settingsResource: null })
         .use(controllersModule);
 
     return {

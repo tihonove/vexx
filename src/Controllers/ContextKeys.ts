@@ -31,6 +31,10 @@ export interface ContextKeyTypes {
     // listDoubleSelection: boolean;
     // listMultiSelection: boolean;
 
+    // -- Workbench UI contexts --
+    /** True while the bottom Panel (Problems/Output/…) is visible. */
+    panelVisible: boolean;
+
     // -- Terminal environment contexts (see TerminalEnvironmentService) --
     /** "legacy" | "csi-u" | "kitty" — use as `tier == 'kitty'`. */
     tier: string;
@@ -167,6 +171,9 @@ export const allContextKeys: ContextKey[] = [
     // "listHasSelectionOrFocus",
     // "listDoubleSelection",
     // "listMultiSelection",
+
+    // -- Workbench UI contexts --
+    "panelVisible",
 
     // -- Terminal environment contexts --
     "tier",

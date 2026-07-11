@@ -193,6 +193,7 @@ async function runEditor(): Promise<void> {
         configurationService,
         userKeybindings,
         logService,
+        settingsResource: userDataPaths.settingsFile,
     });
 
     // Смена цветовой темы должна перекрашивать и синтаксис: пересаживаем token-тему

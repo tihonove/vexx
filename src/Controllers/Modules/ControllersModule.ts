@@ -1,7 +1,10 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { AppController, AppControllerDIToken } from "../AppController.ts";
+import { DiagnosticsController, DiagnosticsControllerDIToken } from "../DiagnosticsController.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWidgetController.ts";
+import { PanelController, PanelControllerDIToken } from "../PanelController.ts";
+import { ProblemsController, ProblemsControllerDIToken } from "../ProblemsController.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarController.ts";
 
 /**
@@ -13,6 +16,9 @@ import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarCon
 export const controllersModule: ContainerModule = (container) => {
     container.bind(EditorGroupControllerDIToken, EditorGroupController);
     container.bind(StatusBarControllerDIToken, StatusBarController);
+    container.bind(DiagnosticsControllerDIToken, DiagnosticsController);
+    container.bind(PanelControllerDIToken, PanelController);
+    container.bind(ProblemsControllerDIToken, ProblemsController);
     container.bind(InputWidgetControllerDIToken, InputWidgetController);
     container.bind(AppControllerDIToken, AppController);
 };

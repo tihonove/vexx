@@ -443,7 +443,13 @@ export class TUIElement<S extends TUIStyle = TUIStyle> {
         return this.resolvedStyleValue;
     }
 
-    private markStyleDirty(): void {
+    /**
+     * Forces a style re-resolution of this element and its whole subtree (and
+     * schedules a render). Public so a container can refresh a subtree it just
+     * re-attached — e.g. a panel that was excluded from `getChildren()` while
+     * hidden and thus missed style propagation.
+     */
+    public markStyleDirty(): void {
         this.isStyleDirty = true;
         for (const child of this.getChildren()) {
             child.markStyleDirty();
