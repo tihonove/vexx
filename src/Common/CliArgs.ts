@@ -24,6 +24,13 @@ export interface ICliArgs {
      * дефолт {@link DEFAULT_INSPECT_TUI}; `--inspect-tui=host:port` — заданный адрес.
      */
     readonly inspectTui: { host: string; port: number } | undefined;
+    /**
+     * Размер виртуального терминала для headless-режима, если передан `--headless`.
+     * Голый флаг даёт {@link DEFAULT_HEADLESS_SIZE}; `--headless=<cols>x<rows>` —
+     * заданный размер. Требует одновременно `--inspect-tui` (иначе сессией не
+     * порулить и кадр не снять).
+     */
+    readonly headless: { cols: number; rows: number } | undefined;
     /** Был ли передан `--help` / `-h`. */
     readonly help: boolean;
     /** Был ли передан `--version` / `-v`. */
@@ -39,12 +46,17 @@ export interface ICliArgs {
 /** Адрес инспектора по умолчанию для голого `--inspect-tui`. */
 export const DEFAULT_INSPECT_TUI = "127.0.0.1:9223";
 
+/** Размер виртуального терминала по умолчанию для голого `--headless`. */
+export const DEFAULT_HEADLESS_SIZE = { cols: 120, rows: 32 } as const;
+
 export const USAGE = `Usage: vexx [options] <file-or-dir> [<file-or-dir> ...]
 
 Options:
   --user-data-dir <path>   Альтернативный каталог user data (default: ~/.vexx)
   --profile <name>         Имя профиля (default: "default")
   --inspect-tui[=host:port] Поднять TUIDom-инспектор (default: ${DEFAULT_INSPECT_TUI})
+  --headless[=<cols>x<rows>] Запуск без терминала: рендер в память, управление
+                           через инспектор (требует --inspect-tui; default: ${DEFAULT_HEADLESS_SIZE.cols}x${DEFAULT_HEADLESS_SIZE.rows})
   --install-extension <path.vsix>   Установить расширение из .vsix и выйти
   --uninstall-extension <publisher.name>  Удалить расширение (все версии) и выйти
   --list-extensions        Показать установленные расширения и выйти
@@ -97,11 +109,29 @@ function parseInspectTui(raw: string): { host: string; port: number } {
     return { host, port };
 }
 
+/**
+ * Разбирает `<cols>x<rows>` для `--headless`. Оба измерения — положительные целые.
+ * Бросает {@link CliArgsError} при неверном формате.
+ */
+function parseHeadlessSize(raw: string): { cols: number; rows: number } {
+    const match = /^(\d+)x(\d+)$/iu.exec(raw);
+    if (match === null) {
+        throw new CliArgsError(`--headless expects <cols>x<rows>, got: ${raw}`);
+    }
+    const cols = Number(match[1]);
+    const rows = Number(match[2]);
+    if (cols <= 0 || rows <= 0) {
+        throw new CliArgsError(`--headless requires positive dimensions: ${raw}`);
+    }
+    return { cols, rows };
+}
+
 export function parseCliArgs(argv: readonly string[]): ICliArgs {
     const positional: string[] = [];
     let userDataDir: string | undefined;
     let profile: string | undefined;
     let inspectTui: { host: string; port: number } | undefined;
+    let headless: { cols: number; rows: number } | undefined;
     let help = false;
     let version = false;
     let installExtension: string | undefined;
@@ -140,6 +170,15 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
             const eqIndex = arg.indexOf("=");
             const raw = eqIndex === -1 ? DEFAULT_INSPECT_TUI : arg.slice(eqIndex + 1);
             inspectTui = parseInspectTui(raw);
+            i += 1;
+            continue;
+        }
+
+        // Опциональное значение: голый `--headless` → дефолт, иначе `=<cols>x<rows>`.
+        if (arg === "--headless" || arg.startsWith("--headless=")) {
+            const eqIndex = arg.indexOf("=");
+            headless =
+                eqIndex === -1 ? { ...DEFAULT_HEADLESS_SIZE } : parseHeadlessSize(arg.slice(eqIndex + 1));
             i += 1;
             continue;
         }
@@ -185,11 +224,16 @@ export function parseCliArgs(argv: readonly string[]): ICliArgs {
         i += 1;
     }
 
+    if (headless !== undefined && inspectTui === undefined) {
+        throw new CliArgsError("--headless requires --inspect-tui to drive the session");
+    }
+
     return {
         positional,
         userDataDir,
         profile,
         inspectTui,
+        headless,
         help,
         version,
         installExtension,

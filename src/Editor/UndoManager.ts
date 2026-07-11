@@ -58,6 +58,10 @@ export class UndoManager {
         }
 
         const { appliedVersion, inverseEdits } = this.doc.applyEdits(element.backwardEdits);
+        // Shift folding regions for the undone edits (the normal edit path does
+        // this via EditorViewState.applyEdits, which undo bypasses) so the caret
+        // reveal below and the later recompute see correct region boundaries.
+        this.viewState.adjustFoldingRegionsForEdits(element.backwardEdits);
         this.viewState.restoreSelections(element.beforeSelections);
         if (element.eolBefore !== undefined) {
             this.doc.setEol(element.eolBefore);
@@ -93,6 +97,7 @@ export class UndoManager {
         }
 
         const { appliedVersion, inverseEdits } = this.doc.applyEdits(element.backwardEdits);
+        this.viewState.adjustFoldingRegionsForEdits(element.backwardEdits);
         this.viewState.restoreSelections(element.beforeSelections);
         if (element.eolBefore !== undefined) {
             this.doc.setEol(element.eolBefore);

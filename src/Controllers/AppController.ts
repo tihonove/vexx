@@ -76,6 +76,18 @@ import {
     undoAction,
 } from "./Actions/EditorEditActions.ts";
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
+import {
+    foldAction,
+    foldAllAction,
+    foldLevelActions,
+    foldRecursivelyAction,
+    gotoNextFoldAction,
+    gotoPreviousFoldAction,
+    toggleFoldAction,
+    unfoldAction,
+    unfoldAllAction,
+    unfoldRecursivelyAction,
+} from "./Actions/FoldingActions.ts";
 import { fileSaveAction, fileSaveAsAction, newUntitledFileAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import {
@@ -204,6 +216,18 @@ const builtinActions = [
     convertToLfAction,
     convertToCrlfAction,
     toggleEolAction,
+
+    // Folding
+    foldAction,
+    unfoldAction,
+    toggleFoldAction,
+    foldAllAction,
+    unfoldAllAction,
+    foldRecursivelyAction,
+    unfoldRecursivelyAction,
+    ...foldLevelActions,
+    gotoNextFoldAction,
+    gotoPreviousFoldAction,
 
     // Whitespace
     trimTrailingWhitespaceAction,
