@@ -763,6 +763,10 @@ export class EditorController extends Disposable implements IController {
             if (collapsedStarts.has(region.startLine)) region.isCollapsed = true;
         }
         this.editorViewState.setFoldingRegions(computed);
+        // If the recompute re-collapsed a region around the just-edited line (e.g.
+        // Tab indented the line below a collapsed block into it), keep the caret —
+        // and the text under it — visible, matching VS Code.
+        this.editorViewState.ensurePrimaryCursorVisible();
         this.editor.markDirty();
     }
 

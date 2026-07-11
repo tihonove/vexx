@@ -85,6 +85,27 @@ describe("EditorElement – folding gutter", () => {
             expect(app.backend.getTextAt(new Point(x, 0), 1)).not.toBe(COLLAPSED_MARKER);
         }
     });
+
+    it("never overwrites the header's last character with the marker", () => {
+        // The marker sits one column PAST the header, so no character is hidden by
+        // it (the user's Tab-pushes-last-char worry does not manifest here).
+        const { app, editor } = createEditor("abc\n  x\n  y\nz", [{ start: 0, end: 2, collapsed: true }]);
+        app.render();
+        const gw = editor.gutterWidth;
+        expect(app.backend.getTextAt(new Point(gw, 0), 3)).toBe("abc"); // full header
+        expect(app.backend.getTextAt(new Point(gw + 4, 0), 1)).toBe(COLLAPSED_MARKER); // gap+marker after "abc"
+    });
+
+    it("shifts the collapsed marker by the horizontal scroll offset", () => {
+        const { app, editor } = createEditor("abcdef\n  x\n  y\nz", [{ start: 0, end: 2, collapsed: true }], 24, 6);
+        editor.viewState.scrollLeft = 2;
+        app.render();
+        const gw = editor.gutterWidth;
+        // Header "abcdef" (width 6) → marker at displayWidth+1-scrollLeft = 5 past gutter.
+        expect(app.backend.getTextAt(new Point(gw + 5, 0), 1)).toBe(COLLAPSED_MARKER);
+        // Header content is scrolled, not clipped by the marker: "cdef" is visible.
+        expect(app.backend.getTextAt(new Point(gw, 0), 4)).toBe("cdef");
+    });
 });
 
 describe("EditorElement – folding mouse toggle", () => {

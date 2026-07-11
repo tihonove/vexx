@@ -137,6 +137,7 @@ export class EditorViewState {
             if (region.startLine === line) {
                 region.isCollapsed = !region.isCollapsed;
                 this.foldsVersion++;
+                this.reconcileHiddenCursors();
                 return;
             }
         }
@@ -179,6 +180,7 @@ export class EditorViewState {
         if (target !== undefined) {
             target.isCollapsed = true;
             this.foldsVersion++;
+            this.reconcileHiddenCursors();
         }
     }
 
@@ -203,6 +205,7 @@ export class EditorViewState {
         if (region !== undefined) {
             region.isCollapsed = !region.isCollapsed;
             this.foldsVersion++;
+            this.reconcileHiddenCursors();
         }
     }
 
@@ -214,6 +217,7 @@ export class EditorViewState {
             region.isCollapsed = true;
         }
         this.foldsVersion++;
+        this.reconcileHiddenCursors();
     }
 
     /**
@@ -224,6 +228,44 @@ export class EditorViewState {
             region.isCollapsed = false;
         }
         this.foldsVersion++;
+    }
+
+    /**
+     * The collapsed region hiding `line` with the smallest `startLine` — the
+     * outermost one, whose header line is always visible. `undefined` if `line`
+     * is not hidden by any collapsed region.
+     */
+    private outermostCollapsedRegionHiding(line: number): IFoldingRegion | undefined {
+        let best: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            if (region.isCollapsed && region.startLine < line && line <= region.endLine) {
+                if (best === undefined || region.startLine < best.startLine) best = region;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * After a fold operation hides a cursor, moves it onto the header of the
+     * region that hides it (VS Code snaps the caret to the fold header rather
+     * than stranding it on an invisible line). No-op for cursors still visible.
+     */
+    private reconcileHiddenCursors(): void {
+        let changed = false;
+        this.selections = this.selections.map((sel) => {
+            if (this.logicalToVisualLine(sel.active.line) >= 0) return sel;
+            const region = this.outermostCollapsedRegionHiding(sel.active.line);
+            /* v8 ignore start -- defensive: fold ops only hide valid document lines, which are always inside a collapsed region here */
+            if (region === undefined) return sel;
+            /* v8 ignore stop */
+            changed = true;
+            const char = Math.min(sel.active.character, this.document.getLineLength(region.startLine));
+            return createCursorSelection(region.startLine, char);
+        });
+        if (changed) {
+            this.normalizeSelections();
+            this.ensureCursorVisible();
+        }
     }
 
     // ─── Scroll API ─────────────────────────────────────────
@@ -615,6 +657,7 @@ export class EditorViewState {
             return this.buildSelection(sel, lastLine, lastChar, idealCol, inSelectionMode);
         });
         this.normalizeSelections();
+        this.reconcileHiddenCursors();
         this.ensureCursorVisible();
     }
 
@@ -919,7 +962,20 @@ export class EditorViewState {
      */
     public revealRange(range: IRange): void {
         this.ensureLineVisible(range.start.line);
+        this.ensureLineVisible(range.end.line);
         this.revealPosition(range.start);
+    }
+
+    /**
+     * Ensures the primary cursor is visible: expands any collapsed region hiding
+     * its line, then scrolls it into view. Used after a folding recompute that
+     * may have re-collapsed a region around the just-edited line, so the caret
+     * (and the text under it) stays visible — VS Code keeps the edited line shown.
+     */
+    public ensurePrimaryCursorVisible(): void {
+        if (this.selections.length === 0) return;
+        this.ensureLineVisible(this.selections[0].active.line);
+        this.ensureCursorVisible();
     }
 
     /** Number of logical lines in the underlying document. */
@@ -955,6 +1011,9 @@ export class EditorViewState {
      */
     public restoreSelections(selections: readonly ISelection[]): void {
         this.selections = [...selections];
+        // Undo/redo may restore the caret into a region that is still collapsed;
+        // reveal it (like goToPosition) rather than leaving it on a hidden line.
+        if (this.selections.length > 0) this.ensureLineVisible(this.selections[0].active.line);
         this.ensureCursorVisible();
     }
 
@@ -970,7 +1029,9 @@ export class EditorViewState {
         if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
 
         const visualLine = this.logicalToVisualLine(pos.line);
+        /* v8 ignore start -- callers (goToPosition/revealRange/restoreSelections) expand folds before revealing, so a hidden line never reaches here */
         if (visualLine < 0) return;
+        /* v8 ignore stop */
 
         // Keep `margin` lines between the cursor and the top/bottom edge so the
         // cursor "steps back" from the edge (VS Code's `cursorSurroundingLines`).
@@ -1089,8 +1150,11 @@ export class EditorViewState {
     /**
      * Adjusts folding region boundaries after document edits.
      * Processes edits in reverse document order to avoid cascading adjustments.
+     * Public because {@link UndoManager} applies edits straight to the document
+     * (bypassing {@link applyEdits}) and must shift regions the same way, so the
+     * subsequent recompute re-keys collapsed state by the correct `startLine`.
      */
-    private adjustFoldingRegionsForEdits(edits: readonly ITextEdit[]): void {
+    public adjustFoldingRegionsForEdits(edits: readonly ITextEdit[]): void {
         // Sort edits in reverse document order (bottom-to-top)
         const sorted = [...edits].sort((a, b) => comparePositions(b.range.start, a.range.start));
 
