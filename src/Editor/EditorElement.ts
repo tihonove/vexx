@@ -212,6 +212,9 @@ export class EditorElement extends TUIElement implements IScrollable {
         this.addEventListener("mouseup", () => {
             this.dragAnchor = null;
         });
+        this.addEventListener("mouseleave", () => {
+            this.setFoldGutterHovered(false);
+        });
         this.addEventListener("wheel", (event) => {
             this.handleWheel(event);
         });
@@ -291,7 +294,10 @@ export class EditorElement extends TUIElement implements IScrollable {
                     context.setCell(x, screenY, { char: " ", fg: numFg, bg: gutBg });
                 }
                 const foldState = foldHeaderByLine.get(logLine);
-                if (foldState !== undefined) {
+                // Collapsed regions always show their chevron; expanded ones only
+                // while the gutter is hovered (VS Code `showFoldingControls`).
+                const showChevron = foldState === true || (foldState === false && this.foldGutterHovered);
+                if (showChevron) {
                     const icon = foldState ? FOLD_ICON_COLLAPSED : FOLD_ICON_EXPANDED;
                     context.setCell(foldCol, screenY, { char: icon, fg: foldFg, bg: gutBg });
                 }
@@ -589,6 +595,17 @@ export class EditorElement extends TUIElement implements IScrollable {
 
     private dragAnchor: { line: number; character: number } | null = null;
 
+    // Whether the mouse is currently over the gutter. Expanded regions show their
+    // fold chevron only while this holds (à la VS Code `showFoldingControls:
+    // "mouseover"`); collapsed regions always show theirs. See render().
+    private foldGutterHovered = false;
+
+    private setFoldGutterHovered(value: boolean): void {
+        if (this.foldGutterHovered === value) return;
+        this.foldGutterHovered = value;
+        this.markDirty();
+    }
+
     private screenToDocPosition(localX: number, localY: number): { line: number; character: number } {
         const gutterW = this.gutterWidth;
         const viewLineCount = this.viewState.getViewLineCount();
@@ -712,6 +729,9 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 
     private handleMouseMove(event: TUIMouseEvent): void {
+        // Reveal expanded fold chevrons whenever the mouse is over the gutter.
+        this.setFoldGutterHovered(event.localX >= 0 && event.localX < this.gutterWidth);
+
         if (this.dragAnchor === null) return;
         /* v8 ignore start -- unreachable: getViewLineCount() is never 0 (document always has a line; fold headers stay visible) */
         if (this.viewState.getViewLineCount() === 0) return;

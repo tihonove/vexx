@@ -39,9 +39,22 @@ function fireMouseDown(editor: EditorElement, localX: number, localY: number): v
     );
 }
 
+function fireMouseMove(editor: EditorElement, localX: number, localY: number): void {
+    editor.dispatchEvent(
+        new TUIMouseEvent("mousemove", {
+            button: "none",
+            screenX: localX,
+            screenY: localY,
+            localX,
+            localY,
+        }),
+    );
+}
+
 describe("EditorElement – folding gutter", () => {
-    it("draws a down chevron on an expanded region header", () => {
+    it("draws a down chevron on an expanded region header while the gutter is hovered", () => {
         const { app, editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2 }]);
+        fireMouseMove(editor, editor.foldControlColumn, 0);
         app.render();
         expect(app.backend.getTextAt(new Point(editor.foldControlColumn, 0), 1)).toBe(CHEVRON_EXPANDED);
     });
