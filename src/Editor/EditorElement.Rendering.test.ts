@@ -298,7 +298,7 @@ describe("wide char at viewport edge", () => {
         // text: " 漢" → display " 漢" needs cols 0,1,2 (3 cols) — fits
         // But if we scroll so that only 2 cols remain for wide char, it should be replaced
         // Let's use a line where the wide char falls exactly at the edge
-        const { app, editor } = createEditor("ab漢", 8, 3); // gw=4, contentCols=4
+        const { app, editor } = createEditor("ab漢", 10, 3); // gw=6, contentCols=4
         // display: "ab漢 " = cols 0,1,2,3 — "漢" at cols 2-3, fits
         app.render();
 
@@ -307,8 +307,8 @@ describe("wide char at viewport edge", () => {
         expect(backend.getTextAt(new Point(gw + 2, 0), 1)).toBe("漢");
 
         // Now make viewport narrower so wide char doesn't fit
-        // width=7, gw=4, contentCols=3 — "ab漢" = cols 0,1,2,3 — "漢" needs cols 2-3 but only 3 cols available (0,1,2)
-        const { app: app2, editor: editor2 } = createEditor("ab漢", 7, 3); // gw=4, contentCols=3
+        // width=9, gw=6, contentCols=3 — "ab漢" = cols 0,1,2,3 — "漢" needs cols 2-3 but only 3 cols available (0,1,2)
+        const { app: app2, editor: editor2 } = createEditor("ab漢", 9, 3); // gw=6, contentCols=3
         app2.render();
 
         const backend2 = app2.backend;

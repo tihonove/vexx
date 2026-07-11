@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+import { HeadlessCaptureBackend } from "./Backend/HeadlessCaptureBackend.ts";
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
 import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
@@ -9,6 +10,7 @@ import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
 import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
 import type { ICliArgs } from "./Common/CliArgs.ts";
 import { CliArgsError, parseCliArgs, USAGE } from "./Common/CliArgs.ts";
+import { Size } from "./Common/GeometryPromitives.ts";
 import { isSeaBinary } from "./Common/IsSea.ts";
 import { LogService } from "./Common/Logging/LogService.ts";
 import { FileSink } from "./Common/Logging/sinks/FileSink.ts";
@@ -36,6 +38,7 @@ import type { ICommandContribution, IConfigurationContribution } from "./Extensi
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
 import { attachInspector } from "./Inspector/index.ts";
+import type { InspectorDriver } from "./Inspector/InspectorDriver.ts";
 import { createBuiltinThemeRegistry } from "./Theme/ThemeRegistry.ts";
 import { DEFAULT_COLOR_THEME } from "./Theme/themes/builtinThemes.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
@@ -124,7 +127,12 @@ async function runEditor(): Promise<void> {
 
     // ── Backend / Theme ────────────────────────────────────────
 
-    const backend = new NodeTerminalBackend();
+    // Headless: рендер в память + управление через инспектор, без реального
+    // терминала. Иначе — обычный stdin/stdout-бэкенд.
+    const headlessBackend = cli.headless
+        ? new HeadlessCaptureBackend(new Size(cli.headless.cols, cli.headless.rows))
+        : null;
+    const backend = headlessBackend ?? new NodeTerminalBackend();
     const application = new TuiApplication(backend);
     const clipboard = new OscClipboard((seq) => {
         backend.writeOscSequence(seq);
@@ -226,10 +234,37 @@ async function runEditor(): Promise<void> {
     // Логируем порт только в logService: писать в stderr нельзя — он уходит в
     // тот же pty и испортит TUI-рендер.
     if (cli.inspectTui !== undefined) {
-        const inspector = await attachInspector(app, cli.inspectTui);
+        // В headless-режиме инспектор получает driver: инъекция ввода + захват
+        // кадра. В обычном режиме driver нет — инспектор остаётся read-only.
+        const driver: InspectorDriver | undefined =
+            headlessBackend === null
+                ? undefined
+                : {
+                      sendKey: (name) => headlessBackend.sendKey(name),
+                      sendText: (text) => headlessBackend.sendPaste(text),
+                      resize: (cols, rows) => headlessBackend.resize(new Size(cols, rows)),
+                      captureFrame: async () => {
+                          // Слить кадр, отложенный на setImmediate (scheduleRender),
+                          // прежде чем снять снимок.
+                          await new Promise<void>((resolve) => setImmediate(resolve));
+                          return headlessBackend.captureFrame();
+                      },
+                      shutdown: () => {
+                          // Отложенно, чтобы RPC-ответ успел уйти до выхода.
+                          setImmediate(() => {
+                              try {
+                                  extensionHost.dispose();
+                              } finally {
+                                  process.exit(0);
+                              }
+                          });
+                      },
+                  };
+        const inspector = await attachInspector(app, cli.inspectTui, driver);
         bootstrapLogger.info("TUIDom inspector listening", {
             host: cli.inspectTui.host,
             port: inspector.port,
+            headless: headlessBackend !== null,
         });
     }
 

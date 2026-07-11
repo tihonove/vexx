@@ -102,7 +102,12 @@ export class InspectorServer {
         } catch {
             return; // ignore non-JSON frames
         }
-        const response = this.core.dispatch(request);
+        void this.dispatchAndReply(socket, request);
+    }
+
+    private async dispatchAndReply(socket: Socket, request: InspectorRequest): Promise<void> {
+        const response = await this.core.dispatch(request);
+        if (socket.destroyed) return;
         socket.write(encodeTextFrame(JSON.stringify(response)));
     }
 }

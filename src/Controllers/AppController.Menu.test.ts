@@ -50,7 +50,46 @@ describe("AppController — menu bar wiring", () => {
     it("opens the File menu and renders its entries", () => {
         const { testApp } = createMenuApp();
         const popup = openMenu(testApp, "f");
-        expect(itemLabels(popup)).toEqual(["Save", "Save As...", "Exit"]);
+        expect(itemLabels(popup)).toEqual([
+            "New Untitled File",
+            "New File...",
+            "New Folder...",
+            "Open File...",
+            "Open Folder...",
+            "Save",
+            "Save As...",
+            "Exit",
+        ]);
+    });
+
+    it("File → Open File... runs the open-file command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "f");
+
+        entryByLabel(popup, "Open File...").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.openFile");
+    });
+
+    it("File → Open Folder... runs the open-folder command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "f");
+
+        entryByLabel(popup, "Open Folder...").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.openFolder");
+    });
+
+    it("File → New Untitled File runs the new-untitled command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "f");
+
+        entryByLabel(popup, "New Untitled File").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.newUntitledFile");
     });
 
     it("File → Save runs the save command", () => {

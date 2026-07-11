@@ -16,6 +16,8 @@ export interface ResourceFileEdit {
      * Для create — путь создаваемого файла.
      */
     readonly to?: string;
+    /** Только для kind "create": создать каталог, а не пустой файл. */
+    readonly directory?: boolean;
 }
 
 export interface ResourceTextEdit {

@@ -137,8 +137,75 @@ export class EditorViewState {
             if (region.startLine === line) {
                 region.isCollapsed = !region.isCollapsed;
                 this.foldsVersion++;
+                this.reconcileHiddenCursors();
                 return;
             }
+        }
+    }
+
+    /**
+     * Returns the innermost region covering `line` (header line included) that
+     * satisfies `accept`, or `undefined`. "Innermost" = the candidate with the
+     * greatest `startLine`.
+     */
+    private innermostRegionContaining(
+        line: number,
+        accept: (region: IFoldingRegion) => boolean,
+    ): IFoldingRegion | undefined {
+        let best: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            const covers = region.startLine <= line && line <= region.endLine && accept(region);
+            if (covers && (best === undefined || region.startLine > best.startLine)) {
+                best = region;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Returns the innermost folding region that spans `line` (header line
+     * included), or `undefined` when no region covers it.
+     */
+    public foldingRegionContaining(line: number): IFoldingRegion | undefined {
+        return this.innermostRegionContaining(line, () => true);
+    }
+
+    /**
+     * Collapses the innermost expanded region covering `line`. Repeated calls
+     * fold outward (each pass collapses the next enclosing region). No-op when
+     * no expanded region covers the line.
+     */
+    public foldRegionContaining(line: number): void {
+        const target = this.innermostRegionContaining(line, (region) => !region.isCollapsed);
+        if (target !== undefined) {
+            target.isCollapsed = true;
+            this.foldsVersion++;
+            this.reconcileHiddenCursors();
+        }
+    }
+
+    /**
+     * Expands the innermost collapsed region covering `line`. No-op when no
+     * collapsed region covers the line.
+     */
+    public unfoldRegionContaining(line: number): void {
+        const target = this.innermostRegionContaining(line, (region) => region.isCollapsed);
+        if (target !== undefined) {
+            target.isCollapsed = false;
+            this.foldsVersion++;
+        }
+    }
+
+    /**
+     * Toggles the collapsed state of the innermost region covering `line`.
+     * No-op when no region covers the line.
+     */
+    public toggleFoldContaining(line: number): void {
+        const region = this.foldingRegionContaining(line);
+        if (region !== undefined) {
+            region.isCollapsed = !region.isCollapsed;
+            this.foldsVersion++;
+            this.reconcileHiddenCursors();
         }
     }
 
@@ -150,6 +217,7 @@ export class EditorViewState {
             region.isCollapsed = true;
         }
         this.foldsVersion++;
+        this.reconcileHiddenCursors();
     }
 
     /**
@@ -160,6 +228,124 @@ export class EditorViewState {
             region.isCollapsed = false;
         }
         this.foldsVersion++;
+    }
+
+    /**
+     * Collapses the innermost region at `line` together with every region nested
+     * inside it (VS Code's "Fold Recursively").
+     */
+    public foldRecursively(line: number): void {
+        this.setCollapsedRecursively(line, true);
+    }
+
+    /**
+     * Expands the innermost region at `line` together with every region nested
+     * inside it (VS Code's "Unfold Recursively").
+     */
+    public unfoldRecursively(line: number): void {
+        this.setCollapsedRecursively(line, false);
+    }
+
+    private setCollapsedRecursively(line: number, collapsed: boolean): void {
+        const root = this.foldingRegionContaining(line);
+        if (root === undefined) return;
+        for (const region of this.foldedRegions) {
+            if (region.startLine >= root.startLine && region.endLine <= root.endLine) {
+                region.isCollapsed = collapsed;
+            }
+        }
+        this.foldsVersion++;
+        if (collapsed) this.reconcileHiddenCursors();
+    }
+
+    /**
+     * Folds every region at nesting level ≥ `level` and unfolds the rest, showing
+     * the document structure down to that level (VS Code's "Fold Level N").
+     */
+    public foldLevel(level: number): void {
+        for (const region of this.foldedRegions) {
+            region.isCollapsed = this.regionNestingLevel(region) >= level;
+        }
+        this.foldsVersion++;
+        this.reconcileHiddenCursors();
+    }
+
+    /** 1-based nesting depth: 1 for an outermost region, +1 per enclosing region. */
+    private regionNestingLevel(region: IFoldingRegion): number {
+        let level = 1;
+        for (const other of this.foldedRegions) {
+            if (other === region) continue;
+            if (other.startLine <= region.startLine && region.endLine <= other.endLine) {
+                level++;
+            }
+        }
+        return level;
+    }
+
+    /**
+     * Moves the caret to the header of the next foldable region below `line`,
+     * revealing it if hidden. No-op when there is no later region.
+     */
+    public gotoNextFold(line: number): void {
+        let target: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            if (region.startLine > line && (target === undefined || region.startLine < target.startLine)) {
+                target = region;
+            }
+        }
+        if (target !== undefined) this.goToPosition(target.startLine, 0);
+    }
+
+    /**
+     * Moves the caret to the header of the previous foldable region above `line`.
+     * No-op when there is no earlier region.
+     */
+    public gotoPreviousFold(line: number): void {
+        let target: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            if (region.startLine < line && (target === undefined || region.startLine > target.startLine)) {
+                target = region;
+            }
+        }
+        if (target !== undefined) this.goToPosition(target.startLine, 0);
+    }
+
+    /**
+     * The collapsed region hiding `line` with the smallest `startLine` — the
+     * outermost one, whose header line is always visible. `undefined` if `line`
+     * is not hidden by any collapsed region.
+     */
+    private outermostCollapsedRegionHiding(line: number): IFoldingRegion | undefined {
+        let best: IFoldingRegion | undefined;
+        for (const region of this.foldedRegions) {
+            if (region.isCollapsed && region.startLine < line && line <= region.endLine) {
+                if (best === undefined || region.startLine < best.startLine) best = region;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * After a fold operation hides a cursor, moves it onto the header of the
+     * region that hides it (VS Code snaps the caret to the fold header rather
+     * than stranding it on an invisible line). No-op for cursors still visible.
+     */
+    private reconcileHiddenCursors(): void {
+        let changed = false;
+        this.selections = this.selections.map((sel) => {
+            if (this.logicalToVisualLine(sel.active.line) >= 0) return sel;
+            const region = this.outermostCollapsedRegionHiding(sel.active.line);
+            /* v8 ignore start -- defensive: fold ops only hide valid document lines, which are always inside a collapsed region here */
+            if (region === undefined) return sel;
+            /* v8 ignore stop */
+            changed = true;
+            const char = Math.min(sel.active.character, this.document.getLineLength(region.startLine));
+            return createCursorSelection(region.startLine, char);
+        });
+        if (changed) {
+            this.normalizeSelections();
+            this.ensureCursorVisible();
+        }
     }
 
     // ─── Scroll API ─────────────────────────────────────────
@@ -551,6 +737,7 @@ export class EditorViewState {
             return this.buildSelection(sel, lastLine, lastChar, idealCol, inSelectionMode);
         });
         this.normalizeSelections();
+        this.reconcileHiddenCursors();
         this.ensureCursorVisible();
     }
 
@@ -834,6 +1021,122 @@ export class EditorViewState {
         return undefined;
     }
 
+    // ─── Indentation ────────────────────────────────────────
+
+    /**
+     * Increases the indentation of the current selections (Tab).
+     *
+     * With a collapsed cursor or a single-line selection this inserts one
+     * indent unit at the cursor (replacing the selection) — identical to typing.
+     * With a selection spanning multiple lines it prepends one indent unit to
+     * every touched line and keeps the selection covering them.
+     */
+    public indentLines(): IUndoElement | undefined {
+        const spansMultipleLines = this.selections.some((sel) => {
+            const range = selectionToRange(sel);
+            return range.start.line !== range.end.line;
+        });
+        if (!spansMultipleLines) {
+            return this.type(this.indentUnit());
+        }
+        return this.shiftIndent(1);
+    }
+
+    /**
+     * Decreases the indentation of every line touched by a selection (Shift+Tab),
+     * removing up to one indent level of leading whitespace from each. Operates
+     * on the cursor's line when the selection is collapsed. Returns `undefined`
+     * when no line has leading whitespace to remove.
+     */
+    public outdentLines(): IUndoElement | undefined {
+        return this.shiftIndent(-1);
+    }
+
+    private indentUnit(): string {
+        return this.insertSpaces ? " ".repeat(this.tabSize) : "\t";
+    }
+
+    /**
+     * Shifts the leading indentation of the touched lines one level in the given
+     * direction (+1 indent, −1 outdent), applying the edits as a single undoable
+     * operation and remapping the selections to follow the shifted text.
+     */
+    private shiftIndent(direction: 1 | -1): IUndoElement | undefined {
+        const unit = this.indentUnit();
+        const perLine = new Map<number, number>();
+        const edits: ITextEdit[] = [];
+        for (const line of this.collectTouchedLines()) {
+            if (direction === 1) {
+                edits.push(createTextEdit(createRange(line, 0, line, 0), unit));
+                perLine.set(line, unit.length);
+            } else {
+                const removed = computeOutdentRemoval(this.document.getLineContent(line), this.tabSize);
+                if (removed > 0) {
+                    edits.push(createTextEdit(createRange(line, 0, line, removed), ""));
+                    perLine.set(line, -removed);
+                }
+            }
+        }
+
+        if (edits.length === 0) return undefined;
+
+        const beforeSelections = this.cloneSelections();
+        const versionBefore = this.document.versionId;
+        const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
+        this.adjustFoldingRegionsForEdits(edits);
+        this.selections = this.selections.map((sel) => this.remapSelectionForIndent(sel, perLine));
+        this.ensureCursorVisible();
+        return {
+            label: direction === 1 ? "indent" : "outdent",
+            versionBefore,
+            versionAfter: appliedVersion,
+            forwardEdits: edits,
+            backwardEdits: inverseEdits,
+            beforeSelections,
+            afterSelections: this.cloneSelections(),
+        };
+    }
+
+    /**
+     * Collects the logical lines touched by any selection, in ascending order.
+     * A selection whose end sits at column 0 of a later line does not pull that
+     * trailing line in (matches VS Code — the empty tail is excluded).
+     */
+    private collectTouchedLines(): number[] {
+        const lines = new Set<number>();
+        for (const sel of this.selections) {
+            const range = selectionToRange(sel);
+            let endLine = range.end.line;
+            if (endLine > range.start.line && range.end.character === 0) {
+                endLine--;
+            }
+            for (let line = range.start.line; line <= endLine; line++) {
+                lines.add(line);
+            }
+        }
+        return [...lines].sort((a, b) => a - b);
+    }
+
+    /**
+     * Remaps a selection after an indent/outdent, shifting each endpoint on an
+     * edited line by that line's delta. Line-start endpoints stay anchored at
+     * column 0 on indent; on outdent an endpoint inside the removed run clamps
+     * to the new line start.
+     */
+    private remapSelectionForIndent(sel: ISelection, perLine: Map<number, number>): ISelection {
+        const remap = (pos: IPosition): IPosition => {
+            const delta = perLine.get(pos.line);
+            if (delta === undefined) return pos;
+            if (delta > 0) {
+                return { line: pos.line, character: pos.character === 0 ? 0 : pos.character + delta };
+            }
+            return { line: pos.line, character: Math.max(0, pos.character + delta) };
+        };
+        const anchor = remap(sel.anchor);
+        const active = remap(sel.active);
+        return createSelection(anchor.line, anchor.character, active.line, active.character);
+    }
+
     // ─── Auto-expand ────────────────────────────────────────
 
     /**
@@ -855,7 +1158,20 @@ export class EditorViewState {
      */
     public revealRange(range: IRange): void {
         this.ensureLineVisible(range.start.line);
+        this.ensureLineVisible(range.end.line);
         this.revealPosition(range.start);
+    }
+
+    /**
+     * Ensures the primary cursor is visible: expands any collapsed region hiding
+     * its line, then scrolls it into view. Used after a folding recompute that
+     * may have re-collapsed a region around the just-edited line, so the caret
+     * (and the text under it) stays visible — VS Code keeps the edited line shown.
+     */
+    public ensurePrimaryCursorVisible(): void {
+        if (this.selections.length === 0) return;
+        this.ensureLineVisible(this.selections[0].active.line);
+        this.ensureCursorVisible();
     }
 
     /** Number of logical lines in the underlying document. */
@@ -891,6 +1207,9 @@ export class EditorViewState {
      */
     public restoreSelections(selections: readonly ISelection[]): void {
         this.selections = [...selections];
+        // Undo/redo may restore the caret into a region that is still collapsed;
+        // reveal it (like goToPosition) rather than leaving it on a hidden line.
+        if (this.selections.length > 0) this.ensureLineVisible(this.selections[0].active.line);
         this.ensureCursorVisible();
     }
 
@@ -906,7 +1225,9 @@ export class EditorViewState {
         if (this.viewportWidth <= 0 || this.viewportHeight <= 0) return;
 
         const visualLine = this.logicalToVisualLine(pos.line);
+        /* v8 ignore start -- callers (goToPosition/revealRange/restoreSelections) expand folds before revealing, so a hidden line never reaches here */
         if (visualLine < 0) return;
+        /* v8 ignore stop */
 
         // Keep `margin` lines between the cursor and the top/bottom edge so the
         // cursor "steps back" from the edge (VS Code's `cursorSurroundingLines`).
@@ -1025,8 +1346,11 @@ export class EditorViewState {
     /**
      * Adjusts folding region boundaries after document edits.
      * Processes edits in reverse document order to avoid cascading adjustments.
+     * Public because {@link UndoManager} applies edits straight to the document
+     * (bypassing {@link applyEdits}) and must shift regions the same way, so the
+     * subsequent recompute re-keys collapsed state by the correct `startLine`.
      */
-    private adjustFoldingRegionsForEdits(edits: readonly ITextEdit[]): void {
+    public adjustFoldingRegionsForEdits(edits: readonly ITextEdit[]): void {
         // Sort edits in reverse document order (bottom-to-top)
         const sorted = [...edits].sort((a, b) => comparePositions(b.range.start, a.range.start));
 
@@ -1192,6 +1516,21 @@ export class EditorViewState {
     public cloneSelections(): ISelection[] {
         return this.selections.map((s) => ({ ...s, anchor: { ...s.anchor }, active: { ...s.active } }));
     }
+}
+
+/**
+ * Number of leading characters to strip to remove one indent level from a line:
+ * a single leading tab, or up to `tabSize` leading spaces (fewer if the run is
+ * shorter). Returns 0 when the line has no leading whitespace.
+ */
+function computeOutdentRemoval(content: string, tabSize: number): number {
+    if (content.length === 0) return 0;
+    if (content[0] === "\t") return 1;
+    let count = 0;
+    while (count < tabSize && content[count] === " ") {
+        count++;
+    }
+    return count;
 }
 
 // ─── Word Boundary Helpers ──────────────────────────────────
