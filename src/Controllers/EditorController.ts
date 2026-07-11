@@ -678,6 +678,8 @@ export class EditorController extends Disposable implements IController {
         this.editor.occurrenceHighlightBackground = theme.getColor("editor.wordHighlightBackground");
         this.editor.menuTheme = theme;
         this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
+        this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");
+        this.editor.indentGuideActiveForeground = theme.getColor("editorIndentGuide.activeBackground1");
     }
 
     /**

@@ -9,8 +9,8 @@ import { EditorViewState } from "./EditorViewState.ts";
 import { createFoldingRegion } from "./IFoldingRegion.ts";
 import { TextDocument } from "./TextDocument.ts";
 
-const CHEVRON_EXPANDED = "";
-const CHEVRON_COLLAPSED = "";
+const CHEVRON_EXPANDED = "\ueab4"; //  nf-cod-chevron_down
+const CHEVRON_COLLAPSED = "\ueab6"; //  nf-cod-chevron_right
 const COLLAPSED_MARKER = "⋯";
 
 function createEditor(
@@ -43,23 +43,20 @@ describe("EditorElement – folding gutter", () => {
     it("draws a down chevron on an expanded region header", () => {
         const { app, editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2 }]);
         app.render();
-        const gw = editor.gutterWidth;
-        expect(app.backend.getTextAt(new Point(gw - 1, 0), 1)).toBe(CHEVRON_EXPANDED);
+        expect(app.backend.getTextAt(new Point(editor.foldControlColumn, 0), 1)).toBe(CHEVRON_EXPANDED);
     });
 
     it("draws a right chevron on a collapsed region header", () => {
         const { app, editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2, collapsed: true }]);
         app.render();
-        const gw = editor.gutterWidth;
-        expect(app.backend.getTextAt(new Point(gw - 1, 0), 1)).toBe(CHEVRON_COLLAPSED);
+        expect(app.backend.getTextAt(new Point(editor.foldControlColumn, 0), 1)).toBe(CHEVRON_COLLAPSED);
     });
 
     it("leaves a blank separator on non-foldable lines", () => {
         const { app, editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2 }]);
         app.render();
-        const gw = editor.gutterWidth;
         // Line 3 ("d") is not a header.
-        expect(app.backend.getTextAt(new Point(gw - 1, 3), 1)).toBe(" ");
+        expect(app.backend.getTextAt(new Point(editor.foldControlColumn, 3), 1)).toBe(" ");
     });
 
     it("draws the collapsed marker after the header content and hides the body", () => {
@@ -93,38 +90,34 @@ describe("EditorElement – folding gutter", () => {
 describe("EditorElement – folding mouse toggle", () => {
     it("toggles a region when its gutter chevron is clicked", () => {
         const { editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2 }]);
-        const gw = editor.gutterWidth;
         expect(editor.viewState.foldedRegions[0].isCollapsed).toBe(false);
 
-        fireMouseDown(editor, gw - 1, 0);
+        fireMouseDown(editor, editor.foldControlColumn, 0);
         expect(editor.viewState.foldedRegions[0].isCollapsed).toBe(true);
 
-        fireMouseDown(editor, gw - 1, 0);
+        fireMouseDown(editor, editor.foldControlColumn, 0);
         expect(editor.viewState.foldedRegions[0].isCollapsed).toBe(false);
     });
 
     it("does not move the cursor when toggling via the gutter", () => {
         const { editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2 }]);
-        const gw = editor.gutterWidth;
-        fireMouseDown(editor, gw - 1, 0);
+        fireMouseDown(editor, editor.foldControlColumn, 0);
         const sel = editor.viewState.selections[0];
         expect(sel.active).toEqual({ line: 0, character: 0 });
     });
 
     it("places the cursor normally when the gutter column is not a header", () => {
         const { editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2 }]);
-        const gw = editor.gutterWidth;
         // Row 3 ("d") is not a header — clicking the fold column falls back to cursor placement.
-        fireMouseDown(editor, gw - 1, 3);
+        fireMouseDown(editor, editor.foldControlColumn, 3);
         expect(editor.viewState.foldedRegions[0].isCollapsed).toBe(false);
         expect(editor.viewState.selections[0].active.line).toBe(3);
     });
 
     it("ignores a fold-column click below the last line", () => {
         const { editor } = createEditor("a\n  b\n  c\nd", [{ start: 0, end: 2 }], 20, 8);
-        const gw = editor.gutterWidth;
         // Row 6 is past the 4-line document — no region toggles, no throw.
-        fireMouseDown(editor, gw - 1, 6);
+        fireMouseDown(editor, editor.foldControlColumn, 6);
         expect(editor.viewState.foldedRegions[0].isCollapsed).toBe(false);
     });
 });

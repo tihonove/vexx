@@ -284,8 +284,8 @@ describe("EditorController", () => {
             ctrl.openFile(writeFile("a.txt", "foo foo"));
             ctrl.viewState.selections = [createCursorSelection(0, 0)];
 
-            // gutterWidth = 4 (2 pad + 1 digit + 1 sep); content col 0 is the first "foo".
-            expect(renderRow0Bg(ctrl, 4)).toBe(OCCURRENCE_BG);
+            // gutterWidth = 6 (2 pad + 1 digit + 3 fold margin); content col 0 is the first "foo".
+            expect(renderRow0Bg(ctrl, 6)).toBe(OCCURRENCE_BG);
         });
 
         it("stops highlighting once disabled via setOccurrenceHighlightEnabled", () => {

@@ -16,33 +16,36 @@ function createEditor(text: string, width = 30, height = 10): { app: TestApp; ed
     return { app, editor };
 }
 
+// The gutter reserves a 3-column fold margin after the digits: a blank gap, the
+// fold-control column (chevron on foldable headers), and a blank gap before text.
+
 // ─── gutterWidth ────────────────────────────────────────────
 
 describe("gutterWidth", () => {
-    it("returns GUTTER_LEFT_PADDING + 1 digit + 1 separator for 1–9 lines", () => {
+    it("returns GUTTER_LEFT_PADDING + 1 digit + 3 fold margin for 1–9 lines", () => {
         const { editor } = createEditor("a\nb\nc");
-        // 3 lines → 1 digit → 2 + 1 + 1 = 4
-        expect(editor.gutterWidth).toBe(4);
+        // 3 lines → 1 digit → 2 + 1 + 3 = 6
+        expect(editor.gutterWidth).toBe(6);
     });
 
-    it("returns GUTTER_LEFT_PADDING + 2 digits + 1 separator for 10–99 lines", () => {
+    it("returns GUTTER_LEFT_PADDING + 2 digits + 3 fold margin for 10–99 lines", () => {
         const lines = Array.from({ length: 15 }, (_, i) => `line ${String(i + 1)}`).join("\n");
         const { editor } = createEditor(lines);
-        // 15 lines → 2 digits → 2 + 2 + 1 = 5
-        expect(editor.gutterWidth).toBe(5);
+        // 15 lines → 2 digits → 2 + 2 + 3 = 7
+        expect(editor.gutterWidth).toBe(7);
     });
 
-    it("returns GUTTER_LEFT_PADDING + 3 digits + 1 separator for 100–999 lines", () => {
+    it("returns GUTTER_LEFT_PADDING + 3 digits + 3 fold margin for 100–999 lines", () => {
         const lines = Array.from({ length: 100 }, (_, i) => String(i)).join("\n");
         const { editor } = createEditor(lines);
-        // 100 lines → 3 digits → 2 + 3 + 1 = 6
-        expect(editor.gutterWidth).toBe(6);
+        // 100 lines → 3 digits → 2 + 3 + 3 = 8
+        expect(editor.gutterWidth).toBe(8);
     });
 
     it("returns at least 1 digit for a single-line document", () => {
         const { editor } = createEditor("hello");
-        // 1 line → 1 digit → 2 + 1 + 1 = 4
-        expect(editor.gutterWidth).toBe(4);
+        // 1 line → 1 digit → 2 + 1 + 3 = 6
+        expect(editor.gutterWidth).toBe(6);
     });
 });
 
@@ -54,13 +57,13 @@ describe("gutter rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // gutterWidth = 4 (2 pad + 1 digit + 1 sep)
-        // Row 0: "  1 AAA        "
-        // Row 1: "  2 BBB        "
-        // Row 2: "  3 CCC        "
-        expect(backend.getTextAt(new Point(0, 0), 4)).toBe("  1 ");
-        expect(backend.getTextAt(new Point(0, 1), 4)).toBe("  2 ");
-        expect(backend.getTextAt(new Point(0, 2), 4)).toBe("  3 ");
+        // gutterWidth = 6 (2 pad + 1 digit + 3 fold margin)
+        // Row 0: "  1   AAA      "
+        // Row 1: "  2   BBB      "
+        // Row 2: "  3   CCC      "
+        expect(backend.getTextAt(new Point(0, 0), 6)).toBe("  1   ");
+        expect(backend.getTextAt(new Point(0, 1), 6)).toBe("  2   ");
+        expect(backend.getTextAt(new Point(0, 2), 6)).toBe("  3   ");
     });
 
     it("pads line numbers for multi-digit counts", () => {
@@ -69,11 +72,11 @@ describe("gutter rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // gutterWidth = 5 (2 pad + 2 digits + 1 sep)
-        expect(backend.getTextAt(new Point(0, 0), 5)).toBe("   1 ");
-        expect(backend.getTextAt(new Point(0, 8), 5)).toBe("   9 ");
-        expect(backend.getTextAt(new Point(0, 9), 5)).toBe("  10 ");
-        expect(backend.getTextAt(new Point(0, 11), 5)).toBe("  12 ");
+        // gutterWidth = 7 (2 pad + 2 digits + 3 fold margin)
+        expect(backend.getTextAt(new Point(0, 0), 7)).toBe("   1   ");
+        expect(backend.getTextAt(new Point(0, 8), 7)).toBe("   9   ");
+        expect(backend.getTextAt(new Point(0, 9), 7)).toBe("  10   ");
+        expect(backend.getTextAt(new Point(0, 11), 7)).toBe("  12   ");
     });
 
     it("renders empty gutter and content past end of document (no tildes)", () => {
@@ -82,10 +85,10 @@ describe("gutter rendering", () => {
 
         const backend = app.backend;
         // Lines 0,1 have content; lines 2,3,4 should be fully blank (no vim-style tildes)
-        // gutterWidth = 4
-        expect(backend.getTextAt(new Point(0, 2), 5)).toBe("     ");
-        expect(backend.getTextAt(new Point(0, 3), 5)).toBe("     ");
-        expect(backend.getTextAt(new Point(0, 4), 5)).toBe("     ");
+        // gutterWidth = 6
+        expect(backend.getTextAt(new Point(0, 2), 6)).toBe("      ");
+        expect(backend.getTextAt(new Point(0, 3), 6)).toBe("      ");
+        expect(backend.getTextAt(new Point(0, 4), 6)).toBe("      ");
     });
 
     it("renders content shifted right by gutterWidth", () => {
@@ -93,8 +96,8 @@ describe("gutter rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // gutterWidth = 4
-        expect(backend.getTextAt(new Point(4, 0), 5)).toBe("Hello");
+        // gutterWidth = 6
+        expect(backend.getTextAt(new Point(6, 0), 5)).toBe("Hello");
     });
 
     it("full screen rendering matches expected layout", () => {
@@ -102,10 +105,10 @@ describe("gutter rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // gutterWidth = 4
-        expect(backend.getTextAt(new Point(0, 0), 10)).toBe("  1 AB    ");
-        expect(backend.getTextAt(new Point(0, 1), 10)).toBe("  2 CD    ");
-        expect(backend.getTextAt(new Point(0, 2), 10)).toBe("  3 EF    ");
+        // gutterWidth = 6
+        expect(backend.getTextAt(new Point(0, 0), 10)).toBe("  1   AB  ");
+        expect(backend.getTextAt(new Point(0, 1), 10)).toBe("  2   CD  ");
+        expect(backend.getTextAt(new Point(0, 2), 10)).toBe("  3   EF  ");
         expect(backend.getTextAt(new Point(0, 3), 10)).toBe("          ");
         expect(backend.getTextAt(new Point(0, 4), 10)).toBe("          ");
     });
@@ -144,8 +147,8 @@ describe("gutter colors", () => {
         app.render();
 
         const backend = app.backend;
-        // All gutter columns (0..3) should have gutBg
-        for (let x = 0; x < 4; x++) {
+        // All gutter columns (0..5) should have gutBg
+        for (let x = 0; x < 6; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(gutBg);
             expect(backend.getBgAt(new Point(x, 1))).toBe(gutBg);
         }
@@ -159,9 +162,9 @@ describe("gutter colors", () => {
         app.render();
 
         const backend = app.backend;
-        // Content starts at gutterWidth = 4
-        expect(backend.getBgAt(new Point(4, 0))).toBe(editorBg);
-        expect(backend.getBgAt(new Point(5, 0))).toBe(editorBg);
+        // Content starts at gutterWidth = 6
+        expect(backend.getBgAt(new Point(6, 0))).toBe(editorBg);
+        expect(backend.getBgAt(new Point(7, 0))).toBe(editorBg);
     });
 
     it("uses editor resolved style fg for text", () => {
@@ -171,8 +174,8 @@ describe("gutter colors", () => {
         app.render();
 
         const backend = app.backend;
-        // "H" at column 4 (gutterWidth)
-        expect(backend.getFgAt(new Point(4, 0))).toBe(editorFg);
+        // "H" at column 6 (gutterWidth)
+        expect(backend.getFgAt(new Point(6, 0))).toBe(editorFg);
     });
 
     it("defaults gutter bg to editor bg when gutterBackground is not set", () => {
@@ -210,8 +213,8 @@ describe("content area rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // gutterWidth = 4, content starts at 4
-        expect(backend.getTextAt(new Point(4, 0), 11)).toBe("Hello World");
+        // gutterWidth = 6, content starts at 6
+        expect(backend.getTextAt(new Point(6, 0), 11)).toBe("Hello World");
     });
 
     it("fills remaining space with spaces for short lines", () => {
@@ -219,9 +222,9 @@ describe("content area rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // gutterWidth = 4, content area = 8 cols
+        // gutterWidth = 6, content area = 6 cols
         // "Hi" takes 2 chars, rest should be spaces
-        expect(backend.getTextAt(new Point(4, 0), 8)).toBe("Hi      ");
+        expect(backend.getTextAt(new Point(6, 0), 6)).toBe("Hi    ");
     });
 
     it("handles empty document", () => {
@@ -229,10 +232,10 @@ describe("content area rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // Line 0: "  1 " gutter + empty content
-        expect(backend.getTextAt(new Point(0, 0), 4)).toBe("  1 ");
+        // Line 0: "  1   " gutter + empty content
+        expect(backend.getTextAt(new Point(0, 0), 6)).toBe("  1   ");
         // Past end: fully blank, no tildes
-        expect(backend.getTextAt(new Point(4, 1), 1)).toBe(" ");
+        expect(backend.getTextAt(new Point(6, 1), 1)).toBe(" ");
     });
 
     it("correctly shows selection background in content area", () => {
@@ -243,11 +246,11 @@ describe("content area rendering", () => {
         app.render();
 
         const backend = app.backend;
-        // "ello" should have selection bg at columns 4+1..4+4 = 5,6,7,8
-        expect(backend.getBgAt(new Point(5, 0))).toBe(selBg);
-        expect(backend.getBgAt(new Point(6, 0))).toBe(selBg);
+        // "ello" should have selection bg at columns 6+1..6+4 = 7,8,9,10
         expect(backend.getBgAt(new Point(7, 0))).toBe(selBg);
         expect(backend.getBgAt(new Point(8, 0))).toBe(selBg);
+        expect(backend.getBgAt(new Point(9, 0))).toBe(selBg);
+        expect(backend.getBgAt(new Point(10, 0))).toBe(selBg);
     });
 });
 
@@ -258,17 +261,17 @@ describe("scrolling", () => {
 
     describe("vertical scroll", () => {
         it("shows correct line numbers after scrolling down", () => {
-            // 10 lines, viewport height = 4 → gutterWidth = 5 (2+2+1)
+            // 10 lines, viewport height = 4 → gutterWidth = 7 (2+2+3)
             const { app, editor } = createEditor(tenLines, 20, 4);
             editor.viewState.scrollTop = 3;
             app.render();
 
             const backend = app.backend;
             // Visible lines: 4,5,6,7 (0-indexed: 3,4,5,6)
-            expect(backend.getTextAt(new Point(0, 0), 5)).toBe("   4 ");
-            expect(backend.getTextAt(new Point(0, 1), 5)).toBe("   5 ");
-            expect(backend.getTextAt(new Point(0, 2), 5)).toBe("   6 ");
-            expect(backend.getTextAt(new Point(0, 3), 5)).toBe("   7 ");
+            expect(backend.getTextAt(new Point(0, 0), 7)).toBe("   4   ");
+            expect(backend.getTextAt(new Point(0, 1), 7)).toBe("   5   ");
+            expect(backend.getTextAt(new Point(0, 2), 7)).toBe("   6   ");
+            expect(backend.getTextAt(new Point(0, 3), 7)).toBe("   7   ");
         });
 
         it("shows correct content after scrolling down", () => {
@@ -277,9 +280,9 @@ describe("scrolling", () => {
             app.render();
 
             const backend = app.backend;
-            // gutterWidth = 5
-            expect(backend.getTextAt(new Point(5, 0), 5)).toBe("Line4");
-            expect(backend.getTextAt(new Point(5, 1), 5)).toBe("Line5");
+            // gutterWidth = 7
+            expect(backend.getTextAt(new Point(7, 0), 5)).toBe("Line4");
+            expect(backend.getTextAt(new Point(7, 1), 5)).toBe("Line5");
         });
 
         it("shows blank rows when scrolled near end of document", () => {
@@ -289,11 +292,11 @@ describe("scrolling", () => {
 
             const backend = app.backend;
             // Lines 9,10 are visible + 2 rows past end
-            expect(backend.getTextAt(new Point(0, 0), 5)).toBe("   9 ");
-            expect(backend.getTextAt(new Point(0, 1), 5)).toBe("  10 ");
+            expect(backend.getTextAt(new Point(0, 0), 7)).toBe("   9   ");
+            expect(backend.getTextAt(new Point(0, 1), 7)).toBe("  10   ");
             // Past end — fully blank gutter + content, no tildes
-            expect(backend.getTextAt(new Point(0, 2), 6)).toBe("      ");
-            expect(backend.getTextAt(new Point(0, 3), 6)).toBe("      ");
+            expect(backend.getTextAt(new Point(0, 2), 7)).toBe("       ");
+            expect(backend.getTextAt(new Point(0, 3), 7)).toBe("       ");
         });
 
         it("highlights active line number after scroll", () => {
@@ -319,13 +322,13 @@ describe("scrolling", () => {
     describe("horizontal scroll", () => {
         it("shows correct content after horizontal scroll", () => {
             const { app, editor } = createEditor("ABCDEFGHIJKLMNOP", 12, 2);
-            // gutterWidth = 4, contentCols = 8
+            // gutterWidth = 6, contentCols = 6
             editor.viewState.scrollLeft = 3;
             app.render();
 
             const backend = app.backend;
             // Content shifts: scrollLeft=3, so first visible char at docChar=3 → "D"
-            expect(backend.getTextAt(new Point(4, 0), 8)).toBe("DEFGHIJK");
+            expect(backend.getTextAt(new Point(6, 0), 6)).toBe("DEFGHI");
         });
 
         it("gutter is not affected by horizontal scroll", () => {
@@ -334,19 +337,19 @@ describe("scrolling", () => {
             app.render();
 
             const backend = app.backend;
-            // Gutter still shows "  1 " regardless of horizontal scroll
-            expect(backend.getTextAt(new Point(0, 0), 4)).toBe("  1 ");
+            // Gutter still shows "  1   " regardless of horizontal scroll
+            expect(backend.getTextAt(new Point(0, 0), 6)).toBe("  1   ");
         });
 
         it("fills with spaces when scrolled past line content", () => {
             const { app, editor } = createEditor("Hi", 12, 2);
-            // gutterWidth = 4, contentCols = 8
+            // gutterWidth = 6, contentCols = 6
             editor.viewState.scrollLeft = 1;
             app.render();
 
             const backend = app.backend;
             // "Hi" with scrollLeft=1 → visible char at docChar=1 is "i", then spaces
-            expect(backend.getTextAt(new Point(4, 0), 8)).toBe("i       ");
+            expect(backend.getTextAt(new Point(6, 0), 6)).toBe("i     ");
         });
     });
 
@@ -354,17 +357,17 @@ describe("scrolling", () => {
         it("applies both scroll offsets correctly", () => {
             const lines = Array.from({ length: 10 }, (_, i) => `ABCDEFGH_${String(i + 1)}`).join("\n");
             const { app, editor } = createEditor(lines, 16, 3);
-            // gutterWidth = 5 (2+2+1), contentCols = 11
+            // gutterWidth = 7 (2+2+3), contentCols = 9
             editor.viewState.scrollTop = 4;
             editor.viewState.scrollLeft = 2;
             app.render();
 
             const backend = app.backend;
             // Line numbers: 5,6,7
-            expect(backend.getTextAt(new Point(0, 0), 5)).toBe("   5 ");
-            expect(backend.getTextAt(new Point(0, 1), 5)).toBe("   6 ");
+            expect(backend.getTextAt(new Point(0, 0), 7)).toBe("   5   ");
+            expect(backend.getTextAt(new Point(0, 1), 7)).toBe("   6   ");
             // Content of line 5 ("ABCDEFGH_5") scrollLeft=2 → "CDEFGH_5"
-            expect(backend.getTextAt(new Point(5, 0), 8)).toBe("CDEFGH_5");
+            expect(backend.getTextAt(new Point(7, 0), 8)).toBe("CDEFGH_5");
         });
     });
 });
