@@ -834,6 +834,122 @@ export class EditorViewState {
         return undefined;
     }
 
+    // ─── Indentation ────────────────────────────────────────
+
+    /**
+     * Increases the indentation of the current selections (Tab).
+     *
+     * With a collapsed cursor or a single-line selection this inserts one
+     * indent unit at the cursor (replacing the selection) — identical to typing.
+     * With a selection spanning multiple lines it prepends one indent unit to
+     * every touched line and keeps the selection covering them.
+     */
+    public indentLines(): IUndoElement | undefined {
+        const spansMultipleLines = this.selections.some((sel) => {
+            const range = selectionToRange(sel);
+            return range.start.line !== range.end.line;
+        });
+        if (!spansMultipleLines) {
+            return this.type(this.indentUnit());
+        }
+        return this.shiftIndent(1);
+    }
+
+    /**
+     * Decreases the indentation of every line touched by a selection (Shift+Tab),
+     * removing up to one indent level of leading whitespace from each. Operates
+     * on the cursor's line when the selection is collapsed. Returns `undefined`
+     * when no line has leading whitespace to remove.
+     */
+    public outdentLines(): IUndoElement | undefined {
+        return this.shiftIndent(-1);
+    }
+
+    private indentUnit(): string {
+        return this.insertSpaces ? " ".repeat(this.tabSize) : "\t";
+    }
+
+    /**
+     * Shifts the leading indentation of the touched lines one level in the given
+     * direction (+1 indent, −1 outdent), applying the edits as a single undoable
+     * operation and remapping the selections to follow the shifted text.
+     */
+    private shiftIndent(direction: 1 | -1): IUndoElement | undefined {
+        const unit = this.indentUnit();
+        const perLine = new Map<number, number>();
+        const edits: ITextEdit[] = [];
+        for (const line of this.collectTouchedLines()) {
+            if (direction === 1) {
+                edits.push(createTextEdit(createRange(line, 0, line, 0), unit));
+                perLine.set(line, unit.length);
+            } else {
+                const removed = computeOutdentRemoval(this.document.getLineContent(line), this.tabSize);
+                if (removed > 0) {
+                    edits.push(createTextEdit(createRange(line, 0, line, removed), ""));
+                    perLine.set(line, -removed);
+                }
+            }
+        }
+
+        if (edits.length === 0) return undefined;
+
+        const beforeSelections = this.cloneSelections();
+        const versionBefore = this.document.versionId;
+        const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
+        this.adjustFoldingRegionsForEdits(edits);
+        this.selections = this.selections.map((sel) => this.remapSelectionForIndent(sel, perLine));
+        this.ensureCursorVisible();
+        return {
+            label: direction === 1 ? "indent" : "outdent",
+            versionBefore,
+            versionAfter: appliedVersion,
+            forwardEdits: edits,
+            backwardEdits: inverseEdits,
+            beforeSelections,
+            afterSelections: this.cloneSelections(),
+        };
+    }
+
+    /**
+     * Collects the logical lines touched by any selection, in ascending order.
+     * A selection whose end sits at column 0 of a later line does not pull that
+     * trailing line in (matches VS Code — the empty tail is excluded).
+     */
+    private collectTouchedLines(): number[] {
+        const lines = new Set<number>();
+        for (const sel of this.selections) {
+            const range = selectionToRange(sel);
+            let endLine = range.end.line;
+            if (endLine > range.start.line && range.end.character === 0) {
+                endLine--;
+            }
+            for (let line = range.start.line; line <= endLine; line++) {
+                lines.add(line);
+            }
+        }
+        return [...lines].sort((a, b) => a - b);
+    }
+
+    /**
+     * Remaps a selection after an indent/outdent, shifting each endpoint on an
+     * edited line by that line's delta. Line-start endpoints stay anchored at
+     * column 0 on indent; on outdent an endpoint inside the removed run clamps
+     * to the new line start.
+     */
+    private remapSelectionForIndent(sel: ISelection, perLine: Map<number, number>): ISelection {
+        const remap = (pos: IPosition): IPosition => {
+            const delta = perLine.get(pos.line);
+            if (delta === undefined) return pos;
+            if (delta > 0) {
+                return { line: pos.line, character: pos.character === 0 ? 0 : pos.character + delta };
+            }
+            return { line: pos.line, character: Math.max(0, pos.character + delta) };
+        };
+        const anchor = remap(sel.anchor);
+        const active = remap(sel.active);
+        return createSelection(anchor.line, anchor.character, active.line, active.character);
+    }
+
     // ─── Auto-expand ────────────────────────────────────────
 
     /**
@@ -1192,6 +1308,21 @@ export class EditorViewState {
     public cloneSelections(): ISelection[] {
         return this.selections.map((s) => ({ ...s, anchor: { ...s.anchor }, active: { ...s.active } }));
     }
+}
+
+/**
+ * Number of leading characters to strip to remove one indent level from a line:
+ * a single leading tab, or up to `tabSize` leading spaces (fewer if the run is
+ * shorter). Returns 0 when the line has no leading whitespace.
+ */
+function computeOutdentRemoval(content: string, tabSize: number): number {
+    if (content.length === 0) return 0;
+    if (content[0] === "\t") return 1;
+    let count = 0;
+    while (count < tabSize && content[count] === " ") {
+        count++;
+    }
+    return count;
 }
 
 // ─── Word Boundary Helpers ──────────────────────────────────

@@ -27,6 +27,8 @@ import {
     deleteRightAction,
     deleteWordLeftAction,
     deleteWordRightAction,
+    indentLinesAction,
+    outdentLinesAction,
     redoAction,
     selectAllAction,
     undoAction,
@@ -112,8 +114,15 @@ describe("EditorEditActions — deletion mutates the real document", () => {
         const commands = new CommandRegistry();
         const accessor = new Container();
         accessor.bind(EditorGroupControllerDIToken, () => ctrl);
-        // Cover the `if (editor)` false branch of every delete action (lines 27-53).
-        for (const action of [deleteLeftAction, deleteRightAction, deleteWordLeftAction, deleteWordRightAction]) {
+        // Cover the `if (editor)` false branch of every editing action.
+        for (const action of [
+            deleteLeftAction,
+            deleteRightAction,
+            deleteWordLeftAction,
+            deleteWordRightAction,
+            indentLinesAction,
+            outdentLinesAction,
+        ]) {
             registerAction(commands, new KeybindingRegistry(), accessor, action);
             expect(() => commands.execute(action.id)).not.toThrow();
         }
@@ -130,6 +139,45 @@ describe("EditorEditActions — deletion mutates the real document", () => {
         editor.viewState.selections = [createCursorSelection(0, 4)];
         exec(deleteWordRightAction);
         expect(editor.getText()).toBe("word");
+    });
+});
+
+describe("EditorEditActions — indent / outdent", () => {
+    it("indentLines inserts a tab at a collapsed cursor", () => {
+        const { editor, exec } = openEditor("hello");
+        editor.viewState.selections = [createCursorSelection(0, 0)];
+        exec(indentLinesAction);
+        expect(editor.getText()).toBe("\thello");
+    });
+
+    it("indentLines prepends indent to every line of a multi-line selection", () => {
+        const { editor, exec } = openEditor("aa\nbb");
+        editor.viewState.selections = [createSelection(0, 0, 1, 2)];
+        exec(indentLinesAction);
+        expect(editor.getText()).toBe("\taa\n\tbb");
+    });
+
+    it("outdentLines removes one indent level from the cursor's line", () => {
+        const { editor, exec } = openEditor("\thello");
+        editor.viewState.selections = [createCursorSelection(0, 3)];
+        exec(outdentLinesAction);
+        expect(editor.getText()).toBe("hello");
+    });
+
+    it("outdentLines is a safe no-op on an unindented line", () => {
+        const { editor, exec } = openEditor("hello");
+        editor.viewState.selections = [createCursorSelection(0, 0)];
+        exec(outdentLinesAction);
+        expect(editor.getText()).toBe("hello");
+    });
+
+    it("outdent then undo restores the removed indentation", () => {
+        const { editor, exec } = openEditor("\thello");
+        editor.viewState.selections = [createCursorSelection(0, 3)];
+        exec(outdentLinesAction);
+        expect(editor.getText()).toBe("hello");
+        exec(undoAction);
+        expect(editor.getText()).toBe("\thello");
     });
 });
 

@@ -78,6 +78,34 @@ export const redoAction: CommandAction = {
     },
 };
 
+// ─── Indentation ────────────────────────────────────────────
+
+export const indentLinesAction: CommandAction = {
+    id: "editor.action.indentLines",
+    title: "Indent Line(s)",
+    keybinding: parseKeybinding("tab"),
+    when: "textInputFocus",
+    run(accessor) {
+        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        if (editor) {
+            editor.pushUndo(editor.viewState.indentLines());
+        }
+    },
+};
+
+export const outdentLinesAction: CommandAction = {
+    id: "editor.action.outdentLines",
+    title: "Outdent Line(s)",
+    keybinding: parseKeybinding("shift+tab"),
+    when: "textInputFocus",
+    run(accessor) {
+        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        if (editor) {
+            editor.pushUndo(editor.viewState.outdentLines());
+        }
+    },
+};
+
 // ─── Selection ──────────────────────────────────────────────
 
 export const selectAllAction: CommandAction = {
