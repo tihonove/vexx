@@ -5,7 +5,7 @@ Vexx — терминальный текстовый редактор (клон 
 - docs/ARCHITECTURE.md — слои, каталоги src/, правила зависимостей (единственный источник правды)
 - docs/DI.md — справочник по DI-контейнеру (токены, модули, профили)
 - docs/LAYOUT.md — система layout и позиционирования в TUIDom
-- docs/TESTING.md — как тестировать каждый слой
+- docs/TESTING.md — как тестировать каждый слой; скриншот-демо для визуальных фич
 - docs/TODO/ — трекер задач (индекс — README.md)
 
 # Трекер задач
@@ -49,6 +49,16 @@ Vexx — терминальный текстовый редактор (клон 
 - `fix: correct Bash command syntax in settings.json` → `chore: correct Bash command syntax in settings.json` (это конфиг)
 - `fix: update nightly release process` → `ci: update nightly release process` (это workflow)
 - `fix: correct import order and syntax in various files` → `style: fix import order and lint issues` (это линт/форматирование, а не баг)
+
+# Скриншот-демо для визуальных фич
+
+Любая фича с видимой/внешней составляющей (новый виджет, оверлей, изменение layout, темизации, статус-бара, дерева файлов и т.п.) обязана принести **сценарий-демо и скриншот в PR**:
+
+1. Добавь или обнови сценарий в `e2e/scenarios/` (`*.scenario.ts`) — код, который поднимает настоящий редактор headless, шлёт нужные команды и снимает кадр(ы). Формат — `defineScenario({ name, open, run })`; за образец возьми `e2e/scenarios/quickOpen.scenario.ts`.
+2. Прогони `npm run screenshots` — сгенерит PNG в `screenshots/` (каталог в `.gitignore`) + `screenshots/INDEX.md`.
+3. Приложи получившиеся PNG к телу PR.
+
+Подробности и как это гоняется в CI — docs/TESTING.md (раздел «E2E → Скриншот-демо»).
 
 # Файловая структура
 Файлы с тестам не должны быть слишком большими -- у нас может быть много кейсов поэтому надо писать тесты не в одном 

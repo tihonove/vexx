@@ -18,6 +18,7 @@
     "demo:renderer": "node src/demos/rendererDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
     "story": "tsx src/StoryRunner/run.ts",
+    "screenshots": "tsx e2e/scenarios/generate.ts",
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",
     "test": "vitest run",
@@ -31,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^25.5.2",
     "@types/ws": "^8.18.1",
     "@types/yauzl": "^3.4.0",
