@@ -157,6 +157,25 @@ describe("FileTreeController", () => {
         expect(output).toContain("src");
         expect(output).toContain("README.md");
     });
+
+    it("forwards a provider watch error to the controller's onWatchError", () => {
+        // Провайдер отдаёт ошибку watcher'а (ENOSPC и т.п.) — контроллер обязан
+        // пробросить её наверх через свой onWatchError (см. AppController, где логируют).
+        const seen: { dirPath: string; error: Error }[] = [];
+        controller.onWatchError = (dirPath, error) => {
+            seen.push({ dirPath, error });
+        };
+
+        const provider = (
+            controller as unknown as {
+                provider: { onWatchError?: (dirPath: string, error: Error) => void };
+            }
+        ).provider;
+        const err = new Error("ENOSPC: watch limit reached");
+        provider.onWatchError?.(path.join(tmpDir, "src"), err);
+
+        expect(seen).toEqual([{ dirPath: path.join(tmpDir, "src"), error: err }]);
+    });
 });
 
 describe("FileTreeController — clipboard helpers before a root is assigned", () => {
@@ -166,7 +185,9 @@ describe("FileTreeController — clipboard helpers before a root is assigned", (
         expect(controller.getSelectedPaths()).toEqual([]);
         expect(controller.getPasteTargetDir()).toBeNull();
         // Подсветка «вырезанных» без дерева — no-op, не должна падать.
-        expect(() => controller.setCutPaths(["/x"])).not.toThrow();
+        expect(() => {
+            controller.setCutPaths(["/x"]);
+        }).not.toThrow();
 
         controller.dispose();
     });

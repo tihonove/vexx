@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
+import type { LogEntry } from "../Common/Logging/ILogService.ts";
+import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
+import { LogService } from "../Common/Logging/LogService.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
@@ -521,5 +524,65 @@ describe("AppController — completion wiring", () => {
         ).completionController;
         cc.onExecuteCommand("test.fromCompletion", 42);
         expect(ran).toEqual([42]);
+    });
+});
+
+describe("AppController — file watcher error logging", () => {
+    function createWithCapturedLog(): { controller: AppController; entries: LogEntry[] } {
+        const { container } = createTestContainer();
+        const logService = new LogService();
+        const entries: LogEntry[] = [];
+        logService.onDidAppend((entry) => entries.push(entry));
+        // Перебиваем NULL_LOG_SERVICE до первого get(AppController), чтобы поймать warn.
+        container.bind(ILogServiceDIToken, () => logService);
+
+        const controller = container.get(AppControllerDIToken);
+        controller.mount();
+        return { controller, entries };
+    }
+
+    function fireWatchError(controller: AppController, dirPath: string, error: Error): void {
+        // onWatchError на fileTreeController присвоен в конструкторе AppController —
+        // вызов колбэка эмулирует ошибку watcher'а, всплывшую из провайдера.
+        const ftc = (
+            controller as unknown as {
+                fileTreeController: { onWatchError: (dirPath: string, error: Error) => void };
+            }
+        ).fileTreeController;
+        ftc.onWatchError(dirPath, error);
+    }
+
+    it("logs a warn with an inotify hint for ENOSPC", () => {
+        const { controller, entries } = createWithCapturedLog();
+        const err = Object.assign(new Error("ENOSPC: watch limit reached"), { code: "ENOSPC" });
+
+        fireWatchError(controller, "/repo/src", err);
+
+        expect(entries).toHaveLength(1);
+        const entry = entries[0];
+        expect(entry.channel).toBe("filetree.watcher");
+        expect(entry.message).toContain("increase fs.inotify.max_user_watches");
+        expect(entry.args[0]).toMatchObject({ dirPath: "/repo/src", code: "ENOSPC" });
+    });
+
+    it("logs a warn with an inotify hint for EMFILE", () => {
+        const { controller, entries } = createWithCapturedLog();
+        const err = Object.assign(new Error("EMFILE: too many open files"), { code: "EMFILE" });
+
+        fireWatchError(controller, "/repo/lib", err);
+
+        expect(entries).toHaveLength(1);
+        expect(entries[0].message).toContain("increase fs.inotify.max_user_watches");
+    });
+
+    it("logs a warn without a hint for an unrelated error code", () => {
+        const { controller, entries } = createWithCapturedLog();
+        const err = Object.assign(new Error("EACCES: permission denied"), { code: "EACCES" });
+
+        fireWatchError(controller, "/repo/vendor", err);
+
+        expect(entries).toHaveLength(1);
+        expect(entries[0].message).toBe("file watcher error");
+        expect(entries[0].args[0]).toMatchObject({ dirPath: "/repo/vendor", code: "EACCES" });
     });
 });
