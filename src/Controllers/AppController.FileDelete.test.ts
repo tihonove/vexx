@@ -290,12 +290,10 @@ describe("File tree context menu — right-click opens context menu", () => {
         rightClickRow(tree, 0);
         expect(testApp.querySelector("PopupMenuElement")).not.toBeNull();
 
-        // Menu order is Copy, Cut, (separator), Copy Path, Copy Relative Path, (separator), Delete
-        // — navigate down to Delete (separators are skipped) and activate it.
-        testApp.sendKey("ArrowDown");
-        testApp.sendKey("ArrowDown");
-        testApp.sendKey("ArrowDown");
-        testApp.sendKey("ArrowDown");
+        // Menu order is New File, New Folder, (sep), Copy, Cut, (sep), Copy Path,
+        // Copy Relative Path, (sep), Delete — navigate down to Delete (separators
+        // are skipped) and activate it.
+        for (let i = 0; i < 6; i++) testApp.sendKey("ArrowDown");
         testApp.sendKey("Enter");
         testApp.render();
 
@@ -344,7 +342,12 @@ describe("File tree context menu — right-click opens context menu", () => {
         rightClickRow(tree, 0);
         expect(testApp.focusedElement).not.toBe(tree); // фокус ушёл в меню
 
-        testApp.sendKey("Enter"); // первый пункт — Copy
+        // Активируем безобидный пункт (Copy — 3-й: пропускаем New File, New Folder),
+        // который просто закрывает меню. Первые пункты (New File/New Folder) открыли
+        // бы строковый промпт и увели фокус в него, а не в дерево.
+        testApp.sendKey("ArrowDown"); // New Folder
+        testApp.sendKey("ArrowDown"); // Copy
+        testApp.sendKey("Enter"); // Copy
         testApp.render();
 
         expect(testApp.querySelector("PopupMenuElement")).toBeNull();

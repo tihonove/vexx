@@ -88,7 +88,7 @@ import {
     unfoldAllAction,
     unfoldRecursivelyAction,
 } from "./Actions/FoldingActions.ts";
-import { fileSaveAction, fileSaveAsAction } from "./Actions/FileActions.ts";
+import { fileSaveAction, fileSaveAsAction, newUntitledFileAction } from "./Actions/FileActions.ts";
 import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
 import {
     buildPasteEdits,
@@ -98,6 +98,7 @@ import {
     fileCutAction,
     filePasteAction,
 } from "./Actions/FileTreeClipboardActions.ts";
+import { explorerNewFileAction, explorerNewFolderAction } from "./Actions/FileTreeCreateActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
     inputCopyAction,
@@ -170,6 +171,7 @@ export const AppControllerDIToken = token<AppController>("AppController");
 const builtinActions = [
     // App
     fileSaveAction,
+    newUntitledFileAction,
 
     // Cursor movement
     cursorLeftAction,
@@ -586,6 +588,19 @@ export class AppController extends Disposable implements IController {
                 "File: Save",
             ),
         );
+        // newUntitledFileAction registers the ctrl+n keybinding + placeholder in the
+        // builtinActions loop; override just the command handler here (needs the group).
+        this.register(
+            commands.register(
+                "workbench.action.files.newUntitledFile",
+                () => {
+                    this.editorGroupController.newUntitled();
+                    this.updateContextKeys();
+                    this.statusBarController.update();
+                },
+                "File: New Untitled File",
+            ),
+        );
         this.register(
             commands.register(
                 "workbench.files.action.refreshFilesExplorer",
@@ -710,6 +725,22 @@ export class AppController extends Disposable implements IController {
                 run: () => {
                     const paths = this.fileTreeController.getSelectedPaths();
                     if (paths.length > 0) this.fileClipboard.write(paths, "cut");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...explorerNewFileAction,
+                run: (_a, ...args) => {
+                    void this.runCreate("file", args[0] as string | undefined);
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...explorerNewFolderAction,
+                run: (_a, ...args) => {
+                    void this.runCreate("folder", args[0] as string | undefined);
                 },
             }),
         );
@@ -1172,6 +1203,10 @@ export class AppController extends Disposable implements IController {
                 label: "File",
                 mnemonic: "f",
                 entries: [
+                    item("New Untitled File", "workbench.action.files.newUntitledFile"),
+                    item("New File...", "explorer.newFile"),
+                    item("New Folder...", "explorer.newFolder"),
+                    sep(),
                     item("Save", "workbench.action.files.save"),
                     item("Save As...", "workbench.action.files.saveAs"),
                     sep(),
@@ -1426,6 +1461,11 @@ export class AppController extends Disposable implements IController {
         const editor = this.editorGroupController.getActiveEditor();
         if (editor === null) return;
         const outcome = await editor.save();
+        if (outcome === "no-file") {
+            // Безымянный буфер (Ctrl+N) — пути ещё нет, уводим в Save As.
+            await this.runSaveAs();
+            return;
+        }
         if (outcome === "conflict") {
             /* v8 ignore start -- defensive: editors opened via openFile() always have a file path, so fileName is never null */
             const name = editor.fileName ?? "untitled";
@@ -1462,9 +1502,8 @@ export class AppController extends Disposable implements IController {
         const editor = this.editorGroupController.getActiveEditor();
         if (!editor) return;
 
-        /* v8 ignore start -- defensive: an active editor always has a path today; the fallback covers a future untitled document */
+        // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd/untitled.txt.
         const seed = editor.absoluteFilePath ?? path.join(process.cwd(), editor.fileName ?? "untitled.txt");
-        /* v8 ignore stop */
         const target = await this.quickInputController.input({
             title: "Save As",
             placeholder: "Enter path to save",
@@ -1510,6 +1549,54 @@ export class AppController extends Disposable implements IController {
             return;
         }
         void doSave();
+    }
+
+    /**
+     * New File / New Folder in the explorer (VS Code `explorer.newFile` /
+     * `explorer.newFolder`). Prompts for a name relative to the target directory
+     * (nested paths like `foo/bar.txt` are allowed and create intermediate dirs),
+     * creates it via the undoable {@link WorkspaceEditService}, refreshes and
+     * reveals it in the tree, and — for files — opens it in the editor.
+     */
+    private async runCreate(kind: "file" | "folder", explorerPath?: string): Promise<void> {
+        const targetDir = explorerPath
+            ? fs.statSync(explorerPath).isDirectory()
+                ? explorerPath
+                : path.dirname(explorerPath)
+            : this.fileTreeController.getPasteTargetDir();
+        if (!targetDir) return;
+
+        const name = await this.quickInputController.input({
+            title: kind === "file" ? "New File" : "New Folder",
+            placeholder: kind === "file" ? "Enter file name" : "Enter folder name",
+            value: "",
+            validateInput: (value) => {
+                const trimmed = value.trim();
+                if (trimmed === "") return "Please enter a name";
+                if (path.isAbsolute(trimmed)) return "Please enter a relative name";
+                const segments = trimmed.split(/[\\/]/);
+                if (segments.some((s) => s === "" || s === "." || s === "..")) return "Invalid name";
+                // Сегменты без `.`/`..`/пустых и не абсолютный путь → результат всегда
+                // строго внутри targetDir, отдельная проверка на выход не нужна.
+                const resolved = path.resolve(targetDir, trimmed);
+                if (fs.existsSync(resolved)) return "A file or folder with that name already exists";
+                return null;
+            },
+        });
+        if (name === undefined) return;
+
+        const resolved = path.resolve(targetDir, name.trim());
+        this.workspaceEditService.applyFileEdits(
+            [{ kind: "create", to: resolved, directory: kind === "folder" }],
+            kind === "file" ? "New File" : "New Folder",
+        );
+        await this.fileTreeController.refresh();
+        await this.fileTreeController.revealPath(resolved);
+        if (kind === "file") {
+            this.editorGroupController.openFile(resolved);
+            this.updateContextKeys();
+            this.statusBarController.update();
+        }
     }
 
     /**
@@ -1596,6 +1683,21 @@ export class AppController extends Disposable implements IController {
         this.hideFileTreeContextMenu();
 
         const entries: MenuEntry[] = [
+            {
+                label: "New File...",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("explorer.newFile", filePath);
+                },
+            },
+            {
+                label: "New Folder...",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("explorer.newFolder", filePath);
+                },
+            },
+            { type: "separator" },
             {
                 label: "Copy",
                 shortcut: "Ctrl+C",

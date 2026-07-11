@@ -14,6 +14,17 @@ export const fileSaveAction: CommandAction = {
     /* v8 ignore stop */
 };
 
+export const newUntitledFileAction: CommandAction = {
+    id: "workbench.action.files.newUntitledFile",
+    title: "File: New Untitled File",
+    keybinding: parseKeybinding("ctrl+n"),
+    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime (needs the editor group) */
+    run() {
+        // Overridden in AppController.
+    },
+    /* v8 ignore stop */
+};
+
 export const fileSaveAsAction: CommandAction = {
     id: "workbench.action.files.saveAs",
     title: "File: Save As...",
