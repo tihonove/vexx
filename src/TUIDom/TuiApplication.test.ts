@@ -102,7 +102,7 @@ describe("TuiApplication", () => {
     });
 
     it("clears stale selection background between frames", () => {
-        const backend = new MockTerminalBackend(new Size(10, 3));
+        const backend = new MockTerminalBackend(new Size(12, 3));
         const app = new TuiApplication(backend);
 
         const doc = new TextDocument("hello");

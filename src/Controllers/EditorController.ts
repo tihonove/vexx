@@ -6,6 +6,7 @@ import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
+import { computeIndentationFolds } from "../Editor/FoldingRangeProvider.ts";
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import { createRange } from "../Editor/IRange.ts";
@@ -72,6 +73,9 @@ export class EditorController extends Disposable implements IController {
     private eolChangeListeners: (() => void)[] = [];
     private contentSubscription: IDisposable | null = null;
     private contentChangeListeners: (() => void)[] = [];
+    private foldingSubscription: IDisposable | null = null;
+    private foldingRecomputeScheduled = false;
+    private controllerDisposed = false;
     private filePath: string | null = null;
     private savedVersionId = 0;
     private savedEol: EndOfLine;
@@ -246,6 +250,7 @@ export class EditorController extends Disposable implements IController {
         this.attachUndoRouting();
         this.view = new ScrollBarDecorator(this.editor);
         this.bindDocumentListeners();
+        this.recomputeFoldingRegions();
 
         this.register(
             themeService.onThemeChange((theme) => {
@@ -262,10 +267,12 @@ export class EditorController extends Disposable implements IController {
         );
         this.register({
             dispose: () => {
+                this.controllerDisposed = true;
                 this.languageSubscription?.dispose();
                 this.eolSubscription?.dispose();
                 this.contentSubscription?.dispose();
                 this.fileWatch?.dispose();
+                this.foldingSubscription?.dispose();
             },
         });
         // Очищаем историю отмены этого файла при закрытии вкладки.
@@ -302,6 +309,7 @@ export class EditorController extends Disposable implements IController {
         this.savedEol = this.doc.eol;
         this.diskConflictValue = false;
         this.bindDocumentListeners();
+        this.recomputeFoldingRegions();
     }
 
     public async save(options?: { overwrite?: boolean }): Promise<SaveOutcome> {
@@ -669,6 +677,9 @@ export class EditorController extends Disposable implements IController {
         this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
         this.editor.occurrenceHighlightBackground = theme.getColor("editor.wordHighlightBackground");
         this.editor.menuTheme = theme;
+        this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
+        this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");
+        this.editor.indentGuideActiveForeground = theme.getColor("editorIndentGuide.activeBackground1");
     }
 
     /**
@@ -711,5 +722,111 @@ export class EditorController extends Disposable implements IController {
         this.contentSubscription = this.doc.onDidChangeContent(() => {
             for (const listener of [...this.contentChangeListeners]) listener();
         });
+        this.foldingSubscription?.dispose();
+        this.foldingSubscription = this.doc.onDidChangeContent(() => {
+            this.scheduleFoldingRecompute();
+        });
+    }
+
+    /**
+     * Schedules a folding recompute for after the current edit finishes. The
+     * document fires `onDidChangeContent` mid-edit, *before* the view-state has
+     * shifted existing regions for the change ({@link EditorViewState.adjustFoldingRegionsForEdits}).
+     * Recomputing on a microtask lets that shift land first, so the merge below
+     * reads collapsed regions at their post-edit line numbers. Coalesced so a
+     * burst of edits triggers a single recompute.
+     */
+    private scheduleFoldingRecompute(): void {
+        if (this.foldingRecomputeScheduled) return;
+        this.foldingRecomputeScheduled = true;
+        queueMicrotask(() => {
+            this.foldingRecomputeScheduled = false;
+            if (this.controllerDisposed) return;
+            this.recomputeFoldingRegions();
+        });
+    }
+
+    /**
+     * Recomputes indentation-based folding regions for the current document,
+     * preserving the collapsed state of regions that still start on the same
+     * line. This is the built-in default provider (VS Code recomputes ranges on
+     * every content change the same way); a language/extension-contributed
+     * provider is a future seam.
+     */
+    private recomputeFoldingRegions(): void {
+        const collapsedStarts = new Set<number>();
+        for (const region of this.editorViewState.foldedRegions) {
+            if (region.isCollapsed) collapsedStarts.add(region.startLine);
+        }
+        const computed = computeIndentationFolds(this.doc, this.editorViewState.tabSize);
+        for (const region of computed) {
+            if (collapsedStarts.has(region.startLine)) region.isCollapsed = true;
+        }
+        this.editorViewState.setFoldingRegions(computed);
+        // If the recompute re-collapsed a region around the just-edited line (e.g.
+        // Tab indented the line below a collapsed block into it), keep the caret —
+        // and the text under it — visible, matching VS Code.
+        this.editorViewState.ensurePrimaryCursorVisible();
+        this.editor.markDirty();
+    }
+
+    /** Collapses the innermost region at the primary cursor. */
+    public foldAtCursor(): void {
+        this.editorViewState.foldRegionContaining(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Expands the innermost collapsed region at the primary cursor. */
+    public unfoldAtCursor(): void {
+        this.editorViewState.unfoldRegionContaining(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Toggles the innermost region at the primary cursor. */
+    public toggleFoldAtCursor(): void {
+        this.editorViewState.toggleFoldContaining(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Collapses every folding region in the document. */
+    public foldAll(): void {
+        this.editorViewState.foldAll();
+        this.editor.markDirty();
+    }
+
+    /** Expands every folding region in the document. */
+    public unfoldAll(): void {
+        this.editorViewState.unfoldAll();
+        this.editor.markDirty();
+    }
+
+    /** Collapses the innermost region at the cursor and every region nested inside it. */
+    public foldRecursivelyAtCursor(): void {
+        this.editorViewState.foldRecursively(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Expands the innermost region at the cursor and every region nested inside it. */
+    public unfoldRecursivelyAtCursor(): void {
+        this.editorViewState.unfoldRecursively(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Folds the document down to the given nesting level. */
+    public foldLevel(level: number): void {
+        this.editorViewState.foldLevel(level);
+        this.editor.markDirty();
+    }
+
+    /** Moves the caret to the header of the next foldable region. */
+    public gotoNextFold(): void {
+        this.editorViewState.gotoNextFold(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
+    }
+
+    /** Moves the caret to the header of the previous foldable region. */
+    public gotoPreviousFold(): void {
+        this.editorViewState.gotoPreviousFold(this.editorViewState.selections[0].active.line);
+        this.editor.markDirty();
     }
 }

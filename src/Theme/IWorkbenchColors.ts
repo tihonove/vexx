@@ -347,6 +347,10 @@ export interface IWorkbenchColors {
     // "editorIndentGuide.background"?: number;
     // /** Color of the active editor indentation guide. */
     // "editorIndentGuide.activeBackground"?: number;
+    /** Color of the editor indentation guides (VS Code 1.x `background1`). */
+    "editorIndentGuide.background1"?: number;
+    /** Color of the active editor indentation guide (VS Code 1.x `activeBackground1`). */
+    "editorIndentGuide.activeBackground1"?: number;
     // /** Background color of inline hints. */
     // "editorInlayHint.background"?: number;
     // /** Foreground color of inline hints. */
@@ -431,8 +435,8 @@ export interface IWorkbenchColors {
     // "editorGutter.addedBackground"?: number;
     // /** Editor gutter background color for lines that are deleted. */
     // "editorGutter.deletedBackground"?: number;
-    // /** Color of the folding control in the editor gutter. */
-    // "editorGutter.foldingControlForeground"?: number;
+    /** Color of the folding control in the editor gutter. */
+    "editorGutter.foldingControlForeground"?: number;
 
     // ── Editor — Unnecessary code ───────────────────────────
     // /** Border color of unnecessary (unused) source code in the editor. */

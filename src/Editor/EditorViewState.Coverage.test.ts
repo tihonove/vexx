@@ -156,15 +156,23 @@ describe("EditorViewState.ensureCursorVisible — guard branches", () => {
         expect(state.selections).toHaveLength(0);
     });
 
-    it("does nothing when the primary cursor is on a hidden (folded) line", () => {
+    it("reveals the fold when restoreSelections lands the cursor on a hidden line", () => {
         const doc = new TextDocument("h\nx\ny\nz\nt");
-        const state = new EditorViewState(doc, [createCursorSelection(2, 0)]);
+        const state = new EditorViewState(doc, [createCursorSelection(0, 0)]);
         state.setFoldingRegions([createFoldingRegion(0, 3, true)]);
-        state.scrollTop = 0;
-        // Line 2 is hidden → logicalToVisualLine returns -1 → ensureCursorVisible
-        // early-returns at the visualLine < 0 guard.
+        expect(state.logicalToVisualLine(2)).toBe(-1);
+        // Undo/redo restore a selection into a still-collapsed region → it expands
+        // so the caret is not stranded on a hidden line (VS Code parity).
         state.restoreSelections([createCursorSelection(2, 0)]);
-        expect(state.scrollTop).toBe(0);
+        expect(state.logicalToVisualLine(2)).toBeGreaterThanOrEqual(0);
+        expect(state.foldedRegions[0].isCollapsed).toBe(false);
+    });
+
+    it("ensurePrimaryCursorVisible is a no-op with no selections", () => {
+        const doc = new TextDocument("a\nb\nc");
+        const state = new EditorViewState(doc);
+        state.selections = [];
+        expect(() => state.ensurePrimaryCursorVisible()).not.toThrow();
     });
 });
 
