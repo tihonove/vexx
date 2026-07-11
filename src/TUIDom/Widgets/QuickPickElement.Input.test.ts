@@ -85,6 +85,18 @@ describe("QuickPickElement — ArrowDown / ArrowUp navigation", () => {
         expect(picker.selectedIndex).toBe(4);
     });
 
+    it("setActiveIndex is a no-op on an empty picker", () => {
+        const picker = new QuickPickElement();
+        picker.items = [];
+        createApp(picker);
+
+        // No items → nothing to highlight; must not throw or move the selection.
+        expect(() => {
+            picker.setActiveIndex(0);
+        }).not.toThrow();
+        expect(picker.selectedIndex).toBe(0);
+    });
+
     it("ArrowDown does not go past last item (no wrap)", () => {
         const picker = new QuickPickElement();
         picker.items = makeItems(3);

@@ -7,7 +7,7 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
-import { AppController, AppControllerDIToken } from "./AppController.ts";
+import { AppController, AppControllerDIToken, themeTypeLabel } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
@@ -74,5 +74,29 @@ describe("AppController color-theme picker", () => {
 
         expect(themeService.theme.name).toBe("Light Modern");
         expect(writes).toEqual([{ key: "workbench.colorTheme", value: "Light Modern" }]);
+    });
+
+    it("does not preview anything while the query filters every theme out", async () => {
+        const { commands, themeService, testApp } = createThemeApp();
+        expect(themeService.theme.name).toBe("Dark+");
+
+        commands.execute("workbench.action.selectTheme");
+        // A query that matches no theme → the picker reports no active item, so the
+        // live-preview callback gets `undefined` and leaves the current theme alone.
+        for (const ch of "zzzz") testApp.sendKey(ch);
+        expect(themeService.theme.name).toBe("Dark+");
+
+        testApp.sendKey("Escape");
+        await flush();
+        expect(themeService.theme.name).toBe("Dark+");
+    });
+});
+
+describe("themeTypeLabel", () => {
+    it("maps each base theme type to its picker description", () => {
+        expect(themeTypeLabel("dark")).toBe("dark");
+        expect(themeTypeLabel("light")).toBe("light");
+        expect(themeTypeLabel("hc")).toBe("high contrast");
+        expect(themeTypeLabel("hcLight")).toBe("high contrast light");
     });
 });

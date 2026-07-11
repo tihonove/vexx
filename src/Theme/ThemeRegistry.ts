@@ -46,8 +46,10 @@ export class ThemeRegistry {
 
     /** Descriptors for every registered theme, in registration order. */
     public list(): IThemeDescriptor[] {
-        return [...this.themes.values()].map((theme) => ({
-            label: theme.name ?? "Unnamed",
+        // Label comes from the map key (always the theme's `name` — `register`
+        // skips nameless themes), so no fallback is needed here.
+        return [...this.themes.entries()].map(([label, theme]) => ({
+            label,
             type: theme.type ?? "dark",
         }));
     }

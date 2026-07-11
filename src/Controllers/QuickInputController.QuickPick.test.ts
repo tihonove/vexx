@@ -95,6 +95,17 @@ describe("QuickInputController.quickPick", () => {
         await expect(result).resolves.toMatchObject({ label: "Light Modern" });
     });
 
+    it("restores the full list when the query is cleared", () => {
+        const { controller, testApp } = createController();
+        void controller.quickPick({ items: ITEMS });
+        for (const ch of "light") testApp.sendKey(ch);
+        expect(controller.view.items).toHaveLength(1);
+
+        // Backspace the query empty again → the empty-needle branch returns every item.
+        for (const _ch of "light") testApp.sendKey("Backspace");
+        expect(controller.view.items.map((i) => i.label)).toEqual(ITEMS.map((i) => i.label));
+    });
+
     it("reports undefined active item when the filter matches nothing", () => {
         const { controller, testApp } = createController();
         const seen: (string | undefined)[] = [];

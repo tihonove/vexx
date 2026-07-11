@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createBuiltinThemeRegistry, ThemeRegistry } from "./ThemeRegistry.ts";
 import type { IThemeFile } from "./IThemeFile.ts";
+import { createBuiltinThemeRegistry, ThemeRegistry } from "./ThemeRegistry.ts";
 import { builtinThemes, DEFAULT_COLOR_THEME } from "./themes/builtinThemes.ts";
 
 const A: IThemeFile = { name: "Theme A", type: "dark", colors: { "editor.background": "#111111" }, tokenColors: [] };
@@ -44,6 +44,11 @@ describe("ThemeRegistry", () => {
         const registry = new ThemeRegistry();
         registry.register({ type: "dark", colors: {}, tokenColors: [] } as IThemeFile);
         expect(registry.list()).toHaveLength(0);
+    });
+
+    it("defaults a descriptor's type to 'dark' when the theme file omits type", () => {
+        const registry = new ThemeRegistry([{ name: "Typeless", colors: {} } as IThemeFile]);
+        expect(registry.list()).toEqual([{ label: "Typeless", type: "dark" }]);
     });
 });
 

@@ -293,7 +293,7 @@ function eventToKeybinding(event: TUIKeyboardEvent): Keybinding {
 }
 
 /** Human-readable base-type label shown next to a theme in the picker. */
-function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {
+export function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {
     switch (type) {
         case "light":
             return "light";
@@ -1505,7 +1505,9 @@ export class AppController extends Disposable implements IController {
 
         const applyByLabel = (label: string): void => {
             const theme = this.themeRegistry.resolve(label);
+            /* v8 ignore start -- defensive: `label` always originates from the registry's own list()/picker items, so resolve() never returns undefined */
             if (theme) this.themeService.setTheme(theme);
+            /* v8 ignore stop */
         };
 
         const picked = await this.quickInputController.quickPick({

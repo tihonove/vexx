@@ -6,7 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveUserDataPaths } from "../Common/UserDataPaths.ts";
 
-import { loadConfiguration } from "./ConfigurationService.ts";
+import { ConfigurationModel } from "./ConfigurationModel.ts";
+import { ConfigurationService, loadConfiguration } from "./ConfigurationService.ts";
 
 describe("loadConfiguration", () => {
     let tmpRoot: string;
@@ -207,5 +208,25 @@ describe("ConfigurationService.updateUserValue", () => {
         expect(fs.existsSync(p.settingsFile)).toBe(true);
         expect(JSON.parse(fs.readFileSync(p.settingsFile, "utf-8"))).toEqual({ "workbench.colorTheme": "Dark+" });
         expect(cfg.get<string>("workbench.colorTheme")).toBe("Dark+");
+    });
+
+    it("is a no-op when no write target is configured", async () => {
+        // Constructed without `writeTargetPath` (e.g. read-only context) → the write
+        // is silently skipped and the in-memory value stays unchanged.
+        const cfg = new ConfigurationService({
+            defaultsLayer: ConfigurationModel.EMPTY,
+            userLayer: ConfigurationModel.EMPTY,
+            profileLayer: ConfigurationModel.EMPTY,
+        });
+        await expect(cfg.updateUserValue("workbench.colorTheme", "Monokai")).resolves.toBeUndefined();
+        expect(cfg.get<string>("workbench.colorTheme")).toBeUndefined();
+    });
+
+    it("rethrows read errors that are not 'file not found'", async () => {
+        const p = paths();
+        const cfg = await loadConfiguration(p);
+        // Make the settings path a directory so reading it fails with EISDIR (not ENOENT).
+        fs.mkdirSync(p.settingsFile, { recursive: true });
+        await expect(cfg.updateUserValue("workbench.colorTheme", "Monokai")).rejects.toThrow();
     });
 });
