@@ -71,11 +71,11 @@ function createGroup(): EditorGroupController {
     );
 }
 
-function openEditor() {
+function openEditor(content: string = CONTENT) {
     const ctrl = createGroup();
     ctrl.mount();
     const filePath = path.join(tmpDir, "doc.txt");
-    fs.writeFileSync(filePath, CONTENT, "utf-8");
+    fs.writeFileSync(filePath, content, "utf-8");
     ctrl.openFile(filePath);
     const editor = ctrl.getActiveEditor();
     if (editor === null) throw new Error("no active editor");
@@ -151,6 +151,28 @@ describe("EditorActions — select variants keep the anchor and extend to the ne
             expect(sel.active).toEqual({ line: active[0], character: active[1] });
         });
     }
+});
+
+describe("EditorActions — smart home", () => {
+    it("cursorHome toggles between the first non-whitespace character and column 0", () => {
+        const { editor, exec, setCursor } = openEditor("    indented");
+        setCursor(0, 8);
+        exec(cursorHomeAction); // from within the text → first non-ws
+        expect(editor.viewState.selections[0].active).toEqual({ line: 0, character: 4 });
+        exec(cursorHomeAction); // already at first non-ws → column 0
+        expect(editor.viewState.selections[0].active).toEqual({ line: 0, character: 0 });
+        exec(cursorHomeAction); // back to first non-ws
+        expect(editor.viewState.selections[0].active).toEqual({ line: 0, character: 4 });
+    });
+
+    it("cursorHomeSelect extends the selection to the first non-whitespace character", () => {
+        const { editor, exec, setCursor } = openEditor("    indented");
+        setCursor(0, 8);
+        exec(cursorHomeSelectAction);
+        const sel = editor.viewState.selections[0];
+        expect(sel.anchor).toEqual({ line: 0, character: 8 });
+        expect(sel.active).toEqual({ line: 0, character: 4 });
+    });
 });
 
 describe("EditorActions — page navigation", () => {

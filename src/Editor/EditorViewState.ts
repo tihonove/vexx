@@ -742,12 +742,20 @@ export class EditorViewState {
     }
 
     /**
-     * Moves each cursor to the beginning of its line.
-     * Sets idealColumn to 0 so subsequent Up/Down stay at column 0.
+     * Moves each cursor to the "smart home" position of its line, VS Code style:
+     * first press lands on the first non-whitespace character (after the indent),
+     * a second press (when already there) collapses to column 0, toggling between
+     * the two. Lines with no indentation always go to column 0.
+     * idealColumn tracks the display column of the target so Up/Down stays aligned
+     * even with tabs.
      */
     public cursorHome(inSelectionMode = false): void {
         this.selections = this.selections.map((sel) => {
-            return this.buildSelection(sel, sel.active.line, 0, 0, inSelectionMode);
+            const content = this.document.getLineContent(sel.active.line);
+            const firstNonWs = firstNonWhitespaceIndex(content);
+            const target = sel.active.character === firstNonWs && firstNonWs !== 0 ? 0 : firstNonWs;
+            const idealCol = new DisplayLine(content, this.tabSize).offsetToColumn(target);
+            return this.buildSelection(sel, sel.active.line, target, idealCol, inSelectionMode);
         });
         this.normalizeSelections();
         this.ensureCursorVisible();
@@ -1531,6 +1539,17 @@ function computeOutdentRemoval(content: string, tabSize: number): number {
         count++;
     }
     return count;
+}
+
+/**
+ * Index of the first non-whitespace character in `content`, or the line length
+ * when the line is empty or all whitespace.
+ */
+function firstNonWhitespaceIndex(content: string): number {
+    for (let i = 0; i < content.length; i++) {
+        if (!/\s/.test(content[i])) return i;
+    }
+    return content.length;
 }
 
 // ─── Word Boundary Helpers ──────────────────────────────────
