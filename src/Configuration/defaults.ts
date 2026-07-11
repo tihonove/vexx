@@ -8,11 +8,11 @@
  */
 export function getDefaultConfiguration(): Readonly<Record<string, unknown>> {
     return {
-        // Активная цветовая тема по имени (label из ThemeRegistry). Держим строкой,
-        // чтобы не тянуть слой Theme в Configuration; значение зеркалит
-        // `DEFAULT_COLOR_THEME` из src/Theme/themes/builtinThemes.ts.
+        // Активная цветовая тема по имени (label из ThemeRegistry). Дефолт совпадает
+        // с out-of-the-box VS Code (`workbench.colorTheme`). Держим строкой, чтобы не
+        // тянуть слой Theme в Configuration; значение зеркалит `DEFAULT_COLOR_THEME`.
         workbench: {
-            colorTheme: "Dark 2026",
+            colorTheme: "Dark Modern",
         },
         editor: {
             tabSize: 4,
