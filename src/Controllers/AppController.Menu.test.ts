@@ -54,10 +54,32 @@ describe("AppController — menu bar wiring", () => {
             "New Untitled File",
             "New File...",
             "New Folder...",
+            "Open File...",
+            "Open Folder...",
             "Save",
             "Save As...",
             "Exit",
         ]);
+    });
+
+    it("File → Open File... runs the open-file command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "f");
+
+        entryByLabel(popup, "Open File...").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.openFile");
+    });
+
+    it("File → Open Folder... runs the open-folder command", () => {
+        const { testApp, commands } = createMenuApp();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "f");
+
+        entryByLabel(popup, "Open Folder...").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.openFolder");
     });
 
     it("File → New Untitled File runs the new-untitled command", () => {
