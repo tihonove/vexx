@@ -17,7 +17,7 @@ import type { IThemeFile } from "./IThemeFile.ts";
  * (theme wins), so any workbench color the app reads resolves to a value on
  * every theme — exactly as it does in VS Code.
  *
- * RULE (see docs/ARCHITECTURE.md): application code never hardcodes colors and
+ * RULE (see docs/arch/Theme.md): application code never hardcodes colors and
  * never passes an inline fallback. It reads colors through
  * `theme.getColor(key)` / `theme.getRequiredColor(key)`. Any color a feature
  * needs must live here (dark + light) so it is guaranteed across all themes.

@@ -3,14 +3,9 @@
 Подсистема логирования по модели VS Code: `ILogService` + `ILogger` per channel, fan-out по `ILogSink`.
 Цель — единое место для диагностики всех подсистем (bootstrap, configuration, extensions, extension host, editor, …) с последующим UI типа Output-вкладки.
 
-См. также: `src/Common/Logging/`, раздел **Common/Logging/** в [ARCHITECTURE.md](../ARCHITECTURE.md).
+Готовое (инфраструктура, DI/bootstrap, миграция `console.*`, RPC-трейсинг extension host — Phases 1–3.5) описано в разделе **Common/Logging/** в [arch/Common.md](../arch/Common.md). Ниже — открытые фазы.
 
-## План по фазам
-
-- [x] **Phase 1 — Infrastructure** — `ILogService`/`ILogger`/sinks готовы. Детали: [ARCHITECTURE.md](../ARCHITECTURE.md) → Common/Logging.
-- [x] **Phase 2 — DI + Bootstrap** — `loggingModule(Default)`, интеграция в `main.ts` и профили. Детали: там же.
-- [x] **Phase 3 — console.* migration (runtime)** — runtime переведён на каналы `extensions`/`configuration`; CLI-ветка до bootstrap намеренно оставлена на `console`.
-- [x] **Phase 3.5 — Extension host RPC tracing** — `RpcEndpoint` трейсит сообщения, каналы `extensions.host.*`, stdio subprocess'а пайпится в логи (console.log в расширении не ломает альтернативный экран).
+## Открытые фазы
 
 - [ ] **Phase 4 — Output UI**
   TUI-виджет (вкладка/панель) поверх `RingBufferSink`: список каналов, live-tail через `onDidAppend`, фильтры по уровню/каналу,

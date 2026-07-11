@@ -1,0 +1,7 @@
+# Inspector/
+
+Часть архитектуры Vexx — обзорная карта в [../ARCHITECTURE.md](../ARCHITECTURE.md).
+
+Инспектор TUIDom («браузерный дебаг-порт»): сериализация дерева элементов и протокол поверх WebSocket. `InspectorCore` — transport-agnostic ядро: держит read-only ссылку на приложение через `InspectorTarget { getRoot, getFocused }` и отвечает на методы протокола (`TUIDom.getDocument`); методы — расширяемый реестр, `dispatch` асинхронный (хендлеры могут возвращать `Promise`). `InspectorServer` — рукописный WebSocket (RFC6455) поверх `node:http`, без runtime-зависимостей. `attachInspector(app)` поднимает порт поверх работающего `TuiApplication`, читая его read-only (сам `TuiApplication` не трогается). Транспорт-агностичность ядра — задел под встроенный in-process инспектор (split-screen): тот же `InspectorCore` без сети.
+
+**Write/capture-порт (`InspectorDriver`).** Опциональный второй параметр `InspectorCore`/`attachInspector` — драйвер с методами `sendKey`/`sendText`/`resize`/`captureFrame`/`shutdown`. Когда он задан (только в `--headless`-режиме), ядро дополнительно регистрирует одноимённые протокол-методы: инъекция ввода и захват кадра (`TUIDom.captureFrame` → `GridSnapshot`). Без драйвера (обычный терминальный запуск) инспектор остаётся строго read-only. Слой Inspector Backend не импортирует — порт определён здесь как интерфейс, а адаптер над `HeadlessCaptureBackend` подсовывает App-слой (`main.ts`); тип-only зависимость — только `GridSnapshot` из Rendering.

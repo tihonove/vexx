@@ -4,7 +4,7 @@
 
 Issues: #83 (взять расцветку как в VS Code), #84 (плагины смены расцветки), #85 (встроенные темы + возможность их менять).
 
-Архитектура — см. [ARCHITECTURE.md](../ARCHITECTURE.md) → **Theme/** и **Configuration/**.
+Архитектура и готовое — см. [arch/Theme.md](../arch/Theme.md) и [arch/Configuration.md](../arch/Configuration.md).
 
 ```
 IThemeFile (JSON, 1:1 c VS Code)
@@ -16,15 +16,6 @@ themes/*.ts ──▶ ThemeRegistry (label → IThemeFile) ──▶ resolve(lab
                                                                               ▼
                                         AppController / EditorController / … applyTheme()
 ```
-
-## Что уже сделано
-
-- [x] **Встроенные темы verbatim из VS Code.** `scripts/import-vscode-themes.mjs` фетчит темы по пину тега (совпадает с языковыми паками), резолвит `include`-цепочку (Dark Modern → Dark+ → Dark (VS)) и флэттит в один `IThemeFile`. Набор: **Dark Modern** (дефолт), **Dark+**, **Monokai**, **Light Modern**, **Light+**. Перегенерация — бамп `VSCODE_TAG` + повторный запуск. Smoke — `ThemeRegistry.test.ts` (каждая тема резолвится, есть `editor.background` и token-правила).
-- [x] **`ThemeRegistry`** — реестр по `label` (= `IThemeFile.name`); `resolve`, `list` (label + type для пикера), `register` (later shadows earlier — задел под user-темы). `createBuiltinThemeRegistry()` сидит встроенные, биндится в DI (`ThemeRegistryDIToken`).
-- [x] **Выбор активной темы на старте.** `main.ts` читает `workbench.colorTheme` (default `"Dark Modern"` в `Configuration/defaults.ts`), резолвит через реестр, неизвестное имя → откат на `DEFAULT_COLOR_THEME`.
-- [x] **Пикер темы (`workbench.action.selectTheme`, Ctrl+K Ctrl+T).** `AppController.selectColorTheme` через `QuickInputController.quickPick` (новый list-pick flavor): список тем, **live preview** по навигации (тема применяется сразу, как в VS Code), Enter — применить + persist в `workbench.colorTheme`, Escape/клик мимо — откат на исходную. Пункт меню **View → Color Theme**.
-- [x] **Persist настройки.** `ConfigurationService.updateUserValue` пишет плоский dotted-ключ в settings.json активного профиля через `jsonc-parser.modify` (комментарии/форматирование сохраняются) + обновляет in-memory модель. Тема переживает перезапуск.
-- [x] **Live re-apply (workbench + синтаксис).** Все контроллеры подписаны на `ThemeService.onThemeChange` — смена темы перекрашивает workbench-цвета без пересоздания. Синтаксис тоже: `main.ts` подписывает `TokenThemeResolver.setTheme(theme.tokenTheme)` на тот же broadcast (пересобирает правила + чистит кеш скоупов); редактор перерисовывается своим `onThemeChange` (deferred render), так что резолвер к рендеру уже свежий. Тест — `TokenThemeResolver.test.ts` → «setTheme (color-theme swap)».
 
 ## Осталось (подфичи)
 

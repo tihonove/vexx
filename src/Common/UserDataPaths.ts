@@ -3,7 +3,7 @@ import * as path from "node:path";
 /**
  * Резолв путей user data в стиле VS Code. Полностью pure — никакого I/O.
  *
- * Раскладка (см. docs/ARCHITECTURE.md, раздел Configuration):
+ * Раскладка (см. docs/arch/Configuration.md):
  *
  *     <root>/
  *       extensions/                      ← внешние расширения, плоско

@@ -1,15 +1,6 @@
 # Folding — сворачивание кода (#86, #87)
 
-Статус: `[~]` — первая подфича (indentation folding, end-to-end) сделана; остальное ниже.
-
-## Сделано (подфича 1)
-
-Indentation-based фолдинг «под ключ», как дефолт VS Code:
-- Модель: `EditorViewState` (`IFoldingRegion`, проекция видимых строк, toggle/fold/unfold(All), навигация сквозь свёртки, `adjustFoldingRegionsForEdits`, reveal). Была в репозитории; добавлены `foldingRegionContaining`/`foldRegionContaining`/`unfoldRegionContaining`/`toggleFoldContaining` (операции у курсора).
-- Провайдер: `Editor/FoldingRangeProvider.ts` — `computeIndentationFolds(document, tabSize)`.
-- Интеграция: `EditorController` пересчитывает области при открытии и на `onDidChangeContent` (микротаск после сдвига существующих областей), сохраняя `isCollapsed`.
-- Рендер: chevron в гуттере (`editorGutter.foldingControlForeground`) + inline-маркер `⋯`; клик по chevron'у тоглит область.
-- Команды/бинды: `editor.fold` (`ctrl+shift+[`), `editor.unfold` (`ctrl+shift+]`), `editor.toggleFold` (`ctrl+k ctrl+l`), `editor.foldAll` (`ctrl+k ctrl+0`), `editor.unfoldAll` (`ctrl+k ctrl+j`) — `Controllers/Actions/FoldingActions.ts`.
+Статус: `[~]` — indentation folding (end-to-end) сделан, см. [docs/arch/Editor.md](../arch/Editor.md) → Folding. Остальное ниже.
 
 ## Осталось
 
@@ -87,10 +78,6 @@ VS Code по умолчанию `"mouseover"` — chevron'ы видны толь
 гуттера и настройка `editor.showFoldingControls: always | mouseover | never`.
 
 ### [~] Рекурсивные и уровневые команды
-Сделано: `editor.foldRecursively` (`ctrl+k ctrl+[`), `editor.unfoldRecursively`
-(`ctrl+k ctrl+]`), `editor.foldLevel1..7` (`ctrl+k ctrl+<1..7>`), навигация
-`editor.gotoNextFold`/`gotoPreviousFold` (`ctrl+k ctrl+.` / `ctrl+k ctrl+,`) — в
-`Controllers/Actions/FoldingActions.ts` + методы `EditorViewState`.
 Осталось: `editor.foldAllBlockComments`, `editor.foldAllMarkerRegions` /
 `unfoldAllMarkerRegions` — требуют `FoldingRangeKind` на `IFoldingRegion` (comment/region
 вид области), см. #87 и кейс `regionfolder` выше.

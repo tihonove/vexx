@@ -2,28 +2,19 @@
 
 Цель: загружать расширения по формату VS Code (`package.json` с `contributes`) — сначала встроенные, потом из `~/.vexx/extensions/`. Архитектура должна быть готова к разгрузке (clean unload через `IDisposable`) и инкрементальному добавлению contribution points.
 
-См. также: [docs/ARCHITECTURE.md](../ARCHITECTURE.md) (раздел `Extensions/`).
-
----
-
-## Phase 1 — [x] Языки и TextMate-грамматики
-
-- [x] Сделано: сканирование манифестов (`ExtensionScanner`), `LanguageRegistry` (`implements ILanguageService`), регистрация грамматик через `ExtensionTokenizationContributor` → `TokenizationRegistry`, builtin-расширения из microsoft/vscode, SEA-упаковка через `IAssetAccess`. Детали: [ARCHITECTURE.md](../ARCHITECTURE.md) → Extensions.
-- [x] Полный набор языков: все 48 декларативных языковых паков из microsoft/vscode импортируются скриптом `scripts/import-vscode-extensions.mjs` (пин тега — `src/Extensions/builtin/VSCODE_VERSION`; обновление = бамп тега + перезапуск). Smoke-тест — `src/Extensions/BuiltinLanguagePacks.test.ts`. `git-base` содержит `main`, но builtin-расширения в extension host не активируются — берём только его языки (git-commit, git-rebase, ignore).
-
-Каверза: `language-configuration.json` загружается ТОЛЬКО как путь в манифесте — auto-closing pairs, brackets, on-enter rules ещё не применяются (типизация в `ILanguageConfiguration.ts` готова, см. Phase 3).
+Готовое (Phase 1 языки/грамматики, Phase 8 extension host + completion, стоковый editorconfig-vscode) описано в [docs/arch/Extensions.md](../arch/Extensions.md). Ниже — только открытые фазы.
 
 ---
 
 ## Phase 2 — Темы и иконки
 
-- [ ] `contributes.themes` — workbench colors + `tokenColors` (TextMate). Парсинг готов в `Theme/`, нужно подцепить к scanner.
+- [ ] `contributes.themes` — workbench colors + `tokenColors` (TextMate). Парсинг готов в `Theme/`, нужно подцепить к scanner. Детали плана — [Theming.md](Theming.md).
 - [ ] `contributes.iconThemes` / `productIconThemes` — file icons.
 - [ ] Theme switcher в DI.
 
 ## Phase 3 — Language configuration runtime
 
-- [ ] Загрузка `language-configuration.json` per language (через `LanguageRegistry` или отдельный `LanguageConfigurationRegistry`).
+- [ ] Загрузка `language-configuration.json` per language (через `LanguageRegistry` или отдельный `LanguageConfigurationRegistry`). Сейчас манифест несёт только путь — auto-closing pairs / brackets / on-enter rules не применяются (типизация в `ILanguageConfiguration.ts` готова).
 - [ ] Auto-closing pairs / surrounding pairs в редакторе.
 - [ ] On-enter rules (smart indent после `{`, продолжение `//`-комментариев).
 - [ ] Bracket matching, folding markers.
@@ -42,23 +33,13 @@
 
 ## Phase 6 — Configuration
 
-Частично сделано:
-
-- `Configuration/IConfigurationService.ts` — интерфейс (`get`, `getValue`, `inspect`, `onDidChangeConfiguration`).
-- `Configuration/ConfigurationModel.ts` — иммутабельная модель с нормализацией dotted-keys и слиянием слоёв.
-- `Configuration/ConfigurationService.ts` + `loadConfiguration(paths)` — реализация, читает JSONC через `jsonc-parser` (Microsoft).
-- `Common/UserDataPaths.ts` + `Common/CliArgs.ts` — раскладка `~/.vexx/` (VS Code-совместимая), CLI `--user-data-dir`, `--profile`, `--help`.
-- `Controllers/Modules/ConfigurationModule.ts` + DI в `ProductionProfile`/`TestProfile`; `EditorGroupController` применяет `editor.tabSize`/`editor.insertSpaces` к каждому новому редактору.
-- `test-fixtures/vexx-home/` — изолированный каталог с default + `compact` профилями для ручного запуска.
-
-Остаётся:
+Инфраструктура настроек готова (см. [docs/arch/Configuration.md](../arch/Configuration.md)). Остаётся:
 
 - [ ] `contributes.configuration` — JSON-схема настроек расширений, регистрация в ConfigurationService.
 - [ ] Persistent storage и запись из UI/расширений (`update(key, value)`).
 - [ ] `contributes.configurationDefaults` — оверрайды для language-specific.
 - [ ] Live-reload settings.json через fs.watch + эмит `onDidChangeConfiguration` (сейчас no-op).
 - [ ] Workspace-слой (`.vexx/settings.json` в корне проекта).
-- [x] Парсинг и применение `keybindings.json` (`Configuration/KeybindingsService.ts` → `AppController.applyUserKeybindings`; VS Code-семантика `-command` для unbind, `when` с tier/cap/mode/os).
 
 ## Phase 7 — Активация и lifecycle
 
@@ -69,74 +50,18 @@
 
 ## Phase 8 — [~] Extension host (ядро готово)
 
-- [x] Сделано (in-process MVP + real subprocess): RPC (request/response/notification) поверх `IMessageChannel` с двумя транспортами (`InProcessChannelPair` для тестов, `IpcMessageChannel` поверх Node IPC), self-spawn subprocess'а (SEA и dev), стаб `require("vscode")` через `Module._cache`, `vscode.d.ts` с минимальной активной поверхностью, `EditorOptionsServiceAdapter` (runtime меняет настройки редактора, не зная про `EditorController`). Детали: [ARCHITECTURE.md](../ARCHITECTURE.md) → Extensions/Host. Тесты: `src/Extensions/Host/*.test.ts`, `e2e/sea-extensions.test.ts`.
-- [x] Completion (WP8): минимальный completion-UI ядра (`CompletionController` + `CompletionListElement`, триггер `editor.action.triggerSuggest`/Ctrl+Space) + surfacing провайдеров расширений. Host-запрос `languages.provideCompletionItems {fileName, languageId, text, line, character}` → subprocess матчит `DocumentSelector` (`Vscode/DocumentSelector.ts`) и вызывает `registerCompletionItemProvider`-провайдеры → `WireCompletionItem[]`. `item.command` исполняется через commands bridge. Тесты: `ExtensionHost.Completion.test.ts`, `CompletionController.test.ts`, `CompletionListElement.test.ts`.
-
-Остаётся:
+Ядро (RPC поверх IPC, self-spawn, vscode-стаб, completion WP8, стоковый editorconfig) — сделано, см. [docs/arch/Extensions.md](../arch/Extensions.md). Остаётся:
 
 - [ ] `activationEvents` triggers — вызов `activate(context)` в нужный момент (сейчас всегда eager после `openFile`).
 - [~] Расширение всего vscode-API: `commands`, `workspace`, `languages`, `window` за пределами `activeTextEditor.options`. В работе — active-editor API (`window.activeTextEditor` / `onDidChangeActiveTextEditor`).
-- [ ] Изоляция исключений: упавшее расширение не валит host (сейчас уже не валит host благодаря RPC + try/catch, но diagnostics ещё нет).
+- [ ] Изоляция исключений: упавшее расширение не валит host (сейчас уже не валит благодаря RPC + try/catch, но diagnostics ещё нет).
 - [ ] Маршрутизация ошибок RPC обратно в `editor.options =`, чтобы fire-and-forget не глотал.
 - [ ] ESM-расширения (`import * as vscode from "vscode"` через ESM loader hooks).
-- [ ] Restart subprocess'а при крэше (сейчас при exit'е extension host'а просто все RPC падают).
-
-### Совместимость со стоковым editorconfig-vscode (подпроект) — [x] закрыт
-
-Отдельный план — «стоковый editorconfig-vscode работает в Vexx» (WP1–WP9) — **завершён**.
-В `main` собрана подсистема `src/Extensions/Host/Vscode/` (value-типы, реестр документов со
-стабильной идентичностью, `workspace`/`window`/`languages`/`commands` namespace'ы, commands
-bridge, async save-pipeline с will/did-save).
-
-- [x] **WP7** — `workspace.fs.{stat,readFile,writeFile}` + `openTextDocument(uri, {encoding})`
-      + сквозная команда `EditorConfig.generate`. `workspace.fs` реализован **локально
-      через `node:fs`** в subprocess (целевой файл — на той же машине, не открытый буфер),
-      без RPC.
-- [x] **WP8** — минимальный completion-UI ядра (`CompletionController` + `CompletionListElement`)
-      + surfacing провайдеров расширений (`languages.provideCompletionItems`).
-- [x] **WP9** — интеграция со **стоковым `.vsix`** (`EditorConfig.EditorConfig@0.18.2` с open-vsx,
-      немодифицированный, свои `node_modules` + `@one-ini/wasm`). Установка новым CLI-флагом
-      `--install-extension`, прогон на собранном SEA-бинаре, драйв через TUIDom-inspector + pty,
-      проверки save-трансформаций по байтам на диске. Сквозной e2e: `e2e/editorconfig-stock.test.ts`
-      (фикстуры — `e2e/fixtures/editorconfig/`).
-
-**Проверенная паритетность (все 6 свойств + generate + completion):** `indent_style`/`indent_size`
-(рендер таб-ширины), `trim_trailing_whitespace` и `insert_final_newline` на Ctrl+S (расширение
-делегирует ядровым `editor.action.trimTrailingWhitespace`/`insertFinalNewLine` — вложенный
-executeCommand во время will-save), `end_of_line` в обе стороны (LF↔CRLF, байты на диске),
-`charset` — graceful degrade, `EditorConfig.generate` через палитру, completion свойств в
-`.editorconfig`.
-
-**Несоответствия, найденные и починенные в WP9 (мелкие, точечно):**
-
-- `LanguageRegistry.getLanguageIdForResource` не резолвил dotfile `.editorconfig` (`path.extname` пуст)
-  и не разрешал конфликт ассоциаций расширения. Теперь: dotfile матчится по полному имени, а при
-  конфликте `.ext` побеждает **зарегистрированный позже** (user editorconfig > builtin `properties`/ini,
-  как в VS Code) — иначе `.editorconfig` резолвился в `properties` и completion-селектор
-  `{language:'editorconfig'}` не матчил.
-- `FileSystemError.name` теперь в формате VS Code `"${providerCode} (FileSystemError)"`
-  (FileNotFound → `EntryNotFound (FileSystemError)`) — стоковый `generate` ловит ENOENT именно по `name`.
-- В снапшот will-save проброшен реальный `eol` документа (`ISaveSnapshot.eol` → wire → `ExtHostTextDocument.eol`),
-  иначе `SetEndOfLine` видел всегда LF и `end_of_line=lf` не нормализовал CRLF-файлы.
-- `contributes.commands` теперь прокидывает `title` в host (`IExtensionRegistration.commandTitles`) —
-  рантайм-`registerCommand` расширения появляется в палитре (иначе `EditorConfig.generate` не выбрать).
-
-**Ограничение WP7 (принято):** ядро Vexx utf-8/LF-only. `openTextDocument` всегда
-читает файл как utf-8 и строит эфемерный документ (не в реестре) с `eol=LF`,
-`encoding="utf8"`; параметр `encoding` принимается для совместимости с API 1.100, но
-при несовпадении — graceful degrade с предупреждением `window.showMessage`. Полноценные
-не-utf8 кодировки в ядре — вне объёма (см. EOL-модель WP5 и будущую работу по charset).
+- [ ] Restart subprocess'а при крэше (сейчас при exit'е extension host'а все RPC падают).
 
 ## Phase 9 — Внешние расширения
 
-Частично сделано:
-
-- `scanExtensions(assets, rootPrefix, { isBuiltin })` (`Extensions/ExtensionScanner.ts`) используется и для builtin (`Extensions/builtin/`), и для юзерского префикса `UserExtensions/`.
-- `Common/Assets/CompositeAssetAccess.ts` роутит виртуальные пути между builtin (SEA/FS) и user (FsAssetAccess на `<userData>/extensions/`).
-- `Extensions/mergeExtensions.ts` разруливает конфликты id (builtin побеждает user с `console.warn`).
-- `main.ts` сканирует оба источника и регистрирует в `LanguageRegistry` + `ExtensionTokenizationContributor`.
-
-Остаётся:
+Инфраструктура сканирования user-префикса + `CompositeAssetAccess` + `mergeExtensions` готова (см. [docs/arch/Extensions.md](../arch/Extensions.md)). Остаётся:
 
 - [ ] Установка из `.vsix` (откуда берётся артефакт и как выбирается версия — см. Phase 10).
 - [ ] Версионирование (выбор последней из нескольких версий одного id), миграции (резолв версии — см. Phase 10).

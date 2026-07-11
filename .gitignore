@@ -1,6 +1,7 @@
 node_modules
 dist
 vexx.log
+.claude/worktrees/
 screenshots/
 coverage/.tmp
 coverage/lcov-report

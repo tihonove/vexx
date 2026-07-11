@@ -1,8 +1,8 @@
 # E2E и Inspector-протокол
 
-## Phase 1 — [x] E2E против собранного SEA-бинаря
+## Phase 1 — [~] E2E против собранного SEA-бинаря
 
-- [x] Сделано: `vitest.e2e.config.ts` + `npm run test:e2e`; helpers (`buildOnce`, `VexxSession` поверх `node-pty`, `AnsiScreen`-парсер); сьюты `sea-startup` / `sea-assets` / `sea-extensions` — см. `e2e/`. Покрыт и Phase 8 self-spawn: грамматика user-расширения, негативный кейс без `--user-data-dir`, subprocess через `exports.activate()` с проставлением `tabSize` по RPC.
+Готово: `vitest.e2e.config.ts` + `npm run test:e2e`; helpers (`buildOnce`, `VexxSession` поверх `node-pty`, `AnsiScreen`-парсер); сьюты `sea-startup` / `sea-assets` / `sea-extensions` (см. `e2e/`). Подробности — [docs/TESTING.md](../TESTING.md) (раздел «E2E»).
 
 **Открыто (Phase 1.x):**
 - [ ] CI: документировать build-essential / python3 для нативной сборки `node-pty`. Возможна замена на `@homebridge/node-pty-prebuilt-multiarch` при проблемах.

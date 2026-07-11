@@ -53,11 +53,11 @@ Windows/macOS (см. [E2E.md](E2E.md)).
   честные, не трогаем.
 
 ### Эталон разделения (к нему приводим B)
-Controller (логика, I/O, подписки) + тонкий Element (только render + локальные
-input-события) + опц. State-класс. Связь: `element.onX = …` (element→controller)
-и `controller.update(view)` (controller→element). Примеры: `StatusBarController`
-↔ `StatusBarElement`, `EditorGroupController` ↔ `EditorGroupElement`,
-`InputWidgetController` ↔ `InputElement` + `InputState`.
+Controller + тонкий Element + опц. State-класс — паттерн вынесен в
+[../arch/Controllers.md](../arch/Controllers.md) (раздел «Разделение Controller /
+Element / State»). Эталоны: `StatusBarController` ↔ `StatusBarElement`,
+`EditorGroupController` ↔ `EditorGroupElement`, `InputWidgetController` ↔
+`InputElement` + `InputState`.
 
 ## Основа приложения (bootstrap)
 - `TuiApplication` (`src/TUIDom/TuiApplication.ts`) уже generic ядро рантайма
