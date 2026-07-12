@@ -1,5 +1,6 @@
-import { readdirSync } from "node:fs";
-import { resolve } from "node:path";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { GridSnapshot } from "../../src/Rendering/GridSnapshot.ts";
@@ -73,8 +74,14 @@ export function defineScenario(spec: ScenarioSpec): ScenarioSpec {
  * and tear the session down. Returns the shots it produced.
  */
 export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
+    // Isolate user data per scenario: the editor persists UI/session state
+    // (open files, panel layout) under its user-data dir, and every scenario
+    // opens `repoRoot` as the workspace — so a shared dir would leak one
+    // scenario's restored editors into the next (see docs/arch/State.md). A
+    // fresh temp dir keeps each scenario hermetic and off the real `~/.vexx`.
+    const userDataDir = mkdtempSync(join(tmpdir(), "vexx-e2e-"));
     const session = await HeadlessSession.start({
-        args: spec.open ?? [],
+        args: [`--user-data-dir=${userDataDir}`, ...(spec.open ?? [])],
         cwd: repoRoot,
         ...(spec.cols !== undefined ? { cols: spec.cols } : {}),
         ...(spec.rows !== undefined ? { rows: spec.rows } : {}),
@@ -100,6 +107,7 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
         await spec.run(driver);
     } finally {
         await session.dispose();
+        rmSync(userDataDir, { recursive: true, force: true });
     }
     return shots;
 }
