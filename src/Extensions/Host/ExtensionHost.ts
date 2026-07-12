@@ -220,6 +220,8 @@ export class ExtensionHost extends Disposable {
         await rpc.request("host.activateExtension", {
             id: reg.id,
             mainPath: reg.mainPath,
+            source: reg.source,
+            filename: reg.filename,
             configDefaults: reg.configDefaults,
         });
         this.extensions.add(reg.id);

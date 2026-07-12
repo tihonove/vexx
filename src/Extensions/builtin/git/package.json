@@ -16,7 +16,7 @@
   "activationEvents": [
     "*"
   ],
-  "main": "./main.ts",
+  "main": "./out/extension.cjs",
   "contributes": {
     "configuration": {
       "title": "Git",

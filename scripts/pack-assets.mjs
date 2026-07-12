@@ -14,7 +14,7 @@
  *   [data ...]
  */
 
-import { readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, posix, relative, resolve, sep } from "node:path";
 
@@ -101,8 +101,25 @@ export function buildVexxBundle({ repoRoot }) {
     const inputs = [];
     inputs.push({ virtualPath: "onig.wasm", data: readFileSync(onigWasmPath) });
 
+    // «Кодовые» builtin'ы — те, что скомпилированы в `out/` (см. build-extensions.mjs).
+    // Для них в бандл кладём только `package.json` + `out/**`, а TS-исходники
+    // (main.ts, lib/*.ts) выкидываем — под SEA они всё равно нерекуайрабельны.
+    const codeBuiltins = new Set(
+        readdirSync(builtinSrc, { withFileTypes: true })
+            .filter((e) => e.isDirectory() && existsSync(join(builtinSrc, e.name, "out")))
+            .map((e) => e.name),
+    );
+
     const builtinFiles = walkFiles(builtinSrc).sort();
     for (const filePath of builtinFiles) {
+        const relParts = relative(builtinSrc, filePath).split(sep);
+        const base = relParts[relParts.length - 1];
+        // Тесты не нужны в рантайме нигде.
+        if (base.endsWith(".test.ts") || base.endsWith(".test.tsx")) continue;
+        // У скомпилированных code-builtin'ов оставляем только out/** и package.json.
+        if (codeBuiltins.has(relParts[0]) && relParts[1] !== "out" && (base.endsWith(".ts") || base.endsWith(".tsx"))) {
+            continue;
+        }
         const virtualPath = toVirtualPath("Extensions/builtin/", builtinSrc, filePath);
         inputs.push({ virtualPath, data: readFileSync(filePath) });
     }

@@ -1,4 +1,5 @@
 import { createRequire, Module } from "node:module";
+import * as path from "node:path";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
 
@@ -59,17 +60,16 @@ export function runExtensionHostSubprocess(): void {
     const extensions = new Map<string, ActivatedExtension>();
 
     rpc.handleRequest("host.activateExtension", async (params): Promise<unknown> => {
-        const { id, mainPath, configDefaults } = parseActivateParams(params);
+        const { id, mainPath, source, filename, configDefaults } = parseActivateParams(params);
         if (extensions.has(id)) {
             throw new Error(`Extension "${id}" already activated`);
         }
         // Дефолты из `contributes.configuration` — под пользовательским снапшотом,
         // должны быть доступны через getConfiguration ДО activate().
         configStore.applyDefaults(configDefaults);
-        const extRequire = createRequire(mainPath);
-        const loaded = extRequire(mainPath) as ExtensionModule;
+        const loaded = loadExtensionModule({ mainPath, source, filename });
         if (typeof loaded.activate !== "function") {
-            throw new Error(`Extension "${id}" has no activate() in ${mainPath}`);
+            throw new Error(`Extension "${id}" has no activate() in ${filename ?? mainPath}`);
         }
         const context: ExtensionContext = { subscriptions: [] };
         const active: ActivatedExtension = { id, mod: loaded, context };
@@ -136,26 +136,71 @@ async function deactivate(active: ActivatedExtension): Promise<void> {
     }
 }
 
+/**
+ * Загружает CJS-модуль расширения одним из двух способов:
+ *  - `mainPath` → `createRequire(mainPath)` (файл на ФС subprocess'а);
+ *  - `source` (+`filename`) → `Module._compile` в памяти (скомпилированный builtin;
+ *    `require("vscode")` внутри резолвится через `installVscodeStub`, node:builtins —
+ *    штатно; относительных require в бандле нет, поэтому `filename` синтетический).
+ */
+function loadExtensionModule(spec: {
+    mainPath: string | undefined;
+    source: string | undefined;
+    filename: string | undefined;
+}): ExtensionModule {
+    if (spec.source !== undefined && spec.filename !== undefined) {
+        const ModuleCtor = Module as unknown as {
+            new (id: string, parent: unknown): {
+                filename: string;
+                paths: string[];
+                exports: unknown;
+                _compile(content: string, filename: string): void;
+            };
+            _nodeModulePaths(from: string): string[];
+        };
+        const m = new ModuleCtor(spec.filename, null);
+        m.filename = spec.filename;
+        m.paths = ModuleCtor._nodeModulePaths(path.dirname(spec.filename));
+        m._compile(spec.source, spec.filename);
+        return m.exports as ExtensionModule;
+    }
+    const extRequire = createRequire(spec.mainPath!);
+    return extRequire(spec.mainPath!) as ExtensionModule;
+}
+
 function parseActivateParams(raw: unknown): {
     id: string;
-    mainPath: string;
+    mainPath: string | undefined;
+    source: string | undefined;
+    filename: string | undefined;
     configDefaults: Record<string, unknown> | undefined;
 } {
     if (typeof raw !== "object" || raw === null) {
         throw new Error("activateExtension: params must be an object");
     }
-    const obj = raw as { id?: unknown; mainPath?: unknown; configDefaults?: unknown };
+    const obj = raw as { id?: unknown; mainPath?: unknown; source?: unknown; filename?: unknown; configDefaults?: unknown };
     if (typeof obj.id !== "string" || obj.id === "") {
         throw new Error("activateExtension: id must be a non-empty string");
     }
-    if (typeof obj.mainPath !== "string" || obj.mainPath === "") {
-        throw new Error("activateExtension: mainPath must be a non-empty string");
+    const hasSource = typeof obj.source === "string" && obj.source !== "";
+    const hasMain = typeof obj.mainPath === "string" && obj.mainPath !== "";
+    if (hasSource === hasMain) {
+        throw new Error("activateExtension: provide exactly one of mainPath or source");
+    }
+    if (hasSource && (typeof obj.filename !== "string" || obj.filename === "")) {
+        throw new Error("activateExtension: source requires a non-empty filename");
     }
     const configDefaults =
         typeof obj.configDefaults === "object" && obj.configDefaults !== null
             ? (obj.configDefaults as Record<string, unknown>)
             : undefined;
-    return { id: obj.id, mainPath: obj.mainPath, configDefaults };
+    return {
+        id: obj.id,
+        mainPath: hasMain ? (obj.mainPath as string) : undefined,
+        source: hasSource ? (obj.source as string) : undefined,
+        filename: hasSource ? (obj.filename as string) : undefined,
+        configDefaults,
+    };
 }
 
 function parseExtensionId(raw: unknown): string {

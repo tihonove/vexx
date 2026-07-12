@@ -26,21 +26,6 @@ export function createDefaultAssetAccess(): IAssetAccess {
     return createDevAssetAccess();
 }
 
-/**
- * On-disk path of the builtin-extensions directory (dev), or `null` under SEA.
- *
- * Needed to resolve `manifest.main` of a builtin extension to a real file the
- * extension-host subprocess can `require`. In a SEA binary the builtin files
- * live inside the bundle (not the FS), so builtin `main` execution there is a
- * follow-up (extract-on-first-run, Task 7) — hence `null`.
- */
-export function resolveBuiltinDir(): string | null {
-    if (tryLoadSeaBundle() !== null) return null;
-    const here = path.dirname(fileURLToPath(import.meta.url));
-    // src/Common/Assets → src/Extensions/builtin
-    return path.resolve(here, "..", "..", "Extensions", "builtin");
-}
-
 function tryLoadSeaBundle(): Uint8Array | null {
     try {
         const req = createRequire("file:///");

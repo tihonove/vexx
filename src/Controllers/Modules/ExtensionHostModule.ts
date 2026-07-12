@@ -44,13 +44,20 @@ export const extensionHostModule: ContainerModule = (container) => {
             lg.isEnabled(LogLevel.Info) ? lg : undefined;
 
         // Провайдер конфигурации: снапшот настроек + единственная папка воркспейса
-        // (пока нет multi-root) из process.cwd(). Слой Configuration не тянется в
+        // (пока нет multi-root). Папку читаем ЛЕНИВО из FileTreeController (источник
+        // правды, выставляется `AppController.setWorkspaceFolder`): getWorkspaceFolders
+        // зовётся при инициализации subprocess'а — уже ПОСЛЕ setWorkspaceFolder, так
+        // что расширения (напр. git) видят реально открытую папку, а не process.cwd().
+        // Fallback на cwd, когда папка не открыта. Слой Configuration не тянется в
         // рантайм host'а — доступ идёт через этот тонкий адаптер.
         const configService = container.get(IConfigurationServiceDIToken);
-        const cwd = process.cwd();
+        const fileTree = container.get(FileTreeControllerDIToken);
         const configuration: IExtensionHostConfigProvider = {
             getSnapshot: () => configService.getValue(),
-            getWorkspaceFolders: () => [{ uri: cwd, name: path.basename(cwd), index: 0 }],
+            getWorkspaceFolders: () => {
+                const root = fileTree.getRootPath() ?? process.cwd();
+                return [{ uri: root, name: path.basename(root), index: 0 }];
+            },
             onDidChange: (cb) =>
                 configService.onDidChangeConfiguration((event) => {
                     cb(event.affectedKeys);
@@ -60,7 +67,7 @@ export const extensionHostModule: ContainerModule = (container) => {
         // Мосты декораций (Chunk 4): gutter change-bar'ы → редакторы группы,
         // файловые декорации → дерево, ThemeColor id → цвет активной темы.
         const editorDecorations = new EditorDecorationsServiceAdapter(group);
-        const fileDecorations = new FileDecorationsServiceAdapter(container.get(FileTreeControllerDIToken));
+        const fileDecorations = new FileDecorationsServiceAdapter(fileTree);
         const themeColorResolver = new ThemeColorResolverAdapter(container.get(ThemeServiceDIToken));
 
         const host = new ExtensionHost(adapter, commandAdapter, {

@@ -8,3 +8,6 @@ coverage/lcov-report
 coverage/coverage-summary.json
 coverage/lcov.info
 coverage/coverage-final.json
+
+# Compiled builtin code-extensions (built by scripts/build-extensions.mjs)
+src/Extensions/builtin/*/out/
