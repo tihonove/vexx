@@ -95,6 +95,21 @@ const darkDefaults: Record<string, string> = {
     "menu.selectionBackground": "#04395E",
     "menu.border": "#535353",
     "menu.separatorBackground": "#535353",
+
+    // ── Editor — Gutter (SCM diff) ──────────────────────────
+    "editorGutter.modifiedBackground": "#1B81A8",
+    "editorGutter.addedBackground": "#487E02",
+    "editorGutter.deletedBackground": "#F14C4C",
+
+    // ── Git colors ──────────────────────────────────────────
+    "gitDecoration.addedResourceForeground": "#81B88B",
+    "gitDecoration.modifiedResourceForeground": "#E2C08D",
+    "gitDecoration.deletedResourceForeground": "#C74E39",
+    "gitDecoration.renamedResourceForeground": "#73C991",
+    "gitDecoration.untrackedResourceForeground": "#73C991",
+    "gitDecoration.ignoredResourceForeground": "#8C8C8C",
+    "gitDecoration.conflictingResourceForeground": "#E4676B",
+    "gitDecoration.submoduleResourceForeground": "#8DB9E2",
 };
 
 const lightDefaults: Record<string, string> = {
@@ -163,6 +178,21 @@ const lightDefaults: Record<string, string> = {
     "menu.selectionBackground": "#005FB8",
     "menu.border": "#CECECE",
     "menu.separatorBackground": "#D4D4D4",
+
+    // ── Editor — Gutter (SCM diff) ──────────────────────────
+    "editorGutter.modifiedBackground": "#2090D3",
+    "editorGutter.addedBackground": "#48985D",
+    "editorGutter.deletedBackground": "#E51400",
+
+    // ── Git colors ──────────────────────────────────────────
+    "gitDecoration.addedResourceForeground": "#587C0C",
+    "gitDecoration.modifiedResourceForeground": "#895503",
+    "gitDecoration.deletedResourceForeground": "#AD0707",
+    "gitDecoration.renamedResourceForeground": "#007100",
+    "gitDecoration.untrackedResourceForeground": "#007100",
+    "gitDecoration.ignoredResourceForeground": "#8E8E90",
+    "gitDecoration.conflictingResourceForeground": "#AD0707",
+    "gitDecoration.submoduleResourceForeground": "#1258A7",
 };
 
 const defaultsByKind: Record<ThemeKind, Record<string, string>> = {

@@ -131,6 +131,19 @@ declare module "vscode" {
 		 * Text editor options.
 		 */
 		options: TextEditorOptions;
+
+		/**
+		 * Adds a set of decorations to the text editor. If a set of decorations already exists with
+		 * the given {@link TextEditorDecorationType decoration type}, they will be replaced. If
+		 * `rangesOrOptions` is empty, the existing decorations with the given {@link TextEditorDecorationType decoration type}
+		 * will be removed.
+		 *
+		 * @see {@link window.createTextEditorDecorationType createTextEditorDecorationType}.
+		 *
+		 * @param decorationType A decoration type.
+		 * @param rangesOrOptions Either {@link Range ranges} or more detailed {@link DecorationOptions options}.
+		 */
+		setDecorations(decorationType: TextEditorDecorationType, rangesOrOptions: readonly Range[] | readonly DecorationOptions[]): void;
 	}
 
 	/**
@@ -267,6 +280,22 @@ declare module "vscode" {
 		 * @returns A new output channel.
 		 */
 		export function createOutputChannel(name: string, languageId?: string): OutputChannel;
+
+		/**
+		 * Create a TextEditorDecorationType that can be used to add decorations to text editors.
+		 *
+		 * @param options Rendering options for the decoration type.
+		 * @returns A new decoration type instance.
+		 */
+		export function createTextEditorDecorationType(options: DecorationRenderOptions): TextEditorDecorationType;
+
+		/**
+		 * Register a file decoration provider.
+		 *
+		 * @param provider A {@link FileDecorationProvider}.
+		 * @returns A {@link Disposable} that unregisters the provider.
+		 */
+		export function registerFileDecorationProvider(provider: FileDecorationProvider): Disposable;
 	}
 
 	/**
@@ -2686,6 +2715,446 @@ declare module "vscode" {
 		 * @returns A {@link Disposable} that unregisters this provider when being disposed.
 		 */
 		export function registerCompletionItemProvider(selector: DocumentSelector, provider: CompletionItemProvider, ...triggerCharacters: string[]): Disposable;
+	}
+
+
+	/**
+	 * A reference to one of the workbench colors as defined in https://code.visualstudio.com/api/references/theme-color.
+	 * Using a theme color is preferred over a custom color as it gives theme authors and users the possibility to change the color.
+	 */
+	export class ThemeColor {
+
+		/**
+		 * The id of this color.
+		 */
+		readonly id: string;
+
+		/**
+		 * Creates a reference to a theme color.
+		 * @param id of the color. The available colors are listed in https://code.visualstudio.com/api/references/theme-color.
+		 */
+		constructor(id: string);
+	}
+
+	/**
+	 * Represents different positions for rendering a decoration in an {@link DecorationRenderOptions.overviewRulerLane overview ruler}.
+	 * The overview ruler supports three lanes.
+	 */
+	export enum OverviewRulerLane {
+		/**
+		 * The left lane of the overview ruler.
+		 */
+		Left = 1,
+		/**
+		 * The center lane of the overview ruler.
+		 */
+		Center = 2,
+		/**
+		 * The right lane of the overview ruler.
+		 */
+		Right = 4,
+		/**
+		 * All lanes of the overview ruler.
+		 */
+		Full = 7
+	}
+
+	/**
+	 * Describes the behavior of decorations when typing/editing at their edges.
+	 */
+	export enum DecorationRangeBehavior {
+		/**
+		 * The decoration's range will widen when edits occur at the start or end.
+		 */
+		OpenOpen = 0,
+		/**
+		 * The decoration's range will not widen when edits occur at the start or end.
+		 */
+		ClosedClosed = 1,
+		/**
+		 * The decoration's range will widen when edits occur at the start, but not at the end.
+		 */
+		OpenClosed = 2,
+		/**
+		 * The decoration's range will widen when edits occur at the end, but not at the start.
+		 */
+		ClosedOpen = 3
+	}
+
+	/**
+	 * Represents a handle to a set of decorations
+	 * sharing the same {@link DecorationRenderOptions styling options} in a {@link TextEditor text editor}.
+	 *
+	 * To get an instance of a `TextEditorDecorationType` use
+	 * {@link window.createTextEditorDecorationType createTextEditorDecorationType}.
+	 */
+	export interface TextEditorDecorationType {
+
+		/**
+		 * Internal representation of the handle.
+		 */
+		readonly key: string;
+
+		/**
+		 * Remove this decoration type and all decorations on all text editors using it.
+		 */
+		dispose(): void;
+	}
+
+	/**
+	 * Represents theme specific rendering styles for {@link ThemableDecorationRenderOptions.before before} and
+	 * {@link ThemableDecorationRenderOptions.after after} the content of text decorations.
+	 */
+	export interface ThemableDecorationAttachmentRenderOptions {
+		/**
+		 * Defines a text content that is shown in the attachment. Either an icon or a text can be shown, but not both.
+		 */
+		contentText?: string;
+		/**
+		 * An **absolute path** or an URI to an image to be rendered in the attachment. Either an icon
+		 * or a text can be shown, but not both.
+		 */
+		contentIconPath?: string | Uri;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		border?: string;
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		borderColor?: string | ThemeColor;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		fontStyle?: string;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		fontWeight?: string;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		textDecoration?: string;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		color?: string | ThemeColor;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		backgroundColor?: string | ThemeColor;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		margin?: string;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		width?: string;
+		/**
+		 * CSS styling property that will be applied to the decoration attachment.
+		 */
+		height?: string;
+	}
+
+	/**
+	 * Represents theme specific rendering styles for a {@link TextEditorDecorationType text editor decoration}.
+	 */
+	export interface ThemableDecorationRenderOptions {
+		/**
+		 * Background color of the decoration. Use rgba() and define transparent background colors to play well with other decorations.
+		 * Alternatively a color from the color registry can be {@link ThemeColor referenced}.
+		 */
+		backgroundColor?: string | ThemeColor;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		outline?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'outline' for setting one or more of the individual outline properties.
+		 */
+		outlineColor?: string | ThemeColor;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'outline' for setting one or more of the individual outline properties.
+		 */
+		outlineStyle?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'outline' for setting one or more of the individual outline properties.
+		 */
+		outlineWidth?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		border?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'border' for setting one or more of the individual border properties.
+		 */
+		borderColor?: string | ThemeColor;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'border' for setting one or more of the individual border properties.
+		 */
+		borderRadius?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'border' for setting one or more of the individual border properties.
+		 */
+		borderSpacing?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'border' for setting one or more of the individual border properties.
+		 */
+		borderStyle?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 * Better use 'border' for setting one or more of the individual border properties.
+		 */
+		borderWidth?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		fontStyle?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		fontWeight?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		textDecoration?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		cursor?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		color?: string | ThemeColor;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		opacity?: string;
+
+		/**
+		 * CSS styling property that will be applied to text enclosed by a decoration.
+		 */
+		letterSpacing?: string;
+
+		/**
+		 * An **absolute path** or an URI to an image to be rendered in the gutter.
+		 */
+		gutterIconPath?: string | Uri;
+
+		/**
+		 * Specifies the size of the gutter icon.
+		 * Available values are 'auto', 'contain', 'cover' and any percentage value.
+		 * For further information: https://msdn.microsoft.com/en-us/library/jj127316(v=vs.85).aspx
+		 */
+		gutterIconSize?: string;
+
+		/**
+		 * The color of the decoration in the overview ruler. Use rgba() and define transparent colors to play well with other decorations.
+		 */
+		overviewRulerColor?: string | ThemeColor;
+
+		/**
+		 * Defines the rendering options of the attachment that is inserted before the decorated text.
+		 */
+		before?: ThemableDecorationAttachmentRenderOptions;
+
+		/**
+		 * Defines the rendering options of the attachment that is inserted after the decorated text.
+		 */
+		after?: ThemableDecorationAttachmentRenderOptions;
+	}
+
+	/**
+	 * Represents rendering styles for a {@link TextEditorDecorationType text editor decoration}.
+	 */
+	export interface DecorationRenderOptions extends ThemableDecorationRenderOptions {
+		/**
+		 * Should the decoration be rendered also on the whitespace after the line text.
+		 * Defaults to `false`.
+		 */
+		isWholeLine?: boolean;
+
+		/**
+		 * Customize the growing behavior of the decoration when edits occur at the edges of the decoration's range.
+		 * Defaults to `DecorationRangeBehavior.OpenOpen`.
+		 */
+		rangeBehavior?: DecorationRangeBehavior;
+
+		/**
+		 * The position in the overview ruler where the decoration should be rendered.
+		 */
+		overviewRulerLane?: OverviewRulerLane;
+
+		/**
+		 * Overwrite options for light themes.
+		 */
+		light?: ThemableDecorationRenderOptions;
+
+		/**
+		 * Overwrite options for dark themes.
+		 */
+		dark?: ThemableDecorationRenderOptions;
+	}
+
+	/**
+	 * Represents themable render options for decoration instances.
+	 */
+	export interface ThemableDecorationInstanceRenderOptions {
+		/**
+		 * Defines the rendering options of the attachment that is inserted before the decorated text.
+		 */
+		before?: ThemableDecorationAttachmentRenderOptions;
+
+		/**
+		 * Defines the rendering options of the attachment that is inserted after the decorated text.
+		 */
+		after?: ThemableDecorationAttachmentRenderOptions;
+	}
+
+	/**
+	 * Represents render options for decoration instances. See {@link DecorationOptions.renderOptions}.
+	 */
+	export interface DecorationInstanceRenderOptions extends ThemableDecorationInstanceRenderOptions {
+		/**
+		 * Overwrite options for light themes.
+		 */
+		light?: ThemableDecorationInstanceRenderOptions;
+
+		/**
+		 * Overwrite options for dark themes.
+		 */
+		dark?: ThemableDecorationInstanceRenderOptions;
+	}
+
+	/**
+	 * Represents options for a specific decoration in a {@link TextEditorDecorationType decoration set}.
+	 */
+	export interface DecorationOptions {
+
+		/**
+		 * Range to which this decoration is applied. The range must not be empty.
+		 */
+		range: Range;
+
+		/**
+		 * A message that should be rendered when hovering over the decoration.
+		 */
+		hoverMessage?: MarkdownString | MarkedString | Array<MarkdownString | MarkedString>;
+
+		/**
+		 * Render options applied to the current decoration. For performance reasons, keep the
+		 * number of decoration specific options small, and use decoration types wherever possible.
+		 */
+		renderOptions?: DecorationInstanceRenderOptions;
+	}
+
+	/**
+	 * MarkedString can be used to render human-readable text. It is either a markdown string
+	 * or a code-block that provides a language and a code snippet. Note that
+	 * markdown strings will be sanitized - that means html will be escaped.
+	 *
+	 * @deprecated This type is deprecated, please use {@linkcode MarkdownString} instead.
+	 */
+	export type MarkedString = string | {
+		/**
+		 * The language of a markdown code block
+		 * @deprecated please use {@linkcode MarkdownString} instead
+		 */
+		language: string;
+		/**
+		 * The code snippet of a markdown code block.
+		 * @deprecated please use {@linkcode MarkdownString} instead
+		 */
+		value: string;
+	};
+
+	/**
+	 * A file decoration represents metadata that can be rendered with a file.
+	 */
+	export class FileDecoration {
+
+		/**
+		 * A very short string that represents this decoration.
+		 */
+		badge?: string;
+
+		/**
+		 * A human-readable tooltip for this decoration.
+		 */
+		tooltip?: string;
+
+		/**
+		 * The color of this decoration.
+		 */
+		color?: ThemeColor;
+
+		/**
+		 * A flag expressing that this decoration should be
+		 * propagated to its parents.
+		 */
+		propagate?: boolean;
+
+		/**
+		 * Creates a new decoration.
+		 *
+		 * @param badge A letter that represents the decoration.
+		 * @param tooltip The tooltip of the decoration.
+		 * @param color The color of the decoration.
+		 */
+		constructor(badge?: string, tooltip?: string, color?: ThemeColor);
+	}
+
+	/**
+	 * The decoration provider interfaces defines the contract between extensions and
+	 * file decorations.
+	 */
+	export interface FileDecorationProvider {
+
+		/**
+		 * An optional event to signal that decorations for one or many files have changed.
+		 *
+		 * *Note* that this event should be used to propagate information about children.
+		 *
+		 * @see {@link EventEmitter}
+		 */
+		onDidChangeFileDecorations?: Event<undefined | Uri | Uri[]>;
+
+		/**
+		 * Provide decorations for a given uri.
+		 *
+		 * *Note* that this function is only called when a file gets rendered in the UI.
+		 * This means a decoration from a descendent that propagates upwards must be signaled
+		 * to the editor via the {@link FileDecorationProvider.onDidChangeFileDecorations onDidChangeFileDecorations}-event.
+		 *
+		 * @param uri The uri of the file to provide a decoration for.
+		 * @param token A cancellation token.
+		 * @returns A decoration or a thenable that resolves to such.
+		 */
+		provideFileDecoration(uri: Uri, token: CancellationToken): ProviderResult<FileDecoration>;
 	}
 
 }
