@@ -68,7 +68,9 @@ describe("VscodeTypes — EventEmitter", () => {
         const em = new EventEmitter<number>();
         const sub = em.event(() => undefined);
         sub.dispose();
-        expect(() => sub.dispose()).not.toThrow();
+        expect(() => {
+            sub.dispose();
+        }).not.toThrow();
     });
 
     it("emitter.dispose() очищает всех слушателей", () => {

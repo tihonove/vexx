@@ -122,7 +122,9 @@ describe("WindowNamespace", () => {
         stub.fire("editor.activeEditorChanged", { fileName: "/b.ts" });
         expect(received).toHaveLength(1);
         // повторный dispose безопасен (idx < 0)
-        expect(() => d.dispose()).not.toThrow();
+        expect(() => {
+            d.dispose();
+        }).not.toThrow();
     });
 
     it("options принимает строковые tabSize/insertSpaces/indentSize", () => {

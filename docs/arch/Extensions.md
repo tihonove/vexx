@@ -20,6 +20,32 @@
 - **Lifecycle:** `ExtensionHost.dispose()` — graceful `host.shutdown` → `SIGTERM` → `SIGKILL`. В DI — `ExtensionHostDIToken`. `main.ts` содержит ранний branch на env-флаг: subprocess уходит в `runExtensionHostSubprocess()`, обычный запуск — в `runEditor()`.
 
 ## Правило роста `vscode.d.ts` (важно)
-`Extensions/Api/vscode.d.ts` — дословная копия upstream, всё line-commented кроме активной поверхности. Нужные блоки **дословно раскомментируются** из нижней части в активный модуль — их **нельзя сужать / переписывать / переоформлять** (комментарии тоже upstream). Это стадийная копия реального API, а не стаб под реализацию. Если блок тянет ещё не раскомментированные типы (dependency closure) — либо раскомментируй и их, либо **отложи блок целиком**, но не подменяй сужённой версией. Runtime-значение может опережать типовую декларацию (namespace отдаётся через `as unknown as typeof vscode`).
+`Extensions/Api/vscode.d.ts` — стадийная копия upstream `microsoft/vscode:src/vscode-dts/vscode.d.ts`, всё line-commented кроме активной поверхности. Это дословная копия реального API, а не стаб под реализацию. Инвариант: **файл меняется ТОЛЬКО снятием `// `**.
+
+Структура файла:
+1. **Шапка** — провенанс (upstream tag + commit SHA + permalink) и ссылка сюда.
+2. **Активный `declare module "vscode"`** — дословно раскомментированные строки upstream. Единственный human-owned блок. Framing-строки (сам `declare module "vscode" {`, его `}`, глобальный `Thenable`) — единственное не-upstream в этой части.
+3. **Строка-сентинел** `//@vexx:begin-upstream-verbatim …`.
+4. **Дормант** — вся upstream-копия, каждая строка с `// `. Генерируется, вручную не редактируется.
+
+**Пиннинг.** Тег зафиксирован в шапке и согласован с `src/Extensions/builtin/VSCODE_VERSION` (сейчас `1.127.0`) — держи их в лок-степе. Пин нужен, чтобы обновление upstream шло **ручным трёхсторонним merge**: base = `vscode.d.ts` запинненной версии, theirs = новый upstream, ours = наш файл с раскомментированными блоками.
+
+**Как добавить API.** Найди нужный блок в дормантной части и подними **дословно** (сняв `// `) в активный модуль — не сужать / не переписывать / не переоформлять (комментарии тоже upstream). Если блок тянет ещё не раскомментированный тип (dependency closure) — раскомментируй и его. Runtime-значение может опережать типовую декларацию (namespace отдаётся через `as unknown as typeof vscode`).
+
+**Bounded member-level uncommenting.** Для «тяжёлого по closure» блока (namespace/интерфейс/класс, чьё полное upstream-тело тянет непрактичное дерево зависимостей) можно раскомментировать **подмножество членов**, оставив прочие в дормантной части. Каждая раскомментированная строка обязана быть **байт-в-байт** равна upstream. Так сделаны, например, `window`/`workspace`/`languages` (только реализованные функции), `TextEditor` (`document`/`options`), `ExtensionContext` (`subscriptions`), `TextDocument`/`FileStat`/`CompletionItem` (подмножество полей).
+
+**Инструмент.** `scripts/import-vscode-dts.mjs`:
+- (без флагов) — регенерировать дормант из запинненного тега + обновить провенанс в шапке (активный модуль не трогает);
+- `--check` — сверить, что дормант байт-в-байт равен upstream тега (drift guard, нужна сеть);
+- `--verify-active` — offline-проверка инварианта: каждая кодовая строка активного модуля дословно присутствует в дормантной копии. Прогоняй после ручного раскомментирования.
+
+**Семантические отклонения Vexx** (тип совпадает с upstream, отличается только смысл/JSDoc-намерение):
+| Символ | Отклонение |
+| --- | --- |
+| `version` | Возвращает версию **Vexx**, а не VS Code (upstream JSDoc говорит «editor»). |
+| `Event<T>` | Слушатель `(e) => any` (upstream); хост оборачивает подписки через `EventEmitterImpl` в `Vscode/VscodeTypes.ts`. |
+| `TextEditorOptions.indentSize` | Хост алиасит его к `tabSize` (Vexx пока не различает); editorconfig шлёт `indent_size` так. |
+| `workspace.openTextDocument(…, { encoding })` | `encoding` принимается для совместимости, но ядро utf-8-only — при несовпадении graceful degrade с предупреждением. |
+| Namespaces / value-типы | Рантайм может опережать/отставать от типов; поверхность собирается в `Vscode/*` и отдаётся как `as unknown as typeof vscode.*`. |
 
 **Зависимости:** Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Common. Подмодуль **`Extensions/Host` дополнительно → Controllers** (через `EditorGroupController`-адаптер) — единственное место, где Extensions поднимается выше Controllers.
