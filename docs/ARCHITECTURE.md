@@ -46,7 +46,7 @@ TUI-фреймворк — дерево элементов с layout, событ
 Загрузка VS Code-совместимых расширений (`contributes.languages`/`grammars`, builtin + user), `LanguageRegistry`, установка `.vsix`. Подмодуль `Extensions/Host/` — extension host: реальный subprocess + RPC поверх Node IPC, субпроцессная поверхность `vscode`. Детали → [arch/Extensions.md](arch/Extensions.md).
 
 ### Configuration/
-Сервис пользовательских настроек (аналог `IConfigurationService`): JSONC, профили, слои default/user/profile, раскладка user data, CLI-парсер. Детали → [arch/Configuration.md](arch/Configuration.md).
+Сервис пользовательских настроек (аналог `IConfigurationService`): JSONC, профили, слои default/user/profile, раскладка user data, CLI-парсер. Детали → [arch/Configuration.md](arch/Configuration.md). Рядом — `StateService` (аналог `IStorageService`/`Memento`): **машинное** состояние UI/сессии (открытые файлы, ширина/видимость панелей) в plain-JSON со scope `global`/`workspace` — отдельная система от человекочитаемых настроек. Дескрипторы состояния объявляются на уровне Controllers (`StateKeys.ts`), не в элементах TUIDom. Детали → [arch/State.md](arch/State.md).
 
 ### Theme/
 Система темизации, совместимая с VS Code theme files: `WorkbenchTheme`, реестр дефолтов `defaultColors`, `ThemeService`/`ThemeRegistry`, встроенные темы. Все цвета UI берутся только из активной темы. Детали → [arch/Theme.md](arch/Theme.md).

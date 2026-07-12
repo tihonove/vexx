@@ -159,6 +159,8 @@ const container = new Container()
 | `backendModuleDefault` | — | `Clipboard` с `InMemoryClipboard` по умолчанию |
 | `configurationModule` | `{ configurationService }` | `IConfigurationService` (готовый экземпляр из `loadConfiguration(paths)`) |
 | `configurationModuleDefault` | — | `IConfigurationService` с `NULL_CONFIGURATION_SERVICE` (тесты и demo) |
+| `stateModule` | `{ stateService }` | `IStateService` — машинное состояние UI/сессии (готовый экземпляр из `loadState(paths)`; см. [arch/State.md](arch/State.md)) |
+| `stateModuleDefault` | — | `IStateService` с `NULL_STATE_SERVICE` (тесты и demo) |
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
 | `extensionHostModule` | — | `ExtensionHost` (+ `EditorOptionsServiceAdapter` поверх `EditorGroupController`) |

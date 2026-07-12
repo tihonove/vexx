@@ -165,6 +165,7 @@ import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
 import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
 import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
+import { StateServiceDIToken } from "./Modules/StateModule.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 import { QuickInputController } from "./QuickInputController.ts";
@@ -175,6 +176,7 @@ import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalE
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
 import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
+import { WorkbenchStateController } from "./WorkbenchStateController.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
 
@@ -362,6 +364,7 @@ export class AppController extends Disposable implements IController {
     ] as const;
     public readonly view: BodyElement;
     public readonly workbenchLayout: WorkbenchLayoutElement;
+    private workbenchState: WorkbenchStateController;
 
     private editorGroupController: EditorGroupController;
     private confirmDialog: ConfirmSaveDialogElement | null = null;
@@ -472,6 +475,21 @@ export class AppController extends Disposable implements IController {
         this.workbenchLayout.setSashHoverColor(themeService.theme.getRequiredColor("sash.hoverBorder"));
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
         this.workbenchLayout.setBottomPanel(this.panelController.view);
+
+        // Персистентность workbench-состояния (открытые файлы + layout). Координатор
+        // читает/пишет layout-элемент и группу редакторов; сам элемент про него не
+        // знает — write-through идёт через onDidChangeLayout (drag сэша + команды).
+        this.workbenchState = this.register(
+            new WorkbenchStateController(accessor.get(StateServiceDIToken), this.editorGroupController, this.workbenchLayout),
+        );
+        this.workbenchLayout.onDidChangeLayout = () => {
+            this.workbenchState.captureLayout();
+        };
+        this.register(
+            this.editorGroupController.onActiveEditorChanged(() => {
+                this.workbenchState.captureOpenEditors();
+            }),
+        );
 
         this.view = new BodyElement();
         this.view.setContent(this.workbenchLayout);
@@ -968,6 +986,9 @@ export class AppController extends Disposable implements IController {
         this.diagnosticsController.mount();
         this.panelController.mount();
         this.problemsController.mount();
+        // Применяем сохранённый layout до первого кадра (run() идёт после mount()).
+        // Workspace-стор уже открыт: setWorkspaceFolder вызывается до mount().
+        this.workbenchState.restoreLayout();
     }
 
     public async activate(): Promise<void> {
@@ -989,9 +1010,23 @@ export class AppController extends Disposable implements IController {
         this.statusBarController.update();
     }
 
+    /**
+     * Восстанавливает открытые в прошлой сессии файлы этого воркспейса (реплей
+     * сохранённых путей + активная вкладка). Вызывается из `main.ts`, только если
+     * пользователь НЕ передал файлы в CLI (явные файлы перебивают сессию).
+     */
+    public restoreOpenEditors(): void {
+        this.workbenchState.restoreOpenEditors();
+        this.updateContextKeys();
+        this.statusBarController.update();
+    }
+
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
+        // Открыть per-project стор состояния для этой папки (переключение флашит
+        // предыдущий). Дальше layout/открытые файлы читаются/пишутся в него.
+        this.workbenchState.openWorkspace(dirPath);
         // Fire-and-forget: the index builds in the background so startup and the
         // first render are not blocked. `fileIndexReady` exposes completion for
         // callers (and tests) that need the index populated.

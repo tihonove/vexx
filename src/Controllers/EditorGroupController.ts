@@ -173,6 +173,19 @@ export class EditorGroupController extends Disposable implements IController {
         return this.editors[index];
     }
 
+    /**
+     * Абсолютные пути открытых файлов в позиционном порядке вкладок — снимок для
+     * персистентности сессии (см. `WorkbenchStateController`). Безымянные буферы
+     * (без пути на диске) пропускаются: их нечего восстанавливать по пути.
+     */
+    public getOpenFilePaths(): string[] {
+        const paths: string[] = [];
+        for (const editor of this.editors) {
+            if (editor.absoluteFilePath !== null) paths.push(editor.absoluteFilePath);
+        }
+        return paths;
+    }
+
     public openFile(filePath: string, { focus = true }: { focus?: boolean } = {}): void {
         // Идентичность вкладки — по полному пути, а не по имени файла: два разных
         // файла с одинаковым basename (например, два index.ts из разных папок)

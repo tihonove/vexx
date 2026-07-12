@@ -1,6 +1,13 @@
+import * as crypto from "node:crypto";
+
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_PROFILE_NAME, DEFAULT_USER_DATA_ROOT_NAME, resolveUserDataPaths } from "./UserDataPaths.ts";
+import {
+    DEFAULT_PROFILE_NAME,
+    DEFAULT_USER_DATA_ROOT_NAME,
+    resolveUserDataPaths,
+    resolveWorkspaceStatePath,
+} from "./UserDataPaths.ts";
 
 describe("resolveUserDataPaths", () => {
     const home = "/home/alice";
@@ -57,5 +64,37 @@ describe("resolveUserDataPaths", () => {
         expect(() => resolveUserDataPaths({ homedir: home, profile: "with space" })).toThrow(/Invalid profile name/);
         expect(() => resolveUserDataPaths({ homedir: home, profile: "with/slash" })).toThrow();
         expect(() => resolveUserDataPaths({ homedir: home, profile: "../up" })).toThrow();
+    });
+
+    it("places machine-state paths under the default profile dir", () => {
+        const paths = resolveUserDataPaths({ homedir: home });
+        expect(paths.globalStateFile).toBe("/home/alice/.vexx/user-data/User/globalState.json");
+        expect(paths.workspaceStorageDir).toBe("/home/alice/.vexx/user-data/User/workspaceStorage");
+    });
+
+    it("isolates machine-state paths per named profile", () => {
+        const paths = resolveUserDataPaths({ homedir: home, profile: "compact" });
+        expect(paths.globalStateFile).toBe("/home/alice/.vexx/user-data/User/profiles/compact/globalState.json");
+        expect(paths.workspaceStorageDir).toBe("/home/alice/.vexx/user-data/User/profiles/compact/workspaceStorage");
+    });
+});
+
+describe("resolveWorkspaceStatePath", () => {
+    const storage = "/home/alice/.vexx/user-data/User/workspaceStorage";
+
+    it("keys state.json by sha256 of the resolved folder path", () => {
+        const hash = crypto.createHash("sha256").update("/projects/app").digest("hex");
+        expect(resolveWorkspaceStatePath(storage, "/projects/app")).toBe(`${storage}/${hash}/state.json`);
+    });
+
+    it("normalizes the folder path before hashing (trailing slash / . segments)", () => {
+        const canonical = resolveWorkspaceStatePath(storage, "/projects/app");
+        expect(resolveWorkspaceStatePath(storage, "/projects/app/")).toBe(canonical);
+        expect(resolveWorkspaceStatePath(storage, "/projects/./app")).toBe(canonical);
+        expect(resolveWorkspaceStatePath(storage, "/projects/sub/../app")).toBe(canonical);
+    });
+
+    it("produces different hashes for different folders", () => {
+        expect(resolveWorkspaceStatePath(storage, "/a")).not.toBe(resolveWorkspaceStatePath(storage, "/b"));
     });
 });

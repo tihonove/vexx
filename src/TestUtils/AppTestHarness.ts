@@ -1,5 +1,6 @@
 import type { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
+import type { IStateService } from "../Configuration/IStateService.ts";
 import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
 import type { CommandRegistry } from "../Controllers/CommandRegistry.ts";
@@ -7,6 +8,7 @@ import { CommandRegistryDIToken } from "../Controllers/CommandRegistry.ts";
 import type { EditorController } from "../Controllers/EditorController.ts";
 import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
+import { StateServiceDIToken } from "../Controllers/Modules/StateModule.ts";
 
 import { TestApp } from "./TestApp.ts";
 
@@ -19,6 +21,8 @@ export interface IAppHarnessOptions {
     readonly openFile?: string;
     /** Сфокусировать редактор и отрендерить кадр после boot'а. */
     readonly focusEditor?: boolean;
+    /** Реальный {@link IStateService} для тестов персистентности; по умолчанию NULL (не персистит). */
+    readonly stateService?: IStateService;
 }
 
 export interface IAppHarness {
@@ -48,6 +52,12 @@ export interface IAppHarness {
  */
 export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarness {
     const { container, bindApp } = createTestContainer();
+    // По умолчанию состояние не персистится (NULL_STATE_SERVICE из stateModuleDefault);
+    // тест может подсунуть реальный StateService, перебив биндинг ДО резолва AppController.
+    if (options.stateService !== undefined) {
+        const stateService = options.stateService;
+        container.bind(StateServiceDIToken, () => stateService);
+    }
     const controller = container.get(AppControllerDIToken);
     if (options.workspaceFolder !== undefined) {
         controller.setWorkspaceFolder(options.workspaceFolder);

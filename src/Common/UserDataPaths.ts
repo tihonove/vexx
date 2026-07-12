@@ -1,9 +1,10 @@
+import * as crypto from "node:crypto";
 import * as path from "node:path";
 
 /**
  * Резолв путей user data в стиле VS Code. Полностью pure — никакого I/O.
  *
- * Раскладка (см. docs/arch/Configuration.md):
+ * Раскладка (см. docs/arch/Configuration.md, docs/arch/State.md):
  *
  *     <root>/
  *       extensions/                      ← внешние расширения, плоско
@@ -11,10 +12,14 @@ import * as path from "node:path";
  *         User/                          ← default-профиль
  *           settings.json
  *           keybindings.json
+ *           globalState.json             ← машинное состояние (global scope)
+ *           workspaceStorage/            ← машинное состояние по проектам
+ *             <sha256(folder)>/state.json
  *           profiles/
  *             <profileName>/             ← именованные профили
  *               settings.json
  *               keybindings.json
+ *               globalState.json
  *
  * Активный профиль `default` использует файлы прямо в `User/`. Любое другое
  * имя кладёт файлы в `User/profiles/<name>/`.
@@ -38,6 +43,19 @@ export interface IUserDataPaths {
     readonly settingsFile: string;
     /** `<profileDir>/keybindings.json`. */
     readonly keybindingsFile: string;
+    /**
+     * `<profileDir>/globalState.json` — машинное состояние UI/сессии в области
+     * `global` (см. docs/arch/State.md). Per-profile: смена `--profile` даёт
+     * отдельный global-state. Отдельно от человекочитаемого `settings.json`.
+     */
+    readonly globalStateFile: string;
+    /**
+     * `<profileDir>/workspaceStorage` — корень per-project состояния. Конкретный
+     * файл проекта резолвится {@link resolveWorkspaceStatePath}. Под `profileDir`
+     * (а не `userDir`), чтобы именованные профили были изолированы так же, как
+     * `globalStateFile`.
+     */
+    readonly workspaceStorageDir: string;
 }
 
 export const DEFAULT_PROFILE_NAME = "default";
@@ -81,7 +99,23 @@ export function resolveUserDataPaths(options: IResolveUserDataPathsOptions): IUs
         profileDir,
         settingsFile: path.join(profileDir, "settings.json"),
         keybindingsFile: path.join(profileDir, "keybindings.json"),
+        globalStateFile: path.join(profileDir, "globalState.json"),
+        workspaceStorageDir: path.join(profileDir, "workspaceStorage"),
     };
+}
+
+/**
+ * Резолвит путь к state.json конкретного проекта внутри `workspaceStorageDir`.
+ * Ключ каталога — sha256 от абсолютного (нормализованного) пути папки, как в
+ * VS Code (`workspaceStorage/<hash>/`). Pure, без I/O.
+ *
+ * @param workspaceStorageDir корень хранилища (`IUserDataPaths.workspaceStorageDir`)
+ * @param folderPath путь к папке-воркспейсу (резолвится в абсолютный)
+ */
+export function resolveWorkspaceStatePath(workspaceStorageDir: string, folderPath: string): string {
+    const resolved = path.resolve(folderPath);
+    const hash = crypto.createHash("sha256").update(resolved).digest("hex");
+    return path.join(workspaceStorageDir, hash, "state.json");
 }
 
 function normalizeProfileName(raw: string | undefined): string {
