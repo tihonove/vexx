@@ -26,6 +26,11 @@ export const InspectorMethod = {
      * layer wires it to the file tree controller. Requires a driver (headless).
      */
     setFileDecorations: "TUIDom.setFileDecorations",
+    /**
+     * Push gutter change-bar decorations to the active editor. A test/demo seam
+     * wired by the App layer (`main.ts`) — the Inspector core stays Editor-free.
+     */
+    setGutterChangeDecorations: "TUIDom.setGutterChangeDecorations",
 } as const;
 
 /** Params for `TUIDom.sendKey`. */
@@ -62,6 +67,22 @@ export interface FileDecorationEntry {
 /** Params for `TUIDom.setFileDecorations`. */
 export interface SetFileDecorationsParams {
     entries: FileDecorationEntry[];
+}
+
+/**
+ * One gutter change bar for `TUIDom.setGutterChangeDecorations`: an inclusive
+ * range of 0-based logical lines and a packed-RGB colour. Editor-free on purpose
+ * — the App layer maps it onto the editor's decoration model.
+ */
+export interface GutterChangeDecorationParam {
+    startLine: number;
+    endLine: number;
+    color: number;
+}
+
+/** Params for `TUIDom.setGutterChangeDecorations`. */
+export interface SetGutterChangeDecorationsParams {
+    decorations: GutterChangeDecorationParam[];
 }
 
 /** Serialized tree node. */

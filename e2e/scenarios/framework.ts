@@ -29,6 +29,8 @@ export interface ScenarioDriver {
     resize(cols: number, rows: number): Promise<void>;
     /** Apply file-tree status decorations (name colour + letter badge) by absolute path. */
     setFileDecorations(entries: FileDecorationEntry[]): Promise<void>;
+    /** Push gutter change-bar decorations to the active editor (test/demo seam). */
+    setGutterChangeDecorations(decorations: { startLine: number; endLine: number; color: number }[]): Promise<void>;
     /** Poll the screen until `predicate(text)` holds; returns the matching frame. */
     waitForText(
         predicate: (text: string) => boolean,
@@ -84,6 +86,7 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
         sendText: (text) => session.sendText(text),
         resize: (cols, rows) => session.resize(cols, rows),
         setFileDecorations: (entries) => session.setFileDecorations(entries),
+        setGutterChangeDecorations: (decorations) => session.setGutterChangeDecorations(decorations),
         waitForText: (predicate, opts) => session.waitForText(predicate, opts),
         captureFrame: () => session.captureFrame(),
         capture: async (shot) => {

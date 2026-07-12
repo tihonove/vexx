@@ -103,6 +103,13 @@ export class HeadlessSession {
         await this.rpc("TUIDom.setFileDecorations", { entries });
     }
 
+    /** Push gutter change-bar decorations to the active editor (test/demo seam). */
+    public async setGutterChangeDecorations(
+        decorations: { startLine: number; endLine: number; color: number }[],
+    ): Promise<void> {
+        await this.rpc("TUIDom.setGutterChangeDecorations", { decorations });
+    }
+
     public async captureFrame(): Promise<GridSnapshot> {
         return (await this.rpc<CaptureFrameResult>("TUIDom.captureFrame")).frame;
     }
