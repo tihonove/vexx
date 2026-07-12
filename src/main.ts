@@ -1,6 +1,7 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { HeadlessCaptureBackend } from "./Backend/HeadlessCaptureBackend.ts";
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
@@ -350,6 +351,25 @@ async function runEditor(): Promise<void> {
             await extensionHost.registerExtension(reg);
         } catch (err) {
             extensionsLogger.error(`${ext.id}: failed to activate`, err);
+        }
+    }
+
+    // LSP: подключаем стоковый typescript-language-server через vscode-languageclient.
+    // Диагностики уходят в MarkerService (squiggle + панель Problems). Отключается
+    // env-флагом VEXX_LSP_DISABLE=1. (Пока dev-only: в SEA-бинаре сервер и его deps
+    // должны лежать реальным node_modules — см. docs/TODO/LSP.md.)
+    if (process.env.VEXX_LSP_DISABLE !== "1") {
+        const mainDir = path.dirname(fileURLToPath(import.meta.url));
+        const mainPath = path.join(mainDir, "Extensions", "builtinLsp", "tsLanguageClient.cjs");
+        try {
+            await extensionHost.registerExtension({
+                id: "vexx.typescript",
+                manifest: { name: "typescript", publisher: "vexx", version: "0.0.0" },
+                mainPath,
+            });
+            extensionsLogger.info("TypeScript language client activated");
+        } catch (err) {
+            extensionsLogger.error("TypeScript language client: failed to activate", err);
         }
     }
 }

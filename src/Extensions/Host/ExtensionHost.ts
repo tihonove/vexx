@@ -93,6 +93,44 @@ export interface IExtensionHostOptions {
      * (расширение видит только `configDefaults` из своего манифеста).
      */
     readonly configuration?: IExtensionHostConfigProvider;
+    /**
+     * SPIKE (LSP): сток диагностик из расширений
+     * (`languages.createDiagnosticCollection().set(...)` → RPC `diagnostics.publish`).
+     * Подключается в {@link ../../Controllers/Modules/ExtensionHostModule.ts} к
+     * `MarkerService.changeOne`. Если не передан — диагностики отбрасываются.
+     */
+    readonly diagnosticsSink?: DiagnosticsSink;
+    /**
+     * SPIKE (LSP): снимок активного документа. Хост пушит его как `editor.didOpen`
+     * при готовности subprocess'а — чтобы `workspace.textDocuments` был заполнен
+     * ДО активации расширения (стоковый languageclient читает его на `start()`).
+     */
+    readonly activeDocumentProvider?: () => IDocumentSyncSnapshot | null;
+}
+
+/**
+ * SPIKE (LSP): одна опубликованная диагностика (subprocess → host). Range —
+ * плоские 0-based поля; `severity` — `vscode.DiagnosticSeverity` (0=Error…3=Hint).
+ */
+export interface IHostDiagnostic {
+    readonly severity: number;
+    readonly startLine: number;
+    readonly startCharacter: number;
+    readonly endLine: number;
+    readonly endCharacter: number;
+    readonly message: string;
+    readonly code?: string;
+    readonly source?: string;
+}
+
+export type DiagnosticsSink = (owner: string, resource: string, markers: readonly IHostDiagnostic[]) => void;
+
+/** SPIKE (LSP): снимок документа для sync-push в subprocess (`editor.didOpen`/`didChange`). */
+export interface IDocumentSyncSnapshot {
+    readonly fileName: string;
+    readonly languageId: string;
+    readonly version: number;
+    readonly text: string;
 }
 
 /**
@@ -129,6 +167,8 @@ export class ExtensionHost extends Disposable {
     private readonly stdoutLogger: ILogger | undefined;
     private readonly stderrLogger: ILogger | undefined;
     private readonly configuration: IExtensionHostConfigProvider | undefined;
+    private readonly diagnosticsSink: DiagnosticsSink | undefined;
+    private readonly activeDocumentProvider: (() => IDocumentSyncSnapshot | null) | undefined;
     private readonly extensions = new Set<string>();
     private subprocess: ChildProcess | null = null;
     private channel: IpcMessageChannel | null = null;
@@ -161,6 +201,32 @@ export class ExtensionHost extends Disposable {
         this.stdoutLogger = options.stdoutLogger;
         this.stderrLogger = options.stderrLogger;
         this.configuration = options.configuration;
+        this.diagnosticsSink = options.diagnosticsSink;
+        this.activeDocumentProvider = options.activeDocumentProvider;
+    }
+
+    /**
+     * SPIKE (LSP): пушит открытие документа в subprocess (`editor.didOpen`) —
+     * там фаерится `workspace.onDidOpenTextDocument`, на которое подписан
+     * document-sync стокового `vscode-languageclient`. No-op без subprocess'а /
+     * без активных расширений / для слишком больших документов.
+     */
+    public didOpenTextDocument(snapshot: IDocumentSyncSnapshot): void {
+        this.pushDocumentSync("editor.didOpen", snapshot);
+    }
+
+    /** SPIKE (LSP): пушит изменение документа (`editor.didChange` → `onDidChangeTextDocument`). */
+    public didChangeTextDocument(snapshot: IDocumentSyncSnapshot): void {
+        this.pushDocumentSync("editor.didChange", snapshot);
+    }
+
+    private pushDocumentSync(method: string, snapshot: IDocumentSyncSnapshot): void {
+        const rpc = this.rpc;
+        if (rpc === null || this.extensions.size === 0) return;
+        /* v8 ignore start -- защитный лимит на снапшот 8 МБ */
+        if (snapshot.text.length > MAX_WILL_SAVE_TEXT_BYTES) return;
+        /* v8 ignore stop */
+        rpc.notify(method, snapshot);
     }
 
     public async registerExtension(reg: IExtensionRegistration): Promise<IDisposable> {
@@ -352,6 +418,10 @@ export class ExtensionHost extends Disposable {
             // Send initial active editor state so that window.activeTextEditor
             // is correct before the first host.activateExtension call.
             rpc.notify("editor.activeEditorChanged", this.editorOptions.getActiveEditorMeta());
+            // SPIKE (LSP): наполняем `workspace.textDocuments` активным документом
+            // ДО активации расширения — стоковый languageclient читает его на start().
+            const snapshot = this.activeDocumentProvider?.();
+            if (snapshot != null) rpc.notify("editor.didOpen", snapshot);
         });
         await this.readyPromise;
         return rpc;
@@ -411,6 +481,13 @@ export class ExtensionHost extends Disposable {
         rpc.handleNotification("languages.updateSubscriptions", (params) => {
             const p = params as { hasCompletionProviders?: unknown };
             this.completionSubscribed = p.hasCompletionProviders === true;
+        });
+        // SPIKE (LSP): расширение опубликовало диагностики
+        // (createDiagnosticCollection().set) — отдаём их стоку (→ MarkerService).
+        rpc.handleNotification("diagnostics.publish", (params) => {
+            const p = params as { owner?: unknown; resource?: unknown; markers?: unknown };
+            if (typeof p.owner !== "string" || typeof p.resource !== "string" || !Array.isArray(p.markers)) return;
+            this.diagnosticsSink?.(p.owner, p.resource, p.markers as IHostDiagnostic[]);
         });
         rpc.handleNotification("window.showMessage", (params) => {
             const { severity, message } = params as { severity?: unknown; message?: unknown };

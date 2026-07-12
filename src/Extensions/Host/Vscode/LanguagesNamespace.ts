@@ -5,7 +5,46 @@ import type { WireCompletionItem } from "../WireTypes.ts";
 import { matchDocumentSelector } from "./DocumentSelector.ts";
 import type { ExtHostTextDocument } from "./ExtHostDocuments.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
-import { DisposableImpl, EventEmitter, Position, Range } from "./VscodeTypes.ts";
+import { DisposableImpl, EventEmitter, Position, Range, Uri } from "./VscodeTypes.ts";
+
+/**
+ * SPIKE (LSP): wire-форма диагностики (subprocess → host). Range — плоские
+ * 0-based поля (как в остальных wire-типах). `severity` — `vscode.DiagnosticSeverity`
+ * (0=Error…3=Hint); маппинг в `MarkerSeverity` делает хост.
+ */
+export interface WireMarker {
+    readonly severity: number;
+    readonly startLine: number;
+    readonly startCharacter: number;
+    readonly endLine: number;
+    readonly endCharacter: number;
+    readonly message: string;
+    readonly code?: string;
+    readonly source?: string;
+}
+
+/** SPIKE (LSP): `vscode.Diagnostic` (наш класс) → {@link WireMarker}. */
+function toWireMarker(diag: unknown): WireMarker {
+    const d = diag as {
+        range?: { start: { line: number; character: number }; end: { line: number; character: number } };
+        message?: unknown;
+        severity?: unknown;
+        code?: unknown;
+        source?: unknown;
+    };
+    const r = d.range ?? { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
+    const code = typeof d.code === "string" || typeof d.code === "number" ? String(d.code) : undefined;
+    return {
+        severity: typeof d.severity === "number" ? d.severity : 0,
+        startLine: r.start.line,
+        startCharacter: r.start.character,
+        endLine: r.end.line,
+        endCharacter: r.end.character,
+        message: typeof d.message === "string" ? d.message : String(d.message ?? ""),
+        ...(code !== undefined ? { code } : {}),
+        ...(typeof d.source === "string" ? { source: d.source } : {}),
+    };
+}
 
 /** Зарегистрированный провайдер автодополнения. */
 export interface ICompletionRegistration {
@@ -176,6 +215,62 @@ export function createLanguagesNamespace(ctx: IVscodeHostContext): {
         return items;
     });
 
+    // SPIKE (LSP): no-op регистрация провайдера — возвращает валидный Disposable.
+    const registerProvider = (): vscode.Disposable =>
+        new DisposableImpl(() => undefined) as unknown as vscode.Disposable;
+
+    // SPIKE (LSP): коллекция диагностик, форвардящая маркеры хосту через RPC
+    // (`diagnostics.publish`) — хост пишет их в Editor/Markers/MarkerService,
+    // откуда их подхватывают squiggle-декорации и панель Problems.
+    const createDiagnosticCollection = (name?: string): unknown => {
+        const owner = "ext:" + (name ?? "diagnostics");
+        const store = new Map<string, readonly unknown[]>();
+
+        const fsPathOf = (uri: unknown): string => {
+            if (typeof uri === "string") return uri.startsWith("file://") ? Uri.parse(uri).fsPath : uri;
+            const u = uri as { fsPath?: string; path?: string; toString(): string };
+            return u.fsPath ?? u.path ?? String(u.toString());
+        };
+        const publish = (uri: unknown, diags: readonly WireMarker[]): void => {
+            rpc.notify("diagnostics.publish", { owner, resource: fsPathOf(uri), markers: diags });
+        };
+
+        const setOne = (uri: unknown, diags: readonly unknown[] | undefined): void => {
+            const wire = (diags ?? []).map(toWireMarker);
+            store.set(fsPathOf(uri), wire);
+            publish(uri, wire);
+        };
+
+        const collection = {
+            name: name ?? "diagnostics",
+            set: (arg: unknown, diags?: readonly unknown[]): void => {
+                // Перегрузка VS Code: set(uri, diags) | set([[uri, diags], …]).
+                if (Array.isArray(arg)) {
+                    for (const entry of arg as [unknown, readonly unknown[] | undefined][]) {
+                        setOne(entry[0], entry[1] ?? []);
+                    }
+                    return;
+                }
+                setOne(arg, diags);
+            },
+            delete: (uri: unknown): void => {
+                store.delete(fsPathOf(uri));
+                publish(uri, []);
+            },
+            clear: (): void => {
+                for (const key of store.keys()) rpc.notify("diagnostics.publish", { owner, resource: key, markers: [] });
+                store.clear();
+            },
+            forEach: (): void => undefined,
+            get: (uri: unknown): readonly unknown[] | undefined => store.get(fsPathOf(uri)),
+            has: (uri: unknown): boolean => store.has(fsPathOf(uri)),
+            dispose: (): void => {
+                collection.clear();
+            },
+        };
+        return collection;
+    };
+
     const languagesNs = {
         registerCompletionItemProvider: (
             selector: vscode.DocumentSelector,
@@ -193,6 +288,40 @@ export function createLanguagesNamespace(ctx: IVscodeHostContext): {
                 }
             }) as unknown as vscode.Disposable;
         },
+
+        // ── SPIKE (LSP): остальные провайдеры регистрируются no-op'ом (клиент
+        // заводит их под capabilities сервера); definition в спайке дёргаем
+        // сырым запросом мимо провайдера. ─────────────────────────────────────
+        createDiagnosticCollection,
+        match: (): number => 10,
+        registerDefinitionProvider: registerProvider,
+        registerDeclarationProvider: registerProvider,
+        registerImplementationProvider: registerProvider,
+        registerTypeDefinitionProvider: registerProvider,
+        registerHoverProvider: registerProvider,
+        registerReferenceProvider: registerProvider,
+        registerDocumentHighlightProvider: registerProvider,
+        registerDocumentSymbolProvider: registerProvider,
+        registerWorkspaceSymbolProvider: registerProvider,
+        registerCodeActionsProvider: registerProvider,
+        registerCodeLensProvider: registerProvider,
+        registerDocumentLinkProvider: registerProvider,
+        registerColorProvider: registerProvider,
+        registerDocumentFormattingEditProvider: registerProvider,
+        registerDocumentRangeFormattingEditProvider: registerProvider,
+        registerOnTypeFormattingEditProvider: registerProvider,
+        registerRenameProvider: registerProvider,
+        registerFoldingRangeProvider: registerProvider,
+        registerSelectionRangeProvider: registerProvider,
+        registerSignatureHelpProvider: registerProvider,
+        registerDocumentSemanticTokensProvider: registerProvider,
+        registerDocumentRangeSemanticTokensProvider: registerProvider,
+        registerInlayHintsProvider: registerProvider,
+        registerInlineValuesProvider: registerProvider,
+        registerInlineCompletionItemProvider: registerProvider,
+        registerLinkedEditingRangeProvider: registerProvider,
+        registerCallHierarchyProvider: registerProvider,
+        registerTypeHierarchyProvider: registerProvider,
     };
 
     return {

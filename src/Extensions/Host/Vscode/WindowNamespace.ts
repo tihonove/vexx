@@ -4,7 +4,7 @@ import type { RpcEndpoint } from "../RpcEndpoint.ts";
 
 import type { ExtHostTextDocument } from "./ExtHostDocuments.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
-import { DisposableImpl } from "./VscodeTypes.ts";
+import { DisposableImpl, EventEmitter } from "./VscodeTypes.ts";
 
 /**
  * `vscode.window` на стороне subprocess.
@@ -123,30 +123,52 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         showInformationMessage: (message: string): Thenable<string | undefined> => showMessage(rpc, "info", message),
 
         createOutputChannel: (name: string): vscode.OutputChannel => {
+            const noop = (): void => undefined;
+            // SPIKE (LSP): даём и обычный, и LogOutputChannel-набор (log:true).
             return {
                 name,
-                append: () => {
-                    /* no-op */
-                },
-                appendLine: () => {
-                    /* no-op */
-                },
-                replace: () => {
-                    /* no-op */
-                },
-                clear: () => {
-                    /* no-op */
-                },
-                show: () => {
-                    /* no-op */
-                },
-                hide: () => {
-                    /* no-op */
-                },
-                dispose: () => {
-                    /* no-op */
-                },
+                append: noop,
+                appendLine: noop,
+                replace: noop,
+                clear: noop,
+                show: noop,
+                hide: noop,
+                dispose: noop,
+                logLevel: 3, // LogLevel.Info
+                onDidChangeLogLevel: new EventEmitter<never>().event,
+                trace: noop,
+                debug: noop,
+                info: noop,
+                warn: noop,
+                error: noop,
             } as unknown as vscode.OutputChannel;
+        },
+
+        // ── SPIKE (LSP): наивные заглушки, которых требует vscode-languageclient. ──
+        // visibleTextEditors ДОЛЖЕН содержать активный редактор: document-sync
+        // languageclient шлёт didOpen только для «видимых» документов
+        // (VisibleDocumentsImpl.fillVisibleResources читает этот список).
+        get visibleTextEditors(): readonly vscode.TextEditor[] {
+            const active = windowNs.activeTextEditor;
+            return active !== undefined ? [active] : [];
+        },
+        onDidChangeVisibleTextEditors: new EventEmitter<never>().event,
+        tabGroups: {
+            all: [] as readonly unknown[],
+            activeTabGroup: { tabs: [] as readonly unknown[] },
+            onDidChangeTabs: new EventEmitter<never>().event,
+            onDidChangeTabGroups: new EventEmitter<never>().event,
+        },
+        showTextDocument: (): Thenable<vscode.TextEditor | undefined> => Promise.resolve(windowNs.activeTextEditor),
+        withProgress: <R>(
+            _options: unknown,
+            task: (progress: { report(value: unknown): void }, token: vscode.CancellationToken) => Thenable<R>,
+        ): Thenable<R> => {
+            const token: vscode.CancellationToken = {
+                isCancellationRequested: false,
+                onCancellationRequested: new EventEmitter<never>().event,
+            } as unknown as vscode.CancellationToken;
+            return Promise.resolve(task({ report: (): void => undefined }, token));
         },
     };
 
