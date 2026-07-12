@@ -5,6 +5,7 @@ import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
 import type { CommandRegistry } from "../Controllers/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Controllers/CommandRegistry.ts";
+import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Controllers/CoreTokens.ts";
 import type { EditorController } from "../Controllers/EditorController.ts";
 import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
@@ -23,6 +24,10 @@ export interface IAppHarnessOptions {
     readonly focusEditor?: boolean;
     /** Реальный {@link IStateService} для тестов персистентности; по умолчанию NULL (не персистит). */
     readonly stateService?: IStateService;
+    /** Переопределить путь settings.json (по умолчанию `null` из TestProfile). */
+    readonly settingsResource?: string;
+    /** Переопределить путь keybindings.json (по умолчанию `null` из TestProfile). */
+    readonly keybindingsResource?: string;
 }
 
 export interface IAppHarness {
@@ -52,11 +57,20 @@ export interface IAppHarness {
  */
 export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarness {
     const { container, bindApp } = createTestContainer();
+    // Rebind before the AppController is resolved (it reads these at construction).
     // По умолчанию состояние не персистится (NULL_STATE_SERVICE из stateModuleDefault);
     // тест может подсунуть реальный StateService, перебив биндинг ДО резолва AppController.
     if (options.stateService !== undefined) {
         const stateService = options.stateService;
         container.bind(StateServiceDIToken, () => stateService);
+    }
+    if (options.settingsResource !== undefined) {
+        const resource = options.settingsResource;
+        container.bind(SettingsResourceDIToken, () => resource);
+    }
+    if (options.keybindingsResource !== undefined) {
+        const resource = options.keybindingsResource;
+        container.bind(KeybindingsResourceDIToken, () => resource);
     }
     const controller = container.get(AppControllerDIToken);
     if (options.workspaceFolder !== undefined) {

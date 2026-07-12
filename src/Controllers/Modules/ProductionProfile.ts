@@ -43,6 +43,8 @@ export interface ProductionProfileContext {
     logService: ILogService;
     /** Absolute path of the active-profile Vexx settings.json (for diagnostics scoping). */
     settingsResource: string;
+    /** Absolute path of the active-profile Vexx keybindings.json (for the open-keybindings command). */
+    keybindingsResource: string;
 }
 
 /**
@@ -67,7 +69,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
         .use(keybindingsModule, { rules: ctx.userKeybindings })
         .use(workspaceModule)
         .use(fileWatcherModule)
-        .use(markersModule, { settingsResource: ctx.settingsResource })
+        .use(markersModule, { settingsResource: ctx.settingsResource, keybindingsResource: ctx.keybindingsResource })
         .use(controllersModule)
         .use(extensionHostModule);
 }

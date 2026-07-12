@@ -23,7 +23,9 @@ import { loadState } from "./Configuration/StateService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
+import { EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
+import { createRange } from "./Editor/IRange.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./Extensions/ExtensionInstaller.ts";
 import { scanExtensions } from "./Extensions/ExtensionScanner.ts";
@@ -36,6 +38,7 @@ import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
 import { attachInspector } from "./Inspector/index.ts";
 import type { InspectorDriver } from "./Inspector/InspectorDriver.ts";
+import { InspectorMethod, type SetGutterChangeDecorationsParams } from "./Inspector/protocol.ts";
 import { createBuiltinThemeRegistry } from "./Theme/ThemeRegistry.ts";
 import { DEFAULT_COLOR_THEME } from "./Theme/themes/builtinThemes.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
@@ -202,6 +205,7 @@ async function runEditor(): Promise<void> {
         userKeybindings,
         logService,
         settingsResource: userDataPaths.settingsFile,
+        keybindingsResource: userDataPaths.keybindingsFile,
     });
 
     // Единственный якорь сброса состояния на диск: `process.exit(0)` (любой путь
@@ -279,6 +283,17 @@ async function runEditor(): Promise<void> {
                       },
                   };
         const inspector = await attachInspector(app, cli.inspectTui, driver);
+        // Test/demo seam: let headless scenarios push gutter change-bars straight
+        // to the active editor with literal colours (the git/SCM producer isn't
+        // wired in this build). Registered App-side so the Inspector core stays
+        // Editor-free; converts the wire shape onto the editor's decoration model.
+        inspector.core.register(InspectorMethod.setGutterChangeDecorations, (params) => {
+            const { decorations } = params as SetGutterChangeDecorationsParams;
+            container.get(EditorGroupControllerDIToken).getActiveEditor()?.setGutterChangeDecorations(
+                decorations.map((d) => ({ range: createRange(d.startLine, 0, d.endLine, 0), color: d.color })),
+            );
+            return {};
+        });
         bootstrapLogger.info("TUIDom inspector listening", {
             host: cli.inspectTui.host,
             port: inspector.port,

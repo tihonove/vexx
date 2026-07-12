@@ -429,12 +429,12 @@ export interface IWorkbenchColors {
     // ── Editor — Gutter ─────────────────────────────────────
     /** Background color of the editor gutter. */
     "editorGutter.background"?: number;
-    // /** Editor gutter background color for lines that are modified. */
-    // "editorGutter.modifiedBackground"?: number;
-    // /** Editor gutter background color for lines that are added. */
-    // "editorGutter.addedBackground"?: number;
-    // /** Editor gutter background color for lines that are deleted. */
-    // "editorGutter.deletedBackground"?: number;
+    /** Editor gutter background color for lines that are modified. */
+    "editorGutter.modifiedBackground"?: number;
+    /** Editor gutter background color for lines that are added. */
+    "editorGutter.addedBackground"?: number;
+    /** Editor gutter background color for lines that are deleted. */
+    "editorGutter.deletedBackground"?: number;
     /** Color of the folding control in the editor gutter. */
     "editorGutter.foldingControlForeground"?: number;
 
@@ -733,22 +733,22 @@ export interface IWorkbenchColors {
     // "welcomePage.background"?: number;
 
     // ── Git colors ──────────────────────────────────────────
-    // /** Color for added Git resources. */
-    // "gitDecoration.addedResourceForeground"?: number;
-    // /** Color for modified Git resources. */
-    // "gitDecoration.modifiedResourceForeground"?: number;
-    // /** Color for deleted Git resources. */
-    // "gitDecoration.deletedResourceForeground"?: number;
-    // /** Color for renamed or copied Git resources. */
-    // "gitDecoration.renamedResourceForeground"?: number;
-    // /** Color for untracked Git resources. */
-    // "gitDecoration.untrackedResourceForeground"?: number;
-    // /** Color for ignored Git resources. */
-    // "gitDecoration.ignoredResourceForeground"?: number;
-    // /** Color for conflicting Git resources. */
-    // "gitDecoration.conflictingResourceForeground"?: number;
-    // /** Color for submodule resources. */
-    // "gitDecoration.submoduleResourceForeground"?: number;
+    /** Color for added Git resources. */
+    "gitDecoration.addedResourceForeground"?: number;
+    /** Color for modified Git resources. */
+    "gitDecoration.modifiedResourceForeground"?: number;
+    /** Color for deleted Git resources. */
+    "gitDecoration.deletedResourceForeground"?: number;
+    /** Color for renamed or copied Git resources. */
+    "gitDecoration.renamedResourceForeground"?: number;
+    /** Color for untracked Git resources. */
+    "gitDecoration.untrackedResourceForeground"?: number;
+    /** Color for ignored Git resources. */
+    "gitDecoration.ignoredResourceForeground"?: number;
+    /** Color for conflicting Git resources. */
+    "gitDecoration.conflictingResourceForeground"?: number;
+    /** Color for submodule resources. */
+    "gitDecoration.submoduleResourceForeground"?: number;
 
     // ── Breadcrumbs colors ──────────────────────────────────
     // /** Color of breadcrumb items. */
