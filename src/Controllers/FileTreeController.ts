@@ -1,6 +1,7 @@
 import * as path from "node:path";
 
 import { Disposable } from "../Common/Disposable.ts";
+import { token } from "../Common/DiContainer.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
@@ -11,6 +12,8 @@ import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { FileTreeDataProvider, type FileTreeNode } from "./FileTreeDataProvider.ts";
 import type { IController } from "./IController.ts";
+
+export const FileTreeControllerDIToken = token<FileTreeController>("FileTreeController");
 
 export class FileTreeController extends Disposable implements IController {
     public view!: TUIElement;

@@ -1,6 +1,6 @@
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
 import type { ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
-import { createRange } from "../../Editor/IRange.ts";
+import { createRange, type IRange } from "../../Editor/IRange.ts";
 import type { ISaveEdit } from "../../Editor/ISaveParticipant.ts";
 
 /**
@@ -290,4 +290,156 @@ export async function requestCompletionItems(
     } finally {
         clearTimeout(timer);
     }
+}
+
+// ─── Decorations (Chunk 4 — host-bridge) ─────────────────────────────────────
+
+/**
+ * Wire-форма `vscode.ThemeColor` — цвет из реестра темы, резолвится в конкретный
+ * packed-RGB на стороне host'а. Голый `string` в тех же полях — CSS-цвет, который
+ * host игнорирует (у нас нет hex-парсинга инлайн-цветов декораций).
+ */
+export interface ISerializedThemeColor {
+    readonly $themeColor: string;
+}
+
+/** Значение цвета в сериализованных опциях декорации: CSS-строка или ThemeColor. */
+export type SerializedColor = string | ISerializedThemeColor;
+
+/**
+ * Сериализованные `vscode.DecorationRenderOptions` (subprocess → host). Несём
+ * только поля, которые host умеет спроецировать на свои поверхности: наличие
+ * `overviewRulerColor` делает тип «gutter change-bar», `isWholeLine` — метаданные
+ * реестра. Прочие CSS-поля декораций в TUI не рендерятся и не передаются.
+ */
+export interface SerializedDecorationRenderOptions {
+    readonly isWholeLine?: boolean;
+    readonly overviewRulerLane?: number;
+    readonly backgroundColor?: SerializedColor;
+    readonly color?: SerializedColor;
+    readonly overviewRulerColor?: SerializedColor;
+}
+
+/** Параметры нотификации `window.createTextEditorDecorationType`. */
+export interface IWireCreateDecorationType {
+    readonly key: number;
+    readonly options: SerializedDecorationRenderOptions;
+}
+
+/** Параметры нотификации `editor.setDecorations`. */
+export interface IWireSetDecorations {
+    readonly key: number;
+    readonly fileName: string;
+    readonly ranges: readonly IRange[];
+}
+
+/** Одна изменившаяся файловая декорация (`window.fileDecorationsChanged`). */
+export interface IWireFileDecoration {
+    readonly uri: string;
+    readonly badge?: string;
+    readonly colorId?: string;
+    readonly propagate?: boolean;
+}
+
+/**
+ * Сериализует значение цвета опций декорации. `ThemeColor` (утиный тип — объект
+ * со строковым `id`) → `{ $themeColor: id }`; CSS-строка остаётся как есть;
+ * прочее (в т.ч. `undefined`) → `undefined`.
+ */
+export function serializeColor(value: unknown): SerializedColor | undefined {
+    if (typeof value === "string") return value;
+    if (typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "string") {
+        return { $themeColor: (value as { id: string }).id };
+    }
+    return undefined;
+}
+
+/** Извлекает id темы из сериализованного цвета; `undefined` для CSS-строк/пусто. */
+export function themeColorIdOf(value: SerializedColor | undefined): string | undefined {
+    if (typeof value === "object" && value !== null && typeof value.$themeColor === "string") {
+        return value.$themeColor;
+    }
+    return undefined;
+}
+
+/**
+ * Сериализует `vscode.DecorationRenderOptions` в {@link SerializedDecorationRenderOptions}.
+ * Утиный тип `options` (без импорта типов vscode в этот shared-модуль): читаем
+ * известные поля best-effort. `ThemeColor`-значения проходят через {@link serializeColor}.
+ */
+export function serializeDecorationRenderOptions(options: unknown): SerializedDecorationRenderOptions {
+    const o = (typeof options === "object" && options !== null ? options : {}) as {
+        isWholeLine?: unknown;
+        overviewRulerLane?: unknown;
+        backgroundColor?: unknown;
+        color?: unknown;
+        overviewRulerColor?: unknown;
+    };
+    const result: {
+        isWholeLine?: boolean;
+        overviewRulerLane?: number;
+        backgroundColor?: SerializedColor;
+        color?: SerializedColor;
+        overviewRulerColor?: SerializedColor;
+    } = {};
+    if (typeof o.isWholeLine === "boolean") result.isWholeLine = o.isWholeLine;
+    if (typeof o.overviewRulerLane === "number") result.overviewRulerLane = o.overviewRulerLane;
+    const bg = serializeColor(o.backgroundColor);
+    if (bg !== undefined) result.backgroundColor = bg;
+    const color = serializeColor(o.color);
+    if (color !== undefined) result.color = color;
+    const overview = serializeColor(o.overviewRulerColor);
+    if (overview !== undefined) result.overviewRulerColor = overview;
+    return result;
+}
+
+/**
+ * Валидирует один сырой диапазон в {@link IRange} (nested `start`/`end`). `null`,
+ * если форма не распознана (drop+skip, как остальные wire-парсеры).
+ */
+function parseDecorationRange(raw: unknown): IRange | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const r = raw as { start?: unknown; end?: unknown };
+    const start = r.start as { line?: unknown; character?: unknown } | undefined;
+    const end = r.end as { line?: unknown; character?: unknown } | undefined;
+    if (
+        start == null ||
+        end == null ||
+        !isFiniteNumber(start.line) ||
+        !isFiniteNumber(start.character) ||
+        !isFiniteNumber(end.line) ||
+        !isFiniteNumber(end.character)
+    ) {
+        return null;
+    }
+    return createRange(start.line, start.character, end.line, end.character);
+}
+
+/** Разбирает сырой массив диапазонов декорации в {@link IRange}[] (невалидные — drop). */
+export function parseDecorationRanges(raw: unknown): IRange[] {
+    if (!Array.isArray(raw)) return [];
+    const result: IRange[] = [];
+    for (const item of raw) {
+        const parsed = parseDecorationRange(item);
+        if (parsed !== null) result.push(parsed);
+    }
+    return result;
+}
+
+/** Разбирает сырой массив файловых декораций (`window.fileDecorationsChanged`). */
+export function parseWireFileDecorations(raw: unknown): IWireFileDecoration[] {
+    if (!Array.isArray(raw)) return [];
+    const result: IWireFileDecoration[] = [];
+    for (const item of raw) {
+        if (typeof item !== "object" || item === null) continue;
+        const d = item as { uri?: unknown; badge?: unknown; colorId?: unknown; propagate?: unknown };
+        if (typeof d.uri !== "string" || d.uri === "") continue;
+        result.push({
+            uri: d.uri,
+            ...(typeof d.badge === "string" ? { badge: d.badge } : {}),
+            ...(typeof d.colorId === "string" ? { colorId: d.colorId } : {}),
+            ...(typeof d.propagate === "boolean" ? { propagate: d.propagate } : {}),
+        });
+    }
+    return result;
 }

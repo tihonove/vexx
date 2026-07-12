@@ -4,16 +4,28 @@ import { createRequire } from "node:module";
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
 import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import type { ICompletionRequest, ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
+import type { IRange } from "../../Editor/IRange.ts";
 import type { ISaveEdit, ISaveSnapshot } from "../../Editor/ISaveParticipant.ts";
 
 import type { ICommandService } from "./ICommandService.ts";
+import { type IEditorDecorationsService, NULL_EDITOR_DECORATIONS_SERVICE } from "./IEditorDecorationsService.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService } from "./IEditorOptionsService.ts";
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
+import { type IFileDecorationsService, NULL_FILE_DECORATIONS_SERVICE } from "./IFileDecorationsService.ts";
 import type { IIpcEndpoint } from "./IpcMessageChannel.ts";
 import { IpcMessageChannel } from "./IpcMessageChannel.ts";
+import { type IThemeColorResolver, NULL_THEME_COLOR_RESOLVER } from "./IThemeColorResolver.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
-import { requestCompletionItems, requestWillSaveEdits } from "./WireTypes.ts";
+import {
+    parseDecorationRanges,
+    parseWireFileDecorations,
+    requestCompletionItems,
+    requestWillSaveEdits,
+    type SerializedDecorationRenderOptions,
+    themeColorIdOf,
+} from "./WireTypes.ts";
 
 export const ExtensionHostDIToken = token<ExtensionHost>("ExtensionHost");
 
@@ -93,6 +105,22 @@ export interface IExtensionHostOptions {
      * (расширение видит только `configDefaults` из своего манифеста).
      */
     readonly configuration?: IExtensionHostConfigProvider;
+    /**
+     * Мост gutter change-bar декораций к открытым редакторам
+     * (`editor.setDecorations`). Если не передан — {@link NULL_EDITOR_DECORATIONS_SERVICE}
+     * (декорации редактора игнорируются).
+     */
+    readonly editorDecorations?: IEditorDecorationsService;
+    /**
+     * Мост файловых декораций к дереву (`window.fileDecorationsChanged`). Если не
+     * передан — {@link NULL_FILE_DECORATIONS_SERVICE} (декорации файлов игнорируются).
+     */
+    readonly fileDecorations?: IFileDecorationsService;
+    /**
+     * Резолвер `vscode.ThemeColor` id → packed-RGB (+ событие смены темы). Если не
+     * передан — {@link NULL_THEME_COLOR_RESOLVER} (все цвета не резолвятся).
+     */
+    readonly themeColorResolver?: IThemeColorResolver;
 }
 
 /**
@@ -129,6 +157,15 @@ export class ExtensionHost extends Disposable {
     private readonly stdoutLogger: ILogger | undefined;
     private readonly stderrLogger: ILogger | undefined;
     private readonly configuration: IExtensionHostConfigProvider | undefined;
+    private readonly editorDecorations: IEditorDecorationsService;
+    private readonly fileDecorations: IFileDecorationsService;
+    private readonly themeColorResolver: IThemeColorResolver;
+    /** Реестр типов декораций: key → { overviewRulerColorId?, isWholeLine }. Gutter-тип = есть overviewRulerColor. */
+    private readonly decorationTypes = new Map<number, { overviewRulerColorId?: string; isWholeLine: boolean }>();
+    /** Держимые декорации редактора: fileName → (key → ranges). Пере-резолвятся при смене темы. */
+    private readonly editorDecorationsByFile = new Map<string, Map<number, readonly IRange[]>>();
+    /** Держимые файловые декорации: absPath → { badge?, colorId? }. Пере-резолвятся при смене темы. */
+    private readonly fileDecorationState = new Map<string, { badge?: string; colorId?: string }>();
     private readonly extensions = new Set<string>();
     private subprocess: ChildProcess | null = null;
     private channel: IpcMessageChannel | null = null;
@@ -161,6 +198,11 @@ export class ExtensionHost extends Disposable {
         this.stdoutLogger = options.stdoutLogger;
         this.stderrLogger = options.stderrLogger;
         this.configuration = options.configuration;
+        this.editorDecorations = options.editorDecorations ?? NULL_EDITOR_DECORATIONS_SERVICE;
+        this.fileDecorations = options.fileDecorations ?? NULL_FILE_DECORATIONS_SERVICE;
+        this.themeColorResolver = options.themeColorResolver ?? NULL_THEME_COLOR_RESOLVER;
+        // Смена темы → пере-резолв держимых декораций в обе поверхности.
+        this.register(this.themeColorResolver.onDidChange(() => this.repushAllDecorations()));
     }
 
     public async registerExtension(reg: IExtensionRegistration): Promise<IDisposable> {
@@ -419,6 +461,65 @@ export class ExtensionHost extends Disposable {
             else if (severity === "warn") this.logger?.warn(`[extension] ${text}`);
             else this.logger?.info(`[extension] ${text}`);
         });
+        // ─── Decorations bridge (Chunk 4) ────────────────────────────────────
+        // Субпроцесс завёл тип декорации. Регистрируем его форму: наличие
+        // overviewRulerColor делает тип gutter change-bar'ом.
+        rpc.handleNotification("window.createTextEditorDecorationType", (params) => {
+            const p = params as { key?: unknown; options?: unknown };
+            if (typeof p.key !== "number") return;
+            const options: SerializedDecorationRenderOptions =
+                typeof p.options === "object" && p.options !== null
+                    ? (p.options as SerializedDecorationRenderOptions)
+                    : {};
+            const overviewRulerColorId = themeColorIdOf(options.overviewRulerColor);
+            this.decorationTypes.set(p.key, {
+                ...(overviewRulerColorId !== undefined ? { overviewRulerColorId } : {}),
+                isWholeLine: options.isWholeLine === true,
+            });
+        });
+        // Тип снят — гасим его декорации во всех файлах и пере-push.
+        rpc.handleNotification("window.disposeTextEditorDecorationType", (params) => {
+            const p = params as { key?: unknown };
+            if (typeof p.key !== "number") return;
+            this.decorationTypes.delete(p.key);
+            const affected: string[] = [];
+            for (const [fileName, byKey] of this.editorDecorationsByFile) {
+                if (byKey.delete(p.key)) affected.push(fileName);
+            }
+            for (const fileName of affected) this.pushEditorDecorations(fileName);
+        });
+        // Набор диапазонов типа в файле. Пере-резолвим ThemeColor и проталкиваем
+        // gutter-декорации в редактор(ы) этого пути.
+        rpc.handleNotification("editor.setDecorations", (params) => {
+            const p = params as { key?: unknown; fileName?: unknown; ranges?: unknown };
+            if (typeof p.key !== "number" || typeof p.fileName !== "string") return;
+            const ranges = parseDecorationRanges(p.ranges);
+            let byKey = this.editorDecorationsByFile.get(p.fileName);
+            if (byKey === undefined) {
+                byKey = new Map();
+                this.editorDecorationsByFile.set(p.fileName, byKey);
+            }
+            if (ranges.length === 0) byKey.delete(p.key);
+            else byKey.set(p.key, ranges);
+            this.pushEditorDecorations(p.fileName);
+        });
+        // Изменившиеся файловые декорации. Мержим в держимый набор (голый uri без
+        // цвета/бейджа = снятие) и пере-push всего набора в дерево.
+        rpc.handleNotification("window.fileDecorationsChanged", (params) => {
+            const p = params as { decorations?: unknown };
+            for (const d of parseWireFileDecorations(p.decorations)) {
+                const filePath = fileUriToPath(d.uri);
+                if (d.badge === undefined && d.colorId === undefined) {
+                    this.fileDecorationState.delete(filePath);
+                } else {
+                    this.fileDecorationState.set(filePath, {
+                        ...(d.badge !== undefined ? { badge: d.badge } : {}),
+                        ...(d.colorId !== undefined ? { colorId: d.colorId } : {}),
+                    });
+                }
+            }
+            this.pushFileDecorations();
+        });
         const configuration = this.configuration;
         if (configuration !== undefined) {
             this.register(
@@ -430,6 +531,46 @@ export class ExtensionHost extends Disposable {
                 }),
             );
         }
+    }
+
+    /**
+     * Схлопывает держимые декорации файла в gutter change-bar'ы (только
+     * gutter-типы — есть overviewRulerColor) с пере-резолвом ThemeColor и
+     * проталкивает их в редактор(ы) этого пути. Пустой набор снимает бары.
+     */
+    private pushEditorDecorations(fileName: string): void {
+        const byKey = this.editorDecorationsByFile.get(fileName);
+        const decorations: IGutterChangeDecoration[] = [];
+        if (byKey !== undefined) {
+            for (const [key, ranges] of byKey) {
+                const type = this.decorationTypes.get(key);
+                if (type?.overviewRulerColorId === undefined) continue;
+                const color = this.themeColorResolver.resolve(type.overviewRulerColorId);
+                if (color === undefined) continue;
+                for (const range of ranges) decorations.push({ range, color });
+            }
+        }
+        this.editorDecorations.setGutterChangeDecorations(fileName, decorations);
+    }
+
+    /** Пере-резолвит держимые файловые декорации и проталкивает полный набор в дерево. */
+    private pushFileDecorations(): void {
+        const entries: { path: string; color?: number; badge?: string }[] = [];
+        for (const [filePath, state] of this.fileDecorationState) {
+            const color = state.colorId !== undefined ? this.themeColorResolver.resolve(state.colorId) : undefined;
+            entries.push({
+                path: filePath,
+                ...(color !== undefined ? { color } : {}),
+                ...(state.badge !== undefined ? { badge: state.badge } : {}),
+            });
+        }
+        this.fileDecorations.setFileDecorations(entries);
+    }
+
+    /** Пере-push всех держимых декораций в обе поверхности (на смену темы). */
+    private repushAllDecorations(): void {
+        for (const fileName of this.editorDecorationsByFile.keys()) this.pushEditorDecorations(fileName);
+        this.pushFileDecorations();
     }
 
     /** Снимает все прокси-регистрации команд (при смерти сабпроцесса). */
@@ -451,6 +592,11 @@ export class ExtensionHost extends Disposable {
         this.willSaveSubscribed = false;
         this.didSaveSubscribed = false;
         this.completionSubscribed = false;
+        // Декорации принадлежали умирающему сабпроцессу — сбрасываем реестр, чтобы
+        // респавн начинал с чистого листа (сами поверхности перерисует расширение).
+        this.decorationTypes.clear();
+        this.editorDecorationsByFile.clear();
+        this.fileDecorationState.clear();
         // Прокси-команды указывали на умирающий сабпроцесс — снимаем их из
         // общего DI-синглтона CommandRegistry, чтобы не оставить висячие записи.
         this.clearProxyCommands();
@@ -523,6 +669,22 @@ function parseCommandInvocation(raw: unknown): { id: string; args: unknown[] } {
     }
     const args = Array.isArray(obj.args) ? (obj.args as unknown[]) : [];
     return { id: obj.id, args };
+}
+
+/**
+ * Переводит wire-uri файловой декорации в абсолютный путь. Субпроцесс шлёт
+ * `Uri.toString()` (`file://` + encodeURI(path)); реверсим схему и percent-escape.
+ * Не-file строки возвращаем как есть (best-effort).
+ */
+function fileUriToPath(uri: string): string {
+    if (!uri.startsWith("file://")) return uri;
+    const rest = uri.slice("file://".length);
+    try {
+        return decodeURIComponent(rest);
+    } catch {
+        /* v8 ignore next -- defensive: our own Uri.toString() always produces valid percent-encoding */
+        return rest;
+    }
 }
 
 function parseCommandId(raw: unknown): string | null {

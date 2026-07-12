@@ -1,6 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { CompletionItem, CompletionItemKind, EndOfLine, FileType, TextDocumentSaveReason } from "./VscodeTypes.ts";
+import {
+    CompletionItem,
+    CompletionItemKind,
+    DecorationRangeBehavior,
+    EndOfLine,
+    FileDecoration,
+    FileType,
+    OverviewRulerLane,
+    TextDocumentSaveReason,
+    ThemeColor,
+} from "./VscodeTypes.ts";
 
 describe("VscodeTypes — enums", () => {
     it("EndOfLine", () => {
@@ -34,5 +44,38 @@ describe("VscodeTypes — CompletionItem", () => {
         expect(item.label).toBe("indent_size");
         expect(item.kind).toBe(CompletionItemKind.Property);
         expect(item.insertText).toBeUndefined();
+    });
+});
+
+describe("VscodeTypes — decoration value-types (Chunk 4)", () => {
+    it("OverviewRulerLane", () => {
+        expect(OverviewRulerLane.Left).toBe(1);
+        expect(OverviewRulerLane.Center).toBe(2);
+        expect(OverviewRulerLane.Right).toBe(4);
+        expect(OverviewRulerLane.Full).toBe(7);
+    });
+
+    it("DecorationRangeBehavior", () => {
+        expect(DecorationRangeBehavior.OpenOpen).toBe(0);
+        expect(DecorationRangeBehavior.ClosedClosed).toBe(1);
+        expect(DecorationRangeBehavior.OpenClosed).toBe(2);
+        expect(DecorationRangeBehavior.ClosedOpen).toBe(3);
+    });
+
+    it("ThemeColor хранит id", () => {
+        expect(new ThemeColor("editorGutter.modifiedBackground").id).toBe("editorGutter.modifiedBackground");
+    });
+
+    it("FileDecoration: конструктор задаёт badge/tooltip/color, propagate по умолчанию undefined", () => {
+        const color = new ThemeColor("gitDecoration.modifiedResourceForeground");
+        const decoration = new FileDecoration("M", "Modified", color);
+        expect(decoration.badge).toBe("M");
+        expect(decoration.tooltip).toBe("Modified");
+        expect(decoration.color).toBe(color);
+        expect(decoration.propagate).toBeUndefined();
+
+        const bare = new FileDecoration();
+        expect(bare.badge).toBeUndefined();
+        expect(bare.color).toBeUndefined();
     });
 });

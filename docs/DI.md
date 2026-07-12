@@ -163,8 +163,8 @@ const container = new Container()
 | `stateModuleDefault` | — | `IStateService` с `NULL_STATE_SERVICE` (тесты и demo) |
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
-| `extensionHostModule` | — | `ExtensionHost` (+ `EditorOptionsServiceAdapter` поверх `EditorGroupController`) |
-| `controllersModule` | — | `EditorGroupController`, `StatusBarController`, `AppController` |
+| `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorGroupController`, `FileDecorationsServiceAdapter` поверх `FileTreeController`, `ThemeColorResolverAdapter` поверх `ThemeService`) |
+| `controllersModule` | — | `EditorGroupController`, `StatusBarController`, `AppController`, `FileTreeController` (шов: отдаётся из `AppController.fileTree`) |
 
 ### Профили
 

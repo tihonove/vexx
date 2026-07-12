@@ -4,15 +4,20 @@ import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { LogLevel } from "../../Common/Logging/LogLevel.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
+import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 import { CommandServiceAdapter } from "../../Extensions/Host/CommandServiceAdapter.ts";
+import { EditorDecorationsServiceAdapter } from "../../Extensions/Host/EditorDecorationsServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import {
     ExtensionHost,
     ExtensionHostDIToken,
     type IExtensionHostConfigProvider,
 } from "../../Extensions/Host/ExtensionHost.ts";
+import { FileDecorationsServiceAdapter } from "../../Extensions/Host/FileDecorationsServiceAdapter.ts";
+import { ThemeColorResolverAdapter } from "../../Extensions/Host/ThemeColorResolverAdapter.ts";
 import { CommandRegistryDIToken } from "../CommandRegistry.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { FileTreeControllerDIToken } from "../FileTreeController.ts";
 
 /**
  * DI-модуль extension host'а. Связывает `EditorGroupController` →
@@ -52,12 +57,21 @@ export const extensionHostModule: ContainerModule = (container) => {
                 }),
         };
 
+        // Мосты декораций (Chunk 4): gutter change-bar'ы → редакторы группы,
+        // файловые декорации → дерево, ThemeColor id → цвет активной темы.
+        const editorDecorations = new EditorDecorationsServiceAdapter(group);
+        const fileDecorations = new FileDecorationsServiceAdapter(container.get(FileTreeControllerDIToken));
+        const themeColorResolver = new ThemeColorResolverAdapter(container.get(ThemeServiceDIToken));
+
         const host = new ExtensionHost(adapter, commandAdapter, {
             logger,
             rpcLogger,
             stdoutLogger: wantStdio(stdoutLogger),
             stderrLogger: wantStdio(stderrLogger),
             configuration,
+            editorDecorations,
+            fileDecorations,
+            themeColorResolver,
         });
 
         // Save-pipeline: редакторы группы прогоняют will-save через host
