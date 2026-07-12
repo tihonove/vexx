@@ -30,7 +30,7 @@ export function createFindApp(text: string): FindContext {
         testApp: harness.testApp,
         controller: harness.controller,
         contextKeys: harness.container.get(ContextKeyServiceDIToken),
-        activeEditor: harness.activeEditor,
+        activeEditor: () => harness.activeEditor(),
         tmpDir: workspace.dir,
         harness,
         workspace,

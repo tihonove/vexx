@@ -6,10 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { EditorController } from "./EditorController.ts";
 import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";

@@ -3,7 +3,6 @@ import * as fs from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
 import type { LogEntry } from "../ILogService.ts";
 import { LogLevel } from "../LogLevel.ts";
 

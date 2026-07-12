@@ -3,7 +3,11 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
-import { createExtensionTestHarness, EXTENSION_FIXTURES_DIR, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
+import {
+    createExtensionTestHarness,
+    EXTENSION_FIXTURES_DIR,
+    extensionFixture,
+} from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 
 /** Мини-сервис языков: `.ts` → typescript, иначе — undefined. */

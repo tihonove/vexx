@@ -9,13 +9,13 @@ import { createSelection } from "../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import type { EditorController } from "./EditorController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
@@ -44,7 +44,7 @@ function typeQuery(find: FindController, query: string): void {
 
 describe("FindController", () => {
     let tmpDir: string;
-let ws: ITempWorkspace;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
         ws = createTempWorkspace({ prefix: "vexx-find-" });

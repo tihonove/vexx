@@ -11,10 +11,10 @@ import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.t
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { NULL_FILE_WATCHER } from "./IFileWatcher.ts";

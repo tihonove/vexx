@@ -67,6 +67,8 @@ describe("createTempWorkspace", () => {
         const ws = createTempWorkspace({ files: { "a/b/c.txt": "x" } });
         ws.dispose();
         expect(fs.existsSync(ws.dir)).toBe(false);
-        expect(() => ws.dispose()).not.toThrow();
+        expect(() => {
+            ws.dispose();
+        }).not.toThrow();
     });
 });
