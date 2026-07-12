@@ -2,8 +2,7 @@ import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { truncateEnd } from "../../Common/TextTruncation.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import type { TUIEventBase } from "../Events/TUIEventBase.ts";
-import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { kindIcon } from "./CompletionItemKindIcon.ts";
@@ -41,11 +40,11 @@ export interface CompletionListItem {
  * Собственной строки ввода нет — фильтр внутренний (набор символов сужает
  * список, не трогая буфер редактора).
  *
- * Клавиши (self-focused, `performDefaultAction`):
- *   ↑/↓            — навигация (clamp, без wrap)
- *   Enter / Tab    — `onAccept(item)`
- *   Escape         — `onCancel()`
- *   печатный / Backspace — правит внутренний `filter` → `onFilterChange`
+ * Как в VS Code suggest widget попап **не забирает фокус** (`tabIndex = -1`):
+ * навигацией/принятием/скрытием управляет {@link CompletionController} через
+ * публичные методы (клавиши приходят командами по `suggestWidgetVisible`), а
+ * фильтрация идёт от префикса под кареткой редактора. Мышью: наведение
+ * подсвечивает ряд, клик принимает пункт.
  */
 export class CompletionListElement extends TUIElement {
     public maxVisibleItems = 10;
@@ -53,7 +52,6 @@ export class CompletionListElement extends TUIElement {
 
     public onAccept: ((item: CompletionListItem) => void) | null = null;
     public onCancel: (() => void) | null = null;
-    public onFilterChange: ((filter: string) => void) | null = null;
 
     private allItems: readonly CompletionListItem[] = [];
     private filteredItems: readonly CompletionListItem[] = [];
@@ -63,15 +61,22 @@ export class CompletionListElement extends TUIElement {
 
     public constructor() {
         super();
-        this.tabIndex = 0;
+        // Не фокусируемся: редактор сохраняет фокус и каретку (см. класс-док).
+        this.tabIndex = -1;
+        this.addEventListener("mousemove", (event) => {
+            this.handleMouseMove(event as TUIMouseEvent);
+        });
+        this.addEventListener("click", (event) => {
+            this.handleClick(event as TUIMouseEvent);
+        });
     }
 
     // ─── Public API ──────────────────────────────────────────────────────────
 
-    /** Задаёт полный набор элементов; переприменяет текущий фильтр. */
+    /** Задаёт полный набор элементов; переприменяет текущий фильтр (fresh). */
     public setItems(items: readonly CompletionListItem[]): void {
         this.allItems = items;
-        this.applyFilter();
+        this.applyFilter(false);
     }
 
     /** Текущий внутренний фильтр (префикс + добор в попапе). */
@@ -79,9 +84,20 @@ export class CompletionListElement extends TUIElement {
         return this.filterValue;
     }
 
+    /** Задаёт фильтр «начисто» (пустой результат сворачивает список). */
     public setFilter(value: string): void {
         this.filterValue = value;
-        this.applyFilter();
+        this.applyFilter(false);
+    }
+
+    /**
+     * Инкрементальное сужение по мере набора: если новый префикс не совпал ни с
+     * чем — **оставляем последний непустой список** (как в VS Code), а не
+     * сворачиваем попап.
+     */
+    public refineFilter(value: string): void {
+        this.filterValue = value;
+        this.applyFilter(true);
     }
 
     /** Видимые (отфильтрованные) элементы. */
@@ -99,12 +115,15 @@ export class CompletionListElement extends TUIElement {
 
     // ─── Filtering ───────────────────────────────────────────────────────────
 
-    private applyFilter(): void {
+    private applyFilter(keepLastNonEmpty: boolean): void {
         const needle = this.filterValue.toLowerCase();
-        this.filteredItems =
+        const next =
             needle === ""
                 ? this.allItems
                 : this.allItems.filter((item) => matchText(item).toLowerCase().includes(needle));
+        // «Последний непустой»: при доборе не сворачиваем список до нуля.
+        if (keepLastNonEmpty && next.length === 0 && this.filteredItems.length > 0) return;
+        this.filteredItems = next;
         this.selectedIndexValue = 0;
         this.scrollOffset = 0;
         this.markDirty();
@@ -211,44 +230,48 @@ export class CompletionListElement extends TUIElement {
         context.drawText(LABEL_X, rowY, labelText, { fg: rowFg, bg: rowBg }, { maxWidth: labelAvail });
     }
 
-    // ─── Keyboard ────────────────────────────────────────────────────────────
+    // ─── Navigation (driven by CompletionController via commands) ─────────────
 
-    protected override performDefaultAction(event: TUIEventBase): void {
-        if (event.type !== "keydown") return;
-        const keyEvent = event as TUIKeyboardEvent;
-        switch (keyEvent.key) {
-            case "ArrowDown":
-                event.preventDefault();
-                this.moveSelection(1);
-                return;
-            case "ArrowUp":
-                event.preventDefault();
-                this.moveSelection(-1);
-                return;
-            case "Enter":
-            case "Tab": {
-                event.preventDefault();
-                const item = this.getSelectedItem();
-                if (item !== null) this.onAccept?.(item);
-                return;
-            }
-            case "Escape":
-                event.preventDefault();
-                this.onCancel?.();
-                return;
-            case "Backspace":
-                event.preventDefault();
-                if (this.filterValue.length > 0) {
-                    this.setFilter(this.filterValue.slice(0, -1));
-                    this.onFilterChange?.(this.filterValue);
-                }
-                return;
-        }
-        if (keyEvent.key.length === 1 && !keyEvent.ctrlKey && !keyEvent.altKey && !keyEvent.metaKey) {
-            event.preventDefault();
-            this.setFilter(this.filterValue + keyEvent.key);
-            this.onFilterChange?.(this.filterValue);
-        }
+    public selectNext(): void {
+        this.moveSelection(1);
+    }
+
+    public selectPrevious(): void {
+        this.moveSelection(-1);
+    }
+
+    public selectNextPage(): void {
+        this.moveSelection(Math.max(1, this.visibleItemCount));
+    }
+
+    public selectPreviousPage(): void {
+        this.moveSelection(-Math.max(1, this.visibleItemCount));
+    }
+
+    // ─── Mouse ────────────────────────────────────────────────────────────────
+
+    /** Индекс пункта под локальной Y (или `null`, если это рамка/пусто). */
+    private rowAt(localY: number): number | null {
+        const row = localY - 1; // строка 0 — верхняя рамка
+        if (row < 0 || row >= this.visibleItemCount) return null;
+        const index = this.scrollOffset + row;
+        return index < this.filteredItems.length ? index : null;
+    }
+
+    private handleMouseMove(event: TUIMouseEvent): void {
+        const index = this.rowAt(event.localY);
+        if (index === null || index === this.selectedIndexValue) return;
+        this.selectedIndexValue = index;
+        this.markDirty();
+    }
+
+    private handleClick(event: TUIMouseEvent): void {
+        const index = this.rowAt(event.localY);
+        if (index === null) return;
+        this.selectedIndexValue = index;
+        this.markDirty();
+        const item = this.filteredItems[index];
+        if (item !== undefined) this.onAccept?.(item);
     }
 
     private moveSelection(delta: number): void {
