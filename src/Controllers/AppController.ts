@@ -1111,15 +1111,6 @@ export class AppController extends Disposable implements IController {
     }
 
     /**
-     * Прокидывает статус-декорации файлов (цвет имени + буква-бейдж) в дерево файлов.
-     * Ключ — абсолютный путь; цвета уже резолвнуты. Поставщики статуса (git) и e2e-демо
-     * дёргают это, чтобы подсветить изменённые/новые файлы в explorer.
-     */
-    public setFileDecorations(entries: readonly { path: string; color?: number; badge?: string }[]): void {
-        this.fileTreeController.setFileDecorations(entries);
-    }
-
-    /**
      * Opens a user-config file (settings.json / keybindings.json) as an editor tab.
      * The path is resolved at bootstrap; it is null in tests/demo where no user data
      * dir is wired — then this is a no-op. On a fresh install the file may not exist

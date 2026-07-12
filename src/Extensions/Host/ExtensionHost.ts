@@ -554,7 +554,9 @@ export class ExtensionHost extends Disposable {
             if (type?.overviewRulerColorId === undefined) continue;
             const color = this.themeColorResolver.resolve(type.overviewRulerColorId);
             if (color === undefined) continue;
-            for (const range of ranges) decorations.push({ range, color });
+            // VS Code's dirty-diff draws modified lines dashed, added/deleted solid.
+            const dashed = type.overviewRulerColorId === "editorGutter.modifiedBackground";
+            for (const range of ranges) decorations.push({ range, color, ...(dashed ? { dashed: true } : {}) });
         }
         this.editorDecorations.setGutterChangeDecorations(fileName, decorations);
     }

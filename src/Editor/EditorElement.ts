@@ -39,10 +39,12 @@ const DEFAULT_OCCURRENCE_HIGHLIGHT_BG = packRgb(71, 71, 71);
 const NO_RANGES: readonly IRange[] = [];
 const NO_MARKER_DECORATIONS: readonly IMarkerDecoration[] = [];
 const NO_GUTTER_CHANGE_DECORATIONS: readonly IGutterChangeDecoration[] = [];
-// Change-bar glyph — VS Code's dirty-diff gutter paints a thin left border; the
-// closest match in a cell grid is the left three-eighths block, drawn in the
-// leftmost gutter column so it reads as a bar hugging the line number.
-const GUTTER_CHANGE_BAR = "▎";
+// Change-bar glyph — VS Code's dirty-diff gutter paints a thin border; in a cell
+// grid we use the heavy box-drawing vertical so the bar sits centered in its
+// cell, one column left of the fold chevron. Modified lines use the dashed
+// variant (VS Code draws them hatched); added/deleted stay solid.
+const GUTTER_CHANGE_BAR = "┃";
+const GUTTER_CHANGE_BAR_DASHED = "┋";
 // Fallbacks for diagnostic squiggle colours when the theme has not been applied
 // yet (mirror the VS Code dark defaults for editorError/Warning/Info/Hint).
 const DEFAULT_ERROR_FG = packRgb(0xf1, 0x4c, 0x4c);
@@ -272,13 +274,13 @@ export class EditorElement extends TUIElement implements IScrollable {
             foldHeaderByLine.set(region.startLine, region.isCollapsed);
         }
 
-        // Change-bar colour by (logical) line, flattened once per frame so each
-        // visible row is a single lookup. A deleted hunk is one boundary line
-        // (its range covers just that line).
-        const gutterChangeColorByLine = new Map<number, number>();
+        // Change-bar colour + style by (logical) line, flattened once per frame
+        // so each visible row is a single lookup. A deleted hunk is one boundary
+        // line (its range covers just that line).
+        const gutterChangeByLine = new Map<number, { color: number; dashed: boolean }>();
         for (const decoration of this.gutterChangeDecorations) {
             for (let line = decoration.range.start.line; line <= decoration.range.end.line; line++) {
-                gutterChangeColorByLine.set(line, decoration.color);
+                gutterChangeByLine.set(line, { color: decoration.color, dashed: decoration.dashed === true });
             }
         }
 
@@ -316,13 +318,6 @@ export class EditorElement extends TUIElement implements IScrollable {
                 for (let x = 0; x < GUTTER_LEFT_PADDING; x++) {
                     context.setCell(x, screenY, { char: " ", fg: numFg, bg: gutBg });
                 }
-                // Change bar in the leftmost gutter column, to the left of the
-                // line number (VS Code paints its dirty-diff border here). Drawn
-                // over the blank left-padding cell when the line has a change.
-                const changeColor = gutterChangeColorByLine.get(logLine);
-                if (changeColor !== undefined) {
-                    context.setCell(0, screenY, { char: GUTTER_CHANGE_BAR, fg: changeColor, bg: gutBg });
-                }
                 // Line number digits
                 for (let d = 0; d < digitCount; d++) {
                     context.setCell(GUTTER_LEFT_PADDING + d, screenY, { char: lineNumStr[d], fg: numFg, bg: gutBg });
@@ -334,6 +329,14 @@ export class EditorElement extends TUIElement implements IScrollable {
                 const foldCol = this.foldControlColumn;
                 for (let x = GUTTER_LEFT_PADDING + digitCount; x < gutterW; x++) {
                     context.setCell(x, screenY, { char: " ", fg: numFg, bg: gutBg });
+                }
+                // Change bar in the left fold column (immediately left of the
+                // chevron), painted after the fold-area blanks so it survives.
+                // Modified lines get a dashed bar (VS Code dirty-diff style).
+                const change = gutterChangeByLine.get(logLine);
+                if (change !== undefined) {
+                    const char = change.dashed ? GUTTER_CHANGE_BAR_DASHED : GUTTER_CHANGE_BAR;
+                    context.setCell(foldCol - 1, screenY, { char, fg: change.color, bg: gutBg });
                 }
                 const foldState = foldHeaderByLine.get(logLine);
                 // Collapsed regions always show their chevron; expanded ones only
