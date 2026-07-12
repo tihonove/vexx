@@ -238,6 +238,17 @@ describe("getCharDisplayWidth", () => {
             expect(getCharDisplayWidth(0x2700)).toBe(1); // ✀ (block start, non-emoji)
             expect(getCharDisplayWidth(0x274c)).toBe(2); // ❌ stays wide (Emoji_Presentation=Yes)
         });
+
+        it("returns 1 for text-default neighbours of BMP emoji", () => {
+            // Symbols adjacent to the Emoji_Presentation=Yes ranges but themselves
+            // text-default (Emoji_Presentation=No) must stay narrow — over-widening
+            // them would desync the column model just like the ⭐/⚡ omission did.
+            expect(getCharDisplayWidth(0x2600)).toBe(1); // ☀ BLACK SUN WITH RAYS
+            expect(getCharDisplayWidth(0x26a0)).toBe(1); // ⚠ WARNING SIGN
+            expect(getCharDisplayWidth(0x25cf)).toBe(1); // ● BLACK CIRCLE
+            expect(getCharDisplayWidth(0x25b6)).toBe(1); // ▶ BLACK RIGHT-POINTING TRIANGLE
+            expect(getCharDisplayWidth(0x2b51)).toBe(1); // ⭑ BLACK SMALL STAR
+        });
     });
 
     describe("emoji Emoji_Presentation sub-ranges", () => {
@@ -277,6 +288,31 @@ describe("getCharDisplayWidth", () => {
             [0x2757, 0x2757, "❗ heavy exclamation"],
             [0x2795, 0x2797, "➕➖➗ heavy math"],
             [0x27b0, 0x27bf, "➰➿ curly loops"],
+            // BMP Emoji_Presentation=Yes outside Dingbats — Misc Technical,
+            // Misc Symbols (2600–26FF), Geometric Shapes and the 2B00 block.
+            [0x231a, 0x231b, "⌚⌛ watch / hourglass"],
+            [0x23e9, 0x23ec, "⏩⏪⏫⏬ fast-forward / rewind"],
+            [0x23f0, 0x23f0, "⏰ alarm clock"],
+            [0x23f3, 0x23f3, "⏳ hourglass with sand"],
+            [0x25fd, 0x25fe, "◽◾ medium-small squares"],
+            [0x2614, 0x2615, "☔☕ umbrella / hot beverage"],
+            [0x2648, 0x2653, "♈..♓ zodiac signs"],
+            [0x267f, 0x267f, "♿ wheelchair"],
+            [0x2693, 0x2693, "⚓ anchor"],
+            [0x26a1, 0x26a1, "⚡ high voltage"],
+            [0x26aa, 0x26ab, "⚪⚫ medium circles"],
+            [0x26bd, 0x26be, "⚽⚾ soccer / baseball"],
+            [0x26c4, 0x26c5, "⛄⛅ snowman / sun behind cloud"],
+            [0x26ce, 0x26ce, "⛎ ophiuchus"],
+            [0x26d4, 0x26d4, "⛔ no entry"],
+            [0x26ea, 0x26ea, "⛪ church"],
+            [0x26f2, 0x26f3, "⛲⛳ fountain / flag in hole"],
+            [0x26f5, 0x26f5, "⛵ sailboat"],
+            [0x26fa, 0x26fa, "⛺ tent"],
+            [0x26fd, 0x26fd, "⛽ fuel pump"],
+            [0x2b1b, 0x2b1c, "⬛⬜ large squares"],
+            [0x2b50, 0x2b50, "⭐ white medium star"],
+            [0x2b55, 0x2b55, "⭕ heavy large circle"],
         ];
 
         for (const [start, end, label] of ranges) {

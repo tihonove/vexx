@@ -169,6 +169,35 @@ function isWide(cp: number): boolean {
     if (cp >= 0x2795 && cp <= 0x2797) return true; // ➕ ➖ ➗ heavy plus / minus / division
     if (cp === 0x27b0) return true; // ➰ CURLY LOOP
     if (cp === 0x27bf) return true; // ➿ DOUBLE CURLY LOOP
+    // BMP emoji with Emoji_Presentation=Yes that live outside the Dingbats and
+    // SMP blocks above — Miscellaneous Technical, Misc Symbols (2600–26FF),
+    // Geometric Shapes and the 2B00 block. Terminals render all of these two
+    // columns wide; omitting them desynced our column model from the terminal
+    // and left glyph tails as scrolling artifacts (e.g. ⭐ U+2B50, ⚡ U+26A1).
+    // Source: Unicode 15 emoji-data.txt (Emoji_Presentation=Yes).
+    if (cp >= 0x231a && cp <= 0x231b) return true; // ⌚ WATCH .. ⌛ HOURGLASS
+    if (cp >= 0x23e9 && cp <= 0x23ec) return true; // ⏩⏪⏫⏬ fast-forward/rewind
+    if (cp === 0x23f0) return true; // ⏰ ALARM CLOCK
+    if (cp === 0x23f3) return true; // ⏳ HOURGLASS WITH FLOWING SAND
+    if (cp >= 0x25fd && cp <= 0x25fe) return true; // ◽ ◾ medium-small squares
+    if (cp >= 0x2614 && cp <= 0x2615) return true; // ☔ UMBRELLA WITH RAIN .. ☕ HOT BEVERAGE
+    if (cp >= 0x2648 && cp <= 0x2653) return true; // ♈..♓ zodiac signs
+    if (cp === 0x267f) return true; // ♿ WHEELCHAIR SYMBOL
+    if (cp === 0x2693) return true; // ⚓ ANCHOR
+    if (cp === 0x26a1) return true; // ⚡ HIGH VOLTAGE SIGN
+    if (cp >= 0x26aa && cp <= 0x26ab) return true; // ⚪ ⚫ medium circles
+    if (cp >= 0x26bd && cp <= 0x26be) return true; // ⚽ SOCCER BALL .. ⚾ BASEBALL
+    if (cp >= 0x26c4 && cp <= 0x26c5) return true; // ⛄ SNOWMAN .. ⛅ SUN BEHIND CLOUD
+    if (cp === 0x26ce) return true; // ⛎ OPHIUCHUS
+    if (cp === 0x26d4) return true; // ⛔ NO ENTRY
+    if (cp === 0x26ea) return true; // ⛪ CHURCH
+    if (cp >= 0x26f2 && cp <= 0x26f3) return true; // ⛲ FOUNTAIN .. ⛳ FLAG IN HOLE
+    if (cp === 0x26f5) return true; // ⛵ SAILBOAT
+    if (cp === 0x26fa) return true; // ⛺ TENT
+    if (cp === 0x26fd) return true; // ⛽ FUEL PUMP
+    if (cp >= 0x2b1b && cp <= 0x2b1c) return true; // ⬛ ⬜ large squares
+    if (cp === 0x2b50) return true; // ⭐ WHITE MEDIUM STAR
+    if (cp === 0x2b55) return true; // ⭕ HEAVY LARGE CIRCLE
     // Enclosed Alphanumeric Supplement (circled numbers, emoji)
     if (cp >= 0x1f100 && cp <= 0x1f1ff) return true;
     // Mahjong Tiles / Playing Cards — Emoji_Presentation=Yes code points
