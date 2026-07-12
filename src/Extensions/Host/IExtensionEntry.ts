@@ -13,9 +13,11 @@ export interface IExtensionEntry {
 /**
  * Регистрация расширения в {@link ExtensionHost}. Host форкает subprocess,
  * отправляет ему `mainPath` и просит загрузить через `createRequire`. Поэтому
- * `mainPath` ДОЛЖЕН быть абсолютным путём к JS-файлу, который subprocess
- * сможет открыть на своей файловой системе (для SEA это значит — реальный
- * файл вне бандла; builtin-расширения с `main` пока не поддерживаются).
+ * `mainPath` ДОЛЖЕН быть абсолютным путём к файлу, который subprocess сможет
+ * `require` на своей ФС (в dev — `.ts`/`.cjs`, транспилируется tsx). Builtin-
+ * расширения с `main` регистрируются в `main.ts` через `collectBuiltinMainSpecs`
+ * + `resolveBuiltinDir()` (в dev — реальный каталог `src/Extensions/builtin/`).
+ * Под SEA builtin-файлы живут в бандле — extract-on-run отложен (Task 7).
  */
 export interface IExtensionRegistration {
     readonly id: string;

@@ -1,0 +1,52 @@
+{
+  "name": "git",
+  "displayName": "Git",
+  "description": "Git decorations: changed files in the explorer and dirty-diff bars in the editor gutter.",
+  "version": "0.1.0",
+  "publisher": "vexx",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "vscode": "^1.127.0"
+  },
+  "categories": [
+    "SCM Providers",
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./main.ts",
+  "contributes": {
+    "configuration": {
+      "title": "Git",
+      "properties": {
+        "git.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Master switch for the built-in Git integration."
+        },
+        "git.decorations.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Colour and badge changed files in the explorer tree."
+        },
+        "git.gutter.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show dirty-diff change bars in the editor gutter."
+        },
+        "git.path": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a git binary to prefer (its directory is prepended to PATH). Empty uses git from PATH."
+        },
+        "git.refreshDebounce": {
+          "type": "number",
+          "default": 200,
+          "description": "Debounce, in milliseconds, before recomputing git status and diff after a change."
+        }
+      }
+    }
+  }
+}

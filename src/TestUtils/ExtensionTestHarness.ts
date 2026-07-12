@@ -30,7 +30,10 @@ const SUBPROCESS_ENTRY = fileURLToPath(new URL("../Extensions/Host/__fixtures__/
 export function subprocessSpawnArgsForTests(): () => { command: string; args: string[]; env?: NodeJS.ProcessEnv } {
     return () => ({
         command: process.execPath,
-        args: ["--import", "tsx/esm", SUBPROCESS_ENTRY],
+        // Полный `tsx` (не `tsx/esm`) регистрирует и ESM-, и CJS-хук: расширения
+        // грузятся через `createRequire(mainPath)`, поэтому `.ts`-main (напр.
+        // builtin `git`) требует CJS-транспиляции. `.cjs`-фикстуры работают как есть.
+        args: ["--import", "tsx", SUBPROCESS_ENTRY],
         env: { ...process.env },
     });
 }

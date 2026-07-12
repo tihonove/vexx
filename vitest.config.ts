@@ -69,6 +69,7 @@ export default defineConfig({
         "src/Common/IsSea.ts", // node:sea, только в SEA-бинаре
         "src/Common/Assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
         "src/Extensions/Host/ExtensionHostSubprocess.ts", // точка входа subprocess + IPC
+        "src/Extensions/builtin/git/main.ts", // extension entry (subprocess IO/glue); логика — в git/lib/* (юниты), e2e — интеграция
         "src/Extensions/Host/VscodeNamespace.ts", // RPC-проводка в subprocess
         "src/Controllers/Modules/**", // DI-проводка (integration/e2e)
         "src/Configuration/NullConfigurationService.ts", // null-object заглушка

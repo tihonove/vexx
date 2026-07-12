@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { HeadlessCaptureBackend } from "./Backend/HeadlessCaptureBackend.ts";
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
 import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
-import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
+import { createDefaultAssetAccess, resolveBuiltinDir } from "./Common/Assets/createDefaultAssetAccess.ts";
 import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
 import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
 import type { ICliArgs } from "./Common/CliArgs.ts";
@@ -28,6 +28,7 @@ import { createProductionContainer } from "./Controllers/Modules/ProductionProfi
 import { createRange } from "./Editor/IRange.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./Extensions/ExtensionInstaller.ts";
+import { collectBuiltinMainSpecs } from "./Extensions/builtinMainExtensions.ts";
 import { scanExtensions } from "./Extensions/ExtensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./Extensions/ExtensionTokenizationContributor.ts";
 import { ExtensionHostDIToken } from "./Extensions/Host/ExtensionHost.ts";
@@ -234,8 +235,9 @@ async function runEditor(): Promise<void> {
 
     const app = container.get(TuiApplicationDIToken);
     const appController = container.get(AppControllerDIToken);
-    // Поднимаем extension host (пока без зарегистрированных расширений: исполнение
-    // `main` builtin-расширений будет в Phase F вместе с self-spawn).
+    // Поднимаем extension host. Регистрация расширений с `manifest.main` (builtin +
+    // user) — ниже, ПОСЛЕ setWorkspaceFolder + openFile (чтобы workspaceFolders и
+    // activeTextEditor были доступны на момент `activate()`).
     const extensionHost = container.get(ExtensionHostDIToken);
 
     // If the first argument is a directory, use it as the workspace folder
@@ -350,6 +352,31 @@ async function runEditor(): Promise<void> {
             await extensionHost.registerExtension(reg);
         } catch (err) {
             extensionsLogger.error(`${ext.id}: failed to activate`, err);
+        }
+    }
+
+    // Активируем builtin-расширения с `manifest.main` (например встроенный `git`).
+    // `resolveBuiltinDir()` даёт реальный каталог builtin в dev; под SEA он `null`
+    // (файлы живут в бандле — extract-on-run отложен, Task 7), тогда просто пропускаем.
+    const builtinDir = resolveBuiltinDir();
+    if (builtinDir !== null) {
+        for (const { ext, mainPath } of collectBuiltinMainSpecs(builtinExtensions, builtinDir, BUILTIN_PREFIX)) {
+            try {
+                const reg: IExtensionRegistration = {
+                    id: ext.id,
+                    manifest: {
+                        name: ext.manifest.name,
+                        publisher: ext.manifest.publisher,
+                        version: ext.manifest.version,
+                    },
+                    mainPath,
+                    configDefaults: flattenConfigDefaults(ext.manifest.contributes?.configuration),
+                    commandTitles: collectCommandTitles(ext.manifest.contributes?.commands),
+                };
+                await extensionHost.registerExtension(reg);
+            } catch (err) {
+                extensionsLogger.error(`${ext.id}: failed to activate (builtin)`, err);
+            }
         }
     }
 }
