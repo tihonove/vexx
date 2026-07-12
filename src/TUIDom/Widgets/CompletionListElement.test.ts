@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { Point, Size } from "../../Common/GeometryPromitives.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 
 import type { CompletionListItem } from "./CompletionListElement.ts";
 import { CompletionListElement } from "./CompletionListElement.ts";
@@ -19,8 +19,10 @@ const ITEMS: CompletionListItem[] = [
     { label: "insert_final_newline", kind: 4, data: 3 },
 ];
 
-function keydown(w: CompletionListElement, key: string): void {
-    w.dispatchEvent(new TUIKeyboardEvent("keydown", { key }));
+function mouse(w: CompletionListElement, type: "mousemove" | "click", localY: number): void {
+    w.dispatchEvent(
+        new TUIMouseEvent(type, { button: "left", screenX: 0, screenY: localY, localX: 5, localY }),
+    );
 }
 
 function renderToString(w: CompletionListElement): string {
@@ -34,6 +36,11 @@ describe("CompletionListElement", () => {
         expect(w.getSelectedItem()?.label).toBe("indent_style");
     });
 
+    it("не забирает фокус (tabIndex=-1)", () => {
+        const w = makeWidget(ITEMS);
+        expect(w.tabIndex).toBe(-1);
+    });
+
     it("фильтрует по подстроке (case-insensitive)", () => {
         const w = makeWidget(ITEMS);
         w.setFilter("IND");
@@ -42,66 +49,80 @@ describe("CompletionListElement", () => {
         expect(w.items.map((i) => i.label)).toEqual(["insert_final_newline"]);
     });
 
-    it("↑/↓ двигают выбор с clamp (без wrap)", () => {
+    it("setFilter начисто сворачивает список до нуля при отсутствии совпадений", () => {
         const w = makeWidget(ITEMS);
-        keydown(w, "ArrowUp"); // уже на 0 — остаётся
+        w.setFilter("zzzz");
+        expect(w.items).toHaveLength(0);
+    });
+
+    it("refineFilter оставляет последний непустой список при нуле совпадений", () => {
+        const w = makeWidget(ITEMS);
+        w.refineFilter("ind");
+        expect(w.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
+        w.refineFilter("indz"); // ничего не матчит — держим прошлый непустой
+        expect(w.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
+        w.refineFilter("indent_s"); // снова совпадает — обновляем
+        expect(w.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
+    });
+
+    it("selectNext/Previous двигают выбор с clamp (без wrap)", () => {
+        const w = makeWidget(ITEMS);
+        w.selectPrevious(); // уже на 0 — остаётся
         expect(w.selectedIndex).toBe(0);
-        keydown(w, "ArrowDown");
-        keydown(w, "ArrowDown");
+        w.selectNext();
+        w.selectNext();
         expect(w.getSelectedItem()?.label).toBe("insert_final_newline");
-        keydown(w, "ArrowDown"); // clamp на последнем
+        w.selectNext(); // clamp на последнем
         expect(w.selectedIndex).toBe(2);
     });
 
-    it("Enter → onAccept с выбранным элементом", () => {
+    it("клик по ряду выбирает и принимает пункт", () => {
         const w = makeWidget(ITEMS);
-        keydown(w, "ArrowDown");
         let accepted: CompletionListItem | null = null;
         w.onAccept = (item) => {
             accepted = item;
         };
-        keydown(w, "Enter");
+        mouse(w, "click", 2); // ряд 0 — верхняя рамка; localY=2 → второй пункт
+        expect(w.selectedIndex).toBe(1);
         expect(accepted).not.toBeNull();
         expect(accepted!.data).toBe(2);
     });
 
-    it("Tab тоже принимает", () => {
+    it("наведение подсвечивает ряд без принятия", () => {
         const w = makeWidget(ITEMS);
         let accepted = false;
         w.onAccept = () => {
             accepted = true;
         };
-        keydown(w, "Tab");
-        expect(accepted).toBe(true);
+        mouse(w, "mousemove", 3); // третий пункт
+        expect(w.selectedIndex).toBe(2);
+        expect(accepted).toBe(false);
     });
 
-    it("Escape → onCancel", () => {
+    it("наведение на рамку или на уже выбранный ряд — no-op", () => {
         const w = makeWidget(ITEMS);
-        let cancelled = false;
-        w.onCancel = () => {
-            cancelled = true;
+        mouse(w, "mousemove", 0); // верхняя рамка → index null
+        expect(w.selectedIndex).toBe(0);
+        mouse(w, "mousemove", 1); // ряд 0 — уже выбран → без изменений
+        expect(w.selectedIndex).toBe(0);
+    });
+
+    it("клик по рамке — no-op", () => {
+        const w = makeWidget(ITEMS);
+        let accepted = false;
+        w.onAccept = () => {
+            accepted = true;
         };
-        keydown(w, "Escape");
-        expect(cancelled).toBe(true);
+        mouse(w, "click", 0); // верхняя рамка
+        expect(accepted).toBe(false);
     });
 
-    it("печатный символ сужает фильтр и шлёт onFilterChange", () => {
+    it("mousedown не фокусит (tabIndex=-1)", () => {
         const w = makeWidget(ITEMS);
-        const filters: string[] = [];
-        w.onFilterChange = (f) => filters.push(f);
-        keydown(w, "f");
-        expect(w.filter).toBe("f");
-        expect(w.items.map((i) => i.label)).toEqual(["insert_final_newline"]);
-        keydown(w, "Backspace");
-        expect(w.filter).toBe("");
-        expect(w.items).toHaveLength(3);
-        expect(filters).toEqual(["f", ""]);
-    });
-
-    it("ctrl-комбинации не попадают в фильтр", () => {
-        const w = makeWidget(ITEMS);
-        w.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "a", ctrlKey: true }));
-        expect(w.filter).toBe("");
+        w.dispatchEvent(
+            new TUIMouseEvent("mousedown", { button: "left", screenX: 0, screenY: 1, localX: 5, localY: 1 }),
+        );
+        expect(w.isFocused).toBe(false);
     });
 
     it("рендерится с рамкой (углы ╭╮╰╯, как у остальных оверлеев)", () => {
@@ -114,6 +135,21 @@ describe("CompletionListElement", () => {
         expect(backend.getTextAt(new Point(size.width - 1, size.height - 1), 1)).toBe("╯");
         // Метка первого элемента присутствует на первом ряду.
         expect(backend.screenToString()).toContain("indent_style");
+    });
+
+    it("подсветка выбранного ряда не залезает на боковые рамки", () => {
+        const w = makeWidget(ITEMS); // выбран ряд 0
+        const size = new Size(w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
+        const backend = renderElement(w, size.width, size.height);
+        const selRow = 1; // первый пункт (выбран)
+        const innerSelected = backend.getBgAt(new Point(5, selRow)); // фон выделения (область метки)
+        const leftBorder = backend.getBgAt(new Point(0, selRow));
+        const rightBorder = backend.getBgAt(new Point(size.width - 1, selRow));
+        // Рамка выбранного ряда сохраняет фон попапа, а не фон выделения.
+        expect(leftBorder).not.toBe(innerSelected);
+        expect(rightBorder).not.toBe(innerSelected);
+        // И совпадает с рамкой невыбранного ряда.
+        expect(leftBorder).toBe(backend.getBgAt(new Point(0, selRow + 1)));
     });
 
     it("min и max intrinsic-размеры совпадают (self-sizing)", () => {
@@ -145,27 +181,41 @@ describe("CompletionListElement", () => {
         const many = Array.from({ length: 15 }, (_, i) => ({ label: `item${i}`, data: i }));
         const w = makeWidget(many);
         w.maxVisibleItems = 5;
-        for (let i = 0; i < 9; i++) keydown(w, "ArrowDown"); // до index 9 — окно уехало вниз
+        for (let i = 0; i < 9; i++) w.selectNext(); // до index 9 — окно уехало вниз
         expect(w.selectedIndex).toBe(9);
         expect(renderToString(w)).toContain("item9");
-        for (let i = 0; i < 9; i++) keydown(w, "ArrowUp"); // назад к 0 — окно вверх
+        for (let i = 0; i < 9; i++) w.selectPrevious(); // назад к 0 — окно вверх
         expect(w.selectedIndex).toBe(0);
         expect(renderToString(w)).toContain("item0");
     });
 
-    it("пустой список: навигация/Enter — no-op, Backspace на пустом фильтре безопасен", () => {
+    it("page-навигация двигает на видимое окно", () => {
+        const many = Array.from({ length: 15 }, (_, i) => ({ label: `item${i}`, data: i }));
+        const w = makeWidget(many);
+        w.maxVisibleItems = 5;
+        w.selectNextPage();
+        expect(w.selectedIndex).toBe(5);
+        w.selectPreviousPage();
+        expect(w.selectedIndex).toBe(0);
+    });
+
+    it("пустой список: getSelectedItem null, навигация/клик — no-op", () => {
         const w = makeWidget(ITEMS);
         w.setFilter("zzzz"); // ничего не матчит
         expect(w.items).toHaveLength(0);
+        expect(w.getSelectedItem()).toBeNull();
         let accepted = false;
         w.onAccept = () => {
             accepted = true;
         };
-        keydown(w, "ArrowDown"); // moveSelection на пустом — return
-        keydown(w, "Enter"); // getSelectedItem null — без accept
+        w.selectNext(); // moveSelection на пустом — return
+        mouse(w, "click", 1); // ряд вне пунктов — без accept
         expect(accepted).toBe(false);
-        w.setFilter("");
-        keydown(w, "Backspace"); // фильтр пуст — no-op
-        expect(w.filter).toBe("");
+    });
+
+    it("клик без назначенного onAccept не падает", () => {
+        const w = makeWidget(ITEMS); // onAccept === null
+        expect(() => mouse(w, "click", 1)).not.toThrow();
+        expect(w.selectedIndex).toBe(0);
     });
 });

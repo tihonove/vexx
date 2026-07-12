@@ -55,7 +55,7 @@ export function createTestContainer(): TestContainerHandle {
         .use(keybindingsModuleDefault)
         .use(workspaceModule)
         .use(fileWatcherModuleDefault)
-        .use(markersModule, { settingsResource: null })
+        .use(markersModule, { settingsResource: null, keybindingsResource: null })
         .use(controllersModule);
 
     return {

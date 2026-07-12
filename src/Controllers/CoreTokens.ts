@@ -20,3 +20,5 @@ export const LanguageServiceDIToken = token<ILanguageService>("LanguageService")
 export const MarkerServiceDIToken = token<MarkerService>("MarkerService");
 /** Absolute path of the active-profile Vexx settings.json, or null when unknown (tests/demo). */
 export const SettingsResourceDIToken = token<string | null>("SettingsResource");
+/** Absolute path of the active-profile Vexx keybindings.json, or null when unknown (tests/demo). */
+export const KeybindingsResourceDIToken = token<string | null>("KeybindingsResource");

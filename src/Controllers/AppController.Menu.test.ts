@@ -38,6 +38,8 @@ describe("AppController — menu bar wiring", () => {
             "Open Folder...",
             "Save",
             "Save As...",
+            "Settings",
+            "Keyboard Shortcuts",
             "Exit",
         ]);
     });
@@ -80,6 +82,26 @@ describe("AppController — menu bar wiring", () => {
         entryByLabel(popup, "Save").onSelect?.();
 
         expect(executeSpy).toHaveBeenCalledWith("workbench.action.files.save");
+    });
+
+    it("File → Settings runs the open-settings command", () => {
+        const { testApp, commands } = createAppTestHarness();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "f");
+
+        entryByLabel(popup, "Settings").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.openSettings");
+    });
+
+    it("File → Keyboard Shortcuts runs the open-keybindings command", () => {
+        const { testApp, commands } = createAppTestHarness();
+        const executeSpy = vi.spyOn(commands, "execute");
+        const popup = openMenu(testApp, "f");
+
+        entryByLabel(popup, "Keyboard Shortcuts").onSelect?.();
+
+        expect(executeSpy).toHaveBeenCalledWith("workbench.action.openGlobalKeybindings");
     });
 
     it("File → Exit triggers the quit command (and the quit flow)", () => {
