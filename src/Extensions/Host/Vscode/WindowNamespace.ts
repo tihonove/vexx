@@ -33,6 +33,7 @@ function normalizeDecorationRanges(
 /** Никогда-не-отменённый токен для `provideFileDecoration` (host-мост не отменяет запросы). */
 const NEVER_CANCELLED = {
     isCancellationRequested: false,
+    /* v8 ignore next -- defensive stub: host-мост никогда не отменяет provideFileDecoration, слушатель не вызывается */
     onCancellationRequested: () => new DisposableImpl(() => undefined),
 } as unknown as vscode.CancellationToken;
 

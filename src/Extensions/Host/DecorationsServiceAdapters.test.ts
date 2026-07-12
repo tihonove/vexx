@@ -56,6 +56,13 @@ describe("EditorDecorationsServiceAdapter", () => {
         adapter.setGutterChangeDecorations("/proj/a.ts", [{ range: createRange(0, 0, 0, 0), color: 1 }]);
         expect(untitled.received).toEqual([]);
     });
+
+    it("пустой слот группы (getEditor === null) пропускается", () => {
+        // editorCount > фактического числа редакторов → getEditor(1) === null.
+        const group = { editorCount: 2, getEditor: (i: number) => (i === 0 ? fakeEditor("/proj/a.ts") : null) };
+        const adapter = new EditorDecorationsServiceAdapter(group as unknown as EditorGroupController);
+        expect(() => adapter.setGutterChangeDecorations("/proj/a.ts", [])).not.toThrow();
+    });
 });
 
 describe("FileDecorationsServiceAdapter", () => {

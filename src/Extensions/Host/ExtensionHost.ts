@@ -543,14 +543,18 @@ export class ExtensionHost extends Disposable {
     private pushEditorDecorations(fileName: string): void {
         const byKey = this.editorDecorationsByFile.get(fileName);
         const decorations: IGutterChangeDecoration[] = [];
-        if (byKey !== undefined) {
-            for (const [key, ranges] of byKey) {
-                const type = this.decorationTypes.get(key);
-                if (type?.overviewRulerColorId === undefined) continue;
-                const color = this.themeColorResolver.resolve(type.overviewRulerColorId);
-                if (color === undefined) continue;
-                for (const range of ranges) decorations.push({ range, color });
-            }
+        /* v8 ignore start -- defensive: pushEditorDecorations зовётся только для файлов с записью (setDecorations/disposeType/repushAll) */
+        if (byKey === undefined) {
+            this.editorDecorations.setGutterChangeDecorations(fileName, decorations);
+            return;
+        }
+        /* v8 ignore stop */
+        for (const [key, ranges] of byKey) {
+            const type = this.decorationTypes.get(key);
+            if (type?.overviewRulerColorId === undefined) continue;
+            const color = this.themeColorResolver.resolve(type.overviewRulerColorId);
+            if (color === undefined) continue;
+            for (const range of ranges) decorations.push({ range, color });
         }
         this.editorDecorations.setGutterChangeDecorations(fileName, decorations);
     }
@@ -684,7 +688,6 @@ function fileUriToPath(uri: string): string {
     try {
         return decodeURIComponent(rest);
     } catch {
-        /* v8 ignore next -- defensive: our own Uri.toString() always produces valid percent-encoding */
         return rest;
     }
 }

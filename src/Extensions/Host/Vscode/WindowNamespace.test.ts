@@ -282,6 +282,25 @@ describe("WindowNamespace", () => {
         expect(typeof disposable.dispose).toBe("function");
     });
 
+    it("registerFileDecorationProvider: одиночный uri (не массив) + propagate", async () => {
+        const { stub, window } = makeCtx();
+        const emitter = new EventEmitter<undefined | Uri | Uri[]>();
+        window.registerFileDecorationProvider({
+            onDidChangeFileDecorations: emitter.event,
+            provideFileDecoration: () => {
+                const d = new FileDecoration("A");
+                d.propagate = true;
+                return d;
+            },
+        } as unknown as vscode.FileDecorationProvider);
+        emitter.fire(Uri.file("/proj/x.ts")); // одиночный Uri → ветка «не массив» в normalizeChangedUris
+        await flushMicrotasks();
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "window.fileDecorationsChanged",
+            params: { decorations: [{ uri: "file:///proj/x.ts", badge: "A", propagate: true }] },
+        });
+    });
+
     it("registerFileDecorationProvider: undefined-change (все файлы) не разворачивается", async () => {
         const { stub, window } = makeCtx();
         const emitter = new EventEmitter<undefined | Uri | Uri[]>();

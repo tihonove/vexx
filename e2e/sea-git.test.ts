@@ -12,6 +12,11 @@ import { VexxSession } from "./helpers/runVexx.ts";
 // U+258E LEFT ONE QUARTER BLOCK — глиф git-гуттер-бара (см. EditorElement gutter paint).
 const GUTTER_BAR = "▎";
 
+// ConPTY делает посимвольные ассерты экрана ненадёжными вне Linux (см. docs/TODO/E2E.md;
+// так же гардятся цветовые ассерты в sea-extensions.test.ts). Функциональную
+// корректность на всех платформах покрывает git.integration.test.ts.
+const itLinuxOnly = process.platform === "linux" ? it : it.skip;
+
 function git(cwd: string, ...args: string[]): void {
     execFileSync("git", args, { cwd, stdio: "ignore" });
 }
@@ -70,7 +75,7 @@ describe("SEA binary — built-in git plugin", () => {
         }
     });
 
-    it("активируется под SEA и рисует dirty-diff бар в гуттере изменённого файла", async () => {
+    itLinuxOnly("активируется под SEA и рисует dirty-diff бар в гуттере изменённого файла", async () => {
         // Открываем репо как workspace + сам изменённый файл. Плагин (скомпилированный
         // out/extension.cjs, упакованный в vexx.bundle, загруженный в память через
         // Module._compile) должен spawn'ить git и проставить гуттер-бар.
