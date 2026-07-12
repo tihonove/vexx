@@ -137,6 +137,21 @@ describe("CompletionListElement", () => {
         expect(backend.screenToString()).toContain("indent_style");
     });
 
+    it("подсветка выбранного ряда не залезает на боковые рамки", () => {
+        const w = makeWidget(ITEMS); // выбран ряд 0
+        const size = new Size(w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
+        const backend = renderElement(w, size.width, size.height);
+        const selRow = 1; // первый пункт (выбран)
+        const innerSelected = backend.getBgAt(new Point(5, selRow)); // фон выделения (область метки)
+        const leftBorder = backend.getBgAt(new Point(0, selRow));
+        const rightBorder = backend.getBgAt(new Point(size.width - 1, selRow));
+        // Рамка выбранного ряда сохраняет фон попапа, а не фон выделения.
+        expect(leftBorder).not.toBe(innerSelected);
+        expect(rightBorder).not.toBe(innerSelected);
+        // И совпадает с рамкой невыбранного ряда.
+        expect(leftBorder).toBe(backend.getBgAt(new Point(0, selRow + 1)));
+    });
+
     it("min и max intrinsic-размеры совпадают (self-sizing)", () => {
         const w = makeWidget(ITEMS);
         expect(w.getMinIntrinsicWidth(0)).toBe(w.getMaxIntrinsicWidth(0));

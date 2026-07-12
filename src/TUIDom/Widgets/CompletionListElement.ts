@@ -177,8 +177,9 @@ export class CompletionListElement extends TUIElement {
         const w = this.layoutSize.width;
         const h = this.boxHeight;
 
-        // Фон + рамка (единый стиль углов с остальными оверлеями). Боковые
-        // рамки рядов переопределяются в renderRow под фон выбранной строки.
+        // Фон + рамка (единый стиль углов с остальными оверлеями). Рамку рисуем
+        // только здесь; ряды заливают лишь внутреннюю область, чтобы фон
+        // выделения не залезал на боковые рамки.
         context.drawBox(0, 0, w, h, { fg: BORDER_FG, bg: BG, fill: true });
 
         // Ряды
@@ -193,10 +194,9 @@ export class CompletionListElement extends TUIElement {
         const rowBg = isSelected ? ACTIVE_SELECTION_BG : BG;
         const rowFg = isSelected ? ACTIVE_SELECTION_FG : FG;
 
-        // Фон ряда + боковые рамки
-        for (let x = 0; x < w; x++) context.setCell(x, rowY, { char: " ", fg: rowFg, bg: rowBg });
-        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: rowBg });
-        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: rowBg });
+        // Фон ряда только во внутренней области [1, w-1) — боковые рамки (их
+        // нарисовал drawBox) не трогаем, иначе фон выделения залезает на рамку.
+        for (let x = 1; x < w - 1; x++) context.setCell(x, rowY, { char: " ", fg: rowFg, bg: rowBg });
 
         // Иконка типа
         const icon = kindIcon(item.kind);
