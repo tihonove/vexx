@@ -4,6 +4,7 @@ import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
 import type { CommandRegistry } from "../Controllers/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Controllers/CommandRegistry.ts";
+import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Controllers/CoreTokens.ts";
 import type { EditorController } from "../Controllers/EditorController.ts";
 import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
@@ -19,6 +20,10 @@ export interface IAppHarnessOptions {
     readonly openFile?: string;
     /** Сфокусировать редактор и отрендерить кадр после boot'а. */
     readonly focusEditor?: boolean;
+    /** Переопределить путь settings.json (по умолчанию `null` из TestProfile). */
+    readonly settingsResource?: string;
+    /** Переопределить путь keybindings.json (по умолчанию `null` из TestProfile). */
+    readonly keybindingsResource?: string;
 }
 
 export interface IAppHarness {
@@ -48,6 +53,15 @@ export interface IAppHarness {
  */
 export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarness {
     const { container, bindApp } = createTestContainer();
+    // Rebind before the AppController is resolved (it reads these at construction).
+    if (options.settingsResource !== undefined) {
+        const resource = options.settingsResource;
+        container.bind(SettingsResourceDIToken, () => resource);
+    }
+    if (options.keybindingsResource !== undefined) {
+        const resource = options.keybindingsResource;
+        container.bind(KeybindingsResourceDIToken, () => resource);
+    }
     const controller = container.get(AppControllerDIToken);
     if (options.workspaceFolder !== undefined) {
         controller.setWorkspaceFolder(options.workspaceFolder);

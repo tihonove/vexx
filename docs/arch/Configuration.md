@@ -19,6 +19,8 @@
 - **`ConfigurationModel`** — иммутабельная: нормализует dotted-keys (`"editor.tabSize"` → вложенный объект), deep-merge слоёв, `get`/`getValue`.
 - **`ConfigurationService`** — async `loadConfiguration(paths)`. `onDidChangeConfiguration` пока no-op (watcher не реализован — правки подхватываются рестартом). **`updateUserValue(key, value)`** — запись в settings.json активного профиля через `jsonc-parser` (сохраняет комментарии/форматирование) + синхронный апдейт in-memory слоя; первый потребитель — theme picker. Заглушка `NULL_CONFIGURATION_SERVICE` метод не реализует (вызов через optional chaining).
 
+Пути обоих файлов прокинуты в DI (слой Controllers): `settingsFile` → `SettingsResourceDIToken` (валидатор settings.json), `keybindingsFile` → `KeybindingsResourceDIToken`. Оба использует `AppController` для команд `workbench.action.openSettings` (Ctrl+,) и `workbench.action.openGlobalKeybindings` (Ctrl+K Ctrl+S), которые просто открывают соответствующий JSON-файл в редакторе (UI-редактора настроек нет); на свежем профиле файл создаётся заготовкой. Бинд обоих токенов — в `markersModule`, значения — из `main.ts`.
+
 Применение к редактору: `EditorGroupController` при создании каждого `EditorController` дёргает `setIndentOptions({ tabSize, insertSpaces })` и `setCursorSurroundingLines(...)` из ключей `editor.*`. `setIndentOptions` принудительно выключает auto-detect indent.
 
 Фикстура `test-fixtures/vexx-home/` повторяет реальную раскладку (`--user-data-dir ./test-fixtures/vexx-home`); профиль `compact` демонстрирует переопределение `editor.tabSize`.

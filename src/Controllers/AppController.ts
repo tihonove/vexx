@@ -137,6 +137,7 @@ import {
     listFocusPageDownAction,
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
+import { openKeybindingsAction, openSettingsAction } from "./Actions/PreferencesActions.ts";
 import { gotoLineAction, quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import { selectThemeAction } from "./Actions/ThemeActions.ts";
@@ -152,7 +153,14 @@ import { CompletionController } from "./CompletionController.ts";
 import { registerContextKeys } from "./ContextKeys.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import { ClipboardDIToken, FileClipboardDIToken, ServiceAccessorDIToken, TuiApplicationDIToken } from "./CoreTokens.ts";
+import {
+    ClipboardDIToken,
+    FileClipboardDIToken,
+    KeybindingsResourceDIToken,
+    ServiceAccessorDIToken,
+    SettingsResourceDIToken,
+    TuiApplicationDIToken,
+} from "./CoreTokens.ts";
 import { DiagnosticsController, DiagnosticsControllerDIToken } from "./DiagnosticsController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
@@ -397,6 +405,10 @@ export class AppController extends Disposable implements IController {
     private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
     private swallowNextKeyPress = false;
     private logger: ILogger;
+    /** Resolved path of the active-profile settings.json, or null when unknown (tests/demo). */
+    private settingsResource: string | null;
+    /** Resolved path of the active-profile keybindings.json, or null when unknown (tests/demo). */
+    private keybindingsResource: string | null;
 
     public constructor(
         editorGroupController: EditorGroupController,
@@ -435,6 +447,8 @@ export class AppController extends Disposable implements IController {
         this.workspaceEditService = accessor.get(WorkspaceEditServiceDIToken);
         this.undoRedoService = accessor.get(UndoRedoServiceDIToken);
         this.configurationService = accessor.get(IConfigurationServiceDIToken);
+        this.settingsResource = accessor.get(SettingsResourceDIToken);
+        this.keybindingsResource = accessor.get(KeybindingsResourceDIToken);
         // Подсветка «вырезанных» файлов в дереве следует за состоянием буфера.
         this.register(
             this.fileClipboard.onDidChange((entry) => {
@@ -553,6 +567,22 @@ export class AppController extends Disposable implements IController {
                 ...selectThemeAction,
                 run: () => {
                     void this.selectColorTheme();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...openSettingsAction,
+                run: () => {
+                    this.openUserConfigFile(this.settingsResource, "settings");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...openKeybindingsAction,
+                run: () => {
+                    this.openUserConfigFile(this.keybindingsResource, "keybindings");
                 },
             }),
         );
@@ -989,6 +1019,23 @@ export class AppController extends Disposable implements IController {
         this.statusBarController.update();
     }
 
+    /**
+     * Opens a user-config file (settings.json / keybindings.json) as an editor tab.
+     * The path is resolved at bootstrap; it is null in tests/demo where no user data
+     * dir is wired — then this is a no-op. On a fresh install the file may not exist
+     * yet: we seed it (create the parent dir + a minimal skeleton) so the editor opens
+     * a real file and a subsequent Ctrl+S can't fail with ENOENT, mirroring VS Code.
+     */
+    private openUserConfigFile(resource: string | null, kind: "settings" | "keybindings"): void {
+        if (resource === null) return;
+        if (!fs.existsSync(resource)) {
+            const skeleton = kind === "settings" ? "{}\n" : "[]\n";
+            fs.mkdirSync(path.dirname(resource), { recursive: true });
+            fs.writeFileSync(resource, skeleton, "utf-8");
+        }
+        this.openFile(resource);
+    }
+
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
@@ -1288,6 +1335,9 @@ export class AppController extends Disposable implements IController {
                     sep(),
                     item("Save", "workbench.action.files.save"),
                     item("Save As...", "workbench.action.files.saveAs"),
+                    sep(),
+                    item("Settings", "workbench.action.openSettings"),
+                    item("Keyboard Shortcuts", "workbench.action.openGlobalKeybindings"),
                     sep(),
                     item("Exit", "workbench.action.quit"),
                 ],
