@@ -26,6 +26,8 @@ export interface ScenarioDriver {
     sendText(text: string): Promise<void>;
     /** Resize the virtual terminal. */
     resize(cols: number, rows: number): Promise<void>;
+    /** Push gutter change-bar decorations to the active editor (test/demo seam). */
+    setGutterChangeDecorations(decorations: { startLine: number; endLine: number; color: number }[]): Promise<void>;
     /** Poll the screen until `predicate(text)` holds; returns the matching frame. */
     waitForText(
         predicate: (text: string) => boolean,
@@ -80,6 +82,7 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
         sendKey: (name) => session.sendKey(name),
         sendText: (text) => session.sendText(text),
         resize: (cols, rows) => session.resize(cols, rows),
+        setGutterChangeDecorations: (decorations) => session.setGutterChangeDecorations(decorations),
         waitForText: (predicate, opts) => session.waitForText(predicate, opts),
         captureFrame: () => session.captureFrame(),
         capture: async (shot) => {

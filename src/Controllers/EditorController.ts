@@ -6,6 +6,7 @@ import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
+import type { IGutterChangeDecoration } from "../Editor/Decorations/IGutterChangeDecoration.ts";
 import { computeIndentationFolds } from "../Editor/FoldingRangeProvider.ts";
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
 import type { IRange } from "../Editor/IRange.ts";
@@ -643,6 +644,16 @@ export class EditorController extends Disposable implements IController {
      */
     public setMarkerDecorations(decorations: readonly IMarkerDecoration[]): void {
         this.editor.markerDecorations = decorations;
+        this.editor.markDirty();
+    }
+
+    /**
+     * Sets the gutter change-bar decorations (SCM/git dirty-diff) rendered by
+     * the editor and repaints. Colours arrive already resolved — this does not
+     * touch the theme. Pushed by the source-control/git controller.
+     */
+    public setGutterChangeDecorations(decorations: readonly IGutterChangeDecoration[]): void {
+        this.editor.gutterChangeDecorations = decorations;
         this.editor.markDirty();
     }
 

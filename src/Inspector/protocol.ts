@@ -20,6 +20,11 @@ export const InspectorMethod = {
     captureFrame: "TUIDom.captureFrame",
     /** Tear down the session and exit. Requires a driver. */
     shutdown: "TUIDom.shutdown",
+    /**
+     * Push gutter change-bar decorations to the active editor. A test/demo seam
+     * wired by the App layer (`main.ts`) — the Inspector core stays Editor-free.
+     */
+    setGutterChangeDecorations: "TUIDom.setGutterChangeDecorations",
 } as const;
 
 /** Params for `TUIDom.sendKey`. */
@@ -41,6 +46,22 @@ export interface ResizeParams {
 /** Result of `TUIDom.captureFrame`. */
 export interface CaptureFrameResult {
     frame: GridSnapshot;
+}
+
+/**
+ * One gutter change bar for `TUIDom.setGutterChangeDecorations`: an inclusive
+ * range of 0-based logical lines and a packed-RGB colour. Editor-free on purpose
+ * — the App layer maps it onto the editor's decoration model.
+ */
+export interface GutterChangeDecorationParam {
+    startLine: number;
+    endLine: number;
+    color: number;
+}
+
+/** Params for `TUIDom.setGutterChangeDecorations`. */
+export interface SetGutterChangeDecorationsParams {
+    decorations: GutterChangeDecorationParam[];
 }
 
 /** Serialized tree node. */
