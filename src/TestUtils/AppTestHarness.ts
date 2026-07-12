@@ -1,5 +1,6 @@
 import type { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
+import type { IStateService } from "../Configuration/IStateService.ts";
 import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
 import type { CommandRegistry } from "../Controllers/CommandRegistry.ts";
@@ -8,6 +9,7 @@ import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Controll
 import type { EditorController } from "../Controllers/EditorController.ts";
 import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
+import { StateServiceDIToken } from "../Controllers/Modules/StateModule.ts";
 
 import { TestApp } from "./TestApp.ts";
 
@@ -20,6 +22,8 @@ export interface IAppHarnessOptions {
     readonly openFile?: string;
     /** Сфокусировать редактор и отрендерить кадр после boot'а. */
     readonly focusEditor?: boolean;
+    /** Реальный {@link IStateService} для тестов персистентности; по умолчанию NULL (не персистит). */
+    readonly stateService?: IStateService;
     /** Переопределить путь settings.json (по умолчанию `null` из TestProfile). */
     readonly settingsResource?: string;
     /** Переопределить путь keybindings.json (по умолчанию `null` из TestProfile). */
@@ -54,6 +58,12 @@ export interface IAppHarness {
 export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarness {
     const { container, bindApp } = createTestContainer();
     // Rebind before the AppController is resolved (it reads these at construction).
+    // По умолчанию состояние не персистится (NULL_STATE_SERVICE из stateModuleDefault);
+    // тест может подсунуть реальный StateService, перебив биндинг ДО резолва AppController.
+    if (options.stateService !== undefined) {
+        const stateService = options.stateService;
+        container.bind(StateServiceDIToken, () => stateService);
+    }
     if (options.settingsResource !== undefined) {
         const resource = options.settingsResource;
         container.bind(SettingsResourceDIToken, () => resource);

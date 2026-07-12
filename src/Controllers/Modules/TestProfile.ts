@@ -18,6 +18,7 @@ import { fileWatcherModuleDefault } from "./FileWatcherModule.ts";
 import { keybindingsModuleDefault } from "./KeybindingsModule.ts";
 import { loggingModuleDefault } from "./LoggingModule.ts";
 import { markersModule } from "./MarkersModule.ts";
+import { stateModuleDefault } from "./StateModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
 import { workspaceModule } from "./WorkspaceModule.ts";
@@ -51,6 +52,7 @@ export function createTestContainer(): TestContainerHandle {
             languageService: NULL_LANGUAGE_SERVICE,
         })
         .use(configurationModuleDefault)
+        .use(stateModuleDefault)
         .use(terminalEnvironmentModule, { backend: new MockTerminalBackend() })
         .use(keybindingsModuleDefault)
         .use(workspaceModule)

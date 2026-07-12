@@ -35,6 +35,15 @@ export class WorkbenchLayoutElement extends TUIElement {
     private bottomPanelVisible = false;
     private bottomPanelHeight = DEFAULT_PANEL_HEIGHT;
 
+    /**
+     * Уведомление о смене layout по действию пользователя (drag сэша или команда):
+     * ширина/высота/видимость панелей. Плейн-колбэк (без DI) — TUIDom не знает про
+     * контроллеры; подписчик (`WorkbenchStateController` через `AppController`)
+     * персистит состояние. НЕ вызывается из `performLayout` (display-клампы — не
+     * действие пользователя).
+     */
+    public onDidChangeLayout?: () => void;
+
     // Draggable dividers: vertical between sidebar and editor, horizontal between
     // editor and bottom panel.
     private sash = new SashElement("vertical");
@@ -47,6 +56,7 @@ export class WorkbenchLayoutElement extends TUIElement {
             // Translate the absolute boundary column to a panel width and clamp it.
             this.leftPanelWidth = this.clampWidth(boundaryScreenX - this.globalPosition.x);
             this.markDirty();
+            this.onDidChangeLayout?.();
         };
         this.bottomSash.setParent(this);
         this.bottomSash.onDrag = (boundaryScreenY) => {
@@ -55,6 +65,7 @@ export class WorkbenchLayoutElement extends TUIElement {
             const containerBottom = this.globalPosition.y + this.layoutSize.height;
             this.bottomPanelHeight = this.clampHeight(containerBottom - boundaryScreenY);
             this.markDirty();
+            this.onDidChangeLayout?.();
         };
     }
 
@@ -96,6 +107,7 @@ export class WorkbenchLayoutElement extends TUIElement {
 
     public setLeftPanelVisible(visible: boolean): void {
         this.leftPanelVisible = visible;
+        this.onDidChangeLayout?.();
     }
 
     public getLeftPanelVisible(): boolean {
@@ -113,6 +125,7 @@ export class WorkbenchLayoutElement extends TUIElement {
             this.bottomPanel.setParent(this);
             this.bottomPanel.markStyleDirty();
         }
+        this.onDidChangeLayout?.();
     }
 
     public getBottomPanelVisible(): boolean {
@@ -123,6 +136,7 @@ export class WorkbenchLayoutElement extends TUIElement {
         // Context-free lower clamp; the upper bound depends on the container and is
         // enforced in performLayout (and by clampWidth for interactive changes).
         this.leftPanelWidth = Math.max(MIN_LEFT_WIDTH, Math.round(width));
+        this.onDidChangeLayout?.();
     }
 
     public getLeftPanelWidth(): number {
@@ -131,6 +145,7 @@ export class WorkbenchLayoutElement extends TUIElement {
 
     public setBottomPanelHeight(height: number): void {
         this.bottomPanelHeight = Math.max(MIN_PANEL_HEIGHT, Math.round(height));
+        this.onDidChangeLayout?.();
     }
 
     public getBottomPanelHeight(): number {
@@ -141,12 +156,14 @@ export class WorkbenchLayoutElement extends TUIElement {
     public nudgeLeftPanelWidth(delta: number): void {
         this.leftPanelWidth = this.clampWidth(this.leftPanelWidth + delta);
         this.markDirty();
+        this.onDidChangeLayout?.();
     }
 
     /** Restore the left panel to its default width. */
     public resetLeftPanelWidth(): void {
         this.leftPanelWidth = DEFAULT_LEFT_WIDTH;
         this.markDirty();
+        this.onDidChangeLayout?.();
     }
 
     public getLeftPanel(): TUIElement | null {

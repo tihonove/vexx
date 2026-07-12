@@ -19,6 +19,7 @@ import { OscClipboard } from "./Common/OscClipboard.ts";
 import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
 import { VEXX_VERSION } from "./Common/Version.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
+import { loadState } from "./Configuration/StateService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
@@ -127,6 +128,8 @@ async function runEditor(): Promise<void> {
     });
     const configurationService = await loadConfiguration(userDataPaths, configurationLogger);
     const userKeybindings = await loadUserKeybindings(userDataPaths.keybindingsFile, configurationLogger);
+    // Машинное состояние UI/сессии (открытые файлы, layout) — отдельно от настроек.
+    const stateService = loadState(userDataPaths, configurationLogger);
 
     // ── Backend / Theme ────────────────────────────────────────
 
@@ -202,10 +205,23 @@ async function runEditor(): Promise<void> {
         tokenStyleResolver,
         languageService: languageRegistry,
         configurationService,
+        stateService,
         userKeybindings,
         logService,
         settingsResource: userDataPaths.settingsFile,
         keybindingsResource: userDataPaths.keybindingsFile,
+    });
+
+    // Единственный якорь сброса состояния на диск: `process.exit(0)` (любой путь
+    // выхода — quit, SIGINT в NodeTerminalBackend) фаерит "exit". Только синхронный
+    // I/O — поэтому flushSync. Write-through держит in-memory стор актуальным, так
+    // что здесь всегда сериализуется последнее состояние.
+    process.on("exit", () => {
+        try {
+            stateService.flushSync();
+        } catch {
+            /* на выходе делать нечего — глотаем */
+        }
     });
 
     // Смена цветовой темы должна перекрашивать и синтаксис: пересаживаем token-тему
@@ -301,10 +317,13 @@ async function runEditor(): Promise<void> {
     // Дожидаемся регистрации TextMate-грамматик до открытия первых файлов,
     // чтобы при создании `DocumentTokenStore` уже был полноценный токенайзер.
     await grammarsLoading;
-    for (const p of resolvedPaths) {
-        if (!fs.statSync(p, { throwIfNoEntry: false })?.isDirectory()) {
-            appController.openFile(p);
-        }
+    const explicitFiles = resolvedPaths.filter((p) => !fs.statSync(p, { throwIfNoEntry: false })?.isDirectory());
+    if (explicitFiles.length > 0) {
+        // Явные файлы в CLI перебивают сохранённую сессию (как `code file.ts`).
+        for (const p of explicitFiles) appController.openFile(p);
+    } else {
+        // Иначе восстанавливаем открытые файлы прошлой сессии этого воркспейса.
+        appController.restoreOpenEditors();
     }
     appController.focusEditor();
 

@@ -759,4 +759,17 @@ describe("EditorGroupController", () => {
             expect(seen).toHaveLength(1);
         });
     });
+
+    describe("getOpenFilePaths", () => {
+        it("returns file paths in tab order and skips untitled buffers", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            const a = writeFile("a.ts", "A");
+            const b = writeFile("b.ts", "B");
+            ctrl.openFile(a);
+            ctrl.newUntitled(); // без пути на диске — в снимок не попадает
+            ctrl.openFile(b);
+            expect(ctrl.getOpenFilePaths()).toEqual([a, b]);
+        });
+    });
 });

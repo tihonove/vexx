@@ -5,6 +5,7 @@ Vexx — терминальный текстовый редактор (клон 
 - docs/ARCHITECTURE.md — концептуальная карта: обзор слоёв + правила зависимостей (единственный источник правды по слоям)
 - docs/arch/ — детальный per-layer справочник (по файлу на слой: Common.md, Editor.md, Extensions.md, …)
 - docs/DI.md — справочник по DI-контейнеру (токены, модули, профили)
+- docs/arch/State.md — машинное состояние UI/сессии (StateService, аналог IStorageService/Memento)
 - docs/LAYOUT.md — система layout и позиционирования в TUIDom
 - docs/TESTING.md — как тестировать каждый слой; скриншот-демо для визуальных фич
 - docs/COMMITS.md — правила коммитов (Conventional Commits, changelog)

@@ -24,3 +24,6 @@
 Применение к редактору: `EditorGroupController` при создании каждого `EditorController` дёргает `setIndentOptions({ tabSize, insertSpaces })` и `setCursorSurroundingLines(...)` из ключей `editor.*`. `setIndentOptions` принудительно выключает auto-detect indent.
 
 Фикстура `test-fixtures/vexx-home/` повторяет реальную раскладку (`--user-data-dir ./test-fixtures/vexx-home`); профиль `compact` демонстрирует переопределение `editor.tabSize`.
+
+## StateService — машинное состояние (отдельно от настроек)
+Рядом с `ConfigurationService` живёт **`StateService`** (`Configuration/StateService.ts`) — аналог `IStorageService`/`Memento`: персистентное **машинное** состояние UI/сессии (открытые файлы + активная вкладка, ширина/видимость сайдбара, видимость/высота нижней панели). Это **не** `settings.json`: формат — plain JSON (никто не редактирует руками), scope `global` (`<profileDir>/globalState.json`) / `workspace` (`<profileDir>/workspaceStorage/<sha256(folder)>/state.json`). Движок: write-through + debounced-запись + `flushSync` на `process.on("exit")`, tolerant-load, сохранение unknown-ключей. DI-токен и модуль — в Controllers (`Modules/StateModule.ts`); дескрипторы — `Controllers/StateKeys.ts`; координатор — `WorkbenchStateController`. Полное описание → [State.md](State.md).
