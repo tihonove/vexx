@@ -17,16 +17,27 @@ const here = fileURLToPath(new URL(".", import.meta.url));
 /** Repo-root `screenshots/` directory (git-ignored). */
 export const screenshotsDir = resolve(here, "..", "..", "screenshots");
 
-// A Nerd Font so the editor's codicon glyphs (file tree, status bar) render;
-// resvg falls back across system fonts (e.g. Noto CJK) for anything missing.
+// A Nerd Font so the editor's codicon glyphs (file tree, status bar) render.
 const DEFAULT_FONT = "Hack Nerd Font Mono";
+
+// The font is vendored in `e2e/fonts/` and loaded explicitly, so screenshots
+// render identical codicon glyphs everywhere — no reliance on a system-installed
+// font (ephemeral dev containers and CI runners have none). `loadSystemFonts`
+// stays on purely as a fallback for glyphs Hack lacks (e.g. CJK via Noto).
+const fontsDir = resolve(here, "..", "fonts");
+const BUNDLED_FONT_FILES = [
+    "HackNerdFontMono-Regular.ttf",
+    "HackNerdFontMono-Bold.ttf",
+    "HackNerdFontMono-Italic.ttf",
+    "HackNerdFontMono-BoldItalic.ttf",
+].map((name) => resolve(fontsDir, name));
 
 /** Rasterize a captured frame to a PNG buffer. */
 export function renderSnapshotToPng(snapshot: GridSnapshot, options: GridToSvgOptions = {}): Buffer {
     const fontFamily = options.fontFamily ?? DEFAULT_FONT;
     const svg = gridToSvg(snapshot, { ...options, fontFamily });
     const resvg = new Resvg(svg, {
-        font: { loadSystemFonts: true, defaultFontFamily: fontFamily },
+        font: { loadSystemFonts: true, fontFiles: BUNDLED_FONT_FILES, defaultFontFamily: fontFamily },
     });
     return Buffer.from(resvg.render().asPng());
 }
