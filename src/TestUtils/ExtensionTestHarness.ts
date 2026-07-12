@@ -31,6 +31,22 @@ export function subprocessSpawnArgsForTests(): () => { command: string; args: st
         env: { ...process.env },
     });
 }
+
+/** Абсолютный путь к `src/Extensions/Host/__fixtures__` с тестовыми `.cjs`-расширениями. */
+export const EXTENSION_FIXTURES_DIR = path.dirname(SUBPROCESS_ENTRY);
+
+/**
+ * Регистрация fixture-расширения из {@link EXTENSION_FIXTURES_DIR} с минимальным
+ * тестовым манифестом (`publisher: "test"`). Расширяемые поля (`commandTitles`,
+ * `configDefaults`) добавляются спредом: `{ ...extensionFixture(...), commandTitles }`.
+ */
+export function extensionFixture(id: string, file: string): IExtensionRegistration {
+    return {
+        id,
+        manifest: { name: id, publisher: "test", version: "0.0.1" },
+        mainPath: path.join(EXTENSION_FIXTURES_DIR, file),
+    };
+}
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
