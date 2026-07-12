@@ -20,6 +20,10 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
     private rootPath: string;
     private watchers = new Map<string, FSWatcher>();
     private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    // Статус-декорации по абсолютному пути (цвет имени + буква-бейдж). Ставит их
+    // FileTreeController.setFileDecorations; git/RPC-логика живёт выше и цвета уже
+    // приходят резолвнутыми.
+    private gitStatus = new Map<string, { color?: number; badge?: string }>();
 
     public onChange?: (element?: FileTreeNode) => void;
 
@@ -39,11 +43,14 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
         // Симлинк сохраняет обычную иконку типа (файл/каталог), а признак ссылки
         // помечается флагом symlink — стрелку рисует TreeViewElement у левого края,
         // не смещая иконки и не пряча их.
+        const status = this.gitStatus.get(element.path);
         if (element.isDirectory) {
             return {
                 label: element.name,
                 collapsible: true,
                 symlink: element.isSymbolicLink,
+                labelColor: status?.color,
+                badge: status?.badge,
             };
         }
         const fileIcon = getFileIcon(element.name);
@@ -53,7 +60,17 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
             iconColor: fileIcon.color,
             collapsible: false,
             symlink: element.isSymbolicLink,
+            labelColor: status?.color,
+            badge: status?.badge,
         };
+    }
+
+    /**
+     * Заменяет карту статус-декораций (ключ — абсолютный путь). Цвета уже
+     * резолвнуты в упакованный RGB; провайдер только раздаёт их через getTreeItem.
+     */
+    public setGitStatus(map: ReadonlyMap<string, { color?: number; badge?: string }>): void {
+        this.gitStatus = new Map(map);
     }
 
     public getChildren(element?: FileTreeNode): FileTreeNode[] {

@@ -143,6 +143,43 @@ describe("FileTreeController", () => {
         expect(output).toContain("README.md");
     });
 
+    it("colours a decorated file's name and draws its status badge", async () => {
+        const gitColor = packRgb(115, 201, 145);
+        // README.md is row 1 (src is the cursor on row 0), so its name takes the
+        // decoration colour; "U" is a badge letter absent from the sidebar chrome.
+        controller.setFileDecorations([{ path: ws.path("README.md"), color: gitColor, badge: "U" }]);
+        await new Promise((r) => setTimeout(r, 20));
+        app.render();
+
+        expect(app.backend.screenToString()).toContain("U");
+
+        // Some cell now carries the resolved git decoration colour as its fg.
+        let coloured = false;
+        const size = app.backend.getSize();
+        for (let y = 0; y < size.height && !coloured; y++) {
+            for (let x = 0; x < size.width; x++) {
+                if (app.backend.getFgAt(new Point(x, y)) === gitColor) {
+                    coloured = true;
+                    break;
+                }
+            }
+        }
+        expect(coloured).toBe(true);
+    });
+
+    it("clears decorations when given an empty list", async () => {
+        const gitColor = packRgb(115, 201, 145);
+        controller.setFileDecorations([{ path: ws.path("README.md"), color: gitColor, badge: "U" }]);
+        await new Promise((r) => setTimeout(r, 20));
+        app.render();
+        expect(app.backend.screenToString()).toContain("U");
+
+        controller.setFileDecorations([]);
+        await new Promise((r) => setTimeout(r, 20));
+        app.render();
+        expect(app.backend.screenToString()).not.toContain("U");
+    });
+
     it("forwards a provider watch error to the controller's onWatchError", () => {
         // Провайдер отдаёт ошибку watcher'а (ENOSPC и т.п.) — контроллер обязан
         // пробросить её наверх через свой onWatchError (см. AppController, где логируют).
@@ -172,6 +209,10 @@ describe("FileTreeController — clipboard helpers before a root is assigned", (
         // Подсветка «вырезанных» без дерева — no-op, не должна падать.
         expect(() => {
             controller.setCutPaths(["/x"]);
+        }).not.toThrow();
+        // Статус-декорации без дерева — тоже no-op.
+        expect(() => {
+            controller.setFileDecorations([{ path: "/x", color: 0x73c991, badge: "M" }]);
         }).not.toThrow();
 
         controller.dispose();
