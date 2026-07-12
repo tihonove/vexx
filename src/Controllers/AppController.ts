@@ -96,6 +96,14 @@ import {
 import { explorerNewFileAction, explorerNewFolderAction } from "./Actions/FileTreeCreateActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
+    acceptSelectedSuggestionAction,
+    hideSuggestWidgetAction,
+    selectNextPageSuggestionAction,
+    selectNextSuggestionAction,
+    selectPrevPageSuggestionAction,
+    selectPrevSuggestionAction,
+} from "./Actions/SuggestActions.ts";
+import {
     foldAction,
     foldAllAction,
     foldLevelActions,
@@ -697,6 +705,57 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
+        // Suggest widget navigation/accept/dismiss. Registered here (after the
+        // builtinActions loop) so the suggestWidgetVisible bindings win over the
+        // editor's cursorDown/indentLines while the popup is open.
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...selectNextSuggestionAction,
+                run: () => {
+                    this.completionController.selectNext();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...selectPrevSuggestionAction,
+                run: () => {
+                    this.completionController.selectPrevious();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...selectNextPageSuggestionAction,
+                run: () => {
+                    this.completionController.selectNextPage();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...selectPrevPageSuggestionAction,
+                run: () => {
+                    this.completionController.selectPreviousPage();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...acceptSelectedSuggestionAction,
+                run: () => {
+                    this.completionController.acceptSelected();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...hideSuggestWidgetAction,
+                run: () => {
+                    this.completionController.hide();
+                },
+            }),
+        );
         this.register(
             registerAction(commands, keybindings, accessor, {
                 id: "workbench.action.toggleSidebarVisibility",
@@ -1177,6 +1236,18 @@ export class AppController extends Disposable implements IController {
                 metaKey: event.metaKey,
             };
             this.armory.withTrigger(trigger, () => this.commands.execute(res.commandId));
+            // A key that would otherwise be TYPED into the editor still emits a paired
+            // keypress (preventDefault on keydown does not suppress it — only
+            // swallowNextKeyPress does). When such a key ran a command over a text input
+            // (e.g. Enter → acceptSelectedSuggestion), swallow the keypress so it does
+            // not also insert a newline/character behind the command. Gated on
+            // textInputFocus to keep inputs/lists/find untouched.
+            const wouldType =
+                event.key === "Enter" ||
+                (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey);
+            if (wouldType && this.contextKeys.get("textInputFocus") === true) {
+                this.swallowNextKeyPress = true;
+            }
             return true;
         }
 
@@ -1249,6 +1320,10 @@ export class AppController extends Disposable implements IController {
     private handleFocusChange = (_event: TUIFocusEvent): void => {
         this.cancelPendingChord();
         this.updateContextKeys();
+        // Фокус ушёл с редактора (клавиатурный путь: Ctrl+Tab, Quick Open) —
+        // закрываем suggest-попап (клик-фокус уже покрыт close-on-outside).
+        const active = this.view.focusManager?.activeElement ?? null;
+        this.completionController.onFocusChanged(active instanceof EditorElement);
     };
 
     /**
@@ -1286,6 +1361,7 @@ export class AppController extends Disposable implements IController {
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
         this.contextKeys.set("panelVisible", this.workbenchLayout.getBottomPanelVisible());
         this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
+        this.contextKeys.set("suggestWidgetVisible", this.completionController.isOpen());
 
         // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
         // but mode can be force-toggled at runtime, so refresh alongside focus context.
