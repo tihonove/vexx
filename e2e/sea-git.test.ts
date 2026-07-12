@@ -9,8 +9,10 @@ import type { AnsiScreen } from "./helpers/AnsiScreen.ts";
 import { getBinaryPath } from "./helpers/buildOnce.ts";
 import { VexxSession } from "./helpers/runVexx.ts";
 
-// U+258E LEFT ONE QUARTER BLOCK — глиф git-гуттер-бара (см. EditorElement gutter paint).
-const GUTTER_BAR = "▎";
+// Глифы git-гуттер-бара (см. EditorElement gutter paint): U+2503 сплошной
+// (added/deleted) и U+250B штриховой (modified). Оба уникальны для бара —
+// indent-guide рисуется `│`.
+const GUTTER_BARS = new Set(["┃", "┋"]);
 
 // ConPTY делает посимвольные ассерты экрана ненадёжными вне Linux (см. docs/TODO/E2E.md;
 // так же гардятся цветовые ассерты в sea-extensions.test.ts). Функциональную
@@ -38,13 +40,13 @@ function makeRepo(): { repoDir: string; trackedFile: string } {
 
 /**
  * Есть ли на экране бар-глиф гуттера. Сканируем все столбцы: гуттер редактора
- * смещён вправо панелью EXPLORER, поэтому бар не в столбце 0. Глиф `▎` уникален
- * для git-гуттер-бара (indent-guide рисуется `│`).
+ * смещён вправо панелью EXPLORER, поэтому бар не в столбце 0. Глифы бара уникальны
+ * (indent-guide рисуется `│`).
  */
 function hasGutterBar(screen: AnsiScreen): boolean {
     for (let y = 0; y < screen.height; y++) {
         for (let x = 0; x < screen.width; x++) {
-            if (screen.cellAt(x, y).char === GUTTER_BAR) return true;
+            if (GUTTER_BARS.has(screen.cellAt(x, y).char)) return true;
         }
     }
     return false;

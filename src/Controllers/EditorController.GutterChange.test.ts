@@ -15,7 +15,7 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { EditorController } from "./EditorController.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
-const BAR = "▎";
+const BAR = "┃"; // solid change bar (no dashed flag on this decoration)
 const CHANGE_COLOR = packRgb(0x1b, 0x81, 0xa8);
 
 function createEditorController(): EditorController {
@@ -53,7 +53,10 @@ describe("EditorController — setGutterChangeDecorations", () => {
         expect(ctrl.view.isLayoutDirty).toBe(true);
 
         app.render();
-        expect(app.backend.getTextAt(new Point(0, 1), 1)).toBe(BAR);
-        expect(app.backend.getFgAt(new Point(0, 1))).toBe(CHANGE_COLOR);
+        // Bar lives in the fold margin, one column left of the chevron: gutter is
+        // 2 pad + 1 digit + fold margin, so the bar sits at column 3.
+        const x = 3;
+        expect(app.backend.getTextAt(new Point(x, 1), 1)).toBe(BAR);
+        expect(app.backend.getFgAt(new Point(x, 1))).toBe(CHANGE_COLOR);
     });
 });

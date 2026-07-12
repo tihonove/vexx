@@ -122,7 +122,8 @@ describe("builtin git plugin (integration)", () => {
         expect(tracked).toMatchObject({ badge: "M", color: COLORS["gitDecoration.modifiedResourceForeground"] });
         expect(untracked).toMatchObject({ badge: "U", color: COLORS["gitDecoration.untrackedResourceForeground"] });
 
-        // Gutter: the modified line (2, i.e. 0-based line 1) gets a modified-colour bar.
+        // Gutter: the modified line (2, i.e. 0-based line 1) gets a modified-colour
+        // bar, painted dashed (VS Code dirty-diff style for modified lines).
         const gotGutter = await waitFor(() => {
             const decos = editorSpy.latestFor("tracked.txt");
             return decos !== undefined && decos.length > 0;
@@ -132,6 +133,7 @@ describe("builtin git plugin (integration)", () => {
         expect(decos).toHaveLength(1);
         expect(decos[0].range.start.line).toBe(1);
         expect(decos[0].color).toBe(COLORS["editorGutter.modifiedBackground"]);
+        expect(decos[0].dashed).toBe(true);
     });
 
     it("stays inert (no throw, no decorations) outside a git repository", async () => {

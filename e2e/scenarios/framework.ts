@@ -31,7 +31,9 @@ export interface ScenarioDriver {
     /** Apply file-tree status decorations (name colour + letter badge) by absolute path. */
     setFileDecorations(entries: FileDecorationEntry[]): Promise<void>;
     /** Push gutter change-bar decorations to the active editor (test/demo seam). */
-    setGutterChangeDecorations(decorations: { startLine: number; endLine: number; color: number }[]): Promise<void>;
+    setGutterChangeDecorations(
+        decorations: { startLine: number; endLine: number; color: number; dashed?: boolean }[],
+    ): Promise<void>;
     /** Poll the screen until `predicate(text)` holds; returns the matching frame. */
     waitForText(
         predicate: (text: string) => boolean,

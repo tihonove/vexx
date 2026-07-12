@@ -105,7 +105,7 @@ export class HeadlessSession {
 
     /** Push gutter change-bar decorations to the active editor (test/demo seam). */
     public async setGutterChangeDecorations(
-        decorations: { startLine: number; endLine: number; color: number }[],
+        decorations: { startLine: number; endLine: number; color: number; dashed?: boolean }[],
     ): Promise<void> {
         await this.rpc("TUIDom.setGutterChangeDecorations", { decorations });
     }

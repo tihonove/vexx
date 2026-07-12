@@ -303,9 +303,16 @@ async function runEditor(): Promise<void> {
         // Editor-free; converts the wire shape onto the editor's decoration model.
         inspector.core.register(InspectorMethod.setGutterChangeDecorations, (params) => {
             const { decorations } = params as SetGutterChangeDecorationsParams;
-            container.get(EditorGroupControllerDIToken).getActiveEditor()?.setGutterChangeDecorations(
-                decorations.map((d) => ({ range: createRange(d.startLine, 0, d.endLine, 0), color: d.color })),
-            );
+            container
+                .get(EditorGroupControllerDIToken)
+                .getActiveEditor()
+                ?.setGutterChangeDecorations(
+                    decorations.map((d) => ({
+                        range: createRange(d.startLine, 0, d.endLine, 0),
+                        color: d.color,
+                        ...(d.dashed ? { dashed: true } : {}),
+                    })),
+                );
             return {};
         });
         bootstrapLogger.info("TUIDom inspector listening", {

@@ -78,6 +78,8 @@ export interface GutterChangeDecorationParam {
     startLine: number;
     endLine: number;
     color: number;
+    /** Paint the bar dashed rather than solid (modified-line style). */
+    dashed?: boolean;
 }
 
 /** Params for `TUIDom.setGutterChangeDecorations`. */

@@ -14,4 +14,10 @@ export interface IGutterChangeDecoration {
     readonly range: IRange;
     /** Packed 24-bit RGB colour of the change bar (see `Rendering/ColorUtils.packRgb`). */
     readonly color: number;
+    /**
+     * Paint the bar dashed rather than solid. Source-agnostic: whoever computes
+     * the changes decides (VS Code's dirty-diff draws modified lines dashed and
+     * added/deleted solid). Defaults to solid when omitted.
+     */
+    readonly dashed?: boolean;
 }
