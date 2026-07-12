@@ -1,16 +1,12 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
+import type { TestApp } from "../TestUtils/TestApp.ts";
 
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
+import type { AppController } from "./AppController.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { type EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 
 interface TestContext {
     testApp: TestApp;
@@ -19,41 +15,30 @@ interface TestContext {
     editorGroupController: EditorGroupController;
 }
 
-function createTestContext(size: Size = new Size(80, 24)): TestContext {
-    const { container, bindApp } = createTestContainer();
-
-    const controller = container.get(AppControllerDIToken);
-    controller.mount();
-
-    const testApp = TestApp.create(controller.view, size);
-    bindApp(testApp.app);
-
-    const commandRegistry = container.get(CommandRegistryDIToken);
-    const editorGroupController = container.get(EditorGroupControllerDIToken);
-
-    return { testApp, controller, commandRegistry, editorGroupController };
+function createTestContext(): TestContext {
+    const h = createAppTestHarness();
+    return {
+        testApp: h.testApp,
+        controller: h.controller,
+        commandRegistry: h.commands,
+        editorGroupController: h.container.get(EditorGroupControllerDIToken),
+    };
 }
 
 describe("EditorGroupController focus management on tab close", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-focus-test-"));
+        ws = createTempWorkspace({ prefix: "vexx-focus-test-" });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
-
-    function writeFile(name: string, content: string): string {
-        const filePath = path.join(tmpDir, name);
-        fs.writeFileSync(filePath, content, "utf-8");
-        return filePath;
-    }
 
     it("focusManager.activeElement is null after closing the only tab", () => {
         const { testApp, controller, editorGroupController } = createTestContext();
-        controller.openFile(writeFile("a.ts", "a"));
+        controller.openFile(ws.writeFile("a.ts", "a"));
         controller.focusEditor();
 
         expect(testApp.focusedElement).not.toBeNull();
@@ -65,8 +50,8 @@ describe("EditorGroupController focus management on tab close", () => {
 
     it("focus moves to the new active editor after closing the last tab when two are open", () => {
         const { testApp, controller, editorGroupController } = createTestContext();
-        controller.openFile(writeFile("a.ts", "a"));
-        controller.openFile(writeFile("b.ts", "b"));
+        controller.openFile(ws.writeFile("a.ts", "a"));
+        controller.openFile(ws.writeFile("b.ts", "b"));
         controller.focusEditor();
 
         const initialFocused = testApp.focusedElement;
@@ -81,7 +66,7 @@ describe("EditorGroupController focus management on tab close", () => {
 
     it("keyboard hotkeys work after closing the only tab", () => {
         const { testApp, controller, commandRegistry, editorGroupController } = createTestContext();
-        controller.openFile(writeFile("a.ts", "a"));
+        controller.openFile(ws.writeFile("a.ts", "a"));
         controller.focusEditor();
         editorGroupController.closeTab(0);
 
@@ -99,9 +84,9 @@ describe("EditorGroupController focus management on tab close", () => {
 
     it("activeElement points to living element in the tree after tab switch on close", () => {
         const { testApp, controller, editorGroupController } = createTestContext();
-        controller.openFile(writeFile("a.ts", "a"));
-        controller.openFile(writeFile("b.ts", "b"));
-        controller.openFile(writeFile("c.ts", "c"));
+        controller.openFile(ws.writeFile("a.ts", "a"));
+        controller.openFile(ws.writeFile("b.ts", "b"));
+        controller.openFile(ws.writeFile("c.ts", "c"));
         controller.focusEditor();
 
         // close active (index 2)
@@ -115,7 +100,7 @@ describe("EditorGroupController focus management on tab close", () => {
 
     it("activeElement is null (not orphaned) after closing the only tab", () => {
         const { testApp, controller, editorGroupController } = createTestContext();
-        controller.openFile(writeFile("a.ts", "a"));
+        controller.openFile(ws.writeFile("a.ts", "a"));
         controller.focusEditor();
 
         editorGroupController.closeTab(0);
@@ -129,25 +114,19 @@ describe("EditorGroupController focus management on tab close", () => {
 });
 
 describe("EditorGroupController auto-focus on file open", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-autofocus-test-"));
+        ws = createTempWorkspace({ prefix: "vexx-autofocus-test-" });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
-
-    function writeFile(name: string, content: string): string {
-        const filePath = path.join(tmpDir, name);
-        fs.writeFileSync(filePath, content, "utf-8");
-        return filePath;
-    }
 
     it("editor receives focus automatically when a file is opened", () => {
         const { testApp, controller } = createTestContext();
-        controller.openFile(writeFile("a.ts", "a"));
+        controller.openFile(ws.writeFile("a.ts", "a"));
 
         expect(testApp.focusedElement).not.toBeNull();
         expect(testApp.querySelector("EditorElement")).toBe(testApp.focusedElement);
@@ -155,9 +134,9 @@ describe("EditorGroupController auto-focus on file open", () => {
 
     it("editor receives focus when switching to an already-open file", () => {
         const { testApp, controller } = createTestContext();
-        const fp = writeFile("a.ts", "a");
+        const fp = ws.writeFile("a.ts", "a");
         controller.openFile(fp);
-        controller.openFile(writeFile("b.ts", "b"));
+        controller.openFile(ws.writeFile("b.ts", "b"));
         // open a.ts again — should switch tab and focus
         controller.openFile(fp);
 
@@ -167,7 +146,7 @@ describe("EditorGroupController auto-focus on file open", () => {
 
     it("focusManager.activeElement is the exact EditorElement instance after openFile", () => {
         const { testApp, editorGroupController, controller } = createTestContext();
-        controller.openFile(writeFile("a.ts", "a"));
+        controller.openFile(ws.writeFile("a.ts", "a"));
 
         const editorElement = editorGroupController.getActiveEditor()!.view.getChild();
         expect(testApp.app.focusManager?.activeElement).toBe(editorElement);

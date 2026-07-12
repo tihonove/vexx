@@ -3,21 +3,15 @@ import { describe, expect, it } from "vitest";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import { StatusBarElement } from "./StatusBarElement.ts";
 
 function renderStatusBar(width: number, items: { text: string }[] = []): MockTerminalBackend {
-    const size = new Size(width, 1);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
     const bar = new StatusBarElement();
-    bar.globalPosition = new Point(0, 0);
     bar.setItems(items);
-    bar.performLayout(BoxConstraints.tight(new Size(width, 10)));
-    bar.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
+    return renderElement(bar, width, 1, { constraints: BoxConstraints.tight(new Size(width, 10)) });
 }
 
 describe("StatusBarElement", () => {
@@ -71,15 +65,9 @@ describe("StatusBarElement", () => {
     });
 
     it("insets both sides by the bar padding, left items winning on overlap", () => {
-        const size = new Size(20, 1);
-        const backend = new MockTerminalBackend(size);
-        const termScreen = new TerminalScreen(size);
         const bar = new StatusBarElement();
-        bar.globalPosition = new Point(0, 0);
         bar.setItems([{ text: "left" }, { text: "Ln 1, Col 1", align: "right" }]);
-        bar.performLayout(BoxConstraints.tight(new Size(20, 1)));
-        bar.render(new RenderContext(termScreen));
-        termScreen.flush(backend);
+        const backend = renderElement(bar, 20, 1);
 
         const line = backend.screenToString().split("\n")[0];
         expect(line.length).toBe(20);
@@ -90,16 +78,9 @@ describe("StatusBarElement", () => {
     });
 
     function renderLine(width: number, items: { text: string; align?: "left" | "right" }[]): string {
-        const size = new Size(width, 1);
-        const backend = new MockTerminalBackend(size);
-        const termScreen = new TerminalScreen(size);
         const bar = new StatusBarElement();
-        bar.globalPosition = new Point(0, 0);
         bar.setItems(items);
-        bar.performLayout(BoxConstraints.tight(new Size(width, 1)));
-        bar.render(new RenderContext(termScreen));
-        termScreen.flush(backend);
-        return backend.screenToString().split("\n")[0];
+        return renderElement(bar, width, 1).screenToString().split("\n")[0];
     }
 
     it("lets the left item win the cells a right item would overlap", () => {

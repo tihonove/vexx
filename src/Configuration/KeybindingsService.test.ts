@@ -1,30 +1,26 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { loadUserKeybindings } from "./KeybindingsService.ts";
 
 describe("loadUserKeybindings", () => {
-    let dir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-keys-"));
+        ws = createTempWorkspace({ prefix: "vexx-keys-" });
     });
 
     afterEach(() => {
-        fs.rmSync(dir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function write(content: string): string {
-        const file = path.join(dir, "keybindings.json");
-        fs.writeFileSync(file, content);
-        return file;
+        return ws.writeFile("keybindings.json", content);
     }
 
     it("returns [] when the file does not exist", async () => {
-        const rules = await loadUserKeybindings(path.join(dir, "missing.json"));
+        const rules = await loadUserKeybindings(ws.path("missing.json"));
         expect(rules).toEqual([]);
     });
 
@@ -101,7 +97,7 @@ describe("loadUserKeybindings", () => {
             error: vi.fn(),
             isEnabled: () => true,
         };
-        const rules = await loadUserKeybindings(dir, logger);
+        const rules = await loadUserKeybindings(ws.dir, logger);
         expect(rules).toEqual([]);
         expect(logger.error).toHaveBeenCalledWith(
             expect.stringContaining("Failed to read keybindings file"),

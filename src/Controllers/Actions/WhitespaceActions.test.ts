@@ -1,7 +1,3 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
@@ -9,6 +5,7 @@ import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfiguratio
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
@@ -24,7 +21,7 @@ import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 import { redoAction, undoAction } from "./EditorEditActions.ts";
 import { insertFinalNewLineAction, triggerSuggestAction, trimTrailingWhitespaceAction } from "./WhitespaceActions.ts";
 
-let tmpDir: string;
+let ws: ITempWorkspace;
 
 function createGroup(): EditorGroupController {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
@@ -42,8 +39,7 @@ function createGroup(): EditorGroupController {
 function openEditor(content: string) {
     const ctrl = createGroup();
     ctrl.mount();
-    const filePath = path.join(tmpDir, "doc.txt");
-    fs.writeFileSync(filePath, content, "utf-8");
+    const filePath = ws.writeFile("doc.txt", content);
     ctrl.openFile(filePath);
     const editor = ctrl.getActiveEditor();
     if (editor === null) throw new Error("no active editor");
@@ -61,10 +57,10 @@ function openEditor(content: string) {
 }
 
 beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-whitespace-actions-"));
+    ws = createTempWorkspace({ prefix: "vexx-whitespace-actions-" });
 });
 afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ws.dispose();
 });
 
 describe("WhitespaceActions — trimTrailingWhitespace", () => {

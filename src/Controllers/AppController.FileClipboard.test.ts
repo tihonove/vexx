@@ -1,119 +1,94 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Point } from "../Common/GeometryPromitives.ts";
 import type { IClipboard } from "../Common/IClipboard.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { ClipboardDIToken } from "./CoreTokens.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
 
 // Workspace layout (dirs sort first): row 0 = "target/", row 1 = "a.txt".
-function createWorkspace(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-fileclip-int-"));
-    fs.mkdirSync(path.join(dir, "target"));
-    fs.writeFileSync(path.join(dir, "a.txt"), "hello");
-    return dir;
-}
-
-interface Ctx {
-    testApp: TestApp;
-    controller: AppController;
-    commands: CommandRegistry;
-    clipboard: IClipboard;
-}
-
-function createApp(tmpDir: string): Ctx {
-    const { container, bindApp } = createTestContainer();
-    const controller = container.get(AppControllerDIToken);
-    controller.setWorkspaceFolder(tmpDir);
-    controller.mount();
-    const testApp = TestApp.create(controller.view, new Size(80, 24));
-    bindApp(testApp.app);
-    return {
-        testApp,
-        controller,
-        commands: container.get(CommandRegistryDIToken),
-        clipboard: container.get(ClipboardDIToken),
-    };
+function createWorkspace(): ITempWorkspace {
+    const ws = createTempWorkspace({ prefix: "vexx-fileclip-int-", files: { "a.txt": "hello" } });
+    fs.mkdirSync(ws.path("target"));
+    return ws;
 }
 
 describe("File explorer copy/cut/paste commands", () => {
-    let tmpDir: string;
-    let ctx: Ctx;
+    let ws: ITempWorkspace;
+    let h: IAppHarness;
 
     beforeEach(async () => {
-        tmpDir = createWorkspace();
-        ctx = createApp(tmpDir);
-        await ctx.controller.activate();
-        ctx.testApp.render();
-        ctx.testApp.querySelector("TreeViewElement")!.focus();
-        ctx.testApp.render();
+        ws = createWorkspace();
+        h = createAppTestHarness({ workspaceFolder: ws.dir });
+        await h.controller.activate();
+        h.testApp.render();
+        h.testApp.querySelector("TreeViewElement")!.focus();
+        h.testApp.render();
     });
 
     afterEach(() => {
-        ctx.controller.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        h.dispose();
+        ws.dispose();
     });
 
     it("copies a file into a folder, leaving the original", () => {
-        ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
-        ctx.commands.execute("fileOperations.copy");
-        ctx.testApp.sendKey("ArrowUp"); // cursor on target/
-        ctx.commands.execute("fileOperations.paste");
+        h.testApp.sendKey("ArrowDown"); // cursor on a.txt
+        h.commands.execute("fileOperations.copy");
+        h.testApp.sendKey("ArrowUp"); // cursor on target/
+        h.commands.execute("fileOperations.paste");
 
-        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
+        expect(fs.existsSync(path.join(ws.dir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("a.txt"))).toBe(true);
     });
 
     it("cuts a file into a folder, removing the original and clearing the clipboard", () => {
-        ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
-        ctx.commands.execute("fileOperations.cut");
-        ctx.testApp.sendKey("ArrowUp"); // cursor on target/
-        ctx.commands.execute("fileOperations.paste");
+        h.testApp.sendKey("ArrowDown"); // cursor on a.txt
+        h.commands.execute("fileOperations.cut");
+        h.testApp.sendKey("ArrowUp"); // cursor on target/
+        h.commands.execute("fileOperations.paste");
 
-        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(false);
+        expect(fs.existsSync(path.join(ws.dir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("a.txt"))).toBe(false);
 
         // Pasting again is a no-op because the cut cleared the clipboard.
-        ctx.commands.execute("fileOperations.paste");
-        expect(fs.existsSync(path.join(tmpDir, "target", "a copy.txt"))).toBe(false);
+        h.commands.execute("fileOperations.paste");
+        expect(fs.existsSync(path.join(ws.dir, "target", "a copy.txt"))).toBe(false);
     });
 
     it("auto-renames when pasting a copy alongside the original", () => {
-        ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
-        ctx.commands.execute("fileOperations.copy");
+        h.testApp.sendKey("ArrowDown"); // cursor on a.txt
+        h.commands.execute("fileOperations.copy");
         // cursor stays on a.txt → target dir is the workspace root, where a.txt already exists
-        ctx.commands.execute("fileOperations.paste");
+        h.commands.execute("fileOperations.paste");
 
-        expect(fs.existsSync(path.join(tmpDir, "a copy.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("a copy.txt"))).toBe(true);
     });
 });
 
 describe("File explorer context menu — clipboard entries", () => {
-    let tmpDir: string;
-    let ctx: Ctx;
+    let ws: ITempWorkspace;
+    let h: IAppHarness;
+    let clipboard: IClipboard;
 
     beforeEach(async () => {
-        tmpDir = createWorkspace();
-        ctx = createApp(tmpDir);
-        await ctx.controller.activate();
-        ctx.testApp.render();
-        ctx.testApp.querySelector("TreeViewElement")!.focus();
-        ctx.testApp.render();
+        ws = createWorkspace();
+        h = createAppTestHarness({ workspaceFolder: ws.dir });
+        clipboard = h.container.get(ClipboardDIToken);
+        await h.controller.activate();
+        h.testApp.render();
+        h.testApp.querySelector("TreeViewElement")!.focus();
+        h.testApp.render();
     });
 
     afterEach(() => {
-        ctx.controller.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        h.dispose();
+        ws.dispose();
     });
 
     // Порядок пунктов: New File, New Folder, (sep), Copy, Cut, [Paste — если буфер
@@ -127,178 +102,174 @@ describe("File explorer context menu — clipboard entries", () => {
     }
 
     function clickTree(row: number, button: "left" | "right"): void {
-        const tree = ctx.testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
+        const tree = h.testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
         tree.globalPosition = new Point(0, 0);
         tree.dispatchEvent(new TUIMouseEvent("click", { button, screenX: 2, screenY: row, localX: 2, localY: row }));
-        ctx.testApp.render();
+        h.testApp.render();
     }
 
     it("Copy entry puts the clicked file on the clipboard", () => {
         rightClickRow(1); // a.txt
-        ctx.testApp.sendKey("ArrowDown"); // New Folder
-        ctx.testApp.sendKey("ArrowDown"); // Copy
-        ctx.testApp.sendKey("Enter");
-        ctx.testApp.render();
-        expect(ctx.testApp.querySelector("PopupMenuElement")).toBeNull();
+        h.testApp.sendKey("ArrowDown"); // New Folder
+        h.testApp.sendKey("ArrowDown"); // Copy
+        h.testApp.sendKey("Enter");
+        h.testApp.render();
+        expect(h.testApp.querySelector("PopupMenuElement")).toBeNull();
 
         // Курсор остался на a.txt → вставка в корень с авто-переименованием.
-        ctx.commands.execute("fileOperations.paste");
-        expect(fs.existsSync(path.join(tmpDir, "a copy.txt"))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
+        h.commands.execute("fileOperations.paste");
+        expect(fs.existsSync(ws.path("a copy.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("a.txt"))).toBe(true);
     });
 
     it("Cut entry moves the file on the next paste", () => {
         rightClickRow(1); // a.txt
-        ctx.testApp.sendKey("ArrowDown"); // New Folder
-        ctx.testApp.sendKey("ArrowDown"); // Copy
-        ctx.testApp.sendKey("ArrowDown"); // Cut
-        ctx.testApp.sendKey("Enter");
-        ctx.testApp.render();
+        h.testApp.sendKey("ArrowDown"); // New Folder
+        h.testApp.sendKey("ArrowDown"); // Copy
+        h.testApp.sendKey("ArrowDown"); // Cut
+        h.testApp.sendKey("Enter");
+        h.testApp.render();
 
         // Фокус вернулся на дерево после закрытия меню — стрелка двигает курсор на target/.
-        ctx.testApp.sendKey("ArrowUp");
-        ctx.commands.execute("fileOperations.paste");
+        h.testApp.sendKey("ArrowUp");
+        h.commands.execute("fileOperations.paste");
 
-        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(false);
+        expect(fs.existsSync(path.join(ws.dir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("a.txt"))).toBe(false);
     });
 
     it("Paste entry appears for a non-empty clipboard and pastes into the clicked folder", () => {
-        ctx.testApp.sendKey("ArrowDown"); // a.txt
-        ctx.commands.execute("fileOperations.copy");
+        h.testApp.sendKey("ArrowDown"); // a.txt
+        h.commands.execute("fileOperations.copy");
 
         rightClickRow(0); // target/
-        expect(ctx.testApp.backend.screenToString()).toContain("Paste");
-        ctx.testApp.sendKey("ArrowDown"); // New Folder
-        ctx.testApp.sendKey("ArrowDown"); // Copy
-        ctx.testApp.sendKey("ArrowDown"); // Cut
-        ctx.testApp.sendKey("ArrowDown"); // Paste
-        ctx.testApp.sendKey("Enter");
-        ctx.testApp.render();
+        expect(h.testApp.backend.screenToString()).toContain("Paste");
+        h.testApp.sendKey("ArrowDown"); // New Folder
+        h.testApp.sendKey("ArrowDown"); // Copy
+        h.testApp.sendKey("ArrowDown"); // Cut
+        h.testApp.sendKey("ArrowDown"); // Paste
+        h.testApp.sendKey("Enter");
+        h.testApp.render();
 
-        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
-        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
+        expect(fs.existsSync(path.join(ws.dir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("a.txt"))).toBe(true);
     });
 
     // Order (empty clipboard): New File, New Folder, (sep), Copy, Cut, (sep),
     // Copy Path, Copy Relative Path, (sep), Delete.
     it("Copy Path entry puts the clicked file's absolute path on the clipboard", async () => {
         rightClickRow(1); // a.txt
-        expect(ctx.testApp.backend.screenToString()).toContain("Copy Path");
-        ctx.testApp.sendKey("ArrowDown"); // New Folder
-        ctx.testApp.sendKey("ArrowDown"); // Copy
-        ctx.testApp.sendKey("ArrowDown"); // Cut
-        ctx.testApp.sendKey("ArrowDown"); // Copy Path
-        ctx.testApp.sendKey("Enter");
-        ctx.testApp.render();
+        expect(h.testApp.backend.screenToString()).toContain("Copy Path");
+        h.testApp.sendKey("ArrowDown"); // New Folder
+        h.testApp.sendKey("ArrowDown"); // Copy
+        h.testApp.sendKey("ArrowDown"); // Cut
+        h.testApp.sendKey("ArrowDown"); // Copy Path
+        h.testApp.sendKey("Enter");
+        h.testApp.render();
 
-        expect(ctx.testApp.querySelector("PopupMenuElement")).toBeNull();
-        expect(await ctx.clipboard.readText()).toBe(path.join(tmpDir, "a.txt"));
+        expect(h.testApp.querySelector("PopupMenuElement")).toBeNull();
+        expect(await clipboard.readText()).toBe(ws.path("a.txt"));
     });
 
     it("Copy Relative Path entry puts the workspace-relative path on the clipboard", async () => {
         rightClickRow(1); // a.txt
-        expect(ctx.testApp.backend.screenToString()).toContain("Copy Relative Path");
-        ctx.testApp.sendKey("ArrowDown"); // New Folder
-        ctx.testApp.sendKey("ArrowDown"); // Copy
-        ctx.testApp.sendKey("ArrowDown"); // Cut
-        ctx.testApp.sendKey("ArrowDown"); // Copy Path
-        ctx.testApp.sendKey("ArrowDown"); // Copy Relative Path
-        ctx.testApp.sendKey("Enter");
-        ctx.testApp.render();
+        expect(h.testApp.backend.screenToString()).toContain("Copy Relative Path");
+        h.testApp.sendKey("ArrowDown"); // New Folder
+        h.testApp.sendKey("ArrowDown"); // Copy
+        h.testApp.sendKey("ArrowDown"); // Cut
+        h.testApp.sendKey("ArrowDown"); // Copy Path
+        h.testApp.sendKey("ArrowDown"); // Copy Relative Path
+        h.testApp.sendKey("Enter");
+        h.testApp.render();
 
-        expect(ctx.testApp.querySelector("PopupMenuElement")).toBeNull();
-        expect(await ctx.clipboard.readText()).toBe("a.txt");
+        expect(h.testApp.querySelector("PopupMenuElement")).toBeNull();
+        expect(await clipboard.readText()).toBe("a.txt");
     });
 });
 
 describe("File explorer copy-path commands", () => {
+    let ws: ITempWorkspace;
     let tmpDir: string;
-    let ctx: Ctx;
+    let h: IAppHarness;
+    let clipboard: IClipboard;
 
     beforeEach(async () => {
-        tmpDir = fs.realpathSync(createWorkspace());
-        ctx = createApp(tmpDir);
-        await ctx.controller.activate();
-        ctx.testApp.render();
-        ctx.testApp.querySelector("TreeViewElement")!.focus();
-        ctx.testApp.render();
+        ws = createWorkspace();
+        tmpDir = fs.realpathSync(ws.dir);
+        h = createAppTestHarness({ workspaceFolder: tmpDir });
+        clipboard = h.container.get(ClipboardDIToken);
+        await h.controller.activate();
+        h.testApp.render();
+        h.testApp.querySelector("TreeViewElement")!.focus();
+        h.testApp.render();
     });
 
     afterEach(() => {
-        ctx.controller.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        h.dispose();
+        ws.dispose();
     });
 
     it("copyPath writes the absolute path of the selected file to the clipboard", async () => {
-        ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
-        ctx.commands.execute("fileOperations.copyPath");
+        h.testApp.sendKey("ArrowDown"); // cursor on a.txt
+        h.commands.execute("fileOperations.copyPath");
 
-        expect(await ctx.clipboard.readText()).toBe(path.join(tmpDir, "a.txt"));
+        expect(await clipboard.readText()).toBe(path.join(tmpDir, "a.txt"));
     });
 
     it("copyRelativePath writes the workspace-relative path to the clipboard", async () => {
-        ctx.testApp.sendKey("ArrowDown"); // cursor on a.txt
-        ctx.commands.execute("fileOperations.copyRelativePath");
+        h.testApp.sendKey("ArrowDown"); // cursor on a.txt
+        h.commands.execute("fileOperations.copyRelativePath");
 
-        expect(await ctx.clipboard.readText()).toBe("a.txt");
+        expect(await clipboard.readText()).toBe("a.txt");
     });
 
     it("copyPath uses the explicit path argument when provided (context-menu path)", async () => {
         const target = path.join(tmpDir, "target");
-        ctx.commands.execute("fileOperations.copyPath", target);
+        h.commands.execute("fileOperations.copyPath", target);
 
-        expect(await ctx.clipboard.readText()).toBe(target);
+        expect(await clipboard.readText()).toBe(target);
     });
 
     it("copyRelativePath uses the explicit path argument when provided (context-menu path)", async () => {
-        ctx.commands.execute("fileOperations.copyRelativePath", path.join(tmpDir, "target"));
+        h.commands.execute("fileOperations.copyRelativePath", path.join(tmpDir, "target"));
 
-        expect(await ctx.clipboard.readText()).toBe("target");
+        expect(await clipboard.readText()).toBe("target");
     });
 });
 
 describe("File explorer copy-path — no selection / no workspace root", () => {
     // App built without a workspace folder: the tree has no nodes (nothing selected)
     // and getRootPath() returns null.
-    function createRootlessApp(): { controller: AppController; commands: CommandRegistry; clipboard: IClipboard } {
-        const { container, bindApp } = createTestContainer();
-        const controller = container.get(AppControllerDIToken);
-        controller.mount();
-        const testApp = TestApp.create(controller.view, new Size(80, 24));
-        bindApp(testApp.app);
-        return {
-            controller,
-            commands: container.get(CommandRegistryDIToken),
-            clipboard: container.get(ClipboardDIToken),
-        };
+    function createRootlessApp(): { h: IAppHarness; clipboard: IClipboard } {
+        const h = createAppTestHarness();
+        return { h, clipboard: h.container.get(ClipboardDIToken) };
     }
 
     it("copyPath is a no-op when nothing is selected", async () => {
-        const { controller, commands, clipboard } = createRootlessApp();
-        await controller.activate();
+        const { h, clipboard } = createRootlessApp();
+        await h.controller.activate();
 
-        commands.execute("fileOperations.copyPath");
+        h.commands.execute("fileOperations.copyPath");
         expect(await clipboard.readText()).toBe("");
-        controller.dispose();
+        h.dispose();
     });
 
     it("copyRelativePath is a no-op when nothing is selected", async () => {
-        const { controller, commands, clipboard } = createRootlessApp();
-        await controller.activate();
+        const { h, clipboard } = createRootlessApp();
+        await h.controller.activate();
 
-        commands.execute("fileOperations.copyRelativePath");
+        h.commands.execute("fileOperations.copyRelativePath");
         expect(await clipboard.readText()).toBe("");
-        controller.dispose();
+        h.dispose();
     });
 
     it("copyRelativePath falls back to the absolute path when there is no workspace root", async () => {
-        const { controller, commands, clipboard } = createRootlessApp();
-        await controller.activate();
+        const { h, clipboard } = createRootlessApp();
+        await h.controller.activate();
 
         const abs = path.join("/tmp", "nowhere", "file.txt");
-        commands.execute("fileOperations.copyRelativePath", abs);
+        h.commands.execute("fileOperations.copyRelativePath", abs);
         expect(await clipboard.readText()).toBe(abs);
-        controller.dispose();
+        h.dispose();
     });
 });

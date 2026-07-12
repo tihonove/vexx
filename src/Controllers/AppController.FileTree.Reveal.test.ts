@@ -1,5 +1,3 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,6 +6,7 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -16,16 +15,14 @@ import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
-function createNestedWorkspace(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-reveal-int-"));
-    fs.mkdirSync(path.join(dir, "src", "deep"), { recursive: true });
-    fs.writeFileSync(path.join(dir, "src", "deep", "target.ts"), "export const x = 1;");
-    fs.writeFileSync(path.join(dir, "README.md"), "# Readme");
-    return dir;
-}
-
-function cleanupDir(dirPath: string): void {
-    fs.rmSync(dirPath, { recursive: true, force: true });
+function createNestedWorkspace(): ITempWorkspace {
+    return createTempWorkspace({
+        prefix: "vexx-reveal-int-",
+        files: {
+            "src/deep/target.ts": "export const x = 1;",
+            "README.md": "# Readme",
+        },
+    });
 }
 
 /** Конфиг-стаб: заданные ключи возвращают свои значения, остальные — default. */
@@ -45,6 +42,9 @@ interface Ctx {
     commands: CommandRegistry;
 }
 
+// Не через createAppTestHarness: конфиг-стаб должен быть забинжен ДО резолва
+// AppController (контроллер читает IConfigurationService в конструкторе,
+// а контейнер кэширует уже созданные сервисы).
 function createApp(workspaceDir: string, config?: IConfigurationService): Ctx {
     const { container, bindApp } = createTestContainer();
     if (config) {
@@ -64,20 +64,20 @@ function flush(): Promise<void> {
 }
 
 describe("reveal active file in explorer", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let nestedFile: string;
 
     beforeEach(() => {
-        tmpDir = createNestedWorkspace();
-        nestedFile = path.join(tmpDir, "src", "deep", "target.ts");
+        ws = createNestedWorkspace();
+        nestedFile = path.join(ws.dir, "src", "deep", "target.ts");
     });
 
     afterEach(() => {
-        cleanupDir(tmpDir);
+        ws.dispose();
     });
 
     it("auto-reveals the active file in the tree when the editor changes", async () => {
-        const ctx = createApp(tmpDir);
+        const ctx = createApp(ws.dir);
         await ctx.controller.activate();
         ctx.testApp.render();
 
@@ -95,7 +95,7 @@ describe("reveal active file in explorer", () => {
 
     it("treats a missing explorer.autoReveal setting as enabled", async () => {
         // A config whose get() always yields undefined exercises the `?? true` fallback.
-        const ctx = createApp(tmpDir, { ...NULL_CONFIGURATION_SERVICE, get: () => undefined });
+        const ctx = createApp(ws.dir, { ...NULL_CONFIGURATION_SERVICE, get: () => undefined });
         await ctx.controller.activate();
         ctx.testApp.render();
 
@@ -108,7 +108,7 @@ describe("reveal active file in explorer", () => {
     });
 
     it("does not auto-reveal when explorer.autoReveal is false", async () => {
-        const ctx = createApp(tmpDir, stubConfig({ "explorer.autoReveal": false }));
+        const ctx = createApp(ws.dir, stubConfig({ "explorer.autoReveal": false }));
         await ctx.controller.activate();
         ctx.testApp.render();
 
@@ -123,7 +123,7 @@ describe("reveal active file in explorer", () => {
     });
 
     it("reveal command shows the sidebar, focuses the tree, and reveals the active file", async () => {
-        const ctx = createApp(tmpDir);
+        const ctx = createApp(ws.dir);
         await ctx.controller.activate();
         ctx.testApp.render();
 
@@ -146,7 +146,7 @@ describe("reveal active file in explorer", () => {
     });
 
     it("reveal command is a no-op when there is no active editor", async () => {
-        const ctx = createApp(tmpDir);
+        const ctx = createApp(ws.dir);
         await ctx.controller.activate();
         ctx.testApp.render();
 

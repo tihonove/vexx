@@ -1,7 +1,3 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
@@ -9,6 +5,7 @@ import type { EditorElement } from "../Editor/EditorElement.ts";
 import { createInsertEdit } from "../Editor/ITextEdit.ts";
 import { MarkerSeverity } from "../Editor/Markers/IMarker.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -29,14 +26,14 @@ interface Harness {
 }
 
 describe("DiagnosticsController — settings.json validation", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-diagnostics-"));
+        ws = createTempWorkspace({ prefix: "vexx-diagnostics-" });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     /** Builds an app whose recognised Vexx settings file is `settingsResource` (null = none). */
@@ -45,7 +42,7 @@ describe("DiagnosticsController — settings.json validation", () => {
         // Re-bind before the first resolve so DiagnosticsController picks it up.
         container.bind(SettingsResourceDIToken, () => settingsResource);
         const controller = container.get(AppControllerDIToken);
-        controller.setWorkspaceFolder(tmpDir);
+        controller.setWorkspaceFolder(ws.dir);
         controller.mount();
         const testApp = TestApp.create(controller.view, new Size(80, 24));
         bindApp(testApp.app);
@@ -59,10 +56,7 @@ describe("DiagnosticsController — settings.json validation", () => {
     }
 
     function write(relPath: string, content: string): string {
-        const filePath = path.join(tmpDir, relPath);
-        fs.mkdirSync(path.dirname(filePath), { recursive: true });
-        fs.writeFileSync(filePath, content, "utf-8");
-        return filePath;
+        return ws.writeFile(relPath, content);
     }
 
     function activeEditorElement(h: Harness): EditorElement {
@@ -155,7 +149,7 @@ describe("DiagnosticsController — settings.json validation", () => {
         // A marker for a file that is not open must not throw and must not touch
         // the active editor's decorations.
         expect(() => {
-            h.markerService.changeOne("other", path.join(tmpDir, "closed.json"), [
+            h.markerService.changeOne("other", ws.path("closed.json"), [
                 { severity: MarkerSeverity.Error, range: createInsertEdit(0, 0, "").range, message: "x" },
             ]);
         }).not.toThrow();

@@ -4,6 +4,7 @@ import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import type { MouseToken } from "../../Input/RawTerminalToken.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { MouseEventDispatcher } from "../Events/MouseEventDispatcher.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
@@ -78,15 +79,8 @@ describe("SashElement", () => {
     });
 
     it("renders nothing (invisible hit target)", () => {
-        const size = new Size(10, 3);
         const sash = new SashElement();
-        sash.globalPosition = new Point(0, 0);
-        sash.performLayout(BoxConstraints.tight(new Size(1, 3)));
-
-        const backend = new MockTerminalBackend(size);
-        const termScreen = new TerminalScreen(size);
-        sash.render(new RenderContext(termScreen, new Offset(0, 0), new Rect(new Point(0, 0), size)));
-        termScreen.flush(backend);
+        const backend = renderElement(sash, 10, 3, { constraints: BoxConstraints.tight(new Size(1, 3)) });
 
         // Nothing drawn — the boundary stays owned by the surrounding panels.
         expect(backend.getTextAt(new Point(0, 0), 1)).toBe(" ");

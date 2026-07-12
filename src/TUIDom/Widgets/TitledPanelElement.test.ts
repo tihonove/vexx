@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { RenderContext } from "../TUIElement.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import { BoxElement } from "./BoxElement.ts";
 import { TitledPanelElement } from "./TitledPanelElement.ts";
@@ -14,14 +13,7 @@ function renderPanel(
     width: number,
     height: number,
 ): { backend: MockTerminalBackend; text: (x: number, y: number, len: number) => string } {
-    const size = new Size(width, height);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    panel.globalPosition = new Point(0, 0);
-    panel.performLayout(BoxConstraints.tight(size));
-    panel.performStyleResolution(panel.resolvedStyle);
-    panel.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
+    const backend = renderElement(panel, width, height, { resolveStyles: true });
     return {
         backend,
         text: (x: number, y: number, len: number) => backend.getTextAt(new Point(x, y), len),

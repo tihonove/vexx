@@ -1,7 +1,3 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
@@ -9,6 +5,8 @@ import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfiguratio
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+import { settle } from "../../TestUtils/timing.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
@@ -33,11 +31,7 @@ import {
     unfoldRecursivelyAction,
 } from "./FoldingActions.ts";
 
-let tmpDir: string;
-
-function flushMicrotasks(): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, 0));
-}
+let ws: ITempWorkspace;
 
 // 0: a          ← outer region 0..3
 // 1:   b        ← inner region 1..2
@@ -57,8 +51,7 @@ function openEditor(content: string) {
         NULL_FILE_WATCHER,
     );
     ctrl.mount();
-    const filePath = path.join(tmpDir, "doc.txt");
-    fs.writeFileSync(filePath, content, "utf-8");
+    const filePath = ws.writeFile("doc.txt", content);
     ctrl.openFile(filePath);
     const editor = ctrl.getActiveEditor();
     if (editor === null) throw new Error("no active editor");
@@ -76,10 +69,10 @@ function openEditor(content: string) {
 }
 
 beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-folding-actions-"));
+    ws = createTempWorkspace({ prefix: "vexx-folding-actions-" });
 });
 afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ws.dispose();
 });
 
 describe("FoldingActions", () => {
@@ -137,7 +130,7 @@ describe("FoldingActions", () => {
 
         editor.viewState.selections = [{ anchor: { line: 3, character: 1 }, active: { line: 3, character: 1 } }];
         editor.pushUndo(editor.viewState.type("x"));
-        await flushMicrotasks();
+        await settle(0);
 
         // Region survives the recompute and stays collapsed.
         expect(editor.viewState.foldingRegionContaining(0)?.isCollapsed).toBe(true);
@@ -155,7 +148,7 @@ describe("FoldingActions", () => {
 
         editor.viewState.selections = [{ anchor: { line: 0, character: 3 }, active: { line: 0, character: 3 } }];
         editor.pushUndo(editor.viewState.insertNewLine());
-        await flushMicrotasks();
+        await settle(0);
 
         // The header shifted from line 1 to line 2 and stays collapsed.
         const region = editor.viewState.foldedRegions.find((r) => r.startLine === 2);
@@ -167,7 +160,7 @@ describe("FoldingActions", () => {
         const { editor } = openEditor("a\n  b\n  c\nd");
         editor.viewState.selections = [{ anchor: { line: 3, character: 1 }, active: { line: 3, character: 1 } }];
         editor.pushUndo(editor.viewState.type("x"));
-        await flushMicrotasks();
+        await settle(0);
         expect(editor.viewState.foldedRegions).toHaveLength(1);
         expect(editor.viewState.foldedRegions[0].isCollapsed).toBe(false);
     });
@@ -178,7 +171,7 @@ describe("FoldingActions", () => {
         // Select all and replace with a flat document → no regions.
         editor.viewState.selectAll();
         editor.pushUndo(editor.viewState.type("flat"));
-        await flushMicrotasks();
+        await settle(0);
         expect(editor.viewState.foldedRegions).toHaveLength(0);
     });
 

@@ -1,11 +1,9 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { settle } from "../TestUtils/timing.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
@@ -17,12 +15,10 @@ import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsControl
 
 const UNKNOWN_SETTINGS = ["{", '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
 
-const flush = async (): Promise<void> => {
-    await new Promise((r) => setTimeout(r, 0));
-};
+const flush = (): Promise<void> => settle(0);
 
 describe("AppController — Problems view end-to-end", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let controller: AppController;
     let commands: CommandRegistry;
     let testApp: TestApp;
@@ -31,14 +27,18 @@ describe("AppController — Problems view end-to-end", () => {
     let settingsPath: string;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-problems-e2e-"));
-        settingsPath = path.join(tmpDir, "settings.json");
-        fs.writeFileSync(settingsPath, UNKNOWN_SETTINGS, "utf-8");
+        ws = createTempWorkspace({
+            prefix: "vexx-problems-e2e-",
+            files: { "settings.json": UNKNOWN_SETTINGS },
+        });
+        settingsPath = ws.path("settings.json");
 
+        // Харнесс здесь не подходит: SettingsResourceDIToken надо перебиндить
+        // ДО первого get(AppControllerDIToken), а харнесс резолвит контроллер сразу.
         const { container, bindApp } = createTestContainer();
         container.bind(SettingsResourceDIToken, () => settingsPath);
         controller = container.get(AppControllerDIToken);
-        controller.setWorkspaceFolder(tmpDir);
+        controller.setWorkspaceFolder(ws.dir);
         controller.mount();
         testApp = TestApp.create(controller.view, new Size(90, 22));
         bindApp(testApp.app);
@@ -49,7 +49,7 @@ describe("AppController — Problems view end-to-end", () => {
 
     afterEach(() => {
         controller.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     it("paints, focuses and keyboard-navigates the Problems tree (regression: 3 bugs)", async () => {

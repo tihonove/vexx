@@ -1,11 +1,8 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import type { MouseToken } from "../Input/RawTerminalToken.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
@@ -33,19 +30,16 @@ function makeMove(x: number, y: number): MouseToken {
 const SECOND_ROW_SCREEN_Y = 2;
 
 describe("FileTreeController hover", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let controller: FileTreeController;
     let app: TestApp;
     let theme: WorkbenchTheme;
 
     beforeEach(async () => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-hover-"));
-        fs.writeFileSync(path.join(tmpDir, "aaa.ts"), "");
-        fs.writeFileSync(path.join(tmpDir, "bbb.ts"), "");
-        fs.writeFileSync(path.join(tmpDir, "ccc.ts"), "");
+        ws = createTempWorkspace({ prefix: "vexx-hover-", files: { "aaa.ts": "", "bbb.ts": "", "ccc.ts": "" } });
         theme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
         controller = new FileTreeController(new ThemeService(theme));
-        controller.setRootPath(tmpDir);
+        controller.setRootPath(ws.dir);
         controller.mount();
         app = TestApp.createWithContent(controller.view, new Size(30, 10));
         await controller.activate();
@@ -54,7 +48,7 @@ describe("FileTreeController hover", () => {
 
     afterEach(() => {
         controller.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     it("highlights the row under the cursor with list.hoverBackground on mouse move", () => {

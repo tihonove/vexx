@@ -1,7 +1,3 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
@@ -11,6 +7,7 @@ import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
 import type { ITokenizationResult, ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -40,12 +37,12 @@ function firstScope(ctrl: EditorController): string | undefined {
 }
 
 describe("EditorController — language", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let registry: TokenizationRegistry;
     let ctrl: EditorController;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-editorctrl-lang-"));
+        ws = createTempWorkspace({ prefix: "vexx-editorctrl-lang-" });
         registry = new TokenizationRegistry();
         ctrl = new EditorController(
             new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
@@ -58,13 +55,11 @@ describe("EditorController — language", () => {
 
     afterEach(() => {
         ctrl.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function writeFile(name: string, content: string): string {
-        const filePath = path.join(tmpDir, name);
-        fs.writeFileSync(filePath, content, "utf-8");
-        return filePath;
+        return ws.writeFile(name, content);
     }
 
     it("до открытия файла язык plaintext", () => {

@@ -1,7 +1,3 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
@@ -9,7 +5,9 @@ import { createRange } from "../Editor/IRange.ts";
 import type { IMarkerData } from "../Editor/Markers/IMarker.ts";
 import { MarkerSeverity } from "../Editor/Markers/IMarker.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { settle } from "../TestUtils/timing.ts";
 
 import { MarkerServiceDIToken } from "./CoreTokens.ts";
 import type { ProblemNode } from "./Diagnostics/ProblemsTreeDataProvider.ts";
@@ -18,16 +16,12 @@ import { createTestContainer } from "./Modules/TestProfile.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 
-const flush = async (): Promise<void> => {
-    await new Promise((r) => setTimeout(r, 0));
-};
-
 function warning(message: string, line = 0): IMarkerData {
     return { severity: MarkerSeverity.Warning, range: createRange(line, 0, line, 3), message };
 }
 
 describe("ProblemsController", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let controller: ProblemsController;
     let panel: PanelController;
     let markerService: MarkerService;
@@ -47,7 +41,7 @@ describe("ProblemsController", () => {
     }
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-problems-"));
+        ws = createTempWorkspace({ prefix: "vexx-problems-" });
         const h = buildHarness();
         controller = h.controller;
         panel = h.panel;
@@ -57,18 +51,18 @@ describe("ProblemsController", () => {
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     it("shows the placeholder (no content) until markers appear, then the tree", async () => {
         // No markers → Problems view content is null → panel renders its placeholder.
         expect(panel.view.getChildren()).toEqual([]);
 
-        markerService.changeOne("settings", path.join(tmpDir, "settings.json"), [warning("Unknown Setting: x", 1)]);
+        markerService.changeOne("settings", ws.path("settings.json"), [warning("Unknown Setting: x", 1)]);
         // Content is swapped synchronously on the marker change.
         expect(panel.view.getChildren()).toHaveLength(1);
 
-        await flush();
+        await settle(0);
         testApp.render();
         const screen = testApp.backend.screenToString();
         expect(screen).toContain("settings.json");
@@ -77,7 +71,7 @@ describe("ProblemsController", () => {
     });
 
     it("falls back to the placeholder when the markers clear", () => {
-        const resource = path.join(tmpDir, "settings.json");
+        const resource = ws.path("settings.json");
         markerService.changeOne("settings", resource, [warning("x")]);
         expect(panel.view.getChildren()).toHaveLength(1);
 
@@ -86,8 +80,7 @@ describe("ProblemsController", () => {
     });
 
     it("reveals a marker's location in the editor on activation", () => {
-        const file = path.join(tmpDir, "settings.json");
-        fs.writeFileSync(file, ["{", '  "a": 1,', '  "bad": 2', "}"].join("\n"), "utf-8");
+        const file = ws.writeFile("settings.json", ["{", '  "a": 1,', '  "bad": 2', "}"].join("\n"));
         editorGroup.openFile(file);
 
         const markerNode: ProblemNode = {
@@ -108,8 +101,7 @@ describe("ProblemsController", () => {
     });
 
     it("does nothing when a file node is activated", () => {
-        const file = path.join(tmpDir, "settings.json");
-        fs.writeFileSync(file, "line0\nline1\n", "utf-8");
+        const file = ws.writeFile("settings.json", "line0\nline1\n");
         editorGroup.openFile(file);
         editorGroup.getActiveEditor()?.goToPosition(0, 0);
 
@@ -120,8 +112,8 @@ describe("ProblemsController", () => {
     });
 
     it("focuses the Problems tree", async () => {
-        markerService.changeOne("settings", path.join(tmpDir, "settings.json"), [warning("x")]);
-        await flush();
+        markerService.changeOne("settings", ws.path("settings.json"), [warning("x")]);
+        await settle(0);
         testApp.render();
         controller.focus();
         expect(controller.tree.isFocused).toBe(true);
@@ -135,12 +127,12 @@ describe("ProblemsController", () => {
     });
 
     it("keeps file nodes expanded across successive marker updates", async () => {
-        const resource = path.join(tmpDir, "settings.json");
+        const resource = ws.path("settings.json");
         markerService.changeOne("settings", resource, [warning("a", 1)]);
-        await flush();
+        await settle(0);
         // A second update to the same (already-expanded) file must stay expanded.
         markerService.changeOne("settings", resource, [warning("a", 1), warning("b", 2)]);
-        await flush();
+        await settle(0);
         testApp.render();
         const screen = testApp.backend.screenToString();
         expect(screen).toContain("[Ln 2, Col 1]");

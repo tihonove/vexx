@@ -1,10 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
-import { RenderContext } from "../TUIElement.ts";
 
 import type { CompletionListItem } from "./CompletionListElement.ts";
 import { CompletionListElement } from "./CompletionListElement.ts";
@@ -26,13 +24,7 @@ function keydown(w: CompletionListElement, key: string): void {
 }
 
 function renderToString(w: CompletionListElement): string {
-    const size = new Size(w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    w.performLayout(BoxConstraints.tight(size));
-    w.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend.screenToString();
+    return renderElement(w, w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0)).screenToString();
 }
 
 describe("CompletionListElement", () => {
@@ -115,11 +107,7 @@ describe("CompletionListElement", () => {
     it("рендерится с рамкой (углы ╭╮╰╯, как у остальных оверлеев)", () => {
         const w = makeWidget(ITEMS);
         const size = new Size(w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
-        const backend = new MockTerminalBackend(size);
-        const termScreen = new TerminalScreen(size);
-        w.performLayout(BoxConstraints.tight(size));
-        w.render(new RenderContext(termScreen));
-        termScreen.flush(backend);
+        const backend = renderElement(w, size.width, size.height);
         expect(backend.getTextAt(new Point(0, 0), 1)).toBe("╭");
         expect(backend.getTextAt(new Point(size.width - 1, 0), 1)).toBe("╮");
         expect(backend.getTextAt(new Point(0, size.height - 1), 1)).toBe("╰");

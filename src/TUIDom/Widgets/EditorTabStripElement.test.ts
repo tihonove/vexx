@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { Point } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { RenderContext } from "../TUIElement.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import type { TabInfo } from "./EditorTabStripElement.ts";
 import { EditorTabStripElement } from "./EditorTabStripElement.ts";
@@ -21,13 +20,7 @@ function makeTabs(...names: string[]): TabInfo[] {
 }
 
 function renderStrip(strip: EditorTabStripElement, width: number): { backend: MockTerminalBackend; text: string } {
-    const size = new Size(width, 1);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    strip.globalPosition = new Point(0, 0);
-    strip.performLayout(BoxConstraints.tight(size));
-    strip.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
+    const backend = renderElement(strip, width, 1);
     const text = backend.getTextAt(new Point(0, 0), width);
     return { backend, text };
 }

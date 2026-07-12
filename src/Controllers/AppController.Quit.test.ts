@@ -1,14 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
+import type { TestApp } from "../TestUtils/TestApp.ts";
 import type { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 
-import { AppController, AppControllerDIToken } from "./AppController.ts";
+import type { AppController } from "./AppController.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
 
 interface TestQuitContext {
     testApp: TestApp;
@@ -17,13 +16,8 @@ interface TestQuitContext {
 }
 
 function createTestContext(): TestQuitContext {
-    const { container, bindApp } = createTestContainer();
-    const controller = container.get(AppControllerDIToken);
-    controller.mount();
-    const testApp = TestApp.create(controller.view, new Size(80, 24));
-    bindApp(testApp.app);
-    const accessor = container.get(ServiceAccessorDIToken);
-    return { testApp, controller, accessor };
+    const h = createAppTestHarness();
+    return { testApp: h.testApp, controller: h.controller, accessor: h.container.get(ServiceAccessorDIToken) };
 }
 
 /** Save теперь async — сохранение и последующий quit/close откладываются на

@@ -1,27 +1,13 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
+
 import { FileSearchService } from "./FileSearchService.ts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function createTempDir(): string {
-    return fs.mkdtempSync(path.join(os.tmpdir(), "vexx-filesearch-notify-"));
-}
-
-function cleanupDir(dirPath: string): void {
-    fs.rmSync(dirPath, { recursive: true, force: true });
-}
-
-function writeFile(dir: string, relPath: string, content = ""): string {
-    const fullPath = path.join(dir, relPath);
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, content);
-    return fullPath;
-}
 
 /** Run the (real) microtask/setImmediate loop a few times so the background walk progresses. */
 async function flushImmediates(times = 1): Promise<void> {
@@ -33,17 +19,17 @@ async function flushImmediates(times = 1): Promise<void> {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("FileSearchService — notify / onIndexChanged", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let service: FileSearchService;
 
     beforeEach(() => {
-        tmpDir = createTempDir();
+        ws = createTempWorkspace({ prefix: "vexx-filesearch-notify-" });
         service = new FileSearchService();
     });
 
     afterEach(() => {
         service.dispose();
-        cleanupDir(tmpDir);
+        ws.dispose();
         vi.useRealTimers();
     });
 
@@ -61,9 +47,9 @@ describe("FileSearchService — notify / onIndexChanged", () => {
 
         let nested = "deep";
         for (let i = 0; i < 40; i++) nested = path.join(nested, `lvl${i}`);
-        writeFile(tmpDir, path.join(nested, "leaf.ts"));
+        ws.writeFile(path.join(nested, "leaf.ts"), "");
 
-        const pending = service.activate(tmpDir);
+        const pending = service.activate(ws.dir);
 
         // Pump real setImmediate turns until the walk has scheduled the debounce timer
         // and is still indexing (timer pending, not yet flushed).
@@ -99,9 +85,9 @@ describe("FileSearchService — notify / onIndexChanged", () => {
         // pending debounce timer on the very first iteration.
         let nested = "deep";
         for (let i = 0; i < 40; i++) nested = path.join(nested, `lvl${i}`);
-        writeFile(tmpDir, path.join(nested, "leaf.ts"));
+        ws.writeFile(path.join(nested, "leaf.ts"), "");
 
-        const pending = service.activate(tmpDir);
+        const pending = service.activate(ws.dir);
 
         // Pump real setImmediate turns until a faked debounce timer is pending (the
         // walk's scheduleNotify ran) while the walk is still in progress. Because the
@@ -134,8 +120,8 @@ describe("FileSearchService — notify / onIndexChanged", () => {
     });
 
     it("flushNotify fires onIndexChanged exactly once on completion when set late", async () => {
-        writeFile(tmpDir, "only.ts");
-        const p = service.activate(tmpDir);
+        ws.writeFile("only.ts", "");
+        const p = service.activate(ws.dir);
         let fired = 0;
         service.onIndexChanged = () => {
             fired += 1;
@@ -147,26 +133,26 @@ describe("FileSearchService — notify / onIndexChanged", () => {
 });
 
 describe("FileSearchService — walk branches", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let service: FileSearchService;
 
     beforeEach(() => {
-        tmpDir = createTempDir();
+        ws = createTempWorkspace({ prefix: "vexx-filesearch-notify-" });
         service = new FileSearchService();
     });
 
     afterEach(() => {
         service.dispose();
-        cleanupDir(tmpDir);
+        ws.dispose();
         vi.useRealTimers();
     });
 
     it("ignores dirents that are neither files nor directories (branch 196)", async () => {
-        writeFile(tmpDir, "real.ts");
+        ws.writeFile("real.ts", "");
         // A broken symlink is a Dirent where isFile() and isDirectory() are both false.
-        fs.symlinkSync(path.join(tmpDir, "nonexistent-target"), path.join(tmpDir, "dangling"));
+        fs.symlinkSync(ws.path("nonexistent-target"), ws.path("dangling"));
 
-        await service.activate(tmpDir);
+        await service.activate(ws.dir);
 
         const paths = service.search("").map((r) => r.entry.relativePath);
         expect(paths).toContain("real.ts");
@@ -176,10 +162,10 @@ describe("FileSearchService — walk branches", () => {
     it("refreshIfStale is a no-op while a background walk is still indexing (branch 85)", async () => {
         // Many entries keep the initial walk in-flight across event-loop turns.
         for (let i = 0; i < 12; i++) {
-            writeFile(tmpDir, `dir${i}/file.ts`);
+            ws.writeFile(`dir${i}/file.ts`, "");
         }
 
-        const first = service.activate(tmpDir);
+        const first = service.activate(ws.dir);
         // The walk is now in progress (indexing === true) but not finished.
         await flushImmediates(1);
         expect(service.isIndexed).toBe(false);
@@ -196,10 +182,10 @@ describe("FileSearchService — walk branches", () => {
     it("a dispose during the walk cancels at the post-loop check (branch 206)", async () => {
         // Enough directories that the walk yields several times; dispose mid-walk.
         for (let i = 0; i < 20; i++) {
-            writeFile(tmpDir, `g${i}/file.ts`);
+            ws.writeFile(`g${i}/file.ts`, "");
         }
 
-        const pending = service.activate(tmpDir);
+        const pending = service.activate(ws.dir);
         await flushImmediates(2);
         service.dispose();
         await pending;

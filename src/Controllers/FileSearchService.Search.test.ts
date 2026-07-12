@@ -1,65 +1,50 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { fuzzyMatchBestLower } from "../Common/FuzzySearch.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { FileSearchService } from "./FileSearchService.ts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function createTempDir(): string {
-    return fs.mkdtempSync(path.join(os.tmpdir(), "vexx-filesearch-search-"));
-}
-
-function cleanupDir(dirPath: string): void {
-    fs.rmSync(dirPath, { recursive: true, force: true });
-}
-
-function writeFile(dir: string, relPath: string, content = ""): void {
-    const fullPath = path.join(dir, relPath);
-    fs.mkdirSync(path.dirname(fullPath), { recursive: true });
-    fs.writeFileSync(fullPath, content);
-}
-
 /**
  * Creates a service with a pre-populated temp directory and awaits the initial
  * background index build. `files` is a list of relative paths to create.
  */
-async function makeService(files: string[]): Promise<{ service: FileSearchService; tmpDir: string }> {
-    const tmpDir = createTempDir();
+async function makeService(files: string[]): Promise<{ service: FileSearchService; ws: ITempWorkspace }> {
+    const ws = createTempWorkspace({ prefix: "vexx-filesearch-search-" });
     for (const f of files) {
-        writeFile(tmpDir, f);
+        ws.writeFile(f, "");
     }
     const service = new FileSearchService();
-    await service.activate(tmpDir);
-    return { service, tmpDir };
+    await service.activate(ws.dir);
+    return { service, ws };
 }
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe("FileSearchService — search()", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let service: FileSearchService;
 
     afterEach(() => {
         service.dispose();
-        cleanupDir(tmpDir);
+        ws.dispose();
     });
 
     // ── Empty query ────────────────────────────────────────────────────────────
 
     describe("empty query", () => {
         it("returns all files when query is empty", async () => {
-            ({ service, tmpDir } = await makeService(["alpha.ts", "beta.ts", "gamma.ts"]));
+            ({ service, ws } = await makeService(["alpha.ts", "beta.ts", "gamma.ts"]));
             const results = service.search("");
             expect(results).toHaveLength(3);
         });
 
         it("returns all results with score 0", async () => {
-            ({ service, tmpDir } = await makeService(["alpha.ts", "beta.ts", "gamma.ts"]));
+            ({ service, ws } = await makeService(["alpha.ts", "beta.ts", "gamma.ts"]));
             const results = service.search("");
             for (const r of results) {
                 expect(r.score).toBe(0);
@@ -67,7 +52,7 @@ describe("FileSearchService — search()", () => {
         });
 
         it("respects maxResults", async () => {
-            ({ service, tmpDir } = await makeService(["alpha.ts", "beta.ts", "gamma.ts"]));
+            ({ service, ws } = await makeService(["alpha.ts", "beta.ts", "gamma.ts"]));
             const results = service.search("", 2);
             expect(results).toHaveLength(2);
         });
@@ -84,27 +69,27 @@ describe("FileSearchService — search()", () => {
         ];
 
         it("finds file by partial basename", async () => {
-            ({ service, tmpDir } = await makeService(FILES));
+            ({ service, ws } = await makeService(FILES));
             const results = service.search("ac");
             const paths = results.map((r) => r.entry.relativePath);
             expect(paths.some((p) => p.includes("AppController"))).toBe(true);
         });
 
         it("is case-insensitive", async () => {
-            ({ service, tmpDir } = await makeService(FILES));
+            ({ service, ws } = await makeService(FILES));
             const upper = service.search("AC");
             const lower = service.search("ac");
             expect(upper.map((r) => r.entry.relativePath)).toEqual(lower.map((r) => r.entry.relativePath));
         });
 
         it("returns empty array when nothing matches", async () => {
-            ({ service, tmpDir } = await makeService(FILES));
+            ({ service, ws } = await makeService(FILES));
             const results = service.search("zzzzzz");
             expect(results).toHaveLength(0);
         });
 
         it("respects maxResults on non-empty query", async () => {
-            ({ service, tmpDir } = await makeService(["a/Controller1.ts", "b/Controller2.ts", "c/Controller3.ts"]));
+            ({ service, ws } = await makeService(["a/Controller1.ts", "b/Controller2.ts", "c/Controller3.ts"]));
             const results = service.search("ctrl", 2);
             expect(results.length).toBeLessThanOrEqual(2);
         });
@@ -114,19 +99,19 @@ describe("FileSearchService — search()", () => {
 
     describe("ranking — word boundaries", () => {
         it("AppController ranks above abstract_class for query 'ac'", async () => {
-            ({ service, tmpDir } = await makeService(["AppController.ts", "abstract_class.ts"]));
+            ({ service, ws } = await makeService(["AppController.ts", "abstract_class.ts"]));
             const results = service.search("ac");
             expect(results[0].entry.relativePath).toBe("AppController.ts");
         });
 
         it("FileController ranks above first_contact for query 'fc'", async () => {
-            ({ service, tmpDir } = await makeService(["FileController.ts", "first_contact.ts"]));
+            ({ service, ws } = await makeService(["FileController.ts", "first_contact.ts"]));
             const results = service.search("fc");
             expect(results[0].entry.relativePath).toBe("FileController.ts");
         });
 
         it("CommandRegistry ranks above continuous_record for query 'cr'", async () => {
-            ({ service, tmpDir } = await makeService(["CommandRegistry.ts", "continuous_record.ts"]));
+            ({ service, ws } = await makeService(["CommandRegistry.ts", "continuous_record.ts"]));
             const results = service.search("cr");
             expect(results[0].entry.relativePath).toBe("CommandRegistry.ts");
         });
@@ -138,7 +123,7 @@ describe("FileSearchService — search()", () => {
         it("file matching in basename ranks above file matching only in path", async () => {
             // "ac" matches the basename "AppController.ts"
             // "ac" also matches "src/actions/config.ts" via path only
-            ({ service, tmpDir } = await makeService([
+            ({ service, ws } = await makeService([
                 "src/actions/config.ts", // 'a'ctions + 'c'onfig in path
                 "AppController.ts", // basename match
             ]));
@@ -147,7 +132,7 @@ describe("FileSearchService — search()", () => {
         });
 
         it("basename match score is higher than full-path-only match score", async () => {
-            ({ service, tmpDir } = await makeService([
+            ({ service, ws } = await makeService([
                 "controllers/actions/util.ts", // match in path dirs, not basename
                 "ActionController.ts", // basename word-boundary match
             ]));
@@ -166,7 +151,7 @@ describe("FileSearchService — search()", () => {
 
     describe("ranking — path search", () => {
         it("finds files when query contains path separator segments", async () => {
-            ({ service, tmpDir } = await makeService(["src/Controllers/AppController.ts", "src/Common/AppConfig.ts"]));
+            ({ service, ws } = await makeService(["src/Controllers/AppController.ts", "src/Common/AppConfig.ts"]));
             // "ctrl" — 'c'ontrollers matches 'c', 'trl' consecutive
             const results = service.search("ctrl");
             const paths = results.map((r) => r.entry.relativePath);
@@ -174,7 +159,7 @@ describe("FileSearchService — search()", () => {
         });
 
         it("deep nested file is found by basename", async () => {
-            ({ service, tmpDir } = await makeService(["a/b/c/d/e/DeepFile.ts"]));
+            ({ service, ws } = await makeService(["a/b/c/d/e/DeepFile.ts"]));
             const results = service.search("df");
             const paths = results.map((r) => r.entry.relativePath);
             expect(paths).toContain("a/b/c/d/e/DeepFile.ts");
@@ -185,7 +170,7 @@ describe("FileSearchService — search()", () => {
 
     describe("result structure", () => {
         it("result contains entry with relativePath and absolutePath", async () => {
-            ({ service, tmpDir } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
             const results = service.search("ac");
             expect(results.length).toBeGreaterThan(0);
             const result = results[0];
@@ -195,19 +180,19 @@ describe("FileSearchService — search()", () => {
         });
 
         it("result contains score (number)", async () => {
-            ({ service, tmpDir } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
             const results = service.search("ac");
             expect(typeof results[0].score).toBe("number");
         });
 
         it("result contains matchedIndices array", async () => {
-            ({ service, tmpDir } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
             const results = service.search("ac");
             expect(Array.isArray(results[0].matchedIndices)).toBe(true);
         });
 
         it("results are sorted by score descending", async () => {
-            ({ service, tmpDir } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
             const results = service.search("c");
             for (let i = 1; i < results.length; i++) {
                 expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score);
@@ -249,7 +234,7 @@ describe("FileSearchService — search()", () => {
         }
 
         it("returns exactly the entries the raw matcher would, for many queries", async () => {
-            ({ service, tmpDir } = await makeService(FILES));
+            ({ service, ws } = await makeService(FILES));
             const queries = ["ac", "fc", "fss", "fz", "search", "ctrl", "df", "json", "md", "zzz", "9x", "common"];
             for (const query of queries) {
                 const got = new Set(service.search(query, 1000).map((r) => r.entry.relativePath));
@@ -258,7 +243,7 @@ describe("FileSearchService — search()", () => {
         });
 
         it("every returned path contains all query characters (necessary condition)", async () => {
-            ({ service, tmpDir } = await makeService(FILES));
+            ({ service, ws } = await makeService(FILES));
             for (const r of service.search("fss", 1000)) {
                 const lower = r.entry.relativePath.toLowerCase();
                 for (const ch of "fss") expect(lower.includes(ch)).toBe(true);
@@ -281,14 +266,14 @@ describe("FileSearchService — search()", () => {
     describe("maxResults capping", () => {
         it("never returns more than maxResults items", async () => {
             const files = Array.from({ length: 60 }, (_, i) => `file${String(i)}.ts`);
-            ({ service, tmpDir } = await makeService(files));
+            ({ service, ws } = await makeService(files));
             const results = service.search("", 50);
             expect(results.length).toBeLessThanOrEqual(50);
         });
 
         it("custom maxResults is respected", async () => {
             const files = Array.from({ length: 20 }, (_, i) => `Component${String(i)}.ts`);
-            ({ service, tmpDir } = await makeService(files));
+            ({ service, ws } = await makeService(files));
             const results = service.search("comp", 5);
             expect(results.length).toBeLessThanOrEqual(5);
         });

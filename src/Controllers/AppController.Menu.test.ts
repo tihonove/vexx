@@ -1,31 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
+import type { TestApp } from "../TestUtils/TestApp.ts";
 import type { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 import type { MenuEntry, MenuItemEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
-
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
-
-interface MenuContext {
-    testApp: TestApp;
-    controller: AppController;
-    commands: CommandRegistry;
-}
-
-function createMenuApp(size: Size = new Size(80, 24)): MenuContext {
-    const { container, bindApp } = createTestContainer();
-    const controller = container.get(AppControllerDIToken);
-    controller.mount();
-    const testApp = TestApp.create(controller.view, size);
-    bindApp(testApp.app);
-    const commands = container.get(CommandRegistryDIToken);
-    return { testApp, controller, commands };
-}
 
 /** Open a top-level menu by mnemonic (Alt+<letter>) and return the live popup element. */
 function openMenu(testApp: TestApp, mnemonic: string): PopupMenuElement {
@@ -48,7 +28,7 @@ function itemLabels(popup: PopupMenuElement): string[] {
 
 describe("AppController — menu bar wiring", () => {
     it("opens the File menu and renders its entries", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "f");
         expect(itemLabels(popup)).toEqual([
             "New Untitled File",
@@ -63,7 +43,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("File → Open File... runs the open-file command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "f");
 
@@ -73,7 +53,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("File → Open Folder... runs the open-folder command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "f");
 
@@ -83,7 +63,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("File → New Untitled File runs the new-untitled command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "f");
 
@@ -93,7 +73,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("File → Save runs the save command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "f");
 
@@ -105,7 +85,7 @@ describe("AppController — menu bar wiring", () => {
     it("File → Exit triggers the quit command (and the quit flow)", () => {
         const exitSpy = vi.spyOn(process, "exit").mockImplementation(() => undefined as never);
         try {
-            const { testApp, commands } = createMenuApp();
+            const { testApp, commands } = createAppTestHarness();
             const executeSpy = vi.spyOn(commands, "execute");
             const popup = openMenu(testApp, "f");
 
@@ -120,7 +100,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("opens the Edit menu and renders its entries", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "e");
         expect(itemLabels(popup)).toEqual([
             "Undo",
@@ -135,7 +115,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Undo runs the undo command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -145,7 +125,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Redo runs the redo command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -155,7 +135,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Cut runs the clipboard cut command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -165,7 +145,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Copy runs the clipboard copy command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -175,7 +155,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Paste runs the clipboard paste command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -185,7 +165,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Find runs the find command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -195,7 +175,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Find Next runs the next-match command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -205,7 +185,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Edit → Find Previous runs the previous-match command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "e");
 
@@ -215,13 +195,13 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("opens the Selection menu and renders its entries", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "s");
         expect(itemLabels(popup)).toEqual(["Select All", "Expand Selection (Word)"]);
     });
 
     it("Selection → Select All runs the select-all command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "s");
 
@@ -231,7 +211,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Selection → Expand Selection (Word) runs cursorWordRightSelect", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "s");
 
@@ -241,7 +221,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("opens the View menu and renders its entries", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "v");
         expect(itemLabels(popup)).toEqual([
             "Command Palette...",
@@ -257,7 +237,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("View → Command Palette runs the show-commands command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "v");
 
@@ -267,7 +247,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("View → Increase Side Bar Width runs the increase-width command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "v");
 
@@ -277,7 +257,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("View → Explorer runs the explorer command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "v");
 
@@ -287,7 +267,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("View → Toggle Primary Side Bar toggles the left panel visibility", () => {
-        const { testApp, controller } = createMenuApp();
+        const { testApp, controller } = createAppTestHarness();
         controller.openFile("/tmp/menu-toggle-sidebar.txt");
         testApp.render();
         const layout = testApp.querySelector("WorkbenchLayoutElement") as unknown as {
@@ -302,7 +282,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("opens the Go menu and renders its entries", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "g");
         expect(itemLabels(popup)).toEqual([
             "Go to File...",
@@ -314,7 +294,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Go → Go to File runs the quick-open command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "g");
 
@@ -324,7 +304,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Go → Next Editor runs the next-editor command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "g");
 
@@ -334,7 +314,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("Go → Close Editor runs the close-active-editor command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "g");
 
@@ -344,7 +324,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("derives the menu shortcut from the keybinding registry", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "f");
 
         // Save is bound to Ctrl+S, so the menu shows that automatically.
@@ -352,7 +332,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("omits the shortcut for commands without a keybinding", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "h");
 
         // About has no default binding → no right-aligned accelerator text.
@@ -360,13 +340,13 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("opens the Help menu and renders its entries", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const popup = openMenu(testApp, "h");
         expect(itemLabels(popup)).toEqual(["About"]);
     });
 
     it("Help → About runs the show-about-dialog command", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
         const popup = openMenu(testApp, "h");
 
@@ -376,7 +356,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("show-about-dialog command opens the About dialog", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
         expect(testApp.querySelector("AboutDialogElement")).toBeNull();
 
         commands.execute("workbench.action.showAboutDialog");
@@ -386,7 +366,7 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("reuses the About dialog on reopen and closes it via its callback", () => {
-        const { testApp, commands } = createMenuApp();
+        const { testApp, commands } = createAppTestHarness();
 
         commands.execute("workbench.action.showAboutDialog");
         testApp.render();
@@ -403,12 +383,12 @@ describe("AppController — menu bar wiring", () => {
     });
 
     it("menu bar element is present in the DOM", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         expect(testApp.querySelector("MenuBarElement")).not.toBeNull();
     });
 
     it("selecting a menu item closes the popup", () => {
-        const { testApp } = createMenuApp();
+        const { testApp } = createAppTestHarness();
         const menuBar = testApp.querySelector("MenuBarElement") as MenuBarElement;
         openMenu(testApp, "f");
         expect(menuBar.isMenuOpen).toBe(true);
@@ -427,7 +407,7 @@ describe("AppController — editor context menu", () => {
     }
 
     it("populates editor context menu entries when an editor is created", () => {
-        const { testApp, controller } = createMenuApp();
+        const { testApp, controller } = createAppTestHarness();
         controller.openFile("/tmp/menu-ctx-create.txt");
         testApp.render();
 
@@ -438,7 +418,7 @@ describe("AppController — editor context menu", () => {
     });
 
     it("editor context menu Copy entry runs the copy command", () => {
-        const { testApp, controller, commands } = createMenuApp();
+        const { testApp, controller, commands } = createAppTestHarness();
         controller.openFile("/tmp/menu-ctx-copy.txt");
         testApp.render();
         const executeSpy = vi.spyOn(commands, "execute");
@@ -452,7 +432,7 @@ describe("AppController — editor context menu", () => {
     });
 
     it("editor context menu Cut entry runs the cut command", () => {
-        const { testApp, controller, commands } = createMenuApp();
+        const { testApp, controller, commands } = createAppTestHarness();
         controller.openFile("/tmp/menu-ctx-cut.txt");
         testApp.render();
         const executeSpy = vi.spyOn(commands, "execute");
@@ -466,7 +446,7 @@ describe("AppController — editor context menu", () => {
     });
 
     it("editor context menu Paste entry runs the paste command", () => {
-        const { testApp, controller, commands } = createMenuApp();
+        const { testApp, controller, commands } = createAppTestHarness();
         controller.openFile("/tmp/menu-ctx-paste.txt");
         testApp.render();
         const executeSpy = vi.spyOn(commands, "execute");
@@ -480,7 +460,7 @@ describe("AppController — editor context menu", () => {
     });
 
     it("editor context menu Undo entry runs the undo command", () => {
-        const { testApp, controller, commands } = createMenuApp();
+        const { testApp, controller, commands } = createAppTestHarness();
         controller.openFile("/tmp/menu-ctx-undo.txt");
         testApp.render();
         const executeSpy = vi.spyOn(commands, "execute");

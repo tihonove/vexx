@@ -1,26 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { Point } from "../../Common/GeometryPromitives.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
-import { ROOT_RESOLVED_STYLE } from "../Styles/TUIStyle.ts";
-import { RenderContext } from "../TUIElement.ts";
 
 import { ACTIVE_MENU_BG, MENU_BAR_BG, MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
 
 function render(element: MenuBarItemElement | MenuBarFillerElement, width?: number): MockTerminalBackend {
     const w = width ?? element.getMaxIntrinsicWidth(0);
     const h = element.getMaxIntrinsicHeight(w);
-    const size = new Size(w, h);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    element.globalPosition = new Point(0, 0);
-    element.performStyleResolution(ROOT_RESOLVED_STYLE);
-    element.performLayout(BoxConstraints.tight(size));
-    element.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
+    return renderElement(element, w, h, { resolveStyles: true });
 }
 
 function clickEvent(): TUIMouseEvent {

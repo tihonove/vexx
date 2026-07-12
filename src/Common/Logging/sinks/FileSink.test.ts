@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 import type { LogEntry } from "../ILogService.ts";
 import { LogLevel } from "../LogLevel.ts";
@@ -44,16 +44,16 @@ async function flushAndDispose(sink: FileSink): Promise<void> {
 }
 
 describe("FileSink", () => {
-    let dir: string;
+    let ws: ITempWorkspace;
     let file: string;
 
     beforeEach(() => {
-        dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-filesink-"));
-        file = path.join(dir, "vexx.log");
+        ws = createTempWorkspace({ prefix: "vexx-filesink-" });
+        file = ws.path("vexx.log");
     });
 
     afterEach(() => {
-        fs.rmSync(dir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     it("writes formatted line per entry", async () => {
@@ -130,7 +130,7 @@ describe("FileSink", () => {
     it("does not throw if file path is invalid", () => {
         // На invalid path конструктор может не бросить (createWriteStream ленив),
         // но и не должен падать на append.
-        const sink = new FileSink(path.join(dir, "nonexistent-subdir", "x.log"));
+        const sink = new FileSink(ws.path("nonexistent-subdir/x.log"));
         expect(() => {
             sink.append(entry());
         }).not.toThrow();

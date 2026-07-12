@@ -31,16 +31,24 @@
 - Не проверяем внутреннее состояние — только наблюдаемое поведение через DOM
 
 ### Как создаём тестовое окружение
-Используем тестовый профиль `createTestContainer()` (см. [DI.md](DI.md#профили)) — не собираем контейнер руками:
+Используем `createAppTestHarness()` + `createTempWorkspace()` из `TestUtils/` — не собираем контейнер и temp-каталоги руками. Канонический вид:
 
 ```ts
-const { container, bindApp } = createTestContainer();
-const controller = container.get(AppControllerDIToken);
-controller.mount();
+let ws: ITempWorkspace;
+let h: IAppHarness;
 
-const testApp = TestApp.create(controller.view, size);
-bindApp(testApp.app);
+beforeEach(() => {
+    ws = createTempWorkspace({ files: { "alpha.txt": "Alpha content" } });
+    h = createAppTestHarness({ workspaceFolder: ws.dir });
+});
+
+afterEach(() => {
+    h.dispose();
+    ws.dispose();
+});
 ```
+
+Харнесс даёт `h.testApp`, `h.commands`, `h.controller`, а suite-specific сервисы достаём через `h.container.get(ThemeServiceDIToken)`. Низкоуровневый примитив под харнессом — тестовый профиль `createTestContainer()` (см. [DI.md](DI.md#профили)); напрямую он нужен только если тест не про `AppController`.
 
 ### Пример: проверяем набор текста через DOM
 
@@ -68,11 +76,11 @@ expect(editor.getText()).toBe("hi");
 
 ### Паттерны
 - Для построения деревьев используем хелпер `ContainerElement` или конкретные виджеты
-- У виджетов проверяем визуальный результат через `MockTerminalBackend` → `expectScreen`
+- У виджетов проверяем визуальный результат через `renderElement` → `expectScreen`
 
 ```ts
 it("renders a 6x3 box", () => {
-    const backend = renderBox(6, 3);
+    const backend = renderElement(new BoxElement(), 6, 3);
     expectScreen(backend, screen`
         +----+
         |    |
@@ -80,6 +88,8 @@ it("renders a 6x3 box", () => {
     `);
 });
 ```
+
+`renderElement` покрывает только single-shot рендер (layout → render → flush). Мультифреймовые сценарии, доступ к `TerminalScreen` или ненулевой `globalPosition` — ручной сетап, не форсим хелпер.
 
 ---
 
@@ -178,6 +188,22 @@ it("resolves a registered token", () => {
 
 ## Тестовые утилиты
 
+### AppTestHarness (`TestUtils/AppTestHarness.ts`)
+Boot-харнесс интеграционных тестов над `AppController`: `createAppTestHarness({ workspaceFolder?, size?, openFile?, focusEditor? })` собирает тестовый DI-контейнер, монтирует контроллер и оборачивает его view в `TestApp`. Возвращает `{ testApp, controller, commands, container, activeEditor(), dispose() }`. Харнесс синхронный — async-активация (`await controller.activate()`, `fileIndexReady`) остаётся в тесте. Воркспейсом не владеет — композиция с `createTempWorkspace` (см. канонический сниппет в разделе Controllers).
+
+### TempWorkspace (`TestUtils/TempWorkspace.ts`)
+Временный воркспейс: `createTempWorkspace({ prefix?, files? })` → `{ dir, writeFile(rel, content), path(rel), dispose() }`. Сид-файлы поддерживают вложенные пути; `dispose()` — рекурсивный `rmSync`, безопасен в `afterEach`/`finally`.
+
+### timing (`TestUtils/timing.ts`)
+- `flushMicrotasks(turns = 3)` — прокачка microtask-очереди (continuation'ы QuickInput/QuickOpen после `commands.execute`)
+- `settle(ms = 200)` — real-time ожидание subprocess/RPC-эффектов (ExtensionHost-тесты)
+
+### domQueries (`TestUtils/domQueries.ts`)
+DOM-аксессоры над `TestApp`: `quickPickByTitle(app, title)`, `tabLabels(app)`, `typeText(app, text)`.
+
+### renderElement (`TestUtils/renderElement.ts`)
+Single-shot рендер standalone-элемента: `renderElement(element, width, height, { constraints?, resolveStyles? })` → `MockTerminalBackend` для `expectScreen` (см. раздел TUIDom).
+
 ### TestApp (`TestUtils/TestApp.ts`)
 Обёртка для интеграционных тестов: создаёт `TuiApplication` с `MockTerminalBackend`, предоставляет:
 - `sendKey(key)` — эмуляция нажатия
@@ -197,7 +223,7 @@ expectScreen(backend, screen`
 ```
 
 ### ExtensionTestHarness (`TestUtils/ExtensionTestHarness.ts`)
-Для тестов extension host'а: `createExtensionTestHarness({ initialFile?, extensions? })` поднимает реальный `EditorGroupController` + `ExtensionHost` поверх `TestApp`. Subprocess форкается через `subprocessSpawnArgsForTests()`; тестовые расширения — `*.cjs`-файлы с `exports.activate`. Unit-тесты RPC без subprocess'а используют `createInProcessChannelPair()`.
+Для тестов extension host'а: `createExtensionTestHarness({ initialFile?, extensions? })` поднимает реальный `EditorGroupController` + `ExtensionHost` поверх `TestApp`. Subprocess форкается через `subprocessSpawnArgsForTests()`; тестовые расширения — `*.cjs`-файлы с `exports.activate` из `__fixtures__`, регистрация — `extensionFixture(id, file)` (расширяемые поля добавляются спредом), путь к каталогу — `EXTENSION_FIXTURES_DIR`. Unit-тесты RPC без subprocess'а используют `createInProcessChannelPair()`.
 
 ---
 

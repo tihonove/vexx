@@ -1,27 +1,27 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { resolveUserDataPaths } from "../Common/UserDataPaths.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { ConfigurationModel } from "./ConfigurationModel.ts";
 import { ConfigurationService, loadConfiguration } from "./ConfigurationService.ts";
 
 describe("loadConfiguration", () => {
-    let tmpRoot: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-cfg-"));
+        ws = createTempWorkspace({ prefix: "vexx-cfg-" });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpRoot, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function paths(profile?: string) {
-        return resolveUserDataPaths({ homedir: "/never", userDataDir: tmpRoot, profile });
+        return resolveUserDataPaths({ homedir: "/never", userDataDir: ws.dir, profile });
     }
 
     function writeSettings(file: string, content: string): void {
@@ -153,18 +153,18 @@ describe("loadConfiguration", () => {
 });
 
 describe("ConfigurationService.updateUserValue", () => {
-    let tmpRoot: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-cfg-write-"));
+        ws = createTempWorkspace({ prefix: "vexx-cfg-write-" });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpRoot, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function paths(profile?: string) {
-        return resolveUserDataPaths({ homedir: "/never", userDataDir: tmpRoot, profile });
+        return resolveUserDataPaths({ homedir: "/never", userDataDir: ws.dir, profile });
     }
 
     it("writes the key to settings.json when the file did not exist", async () => {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
 import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
+import { renderElement } from "../TestUtils/renderElement.ts";
 
 import { CompositeElement } from "./CompositeElement.ts";
 import type { JsxNode } from "./JSX/jsx-runtime.ts";
@@ -71,13 +71,7 @@ describe("CompositeElement layout proxy", () => {
     it("renders the rootChild at the composite's offset", () => {
         const comp = new TestComposite();
         comp.rebuild();
-        comp.globalPosition = new Point(0, 0);
-        comp.performLayout(BoxConstraints.tight(new Size(20, 5)));
-
-        const screen = new TerminalScreen(new Size(20, 5));
-        comp.render(new RenderContext(screen));
-        const backend = new MockTerminalBackend(new Size(20, 5));
-        screen.flush(backend);
+        const backend = renderElement(comp, 20, 5);
 
         const leaf = comp.getRootChild() as RecordingLeaf;
         expect(leaf.renderedAt).toEqual(new Point(0, 0));

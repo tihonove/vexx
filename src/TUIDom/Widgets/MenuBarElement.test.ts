@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { Point, Size } from "../../Common/GeometryPromitives.ts";
 import type { MouseToken } from "../../Input/RawTerminalToken.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { TuiApplication } from "../TuiApplication.ts";
-import { RenderContext, TUIElement } from "../TUIElement.ts";
+import { TUIElement } from "../TUIElement.ts";
 
 import { BodyElement } from "./BodyElement.ts";
 import type { MenuBarItem } from "./MenuBarElement.ts";
@@ -31,13 +31,7 @@ function renderMenuBar(
     height = 10,
 ): { backend: MockTerminalBackend; menuBar: MenuBarElement } {
     const menuBar = new MenuBarElement(items);
-    const size = new Size(width, height);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    menuBar.globalPosition = new Point(0, 0);
-    menuBar.performLayout(BoxConstraints.tight(size));
-    menuBar.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
+    const backend = renderElement(menuBar, width, height);
     return { backend, menuBar };
 }
 

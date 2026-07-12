@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { RenderContext, TUIElement } from "../TUIElement.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
+import { TUIElement } from "../TUIElement.ts";
 
 import { BoxContainerElement } from "./BoxContainerElement.ts";
 
@@ -23,23 +22,11 @@ class IntrinsicStub extends TUIElement {
     }
 }
 
-function layoutAndRender(el: BoxContainerElement, width: number, height: number): MockTerminalBackend {
-    const size = new Size(width, height);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-
-    el.globalPosition = new Point(0, 0);
-    el.performLayout(BoxConstraints.tight(size));
-    el.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
-}
-
 describe("BoxContainerElement", () => {
     describe("render — borders", () => {
         it("draws box-drawing border corners and edges", () => {
             const box = new BoxContainerElement();
-            const backend = layoutAndRender(box, 6, 3);
+            const backend = renderElement(box, 6, 3);
 
             expect(backend.getTextAt(new Point(0, 0), 6)).toBe("╭────╮");
             expect(backend.getTextAt(new Point(0, 1), 6)).toBe("│    │");
@@ -51,7 +38,7 @@ describe("BoxContainerElement", () => {
         it("draws a centered title on the second row", () => {
             const box = new BoxContainerElement();
             box.setTitle("Hi");
-            const backend = layoutAndRender(box, 8, 5);
+            const backend = renderElement(box, 8, 5);
 
             // Title "Hi" centered in width 8 → floor((8-2)/2) = 3
             expect(backend.getTextAt(new Point(3, 1), 2)).toBe("Hi");
@@ -61,7 +48,7 @@ describe("BoxContainerElement", () => {
             const box = new BoxContainerElement();
             box.setTitle("T");
             box.setHasSeparator(true);
-            const backend = layoutAndRender(box, 6, 6);
+            const backend = renderElement(box, 6, 6);
 
             // Separator row at y=2 uses ├ ─ ┤
             expect(backend.getTextAt(new Point(0, 2), 6)).toBe("├────┤");
@@ -71,7 +58,7 @@ describe("BoxContainerElement", () => {
             const box = new BoxContainerElement();
             box.setTitle("T");
             box.setHasSeparator(false);
-            const backend = layoutAndRender(box, 6, 6);
+            const backend = renderElement(box, 6, 6);
 
             // y=2 should be a plain interior row, not a separator
             expect(backend.getTextAt(new Point(0, 2), 6)).toBe("│    │");
@@ -79,7 +66,7 @@ describe("BoxContainerElement", () => {
 
         it("renders no title row when title is undefined", () => {
             const box = new BoxContainerElement();
-            const backend = layoutAndRender(box, 8, 5);
+            const backend = renderElement(box, 8, 5);
 
             // Interior row 1 is blank between the side borders
             expect(backend.getTextAt(new Point(1, 1), 6)).toBe("      ");

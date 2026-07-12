@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
-import { RenderContext } from "../TUIElement.ts";
 
 import type { ButtonElement } from "./ButtonElement.ts";
 import { FindWidgetElement } from "./FindWidgetElement.ts";
@@ -19,14 +18,7 @@ const BUTTON_HOVER_BG = packRgb(69, 73, 78);
 
 /** Lays out + renders the widget into a backend so button positions/colors are populated. */
 function render(widget: FindWidgetElement, width = WIDTH): MockTerminalBackend {
-    const size = new Size(width, 3);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    widget.globalPosition = new Point(0, 0);
-    widget.performLayout(BoxConstraints.tight(size));
-    widget.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
+    return renderElement(widget, width, 3);
 }
 
 /** The three nav buttons in order: [prev, next, close]. */

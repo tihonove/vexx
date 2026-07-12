@@ -1,46 +1,38 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
+
 import { FileTreeDataProvider } from "./FileTreeDataProvider.ts";
 
-function createTempDir(): string {
-    return fs.mkdtempSync(path.join(os.tmpdir(), "vexx-test-"));
-}
-
-function cleanupDir(dirPath: string): void {
-    fs.rmSync(dirPath, { recursive: true, force: true });
-}
-
 describe("FileTreeDataProvider", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let provider: FileTreeDataProvider;
 
     beforeEach(() => {
-        tmpDir = createTempDir();
-        provider = new FileTreeDataProvider(tmpDir);
+        ws = createTempWorkspace({ prefix: "vexx-test-" });
+        provider = new FileTreeDataProvider(ws.dir);
     });
 
     afterEach(() => {
         provider.dispose();
-        cleanupDir(tmpDir);
+        ws.dispose();
     });
 
     describe("getChildren", () => {
         it("returns files and directories from root", () => {
-            fs.writeFileSync(path.join(tmpDir, "file.ts"), "");
-            fs.mkdirSync(path.join(tmpDir, "src"));
+            ws.writeFile("file.ts", "");
+            fs.mkdirSync(ws.path("src"));
 
             const children = provider.getChildren();
             expect(children).toHaveLength(2);
         });
 
         it("sorts directories before files", () => {
-            fs.writeFileSync(path.join(tmpDir, "b.ts"), "");
-            fs.mkdirSync(path.join(tmpDir, "aDir"));
-            fs.writeFileSync(path.join(tmpDir, "a.ts"), "");
+            ws.writeFile("b.ts", "");
+            fs.mkdirSync(ws.path("aDir"));
+            ws.writeFile("a.ts", "");
 
             const children = provider.getChildren();
             expect(children[0].name).toBe("aDir");
@@ -50,18 +42,18 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("sorts files alphabetically", () => {
-            fs.writeFileSync(path.join(tmpDir, "z.ts"), "");
-            fs.writeFileSync(path.join(tmpDir, "a.ts"), "");
-            fs.writeFileSync(path.join(tmpDir, "m.ts"), "");
+            ws.writeFile("z.ts", "");
+            ws.writeFile("a.ts", "");
+            ws.writeFile("m.ts", "");
 
             const children = provider.getChildren();
             expect(children.map((c) => c.name)).toEqual(["a.ts", "m.ts", "z.ts"]);
         });
 
         it("excludes node_modules and .git", () => {
-            fs.mkdirSync(path.join(tmpDir, "node_modules"));
-            fs.mkdirSync(path.join(tmpDir, ".git"));
-            fs.writeFileSync(path.join(tmpDir, "index.ts"), "");
+            fs.mkdirSync(ws.path("node_modules"));
+            fs.mkdirSync(ws.path(".git"));
+            ws.writeFile("index.ts", "");
 
             const children = provider.getChildren();
             expect(children).toHaveLength(1);
@@ -69,10 +61,9 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("returns children of a subdirectory", () => {
-            const subDir = path.join(tmpDir, "src");
-            fs.mkdirSync(subDir);
-            fs.writeFileSync(path.join(subDir, "main.ts"), "");
-            fs.writeFileSync(path.join(subDir, "util.ts"), "");
+            const subDir = ws.path("src");
+            ws.writeFile("src/main.ts", "");
+            ws.writeFile("src/util.ts", "");
 
             const dirNode = { name: "src", path: subDir, isDirectory: true };
             const children = provider.getChildren(dirNode);
@@ -81,7 +72,7 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("returns empty array for empty directory", () => {
-            const subDir = path.join(tmpDir, "empty");
+            const subDir = ws.path("empty");
             fs.mkdirSync(subDir);
 
             const dirNode = { name: "empty", path: subDir, isDirectory: true };
@@ -89,7 +80,7 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("returns empty array for non-existent directory", () => {
-            const dirNode = { name: "nope", path: path.join(tmpDir, "nope"), isDirectory: true };
+            const dirNode = { name: "nope", path: ws.path("nope"), isDirectory: true };
             expect(provider.getChildren(dirNode)).toEqual([]);
         });
 
@@ -97,9 +88,9 @@ describe("FileTreeDataProvider", () => {
             // readdir yields these alphabetically as [a-dir, b-file, c-dir] — a
             // dir/file/dir sequence that drives the comparator down BOTH the
             // `-1` (dir before file) and `1` (file after dir) paths.
-            fs.mkdirSync(path.join(tmpDir, "a-dir"));
-            fs.writeFileSync(path.join(tmpDir, "b-file.ts"), "");
-            fs.mkdirSync(path.join(tmpDir, "c-dir"));
+            fs.mkdirSync(ws.path("a-dir"));
+            ws.writeFile("b-file.ts", "");
+            fs.mkdirSync(ws.path("c-dir"));
 
             const children = provider.getChildren();
             // Directories first (sorted), then the file.
@@ -110,8 +101,8 @@ describe("FileTreeDataProvider", () => {
 
     describe("symlinks", () => {
         it("marks a symlink to a file as a symbolic link, not a directory", () => {
-            fs.writeFileSync(path.join(tmpDir, "target.ts"), "");
-            fs.symlinkSync(path.join(tmpDir, "target.ts"), path.join(tmpDir, "link.ts"));
+            ws.writeFile("target.ts", "");
+            fs.symlinkSync(ws.path("target.ts"), ws.path("link.ts"));
 
             const children = provider.getChildren();
             const link = children.find((c) => c.name === "link.ts");
@@ -121,8 +112,8 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("resolves a symlink to a directory as a directory", () => {
-            fs.mkdirSync(path.join(tmpDir, "realDir"));
-            fs.symlinkSync(path.join(tmpDir, "realDir"), path.join(tmpDir, "linkDir"));
+            fs.mkdirSync(ws.path("realDir"));
+            fs.symlinkSync(ws.path("realDir"), ws.path("linkDir"));
 
             const children = provider.getChildren();
             const link = children.find((c) => c.name === "linkDir");
@@ -131,7 +122,7 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("treats a broken symlink as a non-directory file", () => {
-            fs.symlinkSync(path.join(tmpDir, "does-not-exist"), path.join(tmpDir, "broken"));
+            fs.symlinkSync(ws.path("does-not-exist"), ws.path("broken"));
 
             const children = provider.getChildren();
             const link = children.find((c) => c.name === "broken");
@@ -205,13 +196,13 @@ describe("FileTreeDataProvider", () => {
             const callback = vi.fn();
             provider.onChange = callback;
 
-            provider.watchDirectory(tmpDir);
+            provider.watchDirectory(ws.dir);
 
             // Wait for chokidar to be ready
             await new Promise((r) => setTimeout(r, 500));
 
             // Create a file in the watched directory
-            fs.writeFileSync(path.join(tmpDir, "new-file.ts"), "");
+            ws.writeFile("new-file.ts", "");
 
             // Wait for debounce (300ms) + buffer
             await new Promise((r) => setTimeout(r, 1000));
@@ -223,10 +214,10 @@ describe("FileTreeDataProvider", () => {
             const callback = vi.fn();
             provider.onChange = callback;
 
-            provider.watchDirectory(tmpDir);
-            provider.unwatchDirectory(tmpDir);
+            provider.watchDirectory(ws.dir);
+            provider.unwatchDirectory(ws.dir);
 
-            fs.writeFileSync(path.join(tmpDir, "new-file.ts"), "");
+            ws.writeFile("new-file.ts", "");
 
             await new Promise((r) => setTimeout(r, 500));
 
@@ -234,20 +225,20 @@ describe("FileTreeDataProvider", () => {
         });
 
         it("does not duplicate watchers for the same directory", () => {
-            provider.watchDirectory(tmpDir);
-            provider.watchDirectory(tmpDir); // second call should be no-op
+            provider.watchDirectory(ws.dir);
+            provider.watchDirectory(ws.dir); // second call should be no-op
             // No error thrown — test passes
-            provider.unwatchDirectory(tmpDir);
+            provider.unwatchDirectory(ws.dir);
         });
 
         it("cleans up watchers on dispose", async () => {
             const callback = vi.fn();
             provider.onChange = callback;
 
-            provider.watchDirectory(tmpDir);
+            provider.watchDirectory(ws.dir);
             provider.dispose();
 
-            fs.writeFileSync(path.join(tmpDir, "new-file.ts"), "");
+            ws.writeFile("new-file.ts", "");
 
             await new Promise((r) => setTimeout(r, 500));
 
@@ -256,7 +247,7 @@ describe("FileTreeDataProvider", () => {
 
         it("unwatchDirectory on a directory that was never watched is a no-op (branch 76)", () => {
             expect(() => {
-                provider.unwatchDirectory(path.join(tmpDir, "never-watched"));
+                provider.unwatchDirectory(ws.path("never-watched"));
             }).not.toThrow();
         });
 
@@ -267,7 +258,7 @@ describe("FileTreeDataProvider", () => {
             const onWatchError = vi.fn();
             provider.onWatchError = onWatchError;
 
-            provider.watchDirectory(tmpDir);
+            provider.watchDirectory(ws.dir);
             await new Promise((r) => setTimeout(r, 300)); // дать chokidar устояться
 
             const watchers = (
@@ -275,7 +266,7 @@ describe("FileTreeDataProvider", () => {
                     watchers: Map<string, { emit(event: string, ...args: unknown[]): boolean }>;
                 }
             ).watchers;
-            const watcher = watchers.get(tmpDir);
+            const watcher = watchers.get(ws.dir);
             expect(watcher).toBeDefined();
 
             const err = Object.assign(new Error("ENOSPC: watch limit reached"), { code: "ENOSPC" });
@@ -284,10 +275,10 @@ describe("FileTreeDataProvider", () => {
             expect(() => watcher?.emit("error", err)).not.toThrow();
 
             // Ошибка проброшена наверх с путём каталога и объектом ошибки.
-            expect(onWatchError).toHaveBeenCalledWith(tmpDir, err);
+            expect(onWatchError).toHaveBeenCalledWith(ws.dir, err);
 
             // Неудавшийся watcher убран из карты — повторное раскрытие сможет попробовать снова.
-            expect(watchers.has(tmpDir)).toBe(false);
+            expect(watchers.has(ws.dir)).toBe(false);
         });
     });
 
@@ -306,7 +297,7 @@ describe("FileTreeDataProvider", () => {
         it("clears a pending debounce timer when its directory is unwatched (lines 83-84, branch 82)", async () => {
             const callback = vi.fn();
             provider.onChange = callback;
-            provider.watchDirectory(tmpDir);
+            provider.watchDirectory(ws.dir);
             // Wait for chokidar to settle before emitting an event.
             await new Promise((r) => setTimeout(r, 500));
 
@@ -314,12 +305,12 @@ describe("FileTreeDataProvider", () => {
             const clearSpy = vi.spyOn(globalThis, "clearTimeout");
 
             // Trigger a watcher event → debouncedNotify schedules a 300ms timer.
-            fs.writeFileSync(path.join(tmpDir, "trigger.ts"), "");
+            ws.writeFile("trigger.ts", "");
             await waitForPendingDebounce(setSpy);
 
             const clearsBefore = clearSpy.mock.calls.length;
             // Unwatching while the debounce timer is pending must clear it (lines 83-84).
-            provider.unwatchDirectory(tmpDir);
+            provider.unwatchDirectory(ws.dir);
             expect(clearSpy.mock.calls.length).toBeGreaterThan(clearsBefore);
 
             // The cleared timer must never fire onChange.
@@ -333,13 +324,13 @@ describe("FileTreeDataProvider", () => {
         it("clears pending debounce timers on dispose (line 94)", async () => {
             const callback = vi.fn();
             provider.onChange = callback;
-            provider.watchDirectory(tmpDir);
+            provider.watchDirectory(ws.dir);
             await new Promise((r) => setTimeout(r, 500));
 
             const setSpy = vi.spyOn(globalThis, "setTimeout");
             const clearSpy = vi.spyOn(globalThis, "clearTimeout");
 
-            fs.writeFileSync(path.join(tmpDir, "trigger.ts"), "");
+            ws.writeFile("trigger.ts", "");
             await waitForPendingDebounce(setSpy);
 
             const clearsBefore = clearSpy.mock.calls.length;
@@ -357,17 +348,17 @@ describe("FileTreeDataProvider", () => {
         it("collapses back-to-back events into one notification (debounce reset, branch 128)", async () => {
             const callback = vi.fn();
             provider.onChange = callback;
-            provider.watchDirectory(tmpDir);
+            provider.watchDirectory(ws.dir);
             await new Promise((r) => setTimeout(r, 500));
 
             // Several rapid events: each subsequent debouncedNotify sees an existing
             // timer and clears it before re-scheduling (branch 128 true path).
-            fs.writeFileSync(path.join(tmpDir, "one.ts"), "");
-            fs.writeFileSync(path.join(tmpDir, "two.ts"), "");
-            fs.writeFileSync(path.join(tmpDir, "three.ts"), "");
+            ws.writeFile("one.ts", "");
+            ws.writeFile("two.ts", "");
+            ws.writeFile("three.ts", "");
             await new Promise((r) => setTimeout(r, 100));
-            fs.writeFileSync(path.join(tmpDir, "four.ts"), "");
-            fs.writeFileSync(path.join(tmpDir, "five.ts"), "");
+            ws.writeFile("four.ts", "");
+            ws.writeFile("five.ts", "");
 
             // Wait past the debounce window for the coalesced notification.
             await new Promise((r) => setTimeout(r, 800));

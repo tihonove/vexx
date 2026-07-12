@@ -1,11 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { Point } from "../../Common/GeometryPromitives.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
-import { RenderContext } from "../TUIElement.ts";
 
 import { BoxElement } from "./BoxElement.ts";
 import { OverlayLayer } from "./OverlayLayer.ts";
@@ -15,17 +14,9 @@ function renderLayer(
     layerHeight: number,
     setup: (layer: OverlayLayer) => void,
 ): MockTerminalBackend {
-    const size = new Size(layerWidth, layerHeight);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-
     const layer = new OverlayLayer();
-    layer.globalPosition = new Point(0, 0);
     setup(layer);
-    layer.performLayout(BoxConstraints.tight(size));
-    layer.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
+    return renderElement(layer, layerWidth, layerHeight);
 }
 
 describe("OverlayLayer", () => {
@@ -63,19 +54,12 @@ describe("OverlayLayer", () => {
     });
 
     it("does not render item after making it invisible", () => {
-        const size = new Size(10, 5);
-        const backend = new MockTerminalBackend(size);
-        const termScreen = new TerminalScreen(size);
-
         const layer = new OverlayLayer();
-        layer.globalPosition = new Point(0, 0);
         const box = new BoxElement();
         layer.addItem(box, new Point(0, 0), true);
         layer.setVisible(box, false);
 
-        layer.performLayout(BoxConstraints.tight(size));
-        layer.render(new RenderContext(termScreen));
-        termScreen.flush(backend);
+        const backend = renderElement(layer, 10, 5);
 
         const screenStr = backend.screenToString();
         expect(screenStr.includes("+")).toBe(false);

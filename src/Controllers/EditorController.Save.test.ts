@@ -1,6 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -9,6 +7,7 @@ import type { ISaveEdit } from "../Editor/ISaveParticipant.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -27,20 +26,18 @@ function createEditorController(): EditorController {
 }
 
 describe("EditorController — save participant", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-editorctrl-save-"));
+        ws = createTempWorkspace({ prefix: "vexx-editorctrl-save-" });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function writeFile(name: string, content: string): string {
-        const filePath = path.join(tmpDir, name);
-        fs.writeFileSync(filePath, content, "utf-8");
-        return filePath;
+        return ws.writeFile(name, content);
     }
 
     it("применяет текстовые правки участника перед записью", async () => {
@@ -112,7 +109,7 @@ describe("EditorController — save participant", () => {
                 { kind: "text", range: { start: { line: 0, character: 2 }, end: { line: 0, character: 5 } }, text: "" },
             ]);
 
-        const dst = path.join(tmpDir, "dst.txt");
+        const dst = ws.path("dst.txt");
         await controller.saveAs(dst);
 
         expect(fs.readFileSync(dst, "utf-8")).toBe("hi\n");

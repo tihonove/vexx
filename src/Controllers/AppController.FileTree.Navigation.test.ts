@@ -1,53 +1,40 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
-
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
 
 // End-to-end keyboard navigation in the file tree (issue #33): keys travel the real
 // path — raw escape sequence → parser → keybinding dispatch → list.* command.
 
 const FILE_COUNT = 40;
 
-function createTempWorkspace(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-tree-nav-"));
+function createWorkspace(): ITempWorkspace {
+    const ws = createTempWorkspace({ prefix: "vexx-tree-nav-" });
     for (let i = 0; i < FILE_COUNT; i++) {
-        fs.writeFileSync(path.join(dir, `file-${String(i).padStart(2, "0")}.txt`), `content ${String(i)}`);
+        ws.writeFile(`file-${String(i).padStart(2, "0")}.txt`, `content ${String(i)}`);
     }
-    return dir;
+    return ws;
 }
 
 describe("FileTree keyboard navigation — PgUp/PgDown, Home/End", () => {
-    let tmpDir: string;
-    let testApp: TestApp;
-    let controller: AppController;
+    let ws: ITempWorkspace;
+    let h: IAppHarness;
     let tree: TreeViewElement<unknown>;
 
     beforeEach(async () => {
-        tmpDir = createTempWorkspace();
-        const { container, bindApp } = createTestContainer();
-        controller = container.get(AppControllerDIToken);
-        controller.setWorkspaceFolder(tmpDir);
-        controller.mount();
-        testApp = TestApp.create(controller.view, new Size(80, 24));
-        bindApp(testApp.app);
-        await controller.activate();
-        testApp.render();
-        tree = testApp.querySelector("TreeViewElement") as unknown as TreeViewElement<unknown>;
+        ws = createWorkspace();
+        h = createAppTestHarness({ workspaceFolder: ws.dir });
+        await h.controller.activate();
+        h.testApp.render();
+        tree = h.testApp.querySelector("TreeViewElement") as unknown as TreeViewElement<unknown>;
         tree.focus();
-        testApp.render();
+        h.testApp.render();
     });
 
     afterEach(() => {
-        controller.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        h.dispose();
+        ws.dispose();
     });
 
     function selectedIndex(): number {
@@ -55,60 +42,60 @@ describe("FileTree keyboard navigation — PgUp/PgDown, Home/End", () => {
     }
 
     it("PageDown moves selection down a page", () => {
-        testApp.sendKey("PageDown");
-        testApp.render();
+        h.testApp.sendKey("PageDown");
+        h.testApp.render();
         expect(selectedIndex()).toBeGreaterThan(0);
     });
 
     it("PageUp moves selection back up", () => {
-        testApp.sendKey("PageDown");
-        testApp.render();
+        h.testApp.sendKey("PageDown");
+        h.testApp.render();
         const after = selectedIndex();
         expect(after).toBeGreaterThan(0);
 
-        testApp.sendKey("PageUp");
-        testApp.render();
+        h.testApp.sendKey("PageUp");
+        h.testApp.render();
         expect(selectedIndex()).toBeLessThan(after);
     });
 
     it("End moves selection to the last item", () => {
-        testApp.sendKey("End");
-        testApp.render();
+        h.testApp.sendKey("End");
+        h.testApp.render();
         expect(selectedIndex()).toBe(FILE_COUNT - 1);
     });
 
     it("Home moves selection back to the first item", () => {
-        testApp.sendKey("End");
-        testApp.render();
+        h.testApp.sendKey("End");
+        h.testApp.render();
         expect(selectedIndex()).toBe(FILE_COUNT - 1);
 
-        testApp.sendKey("Home");
-        testApp.render();
+        h.testApp.sendKey("Home");
+        h.testApp.render();
         expect(selectedIndex()).toBe(0);
     });
 
     it("navigation keys still work in the tree while an editor is open", () => {
-        testApp.sendKey("Enter"); // open selected file — focus moves to the editor
-        testApp.render();
+        h.testApp.sendKey("Enter"); // open selected file — focus moves to the editor
+        h.testApp.render();
         tree.focus();
-        testApp.render();
+        h.testApp.render();
 
-        testApp.sendKey("End");
-        testApp.render();
+        h.testApp.sendKey("End");
+        h.testApp.render();
         expect(selectedIndex()).toBe(FILE_COUNT - 1);
 
-        testApp.sendKey("PageUp");
-        testApp.render();
+        h.testApp.sendKey("PageUp");
+        h.testApp.render();
         expect(selectedIndex()).toBeLessThan(FILE_COUNT - 1);
     });
 
     it("kitty-encoded keys (explicit press event type) work too", () => {
-        testApp.backend.sendRaw("\x1b[6;1:1~"); // PageDown, kitty event-type syntax
-        testApp.render();
+        h.testApp.backend.sendRaw("\x1b[6;1:1~"); // PageDown, kitty event-type syntax
+        h.testApp.render();
         expect(selectedIndex()).toBeGreaterThan(0);
 
-        testApp.backend.sendRaw("\x1b[1;1:1~"); // Home
-        testApp.render();
+        h.testApp.backend.sendRaw("\x1b[1;1:1~"); // Home
+        h.testApp.render();
         expect(selectedIndex()).toBe(0);
     });
 });

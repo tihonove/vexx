@@ -1,22 +1,13 @@
 import { describe, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
-import { RenderContext } from "../TUIElement.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import { BoxElement } from "./BoxElement.ts";
 
 function renderBox(width: number, height: number): MockTerminalBackend {
-    const size = new Size(width, height);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    const box = new BoxElement();
-    box.performLayout(BoxConstraints.tight(size));
-    box.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
+    return renderElement(new BoxElement(), width, height);
 }
 
 describe("BoxElement", () => {

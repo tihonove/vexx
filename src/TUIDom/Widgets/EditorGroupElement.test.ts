@@ -1,12 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
-import { RenderContext } from "../TUIElement.ts";
 
 import { BodyElement } from "./BodyElement.ts";
 import { BoxElement } from "./BoxElement.ts";
@@ -15,17 +13,6 @@ import { EditorGroupElement } from "./EditorGroupElement.ts";
 function layoutGroup(group: EditorGroupElement, width = 40, height = 10): void {
     group.globalPosition = new Point(0, 0);
     group.performLayout(BoxConstraints.tight(new Size(width, height)));
-}
-
-function renderGroup(group: EditorGroupElement, width = 40, height = 10): MockTerminalBackend {
-    const size = new Size(width, height);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    group.globalPosition = new Point(0, 0);
-    group.performLayout(BoxConstraints.tight(size));
-    group.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
 }
 
 describe("EditorGroupElement", () => {
@@ -130,7 +117,7 @@ describe("EditorGroupElement", () => {
             ]);
             group.tabStrip.activeIndex = 0;
 
-            const backend = renderGroup(group, 40, 10);
+            const backend = renderElement(group, 40, 10);
             const firstRow = backend.getTextAt(new Point(0, 0), 40);
             expect(firstRow).toContain("file.ts");
         });
@@ -140,7 +127,7 @@ describe("EditorGroupElement", () => {
             const content = new BoxElement();
             group.setContent(content);
 
-            const backend = renderGroup(group, 10, 5);
+            const backend = renderElement(group, 10, 5);
             // BoxElement renders borders, check content area starts at row 1
             const row1 = backend.getTextAt(new Point(0, 1), 10);
             expect(row1.length).toBe(10);

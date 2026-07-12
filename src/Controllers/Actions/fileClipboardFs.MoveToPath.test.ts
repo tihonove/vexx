@@ -1,8 +1,9 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
 
 import { moveToPath } from "./fileClipboardFs.ts";
 
@@ -14,28 +15,25 @@ vi.mock("node:fs", async (importOriginal) => {
     return { ...actual, renameSync: vi.fn(actual.renameSync) };
 });
 
-let tmpDir: string;
+let ws: ITempWorkspace;
 
 beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-movetopath-"));
+    ws = createTempWorkspace({ prefix: "vexx-movetopath-" });
 });
 
 afterEach(() => {
     vi.mocked(fs.renameSync).mockClear();
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ws.dispose();
 });
 
 function write(rel: string, content = "x"): string {
-    const full = path.join(tmpDir, rel);
-    fs.mkdirSync(path.dirname(full), { recursive: true });
-    fs.writeFileSync(full, content);
-    return full;
+    return ws.writeFile(rel, content);
 }
 
 describe("moveToPath", () => {
     it("moves a file to the exact destination path", () => {
         const src = write("a.txt", "v1");
-        const dest = path.join(tmpDir, "b.txt");
+        const dest = ws.path("b.txt");
 
         moveToPath(src, dest);
 
@@ -45,8 +43,8 @@ describe("moveToPath", () => {
 
     it("falls back to copy+delete on cross-device rename (EXDEV)", () => {
         const src = write("dir/inner.txt", "deep");
-        const srcDir = path.join(tmpDir, "dir");
-        const dest = path.join(tmpDir, "moved");
+        const srcDir = ws.path("dir");
+        const dest = ws.path("moved");
         vi.mocked(fs.renameSync).mockImplementationOnce(() => {
             const error = new Error("cross-device link") as NodeJS.ErrnoException;
             error.code = "EXDEV";
@@ -62,7 +60,7 @@ describe("moveToPath", () => {
 
     it("rethrows non-EXDEV errors", () => {
         const src = write("a.txt");
-        const dest = path.join(tmpDir, "no-such-dir", "a.txt");
+        const dest = path.join(ws.dir, "no-such-dir", "a.txt");
 
         expect(() => {
             moveToPath(src, dest);

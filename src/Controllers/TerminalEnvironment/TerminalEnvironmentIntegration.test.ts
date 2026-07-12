@@ -1,13 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { Size } from "../../Common/GeometryPromitives.ts";
-import { TestApp } from "../../TestUtils/TestApp.ts";
-import { AppControllerDIToken } from "../AppController.ts";
+import { createAppTestHarness } from "../../TestUtils/AppTestHarness.ts";
 import { registerContextKeys } from "../ContextKeys.ts";
 import { ContextKeyServiceDIToken } from "../ContextKeyService.ts";
 import { TerminalBackendDIToken } from "../CoreTokens.ts";
-import { createTestContainer } from "../Modules/TestProfile.ts";
 import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironmentService.ts";
@@ -30,17 +27,13 @@ describe("Terminal environment integration (context keys + status bar)", () => {
 
     // activate() pushes the synchronously-detected env into context keys and starts the probe.
     async function setup() {
-        const { container, bindApp } = createTestContainer();
-        const controller = container.get(AppControllerDIToken); // subscribes to env changes
-        controller.mount();
-        const testApp = TestApp.create(controller.view, new Size(80, 24));
-        bindApp(testApp.app);
-        await controller.activate();
-        const contextKeys = container.get(ContextKeyServiceDIToken);
-        const statusBar = container.get(StatusBarControllerDIToken);
-        const env = container.get(TerminalEnvironmentServiceDIToken);
-        const backend = container.get(TerminalBackendDIToken) as MockTerminalBackend;
-        return { controller, contextKeys, statusBar, env, backend };
+        const h = createAppTestHarness(); // AppController subscribes to env changes
+        await h.controller.activate();
+        const contextKeys = h.container.get(ContextKeyServiceDIToken);
+        const statusBar = h.container.get(StatusBarControllerDIToken);
+        const env = h.container.get(TerminalEnvironmentServiceDIToken);
+        const backend = h.container.get(TerminalBackendDIToken) as MockTerminalBackend;
+        return { controller: h.controller, contextKeys, statusBar, env, backend };
     }
 
     it("flows a synchronously-detected kitty tier into context keys and the status bar", async () => {

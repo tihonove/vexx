@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Size } from "../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
+import { renderElement } from "../TestUtils/renderElement.ts";
 
 import { CompositeElement } from "./CompositeElement.ts";
 import type { ComponentType, JsxNode } from "./JSX/jsx-runtime.ts";
@@ -80,15 +79,9 @@ describe("CompositeElement proxy behavior (lines 72-84)", () => {
     it("renders the child shifted by the child's localPosition offset", () => {
         const comp = new MarkerComposite();
         comp.rebuild();
-        comp.globalPosition = new Point(0, 0);
-        comp.performLayout(BoxConstraints.tight(new Size(10, 3)));
 
         // After layout the child localPosition is (0,0), so the marker lands at (0,0).
-        const size = new Size(10, 3);
-        const screen = new TerminalScreen(size);
-        const backend = new MockTerminalBackend(size);
-        comp.render(new RenderContext(screen));
-        screen.flush(backend);
+        const backend = renderElement(comp, 10, 3);
 
         expect(backend.getTextAt(new Point(0, 0), 1)).toBe("M");
     });

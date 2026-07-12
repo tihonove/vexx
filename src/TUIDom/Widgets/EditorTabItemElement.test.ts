@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
-import { RenderContext } from "../TUIElement.ts";
 
 import { EditorTabItemElement } from "./EditorTabItemElement.ts";
 
@@ -15,13 +14,7 @@ const jsIcon = getFileIcon("app.js");
 
 function renderTab(tab: EditorTabItemElement, width?: number): { backend: MockTerminalBackend; text: string } {
     const intrinsicWidth = width ?? tab.getMaxIntrinsicWidth(1);
-    const size = new Size(intrinsicWidth, 1);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    tab.globalPosition = new Point(0, 0);
-    tab.performLayout(BoxConstraints.tight(size));
-    tab.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
+    const backend = renderElement(tab, intrinsicWidth, 1);
     const text = backend.getTextAt(new Point(0, 0), intrinsicWidth);
     return { backend, text };
 }

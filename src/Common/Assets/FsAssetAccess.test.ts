@@ -1,24 +1,30 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+
 import { FsAssetAccess } from "./FsAssetAccess.ts";
 
 describe("FsAssetAccess", () => {
+    let ws: ITempWorkspace;
     let root: string;
 
     beforeEach(() => {
-        root = mkdtempSync(join(tmpdir(), "vexx-fs-asset-"));
-        mkdirSync(join(root, "ext", "ts", "syntaxes"), { recursive: true });
-        writeFileSync(join(root, "ext", "ts", "package.json"), '{"name":"ts"}');
-        writeFileSync(join(root, "ext", "ts", "syntaxes", "ts.tmLanguage.json"), "{}");
+        ws = createTempWorkspace({
+            prefix: "vexx-fs-asset-",
+            files: {
+                "ext/ts/package.json": '{"name":"ts"}',
+                "ext/ts/syntaxes/ts.tmLanguage.json": "{}",
+            },
+        });
+        root = ws.dir;
         writeFileSync(join(root, "onig.wasm"), Buffer.from([1, 2, 3]));
     });
 
     afterEach(() => {
-        // best-effort cleanup; tmp will be reaped anyway
+        ws.dispose();
     });
 
     it("читает текстовые ассеты по prefix-mapping", async () => {

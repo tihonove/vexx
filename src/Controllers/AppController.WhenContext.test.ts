@@ -1,61 +1,38 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-import { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
+import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
+import type { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
-
-interface IntegrationContext {
-    testApp: TestApp;
-    controller: AppController;
-    contextKeys: ContextKeyService;
-    tmpDir: string;
-}
-
-function createIntegrationApp(tmpDir: string, size: Size = new Size(80, 40)): IntegrationContext {
-    const { container, bindApp } = createTestContainer();
-
-    const controller = container.get(AppControllerDIToken);
-    controller.setWorkspaceFolder(tmpDir);
-    controller.mount();
-
-    const testApp = TestApp.create(controller.view, size);
-    bindApp(testApp.app);
-
-    const contextKeys = container.get(ContextKeyServiceDIToken);
-
-    return { testApp, controller, contextKeys, tmpDir };
-}
 
 describe("AppController when-context integration", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
+
+    function createIntegrationApp(): IAppHarness {
+        return createAppTestHarness({ workspaceFolder: ws.dir, size: new Size(80, 40) });
+    }
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-when-"));
+        ws = createTempWorkspace({ prefix: "vexx-when-" });
         // Create enough files so the tree has items to page through
         for (let i = 0; i < 30; i++) {
-            fs.writeFileSync(path.join(tmpDir, `file-${String(i).padStart(2, "0")}.txt`), `content ${String(i)}`);
+            ws.writeFile(`file-${String(i).padStart(2, "0")}.txt`, `content ${String(i)}`);
         }
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     it("sets textInputFocus when editor is focused", () => {
-        const { controller, contextKeys } = createIntegrationApp(tmpDir);
-        controller.openFile(path.join(tmpDir, "file-00.txt"));
-        controller.focusEditor();
+        const h = createIntegrationApp();
+        const contextKeys = h.container.get(ContextKeyServiceDIToken);
+        h.controller.openFile(ws.path("file-00.txt"));
+        h.controller.focusEditor();
 
         expect(contextKeys.get("textInputFocus")).toBe(true);
         expect(contextKeys.get("listFocus")).toBe(false);
@@ -64,10 +41,11 @@ describe("AppController when-context integration", () => {
     });
 
     it("sets listFocus when tree is focused", async () => {
-        const { testApp, controller, contextKeys } = createIntegrationApp(tmpDir);
-        await controller.activate();
+        const h = createIntegrationApp();
+        const contextKeys = h.container.get(ContextKeyServiceDIToken);
+        await h.controller.activate();
 
-        const tree = testApp.querySelector("TreeViewElement");
+        const tree = h.testApp.querySelector("TreeViewElement");
         expect(tree).not.toBeNull();
         tree!.focus();
 
@@ -76,76 +54,75 @@ describe("AppController when-context integration", () => {
     });
 
     it("PageDown moves cursor in editor when editor is focused", () => {
-        const { testApp, controller } = createIntegrationApp(tmpDir);
+        const h = createIntegrationApp();
 
         // Create a file with many lines
-        const longFile = path.join(tmpDir, "long.txt");
         const lines = Array.from({ length: 100 }, (_, i) => `line ${String(i)}`);
-        fs.writeFileSync(longFile, lines.join("\n"));
+        const longFile = ws.writeFile("long.txt", lines.join("\n"));
 
-        controller.openFile(longFile);
-        controller.focusEditor();
+        h.controller.openFile(longFile);
+        h.controller.focusEditor();
 
-        const editor = testApp.querySelector("EditorElement") as EditorElement;
+        const editor = h.testApp.querySelector("EditorElement") as EditorElement;
         expect(editor).not.toBeNull();
         expect(editor.viewState.selections[0].active.line).toBe(0);
 
-        testApp.sendKey("PageDown");
+        h.testApp.sendKey("PageDown");
 
         expect(editor.viewState.selections[0].active.line).toBeGreaterThan(0);
     });
 
     it("PageDown moves selection in tree when tree is focused", async () => {
-        const { testApp, controller } = createIntegrationApp(tmpDir);
-        await controller.activate();
+        const h = createIntegrationApp();
+        await h.controller.activate();
 
-        const tree = testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
+        const tree = h.testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
         expect(tree).not.toBeNull();
         expect(tree.contentHeight).toBeGreaterThan(0);
 
         tree.focus();
-        testApp.render();
+        h.testApp.render();
 
-        testApp.sendKey("PageDown");
+        h.testApp.sendKey("PageDown");
 
         // After PageDown, the tree should have scrolled
         expect(tree.scrollTop).toBeGreaterThanOrEqual(0);
     });
 
     it("PageDown in editor does NOT move tree selection", async () => {
-        const { testApp, controller } = createIntegrationApp(tmpDir);
-        await controller.activate();
+        const h = createIntegrationApp();
+        await h.controller.activate();
 
-        const longFile = path.join(tmpDir, "long.txt");
         const lines = Array.from({ length: 100 }, (_, i) => `line ${String(i)}`);
-        fs.writeFileSync(longFile, lines.join("\n"));
+        const longFile = ws.writeFile("long.txt", lines.join("\n"));
 
-        controller.openFile(longFile);
-        controller.focusEditor();
+        h.controller.openFile(longFile);
+        h.controller.focusEditor();
 
-        const tree = testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
+        const tree = h.testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
         const initialTreeScrollTop = tree.scrollTop;
 
-        testApp.sendKey("PageDown");
+        h.testApp.sendKey("PageDown");
 
         // Tree should not have changed
         expect(tree.scrollTop).toBe(initialTreeScrollTop);
     });
 
     it("context keys update correctly when switching focus", () => {
-        const { testApp, controller, contextKeys } = createIntegrationApp(tmpDir);
-        controller.openFile(path.join(tmpDir, "file-00.txt"));
-        controller.openFile(path.join(tmpDir, "file-01.txt"));
+        const h = createIntegrationApp();
+        const contextKeys = h.container.get(ContextKeyServiceDIToken);
+        h.controller.openFile(ws.path("file-00.txt"));
+        h.controller.openFile(ws.path("file-01.txt"));
 
         // Focus editor
-        controller.focusEditor();
+        h.controller.focusEditor();
         expect(contextKeys.get("textInputFocus")).toBe(true);
         expect(contextKeys.get("listFocus")).toBe(false);
         expect(contextKeys.get("editorGroupHasEditors")).toBe(true);
         expect(contextKeys.get("editorTabsMultiple")).toBe(true);
 
         // Focus tree
-        const tree = testApp.querySelector("TreeViewElement");
+        const tree = h.testApp.querySelector("TreeViewElement");
         tree!.focus();
         expect(contextKeys.get("textInputFocus")).toBe(false);
         expect(contextKeys.get("listFocus")).toBe(true);
@@ -153,7 +130,7 @@ describe("AppController when-context integration", () => {
         expect(contextKeys.get("editorTabsMultiple")).toBe(true);
 
         // Focus editor again
-        controller.focusEditor();
+        h.controller.focusEditor();
         expect(contextKeys.get("textInputFocus")).toBe(true);
         expect(contextKeys.get("listFocus")).toBe(false);
         expect(contextKeys.get("editorGroupHasEditors")).toBe(true);
@@ -161,20 +138,20 @@ describe("AppController when-context integration", () => {
     });
 
     it("Ctrl+Tab does not switch tabs when tree has focus", async () => {
-        const { testApp, controller } = createIntegrationApp(tmpDir);
-        await controller.activate();
+        const h = createIntegrationApp();
+        await h.controller.activate();
 
-        controller.openFile(path.join(tmpDir, "file-00.txt"));
-        controller.openFile(path.join(tmpDir, "file-01.txt"));
-        controller.focusEditor();
+        h.controller.openFile(ws.path("file-00.txt"));
+        h.controller.openFile(ws.path("file-01.txt"));
+        h.controller.focusEditor();
 
-        const tabStrip = testApp.querySelector("EditorTabStripElement") as EditorTabStripElement;
+        const tabStrip = h.testApp.querySelector("EditorTabStripElement") as EditorTabStripElement;
         expect(tabStrip.activeIndex).toBe(1);
 
-        const tree = testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
+        const tree = h.testApp.querySelector("TreeViewElement") as TreeViewElement<unknown>;
         tree.focus();
 
-        testApp.sendKey("Ctrl+Tab");
+        h.testApp.sendKey("Ctrl+Tab");
 
         expect(tabStrip.activeIndex).toBe(1);
     });

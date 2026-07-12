@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { Point } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { RenderContext } from "../TUIElement.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import { InputElement } from "./InputElement.ts";
 import { InputState } from "./InputState.ts";
@@ -12,19 +11,9 @@ import { InputState } from "./InputState.ts";
 const SELECTION_BG = packRgb(0x26, 0x4f, 0x78); // #264F78
 const INPUT_BG = packRgb(60, 60, 60);
 
-function renderInput(input: InputElement, width: number): { backend: MockTerminalBackend; termScreen: TerminalScreen } {
+function renderInput(input: InputElement, width: number): MockTerminalBackend {
     const height = input.showBorder ? 3 : 1;
-    const size = new Size(width, height);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-
-    input.globalPosition = new Point(0, 0);
-    input.performLayout(BoxConstraints.tight(size));
-
-    const clip = new Rect(new Point(0, 0), size);
-    input.render(new RenderContext(termScreen, new Offset(0, 0), clip));
-    termScreen.flush(backend);
-    return { backend, termScreen };
+    return renderElement(input, width, height);
 }
 
 describe("InputElement — getMinIntrinsicWidth", () => {
@@ -47,7 +36,7 @@ describe("InputElement — selection rendering", () => {
         state.selectAll();
         const input = new InputElement(state);
 
-        const { backend } = renderInput(input, 20);
+        const backend = renderInput(input, 20);
 
         expect(backend.getTextAt(new Point(0, 0), 5)).toBe("hello");
     });
@@ -58,7 +47,7 @@ describe("InputElement — selection rendering", () => {
         state.selectAll();
         const input = new InputElement(state);
 
-        const { backend } = renderInput(input, 20);
+        const backend = renderInput(input, 20);
 
         for (let x = 0; x < 5; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(SELECTION_BG);
@@ -74,7 +63,7 @@ describe("InputElement — selection rendering", () => {
         state.selectLeft();
         const input = new InputElement(state);
 
-        const { backend } = renderInput(input, 20);
+        const backend = renderInput(input, 20);
 
         // Whole text still rendered.
         expect(backend.getTextAt(new Point(0, 0), 6)).toBe("abcdef");
@@ -99,7 +88,7 @@ describe("InputElement — selection rendering", () => {
         state.selectRight();
         const input = new InputElement(state);
 
-        const { backend } = renderInput(input, 20);
+        const backend = renderInput(input, 20);
 
         expect(backend.getTextAt(new Point(0, 0), 6)).toBe("abcdef");
 
@@ -123,7 +112,7 @@ describe("InputElement — selection rendering", () => {
         state.selectRight(); // selects "bcd"
         const input = new InputElement(state);
 
-        const { backend } = renderInput(input, 20);
+        const backend = renderInput(input, 20);
 
         expect(backend.getTextAt(new Point(0, 0), 6)).toBe("abcdef");
         // before "a"
@@ -146,7 +135,7 @@ describe("InputElement — selection rendering", () => {
         state.selectRight(); // selects "ab" from offset 0
         const input = new InputElement(state);
 
-        const { backend } = renderInput(input, 20);
+        const backend = renderInput(input, 20);
 
         expect(backend.getTextAt(new Point(0, 0), 6)).toBe("abcdef");
         // selected "ab"
@@ -163,7 +152,7 @@ describe("InputElement — selection rendering", () => {
         state.selectLeft(); // selects "ef" up to the end
         const input = new InputElement(state);
 
-        const { backend } = renderInput(input, 20);
+        const backend = renderInput(input, 20);
 
         expect(backend.getTextAt(new Point(0, 0), 6)).toBe("abcdef");
         // before "abcd"
@@ -181,7 +170,7 @@ describe("InputElement — selection rendering", () => {
         const input = new InputElement(state);
         input.showBorder = true;
 
-        const { backend } = renderInput(input, 12);
+        const backend = renderInput(input, 12);
 
         // Inner content starts at column 1, row 1.
         expect(backend.getTextAt(new Point(1, 1), 4)).toBe("wxyz");
@@ -198,7 +187,7 @@ describe("InputElement — horizontal scroll mid-text", () => {
         const input = new InputElement(state);
 
         // Render in a narrow viewport — cursor at end forces scrollX > 0.
-        const { backend } = renderInput(input, 5);
+        const backend = renderInput(input, 5);
         const rowAtEnd = backend.getTextAt(new Point(0, 0), 5);
         // End of text must be visible, beginning scrolled off.
         expect(rowAtEnd).toContain("J");
@@ -207,7 +196,7 @@ describe("InputElement — horizontal scroll mid-text", () => {
         // Now move the cursor back to the start; re-render reuses the same element
         // so scrollX must shift back left to reveal the beginning.
         state.moveCursorToStart();
-        const { backend: backend2 } = renderInput(input, 5);
+        const backend2 = renderInput(input, 5);
         const rowAtStart = backend2.getTextAt(new Point(0, 0), 5);
         expect(rowAtStart).toContain("A");
         expect(rowAtStart).not.toContain("J");

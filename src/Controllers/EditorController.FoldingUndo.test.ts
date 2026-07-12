@@ -1,13 +1,10 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createCursorSelection } from "../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -24,18 +21,17 @@ function regionAt(ctrl: EditorController, startLine: number) {
 }
 
 describe("EditorController – undo/redo × folding", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-foldundo-"));
+        ws = createTempWorkspace({ prefix: "vexx-foldundo-" });
     });
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function open(content: string): EditorController {
-        const filePath = path.join(tmpDir, "doc.txt");
-        fs.writeFileSync(filePath, content, "utf-8");
+        const filePath = ws.writeFile("doc.txt", content);
         const ctrl = new EditorController(
             new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
             new TokenizationRegistry(),

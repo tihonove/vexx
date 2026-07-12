@@ -1,6 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -8,6 +6,7 @@ import type { IDisposable } from "../Common/Disposable.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -45,20 +44,18 @@ function createEditorController(): EditorController {
 }
 
 describe("EditorController — external change detection", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-diskwatch-"));
+        ws = createTempWorkspace({ prefix: "vexx-diskwatch-" });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function writeFile(name: string, content: string): string {
-        const filePath = path.join(tmpDir, name);
-        fs.writeFileSync(filePath, content, "utf-8");
-        return filePath;
+        return ws.writeFile(name, content);
     }
 
     describe("save conflict guard", () => {
@@ -115,7 +112,7 @@ describe("EditorController — external change detection", () => {
 
         it("creates a file that did not exist on disk at open time", async () => {
             const controller = createEditorController();
-            const fp = path.join(tmpDir, "fresh.txt"); // does not exist yet
+            const fp = ws.path("fresh.txt"); // does not exist yet
             controller.openFile(fp);
             controller.viewState.type("brand new\n");
 

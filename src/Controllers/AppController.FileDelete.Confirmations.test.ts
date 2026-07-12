@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -8,6 +7,7 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
@@ -16,16 +16,15 @@ import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 let savedXdg: string | undefined;
-let tmpDir: string;
+let ws: ITempWorkspace;
 
 // Дерево: dirs-first → row 0 = "target/", row 1 = "a.txt".
-function createWorkspace(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-del-confirm-"));
-    fs.mkdirSync(path.join(dir, "target"));
-    fs.writeFileSync(path.join(dir, "a.txt"), "hello");
+function createWorkspace(): ITempWorkspace {
+    const workspace = createTempWorkspace({ prefix: "vexx-del-confirm-", files: { "a.txt": "hello" } });
+    fs.mkdirSync(workspace.path("target"));
     // Изолированная корзина, чтобы не трогать ~/.local.
-    process.env.XDG_DATA_HOME = path.join(dir, ".xdg");
-    return dir;
+    process.env.XDG_DATA_HOME = workspace.path(".xdg");
+    return workspace;
 }
 
 /** Конфиг-стаб: заданные ключи возвращают свои значения, остальные — default. */
@@ -45,6 +44,9 @@ interface Ctx {
     commands: CommandRegistry;
 }
 
+// Не через createAppTestHarness: конфиг-стаб должен быть забинжен ДО резолва
+// AppController (контроллер читает IConfigurationService в конструкторе,
+// а контейнер кэширует уже созданные сервисы).
 function createApp(workspaceDir: string | null, config?: IConfigurationService): Ctx {
     const { container, bindApp } = createTestContainer();
     if (config) {
@@ -60,11 +62,11 @@ function createApp(workspaceDir: string | null, config?: IConfigurationService):
 
 beforeEach(() => {
     savedXdg = process.env.XDG_DATA_HOME;
-    tmpDir = createWorkspace();
+    ws = createWorkspace();
 });
 
 afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ws.dispose();
     if (savedXdg === undefined) delete process.env.XDG_DATA_HOME;
     else process.env.XDG_DATA_HOME = savedXdg;
 });
@@ -80,9 +82,9 @@ const flush = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
 describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer.confirmDelete", () => {
     it("deletes to trash immediately when explorer.confirmDelete=false", async () => {
-        const ctx = createApp(tmpDir, stubConfig({ "explorer.confirmDelete": false }));
+        const ctx = createApp(ws.dir, stubConfig({ "explorer.confirmDelete": false }));
         await activate(ctx);
-        const alpha = path.join(tmpDir, "a.txt");
+        const alpha = ws.path("a.txt");
 
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
@@ -94,9 +96,9 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
 
     it("treats a missing confirmDelete setting as true and asks", async () => {
         // Конфиг возвращает undefined для всех ключей — сервис должен подставить true сам.
-        const ctx = createApp(tmpDir, { ...NULL_CONFIGURATION_SERVICE, get: () => undefined });
+        const ctx = createApp(ws.dir, { ...NULL_CONFIGURATION_SERVICE, get: () => undefined });
         await activate(ctx);
-        const alpha = path.join(tmpDir, "a.txt");
+        const alpha = ws.path("a.txt");
 
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
@@ -107,9 +109,9 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
     });
 
     it("cancelling the dialog keeps the file", async () => {
-        const ctx = createApp(tmpDir);
+        const ctx = createApp(ws.dir);
         await activate(ctx);
-        const alpha = path.join(tmpDir, "a.txt");
+        const alpha = ws.path("a.txt");
 
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
@@ -124,9 +126,9 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
     });
 
     it("deleteFile without an argument deletes the tree selection", async () => {
-        const ctx = createApp(tmpDir);
+        const ctx = createApp(ws.dir);
         await activate(ctx);
-        const alpha = path.join(tmpDir, "a.txt");
+        const alpha = ws.path("a.txt");
 
         ctx.testApp.sendKey("ArrowDown"); // курсор на a.txt
         ctx.commands.execute("fileOperations.deleteFile");
@@ -144,9 +146,9 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
 
 describe("Delete confirmations — permanent delete (no trash)", () => {
     it("warns about permanent deletion and defaults to Cancel", async () => {
-        const ctx = createApp(tmpDir, stubConfig({ "files.enableTrash": false }));
+        const ctx = createApp(ws.dir, stubConfig({ "files.enableTrash": false }));
         await activate(ctx);
-        const alpha = path.join(tmpDir, "a.txt");
+        const alpha = ws.path("a.txt");
 
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
@@ -163,9 +165,9 @@ describe("Delete confirmations — permanent delete (no trash)", () => {
     });
 
     it("confirming deletes permanently and records nothing to undo", async () => {
-        const ctx = createApp(tmpDir, stubConfig({ "files.enableTrash": false }));
+        const ctx = createApp(ws.dir, stubConfig({ "files.enableTrash": false }));
         await activate(ctx);
-        const alpha = path.join(tmpDir, "a.txt");
+        const alpha = ws.path("a.txt");
 
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
@@ -185,7 +187,7 @@ describe("Delete confirmations — permanent delete (no trash)", () => {
 
 describe.skipIf(process.platform !== "linux")("Workspace undo — confirmation edge cases", () => {
     it("undo with an empty history is a no-op", async () => {
-        const ctx = createApp(tmpDir);
+        const ctx = createApp(ws.dir);
         await activate(ctx);
 
         expect(() => ctx.commands.execute("fileOperations.undo")).not.toThrow();
@@ -195,7 +197,7 @@ describe.skipIf(process.platform !== "linux")("Workspace undo — confirmation e
     });
 
     it("treats a missing confirmUndo setting as true and asks before a destructive undo", async () => {
-        const ctx = createApp(tmpDir, { ...NULL_CONFIGURATION_SERVICE, get: () => undefined });
+        const ctx = createApp(ws.dir, { ...NULL_CONFIGURATION_SERVICE, get: () => undefined });
         await activate(ctx);
 
         // Копируем и вставляем a.txt в target/ — undo такой операции деструктивен.
@@ -203,7 +205,7 @@ describe.skipIf(process.platform !== "linux")("Workspace undo — confirmation e
         ctx.commands.execute("fileOperations.copy");
         ctx.testApp.sendKey("ArrowUp"); // target/
         ctx.commands.execute("fileOperations.paste");
-        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(path.join(ws.dir, "target", "a.txt"))).toBe(true);
 
         ctx.commands.execute("fileOperations.undo");
         ctx.testApp.render();
@@ -243,13 +245,13 @@ describe("File operations without a workspace root (empty selection)", () => {
 
 describe.skipIf(process.platform !== "linux")("Workspace redo — empty history", () => {
     it("redo with an empty history is a no-op", async () => {
-        const ctx = createApp(tmpDir);
+        const ctx = createApp(ws.dir);
         await activate(ctx);
 
         expect(() => ctx.commands.execute("fileOperations.redo")).not.toThrow();
         await flush();
         // Файлы на месте, ничего не «повторилось».
-        expect(fs.existsSync(path.join(tmpDir, "a.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("a.txt"))).toBe(true);
         ctx.controller.dispose();
     });
 });

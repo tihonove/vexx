@@ -1,25 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { Point } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { RenderContext } from "../TUIElement.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import { BoxContainer, BoxContainerElement } from "./BoxContainerElement.ts";
 import { BoxElement } from "./BoxElement.ts";
-
-function render(el: BoxContainerElement, width: number, height: number): MockTerminalBackend {
-    const size = new Size(width, height);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-
-    el.globalPosition = new Point(0, 0);
-    el.performLayout(BoxConstraints.tight(size));
-    el.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
-}
 
 describe("BoxContainer JSX adapter", () => {
     it("applies every prop to the created element and adopts the child", () => {
@@ -41,7 +27,7 @@ describe("BoxContainer JSX adapter", () => {
         expect(el).toBeInstanceOf(BoxContainerElement);
         expect(el.getChildren()).toEqual([child]);
 
-        const backend = render(el, 8, 6);
+        const backend = renderElement(el, 8, 6);
 
         // Border corner uses borderFg over the configured background.
         expect(backend.getTextAt(new Point(0, 0), 1)).toBe("╭");

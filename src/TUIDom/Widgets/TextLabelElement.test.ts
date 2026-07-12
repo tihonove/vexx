@@ -1,23 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { Point } from "../../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
-import { RenderContext } from "../TUIElement.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import { TextLabel, TextLabelElement } from "./TextLabelElement.ts";
 
 function render(label: TextLabelElement, width: number): MockTerminalBackend {
-    const size = new Size(width, 1);
-    const screen = new TerminalScreen(size);
-    const backend = new MockTerminalBackend(size);
-    label.globalPosition = new Point(0, 0);
-    label.performLayout(BoxConstraints.tight(size));
-    label.performStyleResolution(label.resolvedStyle);
-    label.render(new RenderContext(screen));
-    screen.flush(backend);
-    return backend;
+    return renderElement(label, width, 1, { resolveStyles: true });
 }
 
 describe("TextLabelElement", () => {

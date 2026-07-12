@@ -1,13 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
-import { RenderContext } from "../TUIElement.ts";
 
 import { ButtonElement } from "./ButtonElement.ts";
 
@@ -19,15 +18,7 @@ const BUTTON_SEL_BG = packRgb(0, 120, 215);
 const BUTTON_SEL_HOVER_BG = packRgb(26, 134, 224);
 
 function renderStandalone(button: ButtonElement): MockTerminalBackend {
-    const w = button.getMaxIntrinsicWidth(0);
-    const size = new Size(w, 1);
-    const backend = new MockTerminalBackend(size);
-    const termScreen = new TerminalScreen(size);
-    button.globalPosition = new Point(0, 0);
-    button.performLayout(BoxConstraints.tight(size));
-    button.render(new RenderContext(termScreen));
-    termScreen.flush(backend);
-    return backend;
+    return renderElement(button, button.getMaxIntrinsicWidth(0), 1);
 }
 
 describe("ButtonElement — metadata & layout", () => {

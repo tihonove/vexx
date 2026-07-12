@@ -1,11 +1,8 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
@@ -13,27 +10,15 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { FileTreeController } from "./FileTreeController.ts";
 
-function createTempDir(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-ctrl-test-"));
-    fs.mkdirSync(path.join(dir, "src"));
-    fs.writeFileSync(path.join(dir, "src", "main.ts"), "");
-    fs.writeFileSync(path.join(dir, "README.md"), "");
-    return dir;
-}
-
-function cleanupDir(dirPath: string): void {
-    fs.rmSync(dirPath, { recursive: true, force: true });
-}
-
 describe("FileTreeController", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
     let controller: FileTreeController;
     let app: TestApp;
 
     beforeEach(async () => {
-        tmpDir = createTempDir();
+        ws = createTempWorkspace({ prefix: "vexx-ctrl-test-", files: { "src/main.ts": "", "README.md": "" } });
         controller = new FileTreeController();
-        controller.setRootPath(tmpDir);
+        controller.setRootPath(ws.dir);
         controller.mount();
         app = TestApp.createWithContent(controller.view, new Size(30, 10));
         controller.focus();
@@ -43,7 +28,7 @@ describe("FileTreeController", () => {
 
     afterEach(() => {
         controller.dispose();
-        cleanupDir(tmpDir);
+        ws.dispose();
     });
 
     it("creates a view element", () => {
@@ -110,7 +95,7 @@ describe("FileTreeController", () => {
         app.render();
         app.sendKey("Enter");
         app.render();
-        expect(activated).toEqual([path.join(tmpDir, "README.md")]);
+        expect(activated).toEqual([ws.path("README.md")]);
     });
 
     it("activating a file node fires onFileActivate with its path", () => {
@@ -126,7 +111,7 @@ describe("FileTreeController", () => {
         app.render();
 
         expect(activated).toHaveLength(1);
-        expect(activated[0]).toBe(path.join(tmpDir, "README.md"));
+        expect(activated[0]).toBe(ws.path("README.md"));
     });
 
     it("cleans up on dispose", () => {
@@ -136,7 +121,7 @@ describe("FileTreeController", () => {
 
     it("exposes the root path via getRootPath/hasRootPath", () => {
         expect(controller.hasRootPath()).toBe(true);
-        expect(controller.getRootPath()).toBe(tmpDir);
+        expect(controller.getRootPath()).toBe(ws.dir);
     });
 
     it("expanding then collapsing a directory still renders the tree (watch/unwatch)", async () => {
@@ -172,9 +157,9 @@ describe("FileTreeController", () => {
             }
         ).provider;
         const err = new Error("ENOSPC: watch limit reached");
-        provider.onWatchError?.(path.join(tmpDir, "src"), err);
+        provider.onWatchError?.(ws.path("src"), err);
 
-        expect(seen).toEqual([{ dirPath: path.join(tmpDir, "src"), error: err }]);
+        expect(seen).toEqual([{ dirPath: ws.path("src"), error: err }]);
     });
 });
 
@@ -193,37 +178,31 @@ describe("FileTreeController — clipboard helpers before a root is assigned", (
     });
 
     it("paste target falls back to the root when the tree is empty", async () => {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-ctrl-empty-"));
+        const ws = createTempWorkspace({ prefix: "vexx-ctrl-empty-" });
         const controller = new FileTreeController();
-        controller.setRootPath(dir);
+        controller.setRootPath(ws.dir);
         controller.mount();
         await controller.activate();
 
-        expect(controller.getPasteTargetDir()).toBe(dir);
+        expect(controller.getPasteTargetDir()).toBe(ws.dir);
 
         controller.dispose();
-        cleanupDir(dir);
+        ws.dispose();
     });
 });
 
 describe("FileTreeController — setRootPath after mount", () => {
-    let dirA: string;
-    let dirB: string;
-
-    function makeDir(prefix: string, fileName: string): string {
-        const dir = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-        fs.writeFileSync(path.join(dir, fileName), "");
-        return dir;
-    }
+    let wsA: ITempWorkspace;
+    let wsB: ITempWorkspace;
 
     beforeEach(() => {
-        dirA = makeDir("vexx-ctrl-a-", "alpha.ts");
-        dirB = makeDir("vexx-ctrl-b-", "beta.ts");
+        wsA = createTempWorkspace({ prefix: "vexx-ctrl-a-", files: { "alpha.ts": "" } });
+        wsB = createTempWorkspace({ prefix: "vexx-ctrl-b-", files: { "beta.ts": "" } });
     });
 
     afterEach(() => {
-        cleanupDir(dirA);
-        cleanupDir(dirB);
+        wsA.dispose();
+        wsB.dispose();
     });
 
     it("wires events for a root assigned after mount() and reflects the new root", async () => {
@@ -231,7 +210,7 @@ describe("FileTreeController — setRootPath after mount", () => {
         // mount() first, while there is no tree yet (tree-less mount path).
         controller.mount();
         // Assigning the root after mount must wire tree events (line 48 / branch 47).
-        controller.setRootPath(dirB);
+        controller.setRootPath(wsB.dir);
 
         const app = TestApp.createWithContent(controller.view, new Size(30, 10));
         controller.focus();
@@ -243,11 +222,11 @@ describe("FileTreeController — setRootPath after mount", () => {
             activated.push(filePath);
         };
 
-        // The single file in dirB must be selectable and openable — proving events wired.
+        // The single file in wsB must be selectable and openable — proving events wired.
         expect(app.backend.screenToString()).toContain("beta.ts");
         app.sendKey("Enter");
         app.render();
-        expect(activated).toEqual([path.join(dirB, "beta.ts")]);
+        expect(activated).toEqual([wsB.path("beta.ts")]);
 
         controller.dispose();
     });
@@ -258,7 +237,7 @@ describe("FileTreeController — setRootPath after mount", () => {
         // No tree yet → refresh() takes the guarded no-op path (branch 74).
         await expect(controller.refresh()).resolves.toBeUndefined();
 
-        controller.setRootPath(dirA);
+        controller.setRootPath(wsA.dir);
         const app = TestApp.createWithContent(controller.view, new Size(30, 10));
         await controller.activate();
         // refresh() with a tree present re-reads the directory.
@@ -271,15 +250,14 @@ describe("FileTreeController — setRootPath after mount", () => {
 });
 
 describe("FileTreeController with ThemeService", () => {
-    let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-ctrl-test-"));
-        fs.writeFileSync(path.join(tmpDir, "index.ts"), "");
+        ws = createTempWorkspace({ prefix: "vexx-ctrl-test-", files: { "index.ts": "" } });
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     it("applies sideBar.background from theme after setRootPath", async () => {
@@ -289,7 +267,7 @@ describe("FileTreeController with ThemeService", () => {
         };
         const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(themeFile));
         const controller = new FileTreeController(themeService);
-        controller.setRootPath(tmpDir);
+        controller.setRootPath(ws.dir);
         controller.mount();
 
         const app = TestApp.createWithContent(controller.view, new Size(30, 10));
@@ -307,7 +285,7 @@ describe("FileTreeController with ThemeService", () => {
         const initialTheme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
         const themeService = new ThemeService(initialTheme);
         const controller = new FileTreeController(themeService);
-        controller.setRootPath(tmpDir);
+        controller.setRootPath(ws.dir);
         controller.mount();
 
         const newBg = packRgb(0x40, 0x40, 0x40);
@@ -332,7 +310,7 @@ describe("FileTreeController with ThemeService", () => {
         const bareThemeFile = { ...darkPlusTheme, colors: {} };
         const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(bareThemeFile));
         const controller = new FileTreeController(themeService);
-        controller.setRootPath(tmpDir);
+        controller.setRootPath(ws.dir);
         controller.mount();
 
         const app = TestApp.createWithContent(controller.view, new Size(30, 10));

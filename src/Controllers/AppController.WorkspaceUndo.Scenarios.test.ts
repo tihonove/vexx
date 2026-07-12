@@ -1,48 +1,31 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { AppController } from "./AppController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
 
 let savedXdg: string | undefined;
 
-function createWorkspace(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-wsundo-scen-"));
-    fs.mkdirSync(path.join(dir, "target"));
-    fs.writeFileSync(path.join(dir, "a.txt"), "AAA");
-    fs.writeFileSync(path.join(dir, "b.txt"), "BBB");
-    fs.writeFileSync(path.join(dir, "doc.txt"), "");
+function createWorkspace(): ITempWorkspace {
+    const ws = createTempWorkspace({
+        prefix: "vexx-wsundo-scen-",
+        files: {
+            "a.txt": "AAA",
+            "b.txt": "BBB",
+            "doc.txt": "",
+        },
+    });
+    fs.mkdirSync(ws.path("target"));
     // Изолированная корзина под этот тест — удаление обратимо и не трогает ~/.local.
-    process.env.XDG_DATA_HOME = path.join(dir, ".xdg");
-    return dir;
+    process.env.XDG_DATA_HOME = ws.path(".xdg");
+    return ws;
 }
 
 const flush = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
-
-interface Ctx {
-    testApp: TestApp;
-    controller: AppController;
-    commands: CommandRegistry;
-}
-
-function createApp(tmpDir: string): Ctx {
-    const { container, bindApp } = createTestContainer();
-    const controller = container.get(AppControllerDIToken);
-    controller.setWorkspaceFolder(tmpDir);
-    controller.mount();
-    const testApp = TestApp.create(controller.view, new Size(80, 24));
-    bindApp(testApp.app);
-    return { testApp, controller, commands: container.get(CommandRegistryDIToken) };
-}
 
 function activeEditorText(controller: AppController): string {
     const group = (controller as unknown as { editorGroupController: EditorGroupController }).editorGroupController;
@@ -50,107 +33,107 @@ function activeEditorText(controller: AppController): string {
 }
 
 describe("Explorer undo/redo scenarios", () => {
-    let tmpDir: string;
-    let ctx: Ctx;
+    let ws: ITempWorkspace;
+    let h: IAppHarness;
 
     beforeEach(async () => {
         savedXdg = process.env.XDG_DATA_HOME;
-        tmpDir = createWorkspace();
-        ctx = createApp(tmpDir);
-        await ctx.controller.activate();
-        ctx.testApp.render();
-        ctx.testApp.querySelector("TreeViewElement")!.focus();
-        ctx.testApp.render();
+        ws = createWorkspace();
+        h = createAppTestHarness({ workspaceFolder: ws.dir });
+        await h.controller.activate();
+        h.testApp.render();
+        h.testApp.querySelector("TreeViewElement")!.focus();
+        h.testApp.render();
     });
 
     afterEach(() => {
-        ctx.controller.dispose();
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        h.dispose();
+        ws.dispose();
         if (savedXdg === undefined) delete process.env.XDG_DATA_HOME;
         else process.env.XDG_DATA_HOME = savedXdg;
     });
 
     // Удаление в корзину доступно → дефолтная кнопка ("Move to Trash") в фокусе, подтверждаем Enter.
     function confirmDelete(): void {
-        ctx.testApp.render();
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
-        ctx.testApp.sendKey("Enter");
-        ctx.testApp.render();
+        h.testApp.render();
+        expect(h.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        h.testApp.sendKey("Enter");
+        h.testApp.render();
     }
 
     it("delete then undo restores the file", async () => {
-        const a = path.join(tmpDir, "a.txt");
-        ctx.commands.execute("fileOperations.deleteFile", a);
+        const a = ws.path("a.txt");
+        h.commands.execute("fileOperations.deleteFile", a);
         confirmDelete();
         expect(fs.existsSync(a)).toBe(false);
 
-        ctx.commands.execute("fileOperations.undo");
+        h.commands.execute("fileOperations.undo");
         await flush();
         expect(fs.readFileSync(a, "utf8")).toBe("AAA");
     });
 
     it("two deletes undo in LIFO order", async () => {
-        const a = path.join(tmpDir, "a.txt");
-        const b = path.join(tmpDir, "b.txt");
-        ctx.commands.execute("fileOperations.deleteFile", a);
+        const a = ws.path("a.txt");
+        const b = ws.path("b.txt");
+        h.commands.execute("fileOperations.deleteFile", a);
         confirmDelete();
-        ctx.commands.execute("fileOperations.deleteFile", b);
+        h.commands.execute("fileOperations.deleteFile", b);
         confirmDelete();
 
-        ctx.commands.execute("fileOperations.undo");
+        h.commands.execute("fileOperations.undo");
         await flush();
         expect(fs.existsSync(b)).toBe(true); // последний удалённый восстановлен первым
         expect(fs.existsSync(a)).toBe(false);
 
-        ctx.commands.execute("fileOperations.undo");
+        h.commands.execute("fileOperations.undo");
         await flush();
         expect(fs.existsSync(a)).toBe(true);
     });
 
     it("redo re-deletes after an undo", async () => {
-        const a = path.join(tmpDir, "a.txt");
-        ctx.commands.execute("fileOperations.deleteFile", a);
+        const a = ws.path("a.txt");
+        h.commands.execute("fileOperations.deleteFile", a);
         confirmDelete();
 
-        ctx.commands.execute("fileOperations.undo");
+        h.commands.execute("fileOperations.undo");
         await flush();
         expect(fs.existsSync(a)).toBe(true);
 
-        ctx.commands.execute("fileOperations.redo");
+        h.commands.execute("fileOperations.redo");
         await flush();
         expect(fs.existsSync(a)).toBe(false);
     });
 
     it("editor and file-operation undo stacks are independent (VS Code model)", async () => {
-        const a = path.join(tmpDir, "a.txt");
-        const doc = path.join(tmpDir, "doc.txt");
+        const a = ws.path("a.txt");
+        const doc = ws.path("doc.txt");
 
         // Файловая операция в дереве (cut+paste = move, без диалога), фокус в дереве.
         // Дерево: target/(0), a.txt(1), b.txt(2), doc.txt(3).
-        ctx.testApp.sendKey("ArrowDown"); // a.txt
-        ctx.commands.execute("fileOperations.cut");
-        ctx.testApp.sendKey("ArrowUp"); // target/
-        ctx.commands.execute("fileOperations.paste");
+        h.testApp.sendKey("ArrowDown"); // a.txt
+        h.commands.execute("fileOperations.cut");
+        h.testApp.sendKey("ArrowUp"); // target/
+        h.commands.execute("fileOperations.paste");
         expect(fs.existsSync(a)).toBe(false);
-        expect(fs.existsSync(path.join(tmpDir, "target", "a.txt"))).toBe(true);
+        expect(fs.existsSync(ws.path("target/a.txt"))).toBe(true);
 
         // Правка текста в редакторе (отдельный стек по пути файла).
-        ctx.commands.execute("workbench.openFile", doc);
-        ctx.testApp.render();
-        ctx.testApp.sendKey("x");
-        ctx.testApp.render();
-        expect(activeEditorText(ctx.controller)).toContain("x");
+        h.commands.execute("workbench.openFile", doc);
+        h.testApp.render();
+        h.testApp.sendKey("x");
+        h.testApp.render();
+        expect(activeEditorText(h.controller)).toContain("x");
 
         // Отмена в редакторе откатывает ТЕКСТ, файловую операцию не трогает.
-        ctx.commands.execute("undo");
-        ctx.testApp.render();
-        expect(activeEditorText(ctx.controller)).not.toContain("x");
+        h.commands.execute("undo");
+        h.testApp.render();
+        expect(activeEditorText(h.controller)).not.toContain("x");
         expect(fs.existsSync(a)).toBe(false); // move ещё в силе
 
         // Отмена файловой операции откатывает MOVE, текста не касается.
-        ctx.commands.execute("fileOperations.undo");
+        h.commands.execute("fileOperations.undo");
         await flush();
         expect(fs.existsSync(a)).toBe(true);
-        expect(activeEditorText(ctx.controller)).not.toContain("x");
+        expect(activeEditorText(h.controller)).not.toContain("x");
     });
 });

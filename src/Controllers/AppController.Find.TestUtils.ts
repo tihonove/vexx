@@ -1,17 +1,12 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
+import { typeText } from "../TestUtils/domQueries.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
+import type { TestApp } from "../TestUtils/TestApp.ts";
 
 import type { AppController } from "./AppController.ts";
-import { AppControllerDIToken } from "./AppController.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import type { EditorController } from "./EditorController.ts";
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
 
 export interface FindContext {
     testApp: TestApp;
@@ -19,47 +14,36 @@ export interface FindContext {
     contextKeys: ContextKeyService;
     activeEditor: () => EditorController;
     tmpDir: string;
+    harness: IAppHarness;
+    workspace: ITempWorkspace;
 }
 
 /** Boots a full AppController over a real temp file with the editor focused. */
 export function createFindApp(text: string): FindContext {
-    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-find-app-"));
-    const filePath = path.join(tmpDir, "file.txt");
-    fs.writeFileSync(filePath, text);
+    const workspace = createTempWorkspace({ prefix: "vexx-find-app-", files: { "file.txt": text } });
+    const harness = createAppTestHarness({
+        openFile: workspace.path("file.txt"),
+        focusEditor: true,
+    });
 
-    const { container, bindApp } = createTestContainer();
-    const controller = container.get(AppControllerDIToken);
-    controller.mount();
-    const testApp = TestApp.create(controller.view, new Size(80, 24));
-    bindApp(testApp.app);
-
-    controller.openFile(filePath);
-    controller.focusEditor();
-    testApp.render();
-
-    const group = container.get(EditorGroupControllerDIToken);
     return {
-        testApp,
-        controller,
-        contextKeys: container.get(ContextKeyServiceDIToken),
-        activeEditor: () => {
-            const editor = group.getActiveEditor();
-            /* v8 ignore start -- test helper: every find scenario opens an editor before reading it */
-            if (editor === null) throw new Error("expected an active editor");
-            /* v8 ignore stop */
-            return editor;
-        },
-        tmpDir,
+        testApp: harness.testApp,
+        controller: harness.controller,
+        contextKeys: harness.container.get(ContextKeyServiceDIToken),
+        activeEditor: harness.activeEditor,
+        tmpDir: workspace.dir,
+        harness,
+        workspace,
     };
 }
 
 /** Types each character into the focused find input. */
 export function type(testApp: TestApp, text: string): void {
-    for (const ch of text) testApp.sendKey(ch);
+    typeText(testApp, text);
 }
 
 /** Tears down the controller and removes the temp directory. Use in afterEach. */
 export function disposeFindApp(ctx: FindContext): void {
-    ctx.controller.dispose();
-    fs.rmSync(ctx.tmpDir, { recursive: true, force: true });
+    ctx.harness.dispose();
+    ctx.workspace.dispose();
 }
