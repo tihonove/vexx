@@ -17,5 +17,7 @@
       "vscode": ["src/Extensions/Api/vscode.d.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "comment": "SPIKE (LSP): sample-проект имеет собственный tsconfig и грузится tsserver'ом, из общего typecheck исключён.",
+  "exclude": ["src/Extensions/Host/__fixtures__/lspSample"]
 }
