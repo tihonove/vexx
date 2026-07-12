@@ -43,7 +43,9 @@ describe("LanguagesNamespace", () => {
         disposable.dispose();
         expect(registrations).toHaveLength(0);
         // повторный dispose безопасен (ветка idx < 0)
-        expect(() => disposable.dispose()).not.toThrow();
+        expect(() => {
+            disposable.dispose();
+        }).not.toThrow();
         expect(registrations).toHaveLength(0);
     });
 

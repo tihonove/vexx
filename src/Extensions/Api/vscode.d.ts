@@ -1,163 +1,391 @@
 /*-----------------------------------------------------------------------------
- *  Vexx — VS Code Extension API surface (Phase 1)
+ *  Vexx — поверхность VS Code Extension API (стадийная копия upstream).
  *
- *  Это полный `vscode.d.ts`, скопированный verbatim из microsoft/vscode (main,
- *  src/vscode-dts/vscode.d.ts, MIT) и закомментированный построчно. Активная
- *  часть — единственный `declare module "vscode"` ниже — экспортирует ТОЛЬКО
- *  то, что реализовано в Phase 1: `window.activeTextEditor.options`
- *  (`tabSize`, `insertSpaces`) + базовые `Disposable`, `Event`,
- *  `ExtensionContext`.
+ *  Активная часть — единственный `declare module "vscode"` ниже — это ДОСЛОВНО
+ *  раскомментированные строки upstream `vscode.d.ts`. Файл меняется ТОЛЬКО
+ *  снятием `// ` с нужных строк из закомментированной копии внизу (допускается
+ *  bounded member-level uncommenting — раскомментировать подмножество членов).
+ *  Ничего не переписывать, не сужать, не переоформлять — комментарии тоже upstream.
  *
- *  По мере того как будут добавляться API (commands, workspace, languages, ...),
- *  соответствующие куски ниже раскомментируются в активный блок.
+ *  Провенанс (перегенерация дормантной части: `node scripts/import-vscode-dts.mjs`):
+ *    upstream:  microsoft/vscode  src/vscode-dts/vscode.d.ts (MIT)
+ *    tag:       1.127.0
+ *    commit:    a22d00300655c17490ce63dffc28bcdcedcd82c4
+ *    permalink: https://github.com/microsoft/vscode/blob/a22d00300655c17490ce63dffc28bcdcedcd82c4/src/vscode-dts/vscode.d.ts
+ *
+ *  Семантические отклонения Vexx от upstream (version=версия Vexx, Event и пр.) и
+ *  правило роста файла — в docs/arch/Extensions.md и AGENTS.md.
  *---------------------------------------------------------------------------*/
 
 declare module "vscode" {
-    /**
-     * The version of the editor (Vexx version, not VS Code).
-     */
-    export const version: string;
 
-    /**
-     * Тонкая копия `vscode.Disposable`. Используется в `ExtensionContext.subscriptions`
-     * и возвращается из подписочных API.
-     */
-    export class Disposable {
-        public static from(...disposableLikes: { dispose: () => unknown }[]): Disposable;
-        public constructor(callOnDispose: () => unknown);
-        public dispose(): unknown;
-    }
+	/**
+	 * The version of the editor.
+	 */
+	export const version: string;
 
-    /**
-     * Совместимая сигнатура `vscode.Event<T>`: вызов подписывает слушателя и
-     * возвращает {@link Disposable}.
-     */
-    export type Event<T> = (listener: (e: T) => unknown, thisArgs?: unknown, disposables?: Disposable[]) => Disposable;
+	/**
+	 * Represents a type which can release resources, such
+	 * as event listening or a timer.
+	 */
+	export class Disposable {
 
-    /**
-     * Подмножество `TextEditorOptions`. В Phase 1 host применяет только
-     * `tabSize` и `insertSpaces` к активному редактору.
-     *
-     * Прочие поля (`cursorStyle`, `lineNumbers`, `indentSize`) пока опущены —
-     * добавляйте по мере реализации.
-     */
-    export interface TextEditorOptions {
-        tabSize?: number | string;
-        insertSpaces?: boolean | string;
-        /**
-         * Размер отступа. Число или `"tabSize"`. Host алиасит его к `tabSize`
-         * (Vexx пока не различает их) — editorconfig шлёт `indent_size` так.
-         */
-        indentSize?: number | string;
-    }
+		/**
+		 * Combine many disposable-likes into one. You can use this method when having objects with
+		 * a dispose function which aren't instances of `Disposable`.
+		 *
+		 * @param disposableLikes Objects that have at least a `dispose`-function member. Note that asynchronous
+		 * dispose-functions aren't awaited.
+		 * @returns Returns a new disposable which, upon dispose, will
+		 * dispose all provided disposables.
+		 */
+		static from(...disposableLikes: {
+			/**
+			 * Function to clean up resources.
+			 */
+			dispose: () => any;
+		}[]): Disposable;
 
+		/**
+		 * Creates a new disposable that calls the provided function
+		 * on dispose.
+		 *
+		 * *Note* that an asynchronous function is not awaited.
+		 *
+		 * @param callOnDispose Function that disposes something.
+		 */
+		constructor(callOnDispose: () => any);
 
-    /**
-     * Минимальный `TextEditor` — мутабельные `options` и `document`.
-     * Прочие свойства (`selection`, `selections`, `visibleRanges`, `viewColumn`, ...)
-     * добавим позже.
-     */
-    export interface TextEditor {
-        readonly document: TextDocument;
-        options: TextEditorOptions;
-    }
+		/**
+		 * Dispose this object.
+		 */
+		dispose(): any;
+	}
 
-    /**
-     * Минимальный `OutputChannel` — заглушка для Phase 1.
-     */
-    export interface OutputChannel {
-        readonly name: string;
-        append(value: string): void;
-        appendLine(value: string): void;
-        replace(value: string): void;
-        clear(): void;
-        show(preserveFocus?: boolean): void;
-        hide(): void;
-        dispose(): void;
-    }
+	/**
+	 * Represents a typed event.
+	 *
+	 * A function that represents an event to which you subscribe by calling it with
+	 * a listener function as argument.
+	 *
+	 * @example
+	 * item.onDidChange(function(event) { console.log("Event happened: " + event); });
+	 */
+	export interface Event<T> {
 
-    /**
-     * Подмножество `vscode.window` для Phase 1.
-     */
-    export namespace window {
-        /**
-         * Активный текстовый редактор (если есть). Возвращает `undefined`,
-         * когда ни один файл не открыт. Назначение поля
-         * `activeTextEditor.options = {...}` применяется хостом к view-state'у
-         * активного `EditorController`.
-         */
-        export const activeTextEditor: TextEditor | undefined;
+		/**
+		 * A function that represents an event to which you subscribe by calling it with
+		 * a listener function as argument.
+		 *
+		 * @param listener The listener function will be called when the event happens.
+		 * @param thisArgs The `this`-argument which will be used when calling the event listener.
+		 * @param disposables An array to which a {@link Disposable} will be added.
+		 * @returns A disposable which unsubscribes the event listener.
+		 */
+		(listener: (e: T) => any, thisArgs?: any, disposables?: Disposable[]): Disposable;
+	}
 
-        /**
-         * Событие смены активного редактора. Fires whenever the active text
-         * editor changes, including when it becomes undefined.
-         */
-        export const onDidChangeActiveTextEditor: Event<TextEditor | undefined>;
+	/**
+	 * Represents a {@link TextEditor text editor}'s {@link TextEditor.options options}.
+	 */
+	export interface TextEditorOptions {
 
-        /**
-         * Состояние окна. В TUI всегда сфокусировано/активно.
-         */
-        export const state: WindowState;
+		/**
+		 * The size in spaces a tab takes. This is used for two purposes:
+		 *  - the rendering width of a tab character;
+		 *  - the number of spaces to insert when {@link TextEditorOptions.insertSpaces insertSpaces} is true
+		 *    and `indentSize` is set to `"tabSize"`.
+		 *
+		 * When getting a text editor's options, this property will always be a number (resolved).
+		 * When setting a text editor's options, this property is optional and it can be a number or `"auto"`.
+		 */
+		tabSize?: number | string;
 
-        /**
-         * Событие смены состояния окна. Регистрируется, но в TUI не стреляет.
-         */
-        export const onDidChangeWindowState: Event<WindowState>;
+		/**
+		 * When pressing Tab insert {@link TextEditorOptions.tabSize n} spaces.
+		 * When getting a text editor's options, this property will always be a boolean (resolved).
+		 * When setting a text editor's options, this property is optional and it can be a boolean or `"auto"`.
+		 */
+		insertSpaces?: boolean | string;
 
-        /**
-         * Показать сообщение об ошибке/предупреждение/информацию. В Vexx уходит
-         * в лог host'а; промис резолвится `undefined` (кнопки не поддержаны).
-         */
-        export function showErrorMessage(message: string, ...items: string[]): Thenable<string | undefined>;
-        export function showWarningMessage(message: string, ...items: string[]): Thenable<string | undefined>;
-        export function showInformationMessage(message: string, ...items: string[]): Thenable<string | undefined>;
+		/**
+		 * The number of spaces to insert when {@link TextEditorOptions.insertSpaces insertSpaces} is true.
+		 *
+		 * When getting a text editor's options, this property will always be a number (resolved).
+		 * When setting a text editor's options, this property is optional and it can be a number or `"tabSize"`.
+		 */
+		indentSize?: number | string;
+	}
 
-        /**
-         * Создаёт output channel. В Phase 1 — заглушка (вывод игнорируется).
-         */
-        export function createOutputChannel(name: string): OutputChannel;
-    }
+	/**
+	 * Represents an editor that is attached to a {@link TextDocument document}.
+	 */
+	export interface TextEditor {
 
-    /** Состояние окна редактора. */
-    export interface WindowState {
-        readonly focused: boolean;
-        readonly active: boolean;
-    }
+		/**
+		 * The document associated with this text editor. The document will be the same for the entire lifetime of this text editor.
+		 */
+		readonly document: TextDocument;
 
-    /**
-     * Подмножество `vscode.commands` (WP4 — commands bridge). Реализованы
-     * `registerCommand` (локальная Map сабпроцесса + прокси в host CommandRegistry)
-     * и `executeCommand` (local-first, иначе RPC на хост). `registerTextEditorCommand`
-     * и `getCommands` пока не поддержаны.
-     */
-    export namespace commands {
-        /**
-         * Регистрирует команду, вызываемую через палитру, кейбиндинг или
-         * `executeCommand`. Возвращает {@link Disposable}, снимающий регистрацию.
-         */
-        export function registerCommand(
-            command: string,
-            callback: (...args: any[]) => any,
-            thisArg?: any,
-        ): Disposable;
+		/**
+		 * Text editor options.
+		 */
+		options: TextEditorOptions;
+	}
 
-        /**
-         * Исполняет команду по идентификатору. Сначала ищет локально
-         * (зарегистрированную этим сабпроцессом), иначе делегирует ядру через RPC.
-         * Возвращает результат команды или `undefined`.
-         */
-        export function executeCommand<T = unknown>(command: string, ...rest: any[]): Thenable<T>;
-    }
+	/**
+	 * An output channel is a container for readonly textual information.
+	 *
+	 * To get an instance of an `OutputChannel` use
+	 * {@link window.createOutputChannel createOutputChannel}.
+	 */
+	export interface OutputChannel {
 
-    /**
-     * Контекст активации, передаваемый в `activate(context)`. В Phase 1
-     * предоставляет только `subscriptions` для управления disposable'ами
-     * расширения.
-     */
-    export interface ExtensionContext {
-        readonly subscriptions: { dispose(): unknown }[];
-    }
+		/**
+		 * The human-readable name of this output channel.
+		 */
+		readonly name: string;
 
+		/**
+		 * Append the given value to the channel.
+		 *
+		 * @param value A string, falsy values will not be printed.
+		 */
+		append(value: string): void;
+
+		/**
+		 * Append the given value and a line feed character
+		 * to the channel.
+		 *
+		 * @param value A string, falsy values will be printed.
+		 */
+		appendLine(value: string): void;
+
+		/**
+		 * Replaces all output from the channel with the given value.
+		 *
+		 * @param value A string, falsy values will not be printed.
+		 */
+		replace(value: string): void;
+
+		/**
+		 * Removes all output from the channel.
+		 */
+		clear(): void;
+
+		/**
+		 * Reveal this channel in the UI.
+		 *
+		 * @param preserveFocus When `true` the channel will not take focus.
+		 */
+		show(preserveFocus?: boolean): void;
+
+		/**
+		 * Hide this channel from the UI.
+		 */
+		hide(): void;
+
+		/**
+		 * Dispose and free associated resources.
+		 */
+		dispose(): void;
+	}
+
+	/**
+	 * Namespace for dealing with the current window of the editor. That is visible
+	 * and active editors, as well as, UI elements to show messages, selections, and
+	 * asking for user input.
+	 */
+	export namespace window {
+
+		/**
+		 * The currently active editor or `undefined`. The active editor is the one
+		 * that currently has focus or, when none has focus, the one that has changed
+		 * input most recently.
+		 */
+		export let activeTextEditor: TextEditor | undefined;
+
+		/**
+		 * An {@link Event} which fires when the {@link window.activeTextEditor active editor}
+		 * has changed. *Note* that the event also fires when the active editor changes
+		 * to `undefined`.
+		 */
+		export const onDidChangeActiveTextEditor: Event<TextEditor | undefined>;
+
+		/**
+		 * Represents the current window's state.
+		 */
+		export const state: WindowState;
+
+		/**
+		 * An {@link Event} which fires when the focus or activity state of the current window
+		 * changes. The value of the event represents whether the window is focused.
+		 */
+		export const onDidChangeWindowState: Event<WindowState>;
+
+		/**
+		 * Show an information message to users. Optionally provide an array of items which will be presented as
+		 * clickable buttons.
+		 *
+		 * @param message The message to show.
+		 * @param items A set of items that will be rendered as actions in the message.
+		 * @returns A thenable that resolves to the selected item or `undefined` when being dismissed.
+		 */
+		export function showInformationMessage<T extends string>(message: string, ...items: T[]): Thenable<T | undefined>;
+
+		/**
+		 * Show a warning message.
+		 *
+		 * @see {@link window.showInformationMessage showInformationMessage}
+		 *
+		 * @param message The message to show.
+		 * @param items A set of items that will be rendered as actions in the message.
+		 * @returns A thenable that resolves to the selected item or `undefined` when being dismissed.
+		 */
+		export function showWarningMessage<T extends string>(message: string, ...items: T[]): Thenable<T | undefined>;
+
+		/**
+		 * Show an error message.
+		 *
+		 * @see {@link window.showInformationMessage showInformationMessage}
+		 *
+		 * @param message The message to show.
+		 * @param items A set of items that will be rendered as actions in the message.
+		 * @returns A thenable that resolves to the selected item or `undefined` when being dismissed.
+		 */
+		export function showErrorMessage<T extends string>(message: string, ...items: T[]): Thenable<T | undefined>;
+
+		/**
+		 * Creates a new {@link OutputChannel output channel} with the given name and language id
+		 * If language id is not provided, then **Log** is used as default language id.
+		 *
+		 * You can access the visible or active output channel as a {@link TextDocument text document} from {@link window.visibleTextEditors visible editors} or {@link window.activeTextEditor active editor}
+		 * and use the language id to contribute language features like syntax coloring, code lens etc.,
+		 *
+		 * @param name Human-readable string which will be used to represent the channel in the UI.
+		 * @param languageId The identifier of the language associated with the channel.
+		 * @returns A new output channel.
+		 */
+		export function createOutputChannel(name: string, languageId?: string): OutputChannel;
+	}
+
+	/**
+	 * Represents the state of a window.
+	 */
+	export interface WindowState {
+
+		/**
+		 * Whether the current window is focused.
+		 */
+		readonly focused: boolean;
+
+		/**
+		 * Whether the window has been interacted with recently. This will change
+		 * immediately on activity, or after a short time of user inactivity.
+		 */
+		readonly active: boolean;
+	}
+
+	/**
+	 * Namespace for dealing with commands. In short, a command is a function with a
+	 * unique identifier. The function is sometimes also called _command handler_.
+	 *
+	 * Commands can be added to the editor using the {@link commands.registerCommand registerCommand}
+	 * and {@link commands.registerTextEditorCommand registerTextEditorCommand} functions. Commands
+	 * can be executed {@link commands.executeCommand manually} or from a UI gesture. Those are:
+	 *
+	 * * palette - Use the `commands`-section in `package.json` to make a command show in
+	 * the [command palette](https://code.visualstudio.com/docs/getstarted/userinterface#_command-palette).
+	 * * keybinding - Use the `keybindings`-section in `package.json` to enable
+	 * [keybindings](https://code.visualstudio.com/docs/getstarted/keybindings#_advanced-customization)
+	 * for your extension.
+	 *
+	 * Commands from other extensions and from the editor itself are accessible to an extension. However,
+	 * when invoking an editor command not all argument types are supported.
+	 *
+	 * This is a sample that registers a command handler and adds an entry for that command to the palette. First
+	 * register a command handler with the identifier `extension.sayHello`.
+	 * ```javascript
+	 * commands.registerCommand('extension.sayHello', () => {
+	 * 	window.showInformationMessage('Hello World!');
+	 * });
+	 * ```
+	 * Second, bind the command identifier to a title under which it will show in the palette (`package.json`).
+	 * ```json
+	 * {
+	 * 	"contributes": {
+	 * 		"commands": [{
+	 * 			"command": "extension.sayHello",
+	 * 			"title": "Hello World"
+	 * 		}]
+	 * 	}
+	 * }
+	 * ```
+	 */
+	export namespace commands {
+
+		/**
+		 * Registers a command that can be invoked via a keyboard shortcut,
+		 * a menu item, an action, or directly.
+		 *
+		 * Registering a command with an existing command identifier twice
+		 * will cause an error.
+		 *
+		 * @param command A unique identifier for the command.
+		 * @param callback A command handler function.
+		 * @param thisArg The `this` context used when invoking the handler function.
+		 * @returns Disposable which unregisters this command on disposal.
+		 */
+		export function registerCommand(command: string, callback: (...args: any[]) => any, thisArg?: any): Disposable;
+
+		/**
+		 * Executes the command denoted by the given command identifier.
+		 *
+		 * * *Note 1:* When executing an editor command not all types are allowed to
+		 * be passed as arguments. Allowed are the primitive types `string`, `boolean`,
+		 * `number`, `undefined`, and `null`, as well as {@linkcode Position}, {@linkcode Range}, {@linkcode Uri} and {@linkcode Location}.
+		 * * *Note 2:* There are no restrictions when executing commands that have been contributed
+		 * by extensions.
+		 *
+		 * @param command Identifier of the command to execute.
+		 * @param rest Parameters passed to the command function.
+		 * @returns A thenable that resolves to the returned value of the given command. Returns `undefined` when
+		 * the command handler function doesn't return anything.
+		 */
+		export function executeCommand<T = unknown>(command: string, ...rest: any[]): Thenable<T>;
+	}
+
+	/**
+	 * An extension context is a collection of utilities private to an
+	 * extension.
+	 *
+	 * An instance of an `ExtensionContext` is provided as the first
+	 * parameter to the `activate`-call of an extension.
+	 */
+	export interface ExtensionContext {
+
+		/**
+		 * An array to which disposables can be added. When this
+		 * extension is deactivated the disposables will be disposed.
+		 *
+		 * *Note* that asynchronous dispose-functions aren't awaited.
+		 */
+		readonly subscriptions: {
+			/**
+			 * Function to clean up resources.
+			 */
+			dispose(): any;
+		}[];
+	}
+
+	/**
+	 * An event emitter can be used to create and manage an {@link Event} for others
+	 * to subscribe to. One emitter always owns one event.
+	 *
+	 * Use this class if you want to provide event from within your extension, for instance
+	 * inside a {@link TextDocumentContentProvider} or when providing
+	 * API to other extensions.
+	 */
 	export class EventEmitter<T> {
 
 		/**
@@ -179,6 +407,14 @@ declare module "vscode" {
 		dispose(): void;
 	}
 
+	/**
+	 * Represents a line and character position, such as
+	 * the position of the cursor.
+	 *
+	 * Position objects are __immutable__. Use the {@link Position.with with} or
+	 * {@link Position.translate translate} methods to derive new positions
+	 * from an existing position.
+	 */
 	export class Position {
 
 		/**
@@ -310,6 +546,14 @@ declare module "vscode" {
 		}): Position;
 	}
 
+	/**
+	 * A range represents an ordered pair of two positions.
+	 * It is guaranteed that {@link Range.start start}.isBeforeOrEqual({@link Range.end end})
+	 *
+	 * Range objects are __immutable__. Use the {@link Range.with with},
+	 * {@link Range.intersection intersection}, or {@link Range.union union} methods
+	 * to derive new ranges from an existing range.
+	 */
 	export class Range {
 
 		/**
@@ -417,6 +661,12 @@ declare module "vscode" {
 		}): Range;
 	}
 
+	/**
+	 * Represents a line of text, such as a line of source code.
+	 *
+	 * TextLine objects are __immutable__. When a {@link TextDocument document} changes,
+	 * previously retrieved lines will not represent the latest state.
+	 */
 	export interface TextLine {
 
 		/**
@@ -452,6 +702,10 @@ declare module "vscode" {
 		readonly isEmptyOrWhitespace: boolean;
 	}
 
+	/**
+	 * A text edit represents edits that should be applied
+	 * to a document.
+	 */
 	export class TextEdit {
 
 		/**
@@ -515,6 +769,10 @@ declare module "vscode" {
 		constructor(range: Range, newText: string);
 	}
 
+	/**
+	 * A universal resource identifier representing either a file on disk
+	 * or another resource, like untitled resources.
+	 */
 	export class Uri {
 
 		/**
@@ -727,6 +985,9 @@ declare module "vscode" {
 		toJSON(): any;
 	}
 
+	/**
+	 * Represents an end of line character sequence in a {@link TextDocument document}.
+	 */
 	export enum EndOfLine {
 		/**
 		 * The line feed `\n` character.
@@ -738,6 +999,9 @@ declare module "vscode" {
 		CRLF = 2
 	}
 
+	/**
+	 * Represents reasons why a text document is saved.
+	 */
 	export enum TextDocumentSaveReason {
 
 		/**
@@ -757,6 +1021,11 @@ declare module "vscode" {
 		FocusOut = 3
 	}
 
+	/**
+	 * Enumeration of file types. The types `File` and `Directory` can also be
+	 * a symbolic links, in that case use `FileType.File | FileType.SymbolicLink` and
+	 * `FileType.Directory | FileType.SymbolicLink`.
+	 */
 	export enum FileType {
 		/**
 		 * The file type is unknown.
@@ -777,49 +1046,142 @@ declare module "vscode" {
 	}
 
 	/**
-	 * The `FileStat`-type represents metadata about a file.
+	 * The `FileStat`-type represents metadata about a file
 	 */
 	export interface FileStat {
-		/** The type of the file, e.g. is a regular file, a directory, or symbolic link to a file. */
+
+		/**
+		 * The type of the file, e.g. is a regular file, a directory, or symbolic link
+		 * to a file.
+		 *
+		 * *Note:* This value might be a bitmask, e.g. `FileType.File | FileType.SymbolicLink`.
+		 */
 		type: FileType;
-		/** The creation timestamp in milliseconds elapsed since January 1, 1970 00:00:00 UTC. */
+
+		/**
+		 * The creation timestamp in milliseconds elapsed since January 1, 1970 00:00:00 UTC.
+		 */
 		ctime: number;
-		/** The modification timestamp in milliseconds elapsed since January 1, 1970 00:00:00 UTC. */
+
+		/**
+		 * The modification timestamp in milliseconds elapsed since January 1, 1970 00:00:00 UTC.
+		 *
+		 * *Note:* If the file changed, it is important to provide an updated `mtime` that advanced
+		 * from the previous value. Otherwise there may be optimizations in place that will not show
+		 * the updated file contents in an editor for example.
+		 */
 		mtime: number;
-		/** The size in bytes. */
+
+		/**
+		 * The size in bytes.
+		 *
+		 * *Note:* If the file changed, it is important to provide an updated `size`. Otherwise there
+		 * may be optimizations in place that will not show the updated file contents in an editor for
+		 * example.
+		 */
 		size: number;
 	}
 
 	/**
 	 * A type that filesystem providers should use to signal errors.
 	 *
-	 * Factory methods create common error-cases: `throw vscode.FileSystemError.FileNotFound(uri);`.
+	 * This class has factory methods for common error-cases, like `FileNotFound` when
+	 * a file or folder doesn't exist, use them like so: `throw vscode.FileSystemError.FileNotFound(someUri);`
 	 */
 	export class FileSystemError extends Error {
+
+		/**
+		 * Create an error to signal that a file or folder wasn't found.
+		 * @param messageOrUri Message or uri.
+		 */
 		static FileNotFound(messageOrUri?: string | Uri): FileSystemError;
+
+		/**
+		 * Create an error to signal that a file or folder already exists, e.g. when
+		 * creating but not overwriting a file.
+		 * @param messageOrUri Message or uri.
+		 */
 		static FileExists(messageOrUri?: string | Uri): FileSystemError;
+
+		/**
+		 * Create an error to signal that a file is not a folder.
+		 * @param messageOrUri Message or uri.
+		 */
+		static FileNotADirectory(messageOrUri?: string | Uri): FileSystemError;
+
+		/**
+		 * Create an error to signal that a file is a folder.
+		 * @param messageOrUri Message or uri.
+		 */
+		static FileIsADirectory(messageOrUri?: string | Uri): FileSystemError;
+
+		/**
+		 * Create an error to signal that an operation lacks required permissions.
+		 * @param messageOrUri Message or uri.
+		 */
 		static NoPermissions(messageOrUri?: string | Uri): FileSystemError;
+
+		/**
+		 * Create an error to signal that the file system is unavailable or too busy to
+		 * complete a request.
+		 * @param messageOrUri Message or uri.
+		 */
 		static Unavailable(messageOrUri?: string | Uri): FileSystemError;
+
+		/**
+		 * Creates a new filesystem error.
+		 *
+		 * @param messageOrUri Message or uri.
+		 */
 		constructor(messageOrUri?: string | Uri);
-		/** A code that identifies this error, e.g. `FileNotFound` or `Unknown`. */
+
+		/**
+		 * A code that identifies this error.
+		 *
+		 * Possible values are names of errors, like {@linkcode FileSystemError.FileNotFound FileNotFound},
+		 * or `Unknown` for unspecified errors.
+		 */
 		readonly code: string;
 	}
 
 	/**
-	 * Подмножество `vscode.FileSystem` (workspace.fs). Реализовано локально через
-	 * `node:fs` в subprocess — целевой файл на той же машине, не открытый буфер.
-	 * Реализованы только stat/readFile/writeFile (нужны команде generate и чтению
-	 * `.editorconfig` с диска); прочие методы vscode.FileSystem не поддержаны.
+	 * The file system interface exposes the editor's built-in and contributed
+	 * {@link FileSystemProvider file system providers}. It allows extensions to work
+	 * with files from the local disk as well as files from remote places, like the
+	 * remote extension host or ftp-servers.
+	 *
+	 * *Note* that an instance of this interface is available as {@linkcode workspace.fs}.
 	 */
 	export interface FileSystem {
-		/** Retrieve metadata about a file. Throws {@link FileSystemError.FileNotFound} when missing. */
+
+		/**
+		 * Retrieve metadata about a file.
+		 *
+		 * @param uri The uri of the file to retrieve metadata about.
+		 * @returns The file metadata about the file.
+		 */
 		stat(uri: Uri): Thenable<FileStat>;
-		/** Read the entire contents of a file. */
+
+		/**
+		 * Read the entire contents of a file.
+		 *
+		 * @param uri The uri of the file.
+		 * @returns An array of bytes or a thenable that resolves to such.
+		 */
 		readFile(uri: Uri): Thenable<Uint8Array>;
-		/** Write data to a file, replacing its entire contents. Creates missing parent directories. */
+
+		/**
+		 * Write data to a file, replacing its entire contents.
+		 *
+		 * @param uri The uri of the file.
+		 * @param content The new content of the file.
+		 */
 		writeFile(uri: Uri, content: Uint8Array): Thenable<void>;
 	}
 
+	/**
+	 * Completion item kinds.
+	 */
 	export enum CompletionItemKind {
 		/**
 		 * The `Text` completion item kind.
@@ -886,13 +1248,13 @@ declare module "vscode" {
 		 */
 		Color = 15,
 		/**
-		 * The `Reference` completion item kind.
-		 */
-		Reference = 17,
-		/**
 		 * The `File` completion item kind.
 		 */
 		File = 16,
+		/**
+		 * The `Reference` completion item kind.
+		 */
+		Reference = 17,
 		/**
 		 * The `Folder` completion item kind.
 		 */
@@ -931,6 +1293,10 @@ declare module "vscode" {
 		Issue = 26,
 	}
 
+	/**
+	 * Represents a text document, such as a source file. Text documents have
+	 * {@link TextLine lines} and knowledge about an underlying resource like a file.
+	 */
 	export interface TextDocument {
 
 		/**
@@ -1104,148 +1470,1241 @@ declare module "vscode" {
 		validatePosition(position: Position): Position;
 	}
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // WP3: workspace / configuration / languages surface.
-    // ─────────────────────────────────────────────────────────────────────────
+	/**
+	 * Represents a reference to a command. Provides a title which
+	 * will be used to represent a command in the UI and, optionally,
+	 * an array of arguments which will be passed to the command handler
+	 * function when invoked.
+	 */
+	export interface Command {
+		/**
+		 * Title of the command, like `save`.
+		 */
+		title: string;
 
-    /** Папка воркспейса. */
-    export interface WorkspaceFolder {
-        readonly uri: Uri;
-        readonly name: string;
-        readonly index: number;
-    }
+		/**
+		 * The identifier of the actual command handler.
+		 * @see {@link commands.registerCommand}
+		 */
+		command: string;
 
-    /** Событие изменения конфигурации. */
-    export interface ConfigurationChangeEvent {
-        affectsConfiguration(section: string, scope?: unknown): boolean;
-    }
+		/**
+		 * A tooltip for the command, when represented in the UI.
+		 */
+		tooltip?: string;
 
-    /** Результат покомпонентного `inspect`. */
-    export interface ConfigurationInspect<T> {
-        key: string;
-        defaultValue?: T;
-        globalValue?: T;
-        workspaceValue?: T;
-        workspaceFolderValue?: T;
-    }
+		/**
+		 * Arguments that the command handler should be
+		 * invoked with.
+		 */
+		arguments?: any[];
+	}
 
-    /** Доступ к конфигурации (`getConfiguration`). */
-    export interface WorkspaceConfiguration {
-        get<T>(section: string): T | undefined;
-        get<T>(section: string, defaultValue: T): T;
-        has(section: string): boolean;
-        inspect<T>(section: string): ConfigurationInspect<T> | undefined;
-        update(section: string, value: unknown, configurationTarget?: unknown, overrideInLanguage?: boolean): Thenable<void>;
-        readonly [key: string]: unknown;
-    }
+	/**
+	 * A workspace folder is one of potentially many roots opened by the editor. All workspace folders
+	 * are equal which means there is no notion of an active or primary workspace folder.
+	 */
+	export interface WorkspaceFolder {
 
-    /** Событие will-save с возможностью отложить сохранение правками. */
-    export interface TextDocumentWillSaveEvent {
-        readonly document: TextDocument;
-        readonly reason: TextDocumentSaveReason;
-        waitUntil(thenable: Thenable<readonly TextEdit[]>): void;
-        waitUntil(thenable: Thenable<unknown>): void;
-    }
+		/**
+		 * The associated uri for this workspace folder.
+		 *
+		 * *Note:* The {@link Uri}-type was intentionally chosen such that future releases of the editor can support
+		 * workspace folders that are not stored on the local disk, e.g. `ftp://server/workspaces/foo`.
+		 */
+		readonly uri: Uri;
 
-    /** Подмножество `vscode.workspace`. */
-    export namespace workspace {
-        export const workspaceFolders: readonly WorkspaceFolder[] | undefined;
-        export const name: string | undefined;
-        export const textDocuments: readonly TextDocument[];
-        /** Локальный доступ к файловой системе (node:fs); см. {@link FileSystem}. */
-        export const fs: FileSystem;
-        export function getConfiguration(section?: string, scope?: unknown): WorkspaceConfiguration;
-        export function asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string;
-        export function openTextDocument(uri: Uri | string): Thenable<TextDocument>;
-        /**
-         * Открывает документ с диска. `encoding` принимается для совместимости с
-         * API 1.100, но фактически используется utf-8 (ядро utf-8-only); при
-         * несовпадении — graceful degrade с предупреждением в лог.
-         */
-        export function openTextDocument(uri: Uri, options?: { encoding?: string }): Thenable<TextDocument>;
-        export const onDidChangeConfiguration: Event<ConfigurationChangeEvent>;
-        export const onDidOpenTextDocument: Event<TextDocument>;
-        export const onDidCloseTextDocument: Event<TextDocument>;
-        export const onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>;
-        export const onDidSaveTextDocument: Event<TextDocument>;
-    }
+		/**
+		 * The name of this workspace folder. Defaults to
+		 * the basename of its {@link Uri.path uri-path}
+		 */
+		readonly name: string;
 
-    /** Селектор документа для провайдеров. */
-    export interface DocumentFilter {
-        readonly language?: string;
-        readonly scheme?: string;
-        readonly pattern?: string;
-    }
-    export type DocumentSelector = string | DocumentFilter | ReadonlyArray<string | DocumentFilter>;
+		/**
+		 * The ordinal number of this workspace folder.
+		 */
+		readonly index: number;
+	}
 
-    /** Результат провайдера — значение или Thenable. */
-    export type ProviderResult<T> = T | undefined | null | Thenable<T | undefined | null>;
+	/**
+	 * An event describing the change in Configuration
+	 */
+	export interface ConfigurationChangeEvent {
 
-    export interface CancellationToken {
-        readonly isCancellationRequested: boolean;
-        readonly onCancellationRequested: Event<unknown>;
-    }
+		/**
+		 * Checks if the given section has changed.
+		 * If scope is provided, checks if the section has changed for resources under the given scope.
+		 *
+		 * @param section Configuration name, supports _dotted_ names.
+		 * @param scope A scope in which to check.
+		 * @returns `true` if the given section has changed.
+		 */
+		affectsConfiguration(section: string, scope?: ConfigurationScope): boolean;
+	}
 
-    export enum CompletionTriggerKind {
-        Invoke = 0,
-        TriggerCharacter = 1,
-        TriggerForIncompleteCompletions = 2,
-    }
+	/**
+	 * The configuration scope which can be:
+	 * - a {@link Uri} representing a resource
+	 * - a {@link TextDocument} representing an open text document
+	 * - a {@link WorkspaceFolder} representing a workspace folder
+	 * - an object containing:
+	 *   - `uri`: an optional {@link Uri} of a text document
+	 *   - `languageId`: the language identifier of a text document
+	 */
+	export type ConfigurationScope = Uri | TextDocument | WorkspaceFolder | {
+		/**
+		 * The uri of a {@link TextDocument text document}
+		 */
+		uri?: Uri;
+		/**
+		 * The language of a text document
+		 */
+		languageId: string;
+	};
 
-    export interface CompletionContext {
-        readonly triggerKind: CompletionTriggerKind;
-        readonly triggerCharacter?: string;
-    }
+	/**
+	 * The configuration target
+	 */
+	export enum ConfigurationTarget {
+		/**
+		 * Global configuration
+		 */
+		Global = 1,
 
-    /** Элемент автодополнения. */
-    export class CompletionItem {
-        label: string;
-        kind?: CompletionItemKind;
-        insertText?: string;
-        detail?: string;
-        documentation?: string;
-        command?: { command: string; title: string; arguments?: unknown[] };
-        constructor(label: string, kind?: CompletionItemKind);
-    }
+		/**
+		 * Workspace configuration
+		 */
+		Workspace = 2,
 
-    export interface CompletionList<T extends CompletionItem = CompletionItem> {
-        isIncomplete?: boolean;
-        items: T[];
-    }
+		/**
+		 * Workspace folder configuration
+		 */
+		WorkspaceFolder = 3
+	}
 
-    export interface CompletionItemProvider<T extends CompletionItem = CompletionItem> {
-        provideCompletionItems(
-            document: TextDocument,
-            position: Position,
-            token: CancellationToken,
-            context: CompletionContext,
-        ): ProviderResult<T[] | CompletionList<T>>;
-        resolveCompletionItem?(item: T, token: CancellationToken): ProviderResult<T>;
-    }
+	/**
+	 * Represents the configuration. It is a merged view of
+	 *
+	 * - *Default Settings*
+	 * - *Global (User) Settings*
+	 * - *Workspace settings*
+	 * - *Workspace Folder settings* - From one of the {@link workspace.workspaceFolders Workspace Folders} under which requested resource belongs to.
+	 * - *Language settings* - Settings defined under requested language.
+	 *
+	 * The *effective* value (returned by {@linkcode WorkspaceConfiguration.get get}) is computed by overriding or merging the values in the following order:
+	 *
+	 * 1. `defaultValue` (if defined in `package.json` otherwise derived from the value's type)
+	 * 1. `globalValue` (if defined)
+	 * 1. `workspaceValue` (if defined)
+	 * 1. `workspaceFolderValue` (if defined)
+	 * 1. `defaultLanguageValue` (if defined)
+	 * 1. `globalLanguageValue` (if defined)
+	 * 1. `workspaceLanguageValue` (if defined)
+	 * 1. `workspaceFolderLanguageValue` (if defined)
+	 *
+	 * **Note:** Only `object` value types are merged and all other value types are overridden.
+	 *
+	 * Example 1: Overriding
+	 *
+	 * ```ts
+	 * defaultValue = 'on';
+	 * globalValue = 'relative'
+	 * workspaceFolderValue = 'off'
+	 * value = 'off'
+	 * ```
+	 *
+	 * Example 2: Language Values
+	 *
+	 * ```ts
+	 * defaultValue = 'on';
+	 * globalValue = 'relative'
+	 * workspaceFolderValue = 'off'
+	 * globalLanguageValue = 'on'
+	 * value = 'on'
+	 * ```
+	 *
+	 * Example 3: Object Values
+	 *
+	 * ```ts
+	 * defaultValue = { "a": 1, "b": 2 };
+	 * globalValue = { "b": 3, "c": 4 };
+	 * value = { "a": 1, "b": 3, "c": 4 };
+	 * ```
+	 *
+	 * *Note:* Workspace and Workspace Folder configurations contains `launch` and `tasks` settings. Their basename will be
+	 * part of the section identifier. The following snippets shows how to retrieve all configurations
+	 * from `launch.json`:
+	 *
+	 * ```ts
+	 * // launch.json configuration
+	 * const config = workspace.getConfiguration('launch', vscode.workspace.workspaceFolders[0].uri);
+	 *
+	 * // retrieve values
+	 * const values = config.get('configurations');
+	 * ```
+	 *
+	 * Refer to [Settings](https://code.visualstudio.com/docs/getstarted/settings) for more information.
+	 */
+	export interface WorkspaceConfiguration {
 
-    /** Подмножество `vscode.languages`. */
-    export namespace languages {
-        export function registerCompletionItemProvider(
-            selector: DocumentSelector,
-            provider: CompletionItemProvider,
-            ...triggerCharacters: string[]
-        ): Disposable;
-    }
+		/**
+		 * Return a value from this configuration.
+		 *
+		 * @param section Configuration name, supports _dotted_ names.
+		 * @returns The value `section` denotes or `undefined`.
+		 */
+		get<T>(section: string): T | undefined;
+
+		/**
+		 * Return a value from this configuration.
+		 *
+		 * @param section Configuration name, supports _dotted_ names.
+		 * @param defaultValue A value should be returned when no value could be found, is `undefined`.
+		 * @returns The value `section` denotes or the default.
+		 */
+		get<T>(section: string, defaultValue: T): T;
+
+		/**
+		 * Check if this configuration has a certain value.
+		 *
+		 * @param section Configuration name, supports _dotted_ names.
+		 * @returns `true` if the section doesn't resolve to `undefined`.
+		 */
+		has(section: string): boolean;
+
+		/**
+		 * Retrieve all information about a configuration setting. A configuration value
+		 * often consists of a *default* value, a global or installation-wide value,
+		 * a workspace-specific value, folder-specific value
+		 * and language-specific values (if {@link WorkspaceConfiguration} is scoped to a language).
+		 *
+		 * Also provides all language ids under which the given configuration setting is defined.
+		 *
+		 * *Note:* The configuration name must denote a leaf in the configuration tree
+		 * (`editor.fontSize` vs `editor`) otherwise no result is returned.
+		 *
+		 * @param section Configuration name, supports _dotted_ names.
+		 * @returns Information about a configuration setting or `undefined`.
+		 */
+		inspect<T>(section: string): {
+
+			/**
+			 * The fully qualified key of the configuration value
+			 */
+			key: string;
+
+			/**
+			 * The default value which is used when no other value is defined
+			 */
+			defaultValue?: T;
+
+			/**
+			 * The global or installation-wide value.
+			 */
+			globalValue?: T;
+
+			/**
+			 * The workspace-specific value.
+			 */
+			workspaceValue?: T;
+
+			/**
+			 * The workspace-folder-specific value.
+			 */
+			workspaceFolderValue?: T;
+
+			/**
+			 * Language specific default value when this configuration value is created for a {@link ConfigurationScope language scope}.
+			 */
+			defaultLanguageValue?: T;
+
+			/**
+			 * Language specific global value when this configuration value is created for a {@link ConfigurationScope language scope}.
+			 */
+			globalLanguageValue?: T;
+
+			/**
+			 * Language specific workspace value when this configuration value is created for a {@link ConfigurationScope language scope}.
+			 */
+			workspaceLanguageValue?: T;
+
+			/**
+			 * Language specific workspace-folder value when this configuration value is created for a {@link ConfigurationScope language scope}.
+			 */
+			workspaceFolderLanguageValue?: T;
+
+			/**
+			 * All language identifiers for which this configuration is defined.
+			 */
+			languageIds?: string[];
+
+		} | undefined;
+
+		/**
+		 * Update a configuration value. The updated configuration values are persisted.
+		 *
+		 * A value can be changed in
+		 *
+		 * - {@link ConfigurationTarget.Global Global settings}: Changes the value for all instances of the editor.
+		 * - {@link ConfigurationTarget.Workspace Workspace settings}: Changes the value for current workspace, if available.
+		 * - {@link ConfigurationTarget.WorkspaceFolder Workspace folder settings}: Changes the value for settings from one of the {@link workspace.workspaceFolders Workspace Folders} under which the requested resource belongs to.
+		 * - Language settings: Changes the value for the requested languageId.
+		 *
+		 * *Note:* To remove a configuration value use `undefined`, like so: `config.update('somekey', undefined)`
+		 *
+		 * @param section Configuration name, supports _dotted_ names.
+		 * @param value The new value.
+		 * @param configurationTarget The {@link ConfigurationTarget configuration target} or a boolean value.
+		 *	- If `true` updates {@link ConfigurationTarget.Global Global settings}.
+		 *	- If `false` updates {@link ConfigurationTarget.Workspace Workspace settings}.
+		 *	- If `undefined` or `null` updates to {@link ConfigurationTarget.WorkspaceFolder Workspace folder settings} if configuration is resource specific,
+		 * 	otherwise to {@link ConfigurationTarget.Workspace Workspace settings}.
+		 * @param overrideInLanguage Whether to update the value in the scope of requested languageId or not.
+		 *	- If `true` updates the value under the requested languageId.
+		 *	- If `undefined` updates the value under the requested languageId only if the configuration is defined for the language.
+		 * @throws error while updating
+		 *	- configuration which is not registered.
+		 *	- window configuration to workspace folder
+		 *	- configuration to workspace or workspace folder when no workspace is opened.
+		 *	- configuration to workspace folder when there is no workspace folder settings.
+		 *	- configuration to workspace folder when {@link WorkspaceConfiguration} is not scoped to a resource.
+		 */
+		update(section: string, value: any, configurationTarget?: ConfigurationTarget | boolean | null, overrideInLanguage?: boolean): Thenable<void>;
+
+		/**
+		 * Readable dictionary that backs this configuration.
+		 */
+		readonly [key: string]: any;
+	}
+
+	/**
+	 * An event that is fired when a {@link TextDocument document} will be saved.
+	 *
+	 * To make modifications to the document before it is being saved, call the
+	 * {@linkcode TextDocumentWillSaveEvent.waitUntil waitUntil}-function with a thenable
+	 * that resolves to an array of {@link TextEdit text edits}.
+	 */
+	export interface TextDocumentWillSaveEvent {
+
+		/**
+		 * The document that will be saved.
+		 */
+		readonly document: TextDocument;
+
+		/**
+		 * The reason why save was triggered.
+		 */
+		readonly reason: TextDocumentSaveReason;
+
+		/**
+		 * Allows to pause the event loop and to apply {@link TextEdit pre-save-edits}.
+		 * Edits of subsequent calls to this function will be applied in order. The
+		 * edits will be *ignored* if concurrent modifications of the document happened.
+		 *
+		 * *Note:* This function can only be called during event dispatch and not
+		 * in an asynchronous manner:
+		 *
+		 * ```ts
+		 * workspace.onWillSaveTextDocument(event => {
+		 * 	// async, will *throw* an error
+		 * 	setTimeout(() => event.waitUntil(promise));
+		 *
+		 * 	// sync, OK
+		 * 	event.waitUntil(promise);
+		 * })
+		 * ```
+		 *
+		 * @param thenable A thenable that resolves to {@link TextEdit pre-save-edits}.
+		 */
+		waitUntil(thenable: Thenable<readonly TextEdit[]>): void;
+
+		/**
+		 * Allows to pause the event loop until the provided thenable resolved.
+		 *
+		 * *Note:* This function can only be called during event dispatch.
+		 *
+		 * @param thenable A thenable that delays saving.
+		 */
+		waitUntil(thenable: Thenable<any>): void;
+	}
+
+	/**
+	 * Namespace for dealing with the current workspace. A workspace is the collection of one
+	 * or more folders that are opened in an editor window (instance).
+	 *
+	 * It is also possible to open an editor without a workspace. For example, when you open a
+	 * new editor window by selecting a file from your platform's File menu, you will not be
+	 * inside a workspace. In this mode, some of the editor's capabilities are reduced but you can
+	 * still open text files and edit them.
+	 *
+	 * Refer to https://code.visualstudio.com/docs/editor/workspaces for more information on
+	 * the concept of workspaces.
+	 *
+	 * The workspace offers support for {@link workspace.createFileSystemWatcher listening} to fs
+	 * events and for {@link workspace.findFiles finding} files. Both perform well and run _outside_
+	 * the editor-process so that they should be always used instead of nodejs-equivalents.
+	 */
+	export namespace workspace {
+
+		/**
+		 * List of workspace folders (0-N) that are open in the editor. `undefined` when no workspace
+		 * has been opened.
+		 *
+		 * Refer to https://code.visualstudio.com/docs/editor/workspaces for more information
+		 * on workspaces.
+		 */
+		export const workspaceFolders: readonly WorkspaceFolder[] | undefined;
+
+		/**
+		 * The name of the workspace. `undefined` when no workspace
+		 * has been opened.
+		 *
+		 * Refer to https://code.visualstudio.com/docs/editor/workspaces for more information on
+		 * the concept of workspaces.
+		 */
+		export const name: string | undefined;
+
+		/**
+		 * All text documents currently known to the editor.
+		 */
+		export const textDocuments: readonly TextDocument[];
+
+		/**
+		 * A {@link FileSystem file system} instance that allows to interact with local and remote
+		 * files, e.g. `vscode.workspace.fs.readDirectory(someUri)` allows to retrieve all entries
+		 * of a directory or `vscode.workspace.fs.stat(anotherUri)` returns the meta data for a
+		 * file.
+		 */
+		export const fs: FileSystem;
+
+		/**
+		 * Get a workspace configuration object.
+		 *
+		 * When a section-identifier is provided only that part of the configuration
+		 * is returned. Dots in the section-identifier are interpreted as child-access,
+		 * like `{ myExt: { setting: { doIt: true }}}` and `getConfiguration('myExt.setting').get('doIt') === true`.
+		 *
+		 * When a scope is provided configuration confined to that scope is returned. Scope can be a resource or a language identifier or both.
+		 *
+		 * @param section A dot-separated identifier.
+		 * @param scope A scope for which the configuration is asked for.
+		 * @returns The full configuration or a subset.
+		 */
+		export function getConfiguration(section?: string, scope?: ConfigurationScope | null): WorkspaceConfiguration;
+
+		/**
+		 * Returns a path that is relative to the workspace folder or folders.
+		 *
+		 * When there are no {@link workspace.workspaceFolders workspace folders} or when the path
+		 * is not contained in them, the input is returned.
+		 *
+		 * @param pathOrUri A path or uri. When a uri is given its {@link Uri.fsPath fsPath} is used.
+		 * @param includeWorkspaceFolder When `true` and when the given path is contained inside a
+		 * workspace folder the name of the workspace is prepended. Defaults to `true` when there are
+		 * multiple workspace folders and `false` otherwise.
+		 * @returns A path relative to the root or the input.
+		 */
+		export function asRelativePath(pathOrUri: string | Uri, includeWorkspaceFolder?: boolean): string;
+
+		/**
+		 * Opens a document. Will return early if this document is already open. Otherwise
+		 * the document is loaded and the {@link workspace.onDidOpenTextDocument didOpen}-event fires.
+		 *
+		 * The document is denoted by an {@link Uri}. Depending on the {@link Uri.scheme scheme} the
+		 * following rules apply:
+		 * * `file`-scheme: Open a file on disk (`openTextDocument(Uri.file(path))`). Will be rejected if the file
+		 * does not exist or cannot be loaded.
+		 * * `untitled`-scheme: Open a blank untitled file with associated path (`openTextDocument(Uri.file(path).with({ scheme: 'untitled' }))`).
+		 * The language will be derived from the file name.
+		 * * For all other schemes contributed {@link TextDocumentContentProvider text document content providers} and
+		 * {@link FileSystemProvider file system providers} are consulted.
+		 *
+		 * *Note* that the lifecycle of the returned document is owned by the editor and not by the extension. That means an
+		 * {@linkcode workspace.onDidCloseTextDocument onDidClose}-event can occur at any time after opening it.
+		 *
+		 * @param uri Identifies the resource to open.
+		 * @returns A promise that resolves to a {@link TextDocument document}.
+		 */
+		export function openTextDocument(uri: Uri, options?: {
+			/**
+			 * The {@link TextDocument.encoding encoding} of the document to use
+			 * for decoding the underlying buffer to text. If omitted, the encoding
+			 * will be guessed based on the file content and/or the editor settings
+			 * unless the document is already opened.
+			 *
+			 * Opening a text document that was already opened with a different encoding
+			 * has the potential of changing the text contents of the text document.
+			 * Specifically, when the encoding results in a different set of characters
+			 * than the previous encoding. As such, an error is thrown for dirty documents
+			 * when the specified encoding is different from the encoding of the document.
+			 *
+			 * See {@link TextDocument.encoding} for more information about valid
+			 * values for encoding. Using an unsupported encoding will fallback to the
+			 * default encoding for the document.
+			 *
+			 * *Note* that if you open a document with an encoding that does not
+			 * support decoding the underlying bytes, content may be replaced with
+			 * substitution characters as appropriate.
+			 */
+			readonly encoding?: string;
+		}): Thenable<TextDocument>;
+
+		/**
+		 * A short-hand for `openTextDocument(Uri.file(path))`.
+		 *
+		 * @see {@link workspace.openTextDocument}
+		 * @param path A path of a file on disk.
+		 * @returns A promise that resolves to a {@link TextDocument document}.
+		 */
+		export function openTextDocument(path: string, options?: {
+			/**
+			 * The {@link TextDocument.encoding encoding} of the document to use
+			 * for decoding the underlying buffer to text. If omitted, the encoding
+			 * will be guessed based on the file content and/or the editor settings
+			 * unless the document is already opened.
+			 *
+			 * Opening a text document that was already opened with a different encoding
+			 * has the potential of changing the text contents of the text document.
+			 * Specifically, when the encoding results in a different set of characters
+			 * than the previous encoding. As such, an error is thrown for dirty documents
+			 * when the specified encoding is different from the encoding of the document.
+			 *
+			 * See {@link TextDocument.encoding} for more information about valid
+			 * values for encoding. Using an unsupported encoding will fallback to the
+			 * default encoding for the document.
+			 *
+			 * *Note* that if you open a document with an encoding that does not
+			 * support decoding the underlying bytes, content may be replaced with
+			 * substitution characters as appropriate.
+			 */
+			readonly encoding?: string;
+		}): Thenable<TextDocument>;
+
+		/**
+		 * Opens an untitled text document. The editor will prompt the user for a file
+		 * path when the document is to be saved. The `options` parameter allows to
+		 * specify the *language* and/or the *content* of the document.
+		 *
+		 * @param options Options to control how the document will be created.
+		 * @returns A promise that resolves to a {@link TextDocument document}.
+		 */
+		export function openTextDocument(options?: {
+			/**
+			 * The {@link TextDocument.languageId language} of the document.
+			 */
+			language?: string;
+			/**
+			 * The initial contents of the document.
+			 */
+			content?: string;
+			/**
+			 * The {@link TextDocument.encoding encoding} of the document.
+			 *
+			 * See {@link TextDocument.encoding} for more information about valid
+			 * values for encoding. Using an unsupported encoding will fallback to the
+			 * default encoding for the document.
+			 */
+			readonly encoding?: string;
+		}): Thenable<TextDocument>;
+
+		/**
+		 * An event that is emitted when the {@link WorkspaceConfiguration configuration} changed.
+		 */
+		export const onDidChangeConfiguration: Event<ConfigurationChangeEvent>;
+
+		/**
+		 * An event that is emitted when a {@link TextDocument text document} is opened or when the language id
+		 * of a text document {@link languages.setTextDocumentLanguage has been changed}.
+		 *
+		 * To add an event listener when a visible text document is opened, use the {@link TextEditor} events in the
+		 * {@link window} namespace. Note that:
+		 *
+		 * - The event is emitted before the {@link TextDocument document} is updated in the
+		 * {@link window.activeTextEditor active text editor}
+		 * - When a {@link TextDocument text document} is already open (e.g.: open in another {@link window.visibleTextEditors visible text editor}) this event is not emitted
+		 *
+		 */
+		export const onDidOpenTextDocument: Event<TextDocument>;
+
+		/**
+		 * An event that is emitted when a {@link TextDocument text document} is disposed or when the language id
+		 * of a text document {@link languages.setTextDocumentLanguage has been changed}.
+		 *
+		 * *Note 1:* There is no guarantee that this event fires when an editor tab is closed, use the
+		 * {@linkcode window.onDidChangeVisibleTextEditors onDidChangeVisibleTextEditors}-event to know when editors change.
+		 *
+		 * *Note 2:* A document can be open but not shown in an editor which means this event can fire
+		 * for a document that has not been shown in an editor.
+		 */
+		export const onDidCloseTextDocument: Event<TextDocument>;
+
+		/**
+		 * An event that is emitted when a {@link TextDocument text document} will be saved to disk.
+		 *
+		 * *Note 1:* Subscribers can delay saving by registering asynchronous work. For the sake of data integrity the editor
+		 * might save without firing this event. For instance when shutting down with dirty files.
+		 *
+		 * *Note 2:* Subscribers are called sequentially and they can {@link TextDocumentWillSaveEvent.waitUntil delay} saving
+		 * by registering asynchronous work. Protection against misbehaving listeners is implemented as such:
+		 *  * there is an overall time budget that all listeners share and if that is exhausted no further listener is called
+		 *  * listeners that take a long time or produce errors frequently will not be called anymore
+		 *
+		 * The current thresholds are 1.5 seconds as overall time budget and a listener can misbehave 3 times before being ignored.
+		 */
+		export const onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>;
+
+		/**
+		 * An event that is emitted when a {@link TextDocument text document} is saved to disk.
+		 */
+		export const onDidSaveTextDocument: Event<TextDocument>;
+	}
+
+	/**
+	 * A relative pattern is a helper to construct glob patterns that are matched
+	 * relatively to a base file path. The base path can either be an absolute file
+	 * path as string or uri or a {@link WorkspaceFolder workspace folder}, which is the
+	 * preferred way of creating the relative pattern.
+	 */
+	export class RelativePattern {
+
+		/**
+		 * A base file path to which this pattern will be matched against relatively. The
+		 * file path must be absolute, should not have any trailing path separators and
+		 * not include any relative segments (`.` or `..`).
+		 */
+		baseUri: Uri;
+
+		/**
+		 * A base file path to which this pattern will be matched against relatively.
+		 *
+		 * This matches the `fsPath` value of {@link RelativePattern.baseUri}.
+		 *
+		 * *Note:* updating this value will update {@link RelativePattern.baseUri} to
+		 * be a uri with `file` scheme.
+		 *
+		 * @deprecated This property is deprecated, please use {@link RelativePattern.baseUri} instead.
+		 */
+		base: string;
+
+		/**
+		 * A file glob pattern like `*.{ts,js}` that will be matched on file paths
+		 * relative to the base path.
+		 *
+		 * Example: Given a base of `/home/work/folder` and a file path of `/home/work/folder/index.js`,
+		 * the file glob pattern will match on `index.js`.
+		 */
+		pattern: string;
+
+		/**
+		 * Creates a new relative pattern object with a base file path and pattern to match. This pattern
+		 * will be matched on file paths relative to the base.
+		 *
+		 * Example:
+		 * ```ts
+		 * const folder = vscode.workspace.workspaceFolders?.[0];
+		 * if (folder) {
+		 *
+		 *   // Match any TypeScript file in the root of this workspace folder
+		 *   const pattern1 = new vscode.RelativePattern(folder, '*.ts');
+		 *
+		 *   // Match any TypeScript file in `someFolder` inside this workspace folder
+		 *   const pattern2 = new vscode.RelativePattern(folder, 'someFolder/*.ts');
+		 * }
+		 * ```
+		 *
+		 * @param base A base to which this pattern will be matched against relatively. It is recommended
+		 * to pass in a {@link WorkspaceFolder workspace folder} if the pattern should match inside the workspace.
+		 * Otherwise, a uri or string should only be used if the pattern is for a file path outside the workspace.
+		 * @param pattern A file glob pattern like `*.{ts,js}` that will be matched on paths relative to the base.
+		 */
+		constructor(base: WorkspaceFolder | Uri | string, pattern: string);
+	}
+
+	/**
+	 * A file glob pattern to match file paths against. This can either be a glob pattern string
+	 * (like `**​/*.{ts,js}` or `*.{ts,js}`) or a {@link RelativePattern relative pattern}.
+	 *
+	 * Glob patterns can have the following syntax:
+	 * * `*` to match zero or more characters in a path segment
+	 * * `?` to match on one character in a path segment
+	 * * `**` to match any number of path segments, including none
+	 * * `{}` to group conditions (e.g. `**​/*.{ts,js}` matches all TypeScript and JavaScript files)
+	 * * `[]` to declare a range of characters to match in a path segment (e.g., `example.[0-9]` to match on `example.0`, `example.1`, …)
+	 * * `[!...]` to negate a range of characters to match in a path segment (e.g., `example.[!0-9]` to match on `example.a`, `example.b`, but not `example.0`)
+	 *
+	 * Note: a backslash (`\`) is not valid within a glob pattern. If you have an existing file
+	 * path to match against, consider to use the {@link RelativePattern relative pattern} support
+	 * that takes care of converting any backslash into slash. Otherwise, make sure to convert
+	 * any backslash to slash when creating the glob pattern.
+	 */
+	export type GlobPattern = string | RelativePattern;
+
+	/**
+	 * A document filter denotes a document by different properties like
+	 * the {@link TextDocument.languageId language}, the {@link Uri.scheme scheme} of
+	 * its resource, or a glob-pattern that is applied to the {@link TextDocument.fileName path}.
+	 *
+	 * @example <caption>A language filter that applies to typescript files on disk</caption>
+	 * { language: 'typescript', scheme: 'file' }
+	 *
+	 * @example <caption>A language filter that applies to all package.json paths</caption>
+	 * { language: 'json', pattern: '**​/package.json' }
+	 */
+	export interface DocumentFilter {
+
+		/**
+		 * A language id, like `typescript`.
+		 */
+		readonly language?: string;
+
+		/**
+		 * A Uri {@link Uri.scheme scheme}, like `file` or `untitled`.
+		 */
+		readonly scheme?: string;
+
+		/**
+		 * A {@link GlobPattern glob pattern} that is matched on the absolute path of the document. Use a {@link RelativePattern relative pattern}
+		 * to filter documents to a {@link WorkspaceFolder workspace folder}.
+		 */
+		readonly pattern?: GlobPattern;
+	}
+
+	/**
+	 * A language selector is the combination of one or many language identifiers
+	 * and {@link DocumentFilter language filters}.
+	 *
+	 * *Note* that a document selector that is just a language identifier selects *all*
+	 * documents, even those that are not saved on disk. Only use such selectors when
+	 * a feature works without further context, e.g. without the need to resolve related
+	 * 'files'.
+	 *
+	 * @example
+	 * let sel:DocumentSelector = { scheme: 'file', language: 'typescript' };
+	 */
+	export type DocumentSelector = DocumentFilter | string | ReadonlyArray<DocumentFilter | string>;
+
+	/**
+	 * A provider result represents the values a provider, like the {@linkcode HoverProvider},
+	 * may return. For once this is the actual result type `T`, like `Hover`, or a thenable that resolves
+	 * to that type `T`. In addition, `null` and `undefined` can be returned - either directly or from a
+	 * thenable.
+	 *
+	 * The snippets below are all valid implementations of the {@linkcode HoverProvider}:
+	 *
+	 * ```ts
+	 * let a: HoverProvider = {
+	 * 	provideHover(doc, pos, token): ProviderResult<Hover> {
+	 * 		return new Hover('Hello World');
+	 * 	}
+	 * }
+	 *
+	 * let b: HoverProvider = {
+	 * 	provideHover(doc, pos, token): ProviderResult<Hover> {
+	 * 		return new Promise(resolve => {
+	 * 			resolve(new Hover('Hello World'));
+	 * 	 	});
+	 * 	}
+	 * }
+	 *
+	 * let c: HoverProvider = {
+	 * 	provideHover(doc, pos, token): ProviderResult<Hover> {
+	 * 		return; // undefined
+	 * 	}
+	 * }
+	 * ```
+	 */
+	export type ProviderResult<T> = T | undefined | null | Thenable<T | undefined | null>;
+
+	/**
+	 * A cancellation token is passed to an asynchronous or long running
+	 * operation to request cancellation, like cancelling a request
+	 * for completion items because the user continued to type.
+	 *
+	 * To get an instance of a `CancellationToken` use a
+	 * {@link CancellationTokenSource}.
+	 */
+	export interface CancellationToken {
+
+		/**
+		 * Is `true` when the token has been cancelled, `false` otherwise.
+		 */
+		isCancellationRequested: boolean;
+
+		/**
+		 * An {@link Event} which fires upon cancellation.
+		 */
+		readonly onCancellationRequested: Event<any>;
+	}
+
+	/**
+	 * How a {@link CompletionItemProvider completion provider} was triggered
+	 */
+	export enum CompletionTriggerKind {
+		/**
+		 * Completion was triggered normally.
+		 */
+		Invoke = 0,
+		/**
+		 * Completion was triggered by a trigger character.
+		 */
+		TriggerCharacter = 1,
+		/**
+		 * Completion was re-triggered as current completion list is incomplete
+		 */
+		TriggerForIncompleteCompletions = 2
+	}
+
+	/**
+	 * Contains additional information about the context in which
+	 * {@link CompletionItemProvider.provideCompletionItems completion provider} is triggered.
+	 */
+	export interface CompletionContext {
+		/**
+		 * How the completion was triggered.
+		 */
+		readonly triggerKind: CompletionTriggerKind;
+
+		/**
+		 * Character that triggered the completion item provider.
+		 *
+		 * `undefined` if the provider was not triggered by a character.
+		 *
+		 * The trigger character is already in the document when the completion provider is triggered.
+		 */
+		readonly triggerCharacter: string | undefined;
+	}
+
+	/**
+	 * A structured label for a {@link CompletionItem completion item}.
+	 */
+	export interface CompletionItemLabel {
+
+		/**
+		 * The label of this completion item.
+		 *
+		 * By default this is also the text that is inserted when this completion is selected.
+		 */
+		label: string;
+
+		/**
+		 * An optional string which is rendered less prominently directly after {@link CompletionItemLabel.label label},
+		 * without any spacing. Should be used for function signatures or type annotations.
+		 */
+		detail?: string;
+
+		/**
+		 * An optional string which is rendered less prominently after {@link CompletionItemLabel.detail}. Should be used
+		 * for fully qualified names or file path.
+		 */
+		description?: string;
+	}
+
+	/**
+	 * A snippet string is a template which allows to insert text
+	 * and to control the editor cursor when insertion happens.
+	 *
+	 * A snippet can define tab stops and placeholders with `$1`, `$2`
+	 * and `${3:foo}`. `$0` defines the final tab stop, it defaults to
+	 * the end of the snippet. Variables are defined with `$name` and
+	 * `${name:default value}`. Also see
+	 * [the full snippet syntax](https://code.visualstudio.com/docs/editor/userdefinedsnippets#_create-your-own-snippets).
+	 */
+	export class SnippetString {
+
+		/**
+		 * The snippet string.
+		 */
+		value: string;
+
+		/**
+		 * Create a new snippet string.
+		 *
+		 * @param value A snippet string.
+		 */
+		constructor(value?: string);
+
+		/**
+		 * Builder-function that appends the given string to
+		 * the {@linkcode SnippetString.value value} of this snippet string.
+		 *
+		 * @param string A value to append 'as given'. The string will be escaped.
+		 * @returns This snippet string.
+		 */
+		appendText(string: string): SnippetString;
+
+		/**
+		 * Builder-function that appends a tabstop (`$1`, `$2` etc) to
+		 * the {@linkcode SnippetString.value value} of this snippet string.
+		 *
+		 * @param number The number of this tabstop, defaults to an auto-increment
+		 * value starting at 1.
+		 * @returns This snippet string.
+		 */
+		appendTabstop(number?: number): SnippetString;
+
+		/**
+		 * Builder-function that appends a placeholder (`${1:value}`) to
+		 * the {@linkcode SnippetString.value value} of this snippet string.
+		 *
+		 * @param value The value of this placeholder - either a string or a function
+		 * with which a nested snippet can be created.
+		 * @param number The number of this tabstop, defaults to an auto-increment
+		 * value starting at 1.
+		 * @returns This snippet string.
+		 */
+		appendPlaceholder(value: string | ((snippet: SnippetString) => any), number?: number): SnippetString;
+
+		/**
+		 * Builder-function that appends a choice (`${1|a,b,c|}`) to
+		 * the {@linkcode SnippetString.value value} of this snippet string.
+		 *
+		 * @param values The values for choices - the array of strings
+		 * @param number The number of this tabstop, defaults to an auto-increment
+		 * value starting at 1.
+		 * @returns This snippet string.
+		 */
+		appendChoice(values: readonly string[], number?: number): SnippetString;
+
+		/**
+		 * Builder-function that appends a variable (`${VAR}`) to
+		 * the {@linkcode SnippetString.value value} of this snippet string.
+		 *
+		 * @param name The name of the variable - excluding the `$`.
+		 * @param defaultValue The default value which is used when the variable name cannot
+		 * be resolved - either a string or a function with which a nested snippet can be created.
+		 * @returns This snippet string.
+		 */
+		appendVariable(name: string, defaultValue: string | ((snippet: SnippetString) => any)): SnippetString;
+	}
+
+	/**
+	 * Human-readable text that supports formatting via the [markdown syntax](https://commonmark.org).
+	 *
+	 * Rendering of {@link ThemeIcon theme icons} via the `$(<name>)`-syntax is supported
+	 * when the {@linkcode supportThemeIcons} is set to `true`.
+	 *
+	 * Rendering of embedded html is supported when {@linkcode supportHtml} is set to `true`.
+	 */
+	export class MarkdownString {
+
+		/**
+		 * The markdown string.
+		 */
+		value: string;
+
+		/**
+		 * Indicates that this markdown string is from a trusted source. Only *trusted*
+		 * markdown supports links that execute commands, e.g. `[Run it](command:myCommandId)`.
+		 *
+		 * Defaults to `false` (commands are disabled).
+		 */
+		isTrusted?: boolean | {
+			/**
+			 * A set of commend ids that are allowed to be executed by this markdown string.
+			 */
+			readonly enabledCommands: readonly string[];
+		};
+
+		/**
+		 * Indicates that this markdown string can contain {@link ThemeIcon ThemeIcons}, e.g. `$(zap)`.
+		 */
+		supportThemeIcons?: boolean;
+
+		/**
+		 * Indicates that this markdown string can contain raw html tags. Defaults to `false`.
+		 *
+		 * When `supportHtml` is false, the markdown renderer will strip out any raw html tags
+		 * that appear in the markdown text. This means you can only use markdown syntax for rendering.
+		 *
+		 * When `supportHtml` is true, the markdown render will also allow a safe subset of html tags
+		 * and attributes to be rendered. See https://github.com/microsoft/vscode/blob/6d2920473c6f13759c978dd89104c4270a83422d/src/vs/base/browser/markdownRenderer.ts#L296
+		 * for a list of all supported tags and attributes.
+		 */
+		supportHtml?: boolean;
+
+		/**
+		 * Uri that relative paths are resolved relative to.
+		 *
+		 * If the `baseUri` ends with `/`, it is considered a directory and relative paths in the markdown are resolved relative to that directory:
+		 *
+		 * ```ts
+		 * const md = new vscode.MarkdownString(`[link](./file.js)`);
+		 * md.baseUri = vscode.Uri.file('/path/to/dir/');
+		 * // Here 'link' in the rendered markdown resolves to '/path/to/dir/file.js'
+		 * ```
+		 *
+		 * If the `baseUri` is a file, relative paths in the markdown are resolved relative to the parent dir of that file:
+		 *
+		 * ```ts
+		 * const md = new vscode.MarkdownString(`[link](./file.js)`);
+		 * md.baseUri = vscode.Uri.file('/path/to/otherFile.js');
+		 * // Here 'link' in the rendered markdown resolves to '/path/to/file.js'
+		 * ```
+		 */
+		baseUri?: Uri;
+
+		/**
+		 * Creates a new markdown string with the given value.
+		 *
+		 * @param value Optional, initial value.
+		 * @param supportThemeIcons Optional, Specifies whether {@link ThemeIcon ThemeIcons} are supported within the {@linkcode MarkdownString}.
+		 */
+		constructor(value?: string, supportThemeIcons?: boolean);
+
+		/**
+		 * Appends and escapes the given string to this markdown string.
+		 * @param value Plain text.
+		 */
+		appendText(value: string): MarkdownString;
+
+		/**
+		 * Appends the given string 'as is' to this markdown string. When {@linkcode MarkdownString.supportThemeIcons supportThemeIcons} is `true`, {@link ThemeIcon ThemeIcons} in the `value` will be iconified.
+		 * @param value Markdown string.
+		 */
+		appendMarkdown(value: string): MarkdownString;
+
+		/**
+		 * Appends the given string as codeblock using the provided language.
+		 * @param value A code snippet.
+		 * @param language An optional {@link languages.getLanguages language identifier}.
+		 */
+		appendCodeblock(value: string, language?: string): MarkdownString;
+	}
+
+	/**
+	 * A completion item represents a text snippet that is proposed to complete text that is being typed.
+	 *
+	 * It is sufficient to create a completion item from just a {@link CompletionItem.label label}. In that
+	 * case the completion item will replace the {@link TextDocument.getWordRangeAtPosition word}
+	 * until the cursor with the given label or {@link CompletionItem.insertText insertText}. Otherwise the
+	 * given {@link CompletionItem.textEdit edit} is used.
+	 *
+	 * When selecting a completion item in the editor its defined or synthesized text edit will be applied
+	 * to *all* cursors/selections whereas {@link CompletionItem.additionalTextEdits additionalTextEdits} will be
+	 * applied as provided.
+	 *
+	 * @see {@link CompletionItemProvider.provideCompletionItems}
+	 * @see {@link CompletionItemProvider.resolveCompletionItem}
+	 */
+	export class CompletionItem {
+
+		/**
+		 * The label of this completion item. By default
+		 * this is also the text that is inserted when selecting
+		 * this completion.
+		 */
+		label: string | CompletionItemLabel;
+
+		/**
+		 * The kind of this completion item. Based on the kind
+		 * an icon is chosen by the editor.
+		 */
+		kind?: CompletionItemKind;
+
+		/**
+		 * A human-readable string with additional information
+		 * about this item, like type or symbol information.
+		 */
+		detail?: string;
+
+		/**
+		 * A human-readable string that represents a doc-comment.
+		 */
+		documentation?: string | MarkdownString;
+
+		/**
+		 * A string or snippet that should be inserted in a document when selecting
+		 * this completion. When `falsy` the {@link CompletionItem.label label}
+		 * is used.
+		 */
+		insertText?: string | SnippetString;
+
+		/**
+		 * A range or a insert and replace range selecting the text that should be replaced by this completion item.
+		 *
+		 * When omitted, the range of the {@link TextDocument.getWordRangeAtPosition current word} is used as replace-range
+		 * and as insert-range the start of the {@link TextDocument.getWordRangeAtPosition current word} to the
+		 * current position is used.
+		 *
+		 * *Note 1:* A range must be a {@link Range.isSingleLine single line} and it must
+		 * {@link Range.contains contain} the position at which completion has been {@link CompletionItemProvider.provideCompletionItems requested}.
+		 * *Note 2:* A insert range must be a prefix of a replace range, that means it must be contained and starting at the same position.
+		 */
+		range?: Range | {
+			/**
+			 * The range that should be used when insert-accepting a completion. Must be a prefix of `replaceRange`.
+			 */
+			inserting: Range;
+			/**
+			 * The range that should be used when replace-accepting a completion.
+			 */
+			replacing: Range;
+		};
+
+		/**
+		 * An optional {@link Command} that is executed *after* inserting this completion. *Note* that
+		 * additional modifications to the current document should be described with the
+		 * {@link CompletionItem.additionalTextEdits additionalTextEdits}-property.
+		 */
+		command?: Command;
+
+		/**
+		 * Creates a new completion item.
+		 *
+		 * Completion items must have at least a {@link CompletionItem.label label} which then
+		 * will be used as insert text as well as for sorting and filtering.
+		 *
+		 * @param label The label of the completion.
+		 * @param kind The {@link CompletionItemKind kind} of the completion.
+		 */
+		constructor(label: string | CompletionItemLabel, kind?: CompletionItemKind);
+	}
+
+	/**
+	 * Represents a collection of {@link CompletionItem completion items} to be presented
+	 * in the editor.
+	 */
+	export class CompletionList<T extends CompletionItem = CompletionItem> {
+
+		/**
+		 * This list is not complete. Further typing should result in recomputing
+		 * this list.
+		 */
+		isIncomplete?: boolean;
+
+		/**
+		 * The completion items.
+		 */
+		items: T[];
+
+		/**
+		 * Creates a new completion list.
+		 *
+		 * @param items The completion items.
+		 * @param isIncomplete The list is not complete.
+		 */
+		constructor(items?: T[], isIncomplete?: boolean);
+	}
+
+	/**
+	 * The completion item provider interface defines the contract between extensions and
+	 * [IntelliSense](https://code.visualstudio.com/docs/editor/intellisense).
+	 *
+	 * Providers can delay the computation of the {@linkcode CompletionItem.detail detail}
+	 * and {@linkcode CompletionItem.documentation documentation} properties by implementing the
+	 * {@linkcode CompletionItemProvider.resolveCompletionItem resolveCompletionItem}-function. However, properties that
+	 * are needed for the initial sorting and filtering, like `sortText`, `filterText`, `insertText`, and `range`, must
+	 * not be changed during resolve.
+	 *
+	 * Providers are asked for completions either explicitly by a user gesture or -depending on the configuration-
+	 * implicitly when typing words or trigger characters.
+	 */
+	export interface CompletionItemProvider<T extends CompletionItem = CompletionItem> {
+
+		/**
+		 * Provide completion items for the given position and document.
+		 *
+		 * @param document The document in which the command was invoked.
+		 * @param position The position at which the command was invoked.
+		 * @param token A cancellation token.
+		 * @param context How the completion was triggered.
+		 *
+		 * @returns An array of completions, a {@link CompletionList completion list}, or a thenable that resolves to either.
+		 * The lack of a result can be signaled by returning `undefined`, `null`, or an empty array.
+		 */
+		provideCompletionItems(document: TextDocument, position: Position, token: CancellationToken, context: CompletionContext): ProviderResult<T[] | CompletionList<T>>;
+
+		/**
+		 * Given a completion item fill in more data, like {@link CompletionItem.documentation doc-comment}
+		 * or {@link CompletionItem.detail details}.
+		 *
+		 * The editor will only resolve a completion item once.
+		 *
+		 * *Note* that this function is called when completion items are already showing in the UI or when an item has been
+		 * selected for insertion. Because of that, no property that changes the presentation (label, sorting, filtering etc)
+		 * or the (primary) insert behaviour ({@link CompletionItem.insertText insertText}) can be changed.
+		 *
+		 * This function may fill in {@link CompletionItem.additionalTextEdits additionalTextEdits}. However, that means an item might be
+		 * inserted *before* resolving is done and in that case the editor will do a best effort to still apply those additional
+		 * text edits.
+		 *
+		 * @param item A completion item currently active in the UI.
+		 * @param token A cancellation token.
+		 * @returns The resolved completion item or a thenable that resolves to of such. It is OK to return the given
+		 * `item`. When no result is returned, the given `item` will be used.
+		 */
+		resolveCompletionItem?(item: T, token: CancellationToken): ProviderResult<T>;
+	}
+
+	/**
+	 * Namespace for participating in language-specific editor [features](https://code.visualstudio.com/docs/editor/editingevolved),
+	 * like IntelliSense, code actions, diagnostics etc.
+	 *
+	 * Many programming languages exist and there is huge variety in syntaxes, semantics, and paradigms. Despite that, features
+	 * like automatic word-completion, code navigation, or code checking have become popular across different tools for different
+	 * programming languages.
+	 *
+	 * The editor provides an API that makes it simple to provide such common features by having all UI and actions already in place and
+	 * by allowing you to participate by providing data only. For instance, to contribute a hover all you have to do is provide a function
+	 * that can be called with a {@link TextDocument} and a {@link Position} returning hover info. The rest, like tracking the
+	 * mouse, positioning the hover, keeping the hover stable etc. is taken care of by the editor.
+	 *
+	 * ```javascript
+	 * languages.registerHoverProvider('javascript', {
+	 * 	provideHover(document, position, token) {
+	 * 		return new Hover('I am a hover!');
+	 * 	}
+	 * });
+	 * ```
+	 *
+	 * Registration is done using a {@link DocumentSelector document selector} which is either a language id, like `javascript` or
+	 * a more complex {@link DocumentFilter filter} like `{ language: 'typescript', scheme: 'file' }`. Matching a document against such
+	 * a selector will result in a {@link languages.match score} that is used to determine if and how a provider shall be used. When
+	 * scores are equal the provider that came last wins. For features that allow full arity, like {@link languages.registerHoverProvider hover},
+	 * the score is only checked to be `>0`, for other features, like {@link languages.registerCompletionItemProvider IntelliSense} the
+	 * score is used for determining the order in which providers are asked to participate.
+	 */
+	export namespace languages {
+
+		/**
+		 * Register a completion provider.
+		 *
+		 * Multiple providers can be registered for a language. In that case providers are sorted
+		 * by their {@link languages.match score} and groups of equal score are sequentially asked for
+		 * completion items. The process stops when one or many providers of a group return a
+		 * result. A failing provider (rejected promise or exception) will not fail the whole
+		 * operation.
+		 *
+		 * A completion item provider can be associated with a set of `triggerCharacters`. When trigger
+		 * characters are being typed, completions are requested but only from providers that registered
+		 * the typed character. Because of that trigger characters should be different than {@link LanguageConfiguration.wordPattern word characters},
+		 * a common trigger character is `.` to trigger member completions.
+		 *
+		 * @param selector A selector that defines the documents this provider is applicable to.
+		 * @param provider A completion provider.
+		 * @param triggerCharacters Trigger completion when the user types one of the characters.
+		 * @returns A {@link Disposable} that unregisters this provider when being disposed.
+		 */
+		export function registerCompletionItemProvider(selector: DocumentSelector, provider: CompletionItemProvider, ...triggerCharacters: string[]): Disposable;
+	}
 
 }
 
 /**
- * Глобальный `Thenable<T>` — VS Code исторически использует его вместо `Promise`
- * в сигнатурах API. Совместим с `Promise` структурно.
+ * Thenable is a common denominator between ES6 promises, Q, jquery.Deferred, WinJS.Promise,
+ * and others. This API makes no assumption about what promise library is being used which
+ * enables reusing existing code without migrating to a specific promise implementation. Still,
+ * we recommend the use of native promises which are available in this editor.
  */
-interface Thenable<T> extends PromiseLike<T> {}
+interface Thenable<T> extends PromiseLike<T> { }
 
 /* ─────────────────────────────────────────────────────────────────────────────
- * Ниже — полный исходный vscode.d.ts из microsoft/vscode, закомментирован
- * построчно. Раскомментируйте нужные блоки в активный `declare module` выше
- * по мере добавления соответствующих API.
+ * Ниже — дословная копия upstream vscode.d.ts, закомментированная построчно.
+ * Раскомментируйте нужные блоки в активный `declare module` выше по мере
+ * реализации соответствующих API. Не редактируйте вручную — регенерируется
+ * `scripts/import-vscode-dts.mjs`; единственная ручная правка — снятие `// `.
  * ───────────────────────────────────────────────────────────────────────── */
-
+//@vexx:begin-upstream-verbatim (генерируется scripts/import-vscode-dts.mjs — правьте только раскомментированием)
 // /*---------------------------------------------------------------------------------------------
 //  *  Copyright (c) Microsoft Corporation. All rights reserved.
 //  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -6143,13 +7602,13 @@ interface Thenable<T> extends PromiseLike<T> {}
 // 		 */
 // 		Color = 15,
 // 		/**
-// 		 * The `Reference` completion item kind.
-// 		 */
-// 		Reference = 17,
-// 		/**
 // 		 * The `File` completion item kind.
 // 		 */
 // 		File = 16,
+// 		/**
+// 		 * The `Reference` completion item kind.
+// 		 */
+// 		Reference = 17,
 // 		/**
 // 		 * The `Folder` completion item kind.
 // 		 */
