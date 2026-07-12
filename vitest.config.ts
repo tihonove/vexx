@@ -42,6 +42,7 @@ export default defineConfig({
         "src/Common/Logging/ILogger.ts",
         "src/Configuration/IConfigurationService.ts",
         "src/Controllers/IController.ts",
+        "src/Editor/Decorations/IGutterChangeDecoration.ts",
         "src/Editor/IDocumentContentChange.ts",
         "src/Editor/ITextDocument.ts",
         "src/Editor/IUndoElement.ts",
