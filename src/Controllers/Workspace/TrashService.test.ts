@@ -1,18 +1,21 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+
 import { TrashService } from "./TrashService.ts";
 
 let tmpDir: string;
+let ws: ITempWorkspace;
 let dataHome: string;
 let workDir: string;
 let savedXdg: string | undefined;
 
 beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-trash-"));
+    ws = createTempWorkspace({ prefix: "vexx-trash-" });
+    tmpDir = ws.dir;
     dataHome = path.join(tmpDir, "data");
     workDir = path.join(tmpDir, "work");
     fs.mkdirSync(workDir, { recursive: true });
@@ -23,7 +26,7 @@ beforeEach(() => {
 afterEach(() => {
     if (savedXdg === undefined) delete process.env.XDG_DATA_HOME;
     else process.env.XDG_DATA_HOME = savedXdg;
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ws.dispose();
 });
 
 function writeFile(name: string, content = "secret"): string {

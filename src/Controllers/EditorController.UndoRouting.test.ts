@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -10,18 +9,21 @@ import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistr
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { EditorController } from "./EditorController.ts";
 import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
 
 let tmpDir: string;
+let ws: ITempWorkspace;
 
 beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-editundo-"));
+    ws = createTempWorkspace({ prefix: "vexx-editundo-" });
+    tmpDir = ws.dir;
 });
 
 afterEach(() => {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ws.dispose();
 });
 
 function make(): { controller: EditorController; undoRedo: UndoRedoService; file: string } {

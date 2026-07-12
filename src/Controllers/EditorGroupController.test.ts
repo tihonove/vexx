@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -15,6 +14,7 @@ import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistr
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { NULL_FILE_WATCHER } from "./IFileWatcher.ts";
@@ -52,13 +52,15 @@ function stubConfigurationService(values: Record<string, unknown>): IConfigurati
 
 describe("EditorGroupController", () => {
     let tmpDir: string;
+    let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-test-"));
+        ws = createTempWorkspace({ prefix: "vexx-test-" });
+        tmpDir = ws.dir;
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function writeFile(name: string, content: string): string {

@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -16,6 +15,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import type { EditorController } from "./EditorController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
@@ -44,13 +44,15 @@ function typeQuery(find: FindController, query: string): void {
 
 describe("FindController", () => {
     let tmpDir: string;
+let ws: ITempWorkspace;
 
     beforeEach(() => {
-        tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-find-"));
+        ws = createTempWorkspace({ prefix: "vexx-find-" });
+        tmpDir = ws.dir;
     });
 
     afterEach(() => {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
+        ws.dispose();
     });
 
     function setup(text: string): {

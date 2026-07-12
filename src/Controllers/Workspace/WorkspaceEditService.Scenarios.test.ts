@@ -1,21 +1,23 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
 
 import { TrashService } from "./TrashService.ts";
 import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "./UndoRedoService.ts";
 import { WorkspaceEditService } from "./WorkspaceEditService.ts";
 
 let tmpDir: string;
+let ws: ITempWorkspace;
 let savedXdg: string | undefined;
 
 beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-wes-scen-"));
+    ws = createTempWorkspace({ prefix: "vexx-wes-scen-" });
+    tmpDir = ws.dir;
     savedXdg = process.env.XDG_DATA_HOME;
     process.env.XDG_DATA_HOME = path.join(tmpDir, "data");
 });
@@ -23,7 +25,7 @@ beforeEach(() => {
 afterEach(() => {
     if (savedXdg === undefined) delete process.env.XDG_DATA_HOME;
     else process.env.XDG_DATA_HOME = savedXdg;
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    ws.dispose();
 });
 
 function configWith(enableTrash: boolean): IConfigurationService {

@@ -1,66 +1,38 @@
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
-import { AppController, AppControllerDIToken } from "./AppController.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { AppController } from "./AppController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
 
-function createTempWorkspace(): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-integration-"));
-    fs.writeFileSync(path.join(dir, "hello.txt"), "hello world");
-    fs.writeFileSync(path.join(dir, "notes.md"), "# Notes");
-    return dir;
-}
-
-function cleanupDir(dirPath: string): void {
-    fs.rmSync(dirPath, { recursive: true, force: true });
-}
-
-interface IntegrationContext {
-    testApp: TestApp;
-    controller: AppController;
-    commands: CommandRegistry;
-    tmpDir: string;
-}
-
-function createIntegrationApp(tmpDir: string, size: Size = new Size(80, 24)): IntegrationContext {
-    const { container, bindApp } = createTestContainer();
-
-    const controller = container.get(AppControllerDIToken);
-    controller.setWorkspaceFolder(tmpDir);
-    controller.mount();
-
-    const testApp = TestApp.create(controller.view, size);
-    bindApp(testApp.app);
-
-    return { testApp, controller, commands: container.get(CommandRegistryDIToken), tmpDir };
+function createIntegrationWorkspace(): ITempWorkspace {
+    return createTempWorkspace({
+        prefix: "vexx-integration-",
+        files: {
+            "hello.txt": "hello world",
+            "notes.md": "# Notes",
+        },
+    });
 }
 
 describe("FileTree opens file in editor", () => {
-    let tmpDir: string;
-    let testApp: TestApp;
+    let ws: ITempWorkspace;
+    let testApp: IAppHarness["testApp"];
     let controller: AppController;
 
     beforeEach(async () => {
-        tmpDir = createTempWorkspace();
-        const ctx = createIntegrationApp(tmpDir);
-        testApp = ctx.testApp;
-        controller = ctx.controller;
+        ws = createIntegrationWorkspace();
+        const h = createAppTestHarness({ workspaceFolder: ws.dir });
+        testApp = h.testApp;
+        controller = h.controller;
         await controller.activate();
         testApp.render();
     });
 
     afterEach(() => {
         controller.dispose();
-        cleanupDir(tmpDir);
+        ws.dispose();
     });
 
     it("activating a file in the tree opens it in the editor", () => {
@@ -143,24 +115,24 @@ describe("FileTree opens file in editor", () => {
 });
 
 describe("sidebar visibility commands", () => {
-    let tmpDir: string;
-    let testApp: TestApp;
+    let ws: ITempWorkspace;
+    let testApp: IAppHarness["testApp"];
     let controller: AppController;
-    let commands: CommandRegistry;
+    let commands: IAppHarness["commands"];
 
     beforeEach(async () => {
-        tmpDir = createTempWorkspace();
-        const ctx = createIntegrationApp(tmpDir);
-        testApp = ctx.testApp;
-        controller = ctx.controller;
-        commands = ctx.commands;
+        ws = createIntegrationWorkspace();
+        const h = createAppTestHarness({ workspaceFolder: ws.dir });
+        testApp = h.testApp;
+        controller = h.controller;
+        commands = h.commands;
         await controller.activate();
         testApp.render();
     });
 
     afterEach(() => {
         controller.dispose();
-        cleanupDir(tmpDir);
+        ws.dispose();
     });
 
     it("Ctrl+B hides the left panel", () => {
