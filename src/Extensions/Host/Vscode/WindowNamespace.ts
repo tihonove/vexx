@@ -1,10 +1,46 @@
 import type * as vscode from "vscode";
 
 import type { RpcEndpoint } from "../RpcEndpoint.ts";
+import { type IWireFileDecoration, serializeDecorationRenderOptions } from "../WireTypes.ts";
 
 import type { ExtHostTextDocument } from "./ExtHostDocuments.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
 import { DisposableImpl } from "./VscodeTypes.ts";
+
+/** Wire-форма диапазона декорации (nested `start`/`end`, совпадает с `IRange`). */
+interface IWireRange {
+    readonly start: { readonly line: number; readonly character: number };
+    readonly end: { readonly line: number; readonly character: number };
+}
+
+function toWireRange(range: vscode.Range): IWireRange {
+    return {
+        start: { line: range.start.line, character: range.start.character },
+        end: { line: range.end.line, character: range.end.character },
+    };
+}
+
+/** Диапазоны из `setDecorations` — либо голые Range, либо DecorationOptions с `.range`. */
+function normalizeDecorationRanges(
+    rangesOrOptions: readonly vscode.Range[] | readonly vscode.DecorationOptions[],
+): IWireRange[] {
+    return rangesOrOptions.map((item) => {
+        const range = "range" in item ? item.range : item;
+        return toWireRange(range);
+    });
+}
+
+/** Никогда-не-отменённый токен для `provideFileDecoration` (host-мост не отменяет запросы). */
+const NEVER_CANCELLED = {
+    isCancellationRequested: false,
+    /* v8 ignore next -- defensive stub: host-мост никогда не отменяет provideFileDecoration, слушатель не вызывается */
+    onCancellationRequested: () => new DisposableImpl(() => undefined),
+} as unknown as vscode.CancellationToken;
+
+function normalizeChangedUris(changed: undefined | vscode.Uri | vscode.Uri[]): vscode.Uri[] {
+    if (changed === undefined) return [];
+    return Array.isArray(changed) ? changed : [changed];
+}
 
 /**
  * `vscode.window` на стороне subprocess.
@@ -22,6 +58,11 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
     // editor.document === registry.getOrCreate(fileName) по построению.
     const editorCache = new WeakMap<ExtHostTextDocument, vscode.TextEditor>();
     const activeEditorListeners: ((editor: vscode.TextEditor | undefined) => void)[] = [];
+
+    // Монотонный ключ типа декорации + маппинг type-объект → числовой ключ.
+    // Ключ живёт локально в субпроцессе; хост знает тип только по числу.
+    let nextDecorationKey = 1;
+    const decorationTypeKeys = new WeakMap<object, number>();
 
     rpc.handleNotification("editor.activeEditorChanged", (params) => {
         const meta = params as { fileName: string | null; languageId?: string | null; isDirty?: boolean };
@@ -52,6 +93,21 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         const editorData = {
             options: {} as vscode.TextEditorOptions,
             document,
+            // Применение набора декораций (`vscode.TextEditor.setDecorations`):
+            // резолвим числовой ключ типа и шлём диапазоны хосту. Пустой набор
+            // (`[]`) снимает декорации этого типа в этом файле.
+            setDecorations: (
+                decorationType: vscode.TextEditorDecorationType,
+                rangesOrOptions: readonly vscode.Range[] | readonly vscode.DecorationOptions[],
+            ): void => {
+                const key = decorationTypeKeys.get(decorationType as unknown as object);
+                if (key === undefined) return;
+                rpc.notify("editor.setDecorations", {
+                    key,
+                    fileName: document.fileName,
+                    ranges: normalizeDecorationRanges(rangesOrOptions),
+                });
+            },
         };
         return new Proxy(editorData, {
             set: (target, prop, value): boolean => {
@@ -78,6 +134,30 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
                 return false;
             },
         }) as unknown as vscode.TextEditor;
+    }
+
+    // Опрашивает провайдер по изменившимся uri и шлёт хосту результат. uri без
+    // декорации (провайдер вернул null) уходит «голым» — хост трактует это как
+    // снятие декорации с файла. `undefined` (все файлы) не разворачивается: у
+    // субпроцесса нет списка всех uri, а хост держит полный набор сам.
+    async function pushFileDecorations(
+        provider: vscode.FileDecorationProvider,
+        changed: undefined | vscode.Uri | vscode.Uri[],
+    ): Promise<void> {
+        const uris = normalizeChangedUris(changed);
+        if (uris.length === 0) return;
+        const decorations: IWireFileDecoration[] = [];
+        for (const uri of uris) {
+            const decoration = await provider.provideFileDecoration(uri, NEVER_CANCELLED);
+            const entry: IWireFileDecoration = {
+                uri: uri.toString(),
+                ...(decoration?.badge !== undefined ? { badge: decoration.badge } : {}),
+                ...(decoration?.color !== undefined ? { colorId: decoration.color.id } : {}),
+                ...(decoration?.propagate !== undefined ? { propagate: decoration.propagate } : {}),
+            };
+            decorations.push(entry);
+        }
+        rpc.notify("window.fileDecorationsChanged", { decorations });
     }
 
     const windowNs = {
@@ -122,15 +202,47 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         showWarningMessage: (message: string): Thenable<string | undefined> => showMessage(rpc, "warn", message),
         showInformationMessage: (message: string): Thenable<string | undefined> => showMessage(rpc, "info", message),
 
+        // Создаёт тип декорации: числовой ключ монотонен и живёт локально;
+        // хосту уходит сериализованный options (ThemeColor → { $themeColor: id }).
+        // `dispose()` шлёт хосту снятие типа (все его декорации гаснут).
+        createTextEditorDecorationType: (options: vscode.DecorationRenderOptions): vscode.TextEditorDecorationType => {
+            const key = nextDecorationKey++;
+            const type = {
+                key: String(key),
+                dispose: (): void => {
+                    rpc.notify("window.disposeTextEditorDecorationType", { key });
+                },
+            };
+            decorationTypeKeys.set(type, key);
+            rpc.notify("window.createTextEditorDecorationType", {
+                key,
+                options: serializeDecorationRenderOptions(options),
+            });
+            return type as unknown as vscode.TextEditorDecorationType;
+        },
+
+        // Провайдер файловых декораций живёт в субпроцессе; мост подписывается на
+        // его onDidChangeFileDecorations и сам опрашивает provideFileDecoration по
+        // изменившимся uri, проталкивая результат хосту.
+        registerFileDecorationProvider: (provider: vscode.FileDecorationProvider): vscode.Disposable => {
+            const changeEvent = provider.onDidChangeFileDecorations;
+            if (changeEvent === undefined) {
+                return new DisposableImpl(() => undefined) as unknown as vscode.Disposable;
+            }
+            return changeEvent((changed) => {
+                void pushFileDecorations(provider, changed);
+            });
+        },
+
         createOutputChannel: (name: string): vscode.OutputChannel => {
+            // stdout субпроцесса пробрасывается в логгер `extensions.host.stdout`.
+            const log = (value: string): void => {
+                console.log(`[${name}] ${value}`);
+            };
             return {
                 name,
-                append: () => {
-                    /* no-op */
-                },
-                appendLine: () => {
-                    /* no-op */
-                },
+                append: (value: string) => log(value),
+                appendLine: (value: string) => log(value),
                 replace: () => {
                     /* no-op */
                 },

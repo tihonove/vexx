@@ -24,9 +24,13 @@ describe("builtin language packs", () => {
 
     it("сканирует все паки без потерь", async () => {
         const extensions = await scanAll();
-        expect(extensions.length).toBeGreaterThanOrEqual(48);
+        // Языковые паки импортированы из microsoft/vscode (publisher "vscode").
+        // Помимо них в builtin/ живут first-party Vexx-расширения (напр. git,
+        // publisher "vexx") — не языковые паки, поэтому исключаются из счётчика.
+        const languagePacks = extensions.filter((e) => e.manifest.publisher === "vscode");
+        expect(languagePacks.length).toBeGreaterThanOrEqual(48);
         for (const ext of extensions) {
-            expect(ext.manifest.publisher).toBe("vscode");
+            expect(["vscode", "vexx"]).toContain(ext.manifest.publisher);
         }
     });
 

@@ -1153,6 +1153,15 @@ export class AppController extends Disposable implements IController {
         return this.fileSearchService.ready;
     }
 
+    /**
+     * Дерево файлов. Минимальный DI-шов: `FileTreeController` создаётся внутри
+     * AppController, а мосту файловых декораций extension-host'а нужна ссылка на
+     * него (см. `FileTreeControllerDIToken` / `ExtensionHostModule`).
+     */
+    public get fileTree(): FileTreeController {
+        return this.fileTreeController;
+    }
+
     public focusEditor(): void {
         this.editorGroupController.focusEditor();
     }

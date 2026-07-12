@@ -4,6 +4,7 @@ import { execSync, spawnSync } from "node:child_process";
 import { writeFileSync, mkdirSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
 
+import { buildExtensions } from "./build-extensions.mjs";
 import { buildVexxBundle } from "./pack-assets.mjs";
 
 const root = resolve(import.meta.dirname, "..");
@@ -21,6 +22,11 @@ function run(cmd) {
 // 1. Bundle with tsup
 mkdirSync(dist, { recursive: true });
 run("npx tsup");
+
+// 1.5. Compile code-builtins (git, …) → <dir>/out/extension.cjs BEFORE packing,
+// so the compiled bundle lands in vexx.bundle and is loadable under SEA.
+const builtExtensions = await buildExtensions({ repoRoot: root });
+console.log(`[build-sea] Compiled ${builtExtensions.length} code-builtin(s): ${builtExtensions.map((b) => b.id).join(", ") || "—"}`);
 
 // 2. Pack onig.wasm + src/Extensions/builtin/** into a single dist/vexx.bundle
 const { bundle, inputs } = buildVexxBundle({ repoRoot: root });

@@ -5,6 +5,7 @@ import * as path from "node:path";
 import { HeadlessCaptureBackend } from "./Backend/HeadlessCaptureBackend.ts";
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
 import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
+import { joinVirtualPath } from "./Common/Assets/AssetBundleFormat.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
 import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
 import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
@@ -234,8 +235,9 @@ async function runEditor(): Promise<void> {
 
     const app = container.get(TuiApplicationDIToken);
     const appController = container.get(AppControllerDIToken);
-    // Поднимаем extension host (пока без зарегистрированных расширений: исполнение
-    // `main` builtin-расширений будет в Phase F вместе с self-spawn).
+    // Поднимаем extension host. Регистрация расширений с `manifest.main` (builtin +
+    // user) — ниже, ПОСЛЕ setWorkspaceFolder + openFile (чтобы workspaceFolders и
+    // activeTextEditor были доступны на момент `activate()`).
     const extensionHost = container.get(ExtensionHostDIToken);
 
     // If the first argument is a directory, use it as the workspace folder
@@ -350,6 +352,35 @@ async function runEditor(): Promise<void> {
             await extensionHost.registerExtension(reg);
         } catch (err) {
             extensionsLogger.error(`${ext.id}: failed to activate`, err);
+        }
+    }
+
+    // Активируем builtin code-расширения (например встроенный `git`): их
+    // скомпилированный `out/extension.cjs` читаем из `assets` (dev — FsAssetAccess,
+    // SEA — BundleAssetAccess, единый вызов) и грузим строкой-исходником, которую
+    // subprocess компилирует в памяти через Module._compile — без записи на диск.
+    for (const ext of builtinExtensions) {
+        const main = ext.manifest.main;
+        if (typeof main !== "string" || main === "") continue;
+        try {
+            const virtualPath = joinVirtualPath(ext.location, main);
+            const source = await assets.readText(virtualPath);
+            const reg: IExtensionRegistration = {
+                id: ext.id,
+                manifest: {
+                    name: ext.manifest.name,
+                    publisher: ext.manifest.publisher,
+                    version: ext.manifest.version,
+                },
+                source,
+                // Синтетический абсолютный путь-идентичность (реального файла под SEA нет).
+                filename: `/${virtualPath}`,
+                configDefaults: flattenConfigDefaults(ext.manifest.contributes?.configuration),
+                commandTitles: collectCommandTitles(ext.manifest.contributes?.commands),
+            };
+            await extensionHost.registerExtension(reg);
+        } catch (err) {
+            extensionsLogger.error(`${ext.id}: failed to activate (builtin)`, err);
         }
     }
 }

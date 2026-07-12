@@ -15,7 +15,10 @@ import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistr
 import { CommandServiceAdapter } from "../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import { ExtensionHost, type IExtensionHostConfigProvider } from "../Extensions/Host/ExtensionHost.ts";
+import type { IEditorDecorationsService } from "../Extensions/Host/IEditorDecorationsService.ts";
 import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
+import type { IFileDecorationsService } from "../Extensions/Host/IFileDecorationsService.ts";
+import type { IThemeColorResolver } from "../Extensions/Host/IThemeColorResolver.ts";
 
 const SUBPROCESS_ENTRY = fileURLToPath(new URL("../Extensions/Host/__fixtures__/subprocessEntry.ts", import.meta.url));
 
@@ -27,7 +30,10 @@ const SUBPROCESS_ENTRY = fileURLToPath(new URL("../Extensions/Host/__fixtures__/
 export function subprocessSpawnArgsForTests(): () => { command: string; args: string[]; env?: NodeJS.ProcessEnv } {
     return () => ({
         command: process.execPath,
-        args: ["--import", "tsx/esm", SUBPROCESS_ENTRY],
+        // Полный `tsx` (не `tsx/esm`) регистрирует и ESM-, и CJS-хук: расширения
+        // грузятся через `createRequire(mainPath)`, поэтому `.ts`-main (напр.
+        // builtin `git`) требует CJS-транспиляции. `.cjs`-фикстуры работают как есть.
+        args: ["--import", "tsx", SUBPROCESS_ENTRY],
         env: { ...process.env },
     });
 }
@@ -70,12 +76,20 @@ export interface IExtensionHarnessOptions {
      * {@link NULL_LANGUAGE_SERVICE} (всё — `plaintext`).
      */
     readonly languageService?: ILanguageService;
+    /** Мост gutter-декораций к редакторам (Chunk 4). По умолчанию не подключён. */
+    readonly editorDecorations?: IEditorDecorationsService;
+    /** Мост файловых декораций к дереву (Chunk 4). По умолчанию не подключён. */
+    readonly fileDecorations?: IFileDecorationsService;
+    /** Резолвер ThemeColor id → packed-RGB (+ смена темы). По умолчанию не подключён. */
+    readonly themeColorResolver?: IThemeColorResolver;
 }
 
 export interface IExtensionHarness {
     readonly app: TestApp;
     readonly host: ExtensionHost;
     readonly group: EditorGroupController;
+    /** ThemeService, за которым стоит харнесс (для тестов смены темы). */
+    readonly themeService: ThemeService;
     /**
      * Host-реестр команд, за которым стоит {@link ExtensionHost}. Тест может
      * `execute(...)` прокси-команду сабпроцесса (host → subprocess) или
@@ -131,6 +145,9 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
     const host = new ExtensionHost(adapter, commandAdapter, {
         spawnArgs: subprocessSpawnArgsForTests(),
         configuration,
+        ...(options.editorDecorations !== undefined ? { editorDecorations: options.editorDecorations } : {}),
+        ...(options.fileDecorations !== undefined ? { fileDecorations: options.fileDecorations } : {}),
+        ...(options.themeColorResolver !== undefined ? { themeColorResolver: options.themeColorResolver } : {}),
     });
 
     // Save-pipeline (WP6): проброс will-save/did-save между группой и хостом.
@@ -180,5 +197,5 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         }
     };
 
-    return { app, host, group, commandRegistry, tmpDir, writeFile, flushRpc, dispose };
+    return { app, host, group, themeService, commandRegistry, tmpDir, writeFile, flushRpc, dispose };
 }

@@ -381,6 +381,58 @@ export class CompletionItem {
 }
 
 /**
+ * Ссылка на цвет из реестра цветов темы (`vscode.ThemeColor`). Расширение
+ * создаёт `new vscode.ThemeColor("gitDecoration.modifiedResourceForeground")`;
+ * хост-сериализатор превращает её в `{ $themeColor: id }`, а resolve в конкретный
+ * packed-RGB делает уже сторона host'а через тему (см. IThemeColorResolver).
+ */
+export class ThemeColor {
+    public readonly id: string;
+
+    public constructor(id: string) {
+        this.id = id;
+    }
+}
+
+/**
+ * Позиция change-бара в overview ruler. Значение важно как *признак*
+ * «это gutter/overview-декорация» — host заводит gutter-тип только у декораций
+ * с `overviewRulerColor` (см. ExtensionHost RPC-реестр).
+ */
+export enum OverviewRulerLane {
+    Left = 1,
+    Center = 2,
+    Right = 4,
+    Full = 7,
+}
+
+/** Поведение диапазона декорации при правках на его границах. */
+export enum DecorationRangeBehavior {
+    OpenOpen = 0,
+    ClosedClosed = 1,
+    OpenClosed = 2,
+    ClosedOpen = 3,
+}
+
+/**
+ * Декорация файла в дереве (`vscode.FileDecoration`): короткий бейдж, тултип и
+ * цвет из реестра темы. `provideFileDecoration` провайдера возвращает её;
+ * host-мост сериализует `color.id` в `colorId` и резолвит в цвет имени файла.
+ */
+export class FileDecoration {
+    public badge?: string;
+    public tooltip?: string;
+    public color?: ThemeColor;
+    public propagate?: boolean;
+
+    public constructor(badge?: string, tooltip?: string, color?: ThemeColor) {
+        this.badge = badge;
+        this.tooltip = tooltip;
+        this.color = color;
+    }
+}
+
+/**
  * Совместимый с `vscode.EventEmitter<T>`. `fire` итерирует снапшот списка
  * слушателей — расширения нередко отписываются во время dispatch.
  */

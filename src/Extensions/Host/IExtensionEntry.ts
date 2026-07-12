@@ -11,11 +11,17 @@ export interface IExtensionEntry {
 }
 
 /**
- * Регистрация расширения в {@link ExtensionHost}. Host форкает subprocess,
- * отправляет ему `mainPath` и просит загрузить через `createRequire`. Поэтому
- * `mainPath` ДОЛЖЕН быть абсолютным путём к JS-файлу, который subprocess
- * сможет открыть на своей файловой системе (для SEA это значит — реальный
- * файл вне бандла; builtin-расширения с `main` пока не поддерживаются).
+ * Регистрация расширения в {@link ExtensionHost}. Два взаимоисключающих способа
+ * загрузки модуля в subprocess (ровно один должен быть задан):
+ *
+ * - **`mainPath`** — абсолютный путь к файлу на ФС subprocess'а, грузится через
+ *   `createRequire(mainPath)` (user-расширения; в dev — `.ts`/`.cjs` через tsx).
+ * - **`source` + `filename`** — исходник CJS-модуля строкой, компилируется
+ *   в памяти через `Module._compile` (builtin code-расширения: их скомпилированный
+ *   `out/extension.cjs` читается из `IAssetAccess` и работает единообразно в dev
+ *   и под SEA, где реального файла на ФС нет). `filename` — синтетический
+ *   абсолютный путь (идентичность модуля / стек-трейсы); относительных `require`
+ *   в бандле нет, поэтому он не резолвится по ФС.
  */
 export interface IExtensionRegistration {
     readonly id: string;
@@ -25,7 +31,12 @@ export interface IExtensionRegistration {
         readonly version: string;
         readonly [key: string]: unknown;
     };
-    readonly mainPath: string;
+    /** Путь к модулю на ФС subprocess'а. Взаимоисключающе с `source`. */
+    readonly mainPath?: string;
+    /** Исходник CJS-модуля для in-memory загрузки. Требует `filename`. Взаимоисключающе с `mainPath`. */
+    readonly source?: string;
+    /** Синтетический абсолютный путь-идентичность для `source`. */
+    readonly filename?: string;
     /**
      * Дефолты из `contributes.configuration` расширения, сплюснутые в dotted-map
      * (`{ "editorconfig.generateAuto": true }`). Отправляются в subprocess в

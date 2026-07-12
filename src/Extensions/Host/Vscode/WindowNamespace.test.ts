@@ -1,8 +1,12 @@
+import type * as vscode from "vscode";
 import { describe, expect, it } from "vitest";
+
+import { flushMicrotasks } from "../../../TestUtils/timing.ts";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
 import { makeStubRpc } from "./testStubRpc.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
+import { EventEmitter, FileDecoration, OverviewRulerLane, Range, ThemeColor, Uri } from "./VscodeTypes.ts";
 import { createWindowNamespace } from "./WindowNamespace.ts";
 import { WorkspaceConfigStore } from "./WorkspaceConfigStore.ts";
 
@@ -164,7 +168,7 @@ describe("WindowNamespace", () => {
         expect(stub.requests).toHaveLength(0);
     });
 
-    it("createOutputChannel возвращает no-op канал (все методы)", () => {
+    it("createOutputChannel возвращает канал; методы не бросают", () => {
         const { window } = makeCtx();
         const ch = window.createOutputChannel("editorconfig");
         expect(ch.name).toBe("editorconfig");
@@ -177,5 +181,144 @@ describe("WindowNamespace", () => {
             ch.hide();
             ch.dispose();
         }).not.toThrow();
+    });
+
+    it("createTextEditorDecorationType шлёт notify с сериализованным ThemeColor и монотонным key", () => {
+        const { stub, window } = makeCtx();
+        const type = window.createTextEditorDecorationType({
+            isWholeLine: true,
+            overviewRulerLane: OverviewRulerLane.Left,
+            overviewRulerColor: new ThemeColor("editorGutter.modifiedBackground"),
+            backgroundColor: "#ff0000",
+        });
+        expect(type.key).toBe("1");
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "window.createTextEditorDecorationType",
+            params: {
+                key: 1,
+                options: {
+                    isWholeLine: true,
+                    overviewRulerLane: OverviewRulerLane.Left,
+                    overviewRulerColor: { $themeColor: "editorGutter.modifiedBackground" },
+                    backgroundColor: "#ff0000",
+                },
+            },
+        });
+        // key монотонен
+        const type2 = window.createTextEditorDecorationType({});
+        expect(type2.key).toBe("2");
+        // dispose шлёт снятие типа по числовому key
+        type.dispose();
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "window.disposeTextEditorDecorationType",
+            params: { key: 1 },
+        });
+    });
+
+    it("editor.setDecorations шлёт notify с fileName активного редактора и nested-ranges", () => {
+        const { stub, window } = makeCtx();
+        stub.fire("editor.activeEditorChanged", { fileName: "/proj/a.ts" });
+        const type = window.createTextEditorDecorationType({
+            overviewRulerColor: new ThemeColor("editorGutter.modifiedBackground"),
+        });
+        window.activeTextEditor!.setDecorations(type, [new Range(1, 0, 1, 0), new Range(4, 2, 4, 5)]);
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "editor.setDecorations",
+            params: {
+                key: 1,
+                fileName: "/proj/a.ts",
+                ranges: [
+                    { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } },
+                    { start: { line: 4, character: 2 }, end: { line: 4, character: 5 } },
+                ],
+            },
+        });
+    });
+
+    it("setDecorations с DecorationOptions[] берёт .range каждого элемента", () => {
+        const { stub, window } = makeCtx();
+        stub.fire("editor.activeEditorChanged", { fileName: "/proj/a.ts" });
+        const type = window.createTextEditorDecorationType({});
+        window.activeTextEditor!.setDecorations(type, [{ range: new Range(2, 0, 2, 3) }] as never);
+        expect((stub.notifies.at(-1)!.params as { ranges: unknown }).ranges).toEqual([
+            { start: { line: 2, character: 0 }, end: { line: 2, character: 3 } },
+        ]);
+    });
+
+    it("setDecorations с неизвестным типом — no-op (нет notify)", () => {
+        const { stub, window } = makeCtx();
+        stub.fire("editor.activeEditorChanged", { fileName: "/proj/a.ts" });
+        const before = stub.notifies.length;
+        window.activeTextEditor!.setDecorations({ key: "999", dispose: () => undefined }, [new Range(0, 0, 0, 1)]);
+        expect(stub.notifies.length).toBe(before);
+    });
+
+    it("registerFileDecorationProvider опрашивает провайдер по изменённым uri и шлёт fileDecorationsChanged", async () => {
+        const { stub, window } = makeCtx();
+        const emitter = new EventEmitter<undefined | Uri | Uri[]>();
+        const disposable = window.registerFileDecorationProvider({
+            onDidChangeFileDecorations: emitter.event,
+            provideFileDecoration: (uri: Uri) =>
+                uri.fsPath.endsWith("notes.md")
+                    ? new FileDecoration("M", "Modified", new ThemeColor("gitDecoration.modifiedResourceForeground"))
+                    : undefined,
+        } as unknown as vscode.FileDecorationProvider);
+        emitter.fire([Uri.file("/proj/notes.md"), Uri.file("/proj/other.ts")]);
+        await flushMicrotasks();
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "window.fileDecorationsChanged",
+            params: {
+                decorations: [
+                    {
+                        uri: "file:///proj/notes.md",
+                        badge: "M",
+                        colorId: "gitDecoration.modifiedResourceForeground",
+                    },
+                    // other.ts без декорации → голый uri (снятие на стороне host'а)
+                    { uri: "file:///proj/other.ts" },
+                ],
+            },
+        });
+        expect(typeof disposable.dispose).toBe("function");
+    });
+
+    it("registerFileDecorationProvider: одиночный uri (не массив) + propagate", async () => {
+        const { stub, window } = makeCtx();
+        const emitter = new EventEmitter<undefined | Uri | Uri[]>();
+        window.registerFileDecorationProvider({
+            onDidChangeFileDecorations: emitter.event,
+            provideFileDecoration: () => {
+                const d = new FileDecoration("A");
+                d.propagate = true;
+                return d;
+            },
+        } as unknown as vscode.FileDecorationProvider);
+        emitter.fire(Uri.file("/proj/x.ts")); // одиночный Uri → ветка «не массив» в normalizeChangedUris
+        await flushMicrotasks();
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "window.fileDecorationsChanged",
+            params: { decorations: [{ uri: "file:///proj/x.ts", badge: "A", propagate: true }] },
+        });
+    });
+
+    it("registerFileDecorationProvider: undefined-change (все файлы) не разворачивается", async () => {
+        const { stub, window } = makeCtx();
+        const emitter = new EventEmitter<undefined | Uri | Uri[]>();
+        window.registerFileDecorationProvider({
+            onDidChangeFileDecorations: emitter.event,
+            provideFileDecoration: () => new FileDecoration("M"),
+        } as unknown as vscode.FileDecorationProvider);
+        const before = stub.notifies.length;
+        emitter.fire(undefined);
+        await flushMicrotasks();
+        expect(stub.notifies.length).toBe(before);
+    });
+
+    it("registerFileDecorationProvider без onDidChangeFileDecorations — валидный no-op Disposable", () => {
+        const { window } = makeCtx();
+        const disposable = window.registerFileDecorationProvider({
+            provideFileDecoration: () => undefined,
+        });
+        expect(() => disposable.dispose()).not.toThrow();
     });
 });

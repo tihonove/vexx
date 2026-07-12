@@ -2,6 +2,7 @@ import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { AppController, AppControllerDIToken } from "../AppController.ts";
 import { DiagnosticsController, DiagnosticsControllerDIToken } from "../DiagnosticsController.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { FileTreeControllerDIToken } from "../FileTreeController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWidgetController.ts";
 import { PanelController, PanelControllerDIToken } from "../PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "../ProblemsController.ts";
@@ -21,4 +22,7 @@ export const controllersModule: ContainerModule = (container) => {
     container.bind(ProblemsControllerDIToken, ProblemsController);
     container.bind(InputWidgetControllerDIToken, InputWidgetController);
     container.bind(AppControllerDIToken, AppController);
+    // Минимальный шов: FileTreeController создаётся внутри AppController — отдаём
+    // его по токену (нужен мосту файловых декораций extension-host'а).
+    container.bind(FileTreeControllerDIToken, () => container.get(AppControllerDIToken).fileTree);
 };

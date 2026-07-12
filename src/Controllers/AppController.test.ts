@@ -34,6 +34,11 @@ describe("AppController integration", () => {
         expect(h.testApp.querySelector("EditorElement")).toBe(h.testApp.focusedElement);
     });
 
+    it("exposes fileTree controller (DI-шов для моста файловых декораций)", () => {
+        const h = createAppTestHarness();
+        expect(typeof h.controller.fileTree.getRootPath).toBe("function");
+    });
+
     it("Ctrl+S executes save command", () => {
         const h = createAppTestHarness();
         h.controller.focusEditor();
