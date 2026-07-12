@@ -1,31 +1,17 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
 import { createDeleteEdit } from "../../Editor/ITextEdit.ts";
-import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
-
-const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
-
-function reg(id: string, file: string) {
-    return {
-        id,
-        manifest: { name: id, publisher: "test", version: "0.0.1" },
-        mainPath: path.join(FIXTURES_DIR, file),
-    };
-}
-
-async function settle(ms = 200): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
+import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
+import { settle } from "../../TestUtils/timing.ts";
 
 describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
     it("применяет trim/insert-final-newline из участника к байтам на диске + undoable", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "trim.txt", content: "alpha   \nbeta\t\ngamma" },
-            extensions: [reg("test.willSaveTrim", "willSaveTrimEdits.cjs")],
+            extensions: [extensionFixture("test.willSaveTrim", "willSaveTrimEdits.cjs")],
         });
         try {
             await settle(); // дать updateSubscriptions долететь до хоста
@@ -52,7 +38,7 @@ describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
     it("setEndOfLine из участника меняет EOL — байты на диске содержат CRLF", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "eol.txt", content: "a\nb\n" },
-            extensions: [reg("test.willSaveEol", "willSaveSetEol.cjs")],
+            extensions: [extensionFixture("test.willSaveEol", "willSaveSetEol.cjs")],
         });
         try {
             await settle();
@@ -70,7 +56,7 @@ describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
     it("делегирование встроенной команде во время will-save (вложенный executeCommand)", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "delegate.txt", content: "one  \ntwo\t\n" },
-            extensions: [reg("test.willSaveDelegate", "willSaveDelegatesCommand.cjs")],
+            extensions: [extensionFixture("test.willSaveDelegate", "willSaveDelegatesCommand.cjs")],
         });
         try {
             // Ядро (в проде — WhitespaceActions из WP2) регистрирует встроенную
@@ -100,7 +86,7 @@ describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
     it("onDidSaveTextDocument доезжает до расширения после записи", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "post.txt", content: "x\n" },
-            extensions: [reg("test.reportDidSave", "reportDidSave.cjs")],
+            extensions: [extensionFixture("test.reportDidSave", "reportDidSave.cjs")],
         });
         try {
             await settle();
@@ -121,7 +107,7 @@ describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
         // will-save RPC не идёт, файл пишется как есть.
         const harness = await createExtensionTestHarness({
             initialFile: { name: "plain.txt", content: "keep   \n" },
-            extensions: [reg("test.reportDidSave", "reportDidSave.cjs")],
+            extensions: [extensionFixture("test.reportDidSave", "reportDidSave.cjs")],
         });
         try {
             await settle();

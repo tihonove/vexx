@@ -1,9 +1,7 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
-import { subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarness.ts";
+import { extensionFixture, subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarness.ts";
+import { settle } from "../../TestUtils/timing.ts";
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
 import { ExtensionHost } from "./ExtensionHost.ts";
@@ -14,9 +12,6 @@ import type {
     IEditorOptionsService,
     IEditorOptionsState,
 } from "./IEditorOptionsService.ts";
-import type { IExtensionRegistration } from "./IExtensionEntry.ts";
-
-const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
 
 class FakeOptionsService implements IEditorOptionsService {
     public state: IEditorOptionsState | null = { tabSize: 4, insertSpaces: true };
@@ -39,61 +34,49 @@ class FakeOptionsService implements IEditorOptionsService {
     }
 }
 
-function makeReg(id: string, mainFile: string): IExtensionRegistration {
-    return {
-        id,
-        manifest: { name: id, publisher: "test", version: "0.0.1" },
-        mainPath: path.join(FIXTURES_DIR, mainFile),
-    };
-}
-
 function createHost(svc: IEditorOptionsService): ExtensionHost {
     return new ExtensionHost(svc, NULL_COMMAND_SERVICE, { spawnArgs: subprocessSpawnArgsForTests() });
-}
-
-async function settle(): Promise<void> {
-    await new Promise((r) => setTimeout(r, 100));
 }
 
 describe("ExtensionHost (subprocess)", () => {
     it("registerExtension активирует extension через subprocess", async () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
-        await host.registerExtension(makeReg("noop-a", "noopExtension.cjs"));
+        await host.registerExtension(extensionFixture("noop-a", "noopExtension.cjs"));
         expect(host.extensionCount).toBe(1);
         expect(host.hasExtension("noop-a")).toBe(true);
         host.dispose();
-        await settle();
+        await settle(100);
     });
 
     it("отклоняет повторную регистрацию того же id", async () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
-        const reg = makeReg("dup", "noopExtension.cjs");
+        const reg = extensionFixture("dup", "noopExtension.cjs");
         await host.registerExtension(reg);
         await expect(host.registerExtension(reg)).rejects.toThrow(/already registered/);
         host.dispose();
-        await settle();
+        await settle(100);
     });
 
     it("после dispose registerExtension бросает", async () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
         host.dispose();
-        await expect(host.registerExtension(makeReg("late", "noopExtension.cjs"))).rejects.toThrow(/disposed/);
+        await expect(host.registerExtension(extensionFixture("late", "noopExtension.cjs"))).rejects.toThrow(/disposed/);
     });
 
     it("unregisterExtension убирает конкретное расширение", async () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
-        await host.registerExtension(makeReg("x", "noopExtension.cjs"));
-        await host.registerExtension(makeReg("y", "noopExtension.cjs"));
+        await host.registerExtension(extensionFixture("x", "noopExtension.cjs"));
+        await host.registerExtension(extensionFixture("y", "noopExtension.cjs"));
         expect(host.extensionCount).toBe(2);
         await host.unregisterExtension("x");
         expect(host.extensionCount).toBe(1);
         expect(host.hasExtension("y")).toBe(true);
         host.dispose();
-        await settle();
+        await settle(100);
     });
 });
 

@@ -1,23 +1,7 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
-import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
-
-const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
-
-function reg(id: string, file: string) {
-    return {
-        id,
-        manifest: { name: id, publisher: "test", version: "0.0.1" },
-        mainPath: path.join(FIXTURES_DIR, file),
-    };
-}
-
-async function settle(ms = 200): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
+import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
+import { settle } from "../../TestUtils/timing.ts";
 
 const REQ = {
     fileName: "/proj/.editorconfig",
@@ -31,7 +15,7 @@ describe("ExtensionHost — completion bridge (subprocess)", () => {
     it("provideCompletionItems возвращает элементы провайдера, item.command исполняется через bridge", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: ".editorconfig", content: "ind" },
-            extensions: [reg("test.providesCompletion", "providesCompletion.cjs")],
+            extensions: [extensionFixture("test.providesCompletion", "providesCompletion.cjs")],
         });
         try {
             await settle();
@@ -58,7 +42,7 @@ describe("ExtensionHost — completion bridge (subprocess)", () => {
     it("селектор другого языка → пустой результат", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: ".editorconfig", content: "ind" },
-            extensions: [reg("test.providesCompletion", "providesCompletion.cjs")],
+            extensions: [extensionFixture("test.providesCompletion", "providesCompletion.cjs")],
         });
         try {
             await settle();

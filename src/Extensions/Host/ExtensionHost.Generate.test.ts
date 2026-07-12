@@ -1,25 +1,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
-
-const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
-
-function reg(id: string, file: string) {
-    return {
-        id,
-        manifest: { name: id, publisher: "test", version: "0.0.1" },
-        mainPath: path.join(FIXTURES_DIR, file),
-    };
-}
+import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
 
 describe("ExtensionHost — EditorConfig.generate (workspace.fs, WP7)", () => {
     it("executeCommand создаёт .editorconfig в workspace-папке через workspace.fs", async () => {
         const harness = await createExtensionTestHarness({
-            extensions: [reg("test.editorconfig", "generateEditorConfig.cjs")],
+            extensions: [extensionFixture("test.editorconfig", "generateEditorConfig.cjs")],
         });
         try {
             const target = path.join(harness.tmpDir, ".editorconfig");
@@ -41,7 +30,7 @@ describe("ExtensionHost — EditorConfig.generate (workspace.fs, WP7)", () => {
 
     it("повторный вызов идемпотентен: stat находит файл, перезаписи нет", async () => {
         const harness = await createExtensionTestHarness({
-            extensions: [reg("test.editorconfig", "generateEditorConfig.cjs")],
+            extensions: [extensionFixture("test.editorconfig", "generateEditorConfig.cjs")],
         });
         try {
             const target = path.join(harness.tmpDir, ".editorconfig");

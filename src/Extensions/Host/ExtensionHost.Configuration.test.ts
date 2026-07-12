@@ -1,25 +1,12 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
-import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
+import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
+import { settle } from "../../TestUtils/timing.ts";
 
 import type { IExtensionRegistration } from "./IExtensionEntry.ts";
 
-const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
-
 function reg(id: string, file: string, configDefaults?: Record<string, unknown>): IExtensionRegistration {
-    return {
-        id,
-        manifest: { name: id, publisher: "test", version: "0.0.1" },
-        mainPath: path.join(FIXTURES_DIR, file),
-        configDefaults,
-    };
-}
-
-async function settle(ms = 200): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
+    return { ...extensionFixture(id, file), configDefaults };
 }
 
 describe("ExtensionHost — workspace.getConfiguration (subprocess)", () => {

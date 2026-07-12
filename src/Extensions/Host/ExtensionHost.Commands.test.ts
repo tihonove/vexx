@@ -1,29 +1,13 @@
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-
 import { describe, expect, it } from "vitest";
 
-import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
-
-const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
-
-function reg(id: string, file: string) {
-    return {
-        id,
-        manifest: { name: id, publisher: "test", version: "0.0.1" },
-        mainPath: path.join(FIXTURES_DIR, file),
-    };
-}
-
-async function settle(ms = 200): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
+import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
+import { settle } from "../../TestUtils/timing.ts";
 
 describe("ExtensionHost — commands bridge (subprocess)", () => {
     it("host → subprocess: ядро исполняет прокси-команду расширения через реальный RPC", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "main.ts", content: "x\n" },
-            extensions: [reg("test.registersCommand", "registersCommand.cjs")],
+            extensions: [extensionFixture("test.registersCommand", "registersCommand.cjs")],
         });
         try {
             // Команда зарегистрирована сабпроцессом → в host CommandRegistry есть прокси.
@@ -46,7 +30,7 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
             initialFile: { name: "main.ts", content: "x\n" },
             extensions: [
                 {
-                    ...reg("test.registersCommand", "registersCommand.cjs"),
+                    ...extensionFixture("test.registersCommand", "registersCommand.cjs"),
                     commandTitles: { "test.applyTab": "Apply Tab" },
                 },
             ],
@@ -67,7 +51,7 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
         });
         try {
             const disposable = await harness.host.registerExtension(
-                reg("test.registersCommand", "registersCommand.cjs"),
+                extensionFixture("test.registersCommand", "registersCommand.cjs"),
             );
             await settle();
             expect(harness.commandRegistry.has("test.applyTab")).toBe(true);
@@ -94,7 +78,7 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
                 return "host-ran";
             });
 
-            await harness.host.registerExtension(reg("test.callsHost", "callsHostCommand.cjs"));
+            await harness.host.registerExtension(extensionFixture("test.callsHost", "callsHostCommand.cjs"));
             await settle();
 
             expect(captured).toBe(7);
@@ -107,7 +91,7 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
     it("local-first: executeCommand своей команды исполняется в сабпроцессе", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "main.ts", content: "x\n" },
-            extensions: [reg("test.localFirst", "localFirstCommand.cjs")],
+            extensions: [extensionFixture("test.localFirst", "localFirstCommand.cjs")],
         });
         try {
             await settle();
@@ -120,7 +104,7 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
     it("executeCommand несуществующей команды reject'ится (маркер tabSize=3)", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "main.ts", content: "x\n" },
-            extensions: [reg("test.callsMissing", "callsMissingCommand.cjs")],
+            extensions: [extensionFixture("test.callsMissing", "callsMissingCommand.cjs")],
         });
         try {
             await settle();

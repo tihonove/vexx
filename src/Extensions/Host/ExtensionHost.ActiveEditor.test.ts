@@ -1,12 +1,10 @@
 import * as path from "node:path";
-import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
-import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
-
-const FIXTURES_DIR = path.dirname(fileURLToPath(import.meta.url)) + "/__fixtures__";
+import { createExtensionTestHarness, EXTENSION_FIXTURES_DIR, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
+import { settle } from "../../TestUtils/timing.ts";
 
 /** Мини-сервис языков: `.ts` → typescript, иначе — undefined. */
 const TS_LANGUAGE_SERVICE: ILanguageService = {
@@ -14,22 +12,10 @@ const TS_LANGUAGE_SERVICE: ILanguageService = {
     getLanguageDisplayName: () => undefined,
 };
 
-function reg(id: string, file: string) {
-    return {
-        id,
-        manifest: { name: id, publisher: "test", version: "0.0.1" },
-        mainPath: path.join(FIXTURES_DIR, file),
-    };
-}
-
-async function settle(ms = 200): Promise<void> {
-    await new Promise<void>((resolve) => setTimeout(resolve, ms));
-}
-
 describe("ExtensionHost — window.onDidChangeActiveTextEditor (subprocess)", () => {
     it("событие срабатывает при открытии файла после активации расширения", async () => {
         const harness = await createExtensionTestHarness({
-            extensions: [reg("test.watchActiveEditor", "watchActiveEditor.cjs")],
+            extensions: [extensionFixture("test.watchActiveEditor", "watchActiveEditor.cjs")],
         });
         try {
             // Нет активного редактора при активации → активируем после
@@ -51,7 +37,7 @@ describe("ExtensionHost — window.onDidChangeActiveTextEditor (subprocess)", ()
         // содержит правильный путь, и window.activeTextEditor не undefined в activate()
         const harness = await createExtensionTestHarness({
             initialFile: { name: "main.ts", content: "export {};\n" },
-            extensions: [reg("test.watchActiveEditor", "watchActiveEditor.cjs")],
+            extensions: [extensionFixture("test.watchActiveEditor", "watchActiveEditor.cjs")],
         });
         try {
             // После регистрации расширения initial snapshot уже пришёл, но
@@ -75,7 +61,7 @@ describe("ExtensionHost — window.onDidChangeActiveTextEditor (subprocess)", ()
                 {
                     id: "test.checkUndefined",
                     manifest: { name: "test.checkUndefined", publisher: "test", version: "0.0.1" },
-                    mainPath: path.join(FIXTURES_DIR, "setIndentTabs.cjs"),
+                    mainPath: path.join(EXTENSION_FIXTURES_DIR, "setIndentTabs.cjs"),
                 },
             ],
         });
@@ -90,7 +76,7 @@ describe("ExtensionHost — window.onDidChangeActiveTextEditor (subprocess)", ()
     it("languageId проецируется в meta и document стабилен по идентичности", async () => {
         const harness = await createExtensionTestHarness({
             languageService: TS_LANGUAGE_SERVICE,
-            extensions: [reg("test.reportMeta", "reportActiveEditorMeta.cjs")],
+            extensions: [extensionFixture("test.reportMeta", "reportActiveEditorMeta.cjs")],
         });
         try {
             const fp = harness.writeFile("main.ts", "export {};\n");
@@ -107,7 +93,7 @@ describe("ExtensionHost — window.onDidChangeActiveTextEditor (subprocess)", ()
 
     it("document.fileName содержит полный путь к файлу", async () => {
         const harness = await createExtensionTestHarness({
-            extensions: [reg("test.watchActiveEditor", "watchActiveEditor.cjs")],
+            extensions: [extensionFixture("test.watchActiveEditor", "watchActiveEditor.cjs")],
         });
         try {
             // Создаём файл с расширением .txt — fixture поставит tabSize=1 (не .ts)
