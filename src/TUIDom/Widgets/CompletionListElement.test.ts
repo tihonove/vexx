@@ -99,6 +99,14 @@ describe("CompletionListElement", () => {
         expect(accepted).toBe(false);
     });
 
+    it("наведение на рамку или на уже выбранный ряд — no-op", () => {
+        const w = makeWidget(ITEMS);
+        mouse(w, "mousemove", 0); // верхняя рамка → index null
+        expect(w.selectedIndex).toBe(0);
+        mouse(w, "mousemove", 1); // ряд 0 — уже выбран → без изменений
+        expect(w.selectedIndex).toBe(0);
+    });
+
     it("клик по рамке — no-op", () => {
         const w = makeWidget(ITEMS);
         let accepted = false;
@@ -176,10 +184,11 @@ describe("CompletionListElement", () => {
         expect(w.selectedIndex).toBe(0);
     });
 
-    it("пустой список: навигация/клик — no-op", () => {
+    it("пустой список: getSelectedItem null, навигация/клик — no-op", () => {
         const w = makeWidget(ITEMS);
         w.setFilter("zzzz"); // ничего не матчит
         expect(w.items).toHaveLength(0);
+        expect(w.getSelectedItem()).toBeNull();
         let accepted = false;
         w.onAccept = () => {
             accepted = true;
@@ -187,5 +196,11 @@ describe("CompletionListElement", () => {
         w.selectNext(); // moveSelection на пустом — return
         mouse(w, "click", 1); // ряд вне пунктов — без accept
         expect(accepted).toBe(false);
+    });
+
+    it("клик без назначенного onAccept не падает", () => {
+        const w = makeWidget(ITEMS); // onAccept === null
+        expect(() => mouse(w, "click", 1)).not.toThrow();
+        expect(w.selectedIndex).toBe(0);
     });
 });

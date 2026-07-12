@@ -68,9 +68,6 @@ export class CompletionController extends Disposable {
         this.view.onAccept = (item) => {
             this.accept(item);
         };
-        this.view.onCancel = () => {
-            this.close();
-        };
 
         // «Всегда-включённая» подписка на активный редактор: и re-filter пока
         // попап открыт, и авто-открытие по мере набора пока закрыт.

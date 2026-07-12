@@ -51,7 +51,6 @@ export class CompletionListElement extends TUIElement {
     public preferredWidth = 40;
 
     public onAccept: ((item: CompletionListItem) => void) | null = null;
-    public onCancel: (() => void) | null = null;
 
     private allItems: readonly CompletionListItem[] = [];
     private filteredItems: readonly CompletionListItem[] = [];
@@ -77,11 +76,6 @@ export class CompletionListElement extends TUIElement {
     public setItems(items: readonly CompletionListItem[]): void {
         this.allItems = items;
         this.applyFilter(false);
-    }
-
-    /** Текущий внутренний фильтр (префикс + добор в попапе). */
-    public get filter(): string {
-        return this.filterValue;
     }
 
     /** Задаёт фильтр «начисто» (пустой результат сворачивает список). */
@@ -250,12 +244,15 @@ export class CompletionListElement extends TUIElement {
 
     // ─── Mouse ────────────────────────────────────────────────────────────────
 
-    /** Индекс пункта под локальной Y (или `null`, если это рамка/пусто). */
+    /**
+     * Индекс пункта под локальной Y, или `null`, если это рамка/за пределами
+     * видимых строк. `visibleItemCount` + `scrollOffset` гарантируют, что
+     * возвращённый индекс всегда в пределах `filteredItems`.
+     */
     private rowAt(localY: number): number | null {
         const row = localY - 1; // строка 0 — верхняя рамка
         if (row < 0 || row >= this.visibleItemCount) return null;
-        const index = this.scrollOffset + row;
-        return index < this.filteredItems.length ? index : null;
+        return this.scrollOffset + row;
     }
 
     private handleMouseMove(event: TUIMouseEvent): void {
@@ -270,8 +267,7 @@ export class CompletionListElement extends TUIElement {
         if (index === null) return;
         this.selectedIndexValue = index;
         this.markDirty();
-        const item = this.filteredItems[index];
-        if (item !== undefined) this.onAccept?.(item);
+        this.onAccept?.(this.filteredItems[index]);
     }
 
     private moveSelection(delta: number): void {

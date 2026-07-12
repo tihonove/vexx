@@ -43,6 +43,21 @@ describe("AppController — suggest widget keyboard integration", () => {
         expect(ctx.activeEditor().viewState.selections[0].active).toEqual(caretBefore);
     });
 
+    it("ArrowUp / PageDown / PageUp тоже маршрутизируются в suggest-команды", async () => {
+        ctx = createSuggestApp("indent_style indent_size i");
+        await open();
+        ctx.testApp.sendKey("ArrowDown"); // → 1
+        expect(ctx.completion.view.selectedIndex).toBe(1);
+        ctx.testApp.sendKey("ArrowUp"); // → 0 (selectPrevious)
+        expect(ctx.completion.view.selectedIndex).toBe(0);
+        ctx.testApp.sendKey("PageDown"); // → последний (selectNextPage)
+        expect(ctx.completion.view.selectedIndex).toBe(1);
+        ctx.testApp.sendKey("PageUp"); // → первый (selectPreviousPage)
+        expect(ctx.completion.view.selectedIndex).toBe(0);
+        // Курсор редактора не двигался ни на одном из этих нажатий.
+        expect(ctx.activeEditor().viewState.selections[0].active.line).toBe(0);
+    });
+
     it("Enter принимает выбранный пункт без вставки перевода строки", async () => {
         ctx = createSuggestApp("indent_style indent_size i");
         await open();

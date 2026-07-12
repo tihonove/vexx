@@ -4,6 +4,7 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
 import type { ITextEdit } from "../Editor/ITextEdit.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 import { CompletionController } from "./CompletionController.ts";
@@ -14,7 +15,7 @@ interface FakeEditor {
     editor: EditorController;
     applyExternalEdits: ReturnType<typeof vi.fn<(edits: ITextEdit[], label: string) => void>>;
     /** Печать: обновляет строку/каретку и шлёт content+cursor (как typing/удаление). */
-    type: (line: string, character: number) => void;
+    type: (line: string, character: number, lineNo?: number) => void;
     /** Чистое движение каретки: шлёт только cursor (без content-маркера). */
     move: (lineNo: number, character: number) => void;
     /** Непустое выделение: anchor != active. */
@@ -22,8 +23,8 @@ interface FakeEditor {
     setAnchorNull: (value: boolean) => void;
 }
 
-function makeEditor(lineContent: string, character: number, docText = lineContent): FakeEditor {
-    const state = { line: lineContent, lineNo: 0, anchorChar: character, activeChar: character };
+function makeEditor(lineContent: string, character: number, docText = lineContent, anchorChar = character): FakeEditor {
+    const state = { line: lineContent, lineNo: 0, anchorChar, activeChar: character };
     let anchorNull = false;
     const contentListeners: (() => void)[] = [];
     const cursorListeners: (() => void)[] = [];
@@ -66,9 +67,9 @@ function makeEditor(lineContent: string, character: number, docText = lineConten
     return {
         editor,
         applyExternalEdits,
-        type: (line, ch) => {
+        type: (line, ch, lineNo = 0) => {
             state.line = line;
-            state.lineNo = 0;
+            state.lineNo = lineNo;
             state.anchorChar = ch;
             state.activeChar = ch;
             fireContent();
@@ -395,6 +396,131 @@ describe("CompletionController", () => {
         await controller.trigger();
         expect(controller.isOpen()).toBe(true);
         controller.onFocusChanged(false); // фокус ушёл с редактора
+        expect(controller.isOpen()).toBe(false);
+    });
+
+    it("клик по пункту (view.onAccept) принимает через контроллер", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        // Клик по первому ряду (localY=1) → view.onAccept → controller.accept.
+        controller.view.dispatchEvent(
+            new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 1, localX: 5, localY: 1 }),
+        );
+        expect(fake.applyExternalEdits).toHaveBeenCalledTimes(1);
+    });
+
+    it("selectPrevious / page-навигация делегируются в view", async () => {
+        const items = Array.from({ length: 15 }, (_, i) => ({ label: `w${i}`, insertText: `w${i}` }));
+        const { controller } = setup(items, "", 0, "");
+        await controller.trigger();
+        controller.view.maxVisibleItems = 5;
+        controller.selectNextPage();
+        expect(controller.view.selectedIndex).toBe(5);
+        controller.selectPreviousPage();
+        expect(controller.view.selectedIndex).toBe(0);
+        controller.selectNext();
+        controller.selectPrevious();
+        expect(controller.view.selectedIndex).toBe(0);
+    });
+
+    it("смена активного редактора закрывает открытый попап", async () => {
+        const fake = makeEditor("ind", 3, "ind");
+        let activeCb: (e: EditorController | null) => void = () => {};
+        const group = {
+            getActiveEditor: () => fake.editor,
+            onActiveEditorChanged: (cb: (e: EditorController | null) => void) => {
+                activeCb = cb;
+                return { dispose: () => {} };
+            },
+            completionSource: vi.fn(() => Promise.resolve(ITEMS)),
+            editorCount: 1,
+            getEditor: (i: number) => (i === 0 ? fake.editor : null),
+        } as unknown as EditorGroupController;
+        const controller = new CompletionController(group);
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+        await controller.trigger();
+        expect(controller.isOpen()).toBe(true);
+        activeCb(fake.editor); // onActiveEditorChanged → bindEditor закрывает попап
+        expect(controller.isOpen()).toBe(false);
+    });
+
+    it("изменение каретки при отсутствии активного редактора — no-op", () => {
+        const fake = makeEditor("ind", 3, "ind");
+        let ref: EditorController | null = fake.editor;
+        const group = {
+            getActiveEditor: () => ref,
+            onActiveEditorChanged: () => ({ dispose: () => {} }),
+            completionSource: undefined,
+            editorCount: 1,
+            getEditor: () => fake.editor,
+        } as unknown as EditorGroupController;
+        const controller = new CompletionController(group);
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+        ref = null; // активный редактор пропал
+        fake.type("inde", 4); // fires cursor listener → onCaretChanged, getActiveEditor()===null
+        expect(controller.isOpen()).toBe(false);
+    });
+
+    it("набор небуквенного символа (граница слова) закрывает открытый попап", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        fake.type("ind ", 4); // пробел сдвинул начало слова → wordStart != prefixStart
+        expect(controller.isOpen()).toBe(false);
+    });
+
+    it("авто-suggest не срабатывает при не-одиночной/небуквенной вставке", async () => {
+        // Каждая ветка эвристики isSingleWordCharInsert, из закрытого состояния.
+        const cases: Array<[string, number, number]> = [
+            ["x", 1, 1], // другая строка
+            ["indee", 5, 0], // каретка не +1
+            ["inXde", 4, 0], // длина не +1 (вставка не у каретки)
+            ["ind ", 4, 0], // небуквенный символ
+        ];
+        for (const [line, ch, lineNo] of cases) {
+            const { controller, fake, source } = setup(ITEMS); // кэш: "ind", каретка 3
+            fake.type(line, ch, lineNo);
+            await flushTimers();
+            expect(source).not.toHaveBeenCalled();
+            expect(controller.isOpen()).toBe(false);
+        }
+    });
+
+    it("acceptSelected без выбранного пункта — no-op", async () => {
+        const { controller, fake } = setup(ITEMS);
+        await controller.trigger();
+        controller.view.setFilter("zzzz"); // список пуст → getSelectedItem null
+        controller.acceptSelected();
+        expect(fake.applyExternalEdits).not.toHaveBeenCalled();
+    });
+
+    it("активный редактор пропал при открытом попапе — закрывает", async () => {
+        const fake = makeEditor("ind", 3, "ind");
+        let ref: EditorController | null = fake.editor;
+        const group = {
+            getActiveEditor: () => ref,
+            onActiveEditorChanged: () => ({ dispose: () => {} }),
+            completionSource: vi.fn(() => Promise.resolve(ITEMS)),
+            editorCount: 1,
+            getEditor: () => fake.editor,
+        } as unknown as EditorGroupController;
+        const controller = new CompletionController(group);
+        const body = new BodyElement();
+        TestApp.create(body, new Size(80, 24));
+        controller.setHostView(body);
+        await controller.trigger();
+        expect(controller.isOpen()).toBe(true);
+        ref = null; // активный редактор пропал
+        fake.type("inde", 4); // onCaretChanged: editor null && isOpen → close
+        expect(controller.isOpen()).toBe(false);
+    });
+
+    it("конструктор с непустым начальным выделением безопасен", () => {
+        const fake = makeEditor("ind", 3, "ind", 1); // anchor=1, active=3 (не collapsed)
+        const controller = new CompletionController(makeGroup(fake.editor, undefined));
         expect(controller.isOpen()).toBe(false);
     });
 });
