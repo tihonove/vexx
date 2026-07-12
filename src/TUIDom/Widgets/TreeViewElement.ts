@@ -238,6 +238,12 @@ export class TreeViewElement<T> extends ScrollableElement {
             const rowText = this.formatRow(node);
             const rowIcon = node.item.icon;
             const rowIconColor = node.item.iconColor;
+            const labelColor = node.item.labelColor;
+            // Метка имени начинается сразу после иконки типа (если она есть).
+            const labelStart = node.depth * INDENT_SIZE + 2 + (rowIcon ? 2 : 0);
+            // Цвет-декорация имени уступает выделению/курсору, чтобы выбранная строка
+            // оставалась читаемой (тот же приоритет, что и у cutFg).
+            const labelColorActive = labelColor !== undefined && !(isCursor || isSelected);
             const dl = new DisplayLine(rowText);
 
             let screenX = 0;
@@ -260,6 +266,13 @@ export class TreeViewElement<T> extends ScrollableElement {
                 const w = slot ? slot.displayWidth : 1;
                 /* v8 ignore stop */
                 let fg = rowFg;
+
+                // Override the name span with the git-status colour (deemphasised by
+                // selection above). Applies only to the label columns, so the type icon
+                // keeps its own colour.
+                if (labelColorActive && col >= labelStart) {
+                    fg = labelColor;
+                }
 
                 // Color the icon character
                 const iconStart = node.depth * INDENT_SIZE + 2;
@@ -284,11 +297,25 @@ export class TreeViewElement<T> extends ScrollableElement {
                 }
             }
 
-            // Метка симлинка: приглушённая стрелка-«enter», прижатая к правому краю
-            // explorer. Рисуется поверх крайней правой ячейки, не входит в ширину
-            // строки — иконки типов файлов остаются на своих местах и не скрываются.
-            if (node.item.symlink) {
-                context.setCell(viewportWidth - 1, screenY, {
+            // Правый край строки: буква-бейдж статуса (git) прижат к самому краю и
+            // имеет приоритет; стрелка симлинка, если есть, сдвигается влево, чтобы
+            // две метки не перетирали друг друга. Обе рисуются поверх крайних ячеек и
+            // не входят в ширину строки — иконки типов остаются на своих местах.
+            let symlinkX = viewportWidth - 1;
+            if (node.item.badge) {
+                const badgeChars = Array.from(node.item.badge);
+                const badgeFg = labelColor ?? rowFg;
+                const badgeStart = viewportWidth - badgeChars.length;
+                for (let i = 0; i < badgeChars.length; i++) {
+                    const x = badgeStart + i;
+                    if (x >= 0) {
+                        context.setCell(x, screenY, { char: badgeChars[i], fg: badgeFg, bg: rowBg, width: 1 });
+                    }
+                }
+                symlinkX = badgeStart - 1;
+            }
+            if (node.item.symlink && symlinkX >= 0) {
+                context.setCell(symlinkX, screenY, {
                     char: SYMLINK_BADGE,
                     fg: this.symlinkFg,
                     bg: rowBg,

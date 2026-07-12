@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Point } from "../Common/GeometryPromitives.ts";
+import { packRgb } from "../Rendering/ColorUtils.ts";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
@@ -111,6 +113,29 @@ describe("FileTree opens file in editor", () => {
         const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
             .editorGroupController;
         expect(editorGroupCtrl.getActiveEditor()?.getText()).toBe("hello world");
+    });
+
+    it("setFileDecorations pushes name colour + badge into the tree", async () => {
+        const gitColor = packRgb(115, 201, 145);
+        // notes.md is row 1 (hello.txt is the cursor on row 0), so its name takes the
+        // decoration colour; "U" is a badge letter absent from the sidebar chrome.
+        controller.setFileDecorations([{ path: ws.path("notes.md"), color: gitColor, badge: "U" }]);
+        await new Promise((r) => setTimeout(r, 20));
+        testApp.render();
+
+        expect(testApp.backend.screenToString()).toContain("U");
+
+        let coloured = false;
+        const size = testApp.backend.getSize();
+        for (let y = 0; y < size.height && !coloured; y++) {
+            for (let x = 0; x < size.width; x++) {
+                if (testApp.backend.getFgAt(new Point(x, y)) === gitColor) {
+                    coloured = true;
+                    break;
+                }
+            }
+        }
+        expect(coloured).toBe(true);
     });
 });
 

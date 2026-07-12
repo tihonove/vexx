@@ -33,7 +33,7 @@ import type { IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.t
 import type { ICommandContribution, IConfigurationContribution } from "./Extensions/IExtensionManifest.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
-import { attachInspector } from "./Inspector/index.ts";
+import { attachInspector, InspectorMethod, type SetFileDecorationsParams } from "./Inspector/index.ts";
 import type { InspectorDriver } from "./Inspector/InspectorDriver.ts";
 import { createBuiltinThemeRegistry } from "./Theme/ThemeRegistry.ts";
 import { DEFAULT_COLOR_THEME } from "./Theme/themes/builtinThemes.ts";
@@ -263,6 +263,14 @@ async function runEditor(): Promise<void> {
                       },
                   };
         const inspector = await attachInspector(app, cli.inspectTui, driver);
+        // Демо/e2e-хук: раскрасить файлы в дереве (git-статус). Доступен только когда
+        // есть driver (headless): реальный терминальный сеанс держит инспектор read-only.
+        if (driver !== undefined) {
+            inspector.core.register(InspectorMethod.setFileDecorations, (params) => {
+                appController.setFileDecorations((params as SetFileDecorationsParams).entries);
+                return {};
+            });
+        }
         bootstrapLogger.info("TUIDom inspector listening", {
             host: cli.inspectTui.host,
             port: inspector.port,

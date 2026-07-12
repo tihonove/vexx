@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { GridSnapshot } from "../../src/Rendering/GridSnapshot.ts";
+import type { FileDecorationEntry } from "../../src/Inspector/protocol.ts";
 import { HeadlessSession } from "../helpers/headlessSession.ts";
 import { saveScreenshot } from "../helpers/renderScreenshot.ts";
 
@@ -26,6 +27,8 @@ export interface ScenarioDriver {
     sendText(text: string): Promise<void>;
     /** Resize the virtual terminal. */
     resize(cols: number, rows: number): Promise<void>;
+    /** Apply file-tree status decorations (name colour + letter badge) by absolute path. */
+    setFileDecorations(entries: FileDecorationEntry[]): Promise<void>;
     /** Poll the screen until `predicate(text)` holds; returns the matching frame. */
     waitForText(
         predicate: (text: string) => boolean,
@@ -80,6 +83,7 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
         sendKey: (name) => session.sendKey(name),
         sendText: (text) => session.sendText(text),
         resize: (cols, rows) => session.resize(cols, rows),
+        setFileDecorations: (entries) => session.setFileDecorations(entries),
         waitForText: (predicate, opts) => session.waitForText(predicate, opts),
         captureFrame: () => session.captureFrame(),
         capture: async (shot) => {

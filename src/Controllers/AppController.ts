@@ -989,6 +989,15 @@ export class AppController extends Disposable implements IController {
         this.statusBarController.update();
     }
 
+    /**
+     * Прокидывает статус-декорации файлов (цвет имени + буква-бейдж) в дерево файлов.
+     * Ключ — абсолютный путь; цвета уже резолвнуты. Поставщики статуса (git) и e2e-демо
+     * дёргают это, чтобы подсветить изменённые/новые файлы в explorer.
+     */
+    public setFileDecorations(entries: readonly { path: string; color?: number; badge?: string }[]): void {
+        this.fileTreeController.setFileDecorations(entries);
+    }
+
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
