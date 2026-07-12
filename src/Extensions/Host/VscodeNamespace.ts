@@ -6,18 +6,42 @@ import { DocumentRegistry } from "./Vscode/ExtHostDocuments.ts";
 import { createLanguagesNamespace } from "./Vscode/LanguagesNamespace.ts";
 import type { IVscodeHostContext } from "./Vscode/VscodeHostContext.ts";
 import {
+    CallHierarchyItem,
+    CancellationError,
+    CancellationTokenSource,
+    CodeAction,
+    CodeActionKind,
+    CodeLens,
     CompletionItem,
     CompletionItemKind,
+    CompletionItemTag,
+    Diagnostic,
+    DiagnosticSeverity,
+    DiagnosticTag,
     DisposableImpl,
+    DocumentHighlightKind,
+    DocumentLink,
     EndOfLine,
     EventEmitter,
     FileSystemError,
     FileType,
+    FoldingRangeKind,
+    Hover,
+    InlayHint,
+    Location,
+    LogLevel,
+    MarkdownString,
+    ProgressLocation,
     Position,
     Range,
+    SymbolInformation,
+    SymbolKind,
+    SymbolTag,
     TextDocumentSaveReason,
     TextEdit,
+    TypeHierarchyItem,
     Uri,
+    WorkspaceEdit,
 } from "./Vscode/VscodeTypes.ts";
 import { createWindowNamespace } from "./Vscode/WindowNamespace.ts";
 import { WorkspaceConfigStore } from "./Vscode/WorkspaceConfigStore.ts";
@@ -60,8 +84,23 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): IVscodeHost {
     // прокси в host CommandRegistry).
     const commands = buildCommandsNamespace(rpc);
 
+    // SPIKE (LSP): наивный `env` — vscode-languageclient читает language/appName.
+    const env = {
+        appName: "Vexx",
+        appHost: "desktop",
+        language: "en",
+        uriScheme: "vexx",
+        clipboard: {
+            readText: (): Thenable<string> => Promise.resolve(""),
+            writeText: (): Thenable<void> => Promise.resolve(),
+        },
+        openExternal: (): Thenable<boolean> => Promise.resolve(false),
+    } as unknown;
+
     const namespace = {
-        version: "vexx-phase-1",
+        // SPIKE (LSP): vscode-languageclient требует валидный VS Code semver
+        // (>= ^1.91.0). Держим в лок-степе с builtin/VSCODE_VERSION.
+        version: "1.127.0",
         Disposable: DisposableImpl,
         // Value-типы — обязательно перечислить поимённо: каст `as unknown as
         // typeof vscode` прячет пропуск, он всплыл бы только рантайм-undefined
@@ -77,10 +116,36 @@ export function buildVscodeNamespace(rpc: RpcEndpoint): IVscodeHost {
         FileType,
         FileSystemError,
         CompletionItemKind,
+        // SPIKE (LSP): value-типы, требуемые vscode-languageclient.
+        Location,
+        Diagnostic,
+        DiagnosticSeverity,
+        DiagnosticTag,
+        CodeLens,
+        CodeAction,
+        CodeActionKind,
+        DocumentLink,
+        DocumentHighlightKind,
+        FoldingRangeKind,
+        InlayHint,
+        SymbolInformation,
+        SymbolKind,
+        SymbolTag,
+        CompletionItemTag,
+        CallHierarchyItem,
+        TypeHierarchyItem,
+        CancellationError,
+        CancellationTokenSource,
+        LogLevel,
+        ProgressLocation,
+        MarkdownString,
+        Hover,
+        WorkspaceEdit,
         window,
         workspace,
         languages,
         commands,
+        env,
     } as unknown as typeof vscode;
 
     return { namespace, configStore: ctx.configStore };

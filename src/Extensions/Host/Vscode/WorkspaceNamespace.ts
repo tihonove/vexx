@@ -7,7 +7,16 @@ import type { WireTextEdit } from "../WireTypes.ts";
 import { ExtHostTextDocument } from "./ExtHostDocuments.ts";
 import { createFileSystemNamespace } from "./FileSystemNamespace.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
-import { DisposableImpl, EndOfLine, EventEmitter, TextDocumentSaveReason, TextEdit, Uri } from "./VscodeTypes.ts";
+import {
+    DisposableImpl,
+    EndOfLine,
+    EventEmitter,
+    Position,
+    Range,
+    TextDocumentSaveReason,
+    TextEdit,
+    Uri,
+} from "./VscodeTypes.ts";
 
 /** Тайм-аут на один waitUntil-thenable участника will-save, мс. */
 const WILL_SAVE_LISTENER_TIMEOUT_MS = 1500;
@@ -21,6 +30,18 @@ function listenerTimeout(): Promise<readonly TextEdit[]> {
         // Не держим event loop живым из-за таймера, который проиграл гонку.
         timer.unref();
     });
+}
+
+/** SPIKE (LSP): валидный Event, который никогда не стреляет (хост его не фаерит). */
+function naiveEvent<T = never>(): vscode.Event<T> {
+    return new EventEmitter<T>().event;
+}
+
+/** SPIKE (LSP): позиция конца текста (для full-range change-события). */
+function endOfText(text: string): Position {
+    const lines = text.split("\n");
+    const last = lines.length - 1;
+    return new Position(last, lines[last].length);
 }
 
 /** utf-8 — единственная реально поддерживаемая кодировка (ядро utf-8-only). */
@@ -87,6 +108,10 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
     const onDidChangeConfigurationEmitter = new EventEmitter<vscode.ConfigurationChangeEvent>();
     const onDidOpenTextDocumentEmitter = new EventEmitter<vscode.TextDocument>();
     const onDidCloseTextDocumentEmitter = new EventEmitter<vscode.TextDocument>();
+    // SPIKE (LSP): реальный emitter изменений — фаерится из `editor.didChange`,
+    // на него подписан document-sync стокового vscode-languageclient. Тип события —
+    // `unknown`, т.к. `vscode.TextDocumentChangeEvent` ещё не раскомментирован в d.ts.
+    const onDidChangeTextDocumentEmitter = new EventEmitter<unknown>();
     const onWillSaveTextDocumentEmitter = new EventEmitter<vscode.TextDocumentWillSaveEvent>();
     const onDidSaveTextDocumentEmitter = new EventEmitter<vscode.TextDocument>();
 
@@ -100,6 +125,46 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
             didSave: didSaveCount > 0,
         });
     }
+
+    // SPIKE (LSP): core→host document sync. `editor.didOpen` кладёт полный текст
+    // в реестр и фаерит onDidOpenTextDocument; `editor.didChange` — обновляет
+    // текст и фаерит onDidChangeTextDocument с одной full-range правкой (валидно
+    // и для Full, и для Incremental sync сервера).
+    rpc.handleNotification("editor.didOpen", (params) => {
+        const p = params as { fileName?: unknown; languageId?: unknown; text?: unknown };
+        if (typeof p.fileName !== "string") return;
+        const doc = registry.upsertFull({
+            fileName: p.fileName,
+            ...(typeof p.languageId === "string" ? { languageId: p.languageId } : {}),
+            text: typeof p.text === "string" ? p.text : "",
+        });
+        onDidOpenTextDocumentEmitter.fire(doc as unknown as vscode.TextDocument);
+    });
+    rpc.handleNotification("editor.didChange", (params) => {
+        const p = params as { fileName?: unknown; languageId?: unknown; text?: unknown };
+        if (typeof p.fileName !== "string") return;
+        const prev = registry.get(p.fileName);
+        const oldText = prev?.getText() ?? "";
+        const newText = typeof p.text === "string" ? p.text : "";
+        const doc = registry.upsertFull({
+            fileName: p.fileName,
+            ...(typeof p.languageId === "string" ? { languageId: p.languageId } : {}),
+            text: newText,
+        });
+        const fullRange = new Range(new Position(0, 0), endOfText(oldText));
+        onDidChangeTextDocumentEmitter.fire({
+            document: doc as unknown as vscode.TextDocument,
+            contentChanges: [
+                {
+                    range: fullRange as unknown as vscode.Range,
+                    rangeOffset: 0,
+                    rangeLength: oldText.length,
+                    text: newText,
+                },
+            ],
+            reason: undefined,
+        });
+    });
 
     rpc.handleNotification("workspace.initialize", (params) => {
         const p = params as { configuration?: unknown; workspaceFolders?: IWireWorkspaceFolder[] };
@@ -270,6 +335,40 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
         onDidChangeConfiguration: onDidChangeConfigurationEmitter.event,
         onDidOpenTextDocument: onDidOpenTextDocumentEmitter.event,
         onDidCloseTextDocument: onDidCloseTextDocumentEmitter.event,
+
+        // ── SPIKE (LSP): наивные заглушки поверхности, которую трогает
+        // vscode-languageclient. События, которых хост пока не фаерит, —
+        // валидные (никогда не стреляющие) Event'ы. ────────────────────────
+        onDidChangeTextDocument: onDidChangeTextDocumentEmitter.event,
+        onDidChangeWorkspaceFolders: naiveEvent(),
+        onDidCreateFiles: naiveEvent(),
+        onDidDeleteFiles: naiveEvent(),
+        onDidRenameFiles: naiveEvent(),
+        onWillCreateFiles: naiveEvent(),
+        onWillDeleteFiles: naiveEvent(),
+        onWillRenameFiles: naiveEvent(),
+        onDidOpenNotebookDocument: naiveEvent(),
+        onDidCloseNotebookDocument: naiveEvent(),
+        onDidChangeNotebookDocument: naiveEvent(),
+        onDidSaveNotebookDocument: naiveEvent(),
+        notebookDocuments: [] as readonly unknown[],
+        applyEdit: (): Thenable<boolean> => Promise.resolve(true),
+        getWorkspaceFolder: (uri: vscode.Uri): vscode.WorkspaceFolder | undefined => {
+            const p = (uri as unknown as Uri).fsPath;
+            const found = workspaceFolders.find((f) => p === f.uri.fsPath || p.startsWith(f.uri.fsPath + "/"));
+            return (found ?? workspaceFolders[0]) as unknown as vscode.WorkspaceFolder | undefined;
+        },
+        createFileSystemWatcher: (): unknown => ({
+            onDidCreate: naiveEvent(),
+            onDidChange: naiveEvent(),
+            onDidDelete: naiveEvent(),
+            ignoreCreateEvents: false,
+            ignoreChangeEvents: false,
+            ignoreDeleteEvents: false,
+            dispose: (): void => undefined,
+        }),
+        registerTextDocumentContentProvider: (): vscode.Disposable =>
+            new DisposableImpl(() => undefined) as unknown as vscode.Disposable,
 
         onWillSaveTextDocument: (
             listener: (e: vscode.TextDocumentWillSaveEvent) => unknown,

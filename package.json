@@ -17,6 +17,8 @@
     "demo:raw-events": "node src/demos/tokenizeDemo.ts",
     "demo:renderer": "node src/demos/rendererDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
+    "spike:lsp": "tsx src/demos/lspSpike.ts",
+    "spike:lsp:app": "tsx e2e/lspDiagnostics.demo.ts",
     "story": "tsx src/StoryRunner/run.ts",
     "screenshots": "tsx e2e/scenarios/generate.ts",
     "build": "tsup",
@@ -49,7 +51,9 @@
     "tsx": "^4.21.0",
     "typescript": "^5.8",
     "typescript-eslint": "^8.56.1",
+    "typescript-language-server": "^5.3.0",
     "vitest": "^4.0.18",
+    "vscode-languageclient": "^10.1.0",
     "ws": "^8.21.0",
     "yazl": "^3.3.1"
   },
