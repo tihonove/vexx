@@ -191,6 +191,61 @@ describe("FileTreeDataProvider", () => {
         });
     });
 
+    describe("git status decorations", () => {
+        it("has no decoration by default", () => {
+            const item = provider.getTreeItem({ name: "main.ts", path: "/main.ts", isDirectory: false });
+            expect(item.labelColor).toBeUndefined();
+            expect(item.badge).toBeUndefined();
+        });
+
+        it("maps a status entry onto the tree item by absolute path", () => {
+            provider.setGitStatus(new Map([["/main.ts", { color: 0x73c991, badge: "M" }]]));
+
+            const decorated = provider.getTreeItem({ name: "main.ts", path: "/main.ts", isDirectory: false });
+            expect(decorated.labelColor).toBe(0x73c991);
+            expect(decorated.badge).toBe("M");
+
+            // A file not present in the status map stays undecorated.
+            const plain = provider.getTreeItem({ name: "other.ts", path: "/other.ts", isDirectory: false });
+            expect(plain.labelColor).toBeUndefined();
+            expect(plain.badge).toBeUndefined();
+        });
+
+        it("decorates directories as well as files", () => {
+            provider.setGitStatus(new Map([["/src", { color: 0xe2c08d, badge: "U" }]]));
+
+            const dir = provider.getTreeItem({ name: "src", path: "/src", isDirectory: true });
+            expect(dir.collapsible).toBe(true);
+            expect(dir.labelColor).toBe(0xe2c08d);
+            expect(dir.badge).toBe("U");
+        });
+
+        it("replaces the whole status map on each call", () => {
+            provider.setGitStatus(new Map([["/a.ts", { color: 0x111111, badge: "A" }]]));
+            provider.setGitStatus(new Map([["/b.ts", { color: 0x222222, badge: "M" }]]));
+
+            expect(provider.getTreeItem({ name: "a.ts", path: "/a.ts", isDirectory: false }).badge).toBeUndefined();
+            expect(provider.getTreeItem({ name: "b.ts", path: "/b.ts", isDirectory: false }).badge).toBe("M");
+        });
+
+        it("supports a colour-only or badge-only entry", () => {
+            provider.setGitStatus(
+                new Map([
+                    ["/colour-only.ts", { color: 0x73c991 }],
+                    ["/badge-only.ts", { badge: "M" }],
+                ]),
+            );
+
+            const colourOnly = provider.getTreeItem({ name: "c.ts", path: "/colour-only.ts", isDirectory: false });
+            expect(colourOnly.labelColor).toBe(0x73c991);
+            expect(colourOnly.badge).toBeUndefined();
+
+            const badgeOnly = provider.getTreeItem({ name: "b.ts", path: "/badge-only.ts", isDirectory: false });
+            expect(badgeOnly.labelColor).toBeUndefined();
+            expect(badgeOnly.badge).toBe("M");
+        });
+    });
+
     describe("file watching", () => {
         it("notifies onChange when a file is created in watched directory", async () => {
             const callback = vi.fn();

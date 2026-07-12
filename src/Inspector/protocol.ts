@@ -21,6 +21,12 @@ export const InspectorMethod = {
     /** Tear down the session and exit. Requires a driver. */
     shutdown: "TUIDom.shutdown",
     /**
+     * Apply file-tree status decorations (name colour + letter badge) by absolute
+     * path. E2E/demo affordance for the git-status decoration feature — the App
+     * layer wires it to the file tree controller. Requires a driver (headless).
+     */
+    setFileDecorations: "TUIDom.setFileDecorations",
+    /**
      * Push gutter change-bar decorations to the active editor. A test/demo seam
      * wired by the App layer (`main.ts`) — the Inspector core stays Editor-free.
      */
@@ -46,6 +52,21 @@ export interface ResizeParams {
 /** Result of `TUIDom.captureFrame`. */
 export interface CaptureFrameResult {
     frame: GridSnapshot;
+}
+
+/** One file-tree decoration entry (`TUIDom.setFileDecorations`). */
+export interface FileDecorationEntry {
+    /** Absolute path of the file/directory to decorate. */
+    path: string;
+    /** Packed RGB name colour (already resolved from the theme). */
+    color?: number;
+    /** 1–2 char status badge drawn at the right edge (e.g. "M", "U"). */
+    badge?: string;
+}
+
+/** Params for `TUIDom.setFileDecorations`. */
+export interface SetFileDecorationsParams {
+    entries: FileDecorationEntry[];
 }
 
 /**

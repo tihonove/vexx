@@ -125,6 +125,21 @@ export class FileTreeController extends Disposable implements IController {
         return node.isDirectory ? node.path : path.dirname(node.path);
     }
 
+    /**
+     * Проставляет статус-декорации файлов (цвет имени + буква-бейдж) по абсолютному
+     * пути и перерисовывает дерево. Цвета приходят уже резолвнутыми — applyTheme тут
+     * ни при чём. Пустой список снимает все декорации.
+     */
+    public setFileDecorations(entries: readonly { path: string; color?: number; badge?: string }[]): void {
+        if (!this.provider || !this.tree) return;
+        const map = new Map<string, { color?: number; badge?: string }>();
+        for (const entry of entries) {
+            map.set(entry.path, { color: entry.color, badge: entry.badge });
+        }
+        this.provider.setGitStatus(map);
+        void this.tree.refresh();
+    }
+
     /** Подсвечивает «вырезанные» пути приглушённым цветом (или снимает подсветку). */
     public setCutPaths(paths: string[]): void {
         if (!this.tree) return;

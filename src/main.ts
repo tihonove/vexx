@@ -36,9 +36,13 @@ import type { IExtensionRegistration } from "./Extensions/Host/IExtensionEntry.t
 import type { ICommandContribution, IConfigurationContribution } from "./Extensions/IExtensionManifest.ts";
 import { LanguageRegistry } from "./Extensions/LanguageRegistry.ts";
 import { mergeExtensions } from "./Extensions/mergeExtensions.ts";
-import { attachInspector } from "./Inspector/index.ts";
+import {
+    attachInspector,
+    InspectorMethod,
+    type SetFileDecorationsParams,
+    type SetGutterChangeDecorationsParams,
+} from "./Inspector/index.ts";
 import type { InspectorDriver } from "./Inspector/InspectorDriver.ts";
-import { InspectorMethod, type SetGutterChangeDecorationsParams } from "./Inspector/protocol.ts";
 import { createBuiltinThemeRegistry } from "./Theme/ThemeRegistry.ts";
 import { DEFAULT_COLOR_THEME } from "./Theme/themes/builtinThemes.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
@@ -283,6 +287,14 @@ async function runEditor(): Promise<void> {
                       },
                   };
         const inspector = await attachInspector(app, cli.inspectTui, driver);
+        // Демо/e2e-хук: раскрасить файлы в дереве (git-статус). Доступен только когда
+        // есть driver (headless): реальный терминальный сеанс держит инспектор read-only.
+        if (driver !== undefined) {
+            inspector.core.register(InspectorMethod.setFileDecorations, (params) => {
+                appController.setFileDecorations((params as SetFileDecorationsParams).entries);
+                return {};
+            });
+        }
         // Test/demo seam: let headless scenarios push gutter change-bars straight
         // to the active editor with literal colours (the git/SCM producer isn't
         // wired in this build). Registered App-side so the Inspector core stays
