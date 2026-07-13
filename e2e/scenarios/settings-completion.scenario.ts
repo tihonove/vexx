@@ -18,6 +18,10 @@ export default defineScenario({
     open: [repoRoot, sampleFile],
     cols: 100,
     rows: 24,
+    // Extension-host сценарий: CI-safety-net гоняем только на Linux (на Windows
+    // e2e субпроцесс-расширения флейкают — как `editorconfig-stock`/`sea-git`).
+    // Скриншот всё равно генерируется через `npm run screenshots`.
+    skipOn: ["win32"],
     async run(editor) {
         await editor.waitForText((t) => t.includes("files.enableTrash"));
         await editor.capture("editor");

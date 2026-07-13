@@ -16,7 +16,8 @@ describe("screenshot scenarios", () => {
     });
 
     for (const spec of scenarios) {
-        it(`renders "${spec.name}"`, async () => {
+        const skip = spec.skipOn?.includes(process.platform) ?? false;
+        it.skipIf(skip)(`renders "${spec.name}"`, async () => {
             const shots = await runScenario(spec);
 
             expect(shots.length).toBeGreaterThan(0);

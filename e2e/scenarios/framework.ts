@@ -48,6 +48,13 @@ export interface ScenarioSpec {
     cols?: number;
     rows?: number;
     env?: Record<string, string>;
+    /**
+     * Платформы (`process.platform`), на которых CI-safety-net (`scenarios.test.ts`)
+     * пропускает сценарий. Скриншоты (`npm run screenshots`) генерируются как обычно.
+     * Нужно для extension-host сценариев: субпроцесс-расширения в e2e гоняем только
+     * на Linux (как `editorconfig-stock`/`sea-git`).
+     */
+    skipOn?: readonly NodeJS.Platform[];
     run(driver: ScenarioDriver): Promise<void>;
 }
 
