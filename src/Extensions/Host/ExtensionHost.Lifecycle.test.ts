@@ -3,6 +3,7 @@ import { EventEmitter } from "node:events";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
+import { registerAndActivate } from "../../TestUtils/ExtensionTestHarness.ts";
 
 import { ExtensionHost, type IExtensionHostConfigProvider } from "./ExtensionHost.ts";
 import type { ICommandService } from "./ICommandService.ts";
@@ -188,7 +189,7 @@ describe("ExtensionHost — registration lifecycle", () => {
         const editorOptions = new FakeEditorOptions();
         const host = spawnReadyHost(child, editorOptions);
 
-        const reg = await host.registerExtension(makeReg("ext.a", "/a.js"));
+        const reg = await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         expect(spawnMock).toHaveBeenCalledOnce();
         expect(host.hasExtension("ext.a")).toBe(true);
@@ -207,8 +208,8 @@ describe("ExtensionHost — registration lifecycle", () => {
         const child = new FakeChild();
         const host = spawnReadyHost(child, new FakeEditorOptions());
 
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
-        await host.registerExtension(makeReg("ext.b", "/b.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.b", "/b.js"));
 
         expect(spawnMock).toHaveBeenCalledOnce();
         expect(host.extensionCount).toBe(2);
@@ -217,32 +218,32 @@ describe("ExtensionHost — registration lifecycle", () => {
     it("rejects a duplicate registration", async () => {
         const child = new FakeChild();
         const host = spawnReadyHost(child, new FakeEditorOptions());
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        host.registerExtension(makeReg("ext.a", "/a.js"));
 
-        await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/already registered/);
+        expect(() => host.registerExtension(makeReg("ext.a", "/a.js"))).toThrow(/already registered/);
     });
 
     it("rejects registration after dispose", async () => {
         const child = new FakeChild();
         child.exitOnShutdown = true;
         const host = spawnReadyHost(child, new FakeEditorOptions());
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
         host.dispose();
 
-        await expect(host.registerExtension(makeReg("ext.b", "/b.js"))).rejects.toThrow(/disposed/);
+        expect(() => host.registerExtension(makeReg("ext.b", "/b.js"))).toThrow(/disposed/);
     });
 
     it("unregister is a no-op for an unknown extension", async () => {
         const child = new FakeChild();
         const host = spawnReadyHost(child, new FakeEditorOptions());
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
         await expect(host.unregisterExtension("nope")).resolves.toBeUndefined();
     });
 
     it("registration dispose() is a no-op once the extension is already unregistered", async () => {
         const child = new FakeChild();
         const host = spawnReadyHost(child, new FakeEditorOptions());
-        const reg = await host.registerExtension(makeReg("ext.a", "/a.js"));
+        const reg = await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         await host.unregisterExtension("ext.a");
         expect(host.hasExtension("ext.a")).toBe(false);
@@ -258,7 +259,7 @@ describe("ExtensionHost — registration lifecycle", () => {
         const child = new FakeChild();
         const logger = makeLogger();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { logger });
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         // Make the next host→child request (deactivate) reject by replying with an error envelope.
         child.autoRespond = false;
@@ -279,7 +280,7 @@ describe("ExtensionHost — editor options RPC handlers", () => {
         const child = new FakeChild();
         const editorOptions = new FakeEditorOptions();
         const host = spawnReadyHost(child, editorOptions);
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         child.receiveFromHostPeer({
             kind: "req",
@@ -296,7 +297,7 @@ describe("ExtensionHost — editor options RPC handlers", () => {
         const child = new FakeChild();
         const editorOptions = new FakeEditorOptions();
         const host = spawnReadyHost(child, editorOptions);
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         // params is not an object → sanitizeOptionsPatch returns {}
         child.receiveFromHostPeer({ kind: "req", id: 102, method: "editor.setOptions", params: 42 });
@@ -309,7 +310,7 @@ describe("ExtensionHost — editor options RPC handlers", () => {
         const child = new FakeChild();
         const editorOptions = new FakeEditorOptions();
         const host = spawnReadyHost(child, editorOptions);
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         // tabSize is not a positive finite number and insertSpaces is not a boolean → both dropped.
         child.receiveFromHostPeer({
@@ -327,7 +328,7 @@ describe("ExtensionHost — editor options RPC handlers", () => {
         const child = new FakeChild();
         const editorOptions = new FakeEditorOptions();
         const host = spawnReadyHost(child, editorOptions);
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         child.receiveFromHostPeer({ kind: "req", id: 101, method: "editor.getOptions", params: undefined });
 
@@ -340,7 +341,7 @@ describe("ExtensionHost — editor options RPC handlers", () => {
         const child = new FakeChild();
         const editorOptions = new FakeEditorOptions();
         const host = spawnReadyHost(child, editorOptions);
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         editorOptions.fireActiveEditorChanged("/other.ts");
 
@@ -352,7 +353,7 @@ describe("ExtensionHost — editor options RPC handlers", () => {
 describe("ExtensionHost — commands RPC handlers", () => {
     async function readyHostWithCommands(child: FakeChild, commandService: FakeCommandService): Promise<ExtensionHost> {
         const host = spawnReadyHost(child, new FakeEditorOptions(), {}, commandService);
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
         return host;
     }
 
@@ -513,7 +514,7 @@ describe("ExtensionHost — stdout/stderr piping", () => {
         const stdoutLogger = makeLogger();
         const stderrLogger = makeLogger();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { stdoutLogger, stderrLogger });
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
         expect(child.stdout.encoding).toBe("utf8");
 
         child.stdout.emit("data", "hello\nwor");
@@ -535,7 +536,7 @@ describe("ExtensionHost — stdout/stderr piping", () => {
         child.stdout = new FakeStream();
         const stdoutLogger = makeLogger();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { stdoutLogger });
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         // A blank line (leading "\n") produces a zero-length `line` → skipped (line 349 false branch).
         // The trailing "\n" leaves the buffer empty, so `end` logs nothing (line 357 false branch).
@@ -553,7 +554,7 @@ describe("ExtensionHost — subprocess events", () => {
         const child = new FakeChild();
         const logger = makeLogger();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { logger });
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         child.emit("error", new Error("spawn failed"));
 
@@ -563,7 +564,7 @@ describe("ExtensionHost — subprocess events", () => {
     it("skips signalling when the subprocess has already exited before dispose", async () => {
         const child = new FakeChild();
         const host = spawnReadyHost(child, new FakeEditorOptions());
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         child.simulateExit(0); // subprocess gone before we tear down
         host.dispose();
@@ -582,7 +583,8 @@ describe("ExtensionHost — readiness failures", () => {
         });
         const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE, { spawnArgs });
 
-        await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/exited before ready/);
+        host.registerExtension(makeReg("ext.a", "/a.js"));
+        await expect(host.activateByEvent("*")).rejects.toThrow(/exited before ready/);
     });
 
     it("rejects when the subprocess does not become ready in time", async () => {
@@ -593,7 +595,8 @@ describe("ExtensionHost — readiness failures", () => {
             readyTimeoutMs: 20,
         });
 
-        await expect(host.registerExtension(makeReg("ext.a", "/a.js"))).rejects.toThrow(/did not become ready/);
+        host.registerExtension(makeReg("ext.a", "/a.js"));
+        await expect(host.activateByEvent("*")).rejects.toThrow(/did not become ready/);
     });
 });
 
@@ -602,7 +605,7 @@ describe("ExtensionHost — shutdown", () => {
         const child = new FakeChild();
         child.exitOnShutdown = true;
         const host = spawnReadyHost(child, new FakeEditorOptions());
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         host.dispose();
 
@@ -615,7 +618,7 @@ describe("ExtensionHost — shutdown", () => {
         const child = new FakeChild();
         child.exitOnSignal = "SIGTERM";
         const host = spawnReadyHost(child, new FakeEditorOptions());
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         host.dispose();
 
@@ -629,7 +632,7 @@ describe("ExtensionHost — shutdown", () => {
         // after SIGTERM. Left uncovered intentionally (latent bug, not forced by a test).
         const child = new FakeChild();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { shutdownTimeoutMs: 10 });
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         host.dispose();
 
@@ -668,7 +671,7 @@ describe("ExtensionHost — WP3 config/window bridge", () => {
         const child = new FakeChild();
         const cfg = makeConfigProvider();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { configuration: cfg.provider });
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         const init = child.sent.find((m) => m.kind === "notif" && m.method === "workspace.initialize");
         expect(init).toBeDefined();
@@ -690,7 +693,7 @@ describe("ExtensionHost — WP3 config/window bridge", () => {
         const child = new FakeChild();
         const logger = makeLogger();
         const host = spawnReadyHost(child, new FakeEditorOptions(), { logger });
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         const send = (severity: string, message: unknown): void => {
             child.receiveFromHostPeer({ kind: "notif", method: "window.showMessage", params: { severity, message } });
@@ -712,7 +715,7 @@ describe("ExtensionHost — WP3 config/window bridge", () => {
         const child = new FakeChild();
         const editorOptions = new FakeEditorOptions();
         const host = spawnReadyHost(child, editorOptions, {});
-        await host.registerExtension(makeReg("ext.a", "/a.js"));
+        await registerAndActivate(host, makeReg("ext.a", "/a.js"));
 
         child.receiveFromHostPeer({ kind: "req", id: 901, method: "editor.setOptions", params: { indentSize: 3 } });
         await waitUntil(() => editorOptions.lastPatch !== null);

@@ -50,4 +50,13 @@ export interface IExtensionRegistration {
      * появляется в палитре.
      */
     readonly commandTitles?: Readonly<Record<string, string>>;
+    /**
+     * События активации из `manifest.activationEvents` (`["onLanguage:json",
+     * "onStartupFinished"]`). {@link ExtensionHost.registerExtension} только
+     * запоминает регистрацию; реальная активация (`host.activateExtension`)
+     * происходит в {@link ExtensionHost.activateByEvent}, когда наступает
+     * подходящее событие. Пусто/отсутствует ⇒ трактуется как `["*"]` (eager) —
+     * сохраняет поведение расширений, не описавших события.
+     */
+    readonly activationEvents?: readonly string[];
 }

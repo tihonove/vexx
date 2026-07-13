@@ -43,8 +43,8 @@
 
 ## Phase 7 — Активация и lifecycle
 
-- [ ] `activationEvents` (`onLanguage:*`, `onCommand:*`, `onStartupFinished`, …).
-- [ ] Lazy activation — расширение не грузится до триггера.
+- [~] `activationEvents`: `*`, `onStartupFinished`, `onLanguage:*` — сделаны (`ExtensionHost.registerExtension` = bookkeeping, `activateByEvent` активирует по событию; фаеринг — `main.ts` + `EditorGroupController.onActiveEditorChanged` seam). Пример: builtin `vexx-settings` (автодополнение settings.json, `onLanguage:json`). Остаётся `onCommand:*` (нужен await активации во время dispatch команды).
+- [x] Lazy activation — расширение не грузится до триггера (subprocess поднимается только на `activateByEvent`).
 - [ ] `IDisposable`-цепочка: при unload корректно убираются все contributions (TokenizationRegistry, CommandRegistry, …).
 - [ ] Reload расширения (dispose → re-register).
 
@@ -52,7 +52,7 @@
 
 Ядро (RPC поверх IPC, self-spawn, vscode-стаб, completion WP8, стоковый editorconfig) — сделано, см. [docs/arch/Extensions.md](../arch/Extensions.md). Остаётся:
 
-- [ ] `activationEvents` triggers — вызов `activate(context)` в нужный момент (сейчас всегда eager после `openFile`).
+- [~] `activationEvents` triggers — вызов `activate(context)` в нужный момент. Сделаны `*`/`onStartupFinished`/`onLanguage:*` (см. Phase 7); остаётся `onCommand:*`.
 - [~] Расширение всего vscode-API: `commands`, `workspace`, `languages`, `window` за пределами `activeTextEditor.options`. В работе — active-editor API (`window.activeTextEditor` / `onDidChangeActiveTextEditor`).
 - [ ] Изоляция исключений: упавшее расширение не валит host (сейчас уже не валит благодаря RPC + try/catch, но diagnostics ещё нет).
 - [ ] Маршрутизация ошибок RPC обратно в `editor.options =`, чтобы fire-and-forget не глотал.

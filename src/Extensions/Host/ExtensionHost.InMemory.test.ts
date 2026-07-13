@@ -44,7 +44,8 @@ describe("ExtensionHost — in-memory source loading (builtin code-extensions)",
     it("отвергает регистрацию, где заданы и source, и mainPath (ровно один способ)", async () => {
         const harness = await createExtensionTestHarness();
         try {
-            await expect(
+            // Инвариант source XOR mainPath проверяется синхронно на регистрации.
+            expect(() =>
                 harness.host.registerExtension({
                     id: "test.both",
                     manifest: { name: "both", publisher: "test", version: "0.0.1" },
@@ -52,7 +53,7 @@ describe("ExtensionHost — in-memory source loading (builtin code-extensions)",
                     source: SOURCE,
                     filename: "/x.cjs",
                 }),
-            ).rejects.toThrow();
+            ).toThrow(/exactly one of/);
         } finally {
             await harness.dispose();
         }

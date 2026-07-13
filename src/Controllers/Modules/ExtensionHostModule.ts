@@ -93,6 +93,15 @@ export const extensionHostModule: ContainerModule = (container) => {
         // подключаются как источник автодополнений группы (читает CompletionController).
         group.completionSource = (req) => host.provideCompletionItems(req);
 
+        // Ленивая активация по `onLanguage:*`: при смене активного редактора
+        // фаерим событие языка — host поднимает расширения, чьи activationEvents
+        // содержат `onLanguage:<langId>` (напр. vexx-settings на JSON). Стартовое
+        // событие для уже открытого редактора фаерит main.ts; ядро про
+        // activation-events не знает — тот же seam-паттерн, что completionSource.
+        group.onActiveEditorChanged((editor) => {
+            if (editor !== null) void host.activateByEvent(`onLanguage:${editor.languageId}`);
+        });
+
         return host;
     });
 };

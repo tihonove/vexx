@@ -15,6 +15,7 @@ import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistr
 import { CommandServiceAdapter } from "../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import { ExtensionHost, type IExtensionHostConfigProvider } from "../Extensions/Host/ExtensionHost.ts";
+import type { IDisposable } from "../Common/Disposable.ts";
 import type { IEditorDecorationsService } from "../Extensions/Host/IEditorDecorationsService.ts";
 import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
 import type { IFileDecorationsService } from "../Extensions/Host/IFileDecorationsService.ts";
@@ -53,6 +54,21 @@ export function extensionFixture(id: string, file: string): IExtensionRegistrati
         mainPath: path.join(EXTENSION_FIXTURES_DIR, file),
     };
 }
+
+/**
+ * Тест-хелпер: регистрирует расширение и сразу активирует его через
+ * `activateByEvent("*")` (reg без `activationEvents` нормализуется в `["*"]`).
+ * Заменяет прежний eager `await host.registerExtension(reg)` в тестах, которым
+ * важно, что расширение активно сразу. Возвращает disposable от регистрации.
+ */
+export async function registerAndActivate(
+    host: ExtensionHost,
+    reg: IExtensionRegistration,
+): Promise<IDisposable> {
+    const disposable = host.registerExtension(reg);
+    await host.activateByEvent("*");
+    return disposable;
+}
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
@@ -62,6 +78,13 @@ import { TestApp } from "./TestApp.ts";
 export interface IExtensionHarnessOptions {
     readonly initialFile?: { readonly name: string; readonly content: string };
     readonly extensions?: readonly IExtensionRegistration[];
+    /**
+     * Событие(я) активации, которые харнесс фаерит после регистрации расширений.
+     * По умолчанию — `["*"]` (eager, эквивалент прежнего поведения). Тесты
+     * ленивой активации передают собственный набор (или `[]`, чтобы драйвить
+     * `harness.host.activateByEvent(...)` вручную).
+     */
+    readonly activateEvents?: readonly string[];
     /**
      * Снапшот конфигурации, который host запушит в subprocess
      * (`workspace.initialize`). Читается расширением через `getConfiguration`.
@@ -111,7 +134,8 @@ export interface IExtensionHarness {
  * + {@link ExtensionHost}, оборачивает в {@link TestApp} (через body вокруг
  * `group.view`), опционально открывает файл и регистрирует расширения.
  *
- * Расширения регистрируются последовательно — каждый `registerExtension`
+ * Расширения регистрируются (bookkeeping), затем харнесс фаерит события
+ * активации (`activateEvents`, по умолчанию `["*"]`) — каждое `activateByEvent`
  * ждёт завершения `activate()` и RPC-вызовов внутри него.
  */
 export async function createExtensionTestHarness(options: IExtensionHarnessOptions = {}): Promise<IExtensionHarness> {
@@ -180,7 +204,13 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
     };
 
     for (const reg of options.extensions ?? []) {
-        await host.registerExtension(reg);
+        host.registerExtension(reg);
+    }
+    // Активация теперь событийная: фаерим согласованные события (по умолчанию
+    // `*` — eager, как раньше). Последовательно — каждый activateByEvent ждёт
+    // завершения activate() и внутренних RPC.
+    for (const event of options.activateEvents ?? ["*"]) {
+        await host.activateByEvent(event);
     }
 
     const dispose = async (): Promise<void> => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { extensionFixture, subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarness.ts";
+import { extensionFixture, registerAndActivate, subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
@@ -42,7 +42,7 @@ describe("ExtensionHost (subprocess)", () => {
     it("registerExtension активирует extension через subprocess", async () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
-        await host.registerExtension(extensionFixture("noop-a", "noopExtension.cjs"));
+        await registerAndActivate(host, extensionFixture("noop-a", "noopExtension.cjs"));
         expect(host.extensionCount).toBe(1);
         expect(host.hasExtension("noop-a")).toBe(true);
         host.dispose();
@@ -53,8 +53,8 @@ describe("ExtensionHost (subprocess)", () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
         const reg = extensionFixture("dup", "noopExtension.cjs");
-        await host.registerExtension(reg);
-        await expect(host.registerExtension(reg)).rejects.toThrow(/already registered/);
+        host.registerExtension(reg);
+        expect(() => host.registerExtension(reg)).toThrow(/already registered/);
         host.dispose();
         await settle(100);
     });
@@ -63,14 +63,14 @@ describe("ExtensionHost (subprocess)", () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
         host.dispose();
-        await expect(host.registerExtension(extensionFixture("late", "noopExtension.cjs"))).rejects.toThrow(/disposed/);
+        expect(() => host.registerExtension(extensionFixture("late", "noopExtension.cjs"))).toThrow(/disposed/);
     });
 
     it("unregisterExtension убирает конкретное расширение", async () => {
         const svc = new FakeOptionsService();
         const host = createHost(svc);
-        await host.registerExtension(extensionFixture("x", "noopExtension.cjs"));
-        await host.registerExtension(extensionFixture("y", "noopExtension.cjs"));
+        await registerAndActivate(host, extensionFixture("x", "noopExtension.cjs"));
+        await registerAndActivate(host, extensionFixture("y", "noopExtension.cjs"));
         expect(host.extensionCount).toBe(2);
         await host.unregisterExtension("x");
         expect(host.extensionCount).toBe(1);

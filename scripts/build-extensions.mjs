@@ -18,6 +18,8 @@ import { join, resolve } from "node:path";
 
 import { build } from "esbuild";
 
+import { generateSettingsSchema } from "./generate-settings-schema.mjs";
+
 /** Имя скомпилированного entry внутри каталога расширения (совпадает с `main` в манифесте). */
 export const COMPILED_BUILTIN_ENTRY = "out/extension.cjs";
 
@@ -30,6 +32,9 @@ const SOURCE_ENTRY = "main.ts";
  */
 export async function buildExtensions({ repoRoot }) {
     const builtinDir = resolve(repoRoot, "src", "Extensions", "builtin");
+    // Генерируем каталог ключей настроек ДО esbuild — `vexx-settings/main.ts`
+    // импортирует `settings-schema.generated.ts`, который бандлится в out/extension.cjs.
+    await generateSettingsSchema({ repoRoot });
     const built = [];
     for (const entry of readdirSync(builtinDir, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;

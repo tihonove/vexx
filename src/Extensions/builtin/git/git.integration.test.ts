@@ -10,7 +10,11 @@ import type { IExtensionRegistration } from "../../Host/IExtensionEntry.ts";
 import type { IFileDecorationsService } from "../../Host/IFileDecorationsService.ts";
 import type { IThemeColorResolver } from "../../Host/IThemeColorResolver.ts";
 import type { IGutterChangeDecoration } from "../../../Editor/Decorations/IGutterChangeDecoration.ts";
-import { createExtensionTestHarness, type IExtensionHarness } from "../../../TestUtils/ExtensionTestHarness.ts";
+import {
+    createExtensionTestHarness,
+    type IExtensionHarness,
+    registerAndActivate,
+} from "../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../TestUtils/timing.ts";
 
 const GIT_MAIN = fileURLToPath(new URL("./main.ts", import.meta.url));
@@ -108,7 +112,7 @@ describe("builtin git plugin (integration)", () => {
         makeRepo(harness.tmpDir);
         harness.group.openFile(path.join(harness.tmpDir, "tracked.txt"));
 
-        await harness.host.registerExtension(gitRegistration());
+        await registerAndActivate(harness.host, gitRegistration());
 
         // Tree: both changed files decorated (M for modified, U for untracked).
         const gotFiles = await waitFor(() => {
@@ -145,7 +149,7 @@ describe("builtin git plugin (integration)", () => {
         });
 
         // tmpDir is NOT a git repo — activate must resolve without throwing or decorating.
-        await harness.host.registerExtension(gitRegistration());
+        await registerAndActivate(harness.host, gitRegistration());
         await settle(300);
         expect(fileSpy.latest()).toBeUndefined();
         expect(editorSpy.latestFor("plain.txt")).toBeUndefined();
