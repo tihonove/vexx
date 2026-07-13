@@ -9,7 +9,8 @@ import { EditorViewState } from "./EditorViewState.ts";
 import { createRange } from "./IRange.ts";
 import { TextDocument } from "./TextDocument.ts";
 
-const BAR = "▎";
+const BAR = "┃"; // solid — added/deleted
+const BAR_DASHED = "┋"; // hatched — modified (VS Code dirty-diff style)
 const ADDED = packRgb(0x48, 0x7e, 0x02);
 const MODIFIED = packRgb(0x1b, 0x81, 0xa8);
 const DELETED = packRgb(0xf1, 0x4c, 0x4c);
@@ -27,52 +28,73 @@ function render(editor: EditorElement): TestApp {
     return app;
 }
 
+/** The change bar lives in the fold-margin column immediately left of the chevron. */
+function barColumn(editor: EditorElement): number {
+    return editor.foldControlColumn - 1;
+}
+
 describe("EditorElement — gutter change-bars", () => {
-    it("paints a coloured bar in the leftmost gutter column only on changed lines", () => {
+    it("paints a solid bar in the fold-margin column only on changed lines", () => {
         const editor = makeEditor("l0\nl1\nl2\nl3");
-        editor.gutterChangeDecorations = [{ range: createRange(1, 0, 2, 0), color: MODIFIED }];
+        editor.gutterChangeDecorations = [{ range: createRange(1, 0, 2, 0), color: ADDED }];
 
         const app = render(editor);
+        const x = barColumn(editor);
 
-        // Lines 1 and 2 carry the bar in column 0, tinted with the change colour.
+        // Lines 1 and 2 carry the bar, tinted with the change colour.
         for (const y of [1, 2]) {
-            expect(app.backend.getTextAt(new Point(0, y), 1)).toBe(BAR);
-            expect(app.backend.getFgAt(new Point(0, y))).toBe(MODIFIED);
+            expect(app.backend.getTextAt(new Point(x, y), 1)).toBe(BAR);
+            expect(app.backend.getFgAt(new Point(x, y))).toBe(ADDED);
         }
-        // The lines just outside the range keep a blank gutter (no bar).
-        expect(app.backend.getTextAt(new Point(0, 0), 1)).toBe(" ");
-        expect(app.backend.getTextAt(new Point(0, 3), 1)).toBe(" ");
+        // The lines just outside the range keep a blank fold margin (no bar).
+        expect(app.backend.getTextAt(new Point(x, 0), 1)).toBe(" ");
+        expect(app.backend.getTextAt(new Point(x, 3), 1)).toBe(" ");
     });
 
-    it("renders a deleted-hunk boundary as a single-line bar", () => {
+    it("paints a dashed bar for modified (dashed) decorations", () => {
+        const editor = makeEditor("l0\nl1\nl2\nl3");
+        editor.gutterChangeDecorations = [{ range: createRange(1, 0, 1, 0), color: MODIFIED, dashed: true }];
+
+        const app = render(editor);
+        const x = barColumn(editor);
+
+        expect(app.backend.getTextAt(new Point(x, 1), 1)).toBe(BAR_DASHED);
+        expect(app.backend.getFgAt(new Point(x, 1))).toBe(MODIFIED);
+    });
+
+    it("renders a deleted-hunk boundary as a single solid-bar line", () => {
         const editor = makeEditor("l0\nl1\nl2\nl3");
         editor.gutterChangeDecorations = [{ range: createRange(3, 0, 3, 0), color: DELETED }];
 
         const app = render(editor);
+        const x = barColumn(editor);
 
-        expect(app.backend.getTextAt(new Point(0, 3), 1)).toBe(BAR);
-        expect(app.backend.getFgAt(new Point(0, 3))).toBe(DELETED);
-        expect(app.backend.getTextAt(new Point(0, 2), 1)).toBe(" ");
+        expect(app.backend.getTextAt(new Point(x, 3), 1)).toBe(BAR);
+        expect(app.backend.getFgAt(new Point(x, 3))).toBe(DELETED);
+        expect(app.backend.getTextAt(new Point(x, 2), 1)).toBe(" ");
     });
 
-    it("keeps the line number intact next to the bar", () => {
+    it("keeps the line number and chevron column intact next to the bar", () => {
         const editor = makeEditor("l0\nl1\nl2\nl3");
         editor.gutterChangeDecorations = [{ range: createRange(0, 0, 0, 0), color: ADDED }];
 
         const app = render(editor);
+        const x = barColumn(editor);
 
-        // Bar at column 0, then the fold-margin padding, then the "1" line number
-        // (gutterWidth = 2 pad + 1 digit + 3 fold margin; digit sits at column 2).
-        expect(app.backend.getTextAt(new Point(0, 0), 1)).toBe(BAR);
+        // Line number "1" sits at the left of the gutter; the bar hugs the fold
+        // margin one column left of the (here-empty) chevron column.
         expect(app.backend.getTextAt(new Point(2, 0), 1)).toBe("1");
+        expect(app.backend.getTextAt(new Point(x, 0), 1)).toBe(BAR);
+        expect(app.backend.getTextAt(new Point(editor.foldControlColumn, 0), 1)).toBe(" ");
     });
 
     it("draws no bars by default (empty decorations)", () => {
         const editor = makeEditor("l0\nl1");
 
         const app = render(editor);
+        const x = barColumn(editor);
 
-        expect(app.backend.getTextAt(new Point(0, 0), 1)).toBe(" ");
-        expect(app.backend.getTextAt(new Point(0, 1), 1)).toBe(" ");
+        expect(app.backend.getTextAt(new Point(x, 0), 1)).toBe(" ");
+        expect(app.backend.getTextAt(new Point(x, 1), 1)).toBe(" ");
     });
 });

@@ -3,12 +3,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type WebSocket from "ws";
 
 import type { GridSnapshot } from "../../src/Rendering/GridSnapshot.ts";
-import type {
-    CaptureFrameResult,
-    FileDecorationEntry,
-    InspectorResponse,
-    InspectorSuccessResponse,
-} from "../../src/Inspector/protocol.ts";
+import type { CaptureFrameResult, InspectorResponse, InspectorSuccessResponse } from "../../src/Inspector/protocol.ts";
 
 import { getBinaryPath } from "./buildOnce.ts";
 import { connectWithRetry, freePort } from "./inspectorClient.ts";
@@ -96,18 +91,6 @@ export class HeadlessSession {
 
     public async resize(cols: number, rows: number): Promise<void> {
         await this.rpc("TUIDom.resize", { cols, rows });
-    }
-
-    /** Apply file-tree status decorations (name colour + letter badge) by absolute path. */
-    public async setFileDecorations(entries: FileDecorationEntry[]): Promise<void> {
-        await this.rpc("TUIDom.setFileDecorations", { entries });
-    }
-
-    /** Push gutter change-bar decorations to the active editor (test/demo seam). */
-    public async setGutterChangeDecorations(
-        decorations: { startLine: number; endLine: number; color: number }[],
-    ): Promise<void> {
-        await this.rpc("TUIDom.setGutterChangeDecorations", { decorations });
     }
 
     public async captureFrame(): Promise<GridSnapshot> {

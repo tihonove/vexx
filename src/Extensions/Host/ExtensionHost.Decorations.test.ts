@@ -93,6 +93,8 @@ describe("ExtensionHost — decorations bridge (subprocess)", () => {
                 { line: 1, color: MODIFIED_GUTTER },
                 { line: 3, color: MODIFIED_GUTTER },
             ]);
+            // Modified-гуттер цвет → бар рисуется пунктиром (VS Code dirty-diff).
+            expect(call!.decorations.every((d) => d.dashed === true)).toBe(true);
         } finally {
             await harness.dispose();
         }

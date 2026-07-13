@@ -160,6 +160,33 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         expect(h.latestEditor("/a.ts")!.decorations).toEqual([]);
     });
 
+    it("modified-гуттер помечается dashed; added/deleted — сплошные (обе ветки)", async () => {
+        const MOD = 0x1b81a8;
+        const ADD = 0x487e02;
+        const h = makeHost({
+            "editorGutter.modifiedBackground": MOD,
+            "editorGutter.addedBackground": ADD,
+        });
+        h.peer.notify("window.createTextEditorDecorationType", {
+            key: 1,
+            options: { overviewRulerColor: { $themeColor: "editorGutter.modifiedBackground" }, isWholeLine: true },
+        });
+        h.peer.notify("window.createTextEditorDecorationType", {
+            key: 2,
+            options: { overviewRulerColor: { $themeColor: "editorGutter.addedBackground" }, isWholeLine: true },
+        });
+        await flushMicrotasks(10);
+        h.peer.notify("editor.setDecorations", { key: 1, fileName: "/f.ts", ranges: [range(2)] });
+        h.peer.notify("editor.setDecorations", { key: 2, fileName: "/f.ts", ranges: [range(5)] });
+        await flushMicrotasks(10);
+
+        const decos = h.latestEditor("/f.ts")!.decorations;
+        const modified = decos.find((d) => d.color === MOD)!;
+        const added = decos.find((d) => d.color === ADD)!;
+        expect(modified.dashed).toBe(true);
+        expect(added.dashed).toBeUndefined();
+    });
+
     it("файловые декорации: badge/colorId по отдельности, не-объект, non-file и битый uri, снятие", async () => {
         const FILE = 0x112233;
         const h = makeHost({ "gitDecoration.modifiedResourceForeground": FILE });
