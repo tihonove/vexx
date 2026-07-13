@@ -24,6 +24,7 @@ import { loadState } from "./Configuration/StateService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
+import { EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./Extensions/ExtensionInstaller.ts";
@@ -303,10 +304,11 @@ async function runEditor(): Promise<void> {
     }
     appController.focusEditor();
 
-    // Активируем пользовательские расширения с `manifest.main` через extension host.
-    // ExtensionHost форкает subprocess и загружает модуль расширения там через
-    // `require(mainPath)`. Активация ПОСЛЕ openFile, чтобы activeTextEditor был
-    // доступен на момент `activate()`.
+    // Регистрируем пользовательские расширения с `manifest.main` в extension host.
+    // `registerExtension` — только bookkeeping (subprocess не поднимается);
+    // реальная активация — событийная (`activateByEvent` ниже) по `activationEvents`.
+    // Регистрируем ПОСЛЕ openFile, чтобы к моменту стартовых событий activeTextEditor
+    // был доступен на `activate()`.
     for (const ext of userExtensions) {
         if (typeof ext.manifest.main !== "string" || ext.manifest.main === "") continue;
         const dirName = ext.location.slice(USER_PREFIX.length).replace(/\/$/, "");
@@ -322,14 +324,15 @@ async function runEditor(): Promise<void> {
                 mainPath,
                 configDefaults: flattenConfigDefaults(ext.manifest.contributes?.configuration),
                 commandTitles: collectCommandTitles(ext.manifest.contributes?.commands),
+                activationEvents: ext.manifest.activationEvents,
             };
-            await extensionHost.registerExtension(reg);
+            extensionHost.registerExtension(reg);
         } catch (err) {
-            extensionsLogger.error(`${ext.id}: failed to activate`, err);
+            extensionsLogger.error(`${ext.id}: failed to register`, err);
         }
     }
 
-    // Активируем builtin code-расширения (например встроенный `git`): их
+    // Регистрируем builtin code-расширения (например встроенный `git`): их
     // скомпилированный `out/extension.cjs` читаем из `assets` (dev — FsAssetAccess,
     // SEA — BundleAssetAccess, единый вызов) и грузим строкой-исходником, которую
     // subprocess компилирует в памяти через Module._compile — без записи на диск.
@@ -351,11 +354,31 @@ async function runEditor(): Promise<void> {
                 filename: `/${virtualPath}`,
                 configDefaults: flattenConfigDefaults(ext.manifest.contributes?.configuration),
                 commandTitles: collectCommandTitles(ext.manifest.contributes?.commands),
+                activationEvents: ext.manifest.activationEvents,
             };
-            await extensionHost.registerExtension(reg);
+            extensionHost.registerExtension(reg);
         } catch (err) {
-            extensionsLogger.error(`${ext.id}: failed to activate (builtin)`, err);
+            extensionsLogger.error(`${ext.id}: failed to register (builtin)`, err);
         }
+    }
+
+    // Фаерим стартовые события активации. Порядок: eager `*` → `onLanguage:*` для
+    // языка уже открытого активного редактора → `onStartupFinished`. Последующие
+    // `onLanguage:*` (переключение/открытие вкладок) фаерит ExtensionHostModule
+    // через `EditorGroupController.onActiveEditorChanged`. Расширения без
+    // `activationEvents` трактуются как `["*"]` — активируются здесь же.
+    // Per-extension сбои activate() изолирует сам ExtensionHost (log + continue);
+    // здесь ловим host-level сбой (subprocess не поднялся) — редактор не должен
+    // падать из-за нерабочего extension host'а, просто без расширений.
+    try {
+        await extensionHost.activateByEvent("*");
+        const activeLanguageId = container.get(EditorGroupControllerDIToken).getActiveEditor()?.languageId;
+        if (activeLanguageId !== undefined) {
+            await extensionHost.activateByEvent(`onLanguage:${activeLanguageId}`);
+        }
+        await extensionHost.activateByEvent("onStartupFinished");
+    } catch (err) {
+        extensionsLogger.error("extension host activation failed", err);
     }
 }
 

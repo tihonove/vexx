@@ -133,8 +133,12 @@ export interface IExtensionHostOptions {
  * `runExtensionHostSubprocess()`.
  *
  * Lifecycle:
- * - `registerExtension(reg)` — лениво поднимает subprocess (если ещё не) и
- *   шлёт `host.activateExtension`. Бросает, если активация не удалась.
+ * - `registerExtension(reg)` — только запоминает регистрацию (`pending`) и
+ *   заголовки команд для палитры; subprocess НЕ поднимается. Возвращает
+ *   disposable для снятия расширения.
+ * - `activateByEvent(event)` — активирует ещё не активные `pending`-расширения,
+ *   чьи `activationEvents` содержат событие: лениво поднимает subprocess (если
+ *   ещё не) и шлёт `host.activateExtension`. Идемпотентно.
  * - `unregisterExtension(id)` — `host.deactivateExtension`.
  * - `dispose()` — `host.shutdown` (best effort) → ждём exit → SIGTERM →
  *   SIGKILL fallback.
@@ -167,6 +171,13 @@ export class ExtensionHost extends Disposable {
     /** Держимые файловые декорации: absPath → { badge?, colorId? }. Пере-резолвятся при смене темы. */
     private readonly fileDecorationState = new Map<string, { badge?: string; colorId?: string }>();
     private readonly extensions = new Set<string>();
+    /**
+     * Зарегистрированные, но ещё не активированные расширения (id → reg).
+     * Заполняется `registerExtension`, опустошается `activateByEvent` по мере
+     * наступления событий активации. Ленивость: пока reg здесь, subprocess под
+     * него не поднимается.
+     */
+    private readonly pending = new Map<string, IExtensionRegistration>();
     private subprocess: ChildProcess | null = null;
     private channel: IpcMessageChannel | null = null;
     private rpc: RpcEndpoint | null = null;
@@ -205,33 +216,79 @@ export class ExtensionHost extends Disposable {
         this.register(this.themeColorResolver.onDidChange(() => this.repushAllDecorations()));
     }
 
-    public async registerExtension(reg: IExtensionRegistration): Promise<IDisposable> {
+    /**
+     * Запоминает регистрацию расширения (bookkeeping) — subprocess НЕ поднимается.
+     * Реальная активация происходит лениво в {@link activateByEvent}, когда
+     * наступает событие из `reg.activationEvents`. Заголовки команд регистрируем
+     * сразу: команда расширения должна быть видна в палитре ещё до активации.
+     */
+    public registerExtension(reg: IExtensionRegistration): IDisposable {
         if (this.hostDisposed) throw new Error("ExtensionHost disposed");
-        if (this.extensions.has(reg.id)) {
+        if (this.extensions.has(reg.id) || this.pending.has(reg.id)) {
             throw new Error(`Extension "${reg.id}" already registered`);
         }
-        this.logger?.debug(`registerExtension(${reg.id})`, { mainPath: reg.mainPath });
+        // Инвариант загрузки: ровно один способ (source XOR mainPath). Проверяем
+        // синхронно на регистрации (fail-fast) — subprocess (`parseActivateParams`)
+        // держит ту же проверку как defense-in-depth.
+        if ((reg.source !== undefined) === (reg.mainPath !== undefined)) {
+            throw new Error(`Extension "${reg.id}": exactly one of "source" or "mainPath" must be set`);
+        }
+        this.logger?.debug(`registerExtension(${reg.id})`, {
+            mainPath: reg.mainPath,
+            activationEvents: normalizeActivationEvents(reg.activationEvents),
+        });
         // Заголовки команд из contributes.commands — нужны прокси-регистрации,
         // чтобы команда расширения показалась в палитре (см. commands.registerCommand).
         if (reg.commandTitles !== undefined) {
             for (const [id, title] of Object.entries(reg.commandTitles)) this.commandTitles.set(id, title);
         }
-        const rpc = await this.ensureSubprocess();
-        await rpc.request("host.activateExtension", {
-            id: reg.id,
-            mainPath: reg.mainPath,
-            source: reg.source,
-            filename: reg.filename,
-            configDefaults: reg.configDefaults,
-        });
-        this.extensions.add(reg.id);
-        this.logger?.info(`activated extension "${reg.id}"`);
+        this.pending.set(reg.id, reg);
         return {
             dispose: (): void => {
+                if (this.pending.delete(reg.id)) return; // ещё не активировано
                 if (!this.extensions.has(reg.id)) return;
                 void this.unregisterExtension(reg.id);
             },
         };
+    }
+
+    /**
+     * Активирует все ещё не активные `pending`-расширения, чьи `activationEvents`
+     * содержат `event`. Идемпотентно: уже активные пропускаются. `event === "*"`
+     * матчит расширения с `"*"` в списке событий (пустой список ⇒ трактуется как
+     * `["*"]`). Именно здесь лениво поднимается subprocess и уходит
+     * `host.activateExtension`.
+     */
+    public async activateByEvent(event: string): Promise<void> {
+        // Disposed-случай покрыт неявно: dispose() чистит `pending`, поэтому
+        // `toActivate` окажется пустым и метод выйдет до ensureSubprocess.
+        const toActivate: IExtensionRegistration[] = [];
+        for (const reg of this.pending.values()) {
+            if (normalizeActivationEvents(reg.activationEvents).includes(event)) toActivate.push(reg);
+        }
+        if (toActivate.length === 0) return;
+        // Спавним subprocess ОДИН раз до цикла: сбой хоста (spawn/ready) — это не
+        // проблема конкретного расширения, он пробрасывается наверх.
+        const rpc = await this.ensureSubprocess();
+        for (const reg of toActivate) {
+            // Второй guard на случай, если параллельный activateByEvent уже занялся им.
+            if (!this.pending.delete(reg.id)) continue;
+            // Per-extension изоляция: упавший `activate()` одного расширения не
+            // блокирует активацию остальных и не роняет bootstrap (как в VS Code).
+            try {
+                await rpc.request("host.activateExtension", {
+                    id: reg.id,
+                    mainPath: reg.mainPath,
+                    source: reg.source,
+                    filename: reg.filename,
+                    configDefaults: reg.configDefaults,
+                });
+                this.extensions.add(reg.id);
+                this.logger?.info(`activated extension "${reg.id}"`);
+            } catch (err) {
+                this.logger?.error(`failed to activate extension "${reg.id}"`, err);
+            }
+        }
     }
 
     public async unregisterExtension(id: string): Promise<void> {
@@ -337,6 +394,7 @@ export class ExtensionHost extends Disposable {
     public override dispose(): void {
         if (this.hostDisposed) return;
         this.hostDisposed = true;
+        this.pending.clear();
         this.extensions.clear();
         void this.shutdownSubprocess();
         super.dispose();
@@ -642,6 +700,15 @@ export class ExtensionHost extends Disposable {
         rpc?.dispose();
         channel?.dispose();
     }
+}
+
+/**
+ * Нормализует `activationEvents`: пусто/отсутствует ⇒ `["*"]` (eager). Так
+ * расширение без описанных событий сохраняет прежнее поведение — активируется
+ * на общем стартовом `activateByEvent("*")`.
+ */
+function normalizeActivationEvents(events: readonly string[] | undefined): readonly string[] {
+    return events !== undefined && events.length > 0 ? events : ["*"];
 }
 
 function sanitizeOptionsPatch(raw: unknown): IEditorOptionsPatch {

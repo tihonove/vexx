@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
+import {
+    createExtensionTestHarness,
+    extensionFixture,
+    registerAndActivate,
+} from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 
 describe("ExtensionHost — commands bridge (subprocess)", () => {
@@ -50,7 +54,8 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
             initialFile: { name: "main.ts", content: "x\n" },
         });
         try {
-            const disposable = await harness.host.registerExtension(
+            const disposable = await registerAndActivate(
+                harness.host,
                 extensionFixture("test.registersCommand", "registersCommand.cjs"),
             );
             await settle();
@@ -78,7 +83,7 @@ describe("ExtensionHost — commands bridge (subprocess)", () => {
                 return "host-ran";
             });
 
-            await harness.host.registerExtension(extensionFixture("test.callsHost", "callsHostCommand.cjs"));
+            await registerAndActivate(harness.host, extensionFixture("test.callsHost", "callsHostCommand.cjs"));
             await settle();
 
             expect(captured).toBe(7);

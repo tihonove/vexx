@@ -5,6 +5,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
 
+import { registerAndActivate } from "../../TestUtils/ExtensionTestHarness.ts";
+
 import { ExtensionHost } from "./ExtensionHost.ts";
 import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";
 import type {
@@ -59,7 +61,7 @@ class FakeChild extends EventEmitter {
 
     public send(message: IProtocolMessage): boolean {
         this.sent.push(message);
-        // Auto-reply to every host→child request so `registerExtension` (host.activateExtension)
+        // Auto-reply to every host→child request so `activateByEvent` (host.activateExtension)
         // resolves. `host.shutdown` is intentionally NOT answered: the shutdown path must fall
         // back to signals.
         if (message.kind === "req" && this.autoRespond && message.method !== "host.shutdown") {
@@ -138,7 +140,7 @@ describe("ExtensionHost — SIGKILL escalation (lines 242-247)", () => {
             spawnArgs: () => ({ command: "node", args: ["h.js"] }),
             shutdownTimeoutMs: 10,
         });
-        await host.registerExtension(makeReg("ext.a"));
+        await registerAndActivate(host, makeReg("ext.a"));
 
         host.dispose();
 
@@ -156,7 +158,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         });
         const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE); // no spawnArgs → defaultSpawnArgs
 
-        await host.registerExtension(makeReg("ext.a"));
+        await registerAndActivate(host, makeReg("ext.a"));
 
         const [command, args] = spawnMock.mock.calls[0] as [string, string[], unknown];
         expect(command).toBe(process.execPath);
@@ -174,7 +176,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         });
         const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE);
 
-        await host.registerExtension(makeReg("ext.a"));
+        await registerAndActivate(host, makeReg("ext.a"));
 
         const [command, args] = spawnMock.mock.calls[0] as [string, string[], unknown];
         expect(command).toBe(process.execPath);
@@ -192,7 +194,7 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         });
         const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE);
 
-        await host.registerExtension(makeReg("ext.a"));
+        await registerAndActivate(host, makeReg("ext.a"));
 
         // Falls through to the dev path (main script appended), proving the catch returned false.
         const [, args] = spawnMock.mock.calls[0] as [string, string[], unknown];
@@ -206,7 +208,8 @@ describe("ExtensionHost — defaultSpawnArgs / detectIsSea (lines 268-290)", () 
         process.argv[1] = ""; // simulate a missing main script
         try {
             const host = new ExtensionHost(new FakeEditorOptions(), NULL_COMMAND_SERVICE);
-            await expect(host.registerExtension(makeReg("ext.a"))).rejects.toThrow(/cannot determine main script/);
+            host.registerExtension(makeReg("ext.a"));
+            await expect(host.activateByEvent("*")).rejects.toThrow(/cannot determine main script/);
         } finally {
             process.argv[1] = original;
         }
