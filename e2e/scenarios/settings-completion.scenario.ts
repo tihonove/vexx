@@ -25,14 +25,14 @@ export default defineScenario({
         await editor.waitForText((t) => t.includes("files.enableTrash"));
         await editor.capture("editor");
 
-        // На пустой последней строке печатаем префикс ключа и явно дёргаем suggest.
+        // На пустой последней строке печатаем префикс ключа — suggest-попап
+        // открывается сам (auto-suggest), как в completion-сценарии.
         await editor.sendKey("ArrowDown");
         await editor.sendKey("ArrowDown");
         await editor.sendKey("ArrowDown");
         await editor.sendKey("e");
         await editor.sendKey("d");
         await editor.sendKey("i");
-        await editor.sendKey("Ctrl+Space");
 
         // `editor.tabSize` есть только у расширения → его появление доказывает,
         // что vexx-settings активировался и отдал completion.
