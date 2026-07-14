@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import type { ServiceAccessor } from "../../platform/instantiation/common/instantiation.ts";
@@ -27,7 +26,6 @@ import type { MenuBarItem } from "../../base/tui/ui/menu/menuBarElement.ts";
 import { MenuBarElement } from "../../base/tui/ui/menu/menuBarElement.ts";
 import type { OverlaySessionHandle } from "../../base/tui/ui/contextview/overlayLayer.ts";
 import type { MenuEntry, MenuItemEntry } from "../../base/tui/ui/menu/popupMenuElement.ts";
-import { PopupMenuElement } from "../../base/tui/ui/menu/popupMenuElement.ts";
 import { TreeViewElement } from "../../base/tui/ui/tree/treeViewElement.ts";
 import { WorkbenchLayoutElement } from "./workbenchLayoutElement.ts";
 
@@ -73,23 +71,8 @@ import {
     undoAction,
 } from "./parts/editor/editorEditActions.ts";
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./parts/editor/eolActions.ts";
-import {
-    fileOpenAction,
-    fileOpenFolderAction,
-    fileSaveAction,
-    fileSaveAsAction,
-    newUntitledFileAction,
-} from "../contrib/files/tui/fileActions.ts";
-import { fileDeleteAction } from "../contrib/files/tui/fileTreeActions.ts";
-import {
-    buildPasteEdits,
-    fileCopyAction,
-    fileCopyPathAction,
-    fileCopyRelativePathAction,
-    fileCutAction,
-    filePasteAction,
-} from "../contrib/files/tui/fileTreeClipboardActions.ts";
-import { explorerNewFileAction, explorerNewFolderAction } from "../contrib/files/tui/fileTreeCreateActions.ts";
+import { fileSaveAction, newUntitledFileAction } from "../contrib/files/tui/fileActions.ts";
+import { FileCommands } from "../contrib/files/tui/fileCommands.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "../../editor/contrib/find/tui/findActions.ts";
 import {
     acceptSelectedSuggestionAction,
@@ -187,7 +170,7 @@ import { StatusBarControllerDIToken } from "./parts/statusbar/statusBarControlle
 import { StatusBarController } from "./parts/statusbar/statusBarController.ts";
 import type { TerminalEnvironmentService } from "../terminalEnvironment/terminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "../terminalEnvironment/terminalEnvironmentService.ts";
-import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "../../platform/undoRedo/common/undoRedoService.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "../../platform/undoRedo/common/undoRedoService.ts";
 import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "../contrib/bulkEdit/node/workspaceEditService.ts";
 import { WorkbenchStateController } from "./workbenchStateController.ts";
 
@@ -337,6 +320,7 @@ export class AppController extends Disposable implements IController {
 
     private editorGroupController: EditorGroupController;
     private dialogs: DialogService;
+    private fileCommands: FileCommands;
     private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
     private fileClipboard: IFileClipboard;
@@ -491,7 +475,7 @@ export class AppController extends Disposable implements IController {
             this.editorGroupController.onActiveEditorChanged(() => {
                 this.findController.close();
                 this.completionController.close();
-                this.autoRevealActiveFile();
+                this.fileCommands.autoRevealActiveFile();
             }),
         );
         this.register(
@@ -576,30 +560,45 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileSaveAsAction,
-                run: () => {
-                    void this.runSaveAs();
+        // Файловые команды (проводник + save/open-флоу) — vs/workbench/contrib/files.
+        // Создаётся ПОСЛЕ builtinActions: FileCommands переопределяет обработчик
+        // workbench.action.files.save, зарегистрированный там плейсхолдером.
+        this.fileCommands = this.register(
+            new FileCommands({
+                commands,
+                keybindings,
+                accessor,
+                view: this.view,
+                fileTree: this.fileTreeController,
+                fileClipboard: this.fileClipboard,
+                workspaceEdits: this.workspaceEditService,
+                undoRedo: this.undoRedoService,
+                configuration: this.configurationService,
+                editorGroup: this.editorGroupController,
+                quickInput: this.quickInputController,
+                dialogs: this.dialogs,
+                themeService,
+                logger: logService.createLogger("workbench.files"),
+                clipboardToken: ClipboardDIToken,
+                openFile: (absolutePath) => {
+                    this.openFile(absolutePath);
+                },
+                setWorkspaceFolder: (dirPath) => {
+                    this.setWorkspaceFolder(dirPath);
+                },
+                onDidSave: () => {
+                    this.statusBarController.update();
+                },
+                onDidSaveAs: () => {
+                    this.updateContextKeys();
+                    this.statusBarController.update();
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileOpenAction,
-                run: () => {
-                    void this.runOpenFile();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileOpenFolderAction,
-                run: () => {
-                    void this.runOpenFolder();
-                },
-            }),
-        );
+        this.fileCommands.onRevealRequested = () => {
+            this.workbenchLayout.setLeftPanelVisible(true);
+            this.workbenchLayout.markDirty();
+        };
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...findAction,
@@ -620,19 +619,6 @@ export class AppController extends Disposable implements IController {
                 "Trigger Suggest",
             ),
         );
-        // fileSaveAction registers the ctrl+s keybinding + placeholder in the
-        // builtinActions loop; override just the command handler here (Map.set
-        // replaces it) so the keybinding is not registered twice. The override
-        // routes through a conflict-aware flow that can pop the overwrite dialog.
-        this.register(
-            commands.register(
-                "workbench.action.files.save",
-                () => {
-                    void this.runSave();
-                },
-                "File: Save",
-            ),
-        );
         // newUntitledFileAction registers the ctrl+n keybinding + placeholder in the
         // builtinActions loop; override just the command handler here (needs the group).
         this.register(
@@ -644,15 +630,6 @@ export class AppController extends Disposable implements IController {
                     this.statusBarController.update();
                 },
                 "File: New Untitled File",
-            ),
-        );
-        this.register(
-            commands.register(
-                "workbench.files.action.refreshFilesExplorer",
-                () => {
-                    void this.fileTreeController.refresh();
-                },
-                "File: Refresh Explorer",
             ),
         );
         this.register(
@@ -754,20 +731,6 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.files.action.showActiveFileInExplorer",
-                title: "File: Reveal Active File in Explorer",
-                run: () => {
-                    const filePath = this.editorGroupController.getActiveEditor()?.absoluteFilePath;
-                    if (!filePath) return;
-                    this.workbenchLayout.setLeftPanelVisible(true);
-                    this.workbenchLayout.markDirty();
-                    this.fileTreeController.focus();
-                    void this.fileTreeController.revealPath(filePath);
-                },
-            }),
-        );
         // Side bar width: palette-only, no default keybindings (matching VS Code's
         // increase/decreaseViewWidth). Users can bind them via keybindings.json.
         this.register(
@@ -828,112 +791,6 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileDeleteAction,
-                run: (_a, ...args) => {
-                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
-                    if (filePath) this.requestDeleteFile(filePath);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCopyAction,
-                run: () => {
-                    const paths = this.fileTreeController.getSelectedPaths();
-                    if (paths.length > 0) this.fileClipboard.write(paths, "copy");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCutAction,
-                run: () => {
-                    const paths = this.fileTreeController.getSelectedPaths();
-                    if (paths.length > 0) this.fileClipboard.write(paths, "cut");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...explorerNewFileAction,
-                run: (_a, ...args) => {
-                    void this.runCreate("file", args[0] as string | undefined);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...explorerNewFolderAction,
-                run: (_a, ...args) => {
-                    void this.runCreate("folder", args[0] as string | undefined);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...filePasteAction,
-                run: () => {
-                    const targetDir = this.fileTreeController.getPasteTargetDir();
-                    if (!targetDir) return;
-                    const entry = this.fileClipboard.read();
-                    if (!entry) return;
-                    this.workspaceEditService.applyFileEdits(
-                        buildPasteEdits(entry, targetDir),
-                        entry.mode === "cut" ? "Move" : "Paste",
-                    );
-                    if (entry.mode === "cut") this.fileClipboard.clear();
-                    void this.fileTreeController.refresh();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCopyPathAction,
-                run: (runAccessor, ...args) => {
-                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
-                    if (filePath) void runAccessor.get(ClipboardDIToken).writeText(filePath);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCopyRelativePathAction,
-                run: (runAccessor, ...args) => {
-                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
-                    if (!filePath) return;
-                    const root = this.fileTreeController.getRootPath();
-                    const relative = root ? path.relative(root, filePath) : filePath;
-                    void runAccessor.get(ClipboardDIToken).writeText(relative);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "fileOperations.undo",
-                title: "File: Undo",
-                keybinding: parseKeybinding("ctrl+z"),
-                when: "listFocus",
-                run: () => {
-                    this.undoWorkspace();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "fileOperations.redo",
-                title: "File: Redo",
-                keybindings: [parseKeybinding("ctrl+shift+z"), parseKeybinding("ctrl+y")],
-                when: "listFocus",
-                run: () => {
-                    void this.undoRedoService.redo(WORKSPACE_UNDO_CONTEXT).then((ok) => {
-                        if (ok) void this.fileTreeController.refresh();
-                    });
-                },
-            }),
-        );
-
         // Apply user keybindings AFTER all defaults so they take precedence (the registry
         // resolves the last-registered matching binding) and so `-command` unbinds can remove defaults.
         this.keybindingDispatcher.applyUserKeybindings(userKeybindings);
@@ -1021,7 +878,7 @@ export class AppController extends Disposable implements IController {
             this.statusBarController.update();
         };
         this.fileTreeController.onFileContextMenu = (node, screenX, screenY) => {
-            this.showFileTreeContextMenu(node.path, screenX, screenY);
+            this.fileCommands.showFileTreeContextMenu(node.path, screenX, screenY);
         };
         this.statusBarController.mount();
         this.diagnosticsController.mount();
@@ -1295,308 +1152,6 @@ export class AppController extends Disposable implements IController {
     }
 
     /**
-     * Автоматически подсвечивает активный файл в дереве при смене активного редактора,
-     * если включена настройка `explorer.autoReveal`. Фокус не отбирается у редактора —
-     * меняется только выделение/скролл дерева (в отличие от явной команды reveal).
-     */
-    private autoRevealActiveFile(): void {
-        const autoReveal = this.configurationService.get<boolean>("explorer.autoReveal", true) ?? true;
-        if (!autoReveal) return;
-        const filePath = this.editorGroupController.getActiveEditor()?.absoluteFilePath;
-        if (!filePath) return;
-        void this.fileTreeController.revealPath(filePath);
-    }
-
-    /** Удаление файла: подтверждение (всегда — если безвозвратно) + запись в историю отмены. */
-    private requestDeleteFile(filePath: string): void {
-        const willTrash = this.workspaceEditService.willMoveToTrash();
-        const confirmDelete = this.configurationService.get<boolean>("explorer.confirmDelete", true) ?? true;
-        const name = path.basename(filePath);
-
-        const doDelete = (): void => {
-            this.workspaceEditService.applyFileEdits([{ kind: "delete", from: filePath }], "Delete");
-            void this.fileTreeController.refresh();
-        };
-
-        // Безвозвратное удаление подтверждаем всегда (необратимо); удаление в корзину — по настройке.
-        if (willTrash && !confirmDelete) {
-            doDelete();
-            return;
-        }
-        this.showConfirmDialog(
-            willTrash
-                ? {
-                      title: "Delete",
-                      message: [`«${name}» будет перемещён в корзину.`, "Можно восстановить (Ctrl+Z или из корзины)."],
-                      confirmLabel: "Move to Trash",
-                      defaultButton: "confirm",
-                  }
-                : {
-                      title: "Delete",
-                      message: [
-                          "⚠ Системная корзина не найдена.",
-                          `«${name}» будет удалён безвозвратно — отменить нельзя.`,
-                      ],
-                      confirmLabel: "Delete Permanently",
-                      warning: true,
-                      defaultButton: "cancel",
-                  },
-            { onConfirm: doDelete },
-        );
-    }
-
-    /** Отмена последней файловой операции; для деструктивной — переспрашивает (confirmUndo). */
-    private undoWorkspace(): void {
-        const element = this.undoRedoService.peekUndo(WORKSPACE_UNDO_CONTEXT);
-        if (!element) return;
-        const confirmUndo = this.configurationService.get<boolean>("explorer.confirmUndo", true) ?? true;
-
-        const doUndo = (): void => {
-            void this.undoRedoService.undo(WORKSPACE_UNDO_CONTEXT).then((ok) => {
-                /* v8 ignore start -- defensive: peekUndo above gates on a non-empty stack, and undo() pops synchronously, so it cannot come back empty */
-                if (ok) void this.fileTreeController.refresh();
-                /* v8 ignore stop */
-            });
-        };
-
-        if (element.confirmBeforeUndo && confirmUndo) {
-            this.showConfirmDialog(
-                {
-                    title: "Undo",
-                    message: element.confirmBeforeUndo,
-                    confirmLabel: "Yes",
-                    cancelLabel: "No",
-                    defaultButton: "cancel",
-                },
-                { onConfirm: doUndo },
-            );
-        } else {
-            doUndo();
-        }
-    }
-
-    private showConfirmDialog(
-        options: ConfirmDialogOptions,
-        callbacks: { onConfirm: () => void; onCancel?: () => void },
-    ): void {
-        this.dialogs.showConfirmDialog(options, callbacks);
-    }
-
-    /**
-     * Explicit Save (Ctrl+S / menu). Saves the active editor; if the file was
-     * modified on disk by another process since it was opened, the write is
-     * blocked (to avoid clobbering the parallel changes) and an Overwrite/Cancel
-     * dialog is shown instead — mirroring VS Code's dirty-write protection.
-     */
-    private async runSave(): Promise<void> {
-        const editor = this.editorGroupController.getActiveEditor();
-        if (editor === null) return;
-        const outcome = await editor.save();
-        if (outcome === "no-file") {
-            // Безымянный буфер (Ctrl+N) — пути ещё нет, уводим в Save As.
-            await this.runSaveAs();
-            return;
-        }
-        if (outcome === "conflict") {
-            /* v8 ignore start -- defensive: editors opened via openFile() always have a file path, so fileName is never null */
-            const name = editor.fileName ?? "untitled";
-            /* v8 ignore stop */
-            this.showConfirmDialog(
-                {
-                    title: "Overwrite",
-                    message: [
-                        `The file "${name}" has been changed on disk.`,
-                        "Do you want to overwrite the version on disk with your changes?",
-                    ],
-                    confirmLabel: "Overwrite",
-                    cancelLabel: "Cancel",
-                    defaultButton: "cancel",
-                },
-                {
-                    onConfirm: () => {
-                        void editor.save({ overwrite: true }).then(() => {
-                            this.statusBarController.update();
-                        });
-                    },
-                },
-            );
-            return;
-        }
-        this.statusBarController.update();
-    }
-
-    /**
-     * Save As flow: prompt for a target path (InputBox), confirm overwrite if a
-     * different file already exists, then write via {@link EditorController.saveAs}.
-     */
-    private async runSaveAs(): Promise<void> {
-        const editor = this.editorGroupController.getActiveEditor();
-        if (!editor) return;
-
-        // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd/untitled.txt.
-        const seed = editor.absoluteFilePath ?? path.join(process.cwd(), editor.fileName ?? "untitled.txt");
-        const target = await this.quickInputController.input({
-            title: "Save As",
-            placeholder: "Enter path to save",
-            value: seed,
-            validateInput: (value) => {
-                const trimmed = value.trim();
-                if (trimmed === "") return "Please enter a file name";
-                const resolved = path.resolve(trimmed);
-                const dir = path.dirname(resolved);
-                if (!fs.existsSync(dir)) return `Directory does not exist: ${dir}`;
-                if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
-                    return "A folder with that name already exists";
-                }
-                return null;
-            },
-        });
-        if (target === undefined) return;
-
-        const resolved = path.resolve(target.trim());
-        const doSave = async (): Promise<void> => {
-            try {
-                await editor.saveAs(resolved);
-                this.updateContextKeys();
-                this.statusBarController.update();
-            } catch (error) {
-                /* v8 ignore start -- defensive: surfaces a filesystem write failure (permissions/disk); not reproducible in tests */
-                this.logger.error("Save As failed", { path: resolved, error: String(error) });
-                /* v8 ignore stop */
-            }
-        };
-
-        // Overwriting a *different* existing file → confirm first.
-        if (resolved !== editor.absoluteFilePath && fs.existsSync(resolved)) {
-            this.showConfirmDialog(
-                {
-                    title: "Save As",
-                    message: `${path.basename(resolved)} already exists. Overwrite?`,
-                    confirmLabel: "Overwrite",
-                    cancelLabel: "Cancel",
-                },
-                { onConfirm: () => void doSave() },
-            );
-            return;
-        }
-        void doSave();
-    }
-
-    /**
-     * New File / New Folder in the explorer (VS Code `explorer.newFile` /
-     * `explorer.newFolder`). Prompts for a name relative to the target directory
-     * (nested paths like `foo/bar.txt` are allowed and create intermediate dirs),
-     * creates it via the undoable {@link WorkspaceEditService}, refreshes and
-     * reveals it in the tree, and — for files — opens it in the editor.
-     */
-    private async runCreate(kind: "file" | "folder", explorerPath?: string): Promise<void> {
-        const targetDir = explorerPath
-            ? fs.statSync(explorerPath).isDirectory()
-                ? explorerPath
-                : path.dirname(explorerPath)
-            : this.fileTreeController.getPasteTargetDir();
-        if (!targetDir) return;
-
-        const name = await this.quickInputController.input({
-            title: kind === "file" ? "New File" : "New Folder",
-            placeholder: kind === "file" ? "Enter file name" : "Enter folder name",
-            value: "",
-            validateInput: (value) => {
-                const trimmed = value.trim();
-                if (trimmed === "") return "Please enter a name";
-                if (path.isAbsolute(trimmed)) return "Please enter a relative name";
-                const segments = trimmed.split(/[\\/]/);
-                if (segments.some((s) => s === "" || s === "." || s === "..")) return "Invalid name";
-                // Сегменты без `.`/`..`/пустых и не абсолютный путь → результат всегда
-                // строго внутри targetDir, отдельная проверка на выход не нужна.
-                const resolved = path.resolve(targetDir, trimmed);
-                if (fs.existsSync(resolved)) return "A file or folder with that name already exists";
-                return null;
-            },
-        });
-        if (name === undefined) return;
-
-        const resolved = path.resolve(targetDir, name.trim());
-        this.workspaceEditService.applyFileEdits(
-            [{ kind: "create", to: resolved, directory: kind === "folder" }],
-            kind === "file" ? "New File" : "New Folder",
-        );
-        await this.fileTreeController.refresh();
-        await this.fileTreeController.revealPath(resolved);
-        if (kind === "file") {
-            this.editorGroupController.openFile(resolved);
-            this.updateContextKeys();
-            this.statusBarController.update();
-        }
-    }
-
-    /**
-     * Expand a leading `~` to the home directory, then resolve the path against
-     * the current workspace root (falling back to the process cwd). Returns null
-     * for an empty input.
-     */
-    private resolveInputPath(value: string): string | null {
-        const trimmed = value.trim();
-        if (trimmed === "") return null;
-        const expanded =
-            trimmed === "~" || trimmed.startsWith("~/") ? path.join(os.homedir(), trimmed.slice(1)) : trimmed;
-        return path.resolve(this.workspaceRoot(), expanded);
-    }
-
-    /** Current workspace root, or the process cwd when no folder is open. */
-    private workspaceRoot(): string {
-        return this.fileTreeController.getRootPath() ?? process.cwd();
-    }
-
-    /**
-     * Open File flow: prompt for a path (InputBox), validate it points at an
-     * existing file, then open it in the active editor group. The prompt opens
-     * empty; a relative path is resolved against the workspace root.
-     */
-    private async runOpenFile(): Promise<void> {
-        const target = await this.quickInputController.input({
-            title: "Open File",
-            placeholder: "Enter a file path",
-            validateInput: (value) => {
-                const resolved = this.resolveInputPath(value);
-                // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
-                if (!resolved) return null;
-                if (!fs.existsSync(resolved)) return `File does not exist: ${resolved}`;
-                if (fs.statSync(resolved).isDirectory()) return "That is a folder, not a file";
-                return null;
-            },
-        });
-        if (target === undefined) return;
-        // An accepted-but-empty value resolves to null → nothing to open.
-        const resolved = this.resolveInputPath(target);
-        if (resolved) this.openFile(resolved);
-    }
-
-    /**
-     * Open Folder flow: prompt for a path (InputBox), validate it points at an
-     * existing directory, then swap the workspace root to it (file tree, side
-     * panel and the Quick Open search index all re-target the new folder).
-     */
-    private async runOpenFolder(): Promise<void> {
-        const target = await this.quickInputController.input({
-            title: "Open Folder",
-            placeholder: "Enter a folder path",
-            validateInput: (value) => {
-                const resolved = this.resolveInputPath(value);
-                // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
-                if (!resolved) return null;
-                if (!fs.existsSync(resolved)) return `Folder does not exist: ${resolved}`;
-                if (!fs.statSync(resolved).isDirectory()) return "That is a file, not a folder";
-                return null;
-            },
-        });
-        if (target === undefined) return;
-        // An accepted-but-empty value resolves to null → nothing to swap to.
-        const resolved = this.resolveInputPath(target);
-        if (resolved) this.setWorkspaceFolder(resolved);
-    }
-
-    /**
      * Color-theme picker (VS Code `workbench.action.selectTheme`). Lists every
      * registered theme, applies it live as you arrow through the list, and on
      * Enter persists the choice to `workbench.colorTheme`. Escape / dismiss
@@ -1644,131 +1199,6 @@ export class AppController extends Disposable implements IController {
 
     public showAboutDialog(): void {
         this.dialogs.showAboutDialog();
-    }
-
-    private showFileTreeContextMenu(filePath: string, screenX: number, screenY: number): void {
-        this.hideFileTreeContextMenu();
-
-        const entries: MenuEntry[] = [
-            {
-                label: "New File...",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("explorer.newFile", filePath);
-                },
-            },
-            {
-                label: "New Folder...",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("explorer.newFolder", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                label: "Copy",
-                shortcut: "Ctrl+C",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.copy");
-                },
-            },
-            {
-                label: "Cut",
-                shortcut: "Ctrl+X",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.cut");
-                },
-            },
-        ];
-        if (this.fileClipboard.read() !== null) {
-            entries.push({
-                label: "Paste",
-                shortcut: "Ctrl+V",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.paste");
-                },
-            });
-        }
-        entries.push(
-            { type: "separator" },
-            {
-                label: "Copy Path",
-                shortcut: "Shift+Alt+C",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.copyPath", filePath);
-                },
-            },
-            {
-                label: "Copy Relative Path",
-                shortcut: "Ctrl+K Ctrl+Shift+C",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.copyRelativePath", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                label: "Delete",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.deleteFile", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                // Re-read the directory contents from disk (external changes the
-                // live watcher might have missed — network shares, ignored paths).
-                label: "Refresh Explorer",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("workbench.files.action.refreshFilesExplorer");
-                },
-            },
-        );
-
-        const menu = new PopupMenuElement(entries);
-        menu.applyTheme(this.themeService.theme);
-        menu.tabIndex = 0;
-
-        let session: OverlaySessionHandle | null = null;
-        session = this.view.overlayLayer.openPopupSession(
-            menu,
-            { screenX, screenY },
-            {
-                visible: true,
-                restoreFocus: true,
-                focusOnOpen: true,
-                closeOnEscape: true,
-                pointerPolicy: "close-on-outside",
-                disposeOnClose: true,
-                onClose: () => {
-                    // Через hideFileTreeContextMenu поле уже занулено до close() — не трогаем
-                    // (там может быть уже открыта следующая сессия).
-                    if (this.fileTreeContextMenuSession === session) {
-                        this.fileTreeContextMenuSession = null;
-                    }
-                },
-            },
-        );
-
-        menu.onClose = () => {
-            session.close();
-        };
-
-        this.fileTreeContextMenuSession = session;
-    }
-
-    private hideFileTreeContextMenu(): void {
-        if (!this.fileTreeContextMenuSession) return;
-        const session = this.fileTreeContextMenuSession;
-        this.fileTreeContextMenuSession = null;
-        // Именно close(), не dispose(): close восстанавливает сохранённый фокус (restoreFocus),
-        // а disposeOnClose доведёт teardown до конца.
-        session.close();
     }
 
     private doQuit(accessor: ServiceAccessor): void {
