@@ -1,4 +1,10 @@
 import type { CommandAction } from "../../../../platform/commands/common/commandAction.ts";
+import { registerAction } from "../../../../platform/commands/common/commandAction.ts";
+import type { IDisposable } from "../../../../base/common/lifecycle.ts";
+import type { CommandRegistry } from "../../../../platform/commands/common/commands.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/instantiation.ts";
+import type { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
+import type { CompletionController } from "./completionController.ts";
 import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 
 // All run() bodies are placeholders — AppController installs the real handlers
@@ -79,3 +85,64 @@ export const hideSuggestWidgetAction: CommandAction = {
     },
     /* v8 ignore stop */
 };
+
+/**
+ * Регистрирует обработчики suggest-команд. Навигация/accept/dismiss попапа
+ * должны регистрироваться ПОСЛЕ builtinActions-цикла воркбенча, чтобы биндинги
+ * с when=suggestWidgetVisible выигрывали у editor cursorDown/indentLines, пока
+ * попап открыт; triggerSuggest переопределяет плейсхолдер из того же цикла
+ * (Map.set заменяет обработчик, не дублируя ctrl+space-биндинг).
+ */
+export function registerSuggestActions(deps: {
+    commands: CommandRegistry;
+    keybindings: KeybindingRegistry;
+    accessor: ServiceAccessor;
+    completionController: CompletionController;
+}): IDisposable[] {
+    const { commands, keybindings, accessor, completionController } = deps;
+    return [
+        commands.register(
+            "editor.action.triggerSuggest",
+            () => {
+                void completionController.trigger();
+            },
+            "Trigger Suggest",
+        ),
+        registerAction(commands, keybindings, accessor, {
+            ...selectNextSuggestionAction,
+            run: () => {
+                completionController.selectNext();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...selectPrevSuggestionAction,
+            run: () => {
+                completionController.selectPrevious();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...selectNextPageSuggestionAction,
+            run: () => {
+                completionController.selectNextPage();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...selectPrevPageSuggestionAction,
+            run: () => {
+                completionController.selectPreviousPage();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...acceptSelectedSuggestionAction,
+            run: () => {
+                completionController.acceptSelected();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...hideSuggestWidgetAction,
+            run: () => {
+                completionController.hide();
+            },
+        }),
+    ];
+}

@@ -1,4 +1,12 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+
 import type { CommandAction } from "../../../../platform/commands/common/commandAction.ts";
+import { registerAction } from "../../../../platform/commands/common/commandAction.ts";
+import type { IDisposable } from "../../../../base/common/lifecycle.ts";
+import type { CommandRegistry } from "../../../../platform/commands/common/commands.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/instantiation.ts";
+import type { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 import { parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 
 /**
@@ -33,3 +41,45 @@ export const openKeybindingsAction: CommandAction = {
     },
     /* v8 ignore stop */
 };
+
+/**
+ * Регистрирует обработчики Open Settings / Open Keyboard Shortcuts.
+ * Открывает user-config файл (settings.json / keybindings.json) вкладкой
+ * редактора. Путь резолвится на bootstrap'е; в тестах/демо он null — тогда
+ * команда no-op. На свежей установке файла может не быть: сеем скелет
+ * (каталог + минимальное содержимое), чтобы редактор открыл реальный файл
+ * и последующий Ctrl+S не упал с ENOENT — как в VS Code.
+ */
+export function registerPreferencesActions(deps: {
+    commands: CommandRegistry;
+    keybindings: KeybindingRegistry;
+    accessor: ServiceAccessor;
+    settingsResource: string | null;
+    keybindingsResource: string | null;
+    openFile(absolutePath: string): void;
+}): IDisposable[] {
+    const { commands, keybindings, accessor } = deps;
+    const openUserConfigFile = (resource: string | null, kind: "settings" | "keybindings"): void => {
+        if (resource === null) return;
+        if (!fs.existsSync(resource)) {
+            const skeleton = kind === "settings" ? "{}\n" : "[]\n";
+            fs.mkdirSync(path.dirname(resource), { recursive: true });
+            fs.writeFileSync(resource, skeleton, "utf-8");
+        }
+        deps.openFile(resource);
+    };
+    return [
+        registerAction(commands, keybindings, accessor, {
+            ...openSettingsAction,
+            run: () => {
+                openUserConfigFile(deps.settingsResource, "settings");
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...openKeybindingsAction,
+            run: () => {
+                openUserConfigFile(deps.keybindingsResource, "keybindings");
+            },
+        }),
+    ];
+}

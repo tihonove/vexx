@@ -70,15 +70,8 @@ import {
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./parts/editor/eolActions.ts";
 import { fileSaveAction, newUntitledFileAction } from "../contrib/files/tui/fileActions.ts";
 import { FileCommands } from "../contrib/files/tui/fileCommands.ts";
-import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "../../editor/contrib/find/tui/findActions.ts";
-import {
-    acceptSelectedSuggestionAction,
-    hideSuggestWidgetAction,
-    selectNextPageSuggestionAction,
-    selectNextSuggestionAction,
-    selectPrevPageSuggestionAction,
-    selectPrevSuggestionAction,
-} from "../../editor/contrib/suggest/tui/suggestActions.ts";
+import { registerFindActions } from "../../editor/contrib/find/tui/findActions.ts";
+import { registerSuggestActions } from "../../editor/contrib/suggest/tui/suggestActions.ts";
 import {
     foldAction,
     foldAllAction,
@@ -121,8 +114,8 @@ import {
     listFocusPageDownAction,
     listFocusPageUpAction,
 } from "./actions/listActions.ts";
-import { openKeybindingsAction, openSettingsAction } from "../contrib/preferences/tui/preferencesActions.ts";
-import { gotoLineAction, quickOpenAction, showCommandsAction } from "../contrib/quickaccess/tui/quickOpenActions.ts";
+import { registerPreferencesActions } from "../contrib/preferences/tui/preferencesActions.ts";
+import { registerQuickAccessActions } from "../contrib/quickaccess/tui/quickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./parts/editor/tabActions.ts";
 import { selectColorTheme, selectThemeAction } from "../contrib/themes/tui/themeActions.ts";
 import {
@@ -505,22 +498,14 @@ export class AppController extends Disposable implements IController {
                 "About",
             ),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...quickOpenAction,
-                run: () => {
-                    this.quickOpenController.open("files");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...showCommandsAction,
-                run: () => {
-                    this.quickOpenController.open("commands");
-                },
-            }),
-        );
+        for (const d of registerQuickAccessActions({
+            commands,
+            keybindings,
+            accessor,
+            quickOpen: this.quickOpenController,
+        })) {
+            this.register(d);
+        }
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...selectThemeAction,
@@ -534,30 +519,18 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...openSettingsAction,
-                run: () => {
-                    this.openUserConfigFile(this.settingsResource, "settings");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...openKeybindingsAction,
-                run: () => {
-                    this.openUserConfigFile(this.keybindingsResource, "keybindings");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...gotoLineAction,
-                run: () => {
-                    this.quickOpenController.open("line");
-                },
-            }),
-        );
+        for (const d of registerPreferencesActions({
+            commands,
+            keybindings,
+            accessor,
+            settingsResource: this.settingsResource,
+            keybindingsResource: this.keybindingsResource,
+            openFile: (absolutePath) => {
+                this.openFile(absolutePath);
+            },
+        })) {
+            this.register(d);
+        }
         // Файловые команды (проводник + save/open-флоу) — vs/workbench/contrib/files.
         // Создаётся ПОСЛЕ builtinActions: FileCommands переопределяет обработчик
         // workbench.action.files.save, зарегистрированный там плейсхолдером.
@@ -597,26 +570,6 @@ export class AppController extends Disposable implements IController {
             this.workbenchLayout.setLeftPanelVisible(true);
             this.workbenchLayout.markDirty();
         };
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...findAction,
-                run: () => {
-                    this.findController.open();
-                },
-            }),
-        );
-        // triggerSuggestAction registers the ctrl+space keybinding + placeholder in
-        // the builtinActions loop; override just the command handler here (Map.set
-        // replaces it) so the keybinding is not registered twice.
-        this.register(
-            commands.register(
-                "editor.action.triggerSuggest",
-                () => {
-                    void this.completionController.trigger();
-                },
-                "Trigger Suggest",
-            ),
-        );
         // newUntitledFileAction registers the ctrl+n keybinding + placeholder in the
         // builtinActions loop; override just the command handler here (needs the group).
         this.register(
@@ -630,81 +583,26 @@ export class AppController extends Disposable implements IController {
                 "File: New Untitled File",
             ),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...nextMatchAction,
-                run: () => {
-                    this.findController.next();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...previousMatchAction,
-                run: () => {
-                    this.findController.prev();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...closeFindWidgetAction,
-                run: () => {
-                    this.findController.close();
-                },
-            }),
-        );
-        // Suggest widget navigation/accept/dismiss. Registered here (after the
-        // builtinActions loop) so the suggestWidgetVisible bindings win over the
-        // editor's cursorDown/indentLines while the popup is open.
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectNextSuggestionAction,
-                run: () => {
-                    this.completionController.selectNext();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectPrevSuggestionAction,
-                run: () => {
-                    this.completionController.selectPrevious();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectNextPageSuggestionAction,
-                run: () => {
-                    this.completionController.selectNextPage();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectPrevPageSuggestionAction,
-                run: () => {
-                    this.completionController.selectPreviousPage();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...acceptSelectedSuggestionAction,
-                run: () => {
-                    this.completionController.acceptSelected();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...hideSuggestWidgetAction,
-                run: () => {
-                    this.completionController.hide();
-                },
-            }),
-        );
+        for (const d of registerFindActions({
+            commands,
+            keybindings,
+            accessor,
+            findController: this.findController,
+        })) {
+            this.register(d);
+        }
+        // Suggest widget navigation/accept/dismiss + triggerSuggest-override.
+        // Registered here (after the builtinActions loop) so the
+        // suggestWidgetVisible bindings win over the editor's
+        // cursorDown/indentLines while the popup is open.
+        for (const d of registerSuggestActions({
+            commands,
+            keybindings,
+            accessor,
+            completionController: this.completionController,
+        })) {
+            this.register(d);
+        }
         for (const d of registerLayoutActions({
             commands,
             keybindings,

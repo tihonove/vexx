@@ -1,4 +1,10 @@
 import type { CommandAction } from "../../../../platform/commands/common/commandAction.ts";
+import { registerAction } from "../../../../platform/commands/common/commandAction.ts";
+import type { IDisposable } from "../../../../base/common/lifecycle.ts";
+import type { CommandRegistry } from "../../../../platform/commands/common/commands.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/instantiation.ts";
+import type { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
+import type { FindController } from "./findController.ts";
 import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 
 // All four run() bodies are placeholders — AppController installs the real
@@ -54,3 +60,39 @@ export const closeFindWidgetAction: CommandAction = {
     },
     /* v8 ignore stop */
 };
+
+/** Регистрирует обработчики find-команд поверх деклараций выше. */
+export function registerFindActions(deps: {
+    commands: CommandRegistry;
+    keybindings: KeybindingRegistry;
+    accessor: ServiceAccessor;
+    findController: FindController;
+}): IDisposable[] {
+    const { commands, keybindings, accessor, findController } = deps;
+    return [
+        registerAction(commands, keybindings, accessor, {
+            ...findAction,
+            run: () => {
+                findController.open();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...nextMatchAction,
+            run: () => {
+                findController.next();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...previousMatchAction,
+            run: () => {
+                findController.prev();
+            },
+        }),
+        registerAction(commands, keybindings, accessor, {
+            ...closeFindWidgetAction,
+            run: () => {
+                findController.close();
+            },
+        }),
+    ];
+}
