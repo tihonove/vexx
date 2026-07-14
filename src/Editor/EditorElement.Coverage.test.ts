@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../vs/base/common/geometry.ts";
 import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import { TUIKeyboardEvent } from "../vs/base/tui/events/tuiKeyboardEvent.ts";
+import { TUIMouseEvent } from "../vs/base/tui/events/tuiMouseEvent.ts";
+import { PopupMenuElement } from "../vs/base/tui/ui/menu/popupMenuElement.ts";
 
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";

@@ -3,9 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
-import type { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
-import type { MenuEntry, MenuItemEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
-import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import type { MenuBarElement } from "../vs/base/tui/ui/menu/menuBarElement.ts";
+import type { MenuEntry, MenuItemEntry } from "../vs/base/tui/ui/menu/popupMenuElement.ts";
+import { PopupMenuElement } from "../vs/base/tui/ui/menu/popupMenuElement.ts";
 
 /** Open a top-level menu by mnemonic (Alt+<letter>) and return the live popup element. */
 function openMenu(testApp: TestApp, mnemonic: string): PopupMenuElement {

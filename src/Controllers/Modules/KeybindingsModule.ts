@@ -1,5 +1,5 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
-import { token } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
+import { token } from "../../vs/platform/instantiation/common/instantiation.ts";
 import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService.ts";
 
 /** User keybinding rules loaded from `keybindings.json` (empty when none / in tests). */

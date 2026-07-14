@@ -1,4 +1,4 @@
-import { Disposable } from "../../Common/Disposable.ts";
+import { Disposable } from "../../vs/base/common/lifecycle.ts";
 import type { IDocumentContentChange } from "../IDocumentContentChange.ts";
 import type { ILineTokens } from "../ILineTokens.ts";
 import { createLineTokens, createToken } from "../ILineTokens.ts";

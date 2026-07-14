@@ -1,5 +1,5 @@
-import type { Container } from "../Common/DiContainer.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
+import type { Container } from "../vs/platform/instantiation/common/instantiation.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 import type { IStateService } from "../Configuration/IStateService.ts";
 import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Container } from "../../Common/DiContainer.ts";
-import type { IClipboard } from "../../Common/IClipboard.ts";
-import { InputElement } from "../../TUIDom/Widgets/InputElement.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
+import type { IClipboard } from "../../vs/platform/clipboard/common/clipboardService.ts";
+import { InputElement } from "../../vs/base/tui/ui/inputbox/inputElement.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { registerAction } from "../CommandAction.ts";
 import { CommandRegistry } from "../CommandRegistry.ts";

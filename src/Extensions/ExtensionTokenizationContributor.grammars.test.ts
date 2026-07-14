@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
+import type { IAssetAccess } from "../vs/base/common/assets/assets.ts";
 import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
 import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";

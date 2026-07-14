@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { IDisposable } from "../../Common/Disposable.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
 
 import { ExtensionHost, type IExtensionHostConfigProvider } from "./ExtensionHost.ts";
 import type { ICommandService } from "./ICommandService.ts";

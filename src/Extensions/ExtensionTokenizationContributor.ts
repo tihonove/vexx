@@ -1,7 +1,7 @@
-import { joinVirtualPath } from "../Common/Assets/AssetBundleFormat.ts";
-import type { IAssetAccess } from "../Common/Assets/IAssetAccess.ts";
-import type { IDisposable } from "../Common/Disposable.ts";
-import type { ILogger } from "../Common/Logging/ILogger.ts";
+import { joinVirtualPath } from "../vs/base/common/assets/assetBundleFormat.ts";
+import type { IAssetAccess } from "../vs/base/common/assets/assets.ts";
+import type { IDisposable } from "../vs/base/common/lifecycle.ts";
+import type { ILogger } from "../vs/platform/log/common/logger.ts";
 import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";

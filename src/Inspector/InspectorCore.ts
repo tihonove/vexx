@@ -1,4 +1,4 @@
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
+import type { TUIElement } from "../vs/base/tui/tuiElement.ts";
 
 import type { InspectorDriver } from "./InspectorDriver.ts";
 import {

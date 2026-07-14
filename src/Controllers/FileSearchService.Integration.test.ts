@@ -60,7 +60,7 @@ describe("FileSearchService — integration against real project", () => {
         it("indexes files in nested directories", () => {
             const paths = relativePaths(service.search("", 2000));
             expect(paths.some((p) => p.includes("Controllers/"))).toBe(true);
-            expect(paths.some((p) => p.includes("TUIDom/"))).toBe(true);
+            expect(paths.some((p) => p.includes("vs/base/tui/"))).toBe(true);
             expect(paths.some((p) => p.includes("Editor/"))).toBe(true);
         });
 
@@ -91,9 +91,9 @@ describe("FileSearchService — integration against real project", () => {
             expect(paths.some((p) => p.includes("FileTreeController.ts"))).toBe(true);
         });
 
-        it('"dic" finds DiContainer.ts', () => {
-            const paths = relativePaths(service.search("dic"));
-            expect(paths.some((p) => p.includes("DiContainer.ts"))).toBe(true);
+        it('"inst" finds instantiation.ts', () => {
+            const paths = relativePaths(service.search("inst"));
+            expect(paths.some((p) => p.includes("instantiation.ts"))).toBe(true);
         });
 
         it('"cr" finds CommandRegistry.ts', () => {
@@ -101,14 +101,14 @@ describe("FileSearchService — integration against real project", () => {
             expect(paths.some((p) => p.includes("CommandRegistry.ts"))).toBe(true);
         });
 
-        it('"ie" finds InputElement.ts', () => {
+        it('"ie" finds inputElement.ts', () => {
             const paths = relativePaths(service.search("ie"));
-            expect(paths.some((p) => p.includes("InputElement.ts"))).toBe(true);
+            expect(paths.some((p) => p.includes("inputElement.ts"))).toBe(true);
         });
 
-        it('"fs" finds FuzzySearch.ts', () => {
+        it('"fs" finds fuzzySearch.ts', () => {
             const paths = relativePaths(service.search("fs"));
-            expect(paths.some((p) => p.includes("FuzzySearch.ts"))).toBe(true);
+            expect(paths.some((p) => p.includes("fuzzySearch.ts"))).toBe(true);
         });
 
         it('"ntb" finds nodeTerminalBackend.ts', () => {
@@ -146,7 +146,7 @@ describe("FileSearchService — integration against real project", () => {
         it("basename match ranks above path-only match", () => {
             // "sc" query: ScrollContainerElement (basename) vs path-only matches
             const results = service.search("sc");
-            const scrollIdx = results.findIndex((r) => r.entry.relativePath.includes("ScrollContainerElement.ts"));
+            const scrollIdx = results.findIndex((r) => r.entry.relativePath.includes("scrollContainerElement.ts"));
             if (scrollIdx !== -1) {
                 // ScrollContainerElement.ts should be in top 10
                 expect(scrollIdx).toBeLessThan(10);
@@ -175,9 +175,9 @@ describe("FileSearchService — integration against real project", () => {
         });
 
         it("searching by full filename with extension works", () => {
-            const results = service.search("DiContainer.ts");
+            const results = service.search("instantiation.ts");
             expect(results.length).toBeGreaterThan(0);
-            expect(results[0].entry.relativePath).toContain("DiContainer.ts");
+            expect(results[0].entry.relativePath).toContain("instantiation.ts");
         });
     });
 

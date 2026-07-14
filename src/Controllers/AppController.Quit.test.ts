@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ServiceAccessor } from "../Common/DiContainer.ts";
+import type { ServiceAccessor } from "../vs/platform/instantiation/common/instantiation.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
-import type { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
+import type { ConfirmSaveDialogElement } from "../vs/base/tui/ui/dialog/confirmSaveDialogElement.tsx";
 
 import type { AppController } from "./AppController.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";

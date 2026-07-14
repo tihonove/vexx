@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { Point, Size } from "../../base/common/geometry.ts";
 
 import { Grid } from "./grid.ts";
 import { TerminalRenderer } from "./terminalRenderer.ts";

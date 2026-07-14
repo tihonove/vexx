@@ -1,8 +1,8 @@
 import * as path from "node:path";
 
 import { NodeTerminalBackend } from "../vs/tui/backend/nodeTerminalBackend.ts";
-import { TuiApplication } from "../TUIDom/TuiApplication.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { TuiApplication } from "../vs/base/tui/tuiApplication.ts";
+import { BodyElement } from "../vs/base/tui/bodyElement.ts";
 
 import type { StoryContext, StoryFunction, StoryModule } from "./StoryTypes.ts";
 

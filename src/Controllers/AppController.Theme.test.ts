@@ -4,7 +4,7 @@ import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
+import type { StatusBarElement } from "../vs/workbench/tui/parts/statusbar/statusBarElement.ts";
 
 describe("AppController — theme application", () => {
     it("applies foreground/background colors the theme defines", () => {

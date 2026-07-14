@@ -1,9 +1,9 @@
-import { Disposable } from "../Common/Disposable.ts";
-import { Point } from "../Common/GeometryPromitives.ts";
-import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
-import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
-import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
+import { Disposable } from "../vs/base/common/lifecycle.ts";
+import { Point } from "../vs/base/common/geometry.ts";
+import type { BodyElement } from "../vs/base/tui/bodyElement.ts";
+import type { OverlaySessionHandle } from "../vs/base/tui/ui/contextview/overlayLayer.ts";
+import type { QuickPickItem } from "../vs/platform/quickinput/tui/quickPickElement.ts";
+import { QuickPickElement } from "../vs/platform/quickinput/tui/quickPickElement.ts";
 
 /**
  * Options for a single-line text prompt, mirroring VS Code's `showInputBox`.

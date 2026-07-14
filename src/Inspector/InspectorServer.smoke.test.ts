@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import WebSocket from "ws";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
+import { BodyElement } from "../vs/base/tui/bodyElement.ts";
+import { BoxElement } from "../vs/base/tui/ui/box/boxElement.ts";
 
 import { type AttachedInspector, attachInspector } from "./attachInspector.ts";
 import type { GetDocumentResult, InspectorResponse, InspectorSuccessResponse } from "./protocol.ts";

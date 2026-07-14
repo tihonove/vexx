@@ -1,4 +1,4 @@
-import type { IDisposable } from "../../Common/Disposable.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
 import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
 
 import type {

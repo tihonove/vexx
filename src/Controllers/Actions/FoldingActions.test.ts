@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Container } from "../../Common/DiContainer.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";

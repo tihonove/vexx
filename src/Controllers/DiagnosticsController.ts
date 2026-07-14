@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
-import { token } from "../Common/DiContainer.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
 import { getDefaultConfiguration } from "../Configuration/defaults.ts";
 import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";

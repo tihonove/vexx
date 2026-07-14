@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import type { PanelContainerElement } from "../TUIDom/Widgets/PanelContainerElement.ts";
+import type { PanelContainerElement } from "../vs/workbench/tui/parts/panel/panelContainerElement.ts";
 
 import { ContextKeyService, ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { PROBLEMS_VIEW_ID } from "./PanelController.ts";

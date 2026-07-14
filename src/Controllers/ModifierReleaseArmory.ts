@@ -1,4 +1,4 @@
-import { token } from "../Common/DiContainer.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
 
 export const ModifierReleaseArmoryDIToken = token<ModifierReleaseArmory>("ModifierReleaseArmory");
 

@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
 import type { ITextEdit } from "../Editor/ITextEdit.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { TUIMouseEvent } from "../vs/base/tui/events/tuiMouseEvent.ts";
+import { BodyElement } from "../vs/base/tui/bodyElement.ts";
 
 import { CompletionController } from "./CompletionController.ts";
 import type { EditorController } from "./EditorController.ts";

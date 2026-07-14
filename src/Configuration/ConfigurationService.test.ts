@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { resolveUserDataPaths } from "../Common/UserDataPaths.ts";
+import { resolveUserDataPaths } from "../vs/platform/environment/node/userDataPath.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { ConfigurationModel } from "./ConfigurationModel.ts";

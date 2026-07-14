@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";

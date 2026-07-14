@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { createInsertEdit } from "../Editor/ITextEdit.ts";
 import { MarkerSeverity } from "../Editor/Markers/IMarker.ts";

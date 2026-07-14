@@ -1,4 +1,4 @@
-import type { IDisposable } from "../../Common/Disposable.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
 import type { ThemeService } from "../../Theme/ThemeService.ts";
 import type { IWorkbenchColors } from "../../Theme/IWorkbenchColors.ts";
 

@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { IDisposable } from "../Common/Disposable.ts";
+import type { IDisposable } from "../vs/base/common/lifecycle.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";

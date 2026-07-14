@@ -1,14 +1,14 @@
 import * as path from "node:path";
 
-import { Disposable } from "../Common/Disposable.ts";
-import { token } from "../Common/DiContainer.ts";
+import { Disposable } from "../vs/base/common/lifecycle.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
-import { PaddingContainerElement } from "../TUIDom/Widgets/PaddingContainerElement.ts";
-import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
-import { TitledPanelElement } from "../TUIDom/Widgets/TitledPanelElement.ts";
-import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
+import type { TUIElement } from "../vs/base/tui/tuiElement.ts";
+import { PaddingContainerElement } from "../vs/base/tui/ui/layout/paddingContainerElement.ts";
+import { ScrollBarDecorator } from "../vs/base/tui/ui/scrollbar/scrollContainerElement.ts";
+import { TitledPanelElement } from "../vs/workbench/tui/parts/panel/titledPanelElement.ts";
+import { TreeViewElement } from "../vs/base/tui/ui/tree/treeViewElement.ts";
 
 import { FileTreeDataProvider, type FileTreeNode } from "./FileTreeDataProvider.ts";
 import type { IController } from "./IController.ts";

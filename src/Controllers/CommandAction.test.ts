@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Container, token } from "../Common/DiContainer.ts";
+import { Container, token } from "../vs/platform/instantiation/common/instantiation.ts";
 
 import type { CommandAction } from "./CommandAction.ts";
 import { combineWhen, registerAction } from "./CommandAction.ts";

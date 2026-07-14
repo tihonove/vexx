@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { IRawGrammar, Registry } from "vscode-textmate";
 import vsctm from "vscode-textmate";
 
-import { createDevAssetAccess } from "../../../../Common/Assets/createDefaultAssetAccess.ts";
+import { createDevAssetAccess } from "../../../../vs/base/node/assets/createDefaultAssetAccess.ts";
 import { getOnigLib } from "../OnigLib.ts";
 
 /**

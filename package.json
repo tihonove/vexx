@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
-    "./jsx-runtime": "./src/TUIDom/JSX/jsx-runtime.ts",
-    "./jsx-dev-runtime": "./src/TUIDom/JSX/jsx-runtime.ts"
+    "./jsx-runtime": "./src/vs/base/tui/jsx/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/vs/base/tui/jsx/jsx-runtime.ts"
   },
   "engines": {
     "node": ">=24.0.0"

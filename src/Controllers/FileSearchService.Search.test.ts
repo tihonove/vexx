@@ -2,7 +2,7 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { fuzzyMatchBestLower } from "../Common/FuzzySearch.ts";
+import { fuzzyMatchBestLower } from "../vs/base/common/fuzzySearch.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { FileSearchService } from "./FileSearchService.ts";
@@ -64,7 +64,7 @@ describe("FileSearchService — search()", () => {
         const FILES = [
             "src/Controllers/AppController.ts",
             "src/Controllers/FileTreeController.ts",
-            "src/Common/DiContainer.ts",
+            "src/vs/platform/instantiation/common/instantiation.ts",
             "package.json",
         ];
 
@@ -151,7 +151,7 @@ describe("FileSearchService — search()", () => {
 
     describe("ranking — path search", () => {
         it("finds files when query contains path separator segments", async () => {
-            ({ service, ws } = await makeService(["src/Controllers/AppController.ts", "src/Common/AppConfig.ts"]));
+            ({ service, ws } = await makeService(["src/Controllers/AppController.ts", "src/vs/base/common/AppConfig.ts"]));
             // "ctrl" — 'c'ontrollers matches 'c', 'trl' consecutive
             const results = service.search("ctrl");
             const paths = results.map((r) => r.entry.relativePath);
@@ -207,8 +207,8 @@ describe("FileSearchService — search()", () => {
             "src/Controllers/AppController.ts",
             "src/Controllers/FileTreeController.ts",
             "src/Controllers/FileSearchService.ts",
-            "src/Common/DiContainer.ts",
-            "src/Common/FuzzySearch.ts",
+            "src/vs/platform/instantiation/common/instantiation.ts",
+            "src/vs/base/common/fuzzySearch.ts",
             "package.json",
             "README.md",
             "a/b/c/d/e/DeepFile.ts",

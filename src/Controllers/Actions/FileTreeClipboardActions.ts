@@ -1,4 +1,4 @@
-import type { FileClipboardEntry } from "../../Common/IFileClipboard.ts";
+import type { FileClipboardEntry } from "../../vs/platform/clipboard/common/fileClipboard.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
 import type { ResourceFileEdit } from "../Workspace/WorkspaceEdit.ts";

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
+import { TUIMouseEvent } from "../vs/base/tui/events/tuiMouseEvent.ts";
+import { BodyElement } from "../vs/base/tui/bodyElement.ts";
+import type { QuickPickItem } from "../vs/platform/quickinput/tui/quickPickElement.ts";
 
 import { QuickInputController } from "./QuickInputController.ts";
 

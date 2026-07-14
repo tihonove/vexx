@@ -1,5 +1,5 @@
-import { DisplayLine } from "../Common/DisplayLine.ts";
-import type { IDisposable } from "../Common/Disposable.ts";
+import { DisplayLine } from "../vs/base/common/displayLine.ts";
+import type { IDisposable } from "../vs/base/common/lifecycle.ts";
 
 import { computeNewLinePlan } from "./AutoIndent.ts";
 import type { IFoldingRegion } from "./IFoldingRegion.ts";

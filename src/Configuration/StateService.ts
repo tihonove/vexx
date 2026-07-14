@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { ILogger } from "../Common/Logging/ILogger.ts";
-import { resolveWorkspaceStatePath, type IUserDataPaths } from "../Common/UserDataPaths.ts";
+import type { ILogger } from "../vs/platform/log/common/logger.ts";
+import { resolveWorkspaceStatePath, type IUserDataPaths } from "../vs/platform/environment/node/userDataPath.ts";
 
 import type { IStateDescriptor, IStateService, StateScope } from "./IStateService.ts";
 

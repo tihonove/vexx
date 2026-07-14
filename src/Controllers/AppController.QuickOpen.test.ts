@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../TestUtils/timing.ts";
-import type { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
-import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
+import type { EditorTabStripElement } from "../vs/workbench/tui/parts/editor/editorTabStripElement.ts";
+import type { QuickPickElement } from "../vs/platform/quickinput/tui/quickPickElement.ts";
 
 import type { EditorGroupController } from "./EditorGroupController.ts";
 

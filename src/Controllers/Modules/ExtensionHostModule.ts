@@ -1,8 +1,8 @@
 import * as path from "node:path";
 
-import type { ContainerModule } from "../../Common/DiContainer.ts";
-import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
-import { LogLevel } from "../../Common/Logging/LogLevel.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
+import { ILogServiceDIToken } from "../../vs/platform/log/common/logDIToken.ts";
+import { LogLevel } from "../../vs/platform/log/common/logLevel.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 import { CommandServiceAdapter } from "../../Extensions/Host/CommandServiceAdapter.ts";

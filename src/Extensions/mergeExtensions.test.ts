@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ILogger } from "../Common/Logging/ILogger.ts";
+import type { ILogger } from "../vs/platform/log/common/logger.ts";
 
 import type { IExtension } from "./IExtension.ts";
 import { mergeExtensions } from "./mergeExtensions.ts";

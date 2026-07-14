@@ -1,5 +1,5 @@
 import type { ITerminalBackend } from "../backend/terminalBackend.ts";
-import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { Point, Size } from "../../base/common/geometry.ts";
 
 import { DEFAULT_COLOR } from "./colorUtils.ts";
 import type { CellPatch } from "./grid.ts";

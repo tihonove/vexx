@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Container } from "../../Common/DiContainer.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { createCursorSelection, createSelection } from "../../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";

@@ -3,7 +3,7 @@ import type * as nodeModule from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { IDisposable } from "../../Common/Disposable.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";
 import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";

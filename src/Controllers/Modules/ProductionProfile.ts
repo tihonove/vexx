@@ -1,7 +1,7 @@
 import type { ITerminalBackend } from "../../vs/tui/backend/terminalBackend.ts";
-import { Container } from "../../Common/DiContainer.ts";
-import type { IClipboard } from "../../Common/IClipboard.ts";
-import type { ILogService } from "../../Common/Logging/ILogService.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
+import type { IClipboard } from "../../vs/platform/clipboard/common/clipboardService.ts";
+import type { ILogService } from "../../vs/platform/log/common/log.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import type { IStateService } from "../../Configuration/IStateService.ts";
 import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService.ts";
@@ -10,7 +10,7 @@ import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleR
 import type { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
 import type { ThemeRegistry } from "../../Theme/ThemeRegistry.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
+import type { TuiApplication } from "../../vs/base/tui/tuiApplication.ts";
 import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
 
 import { backendModule } from "./BackendModule.ts";

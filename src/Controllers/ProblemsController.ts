@@ -1,12 +1,12 @@
-import { token } from "../Common/DiContainer.ts";
-import { Disposable } from "../Common/Disposable.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import { Disposable } from "../vs/base/common/lifecycle.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
-import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
-import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
+import type { TUIElement } from "../vs/base/tui/tuiElement.ts";
+import { ScrollBarDecorator } from "../vs/base/tui/ui/scrollbar/scrollContainerElement.ts";
+import { TreeViewElement } from "../vs/base/tui/ui/tree/treeViewElement.ts";
 
 import { MarkerServiceDIToken } from "./CoreTokens.ts";
 import { type ProblemNode, ProblemsTreeDataProvider } from "./Diagnostics/ProblemsTreeDataProvider.ts";

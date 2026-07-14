@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../vs/base/common/geometry.ts";
 import { createRange } from "../Editor/IRange.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";

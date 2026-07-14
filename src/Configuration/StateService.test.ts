@@ -3,8 +3,8 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ILogger } from "../Common/Logging/ILogger.ts";
-import { resolveUserDataPaths, resolveWorkspaceStatePath, type IUserDataPaths } from "../Common/UserDataPaths.ts";
+import type { ILogger } from "../vs/platform/log/common/logger.ts";
+import { resolveUserDataPaths, resolveWorkspaceStatePath, type IUserDataPaths } from "../vs/platform/environment/node/userDataPath.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import type { IStateDescriptor } from "./IStateService.ts";

@@ -5,8 +5,8 @@
  * Press Ctrl+C to exit.
  */
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
-import { reject } from "../Common/TypingUtils.ts";
+import { Point, Size } from "../vs/base/common/geometry.ts";
+import { reject } from "../vs/base/common/types.ts";
 import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 import { Grid } from "../vs/tui/rendering/grid.ts";
 import { StyleFlags } from "../vs/tui/rendering/styleFlags.ts";

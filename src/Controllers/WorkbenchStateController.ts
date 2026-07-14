@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 
-import { Disposable } from "../Common/Disposable.ts";
+import { Disposable } from "../vs/base/common/lifecycle.ts";
 import type { IStateService } from "../Configuration/IStateService.ts";
-import type { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
+import type { WorkbenchLayoutElement } from "../vs/workbench/tui/workbenchLayoutElement.ts";
 
 import type { EditorGroupController } from "./EditorGroupController.ts";
 import {

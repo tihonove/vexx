@@ -1,4 +1,4 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { MarkerService } from "../../Editor/Markers/MarkerService.ts";
 import { KeybindingsResourceDIToken, MarkerServiceDIToken, SettingsResourceDIToken } from "../CoreTokens.ts";
 

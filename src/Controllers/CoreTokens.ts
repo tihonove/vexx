@@ -1,13 +1,13 @@
 import type { ITerminalBackend } from "../vs/tui/backend/terminalBackend.ts";
-import type { ServiceAccessor } from "../Common/DiContainer.ts";
-import { token } from "../Common/DiContainer.ts";
-import type { IClipboard } from "../Common/IClipboard.ts";
-import type { IFileClipboard } from "../Common/IFileClipboard.ts";
+import type { ServiceAccessor } from "../vs/platform/instantiation/common/instantiation.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import type { IClipboard } from "../vs/platform/clipboard/common/clipboardService.ts";
+import type { IFileClipboard } from "../vs/platform/clipboard/common/fileClipboard.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import type { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import type { TuiApplication } from "../vs/base/tui/tuiApplication.ts";
 
 export const ServiceAccessorDIToken = token<ServiceAccessor>("ServiceAccessor");
 export const TuiApplicationDIToken = token<TuiApplication>("TuiApplication");

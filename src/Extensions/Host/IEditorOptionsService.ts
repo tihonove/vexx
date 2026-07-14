@@ -24,7 +24,7 @@ export interface IActiveEditorMeta {
     readonly isDirty: boolean;
 }
 
-import type { IDisposable } from "../../Common/Disposable.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
 
 /**
  * Тонкий «port» поверх {@link EditorGroupController}, нужный

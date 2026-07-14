@@ -1,4 +1,4 @@
-import type { IDisposable } from "../../Common/Disposable.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
 import type { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
 
 import type { ICommandService } from "./ICommandService.ts";

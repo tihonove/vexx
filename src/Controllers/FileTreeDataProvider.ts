@@ -3,9 +3,9 @@ import * as path from "node:path";
 
 import chokidar, { type FSWatcher } from "chokidar";
 
-import { Disposable } from "../Common/Disposable.ts";
-import { getFileIcon } from "../Common/FileIcons.ts";
-import type { ITreeDataProvider, ITreeItem } from "../TUIDom/Widgets/ITreeDataProvider.ts";
+import { Disposable } from "../vs/base/common/lifecycle.ts";
+import { getFileIcon } from "../vs/workbench/tui/fileIcons.ts";
+import type { ITreeDataProvider, ITreeItem } from "../vs/base/tui/ui/tree/tree.ts";
 
 const EXCLUDED_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);
 

@@ -1,4 +1,4 @@
-import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { Point, Size } from "../../base/common/geometry.ts";
 
 import { Cell } from "./cell.ts";
 import { DEFAULT_COLOR } from "./colorUtils.ts";

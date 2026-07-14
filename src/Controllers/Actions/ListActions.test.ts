@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Container } from "../../Common/DiContainer.ts";
-import { Size } from "../../Common/GeometryPromitives.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
+import { Size } from "../../vs/base/common/geometry.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
-import type { ITreeDataProvider, ITreeItem } from "../../TUIDom/Widgets/ITreeDataProvider.ts";
-import { TreeViewElement } from "../../TUIDom/Widgets/TreeViewElement.ts";
+import type { ITreeDataProvider, ITreeItem } from "../../vs/base/tui/ui/tree/tree.ts";
+import { TreeViewElement } from "../../vs/base/tui/ui/tree/treeViewElement.ts";
 import { registerAction } from "../CommandAction.ts";
 import { CommandRegistry } from "../CommandRegistry.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";

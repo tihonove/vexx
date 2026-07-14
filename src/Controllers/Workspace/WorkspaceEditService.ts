@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { token } from "../../Common/DiContainer.ts";
+import { token } from "../../vs/platform/instantiation/common/instantiation.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { copyInto, moveInto, moveToPath, resolveNonConflictingDest } from "../Actions/fileClipboardFs.ts";

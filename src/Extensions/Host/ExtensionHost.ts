@@ -1,9 +1,9 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 
-import { token } from "../../Common/DiContainer.ts";
-import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
-import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import { token } from "../../vs/platform/instantiation/common/instantiation.ts";
+import { Disposable, type IDisposable } from "../../vs/base/common/lifecycle.ts";
+import type { ILogger } from "../../vs/platform/log/common/logger.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import type { ICompletionRequest, ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
 import type { IRange } from "../../Editor/IRange.ts";

@@ -1,9 +1,9 @@
-import { token } from "../Common/DiContainer.ts";
-import { Disposable } from "../Common/Disposable.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import { Disposable } from "../vs/base/common/lifecycle.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { PanelContainerElement } from "../TUIDom/Widgets/PanelContainerElement.ts";
+import { PanelContainerElement } from "../vs/workbench/tui/parts/panel/panelContainerElement.ts";
 
 import type { IController } from "./IController.ts";
 

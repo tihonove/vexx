@@ -1,5 +1,5 @@
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
-import { TextLabelElement } from "../TUIDom/Widgets/TextLabelElement.ts";
+import type { TUIElement } from "../vs/base/tui/tuiElement.ts";
+import { TextLabelElement } from "../vs/base/tui/ui/text/textLabelElement.ts";
 
 import type { NodeSnapshot } from "./protocol.ts";
 

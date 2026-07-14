@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../vs/base/common/geometry.ts";
 import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";

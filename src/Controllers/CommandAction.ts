@@ -1,5 +1,5 @@
-import type { ServiceAccessor } from "../Common/DiContainer.ts";
-import type { IDisposable } from "../Common/Disposable.ts";
+import type { ServiceAccessor } from "../vs/platform/instantiation/common/instantiation.ts";
+import type { IDisposable } from "../vs/base/common/lifecycle.ts";
 
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import type { Keybinding, KeybindingChord, KeybindingRegistry } from "./KeybindingRegistry.ts";

@@ -3,9 +3,9 @@ import * as path from "node:path";
 
 import { applyEdits, modify, parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
 
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import type { ILogger } from "../Common/Logging/ILogger.ts";
-import type { IUserDataPaths } from "../Common/UserDataPaths.ts";
+import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
+import type { ILogger } from "../vs/platform/log/common/logger.ts";
+import type { IUserDataPaths } from "../vs/platform/environment/node/userDataPath.ts";
 
 import { ConfigurationModel } from "./ConfigurationModel.ts";
 import { getDefaultConfiguration } from "./defaults.ts";

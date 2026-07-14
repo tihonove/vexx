@@ -1,5 +1,5 @@
-import type { IDisposable } from "../../Common/Disposable.ts";
-import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
+import type { ILogger } from "../../vs/platform/log/common/logger.ts";
 
 import type { IMessageChannel } from "./IMessageChannel.ts";
 

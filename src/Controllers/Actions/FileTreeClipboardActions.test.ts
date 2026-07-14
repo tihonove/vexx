@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { FileClipboardEntry } from "../../Common/IFileClipboard.ts";
+import type { FileClipboardEntry } from "../../vs/platform/clipboard/common/fileClipboard.ts";
 
 import { buildPasteEdits } from "./FileTreeClipboardActions.ts";
 

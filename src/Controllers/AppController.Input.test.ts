@@ -4,7 +4,7 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { typeText } from "../TestUtils/domQueries.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../TestUtils/timing.ts";
-import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
+import { InputElement } from "../vs/base/tui/ui/inputbox/inputElement.ts";
 
 /**
  * End-to-end coverage for the text-input editing commands (selection, clipboard, undo/redo)

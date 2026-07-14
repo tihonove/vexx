@@ -1,4 +1,4 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";

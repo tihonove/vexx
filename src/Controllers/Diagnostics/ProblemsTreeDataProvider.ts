@@ -2,7 +2,7 @@ import * as path from "node:path";
 
 import type { IMarker } from "../../Editor/Markers/IMarker.ts";
 import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
-import type { ITreeDataProvider, ITreeItem } from "../../TUIDom/Widgets/ITreeDataProvider.ts";
+import type { ITreeDataProvider, ITreeItem } from "../../vs/base/tui/ui/tree/tree.ts";
 
 /**
  * A node in the Problems tree: a lightweight file grouping (data looked up by

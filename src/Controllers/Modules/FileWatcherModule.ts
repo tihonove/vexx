@@ -1,4 +1,4 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { ChokidarFileWatcher } from "../ChokidarFileWatcher.ts";
 import { IFileWatcherDIToken, NULL_FILE_WATCHER } from "../IFileWatcher.ts";
 

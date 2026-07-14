@@ -1,8 +1,8 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { token } from "../Common/DiContainer.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
@@ -26,9 +26,9 @@ import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRe
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { OverlayAnchorPosition } from "../TUIDom/Widgets/OverlayLayer.ts";
-import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
-import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
+import type { OverlayAnchorPosition } from "../vs/base/tui/ui/contextview/overlayLayer.ts";
+import type { MenuEntry } from "../vs/base/tui/ui/menu/popupMenuElement.ts";
+import { ScrollBarDecorator } from "../vs/base/tui/ui/scrollbar/scrollContainerElement.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";

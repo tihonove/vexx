@@ -1,7 +1,7 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
-import type { ILogService } from "../../Common/Logging/ILogService.ts";
-import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
-import { NULL_LOG_SERVICE } from "../../Common/Logging/NullLogService.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
+import type { ILogService } from "../../vs/platform/log/common/log.ts";
+import { ILogServiceDIToken } from "../../vs/platform/log/common/logDIToken.ts";
+import { NULL_LOG_SERVICE } from "../../vs/platform/log/common/nullLogService.ts";
 
 export interface LoggingModuleContext {
     logService: ILogService;

@@ -3,12 +3,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point } from "../Common/GeometryPromitives.ts";
-import type { IClipboard } from "../Common/IClipboard.ts";
+import { Point } from "../vs/base/common/geometry.ts";
+import type { IClipboard } from "../vs/platform/clipboard/common/clipboardService.ts";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import type { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
+import { TUIMouseEvent } from "../vs/base/tui/events/tuiMouseEvent.ts";
+import type { TreeViewElement } from "../vs/base/tui/ui/tree/treeViewElement.ts";
 
 import { ClipboardDIToken } from "./CoreTokens.ts";
 

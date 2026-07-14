@@ -1,4 +1,4 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { AppController, AppControllerDIToken } from "../AppController.ts";
 import { DiagnosticsController, DiagnosticsControllerDIToken } from "../DiagnosticsController.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";

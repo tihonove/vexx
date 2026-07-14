@@ -1,6 +1,6 @@
-import { token } from "../Common/DiContainer.ts";
-import type { IClipboard } from "../Common/IClipboard.ts";
-import type { InputElement } from "../TUIDom/Widgets/InputElement.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import type { IClipboard } from "../vs/platform/clipboard/common/clipboardService.ts";
+import type { InputElement } from "../vs/base/tui/ui/inputbox/inputElement.ts";
 
 export const InputWidgetControllerDIToken = token<InputWidgetController>("InputWidgetController");
 

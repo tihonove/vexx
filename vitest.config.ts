@@ -33,13 +33,13 @@ export default defineConfig({
 
         // --- Чистые типы: нечего исполнять ---
         "src/**/*.d.ts", // vscode.d.ts
-        "src/TUIDom/Styles/index.ts", // barrel re-export
+        "src/vs/base/tui/styles/index.ts", // barrel re-export
         "src/Theme/index.ts", // barrel re-export
         "src/vs/tui/backend/terminalBackend.ts",
-        "src/Common/IClipboard.ts",
-        "src/Common/Assets/IAssetAccess.ts",
-        "src/Common/Logging/ILogService.ts",
-        "src/Common/Logging/ILogger.ts",
+        "src/vs/platform/clipboard/common/clipboardService.ts",
+        "src/vs/base/common/assets/assets.ts",
+        "src/vs/platform/log/common/log.ts",
+        "src/vs/platform/log/common/logger.ts",
         "src/Configuration/IConfigurationService.ts",
         "src/Controllers/IController.ts",
         "src/Editor/Decorations/IGutterChangeDecoration.ts",
@@ -59,8 +59,8 @@ export default defineConfig({
         "src/Extensions/Host/IExtensionEntry.ts",
         "src/Extensions/Host/IMessageChannel.ts",
         "src/vs/tui/input/rawTerminalToken.ts",
-        "src/TUIDom/Widgets/ITreeDataProvider.ts",
-        "src/TUIDom/Widgets/IScrollable.ts", // только интерфейсы (type guards удалены как мёртвые)
+        "src/vs/base/tui/ui/tree/tree.ts",
+        "src/vs/base/common/scrollable.ts", // только интерфейсы (type guards удалены как мёртвые)
         "src/Theme/IEditorTokenTheme.ts",
         "src/Theme/IThemeFile.ts",
         "src/Theme/IVSCodeThemeFile.ts",
@@ -69,8 +69,8 @@ export default defineConfig({
         // --- Непокрываемо юнит-тестами (есть e2e) ---
         "src/vs/tui/backend/nodeTerminalBackend.ts", // реальный tty/stdin/stdout
         "src/Controllers/ChokidarFileWatcher.ts", // реальный fs-watcher (chokidar), e2e
-        "src/Common/IsSea.ts", // node:sea, только в SEA-бинаре
-        "src/Common/Assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
+        "src/vs/base/node/isSea.ts", // node:sea, только в SEA-бинаре
+        "src/vs/base/node/assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
         "src/Extensions/Host/ExtensionHostSubprocess.ts", // точка входа subprocess + IPC
         "src/Extensions/builtin/git/main.ts", // extension entry (subprocess IO/glue); логика — в git/lib/* (юниты), e2e — интеграция
         "src/Extensions/Host/VscodeNamespace.ts", // RPC-проводка в subprocess

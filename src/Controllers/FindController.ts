@@ -1,13 +1,13 @@
-import { Disposable } from "../Common/Disposable.ts";
-import { Point } from "../Common/GeometryPromitives.ts";
+import { Disposable } from "../vs/base/common/lifecycle.ts";
+import { Point } from "../vs/base/common/geometry.ts";
 import { findMatches } from "../Editor/findMatches.ts";
 import type { IPosition } from "../Editor/IPosition.ts";
 import { comparePositions } from "../Editor/IPosition.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import { createSelection } from "../Editor/ISelection.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { FindWidgetElement } from "../TUIDom/Widgets/FindWidgetElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
+import { FindWidgetElement } from "../vs/editor/contrib/find/tui/findWidgetElement.ts";
+import type { OverlaySessionHandle } from "../vs/base/tui/ui/contextview/overlayLayer.ts";
 
 import type { EditorGroupController } from "./EditorGroupController.ts";
 

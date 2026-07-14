@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Container } from "../../Common/DiContainer.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { registerAction } from "../CommandAction.ts";
 import { CommandRegistry } from "../CommandRegistry.ts";
 import { formatKeybinding, KeybindingRegistry } from "../KeybindingRegistry.ts";

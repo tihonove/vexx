@@ -1,12 +1,12 @@
-import { token } from "../Common/DiContainer.ts";
-import { DisplayLine } from "../Common/DisplayLine.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import { DisplayLine } from "../vs/base/common/displayLine.ts";
+import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
-import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
+import type { StatusBarItem } from "../vs/workbench/tui/parts/statusbar/statusBarElement.ts";
+import { StatusBarElement } from "../vs/workbench/tui/parts/statusbar/statusBarElement.ts";
 
 import { LanguageServiceDIToken } from "./CoreTokens.ts";
 import type { EditorController } from "./EditorController.ts";

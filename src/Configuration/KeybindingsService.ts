@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 
 import { parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
 
-import type { ILogger } from "../Common/Logging/ILogger.ts";
+import type { ILogger } from "../vs/platform/log/common/logger.ts";
 
 /**
  * A single user keybinding rule, VS Code-shaped. Pure data — parsing the `key`

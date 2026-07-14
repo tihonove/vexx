@@ -1,15 +1,15 @@
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import { Point } from "../Common/GeometryPromitives.ts";
+import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
+import { Point } from "../vs/base/common/geometry.ts";
 import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
 import type { IPosition } from "../Editor/IPosition.ts";
 import type { IRange } from "../Editor/IRange.ts";
 import { createRange } from "../Editor/IRange.ts";
 import { isSelectionCollapsed } from "../Editor/ISelection.ts";
 import { createTextEdit } from "../Editor/ITextEdit.ts";
-import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { CompletionListItem } from "../TUIDom/Widgets/CompletionListElement.ts";
-import { CompletionListElement } from "../TUIDom/Widgets/CompletionListElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
+import type { BodyElement } from "../vs/base/tui/bodyElement.ts";
+import type { CompletionListItem } from "../vs/editor/contrib/suggest/tui/completionListElement.ts";
+import { CompletionListElement } from "../vs/editor/contrib/suggest/tui/completionListElement.ts";
+import type { OverlaySessionHandle } from "../vs/base/tui/ui/contextview/overlayLayer.ts";
 
 import { collectWordCompletions } from "./collectWordCompletions.ts";
 import type { EditorController } from "./EditorController.ts";

@@ -1,4 +1,4 @@
-import { TreeViewElement } from "../../TUIDom/Widgets/TreeViewElement.ts";
+import { TreeViewElement } from "../../vs/base/tui/ui/tree/treeViewElement.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";
 import { parseKeybinding } from "../KeybindingRegistry.ts";

@@ -1,8 +1,8 @@
 import * as path from "node:path";
 
-import { token } from "../Common/DiContainer.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import { getFileIcon } from "../Common/FileIcons.ts";
+import { token } from "../vs/platform/instantiation/common/instantiation.ts";
+import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
+import { getFileIcon } from "../vs/workbench/tui/fileIcons.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { CompletionSource } from "../Editor/ICompletionSource.ts";
@@ -13,8 +13,8 @@ import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRe
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
-import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
+import { EditorGroupElement } from "../vs/workbench/tui/parts/editor/editorGroupElement.ts";
+import type { TabInfo } from "../vs/workbench/tui/parts/editor/editorTabStripElement.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";

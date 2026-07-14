@@ -1,15 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { LogEntry } from "../Common/Logging/ILogService.ts";
-import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
-import { LogService } from "../Common/Logging/LogService.ts";
+import type { LogEntry } from "../vs/platform/log/common/log.ts";
+import { ILogServiceDIToken } from "../vs/platform/log/common/logDIToken.ts";
+import { LogService } from "../vs/platform/log/common/logService.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
-import type { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
-import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
-import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
+import { TUIKeyboardEvent } from "../vs/base/tui/events/tuiKeyboardEvent.ts";
+import type { EditorTabStripElement } from "../vs/workbench/tui/parts/editor/editorTabStripElement.ts";
+import type { QuickPickElement } from "../vs/platform/quickinput/tui/quickPickElement.ts";
+import type { StatusBarElement } from "../vs/workbench/tui/parts/statusbar/statusBarElement.ts";
 
 import type { AppController } from "./AppController.ts";
 import { AppControllerDIToken } from "./AppController.ts";

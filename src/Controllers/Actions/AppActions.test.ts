@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
-import { Container } from "../../Common/DiContainer.ts";
-import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
+import { TuiApplication } from "../../vs/base/tui/tuiApplication.ts";
 import { registerAction } from "../CommandAction.ts";
 import { CommandRegistry } from "../CommandRegistry.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";

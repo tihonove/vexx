@@ -1,11 +1,11 @@
 import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
-import { Container } from "../../Common/DiContainer.ts";
+import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
+import type { TuiApplication } from "../../vs/base/tui/tuiApplication.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";
 import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
 

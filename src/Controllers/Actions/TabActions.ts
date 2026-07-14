@@ -1,4 +1,4 @@
-import type { ServiceAccessor } from "../../Common/DiContainer.ts";
+import type { ServiceAccessor } from "../../vs/platform/instantiation/common/instantiation.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { parseKeybinding } from "../KeybindingRegistry.ts";

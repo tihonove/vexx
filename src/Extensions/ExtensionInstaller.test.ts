@@ -5,7 +5,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import yazl from "yazl";
 
-import { FsAssetAccess } from "../Common/Assets/FsAssetAccess.ts";
+import { FsAssetAccess } from "../vs/base/node/assets/fsAssetAccess.ts";
 
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./ExtensionInstaller.ts";
 import { scanExtensions } from "./ExtensionScanner.ts";

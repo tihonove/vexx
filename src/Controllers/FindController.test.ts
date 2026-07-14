@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../vs/base/common/geometry.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { createSelection } from "../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
@@ -14,8 +14,8 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { TUIMouseEvent } from "../vs/base/tui/events/tuiMouseEvent.ts";
+import { BodyElement } from "../vs/base/tui/bodyElement.ts";
 
 import type { EditorController } from "./EditorController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";

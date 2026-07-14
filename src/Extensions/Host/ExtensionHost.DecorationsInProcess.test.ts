@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import type { ILogger } from "../../vs/platform/log/common/logger.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import { flushMicrotasks } from "../../TestUtils/timing.ts";
 

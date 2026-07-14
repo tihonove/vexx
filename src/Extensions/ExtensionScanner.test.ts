@@ -4,7 +4,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { FsAssetAccess } from "../Common/Assets/FsAssetAccess.ts";
+import { FsAssetAccess } from "../vs/base/node/assets/fsAssetAccess.ts";
 
 import { scanBuiltinExtensions } from "./ExtensionScanner.ts";
 

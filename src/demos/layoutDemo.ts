@@ -11,7 +11,7 @@
  * Ctrl+C: выход
  */
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../vs/base/common/geometry.ts";
 import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 import { Grid } from "../vs/tui/rendering/grid.ts";
 import { StyleFlags } from "../vs/tui/rendering/styleFlags.ts";

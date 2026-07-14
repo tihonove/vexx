@@ -6,9 +6,9 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
 import { flushMicrotasks } from "../TestUtils/timing.ts";
-import type { ConfirmDialogElement } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
-import type { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
-import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
+import type { ConfirmDialogElement } from "../vs/base/tui/ui/dialog/confirmDialogElement.tsx";
+import type { EditorTabStripElement } from "../vs/workbench/tui/parts/editor/editorTabStripElement.ts";
+import type { QuickPickElement } from "../vs/platform/quickinput/tui/quickPickElement.ts";
 
 /** The visible Save As InputBox is the QuickPickElement carrying a seeded query. */
 function openInputBox(testApp: TestApp): QuickPickElement {

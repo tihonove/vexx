@@ -1,4 +1,4 @@
-import { token, type ContainerModule } from "../../Common/DiContainer.ts";
+import { token, type ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import type { IStateService } from "../../Configuration/IStateService.ts";
 import { NULL_STATE_SERVICE } from "../../Configuration/NullStateService.ts";
 

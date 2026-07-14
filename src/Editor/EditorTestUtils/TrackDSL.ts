@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 
-import { reject } from "../../Common/TypingUtils.ts";
+import { reject } from "../../vs/base/common/types.ts";
 import { EditorViewState } from "../EditorViewState.ts";
 import type { IFoldingRegion } from "../IFoldingRegion.ts";
 import { createFoldingRegion } from "../IFoldingRegion.ts";

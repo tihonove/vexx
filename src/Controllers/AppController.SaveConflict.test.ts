@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../TestUtils/timing.ts";
-import type { ConfirmDialogElement } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
+import type { ConfirmDialogElement } from "../vs/base/tui/ui/dialog/confirmDialogElement.tsx";
 
 describe("AppController — save conflict (dirty-write protection)", () => {
     let ws: ITempWorkspace;

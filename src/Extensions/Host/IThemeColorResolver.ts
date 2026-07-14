@@ -1,4 +1,4 @@
-import type { IDisposable } from "../../Common/Disposable.ts";
+import type { IDisposable } from "../../vs/base/common/lifecycle.ts";
 
 /**
  * Тонкий «port» поверх {@link ThemeService}, нужный {@link ExtensionHost} для

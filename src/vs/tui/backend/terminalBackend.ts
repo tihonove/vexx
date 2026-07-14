@@ -1,4 +1,4 @@
-import type { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import type { Point, Size } from "../../base/common/geometry.ts";
 import type { KeyPressEvent } from "../input/keyEvent.ts";
 import type { MouseToken } from "../input/rawTerminalToken.ts";
 import type { Grid } from "../rendering/grid.ts";

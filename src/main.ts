@@ -4,21 +4,21 @@ import * as path from "node:path";
 
 import { HeadlessCaptureBackend } from "./vs/tui/backend/headlessCaptureBackend.ts";
 import { NodeTerminalBackend } from "./vs/tui/backend/nodeTerminalBackend.ts";
-import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
-import { joinVirtualPath } from "./Common/Assets/AssetBundleFormat.ts";
-import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
-import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
-import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
-import type { ICliArgs } from "./Common/CliArgs.ts";
-import { CliArgsError, parseCliArgs, USAGE } from "./Common/CliArgs.ts";
-import { Size } from "./Common/GeometryPromitives.ts";
-import { isSeaBinary } from "./Common/IsSea.ts";
-import { LogService } from "./Common/Logging/LogService.ts";
-import { FileSink } from "./Common/Logging/sinks/FileSink.ts";
-import { RingBufferSink } from "./Common/Logging/sinks/RingBufferSink.ts";
-import { OscClipboard } from "./Common/OscClipboard.ts";
-import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
-import { VEXX_VERSION } from "./Common/Version.ts";
+import { CompositeAssetAccess } from "./vs/base/common/assets/compositeAssetAccess.ts";
+import { joinVirtualPath } from "./vs/base/common/assets/assetBundleFormat.ts";
+import { createDefaultAssetAccess } from "./vs/base/node/assets/createDefaultAssetAccess.ts";
+import { FsAssetAccess } from "./vs/base/node/assets/fsAssetAccess.ts";
+import type { IAssetAccess } from "./vs/base/common/assets/assets.ts";
+import type { ICliArgs } from "./vs/platform/environment/node/argv.ts";
+import { CliArgsError, parseCliArgs, USAGE } from "./vs/platform/environment/node/argv.ts";
+import { Size } from "./vs/base/common/geometry.ts";
+import { isSeaBinary } from "./vs/base/node/isSea.ts";
+import { LogService } from "./vs/platform/log/common/logService.ts";
+import { FileSink } from "./vs/platform/log/node/fileLog.ts";
+import { RingBufferSink } from "./vs/platform/log/common/bufferLog.ts";
+import { OscClipboard } from "./vs/platform/clipboard/tui/oscClipboard.ts";
+import { resolveUserDataPaths } from "./vs/platform/environment/node/userDataPath.ts";
+import { VEXX_VERSION } from "./vs/platform/product/common/product.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
 import { loadState } from "./Configuration/StateService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
@@ -48,7 +48,7 @@ import { createBuiltinThemeRegistry } from "./Theme/ThemeRegistry.ts";
 import { DEFAULT_COLOR_THEME } from "./Theme/themes/builtinThemes.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
-import { TuiApplication } from "./TUIDom/TuiApplication.ts";
+import { TuiApplication } from "./vs/base/tui/tuiApplication.ts";
 
 // ── Subprocess branch ─────────────────────────────────────
 // Если форкнул себя ExtensionHost'ом — уходим в subprocess entry до любых

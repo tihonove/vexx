@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 
 import { createAppTestHarness, type IAppHarness } from "./AppTestHarness.ts";
 import { tabLabels } from "./domQueries.ts";

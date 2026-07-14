@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { Point, Size } from "../vs/base/common/geometry.ts";
 import { createCursorSelection } from "../Editor/ISelection.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";

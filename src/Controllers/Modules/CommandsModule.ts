@@ -1,4 +1,4 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "../CommandRegistry.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "../ContextKeyService.ts";
 import { KeybindingRegistry, KeybindingRegistryDIToken } from "../KeybindingRegistry.ts";

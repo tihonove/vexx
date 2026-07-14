@@ -7,9 +7,9 @@
 
 import { NodeTerminalBackend } from "../../vs/tui/backend/nodeTerminalBackend.ts";
 import { attachInspector } from "../../Inspector/index.ts";
-import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
-import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
-import { BoxElement } from "../../TUIDom/Widgets/BoxElement.ts";
+import { TuiApplication } from "../../vs/base/tui/tuiApplication.ts";
+import { BodyElement } from "../../vs/base/tui/bodyElement.ts";
+import { BoxElement } from "../../vs/base/tui/ui/box/boxElement.ts";
 
 const port = Number(process.argv[2] ?? 0);
 

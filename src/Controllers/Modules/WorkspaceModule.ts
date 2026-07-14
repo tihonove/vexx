@@ -1,4 +1,4 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { TrashService, TrashServiceDIToken } from "../Workspace/TrashService.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "../Workspace/UndoRedoService.ts";
 import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "../Workspace/WorkspaceEditService.ts";

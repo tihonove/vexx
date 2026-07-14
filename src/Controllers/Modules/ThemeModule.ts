@@ -1,4 +1,4 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { createBuiltinThemeRegistry, ThemeRegistry } from "../../Theme/ThemeRegistry.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";

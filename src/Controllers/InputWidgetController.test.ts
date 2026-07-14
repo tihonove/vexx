@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { IClipboard } from "../Common/IClipboard.ts";
-import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
+import type { IClipboard } from "../vs/platform/clipboard/common/clipboardService.ts";
+import { InputElement } from "../vs/base/tui/ui/inputbox/inputElement.ts";
 
 import { InputWidgetController } from "./InputWidgetController.ts";
 

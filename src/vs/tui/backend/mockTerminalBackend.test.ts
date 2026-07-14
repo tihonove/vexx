@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { Point, Size } from "../../base/common/geometry.ts";
 import type { KeyPressEvent } from "../input/keyEvent.ts";
 import { DEFAULT_COLOR, packRgb } from "../rendering/colorUtils.ts";
 import { Grid } from "../rendering/grid.ts";

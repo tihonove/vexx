@@ -2,7 +2,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometry.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";

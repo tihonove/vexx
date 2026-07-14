@@ -1,8 +1,8 @@
-import type { ContainerModule } from "../../Common/DiContainer.ts";
-import type { IClipboard } from "../../Common/IClipboard.ts";
-import type { IFileClipboard } from "../../Common/IFileClipboard.ts";
-import { InMemoryClipboard } from "../../Common/InMemoryClipboard.ts";
-import { InMemoryFileClipboard } from "../../Common/InMemoryFileClipboard.ts";
+import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
+import type { IClipboard } from "../../vs/platform/clipboard/common/clipboardService.ts";
+import type { IFileClipboard } from "../../vs/platform/clipboard/common/fileClipboard.ts";
+import { InMemoryClipboard } from "../../vs/platform/clipboard/common/inMemoryClipboard.ts";
+import { InMemoryFileClipboard } from "../../vs/platform/clipboard/common/inMemoryFileClipboard.ts";
 import { ClipboardDIToken, FileClipboardDIToken } from "../CoreTokens.ts";
 
 export interface BackendModuleContext {

@@ -1,7 +1,7 @@
 import oniguruma from "vscode-oniguruma";
 import type { IOnigLib } from "vscode-textmate";
 
-import type { IAssetAccess } from "../../../Common/Assets/IAssetAccess.ts";
+import type { IAssetAccess } from "../../../vs/base/common/assets/assets.ts";
 
 /**
  * Singleton initializer for the `vscode-oniguruma` WASM regex engine.

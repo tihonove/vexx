@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { joinVirtualPath } from "../../../Common/Assets/AssetBundleFormat.ts";
-import { createDevAssetAccess } from "../../../Common/Assets/createDefaultAssetAccess.ts";
+import { joinVirtualPath } from "../../../vs/base/common/assets/assetBundleFormat.ts";
+import { createDevAssetAccess } from "../../../vs/base/node/assets/createDefaultAssetAccess.ts";
 import { scanBuiltinExtensions } from "../../../Extensions/ExtensionScanner.ts";
 import type { IExtension } from "../../../Extensions/IExtension.ts";
 
