@@ -3,8 +3,10 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { loadConfiguration } from "../Configuration/ConfigurationService.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { resolveUserDataPaths } from "../Common/UserDataPaths.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
@@ -17,7 +19,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
-import { NULL_FILE_WATCHER } from "./IFileWatcher.ts";
+import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function createEditorGroupController(
@@ -593,6 +595,62 @@ describe("EditorGroupController", () => {
             ctrl.openFile(writeFile("a.ts", "const x = 1;"));
 
             expect(ctrl.getActiveEditor()!.viewState.cursorSurroundingLines).toBe(5);
+        });
+    });
+
+    describe("live-reloads editor settings into already-open editors", () => {
+        // Real ConfigurationService over a temp settings.json — editing the file and
+        // calling reload() emits onDidChangeConfiguration, which the group must apply
+        // to editors that are ALREADY open (not just newly created ones).
+        async function realConfig(initial: string) {
+            const cfgWs = createTempWorkspace({ prefix: "vexx-egc-cfg-" });
+            const p = resolveUserDataPaths({ homedir: "/never", userDataDir: cfgWs.dir });
+            const write = (content: string): void => {
+                fs.mkdirSync(path.dirname(p.settingsFile), { recursive: true });
+                fs.writeFileSync(p.settingsFile, content, "utf-8");
+            };
+            write(initial);
+            const cfg = await loadConfiguration(p);
+            return { cfg, write, dispose: () => cfgWs.dispose() };
+        }
+
+        it("re-applies editor.tabSize / insertSpaces to an open editor", async () => {
+            const { cfg, write, dispose } = await realConfig(
+                `{ "editor.tabSize": 2, "editor.insertSpaces": true }`,
+            );
+            const ctrl = createEditorGroupController({ configurationService: cfg });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+            const editor = ctrl.getActiveEditor()!;
+            expect(editor.viewState.tabSize).toBe(2);
+
+            write(`{ "editor.tabSize": 8, "editor.insertSpaces": false }`);
+            await cfg.reload();
+
+            expect(editor.viewState.tabSize).toBe(8);
+            expect(editor.viewState.insertSpaces).toBe(false);
+
+            ctrl.dispose();
+            dispose();
+        });
+
+        it("does not touch editors when only non-editor settings change", async () => {
+            const { cfg, write, dispose } = await realConfig(`{ "editor.tabSize": 2 }`);
+            const ctrl = createEditorGroupController({ configurationService: cfg });
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+            const editor = ctrl.getActiveEditor()!;
+            expect(editor.viewState.tabSize).toBe(2);
+
+            // Only a workbench key changes → affectsConfiguration("editor") is false,
+            // the group's handler early-returns and the editor is left as-is.
+            write(`{ "editor.tabSize": 2, "workbench.colorTheme": "Monokai" }`);
+            await cfg.reload();
+
+            expect(editor.viewState.tabSize).toBe(2);
+
+            ctrl.dispose();
+            dispose();
         });
     });
 

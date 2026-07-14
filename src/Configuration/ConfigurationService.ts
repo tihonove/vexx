@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { applyEdits, modify, parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
 
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import type { IFileWatcher } from "../Common/IFileWatcher.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { IUserDataPaths } from "../Common/UserDataPaths.ts";
 
@@ -24,9 +25,12 @@ import type {
  *   3. profile — `User/profiles/<name>/settings.json` (только если активный
  *      профиль не default, иначе пусто).
  *
- * В этой итерации watcher отсутствует — изменения подхватываются после
- * перезапуска. API события `onDidChangeConfiguration` стабилен, чтобы
- * не ломать потребителей при добавлении watch.
+ * Live-reload: если в конструктор передан {@link IFileWatcher} и пути к
+ * settings.json, сервис следит за файлом(-ами) и на изменение перечитывает
+ * соответствующий слой, пересобирает merged и эмитит `onDidChangeConfiguration`
+ * с диффом затронутых ключей. Правки через {@link updateUserValue} эмитят то же
+ * событие. Дифф гарантирует, что пустое изменение (напр. повторный reload после
+ * собственной записи) события не порождает.
  *
  * Битые JSONC-файлы логируются через переданный `ILogger` и трактуются как
  * пустой слой — bootstrap не должен падать из-за невалидного settings.json.
@@ -43,6 +47,12 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
      */
     private readonly writeTargetPath: string | undefined;
     private readonly writesToProfileLayer: boolean;
+    /** Путь к `User/settings.json` (user-слой) — для перечитывания при reload. */
+    private readonly userSettingsPath: string | undefined;
+    /** Путь к settings.json именованного профиля; undefined для default-профиля. */
+    private readonly profileSettingsPath: string | undefined;
+    private readonly logger: ILogger | undefined;
+    private readonly listeners: ((event: IConfigurationChangeEvent) => void)[] = [];
 
     public constructor(input: {
         readonly defaultsLayer: ConfigurationModel;
@@ -52,6 +62,13 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
         readonly writeTargetPath?: string;
         /** true → правка ложится в profile-слой (именованный профиль). */
         readonly writesToProfileLayer?: boolean;
+        /** Путь к `User/settings.json` — включает reload user-слоя. */
+        readonly userSettingsPath?: string;
+        /** Путь к settings.json именованного профиля — включает reload profile-слоя. */
+        readonly profileSettingsPath?: string;
+        /** Watcher: если передан вместе с путями — включает live-reload. */
+        readonly fileWatcher?: IFileWatcher;
+        readonly logger?: ILogger;
     }) {
         super();
         this.defaultsLayer = input.defaultsLayer;
@@ -59,7 +76,32 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
         this.profileLayer = input.profileLayer;
         this.writeTargetPath = input.writeTargetPath;
         this.writesToProfileLayer = input.writesToProfileLayer ?? false;
+        this.userSettingsPath = input.userSettingsPath;
+        this.profileSettingsPath = input.profileSettingsPath;
+        this.logger = input.logger;
         this.merged = ConfigurationModel.merge(this.defaultsLayer, this.userLayer, this.profileLayer);
+
+        if (input.fileWatcher !== undefined) {
+            this.startWatching(input.fileWatcher);
+        }
+    }
+
+    /**
+     * Подписывает reload на изменения settings.json. Следим за user-файлом
+     * всегда (если путь известен) и за profile-файлом для именованного профиля.
+     * Хендлы watch регистрируются в {@link Disposable} — чистятся на `dispose()`.
+     */
+    private startWatching(fileWatcher: IFileWatcher): void {
+        const paths = new Set<string>();
+        if (this.userSettingsPath !== undefined) paths.add(this.userSettingsPath);
+        if (this.profileSettingsPath !== undefined) paths.add(this.profileSettingsPath);
+        for (const filePath of paths) {
+            this.register(
+                fileWatcher.watchFile(filePath, () => {
+                    void this.reload();
+                }),
+            );
+        }
     }
 
     public get<T>(key: string, defaultValue?: T): T | undefined {
@@ -80,14 +122,47 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
         };
     }
 
-    public onDidChangeConfiguration(_listener: (event: IConfigurationChangeEvent) => void): IDisposable {
-        // Пока без watch — событие никогда не эмитится. Возвращаем no-op
-        // Disposable, чтобы потребители могли подписываться безопасно.
+    public onDidChangeConfiguration(listener: (event: IConfigurationChangeEvent) => void): IDisposable {
+        this.listeners.push(listener);
         return {
             dispose: () => {
-                /* no-op: watcher not implemented */
+                const index = this.listeners.indexOf(listener);
+                if (index >= 0) this.listeners.splice(index, 1);
             },
         };
+    }
+
+    /**
+     * Перечитывает settings.json с диска (user + profile, если именованный
+     * профиль), пересобирает merged и эмитит `onDidChangeConfiguration` с
+     * диффом. Ошибки чтения/парсинга трактуются как пустой слой (тот же
+     * best-effort, что в bootstrap). Пустой дифф события не порождает.
+     */
+    public async reload(): Promise<void> {
+        const prev = this.merged;
+        if (this.userSettingsPath !== undefined) {
+            this.userLayer = await loadSettingsLayer(this.userSettingsPath, this.logger);
+        }
+        if (this.profileSettingsPath !== undefined) {
+            this.profileLayer = await loadSettingsLayer(this.profileSettingsPath, this.logger);
+        }
+        this.recompute(prev);
+    }
+
+    /**
+     * Пересобирает merged из текущих слоёв и, если появился дифф ключей
+     * относительно `prev`, эмитит событие изменения. Общая точка для reload и
+     * {@link updateUserValue}.
+     */
+    private recompute(prev: ConfigurationModel): void {
+        this.merged = ConfigurationModel.merge(this.defaultsLayer, this.userLayer, this.profileLayer);
+        const affectedKeys = diffConfigurationKeys(prev, this.merged);
+        if (affectedKeys.length === 0) return;
+        const event = createConfigurationChangeEvent(affectedKeys);
+        // Копия списка: слушатель может отписаться/подписаться в обработчике.
+        for (const listener of [...this.listeners]) {
+            listener(event);
+        }
     }
 
     public async updateUserValue(key: string, value: unknown): Promise<void> {
@@ -114,6 +189,7 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
         await fs.promises.writeFile(this.writeTargetPath, next, "utf-8");
 
         // Обновляем in-memory слой, чтобы get/inspect сразу видели новое значение.
+        const prev = this.merged;
         const parsed: unknown = parseJsonc(next, [], { allowTrailingComma: true });
         const model = ConfigurationModel.fromRaw(parsed);
         if (this.writesToProfileLayer) {
@@ -121,8 +197,43 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
         } else {
             this.userLayer = model;
         }
-        this.merged = ConfigurationModel.merge(this.defaultsLayer, this.userLayer, this.profileLayer);
+        // Эмитим то же событие, что и watcher-reload. Последующий reload по
+        // событию файлового watcher'а даст пустой дифф → без повторного события.
+        this.recompute(prev);
     }
+}
+
+/**
+ * Множество точечных ключей, значение которых различается между двумя
+ * моделями. Используется для `affectedKeys` события изменения. Значения
+ * сравниваются структурно (config всегда JSON-совместим).
+ */
+export function diffConfigurationKeys(prev: ConfigurationModel, next: ConfigurationModel): string[] {
+    const keys = new Set<string>([...prev.collectKeys(), ...next.collectKeys()]);
+    const changed: string[] = [];
+    for (const key of keys) {
+        if (!valuesEqual(prev.get(key), next.get(key))) changed.push(key);
+    }
+    return changed;
+}
+
+function valuesEqual(a: unknown, b: unknown): boolean {
+    if (a === b) return true;
+    return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Собирает {@link IConfigurationChangeEvent} из списка изменившихся ключей.
+ * `affectsConfiguration(q)` — true, если `q` совпадает с затронутым ключом,
+ * является его предком (`editor` ← `editor.tabSize`) или потомком.
+ */
+export function createConfigurationChangeEvent(affectedKeys: readonly string[]): IConfigurationChangeEvent {
+    return {
+        affectedKeys,
+        affectsConfiguration(key: string): boolean {
+            return affectedKeys.some((k) => k === key || k.startsWith(`${key}.`) || key.startsWith(`${k}.`));
+        },
+    };
 }
 
 /**
@@ -134,16 +245,21 @@ export class ConfigurationService extends Disposable implements IConfigurationSe
  * мы загружаем тот же файл дважды, но второй слой даёт пустой результат,
  * чтобы не дублировать значения (см. ниже).
  */
-export async function loadConfiguration(paths: IUserDataPaths, logger?: ILogger): Promise<ConfigurationService> {
+export async function loadConfiguration(
+    paths: IUserDataPaths,
+    logger?: ILogger,
+    fileWatcher?: IFileWatcher,
+): Promise<ConfigurationService> {
     const defaultsRaw = getDefaultConfiguration();
     const defaultsLayer = ConfigurationModel.fromRaw(defaultsRaw);
 
     const userSettingsPath = path.join(paths.userDir, "settings.json");
     const userLayer = await loadSettingsLayer(userSettingsPath, logger);
 
+    const profileSettingsPath = paths.isDefaultProfile ? undefined : paths.settingsFile;
     let profileLayer = ConfigurationModel.EMPTY;
-    if (!paths.isDefaultProfile) {
-        profileLayer = await loadSettingsLayer(paths.settingsFile, logger);
+    if (profileSettingsPath !== undefined) {
+        profileLayer = await loadSettingsLayer(profileSettingsPath, logger);
     }
 
     return new ConfigurationService({
@@ -153,6 +269,10 @@ export async function loadConfiguration(paths: IUserDataPaths, logger?: ILogger)
         // Запись идёт в settings.json активного профиля (default → User/settings.json).
         writeTargetPath: paths.settingsFile,
         writesToProfileLayer: !paths.isDefaultProfile,
+        userSettingsPath,
+        profileSettingsPath,
+        fileWatcher,
+        logger,
     });
 }
 

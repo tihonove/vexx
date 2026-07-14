@@ -18,7 +18,7 @@ import { CommandRegistry } from "../CommandRegistry.ts";
 import { ClipboardDIToken } from "../CoreTokens.ts";
 import { EditorGroupController } from "../EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { KeybindingRegistry } from "../KeybindingRegistry.ts";
 import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 

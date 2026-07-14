@@ -988,6 +988,16 @@ export class AppController extends Disposable implements IController {
                 this.applyTheme(theme);
             }),
         );
+        // Live-reload: смена `workbench.colorTheme` в settings.json перекрашивает UI
+        // без рестарта. Explorer-настройки (`explorer.*`) читаются on-demand, поэтому
+        // отдельная подписка им не нужна — reload модели применяет их сам. Editor-
+        // настройки перепримeняет EditorGroupController.
+        this.register(
+            this.configurationService.onDidChangeConfiguration((event) => {
+                if (!event.affectsConfiguration("workbench.colorTheme")) return;
+                this.applyColorThemeFromConfiguration();
+            }),
+        );
 
         this.editorGroupController.onEditorCreate = (editor) => {
             editor.contextMenuEntries = [
@@ -1167,6 +1177,20 @@ export class AppController extends Disposable implements IController {
         this.findController.applyTheme(theme);
         this.menuBar?.applyTheme(theme);
         this.workbenchLayout.setSashHoverColor(theme.getRequiredColor("sash.hoverBorder"));
+    }
+
+    /**
+     * Резолвит тему по имени из `workbench.colorTheme` и применяет её через
+     * `ThemeService` (что дёрнет `onThemeChange` → {@link applyTheme}). Guard по
+     * имени: если тема уже активна (напр. правку внёс сам theme-picker через
+     * `updateUserValue`), лишнего перекраса не делаем. Неизвестное имя игнорируем.
+     */
+    private applyColorThemeFromConfiguration(): void {
+        const name = this.configurationService.get<string>("workbench.colorTheme");
+        if (name === undefined) return;
+        if (name === this.themeService.theme.name) return;
+        const theme = this.themeRegistry.resolve(name);
+        if (theme) this.themeService.setTheme(theme);
     }
 
     // Capture phase: while a chord is in progress, intercept the next key

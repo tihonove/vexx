@@ -2,7 +2,7 @@ import chokidar from "chokidar";
 
 import type { IDisposable } from "../Common/Disposable.ts";
 
-import type { IFileWatcher } from "./IFileWatcher.ts";
+import type { IFileWatcher } from "../Common/IFileWatcher.ts";
 
 /**
  * Реальная реализация {@link IFileWatcher} поверх chokidar (та же зависимость,

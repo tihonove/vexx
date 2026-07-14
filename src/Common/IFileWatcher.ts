@@ -1,14 +1,17 @@
-import { token } from "../Common/DiContainer.ts";
-import type { IDisposable } from "../Common/Disposable.ts";
+import type { IDisposable } from "./Disposable.ts";
 
 /**
  * Наблюдатель за отдельными файлами на диске. Абстрагирует реальный
- * файловый watcher (chokidar/fs.watch) от контроллеров, чтобы логику
+ * файловый watcher (chokidar/fs.watch) от потребителей, чтобы логику
  * «файл поменялся снаружи» можно было гонять в юнит-тестах детерминированно
  * (через фейк, который триггерит колбэк вручную).
  *
- * Единственная реализация с реальным IO — {@link ChokidarFileWatcher}; в тестах
- * используется {@link NULL_FILE_WATCHER} или ручной фейк.
+ * Это чистый IO-примитив (без DI и внешних зависимостей) — он живёт в Common
+ * рядом с {@link IClipboard}/{@link IFileClipboard}, чтобы им могли пользоваться
+ * и слой Controllers (через `IFileWatcherDIToken`), и слой Configuration
+ * (напрямую, для live-reload настроек). Единственная реализация с реальным IO —
+ * `ChokidarFileWatcher` (слой Controllers); в тестах используется
+ * {@link NULL_FILE_WATCHER} или ручной фейк.
  */
 export interface IFileWatcher {
     /**
@@ -18,8 +21,6 @@ export interface IFileWatcher {
      */
     watchFile(filePath: string, onChange: () => void): IDisposable;
 }
-
-export const IFileWatcherDIToken = token<IFileWatcher>("IFileWatcher");
 
 /** No-op наблюдатель: ничего не отслеживает (тесты, окружения без live-watch). */
 export const NULL_FILE_WATCHER: IFileWatcher = {
