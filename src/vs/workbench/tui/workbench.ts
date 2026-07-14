@@ -5,7 +5,6 @@ import * as path from "node:path";
 import type { ServiceAccessor } from "../../platform/instantiation/common/instantiation.ts";
 import { token } from "../../platform/instantiation/common/instantiation.ts";
 import { Disposable } from "../../base/common/lifecycle.ts";
-import { Point } from "../../base/common/geometry.ts";
 import type { IFileClipboard } from "../../platform/clipboard/common/fileClipboard.ts";
 import type { ILogger } from "../../platform/log/common/logger.ts";
 import type { ILogService } from "../../platform/log/common/log.ts";
@@ -20,11 +19,9 @@ import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../services/themes/co
 import type { WorkbenchTheme } from "../services/themes/common/workbenchTheme.ts";
 import type { TUIFocusEvent } from "../../base/tui/events/tuiFocusEvent.ts";
 import type { TUIElement } from "../../base/tui/tuiElement.ts";
-import { AboutDialogElement } from "../../base/tui/ui/dialog/aboutDialogElement.tsx";
-import { BodyElement } from "../../base/tui/bodyElement.ts";
 import type { ConfirmDialogOptions } from "../../base/tui/ui/dialog/confirmDialogElement.tsx";
-import { ConfirmDialogElement } from "../../base/tui/ui/dialog/confirmDialogElement.tsx";
-import { ConfirmSaveDialogElement } from "../../base/tui/ui/dialog/confirmSaveDialogElement.tsx";
+import { DialogService } from "../services/dialogs/tui/dialogService.ts";
+import { BodyElement } from "../../base/tui/bodyElement.ts";
 import { InputElement } from "../../base/tui/ui/inputbox/inputElement.ts";
 import type { MenuBarItem } from "../../base/tui/ui/menu/menuBarElement.ts";
 import { MenuBarElement } from "../../base/tui/ui/menu/menuBarElement.ts";
@@ -339,11 +336,7 @@ export class AppController extends Disposable implements IController {
     private workbenchState: WorkbenchStateController;
 
     private editorGroupController: EditorGroupController;
-    private confirmDialog: ConfirmSaveDialogElement | null = null;
-    private confirmDialogSession: OverlaySessionHandle | null = null;
-    private aboutDialog: AboutDialogElement | null = null;
-    private aboutDialogSession: OverlaySessionHandle | null = null;
-    private confirmActionSession: OverlaySessionHandle | null = null;
+    private dialogs: DialogService;
     private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
     private fileClipboard: IFileClipboard;
@@ -484,6 +477,7 @@ export class AppController extends Disposable implements IController {
         this.view = new BodyElement();
         this.view.setContent(this.workbenchLayout);
         this.view.setStatusBar(this.statusBarController.view);
+        this.dialogs = new DialogService(this.view, themeService.theme);
 
         this.quickOpenController.setHostView(this.view);
         this.quickInputController.setHostView(this.view);
@@ -1129,8 +1123,7 @@ export class AppController extends Disposable implements IController {
             fg: theme.getRequiredColor("foreground"),
             bg: theme.getRequiredColor("editor.background"),
         };
-        this.confirmDialog?.applyTheme(theme);
-        this.aboutDialog?.applyTheme(theme);
+        this.dialogs.applyTheme(theme);
         this.findController.applyTheme(theme);
         this.menuBar?.applyTheme(theme);
         this.workbenchLayout.setSashHoverColor(theme.getRequiredColor("sash.hoverBorder"));
@@ -1298,48 +1291,7 @@ export class AppController extends Disposable implements IController {
         filename: string,
         callbacks: { onSave: () => void; onDontSave: () => void; onCancel: () => void },
     ): void {
-        if (!this.confirmDialog) {
-            this.confirmDialog = new ConfirmSaveDialogElement(filename);
-            this.confirmDialog.applyTheme(this.themeService.theme);
-            this.confirmDialogSession = this.view.overlayLayer.createSession(this.confirmDialog, new Point(0, 0), {
-                visible: false,
-                restoreFocus: true,
-                closeOnEscape: true,
-                pointerPolicy: "modal",
-            });
-        } else {
-            this.confirmDialog.setFilename(filename);
-        }
-
-        this.confirmDialog.onSave = () => {
-            this.hideConfirmSaveDialog();
-            callbacks.onSave();
-        };
-        this.confirmDialog.onDontSave = () => {
-            this.hideConfirmSaveDialog();
-            callbacks.onDontSave();
-        };
-        this.confirmDialog.onCancel = () => {
-            this.hideConfirmSaveDialog();
-        };
-
-        const screenW = this.view.layoutSize.width;
-        const screenH = this.view.layoutSize.height;
-        const dialogW = this.confirmDialog.getMaxIntrinsicWidth(0);
-        const dialogH = this.confirmDialog.getMaxIntrinsicHeight(dialogW);
-        const px = Math.max(0, Math.floor((screenW - dialogW) / 2));
-        const py = Math.max(0, Math.floor((screenH - dialogH) / 2));
-        this.confirmDialogSession?.setPosition(new Point(px, py));
-
-        this.confirmDialogSession?.open();
-        this.confirmDialog.focusDefault();
-    }
-
-    private hideConfirmSaveDialog(): void {
-        /* v8 ignore start -- defensive: only invoked from dialog callbacks after showConfirmSaveDialog() created the dialog (which is never reset to null) */
-        if (!this.confirmDialog) return;
-        /* v8 ignore stop */
-        this.confirmDialogSession?.close();
+        this.dialogs.showConfirmSaveDialog(filename, callbacks);
     }
 
     /**
@@ -1427,45 +1379,7 @@ export class AppController extends Disposable implements IController {
         options: ConfirmDialogOptions,
         callbacks: { onConfirm: () => void; onCancel?: () => void },
     ): void {
-        this.hideConfirmActionDialog();
-
-        const dialog = new ConfirmDialogElement(options);
-        dialog.applyTheme(this.themeService.theme);
-        dialog.onConfirm = () => {
-            this.hideConfirmActionDialog();
-            callbacks.onConfirm();
-        };
-        dialog.onCancel = () => {
-            this.hideConfirmActionDialog();
-            callbacks.onCancel?.();
-        };
-
-        const session = this.view.overlayLayer.createSession(dialog, new Point(0, 0), {
-            visible: false,
-            restoreFocus: true,
-            closeOnEscape: true,
-            pointerPolicy: "modal",
-            disposeOnClose: true,
-        });
-        this.confirmActionSession = session;
-
-        const screenW = this.view.layoutSize.width;
-        const screenH = this.view.layoutSize.height;
-        const dialogW = dialog.getMaxIntrinsicWidth(0);
-        const dialogH = dialog.getMaxIntrinsicHeight(dialogW);
-        session.setPosition(
-            new Point(
-                Math.max(0, Math.floor((screenW - dialogW) / 2)),
-                Math.max(0, Math.floor((screenH - dialogH) / 2)),
-            ),
-        );
-        session.open();
-        dialog.focusDefault();
-    }
-
-    private hideConfirmActionDialog(): void {
-        this.confirmActionSession?.close();
-        this.confirmActionSession = null;
+        this.dialogs.showConfirmDialog(options, callbacks);
     }
 
     /**
@@ -1729,37 +1643,7 @@ export class AppController extends Disposable implements IController {
     }
 
     public showAboutDialog(): void {
-        if (!this.aboutDialog) {
-            this.aboutDialog = new AboutDialogElement();
-            this.aboutDialog.applyTheme(this.themeService.theme);
-            this.aboutDialog.onClose = () => {
-                this.hideAboutDialog();
-            };
-            this.aboutDialogSession = this.view.overlayLayer.createSession(this.aboutDialog, new Point(0, 0), {
-                visible: false,
-                restoreFocus: true,
-                closeOnEscape: true,
-                pointerPolicy: "modal",
-            });
-        }
-
-        const screenW = this.view.layoutSize.width;
-        const screenH = this.view.layoutSize.height;
-        const dialogW = this.aboutDialog.getMaxIntrinsicWidth(0);
-        const dialogH = this.aboutDialog.getMaxIntrinsicHeight(dialogW);
-        const px = Math.max(0, Math.floor((screenW - dialogW) / 2));
-        const py = Math.max(0, Math.floor((screenH - dialogH) / 2));
-        this.aboutDialogSession?.setPosition(new Point(px, py));
-
-        this.aboutDialogSession?.open();
-        this.aboutDialog.focusDefault();
-    }
-
-    private hideAboutDialog(): void {
-        /* v8 ignore start -- defensive: only invoked from the dialog callback after showAboutDialog() created the dialog */
-        if (!this.aboutDialog) return;
-        /* v8 ignore stop */
-        this.aboutDialogSession?.close();
+        this.dialogs.showAboutDialog();
     }
 
     private showFileTreeContextMenu(filePath: string, screenX: number, screenY: number): void {
