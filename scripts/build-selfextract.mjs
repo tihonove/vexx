@@ -1,6 +1,6 @@
-#!/usr/bin/env node
 /**
  * Сборка самораспаковывающегося однофайлового бинаря (makeself-подход).
+ * Формат склейки стаба и payload'а — в `selfextract-format.mjs`.
  *
  * Зачем: Node SEA на Intel macOS не работает — инъекция SEA-блоба портит Mach-O
  * chained fixups, и бинарь падает с segfault в статических инициализаторах ДО main()
@@ -36,6 +36,7 @@ import { join, resolve } from "node:path";
 
 import { buildDistArtifacts } from "./build-dist.mjs";
 import { resolveVexxVersion } from "./resolve-version.mjs";
+import { writeSelfExtract } from "./selfextract-format.mjs";
 import { smokeTestBinary } from "./smoke-binary.mjs";
 
 /**
@@ -196,37 +197,6 @@ function buildPayload({ target, nodeBinary, mainJsPath, bundlePath }) {
     return readFileSync(payloadPath);
 }
 
-/**
- * Клеит стаб и payload. Offset payload'а = длина стаба в байтах, поэтому подстановка
- * плейсхолдеров обязана сохранять длину — OFFSET фиксирован на 10 цифр.
- * @param {{ outputPath: string, payload: Buffer, key: string }} params
- */
-function writeSelfExtract({ outputPath, payload, key }) {
-    const stubTemplate = readFileSync(join(import.meta.dirname, "selfextract-stub.sh"), "utf8");
-    if (!stubTemplate.includes("@@OFFSET@@") || !stubTemplate.includes("@@KEY@@")) {
-        throw new Error("[selfextract] Stub is missing @@OFFSET@@ / @@KEY@@ placeholders");
-    }
-
-    const OFFSET_WIDTH = 10;
-    // Проход 1: подставляем всё, кроме offset'а, чтобы длина стаба устоялась.
-    const withKey = stubTemplate.replace("@@KEY@@", key).replace("@@OFFSET@@", "0".repeat(OFFSET_WIDTH));
-    // tail -c +N — 1-based, поэтому первый байт payload'а = длина стаба + 1.
-    const offset = Buffer.byteLength(withKey, "utf8") + 1;
-    const offsetText = String(offset).padStart(OFFSET_WIDTH, "0");
-    if (offsetText.length !== OFFSET_WIDTH) {
-        throw new Error(`[selfextract] Offset ${offset} does not fit into ${OFFSET_WIDTH} digits`);
-    }
-    // Проход 2: замена той же длины — offset остаётся валидным.
-    const stub = withKey.replace("0".repeat(OFFSET_WIDTH), offsetText);
-    if (Buffer.byteLength(stub, "utf8") + 1 !== offset) {
-        throw new Error("[selfextract] Stub length changed after offset substitution");
-    }
-
-    mkdirSync(join(outputPath, ".."), { recursive: true });
-    writeFileSync(outputPath, Buffer.concat([Buffer.from(stub, "utf8"), payload]));
-    chmodSync(outputPath, 0o755);
-}
-
 /** @param {string} url */
 async function fetchText(url) {
     const response = await fetch(url);
@@ -258,4 +228,8 @@ function sha256(data) {
     return createHash("sha256").update(data).digest("hex");
 }
 
-await main();
+// Точка входа только при прямом запуске — иначе модуль нельзя импортировать в тесты,
+// не запустив сборку. Та же конвенция, что в pack-assets.mjs.
+if (import.meta.url === `file://${process.argv[1]}`) {
+    await main();
+}
