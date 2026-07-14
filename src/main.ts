@@ -9,10 +9,10 @@ import { joinVirtualPath } from "./Common/Assets/AssetBundleFormat.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
 import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
 import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
+import { isPackagedRuntime } from "./Common/Assets/PackagedRuntime.ts";
 import type { ICliArgs } from "./Common/CliArgs.ts";
 import { CliArgsError, parseCliArgs, USAGE } from "./Common/CliArgs.ts";
 import { Size } from "./Common/GeometryPromitives.ts";
-import { isSeaBinary } from "./Common/IsSea.ts";
 import { LogService } from "./Common/Logging/LogService.ts";
 import { FileSink } from "./Common/Logging/sinks/FileSink.ts";
 import { RingBufferSink } from "./Common/Logging/sinks/RingBufferSink.ts";
@@ -102,12 +102,13 @@ async function runEditor(): Promise<void> {
 
     // ── Logging ──────────────────────────────────────────────
     // Всегда поднимаем RingBufferSink (источник данных для будущей
-    // Output-вкладки). FileSink — только в dev (!SEA): пишем в ./vexx.log в cwd
+    // Output-вкладки). FileSink — только в dev: пишем в ./vexx.log в cwd
     // с truncate при каждом запуске. Для агентов/разработчиков это удобный
-    // debug-tool; в SEA-prod файл вообще не создаётся.
+    // debug-tool; в упакованных сборках файл вообще не создаётся — гейт идёт по
+    // isPackagedRuntime(), а не isSeaBinary(): self-extract тоже прод, но не SEA.
     const logService = new LogService();
     logService.addSink(new RingBufferSink());
-    if (!isSeaBinary()) {
+    if (!isPackagedRuntime()) {
         logService.addSink(new FileSink(path.resolve(process.cwd(), "vexx.log")));
     }
     const bootstrapLogger = logService.createLogger("bootstrap");

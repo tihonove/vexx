@@ -3,17 +3,22 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { BundleAssetAccess } from "./BundleAssetAccess.ts";
+import { BUNDLE_FILE_NAME, tryReadBundleFile } from "./BundleFile.ts";
 import { FsAssetAccess } from "./FsAssetAccess.ts";
 import type { IAssetAccess } from "./IAssetAccess.ts";
+import { entryDir } from "./PackagedRuntime.ts";
 
-const SEA_BUNDLE_KEY = "vexx.bundle";
+const SEA_BUNDLE_KEY = BUNDLE_FILE_NAME;
 
 /**
- * Возвращает {@link IAssetAccess} для текущего рантайма:
+ * Возвращает {@link IAssetAccess} для текущего рантайма — три источника одного
+ * и того же `vexx.bundle`, по убыванию приоритета:
  *
- *   - если процесс — SEA-бинарь (`node:sea.isSea() === true`),
- *     возвращает {@link BundleAssetAccess} над встроенным `vexx.bundle`;
- *   - иначе — {@link FsAssetAccess} с dev-mapping'ом на реальные файлы
+ *   - **SEA-бинарь** (`node:sea.isSea() === true`) — бандл встроен в исполняемый
+ *     файл, достаётся через `sea.getAsset()`;
+ *   - **self-extract** — бандл лежит файлом рядом с `main.js` (см.
+ *     `scripts/build-selfextract.mjs`); формат тот же, меняется только источник байтов;
+ *   - **dev/tests** — {@link FsAssetAccess} с mapping'ом на реальные файлы
  *     в `src/Extensions/builtin/` и `node_modules/vscode-oniguruma`.
  *
  * `node:sea` доступен только через `require()` внутри SEA-сборки —
@@ -21,8 +26,13 @@ const SEA_BUNDLE_KEY = "vexx.bundle";
  * (`mainFormat: "module"`).
  */
 export function createDefaultAssetAccess(): IAssetAccess {
-    const bundle = tryLoadSeaBundle();
-    if (bundle !== null) return new BundleAssetAccess(bundle);
+    const seaBundle = tryLoadSeaBundle();
+    if (seaBundle !== null) return new BundleAssetAccess(seaBundle);
+
+    const dir = entryDir();
+    const fileBundle = dir === null ? null : tryReadBundleFile(dir);
+    if (fileBundle !== null) return new BundleAssetAccess(fileBundle);
+
     return createDevAssetAccess();
 }
 
