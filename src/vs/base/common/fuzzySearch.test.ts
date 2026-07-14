@@ -306,7 +306,7 @@ describe("fuzzyMatchLower / fuzzyMatchBestLower — parity with wrappers", () =>
     const cases: [string, string][] = [
         ["ac", "AppController"],
         ["fss", "FileSearchService.ts"],
-        ["src", "src/Controllers/FileSearchService.ts"],
+        ["src", "src/vs/workbench/services/search/node/fileSearchService.ts"],
         ["zz", "AppController"], // no match
         ["", "anything"], // empty query
     ];

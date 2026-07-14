@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { IEditorDecorationsService } from "../../Host/IEditorDecorationsService.ts";
-import type { IExtensionRegistration } from "../../Host/IExtensionEntry.ts";
-import type { IFileDecorationsService } from "../../Host/IFileDecorationsService.ts";
-import type { IThemeColorResolver } from "../../Host/IThemeColorResolver.ts";
+import type { IEditorDecorationsService } from "../../../vs/workbench/api/common/editorDecorationsService.ts";
+import type { IExtensionRegistration } from "../../../vs/workbench/services/extensions/common/extensionEntry.ts";
+import type { IFileDecorationsService } from "../../../vs/workbench/api/common/fileDecorationsService.ts";
+import type { IThemeColorResolver } from "../../../vs/workbench/api/common/themeColorResolver.ts";
 import type { IGutterChangeDecoration } from "../../../vs/editor/common/model/gutterChangeDecoration.ts";
 import { createExtensionTestHarness, type IExtensionHarness } from "../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../TestUtils/timing.ts";

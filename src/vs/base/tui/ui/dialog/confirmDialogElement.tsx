@@ -1,6 +1,6 @@
 import { BoxConstraints, Size } from "../../../common/geometry.ts";
 import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
-import type { WorkbenchTheme } from "../../../../../Theme/WorkbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
 import { CompositeElement } from "../../compositeElement.ts";
 import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import type { JsxNode } from "../../jsx/jsx-runtime.ts";

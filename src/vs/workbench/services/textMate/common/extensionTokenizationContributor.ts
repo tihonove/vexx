@@ -1,0 +1,111 @@
+import { joinVirtualPath } from "../../../../base/common/assets/assetBundleFormat.ts";
+import type { IAssetAccess } from "../../../../base/common/assets/assets.ts";
+import type { IDisposable } from "../../../../base/common/lifecycle.ts";
+import type { ILogger } from "../../../../platform/log/common/logger.ts";
+import type { IGrammarRecord } from "./textMateGrammarLoader.ts";
+import { TextMateGrammarLoader } from "./textMateGrammarLoader.ts";
+import type { TokenizationRegistry } from "../../../../editor/common/tokenizationRegistry.ts";
+
+import type { IExtension } from "../../../../platform/extensions/common/extensions.ts";
+
+/**
+ * Применяет вклад расширений в подсветку синтаксиса:
+ *   - собирает {@link IGrammarRecord}[] из всех `contributes.grammars`,
+ *   - создаёт общий {@link TextMateGrammarLoader},
+ *   - для каждой грамматики с привязанным `language` загружает support
+ *     и регистрирует его в {@link TokenizationRegistry}.
+ *
+ * Injection-грамматики (без `language`) только добавляются в loader —
+ * vscode-textmate сам подмешает их в хост-грамматики через `getInjections`.
+ *
+ * Возвращает Disposable, который убирает все регистрации (для будущей
+ * выгрузки расширений). Внутри хранит созданный loader, чтобы освободить
+ * vscode-textmate Registry при dispose.
+ */
+export class ExtensionTokenizationContributor implements IDisposable {
+    private readonly assets: IAssetAccess;
+    private readonly extensions: readonly IExtension[];
+    private readonly tokenizationRegistry: TokenizationRegistry;
+    private readonly logger: ILogger | undefined;
+    private loader: TextMateGrammarLoader | undefined;
+    private registrationDisposables: IDisposable[] = [];
+
+    public constructor(
+        assets: IAssetAccess,
+        extensions: readonly IExtension[],
+        tokenizationRegistry: TokenizationRegistry,
+        logger?: ILogger,
+    ) {
+        this.assets = assets;
+        this.extensions = extensions;
+        this.tokenizationRegistry = tokenizationRegistry;
+        this.logger = logger;
+    }
+
+    /**
+     * Загружает все грамматики и регистрирует поддержку в `TokenizationRegistry`.
+     * До завершения промиса в реестре остаются ранее зарегистрированные
+     * fallback-токенайзеры (если есть).
+     */
+    public async apply(): Promise<void> {
+        const records = this.collectGrammarRecords();
+        if (records.length === 0) return;
+
+        const loader = new TextMateGrammarLoader(this.assets, records);
+        this.loader = loader;
+
+        const tasks: Promise<void>[] = [];
+        for (const grammar of this.iterAllGrammars()) {
+            if (grammar.language === undefined) continue;
+            const languageId = grammar.language;
+            const scopeName = grammar.scopeName;
+            tasks.push(
+                (async () => {
+                    try {
+                        const support = await loader.loadSupport(scopeName);
+                        if (support === null) {
+                            this.logger?.error(`Failed to load grammar "${scopeName}" for language "${languageId}"`);
+                            return;
+                        }
+                        const disposable = this.tokenizationRegistry.register(languageId, support);
+                        this.registrationDisposables.push(disposable);
+                    } catch (err) {
+                        this.logger?.error(`Error loading grammar "${scopeName}" (${languageId})`, err);
+                    }
+                })(),
+            );
+        }
+        await Promise.all(tasks);
+    }
+
+    public dispose(): void {
+        for (const d of this.registrationDisposables) d.dispose();
+        this.registrationDisposables = [];
+        this.loader?.dispose();
+        this.loader = undefined;
+    }
+
+    private collectGrammarRecords(): IGrammarRecord[] {
+        const records: IGrammarRecord[] = [];
+        for (const ext of this.extensions) {
+            const grammars = ext.manifest.contributes?.grammars;
+            if (grammars === undefined) continue;
+            for (const grammar of grammars) {
+                records.push({
+                    scopeName: grammar.scopeName,
+                    path: joinVirtualPath(ext.location, grammar.path),
+                    injections: grammar.injectTo,
+                });
+            }
+        }
+        return records;
+    }
+
+    private *iterAllGrammars() {
+        for (const ext of this.extensions) {
+            const grammars = ext.manifest.contributes?.grammars;
+            if (grammars === undefined) continue;
+            for (const grammar of grammars) yield grammar;
+        }
+    }
+}

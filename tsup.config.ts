@@ -35,7 +35,7 @@ function resolveVersion(): string {
 }
 
 export default defineConfig({
-  entry: ["src/main.ts"],
+  entry: ["src/vs/vexx/main.ts"],
   format: ["esm"],
   target: "es2024",
   noExternal: ["chokidar", "vscode-textmate", "vscode-oniguruma", "jsonc-parser", "yauzl"],

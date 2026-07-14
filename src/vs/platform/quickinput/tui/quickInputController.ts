@@ -49,7 +49,7 @@ export interface QuickPickOptions {
  * list" control).
  *
  * Owns ONE reusable {@link QuickPickElement} hosted in a single overlay session,
- * mirroring {@link import("../../../../Controllers/QuickOpenController.ts").QuickOpenController}. Only
+ * mirroring {@link import("../../../workbench/contrib/quickaccess/tui/quickOpenController.ts").QuickOpenController}. Only
  * one quick-input is ever active at a time; a new call cancels any previous one.
  *
  * Exposes the InputBox flavor (`input()`) and the list-pick flavor

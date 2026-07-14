@@ -1,0 +1,113 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { createCursorSelection } from "../../../../editor/common/core/selection.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/language.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../../../../editor/common/languages/tokenStyleResolver.ts";
+import { TokenizationRegistry } from "../../../../editor/common/tokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+
+import { EditorController } from "./editorController.ts";
+import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
+
+/** The folding recompute runs on a microtask; a macrotask tick flushes it. */
+function flush(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function createEditorController(): EditorController {
+    return new EditorController(
+        new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
+        new TokenizationRegistry(),
+        NULL_TOKEN_STYLE_RESOLVER,
+        NULL_LANGUAGE_SERVICE,
+        new UndoRedoService(),
+    );
+}
+
+function regionAt(ctrl: EditorController, startLine: number) {
+    return ctrl.viewState.foldedRegions.find((r) => r.startLine === startLine);
+}
+
+describe("EditorController – folding recompute keeps the caret visible", () => {
+    let ws: ITempWorkspace;
+
+    beforeEach(() => {
+        ws = createTempWorkspace({ prefix: "vexx-fold-" });
+    });
+    afterEach(() => {
+        ws.dispose();
+    });
+
+    function open(content: string): EditorController {
+        const filePath = ws.writeFile("doc.txt", content);
+        const ctrl = createEditorController();
+        ctrl.openFile(filePath);
+        return ctrl;
+    }
+
+    it("keeps the just-indented line visible when the recompute pulls it into a collapsed region", async () => {
+        // 0: block   ← region 0..1
+        // 1:   a
+        // 2: tail
+        const ctrl = open("block\n  a\ntail");
+        expect(regionAt(ctrl, 0)).toBeDefined();
+
+        ctrl.viewState.foldRegionContaining(0); // collapse 0..1 → line 1 hidden
+        ctrl.viewState.selections = [createCursorSelection(2, 0)]; // on the still-visible "tail"
+        ctrl.viewState.type("  "); // indent "tail" → now nests under the block
+        await flush();
+
+        // Recompute extends the region to 0..2 and, since startLine 0 was collapsed,
+        // re-collapses it — which would hide the caret. The fix reveals it again.
+        const cursor = ctrl.viewState.selections[0].active.line;
+        expect(cursor).toBe(2);
+        expect(ctrl.viewState.logicalToVisualLine(2)).toBeGreaterThanOrEqual(0);
+        expect(regionAt(ctrl, 0)?.isCollapsed).toBe(false); // expanded to keep caret shown
+    });
+
+    it("preserves the collapsed state across an unrelated far edit", async () => {
+        // 0: block   ← region 0..2
+        // 1:   a
+        // 2:   b
+        // 3: tail
+        const ctrl = open("block\n  a\n  b\ntail");
+        ctrl.viewState.foldRegionContaining(0);
+        expect(regionAt(ctrl, 0)?.isCollapsed).toBe(true);
+
+        ctrl.viewState.selections = [createCursorSelection(3, 4)];
+        ctrl.viewState.type("!"); // edit after the region
+        await flush();
+
+        expect(regionAt(ctrl, 0)?.isCollapsed).toBe(true); // still folded
+    });
+
+    it("drops the fold when the collapsed region's header is edited (current behavior)", async () => {
+        const ctrl = open("block\n  a\n  b");
+        ctrl.viewState.foldRegionContaining(0);
+        expect(regionAt(ctrl, 0)?.isCollapsed).toBe(true);
+
+        ctrl.viewState.selections = [createCursorSelection(0, 0)];
+        ctrl.viewState.type("x"); // edit ON the header line
+        await flush();
+
+        // The region is rebuilt from indentation but its collapsed state is lost —
+        // editing a header line unfolds it (documented divergence from VS Code).
+        expect(regionAt(ctrl, 0)).toBeDefined();
+        expect(regionAt(ctrl, 0)?.isCollapsed).toBe(false);
+    });
+
+    it("coalesces a burst of edits into a single recompute", async () => {
+        const ctrl = open("block\n  a\n  b\ntail");
+        ctrl.viewState.selections = [createCursorSelection(3, 4)];
+        ctrl.viewState.type("x"); // schedules recompute
+        ctrl.viewState.type("y"); // second edit hits the already-scheduled guard
+        await flush();
+
+        // A single recompute ran and rebuilt regions from the final content.
+        expect(regionAt(ctrl, 0)).toBeDefined();
+        expect(ctrl.viewState.document.getLineContent(3)).toBe("tailxy");
+    });
+});

@@ -12,8 +12,8 @@ import { CompletionListElement } from "./completionListElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/tui/ui/contextview/overlayLayer.ts";
 
 import { collectWordCompletions } from "../common/collectWordCompletions.ts";
-import type { EditorController } from "../../../../../Controllers/EditorController.ts";
-import type { EditorGroupController } from "../../../../../Controllers/EditorGroupController.ts";
+import type { EditorController } from "../../../../workbench/tui/parts/editor/editorController.ts";
+import type { EditorGroupController } from "../../../../workbench/tui/parts/editor/editorGroupController.ts";
 
 /** Символы, образующие «слово» под курсором (префикс автодополнения). */
 const WORD_CHAR = /[\w.-]/;

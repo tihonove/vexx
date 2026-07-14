@@ -1,15 +1,15 @@
 import type { Container } from "../vs/platform/instantiation/common/instantiation.ts";
 import { Size } from "../vs/base/common/geometry.ts";
 import type { IStateService } from "../vs/platform/state/node/state.ts";
-import type { AppController } from "../Controllers/AppController.ts";
-import { AppControllerDIToken } from "../Controllers/AppController.ts";
+import type { AppController } from "../vs/workbench/tui/workbench.ts";
+import { AppControllerDIToken } from "../vs/workbench/tui/workbench.ts";
 import type { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
 import { CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
-import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Controllers/CoreTokens.ts";
-import type { EditorController } from "../Controllers/EditorController.ts";
-import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
-import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
-import { StateServiceDIToken } from "../Controllers/Modules/StateModule.ts";
+import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../vs/workbench/tui/coreTokens.ts";
+import type { EditorController } from "../vs/workbench/tui/parts/editor/editorController.ts";
+import { EditorGroupControllerDIToken } from "../vs/workbench/tui/parts/editor/editorGroupController.ts";
+import { createTestContainer } from "../vs/vexx/modules/testProfile.ts";
+import { StateServiceDIToken } from "../vs/vexx/modules/stateModule.ts";
 
 import { TestApp } from "./TestApp.ts";
 

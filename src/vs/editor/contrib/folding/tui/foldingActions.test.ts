@@ -7,13 +7,13 @@ import { NULL_TOKEN_STYLE_RESOLVER } from "../../../common/languages/tokenStyleR
 import { TokenizationRegistry } from "../../../common/tokenizationRegistry.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { settle } from "../../../../../TestUtils/timing.ts";
-import { darkPlusTheme } from "../../../../../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../../../../../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../../../../../Theme/WorkbenchTheme.ts";
+import { darkPlusTheme } from "../../../../workbench/services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../../workbench/services/themes/common/themeService.ts";
+import { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
 import type { CommandAction } from "../../../../platform/commands/common/commandAction.ts";
 import { registerAction } from "../../../../platform/commands/common/commandAction.ts";
 import { CommandRegistry } from "../../../../platform/commands/common/commands.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "../../../../../Controllers/EditorGroupController.ts";
+import { EditorGroupController, EditorGroupControllerDIToken } from "../../../../workbench/tui/parts/editor/editorGroupController.ts";
 import { NULL_FILE_WATCHER } from "../../../../platform/files/common/watcher.ts";
 import { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";

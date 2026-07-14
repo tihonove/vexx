@@ -14,14 +14,14 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
-import { fileSaveAction } from "../Controllers/Actions/FileActions.ts";
+import { fileSaveAction } from "../vs/workbench/contrib/files/tui/fileActions.ts";
 import { findAction } from "../vs/editor/contrib/find/tui/findActions.ts";
-import { quickOpenAction, showCommandsAction } from "../Controllers/Actions/QuickOpenActions.ts";
+import { quickOpenAction, showCommandsAction } from "../vs/workbench/contrib/quickaccess/tui/quickOpenActions.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,
     previousEditorInGroupAction,
-} from "../Controllers/Actions/TabActions.ts";
+} from "../vs/workbench/tui/parts/editor/tabActions.ts";
 import type { CommandAction } from "../vs/platform/commands/common/commandAction.ts";
 import { formatKeybinding, type Keybinding } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
 import {
@@ -31,7 +31,7 @@ import {
     detectTruecolor,
     emptyCapabilities,
     resolveTier,
-} from "../Controllers/TerminalEnvironment/TerminalEnvironmentModel.ts";
+} from "../vs/workbench/terminalEnvironment/terminalEnvironmentModel.ts";
 import type { KeyPressEvent } from "../vs/tui/input/keyEvent.ts";
 import { KeyInputParser } from "../vs/tui/input/keyInputParser.ts";
 import { tokenize } from "../vs/tui/input/tokenize.ts";

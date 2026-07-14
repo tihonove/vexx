@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import type { IWorkbenchColors } from "./colors.ts";
-import { builtinThemes } from "../../../../Theme/themes/builtinThemes.ts";
-import { WorkbenchTheme } from "../../../../Theme/WorkbenchTheme.ts";
+import { builtinThemes } from "../../../workbench/services/themes/common/themes/builtinThemes.ts";
+import { WorkbenchTheme } from "../../../workbench/services/themes/common/workbenchTheme.ts";
 
 /**
  * Every workbench color the app reads through `getRequiredColor` must resolve on

@@ -1,5 +1,5 @@
 import type { CommandAction } from "../../../../platform/commands/common/commandAction.ts";
-import { EditorGroupControllerDIToken } from "../../../../../Controllers/EditorGroupController.ts";
+import { EditorGroupControllerDIToken } from "../../../../workbench/tui/parts/editor/editorGroupController.ts";
 import { parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 
 export const foldAction: CommandAction = {

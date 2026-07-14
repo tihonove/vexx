@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { Point, Size } from "../../base/common/geometry.ts";
 import { packRgb } from "../../tui/rendering/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import type { IThemeFile } from "../../../Theme/IThemeFile.ts";
-import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
+import type { IThemeFile } from "../../workbench/services/themes/common/themeFile.ts";
+import { WorkbenchTheme } from "../../workbench/services/themes/common/workbenchTheme.ts";
 import { TUIMouseEvent } from "../../base/tui/events/tuiMouseEvent.ts";
 import { PopupMenuElement } from "../../base/tui/ui/menu/popupMenuElement.ts";
 

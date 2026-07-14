@@ -5,11 +5,11 @@ import type { IPosition } from "../../../common/core/position.ts";
 import { comparePositions } from "../../../common/core/position.ts";
 import type { IRange } from "../../../common/core/range.ts";
 import { createSelection } from "../../../common/core/selection.ts";
-import type { WorkbenchTheme } from "../../../../../Theme/WorkbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
 import { FindWidgetElement } from "./findWidgetElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/tui/ui/contextview/overlayLayer.ts";
 
-import type { EditorGroupController } from "../../../../../Controllers/EditorGroupController.ts";
+import type { EditorGroupController } from "../../../../workbench/tui/parts/editor/editorGroupController.ts";
 
 /**
  * Drives the find-in-file widget: owns the query → matches → current-index

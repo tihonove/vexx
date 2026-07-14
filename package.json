@@ -10,7 +10,7 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "tsx src/main.ts",
+    "start": "tsx src/vs/vexx/main.ts",
     "prestart": "npm run build:extensions",
     "build:extensions": "node scripts/build-extensions.mjs",
     "demo:tuidom": "tsx src/demos/tuidom/minimalHost.ts",

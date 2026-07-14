@@ -11,14 +11,14 @@ import { NULL_TOKEN_STYLE_RESOLVER } from "../../../common/languages/tokenStyleR
 import { TokenizationRegistry } from "../../../common/tokenizationRegistry.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../../../../../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../../../../../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../../../../../Theme/WorkbenchTheme.ts";
+import { darkPlusTheme } from "../../../../workbench/services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../../workbench/services/themes/common/themeService.ts";
+import { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
 import { TUIMouseEvent } from "../../../../base/tui/events/tuiMouseEvent.ts";
 import { BodyElement } from "../../../../base/tui/bodyElement.ts";
 
-import type { EditorController } from "../../../../../Controllers/EditorController.ts";
-import { EditorGroupController } from "../../../../../Controllers/EditorGroupController.ts";
+import type { EditorController } from "../../../../workbench/tui/parts/editor/editorController.ts";
+import { EditorGroupController } from "../../../../workbench/tui/parts/editor/editorGroupController.ts";
 import { FindController } from "./findController.ts";
 import { NULL_FILE_WATCHER } from "../../../../platform/files/common/watcher.ts";
 import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";

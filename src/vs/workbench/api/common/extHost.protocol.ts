@@ -1,0 +1,445 @@
+import { EndOfLine } from "../../../editor/common/core/endOfLine.ts";
+import type { ICoreCompletionItem } from "../../../editor/common/languages.ts";
+import { createRange, type IRange } from "../../../editor/common/core/range.ts";
+import type { ISaveEdit } from "../../services/textfile/common/saveParticipant.ts";
+
+/**
+ * Wire-форма правки save-участника (subprocess → host). Либо замена текста в
+ * диапазоне (позиции 0-based, как в ядре — прямой маппинг на `IRange`), либо
+ * смена EOL всего документа. Общий формат для обеих сторон RPC.
+ */
+export type WireTextEdit =
+    | {
+          readonly range: {
+              readonly startLine: number;
+              readonly startCharacter: number;
+              readonly endLine: number;
+              readonly endCharacter: number;
+          };
+          readonly text: string;
+      }
+    | { readonly setEndOfLine: 1 | 2 };
+
+/** Параметры запроса will-save (host → subprocess). */
+export interface IWireWillSaveParams {
+    readonly fileName: string;
+    readonly languageId: string;
+    readonly version: number;
+    readonly isDirty: boolean;
+    readonly text: string;
+    /** `vscode.TextDocumentSaveReason` (1=Manual, 2=AfterDelay, 3=FocusOut). */
+    readonly reason: number;
+    /** Текущий EOL документа (`vscode.EndOfLine`: 1=LF, 2=CRLF). */
+    readonly eol: number;
+}
+
+function isFiniteNumber(v: unknown): v is number {
+    return typeof v === "number" && Number.isFinite(v);
+}
+
+/** Валидирует одну wire-правку; `null`, если форма не распознана. */
+function parseWireTextEdit(raw: unknown): WireTextEdit | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const obj = raw as Record<string, unknown>;
+    if ("setEndOfLine" in obj) {
+        const eol = obj.setEndOfLine;
+        if (eol === 1 || eol === 2) return { setEndOfLine: eol };
+        return null;
+    }
+    const range = obj.range;
+    if (typeof range !== "object" || range === null) return null;
+    const r = range as Record<string, unknown>;
+    if (
+        !isFiniteNumber(r.startLine) ||
+        !isFiniteNumber(r.startCharacter) ||
+        !isFiniteNumber(r.endLine) ||
+        !isFiniteNumber(r.endCharacter) ||
+        typeof obj.text !== "string"
+    ) {
+        return null;
+    }
+    return {
+        range: {
+            startLine: r.startLine,
+            startCharacter: r.startCharacter,
+            endLine: r.endLine,
+            endCharacter: r.endCharacter,
+        },
+        text: obj.text,
+    };
+}
+
+/**
+ * Разбирает сырой ответ will-save в массив валидных {@link WireTextEdit}.
+ * Невалидные элементы отбрасываются (drop+skip), а не роняют весь ответ.
+ */
+export function parseWireTextEdits(raw: unknown): WireTextEdit[] {
+    if (!Array.isArray(raw)) return [];
+    const result: WireTextEdit[] = [];
+    for (const item of raw) {
+        const parsed = parseWireTextEdit(item);
+        if (parsed !== null) result.push(parsed);
+    }
+    return result;
+}
+
+/** Переводит wire-правки в core-правки ({@link ISaveEdit}). */
+export function wireToSaveEdits(wire: readonly WireTextEdit[]): ISaveEdit[] {
+    return wire.map((edit) =>
+        "setEndOfLine" in edit
+            ? { kind: "eol", eol: edit.setEndOfLine === 2 ? EndOfLine.CRLF : EndOfLine.LF }
+            : {
+                  kind: "text",
+                  range: createRange(
+                      edit.range.startLine,
+                      edit.range.startCharacter,
+                      edit.range.endLine,
+                      edit.range.endCharacter,
+                  ),
+                  text: edit.text,
+              },
+    );
+}
+
+/**
+ * Запрашивает у subprocess'а правки will-save с таймаутом. Возвращает пустой
+ * массив на таймаут, ошибку RPC или невалидный ответ — сохранение никогда не
+ * блокируется навсегда и не портит данные. `request` — голая функция (обычно
+ * `rpc.request`), чтобы логику можно было юнит-тестировать через
+ * {@link InProcessChannelPair} без форка subprocess'а.
+ */
+export async function requestWillSaveEdits(
+    request: (method: string, params: unknown) => Promise<unknown>,
+    params: IWireWillSaveParams,
+    timeoutMs: number,
+): Promise<ISaveEdit[]> {
+    const TIMEOUT = Symbol("timeout");
+    let timer!: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<typeof TIMEOUT>((resolve) => {
+        timer = setTimeout(() => {
+            resolve(TIMEOUT);
+        }, timeoutMs);
+    });
+    try {
+        const outcome = await Promise.race([
+            request("workspace.willSaveTextDocument", params).catch(() => TIMEOUT),
+            timeout,
+        ]);
+        if (outcome === TIMEOUT) return [];
+        return wireToSaveEdits(parseWireTextEdits(outcome));
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// ─── Completion (WP8) ────────────────────────────────────────────────────────
+
+/** Wire-форма диапазона (0-based, прямой маппинг на `IRange`). */
+interface IWireRange {
+    readonly startLine: number;
+    readonly startCharacter: number;
+    readonly endLine: number;
+    readonly endCharacter: number;
+}
+
+/**
+ * Wire-форма элемента автодополнения (subprocess → host). `insertText` уже
+ * нормализован хостом-сериализатором (fallback на `label`).
+ */
+export interface WireCompletionItem {
+    readonly label: string;
+    readonly insertText: string;
+    readonly kind?: number;
+    readonly detail?: string;
+    readonly documentation?: string;
+    readonly command?: { readonly command: string; readonly arguments?: readonly unknown[] };
+    readonly range?: IWireRange;
+    readonly sortText?: string;
+    readonly filterText?: string;
+}
+
+/** Параметры запроса completion (host → subprocess). */
+export interface IWireCompletionParams {
+    readonly fileName: string;
+    readonly languageId: string;
+    readonly text: string;
+    readonly line: number;
+    readonly character: number;
+}
+
+function parseWireRange(raw: unknown): IWireRange | undefined {
+    if (typeof raw !== "object" || raw === null) return undefined;
+    const r = raw as Record<string, unknown>;
+    if (
+        !isFiniteNumber(r.startLine) ||
+        !isFiniteNumber(r.startCharacter) ||
+        !isFiniteNumber(r.endLine) ||
+        !isFiniteNumber(r.endCharacter)
+    ) {
+        return undefined;
+    }
+    return {
+        startLine: r.startLine,
+        startCharacter: r.startCharacter,
+        endLine: r.endLine,
+        endCharacter: r.endCharacter,
+    };
+}
+
+function parseWireCommand(raw: unknown): WireCompletionItem["command"] {
+    if (typeof raw !== "object" || raw === null) return undefined;
+    const c = raw as Record<string, unknown>;
+    if (typeof c.command !== "string" || c.command === "") return undefined;
+    return {
+        command: c.command,
+        ...(Array.isArray(c.arguments) ? { arguments: c.arguments as readonly unknown[] } : {}),
+    };
+}
+
+/** Валидирует один wire-элемент completion; `null`, если форма не распознана. */
+function parseWireCompletionItem(raw: unknown): WireCompletionItem | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj.label !== "string" || obj.label === "") return null;
+    const insertText = typeof obj.insertText === "string" ? obj.insertText : obj.label;
+    const range = parseWireRange(obj.range);
+    const command = parseWireCommand(obj.command);
+    return {
+        label: obj.label,
+        insertText,
+        ...(isFiniteNumber(obj.kind) ? { kind: obj.kind } : {}),
+        ...(typeof obj.detail === "string" ? { detail: obj.detail } : {}),
+        ...(typeof obj.documentation === "string" ? { documentation: obj.documentation } : {}),
+        ...(command !== undefined ? { command } : {}),
+        ...(range !== undefined ? { range } : {}),
+        ...(typeof obj.sortText === "string" ? { sortText: obj.sortText } : {}),
+        ...(typeof obj.filterText === "string" ? { filterText: obj.filterText } : {}),
+    };
+}
+
+/**
+ * Разбирает сырой ответ completion в массив валидных {@link WireCompletionItem}.
+ * Невалидные элементы отбрасываются (drop+skip), а не роняют весь ответ.
+ */
+export function parseWireCompletionItems(raw: unknown): WireCompletionItem[] {
+    if (!Array.isArray(raw)) return [];
+    const result: WireCompletionItem[] = [];
+    for (const item of raw) {
+        const parsed = parseWireCompletionItem(item);
+        if (parsed !== null) result.push(parsed);
+    }
+    return result;
+}
+
+/** Переводит wire-элементы в core-элементы ({@link ICoreCompletionItem}). */
+export function wireToCoreCompletionItems(wire: readonly WireCompletionItem[]): ICoreCompletionItem[] {
+    return wire.map((item) => ({
+        label: item.label,
+        insertText: item.insertText,
+        ...(item.kind !== undefined ? { kind: item.kind } : {}),
+        ...(item.detail !== undefined ? { detail: item.detail } : {}),
+        ...(item.documentation !== undefined ? { documentation: item.documentation } : {}),
+        ...(item.command !== undefined
+            ? {
+                  command: {
+                      command: item.command.command,
+                      ...(item.command.arguments !== undefined ? { arguments: item.command.arguments } : {}),
+                  },
+              }
+            : {}),
+        ...(item.range !== undefined
+            ? {
+                  range: createRange(
+                      item.range.startLine,
+                      item.range.startCharacter,
+                      item.range.endLine,
+                      item.range.endCharacter,
+                  ),
+              }
+            : {}),
+        ...(item.sortText !== undefined ? { sortText: item.sortText } : {}),
+        ...(item.filterText !== undefined ? { filterText: item.filterText } : {}),
+    }));
+}
+
+/**
+ * Запрашивает у subprocess'а элементы автодополнения с таймаутом. Возвращает
+ * пустой массив на таймаут, ошибку RPC или невалидный ответ (completion —
+ * best-effort, не блокирует UI). `request` — голая функция для юнит-тестов через
+ * {@link InProcessChannelPair} без форка subprocess'а (как {@link requestWillSaveEdits}).
+ */
+export async function requestCompletionItems(
+    request: (method: string, params: unknown) => Promise<unknown>,
+    params: IWireCompletionParams,
+    timeoutMs: number,
+): Promise<ICoreCompletionItem[]> {
+    const TIMEOUT = Symbol("timeout");
+    let timer!: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<typeof TIMEOUT>((resolve) => {
+        timer = setTimeout(() => {
+            resolve(TIMEOUT);
+        }, timeoutMs);
+    });
+    try {
+        const outcome = await Promise.race([
+            request("languages.provideCompletionItems", params).catch(() => TIMEOUT),
+            timeout,
+        ]);
+        if (outcome === TIMEOUT) return [];
+        return wireToCoreCompletionItems(parseWireCompletionItems(outcome));
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// ─── Decorations (Chunk 4 — host-bridge) ─────────────────────────────────────
+
+/**
+ * Wire-форма `vscode.ThemeColor` — цвет из реестра темы, резолвится в конкретный
+ * packed-RGB на стороне host'а. Голый `string` в тех же полях — CSS-цвет, который
+ * host игнорирует (у нас нет hex-парсинга инлайн-цветов декораций).
+ */
+export interface ISerializedThemeColor {
+    readonly $themeColor: string;
+}
+
+/** Значение цвета в сериализованных опциях декорации: CSS-строка или ThemeColor. */
+export type SerializedColor = string | ISerializedThemeColor;
+
+/**
+ * Сериализованные `vscode.DecorationRenderOptions` (subprocess → host). Несём
+ * только поля, которые host умеет спроецировать на свои поверхности: наличие
+ * `overviewRulerColor` делает тип «gutter change-bar», `isWholeLine` — метаданные
+ * реестра. Прочие CSS-поля декораций в TUI не рендерятся и не передаются.
+ */
+export interface SerializedDecorationRenderOptions {
+    readonly isWholeLine?: boolean;
+    readonly overviewRulerLane?: number;
+    readonly backgroundColor?: SerializedColor;
+    readonly color?: SerializedColor;
+    readonly overviewRulerColor?: SerializedColor;
+}
+
+/** Параметры нотификации `window.createTextEditorDecorationType`. */
+export interface IWireCreateDecorationType {
+    readonly key: number;
+    readonly options: SerializedDecorationRenderOptions;
+}
+
+/** Параметры нотификации `editor.setDecorations`. */
+export interface IWireSetDecorations {
+    readonly key: number;
+    readonly fileName: string;
+    readonly ranges: readonly IRange[];
+}
+
+/** Одна изменившаяся файловая декорация (`window.fileDecorationsChanged`). */
+export interface IWireFileDecoration {
+    readonly uri: string;
+    readonly badge?: string;
+    readonly colorId?: string;
+    readonly propagate?: boolean;
+}
+
+/**
+ * Сериализует значение цвета опций декорации. `ThemeColor` (утиный тип — объект
+ * со строковым `id`) → `{ $themeColor: id }`; CSS-строка остаётся как есть;
+ * прочее (в т.ч. `undefined`) → `undefined`.
+ */
+export function serializeColor(value: unknown): SerializedColor | undefined {
+    if (typeof value === "string") return value;
+    if (typeof value === "object" && value !== null && typeof (value as { id?: unknown }).id === "string") {
+        return { $themeColor: (value as { id: string }).id };
+    }
+    return undefined;
+}
+
+/** Извлекает id темы из сериализованного цвета; `undefined` для CSS-строк/пусто. */
+export function themeColorIdOf(value: SerializedColor | undefined): string | undefined {
+    if (typeof value === "object" && value !== null && typeof value.$themeColor === "string") {
+        return value.$themeColor;
+    }
+    return undefined;
+}
+
+/**
+ * Сериализует `vscode.DecorationRenderOptions` в {@link SerializedDecorationRenderOptions}.
+ * Утиный тип `options` (без импорта типов vscode в этот shared-модуль): читаем
+ * известные поля best-effort. `ThemeColor`-значения проходят через {@link serializeColor}.
+ */
+export function serializeDecorationRenderOptions(options: unknown): SerializedDecorationRenderOptions {
+    const o = (typeof options === "object" && options !== null ? options : {}) as {
+        isWholeLine?: unknown;
+        overviewRulerLane?: unknown;
+        backgroundColor?: unknown;
+        color?: unknown;
+        overviewRulerColor?: unknown;
+    };
+    const result: {
+        isWholeLine?: boolean;
+        overviewRulerLane?: number;
+        backgroundColor?: SerializedColor;
+        color?: SerializedColor;
+        overviewRulerColor?: SerializedColor;
+    } = {};
+    if (typeof o.isWholeLine === "boolean") result.isWholeLine = o.isWholeLine;
+    if (typeof o.overviewRulerLane === "number") result.overviewRulerLane = o.overviewRulerLane;
+    const bg = serializeColor(o.backgroundColor);
+    if (bg !== undefined) result.backgroundColor = bg;
+    const color = serializeColor(o.color);
+    if (color !== undefined) result.color = color;
+    const overview = serializeColor(o.overviewRulerColor);
+    if (overview !== undefined) result.overviewRulerColor = overview;
+    return result;
+}
+
+/**
+ * Валидирует один сырой диапазон в {@link IRange} (nested `start`/`end`). `null`,
+ * если форма не распознана (drop+skip, как остальные wire-парсеры).
+ */
+function parseDecorationRange(raw: unknown): IRange | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const r = raw as { start?: unknown; end?: unknown };
+    const start = r.start as { line?: unknown; character?: unknown } | undefined;
+    const end = r.end as { line?: unknown; character?: unknown } | undefined;
+    if (
+        start == null ||
+        end == null ||
+        !isFiniteNumber(start.line) ||
+        !isFiniteNumber(start.character) ||
+        !isFiniteNumber(end.line) ||
+        !isFiniteNumber(end.character)
+    ) {
+        return null;
+    }
+    return createRange(start.line, start.character, end.line, end.character);
+}
+
+/** Разбирает сырой массив диапазонов декорации в {@link IRange}[] (невалидные — drop). */
+export function parseDecorationRanges(raw: unknown): IRange[] {
+    if (!Array.isArray(raw)) return [];
+    const result: IRange[] = [];
+    for (const item of raw) {
+        const parsed = parseDecorationRange(item);
+        if (parsed !== null) result.push(parsed);
+    }
+    return result;
+}
+
+/** Разбирает сырой массив файловых декораций (`window.fileDecorationsChanged`). */
+export function parseWireFileDecorations(raw: unknown): IWireFileDecoration[] {
+    if (!Array.isArray(raw)) return [];
+    const result: IWireFileDecoration[] = [];
+    for (const item of raw) {
+        if (typeof item !== "object" || item === null) continue;
+        const d = item as { uri?: unknown; badge?: unknown; colorId?: unknown; propagate?: unknown };
+        if (typeof d.uri !== "string" || d.uri === "") continue;
+        result.push({
+            uri: d.uri,
+            ...(typeof d.badge === "string" ? { badge: d.badge } : {}),
+            ...(typeof d.colorId === "string" ? { colorId: d.colorId } : {}),
+            ...(typeof d.propagate === "boolean" ? { propagate: d.propagate } : {}),
+        });
+    }
+    return result;
+}

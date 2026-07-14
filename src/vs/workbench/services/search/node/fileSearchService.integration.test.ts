@@ -1,0 +1,202 @@
+/**
+ * Integration test: FileSearchService against the real vexx project.
+ *
+ * This test suite exercises FileSearchService with the actual workspace
+ * at process.cwd() (i.e. /workspaces/vexx).  It verifies that:
+ *   - real project files are indexed
+ *   - fuzzy ranking produces VS Code-like results on actual filenames
+ *   - known files are discoverable by their common abbreviations
+ */
+
+import * as path from "node:path";
+
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { FileSearchService } from "./fileSearchService.ts";
+
+const ROOT = path.join(process.cwd()); // /workspaces/vexx
+const SRC = path.join(ROOT, "src");
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function relativePaths(results: ReturnType<FileSearchService["search"]>): string[] {
+    return results.map((r) => r.entry.relativePath);
+}
+
+function scoreOf(results: ReturnType<FileSearchService["search"]>, fragment: string): number | undefined {
+    return results.find((r) => r.entry.relativePath.includes(fragment))?.score;
+}
+
+// ─── Suite ────────────────────────────────────────────────────────────────────
+
+describe("FileSearchService — integration against real project", () => {
+    let service: FileSearchService;
+
+    beforeAll(async () => {
+        service = new FileSearchService();
+        await service.activate(SRC);
+    });
+
+    afterAll(() => {
+        service.dispose();
+    });
+
+    describe("index coverage", () => {
+        it("is indexed after activate", () => {
+            expect(service.isIndexed).toBe(true);
+        });
+
+        it("finds more than 50 files in src/", () => {
+            const results = service.search("", 1000);
+            expect(results.length).toBeGreaterThan(50);
+        });
+
+        it("indexes workbench.ts", () => {
+            // pass large maxResults — default 50 may not cover all files
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.some((p) => p.includes("workbench.ts"))).toBe(true);
+        });
+
+        it("indexes files in nested directories", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.some((p) => p.includes("vs/workbench/"))).toBe(true);
+            expect(paths.some((p) => p.includes("vs/base/tui/"))).toBe(true);
+            expect(paths.some((p) => p.includes("vs/editor/"))).toBe(true);
+        });
+
+        it("does not include node_modules files", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.every((p) => !p.includes("node_modules"))).toBe(true);
+        });
+
+        it("does not include .git files", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.every((p) => !p.startsWith(".git"))).toBe(true);
+        });
+
+        it("all relative paths use forward slashes", () => {
+            const paths = relativePaths(service.search("", 2000));
+            expect(paths.every((p) => !p.includes("\\"))).toBe(true);
+        });
+    });
+
+    describe("finding well-known files", () => {
+        it('"wb" finds workbench.ts', () => {
+            const paths = relativePaths(service.search("wb", 100));
+            expect(paths.some((p) => p.endsWith("workbench.ts"))).toBe(true);
+        });
+
+        it('"ftc" finds fileTreeController.ts', () => {
+            const paths = relativePaths(service.search("ftc"));
+            expect(paths.some((p) => p.includes("fileTreeController.ts"))).toBe(true);
+        });
+
+        it('"inst" finds instantiation.ts', () => {
+            const paths = relativePaths(service.search("inst"));
+            expect(paths.some((p) => p.includes("instantiation.ts"))).toBe(true);
+        });
+
+        it('"sbc" finds statusBarController.ts', () => {
+            const paths = relativePaths(service.search("sbc"));
+            expect(paths.some((p) => p.includes("statusBarController.ts"))).toBe(true);
+        });
+
+        it('"ie" finds inputElement.ts', () => {
+            const paths = relativePaths(service.search("ie"));
+            expect(paths.some((p) => p.includes("inputElement.ts"))).toBe(true);
+        });
+
+        it('"fs" finds fuzzySearch.ts', () => {
+            const paths = relativePaths(service.search("fs"));
+            expect(paths.some((p) => p.includes("fuzzySearch.ts"))).toBe(true);
+        });
+
+        it('"ntb" finds nodeTerminalBackend.ts', () => {
+            const paths = relativePaths(service.search("ntb"));
+            expect(paths.some((p) => p.includes("nodeTerminalBackend.ts"))).toBe(true);
+        });
+    });
+
+    describe("ranking on real files", () => {
+        it('"sbc": statusBarController.ts ties for the top score among "sbc" matches', () => {
+            const results = service.search("sbc");
+            expect(results.length).toBeGreaterThan(0);
+            // statusBarController.ts ties for the best score — s, B and C are word boundaries.
+            // Its sibling statusBarController.*.test.ts files share that top score, so asserting
+            // an exact position is brittle (it depends on walk order and how many siblings
+            // exist); assert instead that nothing outscores it.
+            const statusBarScore = scoreOf(results, "statusBarController.ts");
+            expect(statusBarScore).toBeDefined();
+            const maxScore = Math.max(...results.map((r) => r.score));
+            expect(statusBarScore).toBe(maxScore);
+        });
+
+        it('"sbc": statusBarController.ts scores higher than files with s...b...c scattered', () => {
+            const results = service.search("sbc");
+            const top5 = relativePaths(results.slice(0, 5));
+            expect(top5.some((p) => p.includes("statusBarController.ts"))).toBe(true);
+        });
+
+        it('"kr": keybindingsRegistry scores above files with k...r scattered', () => {
+            const results = service.search("kr");
+            const top5 = relativePaths(results.slice(0, 5));
+            expect(top5.some((p) => p.includes("keybindingsRegistry.ts"))).toBe(true);
+        });
+
+        it("basename match ranks above path-only match", () => {
+            // "sc" query: ScrollContainerElement (basename) vs path-only matches
+            const results = service.search("sc");
+            const scrollIdx = results.findIndex((r) => r.entry.relativePath.includes("scrollContainerElement.ts"));
+            if (scrollIdx !== -1) {
+                // ScrollContainerElement.ts should be in top 10
+                expect(scrollIdx).toBeLessThan(10);
+            }
+        });
+
+        it("results are sorted by score descending", () => {
+            const results = service.search("controller");
+            for (let i = 1; i < results.length; i++) {
+                expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score);
+            }
+        });
+
+        it('"workbenchStateController" exact substring \u2014 all results contain it in basename', () => {
+            const results = service.search("workbenchStateController");
+            expect(results.length).toBeGreaterThan(0);
+            // Every result should have "AppController" in basename (high word-boundary score)
+            // or at least in the path; files without it should score too low to appear in top-N
+            const top = results.slice(0, results.length);
+            // All top results share the same matched region — verify they are all AppController files
+            const scores = top.map((r) => r.score);
+            const maxScore = scores[0];
+            // Files sharing the top score should all be workbenchStateController*.ts variants
+            const topTier = top.filter((r) => r.score === maxScore);
+            expect(topTier.every((r) => r.entry.relativePath.includes("workbenchStateController"))).toBe(true);
+        });
+
+        it("searching by full filename with extension works", () => {
+            const results = service.search("instantiation.ts");
+            expect(results.length).toBeGreaterThan(0);
+            expect(results[0].entry.relativePath).toContain("instantiation.ts");
+        });
+    });
+
+    describe("result structure", () => {
+        it("each result has entry.relativePath, entry.absolutePath, score, matchedIndices", () => {
+            const results = service.search("app");
+            expect(results.length).toBeGreaterThan(0);
+            const r = results[0];
+            expect(typeof r.entry.relativePath).toBe("string");
+            expect(typeof r.entry.absolutePath).toBe("string");
+            expect(typeof r.score).toBe("number");
+            expect(Array.isArray(r.matchedIndices)).toBe(true);
+        });
+
+        it("absolutePath starts with SRC root", () => {
+            const results = service.search("app");
+            for (const r of results) {
+                expect(r.entry.absolutePath.startsWith(SRC)).toBe(true);
+            }
+        });
+    });
+});

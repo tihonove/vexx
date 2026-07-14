@@ -1,5 +1,5 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometry.ts";
-import type { WorkbenchTheme } from "../../../../../Theme/WorkbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
 import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";

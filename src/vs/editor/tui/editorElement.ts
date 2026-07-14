@@ -2,7 +2,7 @@ import { DisplayLine } from "../../base/common/displayLine.ts";
 import { Point } from "../../base/common/geometry.ts";
 import { packRgb } from "../../tui/rendering/colorUtils.ts";
 import { StyleFlags } from "../../tui/rendering/styleFlags.ts";
-import type { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
+import type { WorkbenchTheme } from "../../workbench/services/themes/common/workbenchTheme.ts";
 import type { TUIEventBase } from "../../base/tui/events/tuiEventBase.ts";
 import type { TUIKeyboardEvent } from "../../base/tui/events/tuiKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../../base/tui/events/tuiMouseEvent.ts";

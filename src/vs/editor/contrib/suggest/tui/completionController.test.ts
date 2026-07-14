@@ -8,8 +8,8 @@ import { TUIMouseEvent } from "../../../../base/tui/events/tuiMouseEvent.ts";
 import { BodyElement } from "../../../../base/tui/bodyElement.ts";
 
 import { CompletionController } from "./completionController.ts";
-import type { EditorController } from "../../../../../Controllers/EditorController.ts";
-import type { EditorGroupController } from "../../../../../Controllers/EditorGroupController.ts";
+import type { EditorController } from "../../../../workbench/tui/parts/editor/editorController.ts";
+import type { EditorGroupController } from "../../../../workbench/tui/parts/editor/editorGroupController.ts";
 
 interface FakeEditor {
     editor: EditorController;

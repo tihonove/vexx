@@ -1,7 +1,7 @@
 import { DisplayLine } from "../../../../base/common/displayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../base/common/geometry.ts";
 import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
-import type { WorkbenchTheme } from "../../../../../Theme/WorkbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
 import { RenderContext, TUIElement } from "../../../../base/tui/tuiElement.ts";
 
 import { ButtonElement } from "../../../../base/tui/ui/button/buttonElement.ts";
