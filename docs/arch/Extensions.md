@@ -2,7 +2,7 @@
 
 Часть архитектуры Vexx — обзорная карта в [../ARCHITECTURE.md](../ARCHITECTURE.md).
 
-Загрузка VS Code-совместимых расширений. Сейчас поддержаны `contributes.languages` и `contributes.grammars` для builtin (`src/Extensions/builtin/` — 48 языковых паков из microsoft/vscode, импорт verbatim скриптом с пином тега) и user-расширений (`<userData>/extensions/<publisher>.<name>-<version>/`). Остальные contribution points — отдельные фазы (см. [../TODO/Extensions.md](../TODO/Extensions.md)).
+Загрузка VS Code-совместимых расширений. Сейчас поддержаны `contributes.languages` и `contributes.grammars` для builtin (`extensions/` — 48 языковых паков из microsoft/vscode, импорт verbatim скриптом с пином тега) и user-расширений (`<userData>/extensions/<publisher>.<name>-<version>/`). Остальные contribution points — отдельные фазы (см. [../TODO/Extensions.md](../TODO/Extensions.md)).
 
 Контракты/швы:
 - **`IExtension`** — `{ id, manifest, location, isBuiltin }`. `ExtensionScanner` парсит `package.json` через `IAssetAccess`; `mergeExtensions` разруливает конфликты id (builtin побеждает user).
@@ -28,7 +28,7 @@
 3. **Строка-сентинел** `//@vexx:begin-upstream-verbatim …`.
 4. **Дормант** — вся upstream-копия, каждая строка с `// `. Генерируется, вручную не редактируется.
 
-**Пиннинг.** Тег зафиксирован в шапке и согласован с `src/Extensions/builtin/VSCODE_VERSION` (сейчас `1.127.0`) — держи их в лок-степе. Пин нужен, чтобы обновление upstream шло **ручным трёхсторонним merge**: base = `vscode.d.ts` запинненной версии, theirs = новый upstream, ours = наш файл с раскомментированными блоками.
+**Пиннинг.** Тег зафиксирован в шапке и согласован с `extensions/VSCODE_VERSION` (сейчас `1.127.0`) — держи их в лок-степе. Пин нужен, чтобы обновление upstream шло **ручным трёхсторонним merge**: base = `vscode.d.ts` запинненной версии, theirs = новый upstream, ours = наш файл с раскомментированными блоками.
 
 **Как добавить API.** Найди нужный блок в дормантной части и подними **дословно** (сняв `// `) в активный модуль — не сужать / не переписывать / не переоформлять (комментарии тоже upstream). Если блок тянет ещё не раскомментированный тип (dependency closure) — раскомментируй и его. Runtime-значение может опережать типовую декларацию (namespace отдаётся через `as unknown as typeof vscode`).
 

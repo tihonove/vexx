@@ -25,7 +25,7 @@ API реестра: `changeOne(owner, resource, markers[])`, `read({ resource?, 
 
 ## Слои
 
-- **Реестр** — `src/Editor/Markers/` (чистый, без DI — зеркало `Editor/Tokenization`,
+- **Реестр** — `src/vs/platform/markers/common/` (чистый, без DI — зеркало `Editor/Tokenization`,
   `TokenizationRegistry`). DI-токен `IMarkerServiceDIToken` + модуль — в Controllers.
 - **Поставщик** — Controllers. Пишет через `changeOne`.
 - **Потребитель (editor squiggly)** — `EditorController` подписан на `onMarkerChanged`

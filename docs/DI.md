@@ -1,6 +1,6 @@
 # DI-контейнер
 
-Реализация: `src/Common/DiContainer.ts`.
+Реализация: `src/vs/platform/instantiation/common/instantiation.ts`.
 
 Строго типизированный DI-контейнер на основе токенов. Без декораторов, без reflect-metadata, работает с `--erasableSyntaxOnly` / strip types.
 
@@ -124,7 +124,7 @@ const ctrl = new AppController(mockApp, mockEditor);
 `(container, ctx) => void`. Модули собираются в **профили** — фабрики готовых
 контейнеров под конкретный сценарий (production, test).
 
-Файлы: `src/Controllers/Modules/`.
+Файлы: `src/vs/vexx/modules/`.
 
 ### `ContainerModule<Ctx>`
 

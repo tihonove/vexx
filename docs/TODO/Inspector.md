@@ -20,7 +20,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 
 ### A. Кастомные лейаутеры → композиция готовых контейнеров
 Хардкодят раскладку в `performLayout`/`render` вместо `VStack`/`HFlex`/`Padding`:
-- `BodyElement` (`src/TUIDom/Widgets/BodyElement.ts`) → `VStack` + overlay-слой
+- `BodyElement` (`src/vs/base/tui/bodyElement.ts`) → `VStack` + overlay-слой
 - `WorkbenchLayoutElement` → `HFlex` (left-fix / center-fill / right-fix)
 - `EditorGroupElement` → `VStack` (tabStrip h=1 / content fill); контроллер уже есть
 - `EditorTabStripElement` → упростить (ручной `rebuildHFlex` поверх `HFlex`)
@@ -31,7 +31,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 `FlexContainer` (несколько fill с весами).
 
 ### B. Контроллеры под видом элемента → логику в слой Controllers
-- `MenuBarElement` (`src/TUIDom/Widgets/MenuBarElement.ts`) — держит `activeMenu`,
+- `MenuBarElement` (`src/vs/base/tui/ui/menu/menuBarElement.ts`) — держит `activeMenu`,
   открытие/закрытие popup, навигацию, мнемоники, слушает родителя. **Чёткий
   кандидат**: вынести `MenuBarController`, элемент сделать тонким; связь
   callback'ами (эталон — `StatusBarController`/`EditorGroupController`).
@@ -60,7 +60,7 @@ Element / State»). Эталоны: `StatusBarController` ↔ `StatusBarElement`
 `InputElement` + `InputState`.
 
 ## Основа приложения (bootstrap)
-- `TuiApplication` (`src/TUIDom/TuiApplication.ts`) уже generic ядро рантайма
+- `TuiApplication` (`src/vs/base/tui/TuiApplication.ts`) уже generic ядро рантайма
   (event loop / `scheduleRender` / `renderFrame` / `focusManager` / `backend` /
   `root`) — оставляем как есть.
 - Проблема — разбросанный bootstrap: `src/main.ts` (полный),
@@ -94,7 +94,7 @@ Element / State»). Эталоны: `StatusBarController` ↔ `StatusBarElement`
   `--inspect-tui[=host:port]`, работает и в SEA-бинаре.
 - Ввод в e2e — гибрид: действия через существующий `VexxSession.sendKey/write`
   (PTY), новый канал только читает DOM/свойства.
-- Опоры: `querySelector`/`querySelectorAll` (`src/TUIDom/TUISelector.ts`),
+- Опоры: `querySelector`/`querySelectorAll` (`src/vs/base/tui/tuiSelector.ts`),
   `resolvedStyle`/`globalPosition`/`layoutSize` (`TUIElement.ts`), грид через
   `TerminalScreen.grid`.
 

@@ -29,7 +29,7 @@
 - запись рекомендаций в лог.
 
 Источник сигналов у нас уже есть: `TerminalEnvironmentService`
-(`src/Controllers/TerminalEnvironment/TerminalEnvironmentService.ts`) детектит
+(`src/vs/workbench/terminalEnvironment/terminalEnvironmentService.ts`) детектит
 окружение и capability `extended-keys` (env-хинты + fire-and-forget проба
 клавиатурного протокола). Его естественно переиспользовать как вход для подсказок.
 
@@ -70,7 +70,7 @@
 
 - **Что уже сделано в vexx (коммиты `chore:`).**
   - Бэкенд шлёт ещё и xterm-`modifyOtherKeys` (`\x1b[>4;2m`) рядом с kitty-enable
-    (`src/Backend/NodeTerminalBackend.ts`) — это помогает терминалам/мультиплексорам, которые
+    (`src/vs/tui/backend/nodeTerminalBackend.ts`) — это помогает терминалам/мультиплексорам, которые
     его понимают; на чистом kitty работает kitty-протокол. С tmux 3.4+kitty не спасает (см. выше).
   - Runtime-детект tier из фактически пришедшей CSI-u клавиши
     (`TerminalEnvironmentService.noteExtendedKeysObserved()` + хук в `AppController`) — индикатор
@@ -87,7 +87,7 @@
   - **Фолбэк уже сейчас (любой tmux):** `Ctrl+PageDown`/`Ctrl+PageUp` (и `Alt+PageUp/Down`)
     переключают вкладки и **без** extended-keys — модификаторы на спец-клавишах кодируются
     стандартным `;mod`-параметром, который tmux пропускает всегда
-    (`src/Controllers/Actions/TabActions.ts`).
+    (`src/vs/workbench/tui/parts/editor/tabActions.ts`).
 
 - **Дальнейшие шаги (detect & advise — суть трекера).**
   - Детектить ситуацию «внутри tmux, но расширенные клавиши фактически не приходят» (например:
