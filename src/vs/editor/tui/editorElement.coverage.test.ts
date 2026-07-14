@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Point, Size } from "../../base/common/geometry.ts";
-import { packRgb } from "../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../base/common/color.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../../base/tui/events/tuiKeyboardEvent.ts";
 import { TUIMouseEvent } from "../../base/tui/events/tuiMouseEvent.ts";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_COLOR, packRgb } from "./colorUtils.ts";
+import { DEFAULT_COLOR, packRgb } from "../../base/common/color.ts";
 import type { CellSnapshot, GridSnapshot } from "./gridSnapshot.ts";
 import { gridToSvg } from "./gridToSvg.ts";
 import { StyleFlags } from "./styleFlags.ts";

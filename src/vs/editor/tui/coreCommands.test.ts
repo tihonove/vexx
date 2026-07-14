@@ -9,7 +9,7 @@ import { TokenizationRegistry } from "../common/tokenizationRegistry.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../../workbench/services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../workbench/services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../workbench/services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 import type { CommandAction } from "../../platform/commands/common/commandAction.ts";
 import { registerAction } from "../../platform/commands/common/commandAction.ts";
 import { CommandRegistry } from "../../platform/commands/common/commands.ts";

@@ -1,7 +1,7 @@
 import { BoxConstraints, Size } from "../../../common/geometry.ts";
 import { APP_NAME, REPO_URL, VEXX_VERSION } from "../../../../platform/product/common/product.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
-import type { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
+import { packRgb } from "../../../common/color.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { CompositeElement } from "../../compositeElement.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import type { JsxNode } from "../../jsx/jsx-runtime.ts";

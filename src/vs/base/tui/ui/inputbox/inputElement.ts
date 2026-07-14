@@ -1,6 +1,6 @@
 import { DisplayLine } from "../../../common/displayLine.ts";
 import { BoxConstraints, Point, Rect, Size } from "../../../common/geometry.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../common/color.ts";
 import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import type { TUIPasteEvent } from "../../events/tuiPasteEvent.ts";

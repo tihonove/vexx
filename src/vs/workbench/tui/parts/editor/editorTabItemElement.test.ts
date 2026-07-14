@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { getFileIcon } from "../../fileIcons.ts";
 import { BoxConstraints, Offset, Point, Size } from "../../../../base/common/geometry.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../../base/common/color.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import { TUIMouseEvent } from "../../../../base/tui/events/tuiMouseEvent.ts";
 

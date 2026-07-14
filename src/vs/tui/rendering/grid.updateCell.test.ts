@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { Point, Size } from "../../base/common/geometry.ts";
 
-import { DEFAULT_COLOR } from "./colorUtils.ts";
+import { DEFAULT_COLOR } from "../../base/common/color.ts";
 import { Grid } from "./grid.ts";
 
 describe("Grid — updateCell wide character support", () => {

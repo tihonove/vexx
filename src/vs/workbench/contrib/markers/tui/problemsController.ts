@@ -3,7 +3,7 @@ import { Disposable } from "../../../../base/common/lifecycle.ts";
 import type { MarkerService } from "../../../../platform/markers/common/markerService.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-import type { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import type { TUIElement } from "../../../../base/tui/tuiElement.ts";
 import { ScrollBarDecorator } from "../../../../base/tui/ui/scrollbar/scrollContainerElement.ts";
 import { TreeViewElement } from "../../../../base/tui/ui/tree/treeViewElement.ts";

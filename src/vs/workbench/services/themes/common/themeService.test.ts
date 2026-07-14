@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { ThemeService } from "./themeService.ts";
-import type { WorkbenchTheme } from "./workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 // ThemeService only stores/forwards the theme reference, so a tagged stub is
 // sufficient — we assert by identity, not by inspecting WorkbenchTheme internals.

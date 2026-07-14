@@ -1,5 +1,5 @@
 import { Point, Size } from "../../base/common/geometry.ts";
-import { isInsideTmux } from "../../platform/environment/common/terminalEnv.ts";
+import { isInsideTmux } from "../../base/common/terminalEnv.ts";
 import type { KeyPressEvent } from "../input/keyEvent.ts";
 import { KeyInputParser } from "../input/keyInputParser.ts";
 import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../input/mouseTracking.ts";

@@ -25,13 +25,13 @@ import type { ITokenStyleResolver } from "../../../../editor/common/languages/to
 import type { TokenizationRegistry } from "../../../../editor/common/tokenizationRegistry.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-import type { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import type { OverlayAnchorPosition } from "../../../../base/tui/ui/contextview/overlayLayer.ts";
 import type { MenuEntry } from "../../../../base/tui/ui/menu/popupMenuElement.ts";
 import { ScrollBarDecorator } from "../../../../base/tui/ui/scrollbar/scrollContainerElement.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../../coreTokens.ts";
-import type { IController } from "../../../common/controller.ts";
+import type { IController } from "../../controller.ts";
 import type { IFileWatcher } from "../../../../platform/files/common/watcher.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 

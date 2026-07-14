@@ -3,7 +3,7 @@ import * as path from "node:path";
 import { Disposable } from "../../../../base/common/lifecycle.ts";
 import { token } from "../../../../platform/instantiation/common/instantiation.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import type { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import type { TUIElement } from "../../../../base/tui/tuiElement.ts";
 import { PaddingContainerElement } from "../../../../base/tui/ui/layout/paddingContainerElement.ts";
 import { ScrollBarDecorator } from "../../../../base/tui/ui/scrollbar/scrollContainerElement.ts";
@@ -11,7 +11,7 @@ import { TitledPanelElement } from "../../../tui/parts/panel/titledPanelElement.
 import { TreeViewElement } from "../../../../base/tui/ui/tree/treeViewElement.ts";
 
 import { FileTreeDataProvider, type FileTreeNode } from "./fileTreeDataProvider.ts";
-import type { IController } from "../../../common/controller.ts";
+import type { IController } from "../../../tui/controller.ts";
 
 export const FileTreeControllerDIToken = token<FileTreeController>("FileTreeController");
 

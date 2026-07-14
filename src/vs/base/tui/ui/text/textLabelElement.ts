@@ -1,6 +1,6 @@
 import { DisplayLine } from "../../../common/displayLine.ts";
 import { BoxConstraints, Size } from "../../../common/geometry.ts";
-import { DEFAULT_COLOR } from "../../../../tui/rendering/colorUtils.ts";
+import { DEFAULT_COLOR } from "../../../common/color.ts";
 import { StyleFlags } from "../../../../tui/rendering/styleFlags.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
 

@@ -11,7 +11,7 @@ import {
     PANEL_VISIBLE_STATE,
     SIDEBAR_VISIBLE_STATE,
     SIDEBAR_WIDTH_STATE,
-} from "../common/stateKeys.ts";
+} from "./stateKeys.ts";
 
 /**
  * Единый координатор персистентности workbench-состояния (headless, без `view`).

@@ -1,5 +1,5 @@
 import { Point } from "../vs/base/common/geometry.ts";
-import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
+import { packRgb } from "../vs/base/common/color.ts";
 import { RenderContext, TUIElement } from "../vs/base/tui/tuiElement.ts";
 
 const FOCUSED_BG = packRgb(0, 120, 215);

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../common/color.ts";
 
 import { BoxElement } from "../box/boxElement.ts";
 import { PaddingContainer, PaddingContainerElement } from "./paddingContainerElement.ts";

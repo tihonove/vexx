@@ -5,7 +5,7 @@ import type { ConfirmDialogOptions } from "../../../../base/tui/ui/dialog/confir
 import { ConfirmDialogElement } from "../../../../base/tui/ui/dialog/confirmDialogElement.tsx";
 import { ConfirmSaveDialogElement } from "../../../../base/tui/ui/dialog/confirmSaveDialogElement.tsx";
 import type { OverlaySessionHandle } from "../../../../base/tui/ui/contextview/overlayLayer.ts";
-import type { WorkbenchTheme } from "../../themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 /**
  * Модальные диалоги воркбенча (аналог vscode `IDialogService`): подтверждение

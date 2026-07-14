@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import { packRgb } from "../../src/vs/tui/rendering/colorUtils.ts";
+import { packRgb } from "../../src/vs/base/common/color.ts";
 
 import { defineScenario, repoRoot } from "./framework.ts";
 

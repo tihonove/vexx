@@ -1,8 +1,8 @@
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "../../../../editor/common/languages/tokenStyleResolver.ts";
 import { EMPTY_RESOLVED_TOKEN_STYLE } from "../../../../editor/common/languages/tokenStyleResolver.ts";
 import { parseHexColor } from "../../../../platform/theme/common/colorUtils.ts";
-import type { IEditorTokenTheme } from "./editorTokenTheme.ts";
-import type { ITokenColorRule } from "./themeFile.ts";
+import type { IEditorTokenTheme } from "../../../../platform/theme/common/editorTokenTheme.ts";
+import type { ITokenColorRule } from "../../../../platform/theme/common/themeFile.ts";
 
 interface CompiledRule {
     /** Single scope selector (we expand `scope: ["a", "b"]` into two compiled rules). */

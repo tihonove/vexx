@@ -1,5 +1,7 @@
 import * as fs from "node:fs";
 
+import { token } from "../../instantiation/common/instantiation.ts";
+
 import { parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
 
 import type { ILogger } from "../../log/common/logger.ts";
@@ -88,3 +90,6 @@ function validateRules(parsed: unknown, filePath: string, logger?: ILogger): IUs
 function isFileNotFound(err: unknown): boolean {
     return typeof err === "object" && err !== null && (err as { code?: string }).code === "ENOENT";
 }
+
+/** Распарсенные правила user keybindings.json (снапшот на bootstrap'е). */
+export const UserKeybindingsDIToken = token<readonly IUserKeybindingRule[]>("UserKeybindings");

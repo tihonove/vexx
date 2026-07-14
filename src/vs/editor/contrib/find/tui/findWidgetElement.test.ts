@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../../../base/common/geometry.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../../base/common/color.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
-import { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { TUIMouseEvent } from "../../../../base/tui/events/tuiMouseEvent.ts";
 
 import type { ButtonElement } from "../../../../base/tui/ui/button/buttonElement.ts";

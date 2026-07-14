@@ -1,4 +1,4 @@
-import { DEFAULT_COLOR, unpackB, unpackG, unpackR } from "./colorUtils.ts";
+import { DEFAULT_COLOR, unpackB, unpackG, unpackR } from "../../base/common/color.ts";
 import type { GridSnapshot } from "./gridSnapshot.ts";
 import { StyleFlags } from "./styleFlags.ts";
 

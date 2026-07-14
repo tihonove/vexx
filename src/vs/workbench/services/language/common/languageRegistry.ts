@@ -5,7 +5,7 @@ import type { IDisposable } from "../../../../base/common/lifecycle.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/language.ts";
 
 import type { IExtension } from "../../../../platform/extensions/common/extensions.ts";
-import type { ILanguageContribution } from "./languageContribution.ts";
+import type { ILanguageContribution } from "../../../../platform/extensions/common/languageContribution.ts";
 
 /**
  * Запись о зарегистрированном языке. Несколько расширений могут

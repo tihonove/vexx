@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { Point } from "../../../common/geometry.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../common/color.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 
 import { InputElement } from "./inputElement.ts";

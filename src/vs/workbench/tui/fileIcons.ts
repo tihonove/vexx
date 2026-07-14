@@ -1,4 +1,4 @@
-import { packRgb } from "../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../base/common/color.ts";
 
 export interface FileIcon {
     icon: string;

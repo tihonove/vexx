@@ -1,5 +1,5 @@
-import type { IGrammarContribution } from "../../../workbench/services/textMate/common/grammarContribution.ts";
-import type { ILanguageContribution } from "../../../workbench/services/language/common/languageContribution.ts";
+import type { IGrammarContribution } from "./grammarContribution.ts";
+import type { ILanguageContribution } from "./languageContribution.ts";
 
 /**
  * Полный VS Code-совместимый extension manifest (`package.json` расширения).

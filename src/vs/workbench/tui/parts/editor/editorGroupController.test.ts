@@ -14,7 +14,7 @@ import { TokenizationRegistry } from "../../../../editor/common/tokenizationRegi
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 import { EditorGroupController } from "./editorGroupController.ts";
 import { NULL_FILE_WATCHER } from "../../../../platform/files/common/watcher.ts";

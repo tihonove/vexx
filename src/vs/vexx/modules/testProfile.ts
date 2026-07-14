@@ -4,7 +4,7 @@ import { NULL_LANGUAGE_SERVICE } from "../../editor/common/languages/language.ts
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../editor/common/languages/tokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../editor/common/tokenizationRegistry.ts";
 import { darkPlusTheme } from "../../workbench/services/themes/common/themes/darkPlus.ts";
-import { WorkbenchTheme } from "../../workbench/services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 import type { TuiApplication } from "../../base/tui/tuiApplication.ts";
 import { TuiApplicationDIToken } from "../../workbench/tui/coreTokens.ts";
 import { terminalEnvironmentModule } from "../../workbench/terminalEnvironment/terminalEnvironmentModule.ts";

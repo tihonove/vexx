@@ -1,4 +1,4 @@
-import type { IThemeFile } from "../themeFile.ts";
+import type { IThemeFile } from "../../../../../platform/theme/common/themeFile.ts";
 
 import { dark2026Theme } from "./dark2026.ts";
 import { darkModernTheme } from "./darkModern.ts";

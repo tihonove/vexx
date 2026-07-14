@@ -1,7 +1,7 @@
 import { DisplayLine } from "../../../../base/common/displayLine.ts";
 import { BoxConstraints, Size } from "../../../../base/common/geometry.ts";
 import { truncateEnd } from "../../../../base/common/textTruncation.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../../base/common/color.ts";
 import type { TUIMouseEvent } from "../../../../base/tui/events/tuiMouseEvent.ts";
 import { RenderContext, TUIElement } from "../../../../base/tui/tuiElement.ts";
 

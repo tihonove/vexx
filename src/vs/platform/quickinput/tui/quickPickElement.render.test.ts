@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../../tui/backend/mockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../../base/common/geometry.ts";
-import { packRgb } from "../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../base/common/color.ts";
 import { TerminalScreen } from "../../../tui/rendering/terminalScreen.ts";
 import { expectScreen, screen } from "../../../../TestUtils/expectScreen.ts";
 import { RenderContext } from "../../../base/tui/tuiElement.ts";

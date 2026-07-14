@@ -7,7 +7,7 @@
 
 import { Point, Size } from "../vs/base/common/geometry.ts";
 import { reject } from "../vs/base/common/types.ts";
-import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
+import { packRgb } from "../vs/base/common/color.ts";
 import { Grid } from "../vs/tui/rendering/grid.ts";
 import { StyleFlags } from "../vs/tui/rendering/styleFlags.ts";
 import { TerminalRenderer } from "../vs/tui/rendering/terminalRenderer.ts";

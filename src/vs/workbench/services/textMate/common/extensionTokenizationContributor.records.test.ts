@@ -9,7 +9,7 @@ import { TokenizationRegistry } from "../../../../editor/common/tokenizationRegi
 
 import { ExtensionTokenizationContributor } from "./extensionTokenizationContributor.ts";
 import type { IExtension } from "../../../../platform/extensions/common/extensions.ts";
-import type { IGrammarContribution } from "./grammarContribution.ts";
+import type { IGrammarContribution } from "../../../../platform/extensions/common/grammarContribution.ts";
 
 // Mock the grammar loader so we can inspect exactly which IGrammarRecord[] the
 // contributor collects (constructor arg) without touching real grammar assets.

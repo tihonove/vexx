@@ -1,4 +1,4 @@
-import { DEFAULT_COLOR, packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { DEFAULT_COLOR, packRgb } from "../../../common/color.ts";
 import { StyleFlags } from "../../../../tui/rendering/styleFlags.ts";
 import { CompositeElement } from "../../compositeElement.ts";
 import type { JsxNode } from "../../jsx/jsx-runtime.ts";

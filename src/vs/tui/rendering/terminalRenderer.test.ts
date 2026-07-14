@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { Point, Size } from "../../base/common/geometry.ts";
 
-import { DEFAULT_COLOR, packRgb } from "./colorUtils.ts";
+import { DEFAULT_COLOR, packRgb } from "../../base/common/color.ts";
 import { Grid } from "./grid.ts";
 import { StyleFlags } from "./styleFlags.ts";
 import { TerminalRenderer } from "./terminalRenderer.ts";

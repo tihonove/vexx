@@ -4,7 +4,7 @@ import { Disposable, type IDisposable } from "../../../../base/common/lifecycle.
 import type { ILanguageService } from "../../../../editor/common/languages/language.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-import type { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import type { StatusBarItem } from "./statusBarElement.ts";
 import { StatusBarElement } from "./statusBarElement.ts";
 
@@ -12,7 +12,7 @@ import { LanguageServiceDIToken } from "../../coreTokens.ts";
 import type { EditorController } from "../editor/editorController.ts";
 import type { EditorGroupController } from "../editor/editorGroupController.ts";
 import { EditorGroupControllerDIToken } from "../editor/editorGroupController.ts";
-import type { IController } from "../../../common/controller.ts";
+import type { IController } from "../../controller.ts";
 import type { TerminalEnvironmentService } from "../../../terminalEnvironment/terminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "../../../terminalEnvironment/terminalEnvironmentService.ts";
 

@@ -5,7 +5,7 @@ import { Point, Size } from "../common/geometry.ts";
 import { EditorElement } from "../../editor/tui/editorElement.ts";
 import { EditorViewState } from "../../editor/common/viewModel/editorViewState.ts";
 import { TextDocument } from "../../editor/common/model/textDocument.ts";
-import { DEFAULT_COLOR } from "../../tui/rendering/colorUtils.ts";
+import { DEFAULT_COLOR } from "../common/color.ts";
 import { expectScreen, screen } from "../../../TestUtils/expectScreen.ts";
 
 import { TuiApplication } from "./tuiApplication.ts";

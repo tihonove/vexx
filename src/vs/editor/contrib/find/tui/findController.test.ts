@@ -13,7 +13,7 @@ import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUti
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../../../../workbench/services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../../workbench/services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../workbench/services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { TUIMouseEvent } from "../../../../base/tui/events/tuiMouseEvent.ts";
 import { BodyElement } from "../../../../base/tui/bodyElement.ts";
 

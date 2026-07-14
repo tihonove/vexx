@@ -55,7 +55,7 @@ export function extensionFixture(id: string, file: string): IExtensionRegistrati
 }
 import { darkPlusTheme } from "../vs/workbench/services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../vs/workbench/services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../vs/workbench/services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../vs/platform/theme/common/workbenchTheme.ts";
 
 import { TestApp } from "./TestApp.ts";
 

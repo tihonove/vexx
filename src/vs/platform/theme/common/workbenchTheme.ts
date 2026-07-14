@@ -1,8 +1,8 @@
-import { parseHexColor } from "../../../../platform/theme/common/colorUtils.ts";
-import { defaultWorkbenchColors, themeKindOf } from "../../../../platform/theme/common/colorRegistry.ts";
+import { parseHexColor } from "./colorUtils.ts";
+import { defaultWorkbenchColors, themeKindOf } from "./colorRegistry.ts";
 import type { IEditorTokenTheme } from "./editorTokenTheme.ts";
 import type { IThemeFile } from "./themeFile.ts";
-import type { IWorkbenchColors } from "../../../../platform/theme/common/colors.ts";
+import type { IWorkbenchColors } from "./colors.ts";
 
 /**
  * The active workbench color theme.

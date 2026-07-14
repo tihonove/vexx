@@ -9,12 +9,12 @@ import type { ILanguageService } from "../../../../editor/common/languages/langu
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/language.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../../../editor/common/languages/tokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../../../editor/common/tokenizationRegistry.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../../base/common/color.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 import { EditorController } from "./editorController.ts";
 import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";

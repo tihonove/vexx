@@ -12,13 +12,13 @@ import type { ITokenStyleResolver } from "../../../../editor/common/languages/to
 import type { TokenizationRegistry } from "../../../../editor/common/tokenizationRegistry.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-import type { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { EditorGroupElement } from "./editorGroupElement.ts";
 import type { TabInfo } from "./editorTabStripElement.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../../coreTokens.ts";
 import { EditorController } from "./editorController.ts";
-import type { IController } from "../../../common/controller.ts";
+import type { IController } from "../../controller.ts";
 import type { IFileWatcher } from "../../../../platform/files/common/watcher.ts";
 import { IFileWatcherDIToken } from "../../../../platform/files/common/watcher.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "../../../../platform/undoRedo/common/undoRedoService.ts";

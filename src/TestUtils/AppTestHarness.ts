@@ -9,7 +9,7 @@ import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../vs/workb
 import type { EditorController } from "../vs/workbench/tui/parts/editor/editorController.ts";
 import { EditorGroupControllerDIToken } from "../vs/workbench/tui/parts/editor/editorGroupController.ts";
 import { createTestContainer } from "../vs/vexx/modules/testProfile.ts";
-import { StateServiceDIToken } from "../vs/vexx/modules/stateModule.ts";
+import { StateServiceDIToken } from "../vs/platform/state/node/stateService.ts";
 
 import { TestApp } from "./TestApp.ts";
 

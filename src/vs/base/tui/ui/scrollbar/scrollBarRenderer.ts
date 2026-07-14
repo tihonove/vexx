@@ -1,4 +1,4 @@
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../common/color.ts";
 import type { RenderContext } from "../../tuiElement.ts";
 
 const THUMB_COLOR = packRgb(100, 100, 100);

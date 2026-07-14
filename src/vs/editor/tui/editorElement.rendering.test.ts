@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { Point, Size } from "../../base/common/geometry.ts";
-import { packRgb } from "../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../base/common/color.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 
 import { EditorElement } from "./editorElement.ts";

@@ -9,7 +9,7 @@ import type { ILanguageService } from "../../editor/common/languages/language.ts
 import type { ITokenStyleResolver } from "../../editor/common/languages/tokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../editor/common/tokenizationRegistry.ts";
 import type { ThemeRegistry } from "../../workbench/services/themes/common/themeRegistry.ts";
-import type { WorkbenchTheme } from "../../workbench/services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 import type { TuiApplication } from "../../base/tui/tuiApplication.ts";
 import { terminalEnvironmentModule } from "../../workbench/terminalEnvironment/terminalEnvironmentModule.ts";
 

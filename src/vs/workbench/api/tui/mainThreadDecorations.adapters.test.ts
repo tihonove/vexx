@@ -7,7 +7,7 @@ import { createRange } from "../../../editor/common/core/range.ts";
 import { darkPlusTheme } from "../../services/themes/common/themes/darkPlus.ts";
 import { lightPlusTheme } from "../../services/themes/common/themes/lightPlus.ts";
 import { ThemeService } from "../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../services/themes/common/workbenchTheme.ts";
+import { WorkbenchTheme } from "../../../platform/theme/common/workbenchTheme.ts";
 
 import { EditorDecorationsServiceAdapter } from "./mainThreadEditorDecorations.ts";
 import { FileDecorationsServiceAdapter } from "./mainThreadDecorations.ts";

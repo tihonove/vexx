@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
 import { FileTreeController } from "../../../../workbench/contrib/files/tui/fileTreeController.ts";
-import { packRgb } from "../../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../common/color.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MockTerminalBackend } from "../../../tui/backend/mockTerminalBackend.ts";
 import { Point, Size } from "../../common/geometry.ts";
 import type { MouseToken } from "../../../tui/input/rawTerminalToken.ts";
-import { packRgb } from "../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../common/color.ts";
 import { TuiApplication } from "../tuiApplication.ts";
 import { RenderContext, TUIElement } from "../tuiElement.ts";
 import { BodyElement } from "../bodyElement.ts";

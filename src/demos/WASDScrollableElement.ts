@@ -1,4 +1,4 @@
-import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
+import { packRgb } from "../vs/base/common/color.ts";
 import { RenderContext } from "../vs/base/tui/tuiElement.ts";
 import { ScrollableElement, type ScrollViewportInfo } from "../vs/base/tui/ui/scrollbar/scrollableElement.ts";
 

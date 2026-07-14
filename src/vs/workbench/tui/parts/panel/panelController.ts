@@ -2,10 +2,10 @@ import { token } from "../../../../platform/instantiation/common/instantiation.t
 import { Disposable } from "../../../../base/common/lifecycle.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-import type { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { PanelContainerElement } from "./panelContainerElement.ts";
 
-import type { IController } from "../../../common/controller.ts";
+import type { IController } from "../../controller.ts";
 
 export const PanelControllerDIToken = token<PanelController>("PanelController");
 

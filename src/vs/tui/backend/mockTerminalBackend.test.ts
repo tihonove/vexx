@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Point, Size } from "../../base/common/geometry.ts";
 import type { KeyPressEvent } from "../input/keyEvent.ts";
-import { DEFAULT_COLOR, packRgb } from "../rendering/colorUtils.ts";
+import { DEFAULT_COLOR, packRgb } from "../../base/common/color.ts";
 import { Grid } from "../rendering/grid.ts";
 
 import { MockTerminalBackend } from "./mockTerminalBackend.ts";

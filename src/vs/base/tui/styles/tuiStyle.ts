@@ -1,4 +1,4 @@
-import { DEFAULT_COLOR } from "../../../tui/rendering/colorUtils.ts";
+import { DEFAULT_COLOR } from "../../common/color.ts";
 
 // ─── Inherited Color Sentinels ───
 // Sentinel values that resolve to the inherited fg/bg from the parent.

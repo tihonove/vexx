@@ -1,7 +1,7 @@
 import { DisplayLine } from "../../../base/common/displayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../../base/common/geometry.ts";
 import { abbreviatePath, truncateEnd } from "../../../base/common/textTruncation.ts";
-import { packRgb } from "../../../tui/rendering/colorUtils.ts";
+import { packRgb } from "../../../base/common/color.ts";
 import type { TUIEventBase } from "../../../base/tui/events/tuiEventBase.ts";
 import { TUIKeyboardEvent } from "../../../base/tui/events/tuiKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../../../base/tui/events/tuiMouseEvent.ts";

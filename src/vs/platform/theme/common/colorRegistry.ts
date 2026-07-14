@@ -1,4 +1,4 @@
-import type { IThemeFile } from "../../../workbench/services/themes/common/themeFile.ts";
+import type { IThemeFile } from "./themeFile.ts";
 
 /**
  * Default workbench color values, mirroring VS Code's built-in default color

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { Cell } from "./cell.ts";
-import { DEFAULT_COLOR, packRgb } from "./colorUtils.ts";
+import { DEFAULT_COLOR, packRgb } from "../../base/common/color.ts";
 import { StyleFlags } from "./styleFlags.ts";
 
 describe("Cell", () => {

@@ -5,7 +5,7 @@ import type { CommandRegistry } from "../../../../platform/commands/common/comma
 import type { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import type { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 import { formatKeybinding } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
-import type { WorkbenchTheme } from "../../../services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 interface IMenubarDeps {
     readonly commands: CommandRegistry;

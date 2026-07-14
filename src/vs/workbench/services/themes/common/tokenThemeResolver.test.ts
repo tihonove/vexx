@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { IEditorTokenTheme } from "./editorTokenTheme.ts";
+import type { IEditorTokenTheme } from "../../../../platform/theme/common/editorTokenTheme.ts";
 
 import { TokenThemeResolver } from "./tokenThemeResolver.ts";
 

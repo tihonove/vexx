@@ -1,4 +1,6 @@
 import * as fs from "node:fs";
+
+import { token } from "../../instantiation/common/instantiation.ts";
 import * as path from "node:path";
 
 import type { ILogger } from "../../log/common/logger.ts";
@@ -196,3 +198,5 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 function isFileNotFound(err: unknown): boolean {
     return typeof err === "object" && err !== null && (err as { code?: string }).code === "ENOENT";
 }
+
+export const StateServiceDIToken = token<IStateService>("StateService");

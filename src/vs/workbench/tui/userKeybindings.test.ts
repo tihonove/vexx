@@ -5,7 +5,7 @@ import type { IUserKeybindingRule } from "../../platform/keybinding/node/keybind
 import { AppControllerDIToken } from "./workbench.ts";
 import type { KeyboardEventLike } from "../../platform/keybinding/common/keybindingsRegistry.ts";
 import { KeybindingRegistryDIToken } from "../../platform/keybinding/common/keybindingsRegistry.ts";
-import { UserKeybindingsDIToken } from "../../vexx/modules/keybindingsModule.ts";
+import { UserKeybindingsDIToken } from "../../platform/keybinding/node/keybindingsService.ts";
 import { createTestContainer } from "../../vexx/modules/testProfile.ts";
 
 const KEY = (key: string, mods: Partial<KeyboardEventLike> = {}): KeyboardEventLike => ({

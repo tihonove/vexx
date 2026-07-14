@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { Point } from "../../../common/geometry.ts";
-import { DEFAULT_COLOR } from "../../../../tui/rendering/colorUtils.ts";
+import { DEFAULT_COLOR } from "../../../common/color.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 
 import { TextLabel, TextLabelElement } from "./textLabelElement.ts";

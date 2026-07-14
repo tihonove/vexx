@@ -2,7 +2,7 @@ import type { ContainerModule } from "../../platform/instantiation/common/instan
 import { createBuiltinThemeRegistry, ThemeRegistry } from "../../workbench/services/themes/common/themeRegistry.ts";
 import { ThemeService } from "../../workbench/services/themes/common/themeService.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../workbench/services/themes/common/themeTokens.ts";
-import type { WorkbenchTheme } from "../../workbench/services/themes/common/workbenchTheme.ts";
+import type { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 
 export interface ThemeModuleContext {
     theme: WorkbenchTheme;
