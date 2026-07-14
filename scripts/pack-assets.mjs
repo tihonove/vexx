@@ -90,10 +90,10 @@ function toVirtualPath(prefix, root, absPath) {
 /**
  * Build the bundle from the standard set of inputs:
  *   - `onig.wasm` — resolved via require.resolve("vscode-oniguruma/release/onig.wasm")
- *   - `Extensions/builtin/**` — full recursive copy of `src/Extensions/builtin/`
+ *   - `Extensions/builtin/**` — full recursive copy of `extensions/`
  */
 export function buildVexxBundle({ repoRoot }) {
-    const builtinSrc = resolve(repoRoot, "src", "Extensions", "builtin");
+    const builtinSrc = resolve(repoRoot, "extensions");
     const require = createRequire(import.meta.url);
     const onigWasmPath = require.resolve("vscode-oniguruma/release/onig.wasm");
 

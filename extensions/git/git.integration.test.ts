@@ -5,13 +5,13 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { IEditorDecorationsService } from "../../../vs/workbench/api/common/editorDecorationsService.ts";
-import type { IExtensionRegistration } from "../../../vs/workbench/services/extensions/common/extensionEntry.ts";
-import type { IFileDecorationsService } from "../../../vs/workbench/api/common/fileDecorationsService.ts";
-import type { IThemeColorResolver } from "../../../vs/workbench/api/common/themeColorResolver.ts";
-import type { IGutterChangeDecoration } from "../../../vs/editor/common/model/gutterChangeDecoration.ts";
-import { createExtensionTestHarness, type IExtensionHarness } from "../../../TestUtils/ExtensionTestHarness.ts";
-import { settle } from "../../../TestUtils/timing.ts";
+import type { IEditorDecorationsService } from "../../src/vs/workbench/api/common/editorDecorationsService.ts";
+import type { IExtensionRegistration } from "../../src/vs/workbench/services/extensions/common/extensionEntry.ts";
+import type { IFileDecorationsService } from "../../src/vs/workbench/api/common/fileDecorationsService.ts";
+import type { IThemeColorResolver } from "../../src/vs/workbench/api/common/themeColorResolver.ts";
+import type { IGutterChangeDecoration } from "../../src/vs/editor/common/model/gutterChangeDecoration.ts";
+import { createExtensionTestHarness, type IExtensionHarness } from "../../src/TestUtils/ExtensionTestHarness.ts";
+import { settle } from "../../src/TestUtils/timing.ts";
 
 const GIT_MAIN = fileURLToPath(new URL("./main.ts", import.meta.url));
 

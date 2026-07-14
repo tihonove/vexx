@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "extensions/**/*.test.ts"],
     coverage: {
       skipFull: true,
       reportOnFailure: true,
@@ -18,7 +18,7 @@ export default defineConfig({
         lines: 100,
       },
       reporter: ["text", "lcov", "json", "json-summary", "text-summary"],
-      include: ["src/**/*.ts"],
+      include: ["src/**/*.ts", "extensions/git/**/*.ts"],
       exclude: [
         "src/**/*.test.ts",
 
@@ -72,7 +72,7 @@ export default defineConfig({
         "src/vs/base/node/isSea.ts", // node:sea, только в SEA-бинаре
         "src/vs/base/node/assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
         "src/vs/workbench/api/node/extensionHostProcess.ts", // точка входа subprocess + IPC
-        "src/Extensions/builtin/git/main.ts", // extension entry (subprocess IO/glue); логика — в git/lib/* (юниты), e2e — интеграция
+        "extensions/git/main.ts", // extension entry (subprocess IO/glue); логика — в git/lib/* (юниты), e2e — интеграция
         "src/vs/workbench/api/common/extHost.api.impl.ts", // RPC-проводка в subprocess
         "src/vs/vexx/modules/**", // DI-проводка (integration/e2e)
         "src/vs/platform/configuration/common/nullConfigurationService.ts", // null-object заглушка

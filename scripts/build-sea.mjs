@@ -28,7 +28,7 @@ run("npx tsup");
 const builtExtensions = await buildExtensions({ repoRoot: root });
 console.log(`[build-sea] Compiled ${builtExtensions.length} code-builtin(s): ${builtExtensions.map((b) => b.id).join(", ") || "—"}`);
 
-// 2. Pack onig.wasm + src/Extensions/builtin/** into a single dist/vexx.bundle
+// 2. Pack onig.wasm + extensions/** into a single dist/vexx.bundle
 const { bundle, inputs } = buildVexxBundle({ repoRoot: root });
 const bundlePath = join(dist, "vexx.bundle");
 writeFileSync(bundlePath, bundle);

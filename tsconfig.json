@@ -17,5 +17,5 @@
       "vscode": ["src/vscode-dts/vscode.d.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "extensions"]
 }

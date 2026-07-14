@@ -9,7 +9,7 @@
  * our loader understands (`name` / `type` / `colors` / `tokenColors`).
  *
  * Repeatable: bumping `VSCODE_TAG` and re-running refreshes all generated theme
- * files to the new tag. The pinned tag matches `src/Extensions/builtin/VSCODE_VERSION`.
+ * files to the new tag. The pinned tag matches `extensions/VSCODE_VERSION`.
  *
  * Usage: node scripts/import-vscode-themes.mjs
  */

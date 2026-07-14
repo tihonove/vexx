@@ -2,7 +2,7 @@
 /**
  * Компиляция «кодовых» builtin-расширений в один CJS-файл `<dir>/out/extension.cjs`.
  *
- * Кодовый builtin — подкаталог `src/Extensions/builtin/*` с исходником `main.ts`
+ * Кодовый builtin — подкаталог `extensions/*` с исходником `main.ts`
  * (языковые паки его не имеют — только грамматики/конфиги). esbuild бандлит
  * `main.ts` + `./lib/*` в один файл; `vscode` остаётся external (его в subprocess'е
  * подменяет `installVscodeStub`), node:builtins — тоже external (`platform:"node"`).
@@ -29,7 +29,7 @@ const SOURCE_ENTRY = "main.ts";
  * `{ id, entryPoint, outfile }` собранных.
  */
 export async function buildExtensions({ repoRoot }) {
-    const builtinDir = resolve(repoRoot, "src", "Extensions", "builtin");
+    const builtinDir = resolve(repoRoot, "extensions");
     const built = [];
     for (const entry of readdirSync(builtinDir, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue;

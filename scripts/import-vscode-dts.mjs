@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Управляет `src/Extensions/Api/vscode.d.ts` — стадийной копией upstream
+ * Управляет `src/vscode-dts/vscode.d.ts` — стадийной копией upstream
  * `microsoft/vscode:src/vscode-dts/vscode.d.ts`.
  *
  * Файл состоит из двух частей:
@@ -20,7 +20,7 @@
  *                       модуля дословно присутствует в дормантной копии
  *                       (инвариант «меняется только раскомментированием»). Exit 1 иначе.
  *
- * Пин согласован с `src/Extensions/builtin/VSCODE_VERSION` — держите теги в лок-степе.
+ * Пин согласован с `extensions/VSCODE_VERSION` — держите теги в лок-степе.
  *
  * Usage: node scripts/import-vscode-dts.mjs [--check | --verify-active] [--keep-clone]
  */
@@ -35,7 +35,7 @@ const VSCODE_REPO = "https://github.com/microsoft/vscode.git";
 const DTS_PATH = "src/vscode-dts/vscode.d.ts";
 
 const repoRoot = resolve(import.meta.dirname, "..");
-const targetFile = resolve(repoRoot, "src", "Extensions", "Api", "vscode.d.ts");
+const targetFile = resolve(repoRoot, "src", "vscode-dts", "vscode.d.ts");
 
 /** Строка-сентинел: всё, что ниже неё, — генерируемый дормант. */
 const SENTINEL = "//@vexx:begin-upstream-verbatim (генерируется scripts/import-vscode-dts.mjs — правьте только раскомментированием)";

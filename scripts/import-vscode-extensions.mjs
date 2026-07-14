@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 /**
  * Import declarative language-basics extensions from microsoft/vscode
- * into `src/Extensions/builtin/`.
+ * into `extensions/`.
  *
  * Repeatable: bumping `VSCODE_TAG` and re-running the script refreshes all
  * packs to the new tag (each target directory is wiped before copying, so
  * files removed upstream do not linger). The pinned tag is recorded in
- * `src/Extensions/builtin/VSCODE_VERSION`.
+ * `extensions/VSCODE_VERSION`.
  *
  * Only extensions without runtime code are imported (languages + grammars +
  * snippets). `git-base` declares a `main`, but builtin extensions are never
@@ -115,7 +115,7 @@ function dirSize(dir) {
 }
 
 const repoRoot = resolve(import.meta.dirname, "..");
-const builtinDir = resolve(repoRoot, "src", "Extensions", "builtin");
+const builtinDir = resolve(repoRoot, "extensions");
 const keepClone = process.argv.includes("--keep-clone");
 
 const scratch = mkdtempSync(join(tmpdir(), "vscode-import-"));

@@ -14,7 +14,7 @@ const SEA_BUNDLE_KEY = "vexx.bundle";
  *   - если процесс — SEA-бинарь (`node:sea.isSea() === true`),
  *     возвращает {@link BundleAssetAccess} над встроенным `vexx.bundle`;
  *   - иначе — {@link FsAssetAccess} с dev-mapping'ом на реальные файлы
- *     в `src/Extensions/builtin/` и `node_modules/vscode-oniguruma`.
+ *     в `extensions/` и `node_modules/vscode-oniguruma`.
  *
  * `node:sea` доступен только через `require()` внутри SEA-сборки —
  * статический ESM-импорт падает даже в работающем SEA executable
@@ -40,14 +40,14 @@ function tryLoadSeaBundle(): Uint8Array | null {
 
 /**
  * Создаёт {@link FsAssetAccess} для dev/test режима. Резолвит реальные пути
- * к `src/Extensions/builtin/` и `node_modules/vscode-oniguruma/.../onig.wasm`
+ * к `extensions/` и `node_modules/vscode-oniguruma/.../onig.wasm`
  * относительно расположения этого файла.
  */
 export function createDevAssetAccess(): FsAssetAccess {
     const here = path.dirname(fileURLToPath(import.meta.url));
-    // src/vs/base/node/assets → src
-    const srcRoot = path.resolve(here, "..", "..", "..", "..");
-    const builtinDir = path.resolve(srcRoot, "Extensions", "builtin");
+    // src/vs/base/node/assets → корень репозитория
+    const repoRoot = path.resolve(here, "..", "..", "..", "..", "..");
+    const builtinDir = path.resolve(repoRoot, "extensions");
 
     const require = createRequire(import.meta.url);
     const onigWasmPath = require.resolve("vscode-oniguruma/release/onig.wasm");

@@ -15,7 +15,7 @@ import { getOnigLib } from "../onigLib.ts";
  */
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const builtinDir = path.resolve(here, "..", "..", "..", "..", "..", "..", "Extensions", "builtin");
+const builtinDir = path.resolve(here, "..", "..", "..", "..", "..", "..", "..", "extensions");
 
 const SCOPE_TO_PATH: Partial<Record<string, string>> = {
     "source.js": path.join(builtinDir, "javascript", "syntaxes", "JavaScript.tmLanguage.json"),
