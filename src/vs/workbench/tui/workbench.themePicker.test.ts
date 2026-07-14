@@ -7,7 +7,8 @@ import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { ThemeService } from "../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../services/themes/common/themeTokens.ts";
 
-import { AppController, AppControllerDIToken, themeTypeLabel } from "./workbench.ts";
+import { AppController, AppControllerDIToken } from "./workbench.ts";
+import { themeTypeLabel } from "../contrib/themes/tui/themeActions.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "../../platform/commands/common/commands.ts";
 import { createTestContainer } from "../../vexx/modules/testProfile.ts";
 

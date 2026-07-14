@@ -125,7 +125,7 @@ import {
 import { openKeybindingsAction, openSettingsAction } from "../contrib/preferences/tui/preferencesActions.ts";
 import { gotoLineAction, quickOpenAction, showCommandsAction } from "../contrib/quickaccess/tui/quickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./parts/editor/tabActions.ts";
-import { selectThemeAction } from "../contrib/themes/tui/themeActions.ts";
+import { selectColorTheme, selectThemeAction } from "../contrib/themes/tui/themeActions.ts";
 import {
     insertFinalNewLineAction,
     triggerSuggestAction,
@@ -282,20 +282,6 @@ const builtinActions = [
     inputUndoAction,
     inputRedoAction,
 ];
-
-/** Human-readable base-type label shown next to a theme in the picker. */
-export function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {
-    switch (type) {
-        case "light":
-            return "light";
-        case "hc":
-            return "high contrast";
-        case "hcLight":
-            return "high contrast light";
-        default:
-            return "dark";
-    }
-}
 
 export class AppController extends Disposable implements IController {
     public static dependencies = [
@@ -529,7 +515,12 @@ export class AppController extends Disposable implements IController {
             registerAction(commands, keybindings, accessor, {
                 ...selectThemeAction,
                 run: () => {
-                    void this.selectColorTheme();
+                    void selectColorTheme({
+                        themeService: this.themeService,
+                        themeRegistry: this.themeRegistry,
+                        quickInput: this.quickInputController,
+                        configuration: this.configurationService,
+                    });
                 },
             }),
         );
@@ -982,52 +973,6 @@ export class AppController extends Disposable implements IController {
         callbacks: { onSave: () => void; onDontSave: () => void; onCancel: () => void },
     ): void {
         this.dialogs.showConfirmSaveDialog(filename, callbacks);
-    }
-
-    /**
-     * Color-theme picker (VS Code `workbench.action.selectTheme`). Lists every
-     * registered theme, applies it live as you arrow through the list, and on
-     * Enter persists the choice to `workbench.colorTheme`. Escape / dismiss
-     * restores the theme that was active before the picker opened.
-     */
-    private async selectColorTheme(): Promise<void> {
-        const originalTheme = this.themeService.theme;
-        const descriptors = this.themeRegistry.list();
-
-        const items = descriptors.map((d) => ({
-            label: d.label,
-            description: themeTypeLabel(d.type),
-        }));
-        const activeIndex = Math.max(
-            0,
-            descriptors.findIndex((d) => d.label === originalTheme.name),
-        );
-
-        const applyByLabel = (label: string): void => {
-            const theme = this.themeRegistry.resolve(label);
-            /* v8 ignore start -- defensive: `label` always originates from the registry's own list()/picker items, so resolve() never returns undefined */
-            if (theme) this.themeService.setTheme(theme);
-            /* v8 ignore stop */
-        };
-
-        const picked = await this.quickInputController.quickPick({
-            title: "Color Theme",
-            placeholder: "Select Color Theme (Up/Down Keys to Preview)",
-            items,
-            activeIndex,
-            onDidChangeActive: (item) => {
-                if (item) applyByLabel(item.label);
-            },
-        });
-
-        if (picked === undefined) {
-            // Cancelled — undo any live preview by restoring the original theme.
-            this.themeService.setTheme(originalTheme);
-            return;
-        }
-
-        applyByLabel(picked.label);
-        void this.configurationService.updateUserValue?.("workbench.colorTheme", picked.label);
     }
 
     public showAboutDialog(): void {
