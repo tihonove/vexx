@@ -1,38 +1,10 @@
-import { execSync } from "node:child_process";
-
 import { defineConfig } from "tsup";
 
-/**
- * Версия, «зашиваемая» в сборку. Приоритет:
- *  1. env `VEXX_VERSION` — задаётся в CI (релиз: тег `vX.Y.Z`; ночная: `nightly-<hash>`);
- *     ведущая `v` срезается.
- *  2. git-fallback — точный тег `vX.Y.Z` → его номер; иначе `nightly-<short-hash>`.
- *  3. если git недоступен → `0.0.0-dev`.
- */
-function resolveVersion(): string {
-  const fromEnv = process.env.VEXX_VERSION?.trim();
-  if (fromEnv) return fromEnv.replace(/^v/, "");
-
-  try {
-    const tag = execSync("git describe --tags --exact-match", { stdio: ["ignore", "pipe", "ignore"] })
-      .toString()
-      .trim();
-    if (/^v\d/.test(tag)) return tag.replace(/^v/, "");
-  } catch {
-    // HEAD не на релизном теге — упадём в nightly-ветку ниже.
-  }
-
-  try {
-    const shortSha = execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] })
-      .toString()
-      .trim();
-    if (shortSha) return `nightly-${shortSha}`;
-  } catch {
-    // git недоступен.
-  }
-
-  return "0.0.0-dev";
-}
+// Версия резолвится в scripts/resolve-version.mjs — тем же кодом, что и ключ кэша
+// в build-selfextract.mjs. Общий источник правды: версия, зашитая в main.js, и
+// версия в имени кэш-каталога обязаны совпадать.
+// @ts-expect-error — build-скрипты живут в .mjs без типов (они не должны зависеть от tsx/jiti).
+import { resolveVexxVersion } from "./scripts/resolve-version.mjs";
 
 export default defineConfig({
   entry: ["src/main.ts"],
@@ -47,6 +19,6 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   define: {
-    __VEXX_VERSION__: JSON.stringify(resolveVersion()),
+    __VEXX_VERSION__: JSON.stringify(resolveVexxVersion()),
   },
 });

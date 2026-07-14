@@ -23,6 +23,7 @@
     "screenshots": "tsx e2e/scenarios/generate.ts",
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",
+    "build:selfextract": "node scripts/build-selfextract.mjs",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",

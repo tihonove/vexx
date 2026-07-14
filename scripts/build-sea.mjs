@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
-import { execSync, spawnSync } from "node:child_process";
-import { writeFileSync, mkdirSync, statSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { writeFileSync, statSync } from "node:fs";
 import { resolve, join } from "node:path";
 
-import { buildExtensions } from "./build-extensions.mjs";
-import { buildVexxBundle } from "./pack-assets.mjs";
+import { buildDistArtifacts } from "./build-dist.mjs";
+import { smokeTestBinary } from "./smoke-binary.mjs";
 
 const root = resolve(import.meta.dirname, "..");
 const dist = join(root, "dist");
@@ -19,26 +19,12 @@ function run(cmd) {
     execSync(cmd, { stdio: "inherit", cwd: root });
 }
 
-// 1. Bundle with tsup
-mkdirSync(dist, { recursive: true });
-run("npx tsup");
+// 1. Собираем dist/main.js + dist/vexx.bundle (общее с build-selfextract.mjs).
+const { mainJsPath, bundlePath } = await buildDistArtifacts({ repoRoot: root });
 
-// 1.5. Compile code-builtins (git, …) → <dir>/out/extension.cjs BEFORE packing,
-// so the compiled bundle lands in vexx.bundle and is loadable under SEA.
-const builtExtensions = await buildExtensions({ repoRoot: root });
-console.log(`[build-sea] Compiled ${builtExtensions.length} code-builtin(s): ${builtExtensions.map((b) => b.id).join(", ") || "—"}`);
-
-// 2. Pack onig.wasm + src/Extensions/builtin/** into a single dist/vexx.bundle
-const { bundle, inputs } = buildVexxBundle({ repoRoot: root });
-const bundlePath = join(dist, "vexx.bundle");
-writeFileSync(bundlePath, bundle);
-console.log(
-    `[build-sea] Packed ${inputs.length} assets → ${bundlePath} (${(bundle.length / 1024).toFixed(1)} KB)`,
-);
-
-// 3. Generate SEA config
+// 2. Generate SEA config
 const seaConfig = {
-    main: join(dist, "main.js"),
+    main: mainJsPath,
     output: outputPath,
     mainFormat: "module",
     disableExperimentalSEAWarning: true,
@@ -51,14 +37,14 @@ const configPath = join(dist, "sea-config.json");
 writeFileSync(configPath, JSON.stringify(seaConfig, null, 2));
 console.log(`SEA config written to ${configPath}`);
 
-// 4. Build SEA binary
+// 3. Build SEA binary
 run(`node --build-sea ${configPath}`);
 
-// 5. Verify the output is a proper binary (not just a blob)
+// 4. Verify the output is a proper binary (not just a blob)
 const binStats = statSync(outputPath);
 console.error(`[build-sea] Binary: ${outputPath} (${(binStats.size / 1024 / 1024).toFixed(1)} MB)`);
 
-// 6. Sign on macOS (required for SEA to run)
+// 5. Sign on macOS (required for SEA to run)
 if (isMac) {
     run(`chmod +x ${outputPath}`);
 
@@ -95,20 +81,12 @@ if (isMac) {
     } catch (e) {
         throw new Error(`[build-sea] Signature verification FAILED: ${String(e)}`);
     }
-
-    // Confirm the binary is actually executable (catches EPERM / ENOEXEC early)
-    {
-        const testResult = spawnSync(outputPath, [], { timeout: 3000, stdio: "pipe", cwd: root });
-        if (testResult.error) {
-            const code = testResult.error.code ?? "";
-            if (code === "ENOEXEC" || code === "EPERM" || code === "EACCES") {
-                throw new Error(`[build-sea] Binary cannot be executed (${code}): ${testResult.error.message}`);
-            }
-            console.error(`[build-sea] Binary test error (spawn itself may have failed): ${code} — ${testResult.error.message}`);
-        } else {
-            console.error(`[build-sea] Binary test: spawn OK, exited with code ${String(testResult.status)}`);
-        }
-    }
 }
+
+// 6. Самотест: бинарь обязан реально стартовать. Намеренно ВНЕ `if (isMac)` —
+// раньше проверка была только под macOS, смотрела лишь на `error` и запускала
+// бинарь без аргументов, из-за чего segfault уехал в релиз (#143).
+const version = smokeTestBinary(outputPath, { cwd: root });
+console.error(`[build-sea] Smoke: ${outputPath} --version → ${version}`);
 
 console.log(`\nDone! Binary: ${outputPath}`);
