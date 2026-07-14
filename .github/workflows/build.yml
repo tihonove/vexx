@@ -21,25 +21,38 @@ jobs:
   build:
     strategy:
       matrix:
+        # mode: чем упаковываем.
+        #   sea         — Node SEA (`node --build-sea`).
+        #   selfextract — sh-стаб + приклеенный payload (нетронутый node + main.js +
+        #                 vexx.bundle). Нужен там, где SEA не работает: на Intel macOS
+        #                 инъекция SEA-блоба портит Mach-O chained fixups → segfault
+        #                 до main() (#143, #144). Позже — распространить на linux-x64.
         include:
           - os: ubuntu-latest
             asset: vexx-linux-x64
             binary: dist/vexx
+            mode: sea
           - os: macos-latest
             asset: vexx-macos-arm64
             binary: dist/vexx
+            mode: sea
           - os: macos-15-intel
             asset: vexx-macos-x64
             binary: dist/vexx
+            mode: selfextract
           - os: windows-latest
             asset: vexx-windows-x64.exe
             binary: dist/vexx.exe
+            mode: sea
 
     runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
 
+      # Версия сборочного node. Для mode: selfextract держи в лок-степе с
+      # NODE_VERSION в scripts/build-selfextract.mjs — там node, который уезжает
+      # в payload и становится рантаймом пользователя.
       - uses: actions/setup-node@v4
         with:
           node-version: "25"
@@ -47,6 +60,12 @@ jobs:
       - run: npm install
 
       - run: npm run build:sea
+        if: matrix.mode == 'sea'
+        env:
+          VEXX_VERSION: ${{ inputs.version }}
+
+      - run: npm run build:selfextract
+        if: matrix.mode == 'selfextract'
         env:
           VEXX_VERSION: ${{ inputs.version }}
 
@@ -56,6 +75,15 @@ jobs:
       - name: Rename binary
         shell: bash
         run: mv "${{ matrix.binary }}" "${{ matrix.asset }}"
+
+      # Последний рубеж перед публикацией: ассет обязан реально стартовать на этом
+      # железе. Именно этого не хватало в #143 — segfault-ящий vexx-macos-x64 уехал
+      # в релиз, потому что никто ни разу не запустил собранный файл.
+      # Самотесты внутри build-скриптов проверяют то же, но здесь проверяется
+      # ровно тот файл, который уйдёт в upload-artifact, и уже после rename.
+      - name: Smoke — asset actually starts
+        shell: bash
+        run: ./${{ matrix.asset }} --version
 
       - uses: actions/upload-artifact@v4
         with:
