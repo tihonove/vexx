@@ -27,7 +27,7 @@ import { MenuBarElement } from "../../base/tui/ui/menu/menuBarElement.ts";
 import type { OverlaySessionHandle } from "../../base/tui/ui/contextview/overlayLayer.ts";
 import type { MenuEntry, MenuItemEntry } from "../../base/tui/ui/menu/popupMenuElement.ts";
 import { TreeViewElement } from "../../base/tui/ui/tree/treeViewElement.ts";
-import { WorkbenchLayoutElement } from "./workbenchLayoutElement.ts";
+import { WorkbenchLayoutElement } from "./layout.ts";
 
 import { quitAction } from "./actions/appActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./parts/editor/clipboardActions.ts";
@@ -134,6 +134,7 @@ import {
     trimTrailingWhitespaceAction,
 } from "./parts/editor/whitespaceActions.ts";
 import { registerAction } from "../../platform/commands/common/commandAction.ts";
+import { registerLayoutActions } from "./actions/layoutActions.ts";
 import type { CommandRegistry } from "../../platform/commands/common/commands.ts";
 import { CommandRegistryDIToken } from "../../platform/commands/common/commands.ts";
 import { CompletionController } from "../../editor/contrib/suggest/tui/completionController.ts";
@@ -282,9 +283,6 @@ const builtinActions = [
     inputUndoAction,
     inputRedoAction,
 ];
-
-// Columns added/removed per increase/decrease Side Bar Width command.
-const SIDEBAR_WIDTH_STEP = 3;
 
 /** Human-readable base-type label shown next to a theme in the picker. */
 export function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {
@@ -707,90 +705,21 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.action.toggleSidebarVisibility",
-                title: "View: Toggle Primary Side Bar Visibility",
-                keybinding: parseKeybinding("ctrl+b"),
-                run: () => {
-                    const visible = this.workbenchLayout.getLeftPanelVisible();
-                    this.workbenchLayout.setLeftPanelVisible(!visible);
-                    this.workbenchLayout.markDirty();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.view.explorer",
-                title: "View: Show Explorer",
-                keybinding: parseKeybinding("ctrl+shift+e"),
-                run: () => {
-                    this.workbenchLayout.setLeftPanelVisible(true);
-                    this.workbenchLayout.markDirty();
-                    this.fileTreeController.focus();
-                },
-            }),
-        );
-        // Side bar width: palette-only, no default keybindings (matching VS Code's
-        // increase/decreaseViewWidth). Users can bind them via keybindings.json.
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.action.increaseSidebarWidth",
-                title: "View: Increase Side Bar Width",
-                run: () => {
-                    this.workbenchLayout.nudgeLeftPanelWidth(SIDEBAR_WIDTH_STEP);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.action.decreaseSidebarWidth",
-                title: "View: Decrease Side Bar Width",
-                run: () => {
-                    this.workbenchLayout.nudgeLeftPanelWidth(-SIDEBAR_WIDTH_STEP);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.action.resetSidebarWidth",
-                title: "View: Reset Side Bar Width",
-                run: () => {
-                    this.workbenchLayout.resetLeftPanelWidth();
-                },
-            }),
-        );
-        // Bottom Panel (Problems/Output/…) visibility.
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.action.togglePanel",
-                title: "View: Toggle Panel Visibility",
-                keybinding: parseKeybinding("ctrl+j"),
-                run: () => {
-                    this.setPanelVisible(!this.workbenchLayout.getBottomPanelVisible());
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "workbench.actions.view.problems",
-                title: "View: Toggle Problems (Errors, Warnings, Infos)",
-                keybinding: parseKeybinding("ctrl+shift+m"),
-                run: () => {
-                    // Toggle like VS Code: show + focus Problems, or hide the panel if
-                    // Problems is already the visible view.
-                    const showing =
-                        this.workbenchLayout.getBottomPanelVisible() && this.panelController.isProblemsActive();
-                    if (showing) {
-                        this.setPanelVisible(false);
-                    } else {
-                        this.panelController.showProblems();
-                        this.setPanelVisible(true);
-                        this.problemsController.focus();
-                    }
-                },
-            }),
-        );
+        for (const d of registerLayoutActions({
+            commands,
+            keybindings,
+            accessor,
+            layout: this.workbenchLayout,
+            fileTree: this.fileTreeController,
+            panelController: this.panelController,
+            problemsController: this.problemsController,
+            setPanelVisible: (visible) => {
+                this.setPanelVisible(visible);
+            },
+        })) {
+            this.register(d);
+        }
+
         // Apply user keybindings AFTER all defaults so they take precedence (the registry
         // resolves the last-registered matching binding) and so `-command` unbinds can remove defaults.
         this.keybindingDispatcher.applyUserKeybindings(userKeybindings);

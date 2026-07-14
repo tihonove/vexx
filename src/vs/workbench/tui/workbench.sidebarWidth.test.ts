@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import type { WorkbenchLayoutElement } from "./workbenchLayoutElement.ts";
+import type { WorkbenchLayoutElement } from "./layout.ts";
 
 describe("Side Bar width commands", () => {
     let ws: ITempWorkspace;

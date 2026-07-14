@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { resolveUserDataPaths, resolveWorkspaceStatePath } from "../../platform/environment/node/userDataPath.ts";
 import { loadState, StateService } from "../../platform/state/node/stateService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import { WorkbenchLayoutElement } from "./workbenchLayoutElement.ts";
+import { WorkbenchLayoutElement } from "./layout.ts";
 
 import type { EditorGroupController } from "./parts/editor/editorGroupController.ts";
 import {

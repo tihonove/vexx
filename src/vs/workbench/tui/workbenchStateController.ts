@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 
 import { Disposable } from "../../base/common/lifecycle.ts";
 import type { IStateService } from "../../platform/state/node/state.ts";
-import type { WorkbenchLayoutElement } from "./workbenchLayoutElement.ts";
+import type { WorkbenchLayoutElement } from "./layout.ts";
 
 import type { EditorGroupController } from "./parts/editor/editorGroupController.ts";
 import {

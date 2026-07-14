@@ -6,7 +6,7 @@ import { TerminalScreen } from "../../tui/rendering/terminalScreen.ts";
 import { RenderContext, TUIElement } from "../../base/tui/tuiElement.ts";
 
 import { SashElement } from "../../base/tui/ui/sash/sashElement.ts";
-import { WorkbenchLayoutElement } from "./workbenchLayoutElement.ts";
+import { WorkbenchLayoutElement } from "./layout.ts";
 
 function createPanel(): TUIElement {
     return new TUIElement();
