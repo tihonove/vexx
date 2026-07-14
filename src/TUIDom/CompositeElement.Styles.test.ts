@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { packRgb } from "../Rendering/ColorUtils.ts";
+import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 
 import { CompositeElement } from "./CompositeElement.ts";
 import type { JsxNode } from "./JSX/jsx-runtime.ts";

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
-import { emptyGridSnapshot } from "../Rendering/GridSnapshot.ts";
+import { emptyGridSnapshot } from "../vs/tui/rendering/gridSnapshot.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";

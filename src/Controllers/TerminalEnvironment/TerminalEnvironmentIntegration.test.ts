@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import type { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { createAppTestHarness } from "../../TestUtils/AppTestHarness.ts";
 import { registerContextKeys } from "../ContextKeys.ts";
 import { ContextKeyServiceDIToken } from "../ContextKeyService.ts";

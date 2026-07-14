@@ -1,7 +1,7 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
-import { StyleFlags } from "../Rendering/StyleFlags.ts";
+import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
+import { StyleFlags } from "../vs/tui/rendering/styleFlags.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../TUIDom/Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";

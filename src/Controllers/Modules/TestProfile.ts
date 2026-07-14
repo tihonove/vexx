@@ -1,4 +1,4 @@
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";

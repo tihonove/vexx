@@ -1,4 +1,4 @@
-import { packRgb } from "../Rendering/ColorUtils.ts";
+import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 import type { StoryContext, StoryMeta } from "../StoryRunner/StoryTypes.ts";
 
 import { EditorElement } from "./EditorElement.ts";

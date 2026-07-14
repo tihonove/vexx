@@ -1,5 +1,5 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
-import { StyleFlags } from "../../Rendering/StyleFlags.ts";
+import { StyleFlags } from "../../vs/tui/rendering/styleFlags.ts";
 import type { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 

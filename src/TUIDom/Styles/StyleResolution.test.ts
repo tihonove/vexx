@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import { TUIElement } from "../TUIElement.ts";
 
 import { ROOT_RESOLVED_STYLE } from "./TUIStyle.ts";

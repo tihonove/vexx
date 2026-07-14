@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
+import { TerminalScreen } from "../vs/tui/rendering/terminalScreen.ts";
 
 import { CompositeElement } from "./CompositeElement.ts";
 import type { JsxNode } from "./JSX/jsx-runtime.ts";

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Point, Size } from "../Common/GeometryPromitives.ts";
-import type { MouseToken } from "../Input/RawTerminalToken.ts";
+import type { MouseToken } from "../vs/tui/input/rawTerminalToken.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";

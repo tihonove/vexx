@@ -1,4 +1,4 @@
-import type { GridSnapshot } from "../Rendering/GridSnapshot.ts";
+import type { GridSnapshot } from "../vs/tui/rendering/gridSnapshot.ts";
 
 /**
  * Write/capture side of the inspector — the counterpart to the read-only

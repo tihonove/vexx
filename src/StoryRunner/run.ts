@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import { NodeTerminalBackend } from "../Backend/NodeTerminalBackend.ts";
+import { NodeTerminalBackend } from "../vs/tui/backend/nodeTerminalBackend.ts";
 import { TuiApplication } from "../TUIDom/TuiApplication.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 

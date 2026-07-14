@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import type { MouseToken } from "../../Input/RawTerminalToken.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import type { MouseToken } from "../../vs/tui/input/rawTerminalToken.ts";
+import { TerminalScreen } from "../../vs/tui/rendering/terminalScreen.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
 import { MouseEventDispatcher } from "../Events/MouseEventDispatcher.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";

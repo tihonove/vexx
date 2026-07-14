@@ -9,7 +9,7 @@ import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.t
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
+import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";

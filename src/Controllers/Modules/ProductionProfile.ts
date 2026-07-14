@@ -1,4 +1,4 @@
-import type { ITerminalBackend } from "../../Backend/ITerminalBackend.ts";
+import type { ITerminalBackend } from "../../vs/tui/backend/terminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
 import type { ILogService } from "../../Common/Logging/ILogService.ts";

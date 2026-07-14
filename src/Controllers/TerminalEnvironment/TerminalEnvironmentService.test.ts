@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { ConfigurationModel } from "../../Configuration/ConfigurationModel.ts";
 import { ConfigurationService } from "../../Configuration/ConfigurationService.ts";
 import { getDefaultConfiguration } from "../../Configuration/defaults.ts";

@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
-import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
+import { DEFAULT_COLOR } from "../vs/tui/rendering/colorUtils.ts";
 import { expectScreen, screen } from "../TestUtils/expectScreen.ts";
 
 import { TuiApplication } from "./TuiApplication.ts";

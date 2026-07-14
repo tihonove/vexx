@@ -2,7 +2,7 @@ import { type ChildProcess, spawn } from "node:child_process";
 
 import type WebSocket from "ws";
 
-import type { GridSnapshot } from "../../src/Rendering/GridSnapshot.ts";
+import type { GridSnapshot } from "../../src/vs/tui/rendering/gridSnapshot.ts";
 import type {
     CaptureFrameResult,
     FileDecorationEntry,

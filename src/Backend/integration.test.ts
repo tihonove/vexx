@@ -4,7 +4,7 @@ import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { TuiApplication } from "../TUIDom/TuiApplication.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
-import { MockTerminalBackend } from "./MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
 
 describe("TuiApplication integration with MockTerminalBackend", () => {
     it("types characters and renders them on screen", () => {

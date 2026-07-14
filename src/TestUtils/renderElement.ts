@@ -1,6 +1,6 @@
-import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
+import { TerminalScreen } from "../vs/tui/rendering/terminalScreen.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { RenderContext } from "../TUIDom/TUIElement.ts";
 

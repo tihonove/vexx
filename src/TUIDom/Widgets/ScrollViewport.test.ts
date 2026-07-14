@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { TerminalScreen } from "../../vs/tui/rendering/terminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 

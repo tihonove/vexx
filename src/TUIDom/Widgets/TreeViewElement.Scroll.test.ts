@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";

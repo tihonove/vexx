@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getFileIcon } from "../../Common/FileIcons.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 

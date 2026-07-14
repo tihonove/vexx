@@ -111,9 +111,9 @@ describe("FileSearchService — integration against real project", () => {
             expect(paths.some((p) => p.includes("FuzzySearch.ts"))).toBe(true);
         });
 
-        it('"ntb" finds NodeTerminalBackend.ts', () => {
+        it('"ntb" finds nodeTerminalBackend.ts', () => {
             const paths = relativePaths(service.search("ntb"));
-            expect(paths.some((p) => p.includes("NodeTerminalBackend.ts"))).toBe(true);
+            expect(paths.some((p) => p.includes("nodeTerminalBackend.ts"))).toBe(true);
         });
     });
 

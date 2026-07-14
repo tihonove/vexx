@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
 import { registerAction } from "../CommandAction.ts";

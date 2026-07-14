@@ -1,7 +1,7 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
-import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
-import { StyleFlags } from "../../Rendering/StyleFlags.ts";
+import { DEFAULT_COLOR } from "../../vs/tui/rendering/colorUtils.ts";
+import { StyleFlags } from "../../vs/tui/rendering/styleFlags.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 export interface StyledChar {

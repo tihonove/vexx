@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { HeadlessCaptureBackend } from "../Backend/HeadlessCaptureBackend.ts";
+import { HeadlessCaptureBackend } from "../vs/tui/backend/headlessCaptureBackend.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
-import type { GridSnapshot } from "../Rendering/GridSnapshot.ts";
+import type { GridSnapshot } from "../vs/tui/rendering/gridSnapshot.ts";
 import { TuiApplication } from "../TUIDom/TuiApplication.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";

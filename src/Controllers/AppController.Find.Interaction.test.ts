@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { MouseAction, MouseToken } from "../Input/RawTerminalToken.ts";
+import type { MouseAction, MouseToken } from "../vs/tui/input/rawTerminalToken.ts";
 
 import type { FindContext } from "./AppController.Find.TestUtils.ts";
 import { createFindApp, disposeFindApp, type } from "./AppController.Find.TestUtils.ts";

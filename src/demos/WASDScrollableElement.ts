@@ -1,4 +1,4 @@
-import { packRgb } from "../Rendering/ColorUtils.ts";
+import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 import { RenderContext } from "../TUIDom/TUIElement.ts";
 import { ScrollableElement, type ScrollViewportInfo } from "../TUIDom/Widgets/ScrollableElement.ts";
 

@@ -5,7 +5,7 @@
 // Port is argv[2] (0 = ephemeral). Ctrl+C exits.
 // Run: npm run demo:tuidom:inspect -- <port>
 
-import { NodeTerminalBackend } from "../../Backend/NodeTerminalBackend.ts";
+import { NodeTerminalBackend } from "../../vs/tui/backend/nodeTerminalBackend.ts";
 import { attachInspector } from "../../Inspector/index.ts";
 import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";

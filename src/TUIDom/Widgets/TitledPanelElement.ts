@@ -1,5 +1,5 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import type { StyleColor, TUIStyle } from "../Styles/TUIStyle.ts";
 import { resolveStyleColor } from "../Styles/TUIStyle.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";

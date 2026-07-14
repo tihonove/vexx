@@ -1,4 +1,4 @@
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import { CompositeElement } from "../CompositeElement.ts";
 import type { JsxNode } from "../JSX/jsx-runtime.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";

@@ -1,7 +1,7 @@
 /**
  * Минимальный парсер ANSI-вывода ровно под то, что эмитит наш TerminalRenderer
- * (`src/Rendering/TerminalRenderer.ts`) и `NodeTerminalBackend.renderFrame`
- * (`src/Backend/NodeTerminalBackend.ts`).
+ * (`src/vs/tui/rendering/terminalRenderer.ts`) и `NodeTerminalBackend.renderFrame`
+ * (`src/vs/tui/backend/nodeTerminalBackend.ts`).
  *
  * Поддерживается ровно тот сабсет, который реально шлёт приложение:
  * - CSI `H` — абсолютное позиционирование курсора (1-based)
@@ -15,7 +15,7 @@
  * `\n` и `\r` обрабатываются для устойчивости, но рендерер их не использует.
  */
 
-import { DEFAULT_COLOR } from "../../src/Rendering/ColorUtils.ts";
+import { DEFAULT_COLOR } from "../../src/vs/tui/rendering/colorUtils.ts";
 
 export interface AnsiCell {
     char: string;

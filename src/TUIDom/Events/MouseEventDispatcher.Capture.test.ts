@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import type { MouseToken } from "../../Input/RawTerminalToken.ts";
+import type { MouseToken } from "../../vs/tui/input/rawTerminalToken.ts";
 import { TUIElement } from "../TUIElement.ts";
 
 import { MouseEventDispatcher } from "./MouseEventDispatcher.ts";

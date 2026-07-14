@@ -1,5 +1,5 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";

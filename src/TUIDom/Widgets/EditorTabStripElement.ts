@@ -1,5 +1,5 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
+import { DEFAULT_COLOR, packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { EditorTabItemElement } from "./EditorTabItemElement.ts";

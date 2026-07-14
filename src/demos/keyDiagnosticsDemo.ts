@@ -32,9 +32,9 @@ import {
     emptyCapabilities,
     resolveTier,
 } from "../Controllers/TerminalEnvironment/TerminalEnvironmentModel.ts";
-import type { KeyPressEvent } from "../Input/KeyEvent.ts";
-import { KeyInputParser } from "../Input/KeyInputParser.ts";
-import { tokenize } from "../Input/tokenize.ts";
+import type { KeyPressEvent } from "../vs/tui/input/keyEvent.ts";
+import { KeyInputParser } from "../vs/tui/input/keyInputParser.ts";
+import { tokenize } from "../vs/tui/input/tokenize.ts";
 
 import { addCleanup, isCtrlC, stdin, stdout, writeDirect } from "./demoSetup.ts";
 

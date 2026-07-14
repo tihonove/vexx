@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
 import { FileTreeController } from "../../Controllers/FileTreeController.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import type { StoryContext, StoryMeta } from "../../StoryRunner/StoryTypes.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 

@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import type { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { getFileIcon } from "../../Common/FileIcons.ts";
 import { Point } from "../../Common/GeometryPromitives.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import type { TabInfo } from "./EditorTabStripElement.ts";

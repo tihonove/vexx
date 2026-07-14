@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_COLOR, packRgb } from "../../Rendering/ColorUtils.ts";
+import { DEFAULT_COLOR, packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 
 import type { ResolvedTUIStyle } from "./TUIStyle.ts";
 import { INHERITED_BG, INHERITED_FG, resolveStyle, resolveStyleColor, ROOT_RESOLVED_STYLE } from "./TUIStyle.ts";

@@ -1,7 +1,7 @@
 import { DisplayLine } from "../Common/DisplayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../Common/GeometryPromitives.ts";
-import type { CellPatch } from "../Rendering/Grid.ts";
-import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
+import type { CellPatch } from "../vs/tui/rendering/grid.ts";
+import { TerminalScreen } from "../vs/tui/rendering/terminalScreen.ts";
 
 import { BORDER_ROUNDED, type BorderStyle } from "./BorderStyle.ts";
 import type { FocusManager } from "./Events/FocusManager.ts";

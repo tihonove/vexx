@@ -1,4 +1,4 @@
-import { packRgb } from "../Rendering/ColorUtils.ts";
+import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
 
 /**
  * Parse a CSS hex color string into a packed 24-bit RGB integer.

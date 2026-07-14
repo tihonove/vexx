@@ -1,4 +1,4 @@
-import type { ITerminalBackend } from "../../Backend/ITerminalBackend.ts";
+import type { ITerminalBackend } from "../../vs/tui/backend/terminalBackend.ts";
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";

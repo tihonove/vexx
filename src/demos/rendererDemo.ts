@@ -7,10 +7,10 @@
 
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { reject } from "../Common/TypingUtils.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
-import { Grid } from "../Rendering/Grid.ts";
-import { StyleFlags } from "../Rendering/StyleFlags.ts";
-import { TerminalRenderer } from "../Rendering/TerminalRenderer.ts";
+import { packRgb } from "../vs/tui/rendering/colorUtils.ts";
+import { Grid } from "../vs/tui/rendering/grid.ts";
+import { StyleFlags } from "../vs/tui/rendering/styleFlags.ts";
+import { TerminalRenderer } from "../vs/tui/rendering/terminalRenderer.ts";
 
 const cols = process.stdout.columns;
 const rows = process.stdout.rows;

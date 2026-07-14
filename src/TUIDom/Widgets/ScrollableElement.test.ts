@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
+import { TerminalScreen } from "../../vs/tui/rendering/terminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
 import { RenderContext } from "../TUIElement.ts";

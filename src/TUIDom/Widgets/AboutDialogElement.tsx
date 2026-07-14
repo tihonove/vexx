@@ -1,6 +1,6 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { APP_NAME, REPO_URL, VEXX_VERSION } from "../../Common/Version.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { CompositeElement } from "../CompositeElement.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";

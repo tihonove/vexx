@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
+import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
 
 import { TuiApplication } from "./TuiApplication.ts";

@@ -1,6 +1,6 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
+import { packRgb } from "../../vs/tui/rendering/colorUtils.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 

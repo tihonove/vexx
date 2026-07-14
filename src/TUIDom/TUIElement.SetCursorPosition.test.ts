@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { Offset, Point, Rect, Size } from "../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
+import { TerminalScreen } from "../vs/tui/rendering/terminalScreen.ts";
 
 import { RenderContext } from "./TUIElement.ts";
 

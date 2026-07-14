@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { HeadlessCaptureBackend } from "./Backend/HeadlessCaptureBackend.ts";
-import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
+import { HeadlessCaptureBackend } from "./vs/tui/backend/headlessCaptureBackend.ts";
+import { NodeTerminalBackend } from "./vs/tui/backend/nodeTerminalBackend.ts";
 import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
 import { joinVirtualPath } from "./Common/Assets/AssetBundleFormat.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";

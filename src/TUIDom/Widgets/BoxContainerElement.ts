@@ -1,5 +1,5 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import { DEFAULT_COLOR } from "../../Rendering/ColorUtils.ts";
+import { DEFAULT_COLOR } from "../../vs/tui/rendering/colorUtils.ts";
 import type { JsxChild } from "../JSX/jsx-runtime.ts";
 import { normalizeChildren, reconcileChildren } from "../JSX/reconcile.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
