@@ -1,4 +1,4 @@
-import { EndOfLine } from "../../Editor/EndOfLine.ts";
+import { EndOfLine } from "../../vs/editor/common/core/endOfLine.ts";
 import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { StatusBarControllerDIToken } from "../StatusBarController.ts";

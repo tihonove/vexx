@@ -1,10 +1,10 @@
 import type { IGrammar } from "vscode-textmate";
 import vsctm from "vscode-textmate";
 
-import type { IToken } from "../../ILineTokens.ts";
-import { createLineTokens, createToken } from "../../ILineTokens.ts";
-import type { IState } from "../IState.ts";
-import type { ITokenizationResult, ITokenizationSupport } from "../ITokenizationSupport.ts";
+import type { IToken } from "../../../vs/editor/common/tokens/lineTokens.ts";
+import { createLineTokens, createToken } from "../../../vs/editor/common/tokens/lineTokens.ts";
+import type { IState } from "../../../vs/editor/common/languages/state.ts";
+import type { ITokenizationResult, ITokenizationSupport } from "../../../vs/editor/common/languages/tokenizationSupport.ts";
 
 import { TextMateState } from "./TextMateState.ts";
 

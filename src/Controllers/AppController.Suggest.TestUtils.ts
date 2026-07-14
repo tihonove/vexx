@@ -3,7 +3,7 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import type { TestApp } from "../TestUtils/TestApp.ts";
 
 import type { AppController } from "./AppController.ts";
-import type { CompletionController } from "./CompletionController.ts";
+import type { CompletionController } from "../vs/editor/contrib/suggest/tui/completionController.ts";
 import type { ContextKeyService } from "../vs/platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../vs/platform/contextkey/common/contextKeyService.ts";
 import type { EditorController } from "./EditorController.ts";

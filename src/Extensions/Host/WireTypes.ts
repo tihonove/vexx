@@ -1,6 +1,6 @@
-import { EndOfLine } from "../../Editor/EndOfLine.ts";
-import type { ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
-import { createRange, type IRange } from "../../Editor/IRange.ts";
+import { EndOfLine } from "../../vs/editor/common/core/endOfLine.ts";
+import type { ICoreCompletionItem } from "../../vs/editor/common/languages.ts";
+import { createRange, type IRange } from "../../vs/editor/common/core/range.ts";
 import type { ISaveEdit } from "../../Editor/ISaveParticipant.ts";
 
 /**

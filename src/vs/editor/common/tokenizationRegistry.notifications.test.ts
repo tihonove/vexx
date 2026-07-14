@@ -1,0 +1,101 @@
+import { describe, expect, it } from "vitest";
+
+import { NULL_STATE } from "./languages/state.ts";
+import type { ITokenizationSupport } from "./languages/tokenizationSupport.ts";
+import { TokenizationRegistry } from "./tokenizationRegistry.ts";
+
+function makeStubSupport(): ITokenizationSupport {
+    return {
+        getInitialState: () => NULL_STATE,
+        tokenizeLine: () => ({ tokens: { tokens: [] }, endState: NULL_STATE }),
+    };
+}
+
+// Focused on the change-notification semantics around register()'s dispose
+// (lines 21-24) and onDidChange (lines 33-41): which mutations fire onDidChange
+// and which stay silent.
+describe("TokenizationRegistry — change notifications", () => {
+    it("does not fire onDidChange on subscription, only on register()", () => {
+        const reg = new TokenizationRegistry();
+        const seen: string[] = [];
+        reg.onDidChange((id) => seen.push(id));
+        expect(seen).toEqual([]);
+    });
+
+    it("fires onDidChange again when an existing languageId is overwritten", () => {
+        const reg = new TokenizationRegistry();
+        const seen: string[] = [];
+        reg.onDidChange((id) => seen.push(id));
+
+        reg.register("css", makeStubSupport());
+        reg.register("css", makeStubSupport());
+
+        expect(seen).toEqual(["css", "css"]);
+    });
+
+    it("dispose() of a registration fires onDidChange for that languageId", () => {
+        const reg = new TokenizationRegistry();
+        const seen: string[] = [];
+        const handle = reg.register("css", makeStubSupport());
+        reg.onDidChange((id) => seen.push(id));
+
+        handle.dispose();
+
+        expect(seen).toEqual(["css"]);
+    });
+
+    it("stale dispose() does not fire onDidChange", () => {
+        const reg = new TokenizationRegistry();
+        const handleA = reg.register("css", makeStubSupport());
+        reg.register("css", makeStubSupport()); // overwrites — handleA is now stale
+
+        const seen: string[] = [];
+        reg.onDidChange((id) => seen.push(id));
+        handleA.dispose();
+
+        expect(seen).toEqual([]);
+    });
+
+    it("re-registering after dispose() works and notifies again", () => {
+        const reg = new TokenizationRegistry();
+        const seen: string[] = [];
+        reg.onDidChange((id) => seen.push(id));
+
+        const handle = reg.register("css", makeStubSupport());
+        handle.dispose();
+        const fresh = makeStubSupport();
+        reg.register("css", fresh);
+
+        expect(reg.get("css")).toBe(fresh);
+        // register, dispose, register again.
+        expect(seen).toEqual(["css", "css", "css"]);
+    });
+
+    it("notifies every active listener, in subscription order", () => {
+        const reg = new TokenizationRegistry();
+        const order: string[] = [];
+        reg.onDidChange(() => order.push("first"));
+        reg.onDidChange(() => order.push("second"));
+
+        reg.register("css", makeStubSupport());
+
+        expect(order).toEqual(["first", "second"]);
+    });
+
+    it("the same listener subscribed twice is invoked twice and removed one slot per dispose", () => {
+        const reg = new TokenizationRegistry();
+        let calls = 0;
+        const listener = () => {
+            calls++;
+        };
+        const handle1 = reg.onDidChange(listener);
+        reg.onDidChange(listener);
+
+        reg.register("css", makeStubSupport());
+        expect(calls).toBe(2);
+
+        handle1.dispose();
+        reg.register("html", makeStubSupport());
+        expect(calls).toBe(3);
+    });
+});

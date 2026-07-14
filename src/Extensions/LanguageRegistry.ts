@@ -2,7 +2,7 @@ import * as path from "node:path";
 
 import { joinVirtualPath } from "../vs/base/common/assets/assetBundleFormat.ts";
 import type { IDisposable } from "../vs/base/common/lifecycle.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
+import type { ILanguageService } from "../vs/editor/common/languages/language.ts";
 
 import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 import type { ILanguageContribution } from "./ILanguageContribution.ts";

@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { createDeleteEdit } from "../../Editor/ITextEdit.ts";
+import { createDeleteEdit } from "../../vs/editor/common/core/textEdit.ts";
 import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 

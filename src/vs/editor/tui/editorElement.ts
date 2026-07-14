@@ -1,0 +1,910 @@
+import { DisplayLine } from "../../base/common/displayLine.ts";
+import { Point } from "../../base/common/geometry.ts";
+import { packRgb } from "../../tui/rendering/colorUtils.ts";
+import { StyleFlags } from "../../tui/rendering/styleFlags.ts";
+import type { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
+import type { TUIEventBase } from "../../base/tui/events/tuiEventBase.ts";
+import type { TUIKeyboardEvent } from "../../base/tui/events/tuiKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../../base/tui/events/tuiMouseEvent.ts";
+import type { TUIPasteEvent } from "../../base/tui/events/tuiPasteEvent.ts";
+import { RenderContext, TUIElement } from "../../base/tui/tuiElement.ts";
+import type { BodyElement } from "../../base/tui/bodyElement.ts";
+import type { IScrollable } from "../../base/common/scrollable.ts";
+import type { OverlaySessionHandle } from "../../base/tui/ui/contextview/overlayLayer.ts";
+import type { MenuEntry } from "../../base/tui/ui/menu/popupMenuElement.ts";
+import { PopupMenuElement } from "../../base/tui/ui/menu/popupMenuElement.ts";
+
+import { computeWordOccurrences } from "../common/core/computeWordOccurrences.ts";
+import type { IGutterChangeDecoration } from "../common/model/gutterChangeDecoration.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+import { computeIndentLevel } from "../contrib/folding/common/foldingRangeProvider.ts";
+import type { IFoldingRegion } from "../common/model/foldingRegion.ts";
+import type { ILineTokens, IToken } from "../common/tokens/lineTokens.ts";
+import type { IRange } from "../common/core/range.ts";
+import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "../common/core/selection.ts";
+import type { IUndoElement } from "../common/model/undoElement.ts";
+import type { IMarkerDecoration } from "../../platform/markers/common/markers.ts";
+import { MarkerSeverity } from "../../platform/markers/common/markers.ts";
+import type { ITokenStyleResolver, ResolvedTokenStyle } from "../common/languages/tokenStyleResolver.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../common/languages/tokenStyleResolver.ts";
+import { UndoManager } from "../common/model/undoManager.ts";
+
+const SELECTION_BG = packRgb(38, 79, 120);
+// Find-in-file highlights: all matches get a dim background; the current match a brighter one.
+const FIND_MATCH_BG = packRgb(98, 91, 23);
+const FIND_MATCH_CURRENT_BG = packRgb(168, 109, 0);
+// Occurrences of the word under the cursor. Opaque approximation of VS Code's
+// `editor.wordHighlightBackground` (#575757b8) composited over the editor bg.
+const DEFAULT_OCCURRENCE_HIGHLIGHT_BG = packRgb(71, 71, 71);
+const NO_RANGES: readonly IRange[] = [];
+const NO_MARKER_DECORATIONS: readonly IMarkerDecoration[] = [];
+const NO_GUTTER_CHANGE_DECORATIONS: readonly IGutterChangeDecoration[] = [];
+// Change-bar glyph — VS Code's dirty-diff gutter paints a thin left border; the
+// closest match in a cell grid is the left three-eighths block, drawn in the
+// leftmost gutter column so it reads as a bar hugging the line number.
+const GUTTER_CHANGE_BAR = "▎";
+// Fallbacks for diagnostic squiggle colours when the theme has not been applied
+// yet (mirror the VS Code dark defaults for editorError/Warning/Info/Hint).
+const DEFAULT_ERROR_FG = packRgb(0xf1, 0x4c, 0x4c);
+const DEFAULT_WARNING_FG = packRgb(0xcc, 0xa7, 0x00);
+const DEFAULT_INFO_FG = packRgb(0x37, 0x94, 0xff);
+const DEFAULT_HINT_FG = packRgb(0xee, 0xee, 0xee);
+const GUTTER_LEFT_PADDING = 2;
+
+const DEFAULT_LINE_NUMBER_FG = packRgb(133, 133, 133);
+const DEFAULT_LINE_NUMBER_ACTIVE_FG = packRgb(198, 198, 198);
+const DEFAULT_FOLDING_CONTROL_FG = packRgb(197, 197, 197);
+
+// Codicon chevrons — VS Code's own folding-control glyphs. Thinner than the
+// Nerd Font fa-angle used for the file-tree arrows, so they don't crowd the text.
+const FOLD_ICON_EXPANDED = "\ueab4"; //  nf-cod-chevron_down
+const FOLD_ICON_COLLAPSED = "\ueab6"; //  nf-cod-chevron_right
+// Blank columns padding the fold chevron inside the gutter: one gap after the
+// line number and one before the text, so the chevron doesn't crowd either. The
+// chevron itself sits between them → a 3-column fold margin.
+const FOLD_GAP_LEFT = 1;
+const FOLD_GAP_RIGHT = 1;
+// Marker drawn after a collapsed region's header line, standing in for the hidden body.
+const FOLD_COLLAPSED_MARKER = "⋯"; // ⋯ horizontal ellipsis
+
+// Indentation guide: a vertical line drawn over a region's leading whitespace,
+// spanning the region's body. Colours default to VS Code's Dark+ values
+// (editorIndentGuide.background1 / activeBackground1) until the theme overrides.
+const INDENT_GUIDE = "│"; // U+2502 box drawings light vertical
+const DEFAULT_INDENT_GUIDE_FG = packRgb(0x40, 0x40, 0x40); // #404040
+const DEFAULT_INDENT_GUIDE_ACTIVE_FG = packRgb(0x70, 0x70, 0x70); // #707070
+
+/** Viewport geometry shared by the range-background highlight passes. */
+interface RangeHighlightGeometry {
+    scrollTop: number;
+    scrollLeft: number;
+    visibleLines: number;
+    viewLineCount: number;
+    contentCols: number;
+    gutterW: number;
+}
+
+/**
+ * TUI element that renders a text editor backed by EditorViewState.
+ * Handles keyboard input (printable chars, Enter, Backspace, Delete)
+ * and draws the document content with a hardware cursor.
+ */
+export class EditorElement extends TUIElement implements IScrollable {
+    public readonly viewState: EditorViewState;
+    public readonly undoManager: UndoManager;
+    /**
+     * Resolves TextMate scopes to {@link ResolvedTokenStyle}. Defaults to a
+     * no-op resolver; concrete implementations live in the Theme layer (or
+     * are supplied by an LSP semantic-tokens provider).
+     */
+    public tokenStyleResolver: ITokenStyleResolver = NULL_TOKEN_STYLE_RESOLVER;
+
+    public get tabSize(): number {
+        return this.viewState.tabSize;
+    }
+
+    public set tabSize(value: number) {
+        this.viewState.tabSize = value;
+    }
+
+    public gutterBackground: number | undefined;
+    public lineNumberForeground: number | undefined;
+    public lineNumberActiveForeground: number | undefined;
+    /** Background used to highlight occurrences of the word under the cursor. */
+    public occurrenceHighlightBackground: number | undefined;
+    /** Whether to highlight occurrences of the word under the cursor (VS Code `editor.occurrencesHighlight`). */
+    public occurrenceHighlightEnabled = true;
+    public foldingControlForeground: number | undefined;
+    /** Colour of the indentation guides (VS Code `editorIndentGuide.background1`). */
+    public indentGuideForeground: number | undefined;
+    /** Colour of the active indentation guide (VS Code `editorIndentGuide.activeBackground1`). */
+    public indentGuideActiveForeground: number | undefined;
+
+    /** Diagnostic squiggle decorations for the open document (pushed by the controller). */
+    public markerDecorations: readonly IMarkerDecoration[] = NO_MARKER_DECORATIONS;
+    /** Gutter change-bar decorations (SCM/git dirty-diff) for the open document (pushed by the controller). */
+    public gutterChangeDecorations: readonly IGutterChangeDecoration[] = NO_GUTTER_CHANGE_DECORATIONS;
+    /** Squiggle foreground per severity (`editorError/Warning/Info/Hint.foreground`). */
+    public errorForeground: number | undefined;
+    public warningForeground: number | undefined;
+    public infoForeground: number | undefined;
+    public hintForeground: number | undefined;
+
+    public contextMenuEntries: MenuEntry[] = [];
+    /** Тема для тематизации контекстного меню (`menu.*`); задаётся контроллером. */
+    public menuTheme: WorkbenchTheme | null = null;
+
+    private contentWidthCache: { versionId: number; value: number } | null = null;
+    private occurrenceCache: { versionId: number; line: number; character: number; ranges: IRange[] } | null = null;
+    private activeContextMenuSession: OverlaySessionHandle | null = null;
+
+    public get contentHeight(): number {
+        return this.viewState.getViewLineCount();
+    }
+
+    public get contentWidth(): number {
+        const doc = this.viewState.document;
+        const currentVersionId = doc.versionId;
+        if (this.contentWidthCache !== null && this.contentWidthCache.versionId === currentVersionId) {
+            return this.contentWidthCache.value;
+        }
+        let max = 0;
+        for (let i = 0; i < doc.lineCount; i++) {
+            const dl = new DisplayLine(doc.getLineContent(i), this.tabSize);
+            max = Math.max(max, dl.displayWidth);
+        }
+        this.contentWidthCache = { versionId: currentVersionId, value: max };
+        return max;
+    }
+
+    public get scrollTop(): number {
+        return this.viewState.scrollTop;
+    }
+
+    public get scrollLeft(): number {
+        return this.viewState.scrollLeft;
+    }
+
+    public get gutterWidth(): number {
+        const viewLineCount = this.viewState.getViewLineCount();
+        const digitCount = Math.max(1, Math.floor(Math.log10(viewLineCount)) + 1);
+        return GUTTER_LEFT_PADDING + digitCount + FOLD_GAP_LEFT + 1 + FOLD_GAP_RIGHT;
+    }
+
+    /** Gutter column holding the fold chevron; {@link FOLD_GAP_RIGHT} blanks follow it. */
+    public get foldControlColumn(): number {
+        return this.gutterWidth - 1 - FOLD_GAP_RIGHT;
+    }
+
+    /**
+     * Абсолютные (экранные) координаты ячейки каретки первичного курсора, или
+     * `null`, если каретка вне видимой области. Используется для якорения
+     * completion-попапа (та же математика, что в {@link render}).
+     */
+    public getCaretScreenCell(): Point | null {
+        const gutterW = this.gutterWidth;
+        const scrollTop = this.viewState.scrollTop;
+        const scrollLeft = this.viewState.scrollLeft;
+        const visibleLines = this.layoutSize.height;
+
+        const primary = this.viewState.selections[0];
+        const cursorVisualLine = this.viewState.logicalToVisualLine(primary.active.line);
+        const cursorLineContent = this.viewState.getViewLine(cursorVisualLine);
+        const cursorDl = new DisplayLine(cursorLineContent, this.tabSize);
+        const localX = cursorDl.offsetToColumn(primary.active.character) - scrollLeft + gutterW;
+        const localY = cursorVisualLine - scrollTop;
+
+        if (localX < gutterW || localX >= this.layoutSize.width || localY < 0 || localY >= visibleLines) {
+            return null;
+        }
+        return new Point(this.globalPosition.x + localX, this.globalPosition.y + localY);
+    }
+
+    public override getMinIntrinsicWidth(_height: number): number {
+        return 1;
+    }
+
+    public override getMaxIntrinsicWidth(_height: number): number {
+        return this.contentWidth;
+    }
+
+    public override getMinIntrinsicHeight(_width: number): number {
+        return 1;
+    }
+
+    public override getMaxIntrinsicHeight(_width: number): number {
+        return this.contentHeight;
+    }
+
+    public constructor(viewState: EditorViewState) {
+        super();
+        this.tabIndex = 0;
+        this.viewState = viewState;
+        this.undoManager = new UndoManager(viewState.document, viewState);
+
+        this.addEventListener("keypress", (event) => {
+            this.handleKeyPress(event);
+        });
+        this.addEventListener("paste", (event) => {
+            this.handlePaste(event);
+        });
+        this.addEventListener("mousedown", (event) => {
+            this.handleMouseDown(event);
+        });
+        this.addEventListener("mousemove", (event) => {
+            this.handleMouseMove(event);
+        });
+        this.addEventListener("mouseup", () => {
+            this.dragAnchor = null;
+        });
+        this.addEventListener("mouseleave", () => {
+            this.setFoldGutterHovered(false);
+        });
+        this.addEventListener("wheel", (event) => {
+            this.handleWheel(event);
+        });
+    }
+
+    public render(context: RenderContext): void {
+        const gutterW = this.gutterWidth;
+        const contentCols = this.layoutSize.width - gutterW;
+        this.viewState.viewportWidth = contentCols;
+        this.viewState.viewportHeight = this.layoutSize.height;
+        const scrollTop = this.viewState.scrollTop;
+        const scrollLeft = this.viewState.scrollLeft;
+        const visibleLines = this.layoutSize.height;
+        const viewLineCount = this.viewState.getViewLineCount();
+
+        const editorFg = this.resolvedStyle.fg;
+        const editorBg = this.resolvedStyle.bg;
+        const gutBg = this.gutterBackground ?? editorBg;
+        const lnFg = this.lineNumberForeground ?? DEFAULT_LINE_NUMBER_FG;
+        const lnActiveFg = this.lineNumberActiveForeground ?? DEFAULT_LINE_NUMBER_ACTIVE_FG;
+
+        const primaryLine = this.viewState.selections[0].active.line;
+        const digitCount = gutterW - GUTTER_LEFT_PADDING - FOLD_GAP_LEFT - 1 - FOLD_GAP_RIGHT;
+        const foldFg = this.foldingControlForeground ?? DEFAULT_FOLDING_CONTROL_FG;
+
+        // Fold-region headers by their (logical) start line, so the gutter can draw
+        // a chevron and the header line a collapsed marker without scanning per cell.
+        const foldHeaderByLine = new Map<number, boolean>();
+        for (const region of this.viewState.foldedRegions) {
+            foldHeaderByLine.set(region.startLine, region.isCollapsed);
+        }
+
+        // Change-bar colour by (logical) line, flattened once per frame so each
+        // visible row is a single lookup. A deleted hunk is one boundary line
+        // (its range covers just that line).
+        const gutterChangeColorByLine = new Map<number, number>();
+        for (const decoration of this.gutterChangeDecorations) {
+            for (let line = decoration.range.start.line; line <= decoration.range.end.line; line++) {
+                gutterChangeColorByLine.set(line, decoration.color);
+            }
+        }
+
+        // Bring the token cache up to the bottom of the viewport before reading.
+        const tokenStore = this.viewState.tokenStore;
+        if (tokenStore) {
+            const lastVisibleLogical = this.viewState.visualToLogicalLine(
+                Math.min(scrollTop + visibleLines - 1, viewLineCount - 1),
+            );
+            if (lastVisibleLogical >= 0) tokenStore.tokenizeUpTo(lastVisibleLogical);
+        }
+
+        // Frame-local cache of resolved styles to avoid re-walking the rule list
+        // for repeated scopes within a single render pass.
+        const styleCache = new Map<readonly string[], ResolvedTokenStyle>();
+        const resolveStyle = (scopes: readonly string[]): ResolvedTokenStyle => {
+            const cached = styleCache.get(scopes);
+            if (cached) return cached;
+            const result = this.tokenStyleResolver.resolve(scopes);
+            styleCache.set(scopes, result);
+            return result;
+        };
+
+        for (let screenY = 0; screenY < visibleLines; screenY++) {
+            const viewLine = scrollTop + screenY;
+
+            // --- Gutter ---
+            if (viewLine < viewLineCount) {
+                const logLine = this.viewState.visualToLogicalLine(viewLine);
+                const lineNumStr = String(logLine + 1).padStart(digitCount, " ");
+                const isActive = logLine === primaryLine;
+                const numFg = isActive ? lnActiveFg : lnFg;
+
+                // Left padding
+                for (let x = 0; x < GUTTER_LEFT_PADDING; x++) {
+                    context.setCell(x, screenY, { char: " ", fg: numFg, bg: gutBg });
+                }
+                // Change bar in the leftmost gutter column, to the left of the
+                // line number (VS Code paints its dirty-diff border here). Drawn
+                // over the blank left-padding cell when the line has a change.
+                const changeColor = gutterChangeColorByLine.get(logLine);
+                if (changeColor !== undefined) {
+                    context.setCell(0, screenY, { char: GUTTER_CHANGE_BAR, fg: changeColor, bg: gutBg });
+                }
+                // Line number digits
+                for (let d = 0; d < digitCount; d++) {
+                    context.setCell(GUTTER_LEFT_PADDING + d, screenY, { char: lineNumStr[d], fg: numFg, bg: gutBg });
+                }
+                // Fold control column plus a blank gap before the text (the gap
+                // also separates the line number from the content). On a foldable
+                // header line the control shows a chevron (down = expanded, right
+                // = collapsed).
+                const foldCol = this.foldControlColumn;
+                for (let x = GUTTER_LEFT_PADDING + digitCount; x < gutterW; x++) {
+                    context.setCell(x, screenY, { char: " ", fg: numFg, bg: gutBg });
+                }
+                const foldState = foldHeaderByLine.get(logLine);
+                // Collapsed regions always show their chevron; expanded ones only
+                // while the gutter is hovered (VS Code `showFoldingControls`).
+                const showChevron = foldState === true || (foldState === false && this.foldGutterHovered);
+                if (showChevron) {
+                    const icon = foldState ? FOLD_ICON_COLLAPSED : FOLD_ICON_EXPANDED;
+                    context.setCell(foldCol, screenY, { char: icon, fg: foldFg, bg: gutBg });
+                }
+            } else {
+                // Past end of document — empty gutter
+                for (let x = 0; x < gutterW; x++) {
+                    context.setCell(x, screenY, { char: " ", bg: gutBg });
+                }
+            }
+
+            // --- Content area ---
+            if (viewLine >= viewLineCount) {
+                // Past end of document — empty content area (VS Code draws no vim-style tildes)
+                for (let x = 0; x < contentCols; x++) {
+                    context.setCell(gutterW + x, screenY, { char: " ", fg: editorFg, bg: editorBg });
+                }
+                continue;
+            }
+
+            const lineContent = this.viewState.getViewLine(viewLine);
+            const dl = new DisplayLine(lineContent, this.tabSize);
+            const lineTokens = this.viewState.getViewLineTokens(viewLine);
+            const tokenIndex = lineTokens ? new TokenIndex(lineTokens, lineContent.length) : null;
+
+            let screenX = 0;
+            while (screenX < contentCols) {
+                const displayCol = scrollLeft + screenX;
+                const char = dl.charAtColumn(displayCol);
+                if (char === "") {
+                    // Continuation column of a wide char — skip, already handled by Grid
+                    screenX++;
+                    continue;
+                }
+                const slot = dl.graphemeAtColumn(displayCol);
+                const width = slot ? slot.displayWidth : 1;
+
+                // Resolve style for this offset.
+                let fg = editorFg;
+                let bg = editorBg;
+                let style: number = StyleFlags.None;
+                if (tokenIndex && slot) {
+                    const offset = slot.offset;
+                    const token = tokenIndex.tokenAt(offset);
+                    if (token) {
+                        const resolved = resolveStyle(token.scopes);
+                        if (resolved.fg !== undefined) fg = resolved.fg;
+                        if (resolved.bg !== undefined) bg = resolved.bg;
+                        style = packStyleFlags(resolved);
+                    }
+                }
+
+                if (slot?.grapheme === "\t") {
+                    // Tab: render each column as an individual space so Grid/TerminalRenderer
+                    // tracks the cursor correctly (they only support width=1 and width=2).
+                    for (let i = 0; i < width && screenX + i < contentCols; i++) {
+                        context.setCell(gutterW + screenX + i, screenY, { char: " ", fg, bg, style });
+                    }
+                    screenX += width;
+                } else if (width === 2 && screenX + 1 >= contentCols) {
+                    // Wide char doesn't fit at the right edge — render space instead
+                    context.setCell(gutterW + screenX, screenY, { char: " ", fg, bg, style, width: 1 });
+                    screenX++;
+                } else {
+                    context.setCell(gutterW + screenX, screenY, { char, fg, bg, style, width });
+                    screenX += width;
+                }
+            }
+
+            // Collapsed region: draw a marker after the header line's content,
+            // standing in for the hidden body (VS Code's inline "⋯").
+            if (foldHeaderByLine.get(this.viewState.visualToLogicalLine(viewLine)) === true) {
+                const markerCol = dl.displayWidth + 1 - scrollLeft;
+                if (markerCol >= 0 && markerCol < contentCols) {
+                    context.setCell(gutterW + markerCol, screenY, {
+                        char: FOLD_COLLAPSED_MARKER,
+                        fg: foldFg,
+                        bg: editorBg,
+                    });
+                }
+            }
+        }
+
+        // Shared geometry for the range-background highlight passes below.
+        const geometry: RangeHighlightGeometry = {
+            scrollTop,
+            scrollLeft,
+            visibleLines,
+            viewLineCount,
+            contentCols,
+            gutterW,
+        };
+
+        // Indentation guides for folding regions, drawn over the leading
+        // whitespace before the range-highlight passes below — those set only
+        // `bg`, so a selection/search background composes over the guide glyph.
+        this.paintIndentGuides(context, geometry, editorBg, primaryLine);
+
+        // Highlight all occurrences of the word under the cursor (weakest layer,
+        // painted first so selections and search matches win where they overlap).
+        const occurrenceBg = this.occurrenceHighlightBackground ?? DEFAULT_OCCURRENCE_HIGHLIGHT_BG;
+        for (const range of this.getOccurrenceHighlights()) {
+            this.paintRangeBackground(context, range, occurrenceBg, geometry);
+        }
+
+        // Highlight all search matches except the current one (drawn under selections).
+        const searchMatches = this.viewState.searchMatches;
+        const currentMatchIndex = this.viewState.currentSearchMatchIndex;
+        for (let i = 0; i < searchMatches.length; i++) {
+            if (i === currentMatchIndex) continue;
+            this.paintRangeBackground(context, searchMatches[i], FIND_MATCH_BG, geometry);
+        }
+
+        // Highlight selections
+        for (const sel of this.viewState.selections) {
+            if (isSelectionCollapsed(sel)) continue;
+            this.paintRangeBackground(context, selectionToRange(sel), SELECTION_BG, geometry);
+        }
+
+        // Highlight the current search match on top (wins over other matches and selection).
+        if (currentMatchIndex >= 0 && currentMatchIndex < searchMatches.length) {
+            this.paintRangeBackground(context, searchMatches[currentMatchIndex], FIND_MATCH_CURRENT_BG, geometry);
+        }
+
+        // Diagnostic squiggles on top of the content — painted last (after the
+        // background passes) so the severity colour and undercurl win.
+        for (const decoration of this.markerDecorations) {
+            this.paintMarkerDecoration(context, decoration, geometry);
+        }
+
+        // Position hardware cursor at the primary selection's active position
+        const primary = this.viewState.selections[0];
+        const cursorVisualLine = this.viewState.logicalToVisualLine(primary.active.line);
+        const cursorLineContent = this.viewState.getViewLine(cursorVisualLine);
+        const cursorDl = new DisplayLine(cursorLineContent, this.tabSize);
+        const cursorScreenX = cursorDl.offsetToColumn(primary.active.character) - scrollLeft + gutterW;
+        const cursorScreenY = cursorVisualLine - scrollTop;
+
+        if (
+            this.isFocused &&
+            cursorScreenX >= gutterW &&
+            cursorScreenX < this.layoutSize.width &&
+            cursorScreenY >= 0 &&
+            cursorScreenY < visibleLines
+        ) {
+            context.setCursorPosition(cursorScreenX, cursorScreenY);
+        }
+    }
+
+    /**
+     * Draws a vertical indentation guide for every folding region: a `│` over the
+     * region's leading whitespace, at the header's indent column, spanning the
+     * region's body lines. The innermost region enclosing the cursor line is the
+     * "active" guide and uses the brighter colour (VS Code's
+     * `highlightActiveIndentation`). Body lines are always indented deeper than
+     * their header, so the guide column falls inside whitespace and never hides
+     * code. Collapsed regions contribute nothing (their body is hidden).
+     */
+    private paintIndentGuides(
+        context: RenderContext,
+        geo: RangeHighlightGeometry,
+        editorBg: number,
+        primaryLine: number,
+    ): void {
+        const regions = this.viewState.foldedRegions;
+        if (regions.length === 0) return;
+
+        const doc = this.viewState.document;
+        const tabSize = this.tabSize;
+
+        // Visible logical line → screenY (folding may hide lines, so this is sparse).
+        // Logical lines increase monotonically with screenY, so the first is the
+        // minimum and the last assigned is the maximum.
+        const screenYByLogical = new Map<number, number>();
+        let minLog = -1;
+        let maxLog = -1;
+        for (let screenY = 0; screenY < geo.visibleLines; screenY++) {
+            const viewLine = geo.scrollTop + screenY;
+            if (viewLine >= geo.viewLineCount) break;
+            const logLine = this.viewState.visualToLogicalLine(viewLine);
+            screenYByLogical.set(logLine, screenY);
+            if (minLog < 0) minLog = logLine;
+            maxLog = logLine;
+        }
+        if (maxLog < 0) return;
+
+        // Active guide: the innermost region enclosing the cursor. `regions` is
+        // sorted by startLine and enclosing regions are strictly nested, so the
+        // last one that encloses the cursor line is the innermost.
+        let activeRegion: IFoldingRegion | null = null;
+        for (const region of regions) {
+            if (region.startLine <= primaryLine && primaryLine <= region.endLine) {
+                activeRegion = region;
+            }
+        }
+
+        const guideFg = this.indentGuideForeground ?? DEFAULT_INDENT_GUIDE_FG;
+        const activeFg = this.indentGuideActiveForeground ?? DEFAULT_INDENT_GUIDE_ACTIVE_FG;
+
+        for (const region of regions) {
+            if (region.isCollapsed) continue;
+            const firstBody = Math.max(region.startLine + 1, minLog);
+            const lastBody = Math.min(region.endLine, maxLog);
+            if (firstBody > lastBody) continue;
+
+            const col = computeIndentLevel(doc.getLineContent(region.startLine), tabSize);
+            const screenX = geo.gutterW + col - geo.scrollLeft;
+            if (screenX < geo.gutterW || screenX >= geo.gutterW + geo.contentCols) continue;
+
+            const fg = region === activeRegion ? activeFg : guideFg;
+            for (let logLine = firstBody; logLine <= lastBody; logLine++) {
+                const screenY = screenYByLogical.get(logLine);
+                if (screenY === undefined) continue;
+                context.setCell(screenX, screenY, { char: INDENT_GUIDE, fg, bg: editorBg });
+            }
+        }
+    }
+
+    /**
+     * Paints a solid background colour over the cells covered by `range` within
+     * the visible viewport. Only `bg` is set, so the glyph and fg underneath are
+     * preserved. Used by both the selection and search-match highlight passes.
+     */
+    private paintRangeBackground(context: RenderContext, range: IRange, bg: number, geo: RangeHighlightGeometry): void {
+        this.forEachRangeCell(range, geo, (screenX, screenY) => {
+            context.setCell(screenX, screenY, { bg });
+        });
+    }
+
+    /**
+     * Paints a diagnostic squiggle over the cells covered by a marker: sets the
+     * severity foreground colour and an undercurl (SGR 4:3, wavy underline).
+     * Terminals without undercurl support still show the colour, keeping the
+     * marker visible. `bg` is left untouched so a selection/find highlight under
+     * the squiggle survives.
+     */
+    private paintMarkerDecoration(
+        context: RenderContext,
+        decoration: IMarkerDecoration,
+        geo: RangeHighlightGeometry,
+    ): void {
+        const fg = this.severityForeground(decoration.severity);
+        this.forEachRangeCell(decoration.range, geo, (screenX, screenY) => {
+            context.setCell(screenX, screenY, { fg, style: StyleFlags.Undercurl });
+        });
+    }
+
+    /**
+     * Walks every screen cell covered by `range` within the visible viewport and
+     * invokes `visit(screenX, screenY)` (absolute grid coordinates). Shared by the
+     * background-highlight and diagnostic-squiggle passes so the viewport/column
+     * math lives in one place.
+     */
+    private forEachRangeCell(
+        range: IRange,
+        geo: RangeHighlightGeometry,
+        visit: (screenX: number, screenY: number) => void,
+    ): void {
+        for (let screenY = 0; screenY < geo.visibleLines; screenY++) {
+            const viewLine = geo.scrollTop + screenY;
+            if (viewLine >= geo.viewLineCount) break;
+
+            const logLine = this.viewState.visualToLogicalLine(viewLine);
+            if (logLine < range.start.line || logLine > range.end.line) continue;
+
+            const lineContent = this.viewState.getViewLine(viewLine);
+            const dl = new DisplayLine(lineContent, this.tabSize);
+            const startChar = logLine === range.start.line ? range.start.character : 0;
+            const endChar = logLine === range.end.line ? range.end.character : lineContent.length + 1;
+
+            const startCol = logLine === range.start.line ? dl.offsetToColumn(startChar) : 0;
+            const endCol = logLine === range.end.line ? dl.offsetToColumn(endChar) : dl.displayWidth + 1;
+
+            const screenXStart = Math.max(0, startCol - geo.scrollLeft);
+            const screenXEnd = Math.min(geo.contentCols, endCol - geo.scrollLeft);
+
+            for (let screenX = screenXStart; screenX < screenXEnd; screenX++) {
+                visit(geo.gutterW + screenX, screenY);
+            }
+        }
+    }
+
+    private severityForeground(severity: MarkerSeverity): number {
+        switch (severity) {
+            case MarkerSeverity.Error:
+                return this.errorForeground ?? DEFAULT_ERROR_FG;
+            case MarkerSeverity.Warning:
+                return this.warningForeground ?? DEFAULT_WARNING_FG;
+            case MarkerSeverity.Info:
+                return this.infoForeground ?? DEFAULT_INFO_FG;
+            case MarkerSeverity.Hint:
+                return this.hintForeground ?? DEFAULT_HINT_FG;
+        }
+    }
+
+    /**
+     * Ranges of every occurrence of the word under the primary cursor. Empty
+     * when disabled or when the primary selection is not collapsed (no
+     * highlight while text is selected — that mirrors VS Code, where a
+     * selection switches to the separate selection-highlight feature).
+     *
+     * Cached by document version + caret position so re-renders triggered by
+     * unrelated changes don't rescan the document.
+     */
+    private getOccurrenceHighlights(): readonly IRange[] {
+        if (!this.occurrenceHighlightEnabled) return NO_RANGES;
+        const primary = this.viewState.selections[0];
+        if (!isSelectionCollapsed(primary)) return NO_RANGES;
+
+        const doc = this.viewState.document;
+        const pos = primary.active;
+        const cache = this.occurrenceCache;
+        if (
+            cache !== null &&
+            cache.versionId === doc.versionId &&
+            cache.line === pos.line &&
+            cache.character === pos.character
+        ) {
+            return cache.ranges;
+        }
+
+        const ranges = computeWordOccurrences(doc, pos);
+        this.occurrenceCache = { versionId: doc.versionId, line: pos.line, character: pos.character, ranges };
+        return ranges;
+    }
+
+    private handleWheel(event: TUIMouseEvent): void {
+        const viewState = this.viewState;
+        const maxScrollTop = Math.max(0, viewState.getViewLineCount() - viewState.viewportHeight);
+        const maxScrollLeft = Math.max(0, this.contentWidth - viewState.viewportWidth);
+
+        switch (event.wheelDirection) {
+            case "up":
+                viewState.scrollTop = Math.max(0, viewState.scrollTop - 3);
+                break;
+            case "down":
+                viewState.scrollTop = Math.min(maxScrollTop, viewState.scrollTop + 3);
+                break;
+            case "left":
+                viewState.scrollLeft = Math.max(0, viewState.scrollLeft - 3);
+                break;
+            case "right":
+                viewState.scrollLeft = Math.min(maxScrollLeft, viewState.scrollLeft + 3);
+                break;
+        }
+
+        this.markDirty();
+    }
+
+    private dragAnchor: { line: number; character: number } | null = null;
+
+    // Whether the mouse is currently over the gutter. Expanded regions show their
+    // fold chevron only while this holds (à la VS Code `showFoldingControls:
+    // "mouseover"`); collapsed regions always show theirs. See render().
+    private foldGutterHovered = false;
+
+    private setFoldGutterHovered(value: boolean): void {
+        if (this.foldGutterHovered === value) return;
+        this.foldGutterHovered = value;
+        this.markDirty();
+    }
+
+    private screenToDocPosition(localX: number, localY: number): { line: number; character: number } {
+        const gutterW = this.gutterWidth;
+        const viewLineCount = this.viewState.getViewLineCount();
+        /* v8 ignore start -- unreachable: a TextDocument always has at least one line and a fold header is never hidden, so getViewLineCount() is never 0 */
+        if (viewLineCount === 0) return { line: 0, character: 0 };
+        /* v8 ignore stop */
+
+        const viewLine = Math.min(this.viewState.scrollTop + localY, viewLineCount - 1);
+        const logLine = this.viewState.visualToLogicalLine(viewLine);
+        const displayCol = localX < gutterW ? 0 : localX - gutterW + this.viewState.scrollLeft;
+        const lineContent = this.viewState.document.getLineContent(logLine);
+        const dl = new DisplayLine(lineContent, this.tabSize);
+        const charOffset = dl.columnToOffset(displayCol);
+        return { line: logLine, character: charOffset };
+    }
+
+    private handleMouseDown(event: TUIMouseEvent): void {
+        if (event.button === "right") {
+            this.openContextMenu(event.screenX, event.screenY);
+            return;
+        }
+        /* v8 ignore start -- unreachable: getViewLineCount() is never 0 (document always has a line; fold headers stay visible) */
+        if (this.viewState.getViewLineCount() === 0) return;
+        /* v8 ignore stop */
+
+        // Click on the folding control column toggles the region on that line.
+        if (this.tryToggleFoldAtGutter(event.localX, event.localY)) {
+            this.markDirty();
+            return;
+        }
+
+        const pos = this.screenToDocPosition(event.localX, event.localY);
+
+        if (event.shiftKey && this.viewState.selections.length > 0) {
+            const anchor = this.viewState.selections[0].anchor;
+            this.dragAnchor = { line: anchor.line, character: anchor.character };
+            this.viewState.selections = [createSelection(anchor.line, anchor.character, pos.line, pos.character)];
+        } else {
+            this.dragAnchor = { line: pos.line, character: pos.character };
+            this.viewState.selections = [createCursorSelection(pos.line, pos.character)];
+        }
+    }
+
+    /**
+     * If `(localX, localY)` lands on the folding control column of a foldable
+     * header line, toggles that region and returns true. Returns false otherwise
+     * (so the caller falls back to normal cursor placement).
+     */
+    private tryToggleFoldAtGutter(localX: number, localY: number): boolean {
+        if (localX !== this.foldControlColumn) return false;
+
+        const viewLine = this.viewState.scrollTop + localY;
+        if (viewLine < 0 || viewLine >= this.viewState.getViewLineCount()) return false;
+
+        const logLine = this.viewState.visualToLogicalLine(viewLine);
+        const region = this.viewState.foldedRegions.find((r) => r.startLine === logLine);
+        if (region === undefined) return false;
+
+        this.viewState.toggleFold(logLine);
+        return true;
+    }
+
+    private openContextMenu(screenX: number, screenY: number): void {
+        this.closeContextMenu();
+        if (this.contextMenuEntries.length === 0) return;
+
+        const wrappedEntries: MenuEntry[] = this.contextMenuEntries.map((entry) => {
+            if (entry.type === "separator") return entry;
+            const original = entry.onSelect;
+            return {
+                ...entry,
+                onSelect: () => {
+                    this.closeContextMenu();
+                    original?.();
+                },
+            };
+        });
+
+        const menu = new PopupMenuElement(wrappedEntries);
+        if (this.menuTheme) {
+            menu.applyTheme(this.menuTheme);
+        }
+
+        const layer = this.getOverlayLayer();
+        if (!layer) return;
+
+        let session: OverlaySessionHandle | null = null;
+        session = layer.createSession(menu, new Point(screenX, screenY), {
+            visible: true,
+            closeOnEscape: true,
+            pointerPolicy: "close-on-outside",
+            focusOnOpen: true,
+            disposeOnClose: true,
+            onClose: () => {
+                /* v8 ignore start -- the `!==` else is unreachable: openContextMenu disposes (not closes) any prior session before reassigning, so a session's onClose only fires while it is still the active one */
+                if (this.activeContextMenuSession === session) {
+                    this.activeContextMenuSession = null;
+                }
+                /* v8 ignore stop */
+            },
+        });
+
+        menu.onClose = () => {
+            session.close();
+        };
+
+        this.activeContextMenuSession = session;
+    }
+
+    private closeContextMenu(): void {
+        if (!this.activeContextMenuSession) return;
+        const session = this.activeContextMenuSession;
+        this.activeContextMenuSession = null;
+        session.dispose();
+    }
+
+    private getOverlayLayer() {
+        const root = this.getRoot();
+        if (!root) return null;
+        return (root as BodyElement).overlayLayer;
+    }
+
+    private handleMouseMove(event: TUIMouseEvent): void {
+        // Reveal expanded fold chevrons whenever the mouse is over the gutter.
+        this.setFoldGutterHovered(event.localX >= 0 && event.localX < this.gutterWidth);
+
+        if (this.dragAnchor === null) return;
+        /* v8 ignore start -- unreachable: getViewLineCount() is never 0 (document always has a line; fold headers stay visible) */
+        if (this.viewState.getViewLineCount() === 0) return;
+        /* v8 ignore stop */
+
+        const pos = this.screenToDocPosition(event.localX, event.localY);
+        this.viewState.selections = [
+            createSelection(this.dragAnchor.line, this.dragAnchor.character, pos.line, pos.character),
+        ];
+    }
+
+    private handleKeyPress(event: TUIKeyboardEvent): void {
+        if (event.key === "Enter") {
+            this.pushUndo(this.viewState.insertNewLine());
+            return;
+        }
+
+        // Printable character: single char, no ctrl/alt/meta modifiers
+        if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
+            this.pushUndo(this.viewState.type(event.key));
+            return;
+        }
+    }
+
+    private handlePaste(event: TUIPasteEvent): void {
+        // Insert the whole paste as one edit (newlines preserved) — one undo step.
+        this.pushUndo(this.viewState.insertText(event.text));
+    }
+
+    private pushUndo(element: IUndoElement | undefined): void {
+        /* v8 ignore start -- defensive: every caller passes the result of type(), which always returns an element; the undefined guard is never taken */
+        if (element) {
+            this.undoManager.pushUndoElement(element);
+        }
+        /* v8 ignore stop */
+    }
+}
+
+function packStyleFlags(style: ResolvedTokenStyle): number {
+    let flags = 0;
+    if (style.bold) flags |= StyleFlags.Bold;
+    if (style.italic) flags |= StyleFlags.Italic;
+    if (style.underline) flags |= StyleFlags.Underline;
+    if (style.strikethrough) flags |= StyleFlags.Strikethrough;
+    return flags;
+}
+
+/**
+ * Linear cursor over a sorted token array, optimised for left-to-right
+ * scans (which is how the renderer walks columns). Falls back to binary
+ * search when the offset rewinds.
+ *
+ * Exported for unit testing: the renderer only ever scans forward, so the
+ * rewind path is unreachable through rendering alone.
+ */
+export class TokenIndex {
+    private readonly tokens: readonly IToken[];
+    private readonly lineLength: number;
+    private cursor = 0;
+
+    public constructor(lineTokens: ILineTokens, lineLength: number) {
+        this.tokens = lineTokens.tokens;
+        this.lineLength = lineLength;
+    }
+
+    /** Token covering `[token.startIndex .. nextToken.startIndex)` for `offset`. */
+    public tokenAt(offset: number): IToken | undefined {
+        if (this.tokens.length === 0 || offset >= this.lineLength) return undefined;
+
+        // Fast path: forward scan.
+        let i = this.cursor;
+        if (i >= this.tokens.length || this.tokens[i].startIndex > offset) {
+            i = 0; // rewind
+        }
+        while (i + 1 < this.tokens.length && this.tokens[i + 1].startIndex <= offset) {
+            i++;
+        }
+        this.cursor = i;
+        return this.tokens[i];
+    }
+}

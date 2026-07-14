@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../vs/base/common/geometry.ts";
-import { createRange } from "../Editor/IRange.ts";
+import { createRange } from "../vs/editor/common/core/range.ts";
 import type { IMarkerData } from "../vs/platform/markers/common/markers.ts";
 import { MarkerSeverity } from "../vs/platform/markers/common/markers.ts";
 import type { MarkerService } from "../vs/platform/markers/common/markerService.ts";

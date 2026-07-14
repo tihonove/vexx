@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../vs/base/common/geometry.ts";
-import type { EditorElement } from "../Editor/EditorElement.ts";
-import { createInsertEdit } from "../Editor/ITextEdit.ts";
+import type { EditorElement } from "../vs/editor/tui/editorElement.ts";
+import { createInsertEdit } from "../vs/editor/common/core/textEdit.ts";
 import { MarkerSeverity } from "../vs/platform/markers/common/markers.ts";
 import type { MarkerService } from "../vs/platform/markers/common/markerService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";

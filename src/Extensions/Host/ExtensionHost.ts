@@ -4,9 +4,9 @@ import { createRequire } from "node:module";
 import { token } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { Disposable, type IDisposable } from "../../vs/base/common/lifecycle.ts";
 import type { ILogger } from "../../vs/platform/log/common/logger.ts";
-import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
-import type { ICompletionRequest, ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
-import type { IRange } from "../../Editor/IRange.ts";
+import type { IGutterChangeDecoration } from "../../vs/editor/common/model/gutterChangeDecoration.ts";
+import type { ICompletionRequest, ICoreCompletionItem } from "../../vs/editor/common/languages.ts";
+import type { IRange } from "../../vs/editor/common/core/range.ts";
 import type { ISaveEdit, ISaveSnapshot } from "../../Editor/ISaveParticipant.ts";
 
 import type { ICommandService } from "./ICommandService.ts";

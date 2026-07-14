@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { EditorElement } from "../Editor/EditorElement.ts";
+import type { EditorElement } from "../vs/editor/tui/editorElement.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
 import type { MenuBarElement } from "../vs/base/tui/ui/menu/menuBarElement.ts";

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
+import type { ILanguageService } from "../vs/editor/common/languages/language.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
 import type { FileTreeController } from "../../Controllers/FileTreeController.ts";
-import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
-import { createRange } from "../../Editor/IRange.ts";
+import type { IGutterChangeDecoration } from "../../vs/editor/common/model/gutterChangeDecoration.ts";
+import { createRange } from "../../vs/editor/common/core/range.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { lightPlusTheme } from "../../Theme/themes/lightPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";

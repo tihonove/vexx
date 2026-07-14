@@ -4,7 +4,7 @@ import type { IDisposable } from "../vs/base/common/lifecycle.ts";
 import type { ILogger } from "../vs/platform/log/common/logger.ts";
 import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
-import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import type { TokenizationRegistry } from "../vs/editor/common/tokenizationRegistry.ts";
 
 import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 

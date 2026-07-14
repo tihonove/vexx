@@ -1,4 +1,4 @@
-import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
+import type { IGutterChangeDecoration } from "../../vs/editor/common/model/gutterChangeDecoration.ts";
 
 /**
  * Тонкий «port» поверх {@link EditorGroupController}, нужный {@link ExtensionHost}

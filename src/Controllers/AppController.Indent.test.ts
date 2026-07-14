@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../vs/base/common/geometry.ts";
-import type { EditorElement } from "../Editor/EditorElement.ts";
-import { createCursorSelection, createSelection } from "../Editor/ISelection.ts";
+import type { EditorElement } from "../vs/editor/tui/editorElement.ts";
+import { createCursorSelection, createSelection } from "../vs/editor/common/core/selection.ts";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 

@@ -1,4 +1,4 @@
-import type { IRange } from "../../../../Editor/IRange.ts";
+import type { IRange } from "../../../editor/common/core/range.ts";
 
 /**
  * Severity of a diagnostic marker. Values mirror VS Code's `MarkerSeverity`

@@ -2,7 +2,7 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
+import type { ILanguageService } from "../../vs/editor/common/languages/language.ts";
 import {
     createExtensionTestHarness,
     EXTENSION_FIXTURES_DIR,

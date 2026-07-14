@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createDevAssetAccess } from "../vs/base/node/assets/createDefaultAssetAccess.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { TokenizationRegistry } from "../vs/editor/common/tokenizationRegistry.ts";
 
 import { scanBuiltinExtensions } from "../vs/platform/extensions/common/extensionScanner.ts";
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";

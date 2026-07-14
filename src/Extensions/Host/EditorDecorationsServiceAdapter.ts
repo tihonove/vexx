@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
 import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
-import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
+import type { IGutterChangeDecoration } from "../../vs/editor/common/model/gutterChangeDecoration.ts";
 
 import type { IEditorDecorationsService } from "./IEditorDecorationsService.ts";
 

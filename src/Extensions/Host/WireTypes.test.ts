@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { EndOfLine } from "../../Editor/EndOfLine.ts";
+import { EndOfLine } from "../../vs/editor/common/core/endOfLine.ts";
 
 import { createInProcessChannelPair } from "./InProcessChannelPair.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";

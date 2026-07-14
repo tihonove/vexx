@@ -161,7 +161,13 @@ function* walkTs(dir) {
     for (const e of fs.readdirSync(abs, { withFileTypes: true })) {
         const rel = `${dir}/${e.name}`;
         if (e.isDirectory()) {
-            if (e.name === "node_modules" || e.name === "builtin") continue; // builtin — свои import-графы, не трогаем
+            // Extensions/builtin — вендореные языковые паки, их не трогаем
+            // (кроме git, у которого есть импорты в наш код из integration-теста)
+            if (e.name === "node_modules") continue;
+            if (rel.endsWith("Extensions/builtin")) {
+                yield* walkTs(`${rel}/git`);
+                continue;
+            }
             yield* walkTs(rel);
         } else if (/\.(ts|tsx|mts|mjs)$/.test(e.name)) yield rel;
     }

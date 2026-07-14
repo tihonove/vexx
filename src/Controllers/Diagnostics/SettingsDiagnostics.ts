@@ -1,6 +1,6 @@
 import { parseTree } from "jsonc-parser";
 
-import { createRange } from "../../Editor/IRange.ts";
+import { createRange } from "../../vs/editor/common/core/range.ts";
 import type { IMarkerData } from "../../vs/platform/markers/common/markers.ts";
 import { MarkerSeverity } from "../../vs/platform/markers/common/markers.ts";
 

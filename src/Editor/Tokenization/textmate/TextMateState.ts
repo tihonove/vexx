@@ -1,6 +1,6 @@
 import type { StateStack } from "vscode-textmate";
 
-import type { IState } from "../IState.ts";
+import type { IState } from "../../../vs/editor/common/languages/state.ts";
 
 /**
  * Обёртка `vscode-textmate.StateStack` под наш {@link IState}.

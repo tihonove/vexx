@@ -1,4 +1,4 @@
-import type { ITextEdit } from "../../Editor/ITextEdit.ts";
+import type { ITextEdit } from "../../vs/editor/common/core/textEdit.ts";
 
 /**
  * Модель правок уровня workspace (à la VS Code `WorkspaceEdit`): упорядоченный набор

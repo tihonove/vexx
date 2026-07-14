@@ -1,5 +1,5 @@
-import type { EndOfLine } from "./EndOfLine.ts";
-import type { IRange } from "./IRange.ts";
+import type { EndOfLine } from "../vs/editor/common/core/endOfLine.ts";
+import type { IRange } from "../vs/editor/common/core/range.ts";
 
 /**
  * Снапшот документа, передаваемый save-участнику (`onWillSaveTextDocument`)

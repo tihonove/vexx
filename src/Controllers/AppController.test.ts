@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { LogEntry } from "../vs/platform/log/common/log.ts";
 import { ILogServiceDIToken } from "../vs/platform/log/common/logDIToken.ts";
 import { LogService } from "../vs/platform/log/common/logService.ts";
-import type { EditorElement } from "../Editor/EditorElement.ts";
+import type { EditorElement } from "../vs/editor/tui/editorElement.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../vs/base/tui/events/tuiKeyboardEvent.ts";

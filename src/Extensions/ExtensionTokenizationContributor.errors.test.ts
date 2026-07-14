@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { IAssetAccess } from "../vs/base/common/assets/assets.ts";
 import type { ILogger } from "../vs/platform/log/common/logger.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { TokenizationRegistry } from "../vs/editor/common/tokenizationRegistry.ts";
 
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
 import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";

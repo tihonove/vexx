@@ -4,9 +4,9 @@ import { token } from "../vs/platform/instantiation/common/instantiation.ts";
 import type { IClipboard } from "../vs/platform/clipboard/common/clipboardService.ts";
 import type { IFileClipboard } from "../vs/platform/clipboard/common/fileClipboard.ts";
 import type { MarkerService } from "../vs/platform/markers/common/markerService.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import type { ILanguageService } from "../vs/editor/common/languages/language.ts";
+import type { ITokenStyleResolver } from "../vs/editor/common/languages/tokenStyleResolver.ts";
+import type { TokenizationRegistry } from "../vs/editor/common/tokenizationRegistry.ts";
 import type { TuiApplication } from "../vs/base/tui/tuiApplication.ts";
 
 export const ServiceAccessorDIToken = token<ServiceAccessor>("ServiceAccessor");

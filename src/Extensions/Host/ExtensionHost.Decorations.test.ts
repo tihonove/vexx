@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
+import type { IGutterChangeDecoration } from "../../vs/editor/common/model/gutterChangeDecoration.ts";
 import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 

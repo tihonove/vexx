@@ -2,10 +2,10 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EndOfLine } from "../Editor/EndOfLine.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { EndOfLine } from "../vs/editor/common/core/endOfLine.ts";
+import { NULL_LANGUAGE_SERVICE } from "../vs/editor/common/languages/language.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../vs/editor/common/languages/tokenStyleResolver.ts";
+import { TokenizationRegistry } from "../vs/editor/common/tokenizationRegistry.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";

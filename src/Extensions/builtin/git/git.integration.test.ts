@@ -9,7 +9,7 @@ import type { IEditorDecorationsService } from "../../Host/IEditorDecorationsSer
 import type { IExtensionRegistration } from "../../Host/IExtensionEntry.ts";
 import type { IFileDecorationsService } from "../../Host/IFileDecorationsService.ts";
 import type { IThemeColorResolver } from "../../Host/IThemeColorResolver.ts";
-import type { IGutterChangeDecoration } from "../../../Editor/Decorations/IGutterChangeDecoration.ts";
+import type { IGutterChangeDecoration } from "../../../vs/editor/common/model/gutterChangeDecoration.ts";
 import { createExtensionTestHarness, type IExtensionHarness } from "../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../TestUtils/timing.ts";
 

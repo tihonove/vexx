@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { createRange } from "../../../../Editor/IRange.ts";
+import { createRange } from "../../../editor/common/core/range.ts";
 
 import type { IMarkerData } from "./markers.ts";
 import { MarkerSeverity } from "./markers.ts";

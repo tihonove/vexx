@@ -1,7 +1,7 @@
 import { token } from "../vs/platform/instantiation/common/instantiation.ts";
 import { DisplayLine } from "../vs/base/common/displayLine.ts";
 import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
+import type { ILanguageService } from "../vs/editor/common/languages/language.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";

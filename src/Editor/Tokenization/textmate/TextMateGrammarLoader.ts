@@ -2,7 +2,7 @@ import type { IGrammar, IRawGrammar, Registry } from "vscode-textmate";
 import vsctm from "vscode-textmate";
 
 import type { IAssetAccess } from "../../../vs/base/common/assets/assets.ts";
-import type { ITokenizationSupport } from "../ITokenizationSupport.ts";
+import type { ITokenizationSupport } from "../../../vs/editor/common/languages/tokenizationSupport.ts";
 
 import { getOnigLib } from "./OnigLib.ts";
 import { TextMateTokenizationSupport } from "./TextMateTokenizationSupport.ts";

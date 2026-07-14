@@ -13,7 +13,7 @@ import { ILogServiceDIToken } from "../vs/platform/log/common/logDIToken.ts";
 import type { IConfigurationService } from "../vs/platform/configuration/common/configuration.ts";
 import { IConfigurationServiceDIToken } from "../vs/platform/configuration/common/configurationDIToken.ts";
 import type { IUserKeybindingRule } from "../vs/platform/keybinding/node/keybindingsService.ts";
-import { EditorElement } from "../Editor/EditorElement.ts";
+import { EditorElement } from "../vs/editor/tui/editorElement.ts";
 import type { ThemeRegistry } from "../Theme/ThemeRegistry.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -94,7 +94,7 @@ import {
     filePasteAction,
 } from "./Actions/FileTreeClipboardActions.ts";
 import { explorerNewFileAction, explorerNewFolderAction } from "./Actions/FileTreeCreateActions.ts";
-import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
+import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "../vs/editor/contrib/find/tui/findActions.ts";
 import {
     acceptSelectedSuggestionAction,
     hideSuggestWidgetAction,
@@ -102,7 +102,7 @@ import {
     selectNextSuggestionAction,
     selectPrevPageSuggestionAction,
     selectPrevSuggestionAction,
-} from "./Actions/SuggestActions.ts";
+} from "../vs/editor/contrib/suggest/tui/suggestActions.ts";
 import {
     foldAction,
     foldAllAction,
@@ -114,7 +114,7 @@ import {
     unfoldAction,
     unfoldAllAction,
     unfoldRecursivelyAction,
-} from "./Actions/FoldingActions.ts";
+} from "../vs/editor/contrib/folding/tui/foldingActions.ts";
 import {
     inputCopyAction,
     inputCursorEndAction,
@@ -157,7 +157,7 @@ import {
 import { registerAction } from "../vs/platform/commands/common/commandAction.ts";
 import type { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
 import { CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
-import { CompletionController } from "./CompletionController.ts";
+import { CompletionController } from "../vs/editor/contrib/suggest/tui/completionController.ts";
 import { registerContextKeys } from "../vs/platform/contextkey/common/contextkeys.ts";
 import type { ContextKeyService } from "../vs/platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../vs/platform/contextkey/common/contextKeyService.ts";
@@ -174,7 +174,7 @@ import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileSearchService } from "./FileSearchService.ts";
 import { FileTreeController } from "./FileTreeController.ts";
-import { FindController } from "./FindController.ts";
+import { FindController } from "../vs/editor/contrib/find/tui/findController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
 import type { Keybinding, KeybindingRegistry } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";

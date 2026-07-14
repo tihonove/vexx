@@ -5,12 +5,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { IConfigurationService } from "../vs/platform/configuration/common/configuration.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
-import { EndOfLine } from "../Editor/EndOfLine.ts";
-import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { EndOfLine } from "../vs/editor/common/core/endOfLine.ts";
+import { PlainTextTokenizer } from "../vs/editor/common/languages/plainTextTokenizer.ts";
+import type { ILanguageService } from "../vs/editor/common/languages/language.ts";
+import { NULL_LANGUAGE_SERVICE } from "../vs/editor/common/languages/language.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../vs/editor/common/languages/tokenStyleResolver.ts";
+import { TokenizationRegistry } from "../vs/editor/common/tokenizationRegistry.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";

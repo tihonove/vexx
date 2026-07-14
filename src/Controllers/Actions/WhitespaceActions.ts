@@ -1,4 +1,4 @@
-import { createDeleteEdit, createInsertEdit, type ITextEdit } from "../../Editor/ITextEdit.ts";
+import { createDeleteEdit, createInsertEdit, type ITextEdit } from "../../vs/editor/common/core/textEdit.ts";
 import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { parseKeybinding } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";

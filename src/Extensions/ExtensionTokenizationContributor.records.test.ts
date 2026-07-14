@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { IAssetAccess } from "../vs/base/common/assets/assets.ts";
-import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
-import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
+import { NULL_STATE } from "../vs/editor/common/languages/state.ts";
+import type { ITokenizationSupport } from "../vs/editor/common/languages/tokenizationSupport.ts";
 import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
+import { TokenizationRegistry } from "../vs/editor/common/tokenizationRegistry.ts";
 
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
 import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";

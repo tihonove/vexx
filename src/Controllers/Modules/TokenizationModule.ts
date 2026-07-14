@@ -1,7 +1,7 @@
 import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
-import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
-import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
-import type { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import type { ILanguageService } from "../../vs/editor/common/languages/language.ts";
+import type { ITokenStyleResolver } from "../../vs/editor/common/languages/tokenStyleResolver.ts";
+import type { TokenizationRegistry } from "../../vs/editor/common/tokenizationRegistry.ts";
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../CoreTokens.ts";
 
 export interface TokenizationModuleContext {
