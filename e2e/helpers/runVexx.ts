@@ -25,6 +25,12 @@ export interface VexxSessionOptions {
      * / {@link VexxSession.waitForDocument} — no ANSI-screen parsing needed.
      */
     inspect?: boolean;
+    /**
+     * Бинарь, который запускаем. По умолчанию — SEA (`getBinaryPath()`).
+     * Переопределяется, чтобы прогнать те же сценарии против self-extract-сборки
+     * (см. `getSelfExtractPath()` и `selfextract.test.ts`).
+     */
+    binary?: string;
 }
 
 /**
@@ -44,7 +50,7 @@ export class VexxSession {
     private inspectorWs: WebSocket | null = null;
 
     public static async start(options: VexxSessionOptions): Promise<VexxSession> {
-        const binary = await getBinaryPath();
+        const binary = options.binary ?? (await getBinaryPath());
         const cols = options.cols ?? 120;
         const rows = options.rows ?? 32;
         const env: Record<string, string> = {
