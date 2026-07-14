@@ -52,7 +52,7 @@ TUI-фреймворк — дерево элементов с layout, событ
 Система темизации, совместимая с VS Code theme files: `WorkbenchTheme`, реестр дефолтов `defaultColors`, `ThemeService`/`ThemeRegistry`, встроенные темы. Все цвета UI берутся только из активной темы. Детали → [arch/Theme.md](arch/Theme.md).
 
 ### Controllers/
-Контроллеры с чётким lifecycle (constructor → mount → activate → dispose), система команд (VS Code-style ID, when-контексты), `IFileWatcher`, диагностики (`DiagnosticsController` + нижняя Panel/Problems), подкаталоги `Workspace/` (единая система отмены), `TerminalEnvironment/` (детект tier/capabilities/modes) и `Modules/` (модули и профили DI). Детали → [arch/Controllers.md](arch/Controllers.md).
+Контроллеры с чётким lifecycle (constructor → mount → activate → dispose), система команд (VS Code-style ID, when-контексты), `IFileWatcherDIToken`/`ChokidarFileWatcher` (интерфейс `IFileWatcher` — в Common), диагностики (`DiagnosticsController` + нижняя Panel/Problems), подкаталоги `Workspace/` (единая система отмены), `TerminalEnvironment/` (детект tier/capabilities/modes) и `Modules/` (модули и профили DI). Детали → [arch/Controllers.md](arch/Controllers.md).
 
 ### demos/ · StoryRunner/ · TestUtils/
 Инструменты разработки: демо-приложения хостинга (`demos/`), CLI-раннер stories (`StoryRunner/`), утилиты для тестов (`TestUtils/`, включая `ExtensionTestHarness`). Детали → [arch/DevTooling.md](arch/DevTooling.md).

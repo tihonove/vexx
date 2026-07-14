@@ -23,6 +23,7 @@ import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
 import { loadState } from "./Configuration/StateService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
+import { ChokidarFileWatcher } from "./Controllers/ChokidarFileWatcher.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
@@ -127,7 +128,12 @@ async function runEditor(): Promise<void> {
         profile: cli.profile,
         homedir: os.homedir(),
     });
-    const configurationService = await loadConfiguration(userDataPaths, configurationLogger);
+    // Live-reload настроек: следим за settings.json, чтобы правки применялись без
+    // рестарта. Отдельный экземпляр watcher'а (редакторные контроллеры получают свой
+    // через FileWatcherModule — следят за другими файлами). Живёт всё время работы
+    // приложения; fd освобождается ОС на выходе, как и у editor-watcher'ов.
+    const settingsWatcher = new ChokidarFileWatcher();
+    const configurationService = await loadConfiguration(userDataPaths, configurationLogger, settingsWatcher);
     const userKeybindings = await loadUserKeybindings(userDataPaths.keybindingsFile, configurationLogger);
     // Машинное состояние UI/сессии (открытые файлы, layout) — отдельно от настроек.
     const stateService = loadState(userDataPaths, configurationLogger);

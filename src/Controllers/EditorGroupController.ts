@@ -19,8 +19,9 @@ import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
-import type { IFileWatcher } from "./IFileWatcher.ts";
-import { IFileWatcherDIToken } from "./IFileWatcher.ts";
+import type { IFileWatcher } from "../Common/IFileWatcher.ts";
+
+import { IFileWatcherDIToken } from "./IFileWatcherDIToken.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
@@ -410,6 +411,16 @@ export class EditorGroupController extends Disposable implements IController {
                 this.closeTab(index);
             }
         };
+        // Live-reload: при изменении `editor.*` настроек перепримeняем их ко всем
+        // открытым редакторам группы (не только к вновь создаваемым).
+        this.register(
+            this.configurationService.onDidChangeConfiguration((event) => {
+                if (!event.affectsConfiguration("editor")) return;
+                for (const editor of this.editors) {
+                    this.applyConfigurationToEditor(editor);
+                }
+            }),
+        );
     }
 
     public async activate(): Promise<void> {

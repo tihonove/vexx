@@ -32,7 +32,7 @@ import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts"
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
-import type { IFileWatcher } from "./IFileWatcher.ts";
+import type { IFileWatcher } from "../Common/IFileWatcher.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");

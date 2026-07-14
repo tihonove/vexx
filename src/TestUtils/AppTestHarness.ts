@@ -1,5 +1,7 @@
 import type { Container } from "../Common/DiContainer.ts";
 import { Size } from "../Common/GeometryPromitives.ts";
+import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { IStateService } from "../Configuration/IStateService.ts";
 import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
@@ -24,6 +26,13 @@ export interface IAppHarnessOptions {
     readonly focusEditor?: boolean;
     /** Реальный {@link IStateService} для тестов персистентности; по умолчанию NULL (не персистит). */
     readonly stateService?: IStateService;
+    /**
+     * Реальный {@link IConfigurationService} — для тестов live-apply настроек;
+     * по умолчанию `NULL_CONFIGURATION_SERVICE` (событий не шлёт). Перебивает
+     * биндинг ДО резолва AppController, так что и AppController, и
+     * EditorGroupController получают один и тот же экземпляр.
+     */
+    readonly configurationService?: IConfigurationService;
     /** Переопределить путь settings.json (по умолчанию `null` из TestProfile). */
     readonly settingsResource?: string;
     /** Переопределить путь keybindings.json (по умолчанию `null` из TestProfile). */
@@ -63,6 +72,10 @@ export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarn
     if (options.stateService !== undefined) {
         const stateService = options.stateService;
         container.bind(StateServiceDIToken, () => stateService);
+    }
+    if (options.configurationService !== undefined) {
+        const configurationService = options.configurationService;
+        container.bind(IConfigurationServiceDIToken, () => configurationService);
     }
     if (options.settingsResource !== undefined) {
         const resource = options.settingsResource;

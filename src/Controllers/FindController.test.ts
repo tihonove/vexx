@@ -20,7 +20,7 @@ import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import type { EditorController } from "./EditorController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FindController } from "./FindController.ts";
-import { NULL_FILE_WATCHER } from "./IFileWatcher.ts";
+import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function makeGroup(): EditorGroupController {
