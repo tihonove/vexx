@@ -22,10 +22,8 @@ import type { ConfirmDialogOptions } from "../../base/tui/ui/dialog/confirmDialo
 import { DialogService } from "../services/dialogs/tui/dialogService.ts";
 import { BodyElement } from "../../base/tui/bodyElement.ts";
 import { InputElement } from "../../base/tui/ui/inputbox/inputElement.ts";
-import type { MenuBarItem } from "../../base/tui/ui/menu/menuBarElement.ts";
 import { MenuBarElement } from "../../base/tui/ui/menu/menuBarElement.ts";
 import type { OverlaySessionHandle } from "../../base/tui/ui/contextview/overlayLayer.ts";
-import type { MenuEntry, MenuItemEntry } from "../../base/tui/ui/menu/popupMenuElement.ts";
 import { TreeViewElement } from "../../base/tui/ui/tree/treeViewElement.ts";
 import { WorkbenchLayoutElement } from "./layout.ts";
 
@@ -135,6 +133,7 @@ import {
 } from "./parts/editor/whitespaceActions.ts";
 import { registerAction } from "../../platform/commands/common/commandAction.ts";
 import { registerLayoutActions } from "./actions/layoutActions.ts";
+import { createWorkbenchMenuBar } from "./parts/menubar/menubar.ts";
 import type { CommandRegistry } from "../../platform/commands/common/commands.ts";
 import { CommandRegistryDIToken } from "../../platform/commands/common/commands.ts";
 import { CompletionController } from "../../editor/contrib/suggest/tui/completionController.ts";
@@ -158,7 +157,7 @@ import { FindController } from "../../editor/contrib/find/tui/findController.ts"
 import type { IController } from "../common/controller.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "../contrib/files/tui/inputWidgetController.ts";
 import type { KeybindingRegistry } from "../../platform/keybinding/common/keybindingsRegistry.ts";
-import { formatKeybinding, KeybindingRegistryDIToken, parseKeybinding } from "../../platform/keybinding/common/keybindingsRegistry.ts";
+import { KeybindingRegistryDIToken, parseKeybinding } from "../../platform/keybinding/common/keybindingsRegistry.ts";
 import { ModifierReleaseArmoryDIToken } from "../../platform/keybinding/common/modifierReleaseArmory.ts";
 import { KeybindingDispatcher } from "../services/keybinding/tui/keybindingDispatcher.ts";
 import { UserKeybindingsDIToken } from "../../vexx/modules/keybindingsModule.ts";
@@ -968,107 +967,12 @@ export class AppController extends Disposable implements IController {
     }
 
     private setupMenu(): void {
-        // Build a menu item from an existing command id. The displayed shortcut is
-        // resolved from the keybinding registry (same source as the command palette),
-        // so menu labels never drift from the real bindings.
-        const item = (label: string, commandId: string): MenuItemEntry => {
-            const chord = this.keybindings.getKeybindingForCommand(commandId, this.contextKeys);
-            return {
-                label,
-                shortcut: chord ? formatKeybinding(chord) : undefined,
-                onSelect: () => {
-                    this.commands.execute(commandId);
-                },
-            };
-        };
-        const sep = (): MenuEntry => ({ type: "separator" });
-
-        const menuItems: MenuBarItem[] = [
-            {
-                label: "File",
-                mnemonic: "f",
-                entries: [
-                    item("New Untitled File", "workbench.action.files.newUntitledFile"),
-                    item("New File...", "explorer.newFile"),
-                    item("New Folder...", "explorer.newFolder"),
-                    sep(),
-                    item("Open File...", "workbench.action.files.openFile"),
-                    item("Open Folder...", "workbench.action.files.openFolder"),
-                    sep(),
-                    item("Save", "workbench.action.files.save"),
-                    item("Save As...", "workbench.action.files.saveAs"),
-                    sep(),
-                    item("Settings", "workbench.action.openSettings"),
-                    item("Keyboard Shortcuts", "workbench.action.openGlobalKeybindings"),
-                    sep(),
-                    item("Exit", "workbench.action.quit"),
-                ],
-            },
-            {
-                label: "Edit",
-                mnemonic: "e",
-                entries: [
-                    item("Undo", "undo"),
-                    item("Redo", "redo"),
-                    sep(),
-                    item("Cut", "editor.action.clipboardCutAction"),
-                    item("Copy", "editor.action.clipboardCopyAction"),
-                    item("Paste", "editor.action.clipboardPasteAction"),
-                    sep(),
-                    item("Find", "actions.find"),
-                    item("Find Next", "editor.action.nextMatchFindAction"),
-                    item("Find Previous", "editor.action.previousMatchFindAction"),
-                ],
-            },
-            {
-                label: "Selection",
-                mnemonic: "s",
-                entries: [
-                    item("Select All", "editor.action.selectAll"),
-                    sep(),
-                    item("Expand Selection (Word)", "cursorWordRightSelect"),
-                ],
-            },
-            {
-                label: "View",
-                mnemonic: "v",
-                entries: [
-                    item("Command Palette...", "workbench.action.showCommands"),
-                    sep(),
-                    item("Color Theme", "workbench.action.selectTheme"),
-                    sep(),
-                    item("Explorer", "workbench.view.explorer"),
-                    item("Problems", "workbench.actions.view.problems"),
-                    item("Toggle Primary Side Bar", "workbench.action.toggleSidebarVisibility"),
-                    item("Toggle Panel", "workbench.action.togglePanel"),
-                    sep(),
-                    item("Increase Side Bar Width", "workbench.action.increaseSidebarWidth"),
-                    item("Decrease Side Bar Width", "workbench.action.decreaseSidebarWidth"),
-                    item("Reset Side Bar Width", "workbench.action.resetSidebarWidth"),
-                ],
-            },
-            {
-                label: "Go",
-                mnemonic: "g",
-                entries: [
-                    item("Go to File...", "workbench.action.quickOpen"),
-                    item("Go to Line/Column...", "workbench.action.gotoLine"),
-                    sep(),
-                    item("Next Editor", "workbench.action.nextEditorInGroup"),
-                    item("Previous Editor", "workbench.action.previousEditorInGroup"),
-                    sep(),
-                    item("Close Editor", "workbench.action.closeActiveEditor"),
-                ],
-            },
-            {
-                label: "Help",
-                mnemonic: "h",
-                entries: [item("About", "workbench.action.showAboutDialog")],
-            },
-        ];
-
-        const menuBar = new MenuBarElement(menuItems);
-        menuBar.applyTheme(this.themeService.theme);
+        const menuBar = createWorkbenchMenuBar({
+            commands: this.commands,
+            keybindings: this.keybindings,
+            contextKeys: this.contextKeys,
+            theme: this.themeService.theme,
+        });
         this.menuBar = menuBar;
         this.view.setMenuBar(menuBar);
     }
