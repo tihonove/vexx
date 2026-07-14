@@ -24,14 +24,15 @@ jobs:
         # mode: чем упаковываем.
         #   sea         — Node SEA (`node --build-sea`).
         #   selfextract — sh-стаб + приклеенный payload (нетронутый node + main.js +
-        #                 vexx.bundle). Нужен там, где SEA не работает: на Intel macOS
-        #                 инъекция SEA-блоба портит Mach-O chained fixups → segfault
-        #                 до main() (#143, #144). Позже — распространить на linux-x64.
+        #                 vexx.bundle). Обязателен на Intel macOS, где инъекция
+        #                 SEA-блоба портит Mach-O chained fixups → segfault до main()
+        #                 (#143, #144); на linux-x64 просто лучше — бинарь втрое
+        #                 меньше. Windows остаётся на SEA: стаб — POSIX sh.
         include:
           - os: ubuntu-latest
             asset: vexx-linux-x64
             binary: dist/vexx
-            mode: sea
+            mode: selfextract
           - os: macos-latest
             asset: vexx-macos-arm64
             binary: dist/vexx
