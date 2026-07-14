@@ -4,20 +4,11 @@ Build a terminal-based text editor from scratch using Node.js & TypeScript. The 
 
 🏗 Architectural Constraints (NON-NEGOTIABLE)
 1. Zero Heavy Frameworks
-NO Ink, Blessed, React, or Vue — ничто не должно владеть рендер-циклом, layout'ом или моделью элементов: это ядро проекта (пп. 2-3), оно пишется своими руками.
+NO Ink, Blessed, React, or Vue — ничто не должно владеть рендер-циклом, layout'ом или моделью элементов: это ядро проекта (пп. 2-3).
 
 Direct manipulation of process.stdout and process.stdin.
 
-Зависимости — не «поменьше любой ценой», а «только простое и фундаментальное». Берём сфокусированные leaf-библиотеки; критерии:
-
-- решает фундаментальную задачу, а не нашу предметную (URI, парсинг, регекспы, watch);
-- ноль/мало транзитивных зависимостей;
-- живой мейнтейнер, внятная лицензия;
-- не тянет свой рантайм и не претендует на архитектуру.
-
-Так уже живём: `vscode-textmate`, `vscode-oniguruma`, `jsonc-parser`, `chokidar`, `yauzl`.
-
-Отвергаем: фреймворки, «швейцарские ножи», обёртки ради синтаксического сахара, всё с длинным транзитивным хвостом.
+Зависимости — не «поменьше любой ценой», а «простое и фундаментальное»: сфокусированную leaf-библиотеку без транзитивного хвоста брать можно и нужно, если задача фундаментальная, а не наша предметная (`vscode-textmate`, `vscode-oniguruma`, `jsonc-parser`, `chokidar`, `yauzl`). Нельзя — фреймворки и всё, что претендует на архитектуру.
 
 2. Rendering Engine
 Grid-based Model: The screen is a 2D matrix of Cell objects (char, fg, bg, styles).
