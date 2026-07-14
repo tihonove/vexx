@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
-import { TuiApplication } from "../TUIDom/TuiApplication.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { TuiApplication } from "../../../TUIDom/TuiApplication.ts";
+import { BodyElement } from "../../../TUIDom/Widgets/BodyElement.ts";
 
-import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
+import { MockTerminalBackend } from "./mockTerminalBackend.ts";
 
 describe("TuiApplication integration with MockTerminalBackend", () => {
     it("types characters and renders them on screen", () => {

@@ -240,4 +240,13 @@ for (const rel of configFiles) {
     }
 }
 
+// ── Предупреждение об остатках в исходных каталогах ──────────────────────────
+const sourceDirs = new Set([...plan.keys()].map((f) => path.posix.dirname(f)));
+for (const dir of sourceDirs) {
+    const abs = path.join(repoRoot, dir);
+    if (!fs.existsSync(abs)) continue;
+    const left = fs.readdirSync(abs).filter((n) => /\.(ts|tsx)$/.test(n));
+    if (left.length) console.warn(`WARN: ${dir} still contains: ${left.join(", ")}`);
+}
+
 console.log(`Moved ${plan.size} files, rewrote ${rewrittenFiles} files.`);
