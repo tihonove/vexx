@@ -7,7 +7,7 @@ import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateG
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
-import type { IExtension } from "./IExtension.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 
 // Mock the grammar loader so we can drive loadSupport() without touching real grammar assets.
 vi.mock("../Editor/Tokenization/textmate/TextMateGrammarLoader.ts", () => {

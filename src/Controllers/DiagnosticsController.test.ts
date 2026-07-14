@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Size } from "../vs/base/common/geometry.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { createInsertEdit } from "../Editor/ITextEdit.ts";
-import { MarkerSeverity } from "../Editor/Markers/IMarker.ts";
-import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
+import { MarkerSeverity } from "../vs/platform/markers/common/markers.ts";
+import type { MarkerService } from "../vs/platform/markers/common/markerService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
 import { MarkerServiceDIToken, SettingsResourceDIToken } from "./CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";

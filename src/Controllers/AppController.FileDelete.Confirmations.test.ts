@@ -4,15 +4,15 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../vs/base/common/geometry.ts";
-import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import type { IConfigurationService } from "../vs/platform/configuration/common/configuration.ts";
+import { IConfigurationServiceDIToken } from "../vs/platform/configuration/common/configurationDIToken.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
+import { CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 let savedXdg: string | undefined;

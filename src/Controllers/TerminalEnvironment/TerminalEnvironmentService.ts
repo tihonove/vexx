@@ -1,8 +1,8 @@
 import type { ITerminalBackend } from "../../vs/tui/backend/terminalBackend.ts";
 import { token } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { Disposable, type IDisposable } from "../../vs/base/common/lifecycle.ts";
-import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
+import type { IConfigurationService } from "../../vs/platform/configuration/common/configuration.ts";
+import { IConfigurationServiceDIToken } from "../../vs/platform/configuration/common/configurationDIToken.ts";
 import { TerminalBackendDIToken } from "../CoreTokens.ts";
 
 import {

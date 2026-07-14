@@ -1,6 +1,6 @@
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { EMPTY_RESOLVED_TOKEN_STYLE } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
-import { parseHexColor } from "../ColorUtils.ts";
+import { parseHexColor } from "../../vs/platform/theme/common/colorUtils.ts";
 import type { IEditorTokenTheme } from "../IEditorTokenTheme.ts";
 import type { ITokenColorRule } from "../IThemeFile.ts";
 

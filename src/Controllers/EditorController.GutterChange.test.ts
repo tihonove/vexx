@@ -13,7 +13,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorController } from "./EditorController.ts";
-import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 
 const BAR = "▎";
 const CHANGE_COLOR = packRgb(0x1b, 0x81, 0xa8);

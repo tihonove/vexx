@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
-import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
-import { formatKeybinding, KeybindingRegistry } from "../KeybindingRegistry.ts";
+import { registerAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { CommandRegistry } from "../../vs/platform/commands/common/commands.ts";
+import { formatKeybinding, KeybindingRegistry } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
 
 import { openKeybindingsAction, openSettingsAction } from "./PreferencesActions.ts";
 

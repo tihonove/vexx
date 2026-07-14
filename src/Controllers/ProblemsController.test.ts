@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../vs/base/common/geometry.ts";
 import { createRange } from "../Editor/IRange.ts";
-import type { IMarkerData } from "../Editor/Markers/IMarker.ts";
-import { MarkerSeverity } from "../Editor/Markers/IMarker.ts";
-import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
+import type { IMarkerData } from "../vs/platform/markers/common/markers.ts";
+import { MarkerSeverity } from "../vs/platform/markers/common/markers.ts";
+import type { MarkerService } from "../vs/platform/markers/common/markerService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { settle } from "../TestUtils/timing.ts";

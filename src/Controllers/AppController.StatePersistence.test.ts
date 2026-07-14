@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveUserDataPaths } from "../vs/platform/environment/node/userDataPath.ts";
-import { loadState, StateService } from "../Configuration/StateService.ts";
+import { loadState, StateService } from "../vs/platform/state/node/stateService.ts";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 

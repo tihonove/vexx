@@ -3,10 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
 import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { TuiApplication } from "../../vs/base/tui/tuiApplication.ts";
-import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
+import { registerAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { CommandRegistry } from "../../vs/platform/commands/common/commands.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";
-import { KeybindingRegistry } from "../KeybindingRegistry.ts";
+import { KeybindingRegistry } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
 
 import { quitAction } from "./AppActions.ts";
 

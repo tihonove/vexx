@@ -3,8 +3,8 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import type { IConfigurationService } from "../vs/platform/configuration/common/configuration.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
@@ -17,8 +17,8 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
-import { NULL_FILE_WATCHER } from "./IFileWatcher.ts";
-import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
+import { NULL_FILE_WATCHER } from "../vs/platform/files/common/watcher.ts";
+import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 
 function createEditorGroupController(
     overrides: {

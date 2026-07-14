@@ -3,7 +3,7 @@ import * as path from "node:path";
 import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { ILogServiceDIToken } from "../../vs/platform/log/common/logDIToken.ts";
 import { LogLevel } from "../../vs/platform/log/common/logLevel.ts";
-import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
+import { IConfigurationServiceDIToken } from "../../vs/platform/configuration/common/configurationDIToken.ts";
 import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 import { CommandServiceAdapter } from "../../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorDecorationsServiceAdapter } from "../../Extensions/Host/EditorDecorationsServiceAdapter.ts";
@@ -15,7 +15,7 @@ import {
 } from "../../Extensions/Host/ExtensionHost.ts";
 import { FileDecorationsServiceAdapter } from "../../Extensions/Host/FileDecorationsServiceAdapter.ts";
 import { ThemeColorResolverAdapter } from "../../Extensions/Host/ThemeColorResolverAdapter.ts";
-import { CommandRegistryDIToken } from "../CommandRegistry.ts";
+import { CommandRegistryDIToken } from "../../vs/platform/commands/common/commands.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { FileTreeControllerDIToken } from "../FileTreeController.ts";
 

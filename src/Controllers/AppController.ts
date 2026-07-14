@@ -10,9 +10,9 @@ import type { IFileClipboard } from "../vs/platform/clipboard/common/fileClipboa
 import type { ILogger } from "../vs/platform/log/common/logger.ts";
 import type { ILogService } from "../vs/platform/log/common/log.ts";
 import { ILogServiceDIToken } from "../vs/platform/log/common/logDIToken.ts";
-import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
-import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
+import type { IConfigurationService } from "../vs/platform/configuration/common/configuration.ts";
+import { IConfigurationServiceDIToken } from "../vs/platform/configuration/common/configurationDIToken.ts";
+import type { IUserKeybindingRule } from "../vs/platform/keybinding/node/keybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import type { ThemeRegistry } from "../Theme/ThemeRegistry.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
@@ -154,13 +154,13 @@ import {
     triggerSuggestAction,
     trimTrailingWhitespaceAction,
 } from "./Actions/WhitespaceActions.ts";
-import { registerAction } from "./CommandAction.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { registerAction } from "../vs/platform/commands/common/commandAction.ts";
+import type { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
+import { CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
 import { CompletionController } from "./CompletionController.ts";
-import { registerContextKeys } from "./ContextKeys.ts";
-import type { ContextKeyService } from "./ContextKeyService.ts";
-import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
+import { registerContextKeys } from "../vs/platform/contextkey/common/contextkeys.ts";
+import type { ContextKeyService } from "../vs/platform/contextkey/common/contextKeyService.ts";
+import { ContextKeyServiceDIToken } from "../vs/platform/contextkey/common/contextKeyService.ts";
 import {
     ClipboardDIToken,
     FileClipboardDIToken,
@@ -177,20 +177,20 @@ import { FileTreeController } from "./FileTreeController.ts";
 import { FindController } from "./FindController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
-import type { Keybinding, KeybindingRegistry } from "./KeybindingRegistry.ts";
-import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
-import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
+import type { Keybinding, KeybindingRegistry } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
+import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
+import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../vs/platform/keybinding/common/modifierReleaseArmory.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { StateServiceDIToken } from "./Modules/StateModule.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
-import { QuickInputController } from "./QuickInputController.ts";
+import { QuickInputController } from "../vs/platform/quickinput/tui/quickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 import { StatusBarController } from "./StatusBarController.ts";
 import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
-import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
 import { WorkbenchStateController } from "./WorkbenchStateController.ts";
 

@@ -1,8 +1,8 @@
 import { parseTree } from "jsonc-parser";
 
 import { createRange } from "../../Editor/IRange.ts";
-import type { IMarkerData } from "../../Editor/Markers/IMarker.ts";
-import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
+import type { IMarkerData } from "../../vs/platform/markers/common/markers.ts";
+import { MarkerSeverity } from "../../vs/platform/markers/common/markers.ts";
 
 /**
  * Validates a `settings.json` document against the set of known configuration

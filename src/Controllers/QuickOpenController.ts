@@ -7,11 +7,11 @@ import type { OverlaySessionHandle } from "../vs/base/tui/ui/contextview/overlay
 import type { QuickPickItem } from "../vs/platform/quickinput/tui/quickPickElement.ts";
 import { QuickPickElement } from "../vs/platform/quickinput/tui/quickPickElement.ts";
 
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import type { ContextKeyService } from "./ContextKeyService.ts";
+import type { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
+import type { ContextKeyService } from "../vs/platform/contextkey/common/contextKeyService.ts";
 import type { FileSearchResult, FileSearchService } from "./FileSearchService.ts";
-import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
-import { formatKeybinding } from "./KeybindingRegistry.ts";
+import type { KeybindingRegistry } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
+import { formatKeybinding } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
 import type { ParsedGoto } from "./QuickOpenParsing.ts";
 import { parseGotoLineQuery, splitFileQuery } from "./QuickOpenParsing.ts";
 

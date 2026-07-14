@@ -28,6 +28,6 @@ export const builtinThemes: readonly IThemeFile[] = [
 /**
  * Default active theme, matching VS Code's out-of-the-box default. Used when the
  * `workbench.colorTheme` setting is unset or names an unknown theme. Mirrored by
- * the configuration default in `src/Configuration/defaults.ts`.
+ * the configuration default in `src/vs/platform/configuration/common/defaults.ts`.
  */
 export const DEFAULT_COLOR_THEME = "Dark Modern";

@@ -1,4 +1,4 @@
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
 
 /**
  * Дескрипторы команд создания в explorer (без `run` — он привязывается в

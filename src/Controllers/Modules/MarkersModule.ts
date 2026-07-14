@@ -1,5 +1,5 @@
 import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
-import { MarkerService } from "../../Editor/Markers/MarkerService.ts";
+import { MarkerService } from "../../vs/platform/markers/common/markerService.ts";
 import { KeybindingsResourceDIToken, MarkerServiceDIToken, SettingsResourceDIToken } from "../CoreTokens.ts";
 
 export interface MarkersModuleContext {

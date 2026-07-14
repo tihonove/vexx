@@ -7,7 +7,7 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import type { EditorTabStripElement } from "../vs/workbench/tui/parts/editor/editorTabStripElement.ts";
 import type { TreeViewElement } from "../vs/base/tui/ui/tree/treeViewElement.ts";
 
-import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
+import { ContextKeyServiceDIToken } from "../vs/platform/contextkey/common/contextKeyService.ts";
 
 describe("AppController when-context integration", () => {
     let ws: ITempWorkspace;

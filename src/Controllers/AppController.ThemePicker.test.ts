@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { Size } from "../vs/base/common/geometry.ts";
-import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../vs/platform/configuration/common/configurationDIToken.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
 import { AppController, AppControllerDIToken, themeTypeLabel } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 interface ThemeContext {

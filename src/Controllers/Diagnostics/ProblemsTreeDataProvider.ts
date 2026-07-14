@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
-import type { IMarker } from "../../Editor/Markers/IMarker.ts";
-import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
+import type { IMarker } from "../../vs/platform/markers/common/markers.ts";
+import { MarkerSeverity } from "../../vs/platform/markers/common/markers.ts";
 import type { ITreeDataProvider, ITreeItem } from "../../vs/base/tui/ui/tree/tree.ts";
 
 /**

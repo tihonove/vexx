@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { createRange } from "../../Editor/IRange.ts";
-import type { IMarker } from "../../Editor/Markers/IMarker.ts";
-import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
+import type { IMarker } from "../../vs/platform/markers/common/markers.ts";
+import { MarkerSeverity } from "../../vs/platform/markers/common/markers.ts";
 
 import type { ProblemNode } from "./ProblemsTreeDataProvider.ts";
 import { ProblemsTreeDataProvider } from "./ProblemsTreeDataProvider.ts";

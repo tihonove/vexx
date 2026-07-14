@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../vs/tui/backend/mockTerminalBackend.ts";
-import { ConfigurationModel } from "../../Configuration/ConfigurationModel.ts";
-import { ConfigurationService } from "../../Configuration/ConfigurationService.ts";
-import { getDefaultConfiguration } from "../../Configuration/defaults.ts";
-import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
+import { ConfigurationModel } from "../../vs/platform/configuration/common/configurationModels.ts";
+import { ConfigurationService } from "../../vs/platform/configuration/node/configurationService.ts";
+import { getDefaultConfiguration } from "../../vs/platform/configuration/common/defaults.ts";
+import type { IConfigurationService } from "../../vs/platform/configuration/common/configuration.ts";
 
 import { TerminalEnvironmentService } from "./TerminalEnvironmentService.ts";
 

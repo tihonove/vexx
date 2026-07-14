@@ -40,15 +40,15 @@ export default defineConfig({
         "src/vs/base/common/assets/assets.ts",
         "src/vs/platform/log/common/log.ts",
         "src/vs/platform/log/common/logger.ts",
-        "src/Configuration/IConfigurationService.ts",
+        "src/vs/platform/configuration/common/configuration.ts",
         "src/Controllers/IController.ts",
         "src/Editor/Decorations/IGutterChangeDecoration.ts",
         "src/Editor/IDocumentContentChange.ts",
         "src/Editor/ITextDocument.ts",
         "src/Editor/IUndoElement.ts",
         "src/Editor/Tokenization/ITokenizationSupport.ts",
-        "src/Extensions/IExtension.ts",
-        "src/Extensions/IExtensionManifest.ts",
+        "src/vs/platform/extensions/common/extensions.ts",
+        "src/vs/platform/extensions/common/extensionManifest.ts",
         "src/Extensions/IGrammarContribution.ts",
         "src/Extensions/ILanguageConfiguration.ts",
         "src/Extensions/ILanguageContribution.ts",
@@ -64,19 +64,19 @@ export default defineConfig({
         "src/Theme/IEditorTokenTheme.ts",
         "src/Theme/IThemeFile.ts",
         "src/Theme/IVSCodeThemeFile.ts",
-        "src/Theme/IWorkbenchColors.ts",
+        "src/vs/platform/theme/common/colors.ts",
 
         // --- Непокрываемо юнит-тестами (есть e2e) ---
         "src/vs/tui/backend/nodeTerminalBackend.ts", // реальный tty/stdin/stdout
-        "src/Controllers/ChokidarFileWatcher.ts", // реальный fs-watcher (chokidar), e2e
+        "src/vs/platform/files/node/chokidarFileWatcher.ts", // реальный fs-watcher (chokidar), e2e
         "src/vs/base/node/isSea.ts", // node:sea, только в SEA-бинаре
         "src/vs/base/node/assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
         "src/Extensions/Host/ExtensionHostSubprocess.ts", // точка входа subprocess + IPC
         "src/Extensions/builtin/git/main.ts", // extension entry (subprocess IO/glue); логика — в git/lib/* (юниты), e2e — интеграция
         "src/Extensions/Host/VscodeNamespace.ts", // RPC-проводка в subprocess
         "src/Controllers/Modules/**", // DI-проводка (integration/e2e)
-        "src/Configuration/NullConfigurationService.ts", // null-object заглушка
-        "src/Configuration/NullStateService.ts", // null-object заглушка
+        "src/vs/platform/configuration/common/nullConfigurationService.ts", // null-object заглушка
+        "src/vs/platform/state/node/nullStateService.ts", // null-object заглушка
         "src/Inspector/InspectorDriver.ts", // только интерфейс write/capture-порта
         "src/Inspector/InspectorServer.ts", // рукописный ws-транспорт (смоук-тест)
         "src/Inspector/ws/**", // рукописный RFC6455 фрейминг

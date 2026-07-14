@@ -2,9 +2,9 @@ import * as path from "node:path";
 
 import { token } from "../vs/platform/instantiation/common/instantiation.ts";
 import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
-import { getDefaultConfiguration } from "../Configuration/defaults.ts";
-import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
-import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
+import { getDefaultConfiguration } from "../vs/platform/configuration/common/defaults.ts";
+import type { IMarkerDecoration } from "../vs/platform/markers/common/markers.ts";
+import type { MarkerService } from "../vs/platform/markers/common/markerService.ts";
 
 import { MarkerServiceDIToken, SettingsResourceDIToken } from "./CoreTokens.ts";
 import { collectKnownSettingKeys, validateSettingsJson } from "./Diagnostics/SettingsDiagnostics.ts";

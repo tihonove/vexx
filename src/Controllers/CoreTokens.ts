@@ -3,7 +3,7 @@ import type { ServiceAccessor } from "../vs/platform/instantiation/common/instan
 import { token } from "../vs/platform/instantiation/common/instantiation.ts";
 import type { IClipboard } from "../vs/platform/clipboard/common/clipboardService.ts";
 import type { IFileClipboard } from "../vs/platform/clipboard/common/fileClipboard.ts";
-import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
+import type { MarkerService } from "../vs/platform/markers/common/markerService.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";

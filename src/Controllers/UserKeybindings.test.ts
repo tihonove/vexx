@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
+import type { IUserKeybindingRule } from "../vs/platform/keybinding/node/keybindingsService.ts";
 
 import { AppControllerDIToken } from "./AppController.ts";
-import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
-import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
+import type { KeyboardEventLike } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
+import { KeybindingRegistryDIToken } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 

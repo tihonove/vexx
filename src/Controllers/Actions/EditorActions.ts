@@ -1,6 +1,6 @@
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseChord, parseKeybinding } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
 
 // ─── Basic Cursor Movement ──────────────────────────────────
 

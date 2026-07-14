@@ -23,12 +23,12 @@ import {
     inputSelectWordLeftAction,
     inputSelectWordRightAction,
 } from "../../../../../Controllers/Actions/InputActions.ts";
-import { registerAction } from "../../../../../Controllers/CommandAction.ts";
-import { CommandRegistry } from "../../../../../Controllers/CommandRegistry.ts";
-import { ContextKeyService } from "../../../../../Controllers/ContextKeyService.ts";
+import { registerAction } from "../../../../platform/commands/common/commandAction.ts";
+import { CommandRegistry } from "../../../../platform/commands/common/commands.ts";
+import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { ClipboardDIToken } from "../../../../../Controllers/CoreTokens.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "../../../../../Controllers/InputWidgetController.ts";
-import { KeybindingRegistry } from "../../../../../Controllers/KeybindingRegistry.ts";
+import { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingsRegistry.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
 import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 

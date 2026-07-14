@@ -8,10 +8,10 @@ import { BodyElement } from "../vs/base/tui/bodyElement.ts";
 import { InputElement } from "../vs/base/tui/ui/inputbox/inputElement.ts";
 import type { QuickPickItem } from "../vs/platform/quickinput/tui/quickPickElement.ts";
 
-import { CommandRegistry } from "./CommandRegistry.ts";
-import { ContextKeyService } from "./ContextKeyService.ts";
+import { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
+import { ContextKeyService } from "../vs/platform/contextkey/common/contextKeyService.ts";
 import type { FileSearchEntry, FileSearchResult, FileSearchService } from "./FileSearchService.ts";
-import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+import { KeybindingRegistry, parseChord, parseKeybinding } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
 import type { IGotoLineEditor } from "./QuickOpenController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 

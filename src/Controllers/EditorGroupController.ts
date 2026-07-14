@@ -3,8 +3,8 @@ import * as path from "node:path";
 import { token } from "../vs/platform/instantiation/common/instantiation.ts";
 import { Disposable, type IDisposable } from "../vs/base/common/lifecycle.ts";
 import { getFileIcon } from "../vs/workbench/tui/fileIcons.ts";
-import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
+import type { IConfigurationService } from "../vs/platform/configuration/common/configuration.ts";
+import { IConfigurationServiceDIToken } from "../vs/platform/configuration/common/configurationDIToken.ts";
 import type { CompletionSource } from "../Editor/ICompletionSource.ts";
 import type { SaveParticipant } from "../Editor/ISaveParticipant.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
@@ -19,9 +19,9 @@ import type { TabInfo } from "../vs/workbench/tui/parts/editor/editorTabStripEle
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
-import type { IFileWatcher } from "./IFileWatcher.ts";
-import { IFileWatcherDIToken } from "./IFileWatcher.ts";
-import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
+import type { IFileWatcher } from "../vs/platform/files/common/watcher.ts";
+import { IFileWatcherDIToken } from "../vs/platform/files/common/watcher.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 

@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { joinVirtualPath } from "../vs/base/common/assets/assetBundleFormat.ts";
 import { createDevAssetAccess } from "../vs/base/node/assets/createDefaultAssetAccess.ts";
 
-import { scanBuiltinExtensions } from "./ExtensionScanner.ts";
-import type { IExtension } from "./IExtension.ts";
+import { scanBuiltinExtensions } from "../vs/platform/extensions/common/extensionScanner.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 import { LanguageRegistry } from "./LanguageRegistry.ts";
 
 const ROOT_PREFIX = "Extensions/builtin/";

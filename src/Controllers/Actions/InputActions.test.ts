@@ -3,13 +3,13 @@ import { describe, expect, it, vi } from "vitest";
 import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
 import type { IClipboard } from "../../vs/platform/clipboard/common/clipboardService.ts";
 import { InputElement } from "../../vs/base/tui/ui/inputbox/inputElement.ts";
-import type { CommandAction } from "../CommandAction.ts";
-import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
+import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { registerAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { CommandRegistry } from "../../vs/platform/commands/common/commands.ts";
 import { ClipboardDIToken } from "../CoreTokens.ts";
 import { InputWidgetController } from "../InputWidgetController.ts";
 import { InputWidgetControllerDIToken } from "../InputWidgetController.ts";
-import { KeybindingRegistry } from "../KeybindingRegistry.ts";
+import { KeybindingRegistry } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
 
 import {
     inputCopyAction,

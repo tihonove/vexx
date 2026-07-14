@@ -12,7 +12,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorController } from "./EditorController.ts";
-import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 
 let tmpDir: string;
 let ws: ITempWorkspace;

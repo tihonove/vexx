@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { joinVirtualPath } from "../../../vs/base/common/assets/assetBundleFormat.ts";
 import { createDevAssetAccess } from "../../../vs/base/node/assets/createDefaultAssetAccess.ts";
-import { scanBuiltinExtensions } from "../../../Extensions/ExtensionScanner.ts";
-import type { IExtension } from "../../../Extensions/IExtension.ts";
+import { scanBuiltinExtensions } from "../../../vs/platform/extensions/common/extensionScanner.ts";
+import type { IExtension } from "../../../vs/platform/extensions/common/extensions.ts";
 
 import type { IGrammarRecord } from "./TextMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "./TextMateGrammarLoader.ts";

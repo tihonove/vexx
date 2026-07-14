@@ -22,8 +22,8 @@ import {
     nextEditorInGroupAction,
     previousEditorInGroupAction,
 } from "../Controllers/Actions/TabActions.ts";
-import type { CommandAction } from "../Controllers/CommandAction.ts";
-import { formatKeybinding, type Keybinding } from "../Controllers/KeybindingRegistry.ts";
+import type { CommandAction } from "../vs/platform/commands/common/commandAction.ts";
+import { formatKeybinding, type Keybinding } from "../vs/platform/keybinding/common/keybindingsRegistry.ts";
 import {
     detectBaseModes,
     detectExtendedKeysHint,

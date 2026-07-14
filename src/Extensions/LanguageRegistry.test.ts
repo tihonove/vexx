@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { IExtension } from "./IExtension.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 import { LanguageRegistry } from "./LanguageRegistry.ts";
 
 function makeExt(id: string, languages: object[], location = "Extensions/builtin/test/"): IExtension {

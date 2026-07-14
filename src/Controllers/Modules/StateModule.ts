@@ -1,6 +1,6 @@
 import { token, type ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
-import type { IStateService } from "../../Configuration/IStateService.ts";
-import { NULL_STATE_SERVICE } from "../../Configuration/NullStateService.ts";
+import type { IStateService } from "../../vs/platform/state/node/state.ts";
+import { NULL_STATE_SERVICE } from "../../vs/platform/state/node/nullStateService.ts";
 
 /** DI-токен машинного состояния UI/сессии ({@link IStateService}). */
 export const StateServiceDIToken = token<IStateService>("StateService");

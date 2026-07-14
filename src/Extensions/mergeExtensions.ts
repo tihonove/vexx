@@ -1,6 +1,6 @@
 import type { ILogger } from "../vs/platform/log/common/logger.ts";
 
-import type { IExtension } from "./IExtension.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 
 /**
  * Сливает список builtin и user расширений в один массив, разруливая

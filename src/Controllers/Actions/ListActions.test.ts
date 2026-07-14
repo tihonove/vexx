@@ -5,10 +5,10 @@ import { Size } from "../../vs/base/common/geometry.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 import type { ITreeDataProvider, ITreeItem } from "../../vs/base/tui/ui/tree/tree.ts";
 import { TreeViewElement } from "../../vs/base/tui/ui/tree/treeViewElement.ts";
-import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
+import { registerAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { CommandRegistry } from "../../vs/platform/commands/common/commands.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";
-import { KeybindingRegistry } from "../KeybindingRegistry.ts";
+import { KeybindingRegistry } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
 
 import {
     listFocusFirstAction,

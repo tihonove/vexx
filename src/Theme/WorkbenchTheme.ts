@@ -1,8 +1,8 @@
-import { parseHexColor } from "./ColorUtils.ts";
-import { defaultWorkbenchColors, themeKindOf } from "./defaultColors.ts";
+import { parseHexColor } from "../vs/platform/theme/common/colorUtils.ts";
+import { defaultWorkbenchColors, themeKindOf } from "../vs/platform/theme/common/colorRegistry.ts";
 import type { IEditorTokenTheme } from "./IEditorTokenTheme.ts";
 import type { IThemeFile } from "./IThemeFile.ts";
-import type { IWorkbenchColors } from "./IWorkbenchColors.ts";
+import type { IWorkbenchColors } from "../vs/platform/theme/common/colors.ts";
 
 /**
  * The active workbench color theme.
@@ -76,7 +76,7 @@ export class WorkbenchTheme {
         if (color === undefined) {
             throw new Error(
                 `Workbench color "${key}" is not defined by theme "${this.name}" ` +
-                    `and has no entry in the default color registry (src/Theme/defaultColors.ts).`,
+                    `and has no entry in the default color registry (src/vs/platform/theme/common/colorRegistry.ts).`,
             );
         }
         return color;

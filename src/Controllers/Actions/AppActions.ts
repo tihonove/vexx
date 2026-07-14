@@ -1,6 +1,6 @@
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
 import { TuiApplicationDIToken } from "../CoreTokens.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseKeybinding } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
 
 export const quitAction: CommandAction = {
     id: "workbench.action.quit",

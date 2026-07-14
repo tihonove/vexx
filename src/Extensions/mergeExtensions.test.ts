@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { ILogger } from "../vs/platform/log/common/logger.ts";
 
-import type { IExtension } from "./IExtension.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 import { mergeExtensions } from "./mergeExtensions.ts";
 
 function createLoggerMock(): ILogger & { warn: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> } {

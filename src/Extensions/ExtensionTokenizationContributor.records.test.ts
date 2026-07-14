@@ -8,7 +8,7 @@ import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateG
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
 import { ExtensionTokenizationContributor } from "./ExtensionTokenizationContributor.ts";
-import type { IExtension } from "./IExtension.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 import type { IGrammarContribution } from "./IGrammarContribution.ts";
 
 // Mock the grammar loader so we can inspect exactly which IGrammarRecord[] the

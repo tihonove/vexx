@@ -1,8 +1,8 @@
 import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "../CommandRegistry.ts";
-import { ContextKeyService, ContextKeyServiceDIToken } from "../ContextKeyService.ts";
-import { KeybindingRegistry, KeybindingRegistryDIToken } from "../KeybindingRegistry.ts";
-import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../ModifierReleaseArmory.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../../vs/platform/commands/common/commands.ts";
+import { ContextKeyService, ContextKeyServiceDIToken } from "../../vs/platform/contextkey/common/contextKeyService.ts";
+import { KeybindingRegistry, KeybindingRegistryDIToken } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
+import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../../vs/platform/keybinding/common/modifierReleaseArmory.ts";
 
 /**
  * Команды, кейбиндинги и when-context. Без внешнего конфига —

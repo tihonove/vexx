@@ -7,7 +7,7 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { createRange } from "./IRange.ts";
-import { MarkerSeverity } from "./Markers/IMarker.ts";
+import { MarkerSeverity } from "../vs/platform/markers/common/markers.ts";
 import { TextDocument } from "./TextDocument.ts";
 
 function makeEditor(content: string): EditorElement {

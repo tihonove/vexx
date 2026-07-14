@@ -6,7 +6,7 @@ import type { IGrammarRecord } from "../Editor/Tokenization/textmate/TextMateGra
 import { TextMateGrammarLoader } from "../Editor/Tokenization/textmate/TextMateGrammarLoader.ts";
 import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 
-import type { IExtension } from "./IExtension.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 
 /**
  * Применяет вклад расширений в подсветку синтаксиса:

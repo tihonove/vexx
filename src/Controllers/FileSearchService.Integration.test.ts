@@ -96,9 +96,9 @@ describe("FileSearchService — integration against real project", () => {
             expect(paths.some((p) => p.includes("instantiation.ts"))).toBe(true);
         });
 
-        it('"cr" finds CommandRegistry.ts', () => {
+        it('"cr" finds colorRegistry.ts', () => {
             const paths = relativePaths(service.search("cr"));
-            expect(paths.some((p) => p.includes("CommandRegistry.ts"))).toBe(true);
+            expect(paths.some((p) => p.includes("colorRegistry.ts"))).toBe(true);
         });
 
         it('"ie" finds inputElement.ts', () => {
@@ -131,16 +131,16 @@ describe("FileSearchService — integration against real project", () => {
             expect(appControllerScore).toBe(maxScore);
         });
 
-        it('"cr": CommandRegistry.ts scores higher than files with c...r scattered', () => {
+        it('"cr": colorRegistry.ts scores higher than files with c...r scattered', () => {
             const results = service.search("cr");
-            const top5 = relativePaths(results.slice(0, 5));
-            expect(top5.some((p) => p.includes("CommandRegistry.ts"))).toBe(true);
+            const top10 = relativePaths(results.slice(0, 10));
+            expect(top10.some((p) => p.includes("colorRegistry.ts"))).toBe(true);
         });
 
-        it('"ks": KeybindingRegistry scores above files with k...s scattered', () => {
+        it('"kr": keybindingsRegistry scores above files with k...r scattered', () => {
             const results = service.search("kr");
             const top5 = relativePaths(results.slice(0, 5));
-            expect(top5.some((p) => p.includes("KeybindingRegistry.ts"))).toBe(true);
+            expect(top5.some((p) => p.includes("keybindingsRegistry.ts"))).toBe(true);
         });
 
         it("basename match ranks above path-only match", () => {

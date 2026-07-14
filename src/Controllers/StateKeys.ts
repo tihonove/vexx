@@ -1,4 +1,4 @@
-import type { IStateDescriptor } from "../Configuration/IStateService.ts";
+import type { IStateDescriptor } from "../vs/platform/state/node/state.ts";
 
 /**
  * Реестр дескрипторов машинного состояния — «инструкция», какие свойства у

@@ -3,11 +3,11 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
-import { CommandRegistry } from "../Controllers/CommandRegistry.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
+import { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
 import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
-import { NULL_FILE_WATCHER } from "../Controllers/IFileWatcher.ts";
-import { UndoRedoService } from "../Controllers/Workspace/UndoRedoService.ts";
+import { NULL_FILE_WATCHER } from "../vs/platform/files/common/watcher.ts";
+import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";

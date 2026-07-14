@@ -1,5 +1,5 @@
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 

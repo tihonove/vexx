@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Container } from "../../vs/platform/instantiation/common/instantiation.ts";
 import type { IClipboard } from "../../vs/platform/clipboard/common/clipboardService.ts";
 import { OscClipboard } from "../../vs/platform/clipboard/tui/oscClipboard.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../vs/platform/configuration/common/nullConfigurationService.ts";
 import { createCursorSelection, createSelection } from "../../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -12,15 +12,15 @@ import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWo
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { CommandAction } from "../CommandAction.ts";
-import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
+import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { registerAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { CommandRegistry } from "../../vs/platform/commands/common/commands.ts";
 import { ClipboardDIToken } from "../CoreTokens.ts";
 import { EditorGroupController } from "../EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { NULL_FILE_WATCHER } from "../IFileWatcher.ts";
-import { KeybindingRegistry } from "../KeybindingRegistry.ts";
-import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
+import { NULL_FILE_WATCHER } from "../../vs/platform/files/common/watcher.ts";
+import { KeybindingRegistry } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
+import { UndoRedoService } from "../../vs/platform/undoRedo/common/undoRedoService.ts";
 
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./ClipboardActions.ts";
 

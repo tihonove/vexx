@@ -1,7 +1,7 @@
 import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
-import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
+import type { IConfigurationService } from "../../vs/platform/configuration/common/configuration.ts";
+import { IConfigurationServiceDIToken } from "../../vs/platform/configuration/common/configurationDIToken.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../vs/platform/configuration/common/nullConfigurationService.ts";
 
 export interface ConfigurationModuleContext {
     configurationService: IConfigurationService;

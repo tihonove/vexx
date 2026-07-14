@@ -8,7 +8,7 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { TreeViewElement } from "../vs/base/tui/ui/tree/treeViewElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
 import { SettingsResourceDIToken } from "./CoreTokens.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";

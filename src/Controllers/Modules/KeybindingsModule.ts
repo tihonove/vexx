@@ -1,6 +1,6 @@
 import type { ContainerModule } from "../../vs/platform/instantiation/common/instantiation.ts";
 import { token } from "../../vs/platform/instantiation/common/instantiation.ts";
-import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService.ts";
+import type { IUserKeybindingRule } from "../../vs/platform/keybinding/node/keybindingsService.ts";
 
 /** User keybinding rules loaded from `keybindings.json` (empty when none / in tests). */
 export const UserKeybindingsDIToken = token<readonly IUserKeybindingRule[]>("UserKeybindings");

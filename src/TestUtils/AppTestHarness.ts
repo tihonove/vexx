@@ -1,10 +1,10 @@
 import type { Container } from "../vs/platform/instantiation/common/instantiation.ts";
 import { Size } from "../vs/base/common/geometry.ts";
-import type { IStateService } from "../Configuration/IStateService.ts";
+import type { IStateService } from "../vs/platform/state/node/state.ts";
 import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
-import type { CommandRegistry } from "../Controllers/CommandRegistry.ts";
-import { CommandRegistryDIToken } from "../Controllers/CommandRegistry.ts";
+import type { CommandRegistry } from "../vs/platform/commands/common/commands.ts";
+import { CommandRegistryDIToken } from "../vs/platform/commands/common/commands.ts";
 import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Controllers/CoreTokens.ts";
 import type { EditorController } from "../Controllers/EditorController.ts";
 import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";

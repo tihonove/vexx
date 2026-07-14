@@ -15,7 +15,7 @@ import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "../Editor/ISaveP
 import type { ITextEdit } from "../Editor/ITextEdit.ts";
 import { createTextEdit } from "../Editor/ITextEdit.ts";
 import type { IUndoElement } from "../Editor/IUndoElement.ts";
-import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
+import type { IMarkerDecoration } from "../vs/platform/markers/common/markers.ts";
 import { TextDocument } from "../Editor/TextDocument.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import { DocumentTokenStore } from "../Editor/Tokenization/DocumentTokenStore.ts";
@@ -32,8 +32,8 @@ import { ScrollBarDecorator } from "../vs/base/tui/ui/scrollbar/scrollContainerE
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
-import type { IFileWatcher } from "./IFileWatcher.ts";
-import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
+import type { IFileWatcher } from "../vs/platform/files/common/watcher.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");
 

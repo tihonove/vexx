@@ -4,7 +4,7 @@ import { joinVirtualPath } from "../vs/base/common/assets/assetBundleFormat.ts";
 import type { IDisposable } from "../vs/base/common/lifecycle.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 
-import type { IExtension } from "./IExtension.ts";
+import type { IExtension } from "../vs/platform/extensions/common/extensions.ts";
 import type { ILanguageContribution } from "./ILanguageContribution.ts";
 
 /**

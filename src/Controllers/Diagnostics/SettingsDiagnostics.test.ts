@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
+import { MarkerSeverity } from "../../vs/platform/markers/common/markers.ts";
 
 import { collectKnownSettingKeys, validateSettingsJson } from "./SettingsDiagnostics.ts";
 

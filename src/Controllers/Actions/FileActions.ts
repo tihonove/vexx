@@ -1,5 +1,5 @@
-import type { CommandAction } from "../CommandAction.ts";
-import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
+import type { CommandAction } from "../../vs/platform/commands/common/commandAction.ts";
+import { parseChord, parseKeybinding } from "../../vs/platform/keybinding/common/keybindingsRegistry.ts";
 
 export const fileSaveAction: CommandAction = {
     id: "workbench.action.files.save",
