@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
 import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import { Uri } from "../../Common/Uri.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import type { ICompletionRequest, ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
 import type { IRange } from "../../Editor/IRange.ts";
@@ -569,6 +570,7 @@ export class ExtensionHost extends Disposable {
             const p = params as { decorations?: unknown };
             for (const d of parseWireFileDecorations(p.decorations)) {
                 const filePath = fileUriToPath(d.uri);
+                if (filePath === null) continue;
                 if (d.badge === undefined && d.colorId === undefined) {
                     this.fileDecorationState.delete(filePath);
                 } else {
@@ -747,18 +749,17 @@ function parseCommandInvocation(raw: unknown): { id: string; args: unknown[] } {
 }
 
 /**
- * Переводит wire-uri файловой декорации в абсолютный путь. Субпроцесс шлёт
- * `Uri.toString()` (`file://` + encodeURI(path)); реверсим схему и percent-escape.
- * Не-file строки возвращаем как есть (best-effort).
+ * Переводит wire-uri файловой декорации в абсолютный путь; `null` — если ресурс
+ * не на диске. Субпроцесс шлёт `Uri.toString()`, разбираем тем же типом.
+ *
+ * Раньше не-file строки возвращались как есть («best-effort»), и схема уезжала в
+ * ключ `fileDecorationState` (`git:/foo.ts?{...}`), где молча не совпадала ни с
+ * одним путём дерева. Декорацию для не-file ресурса честнее отбросить: дерево
+ * адресуется путями, показать там `git:`-ресурс всё равно нечем.
  */
-function fileUriToPath(uri: string): string {
-    if (!uri.startsWith("file://")) return uri;
-    const rest = uri.slice("file://".length);
-    try {
-        return decodeURIComponent(rest);
-    } catch {
-        return rest;
-    }
+function fileUriToPath(uri: string): string | null {
+    const parsed = Uri.parse(uri);
+    return parsed.scheme === "file" ? parsed.fsPath : null;
 }
 
 function parseCommandId(raw: unknown): string | null {

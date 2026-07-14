@@ -1,6 +1,6 @@
-import * as posix from "node:path/posix";
-
 import type * as vscode from "vscode";
+
+import { Uri } from "../../../Common/Uri.ts";
 
 /**
  * Чистые value-типы `vscode`, раздаваемые расширениям внутри subprocess.
@@ -239,50 +239,13 @@ export class TextEdit {
 }
 
 /**
- * URI ресурса. Поддерживается только схема `file` (единственная, нужная
- * editorconfig'у). Прочие схемы храним как есть, но полноценно не разбираем.
+ * URI ресурса — ре-экспорт ядрового {@link Uri} (`Common/Uri.ts`, upstream
+ * `vscode-uri`). Раньше здесь жил самописный file-only шим: он не разбирал схемы
+ * без `//` (`untitled:Untitled-1` парсился как file-путь), отдавал `path` из
+ * `fsPath` для любой схемы и терял authority/query/fragment. Ядро и субпроцесс
+ * теперь адресуют ресурс одним и тем же типом.
  */
-export class Uri {
-    public readonly scheme: string;
-    public readonly path: string;
-
-    private constructor(scheme: string, path: string) {
-        this.scheme = scheme;
-        this.path = path;
-    }
-
-    public static file(path: string): Uri {
-        // vscode нормализует разделители к `/`; для posix-окружения оставляем как есть.
-        const normalized = path.replace(/\\/g, "/");
-        const withRoot = normalized.startsWith("/") ? normalized : "/" + normalized;
-        return new Uri("file", withRoot);
-    }
-
-    public static parse(value: string): Uri {
-        const match = /^([a-zA-Z][a-zA-Z0-9+.-]*):\/\/([^/]*)(\/[^?#]*)?/.exec(value);
-        if (match === null) {
-            // Нет схемы — трактуем всю строку как путь file-схемы.
-            return Uri.file(value);
-        }
-        const scheme = match[1];
-        const path = (match[3] as string | undefined) ?? "/";
-        return new Uri(scheme, path);
-    }
-
-    public static joinPath(base: Uri, ...pathSegments: string[]): Uri {
-        const joined = posix.join(base.path, ...pathSegments);
-        return new Uri(base.scheme, joined);
-    }
-
-    public get fsPath(): string {
-        return this.path;
-    }
-
-    public toString(): string {
-        // Только для file-схемы с пустым authority: `file://` + path.
-        return `${this.scheme}://${encodeURI(this.path).replace(/#/g, "%23").replace(/\?/g, "%3F")}`;
-    }
-}
+export { Uri };
 
 /**
  * Ошибка файловой системы (`vscode.FileSystemError`). Реализация `workspace.fs`

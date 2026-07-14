@@ -108,3 +108,43 @@ describe("toFileSystemError — маппинг errno", () => {
         expect(toFileSystemError(null, u)).toBeNull();
     });
 });
+
+/**
+ * `workspace.fs` в VS Code — роутер по `uri.scheme`. Локальный диск обслуживает только
+ * `file`; для прочих схем нужен честный отказ, а не чтение/запись `uri.fsPath` мимо схемы.
+ */
+describe("FileSystemNamespace — роутинг по схеме", () => {
+    const nonFile = (raw: string) => Uri.parse(raw) as never;
+
+    it.each(["untitled:Untitled-1", "git:/foo.ts?%7B%22ref%22%3A%22HEAD%22%7D", "vscode-vfs://github/o/r/f.ts"])(
+        "stat(%s) → FileSystemError.Unavailable",
+        async (raw) => {
+            await expect(wfs.stat(nonFile(raw))).rejects.toMatchObject({ code: "Unavailable" });
+        },
+    );
+
+    it("readFile с не-file URI → FileSystemError.Unavailable", async () => {
+        await expect(wfs.readFile(nonFile("untitled:Untitled-1"))).rejects.toBeInstanceOf(FileSystemError);
+        await expect(wfs.readFile(nonFile("untitled:Untitled-1"))).rejects.toMatchObject({ code: "Unavailable" });
+    });
+
+    it("writeFile с не-file URI отказывает и НЕ трогает диск", async () => {
+        // Ключевой кейс #107: fsPath у untitled: — относительный "Untitled-1", поэтому
+        // без гейта запись ушла бы в $CWD/Untitled-1 вместо ошибки.
+        const cwdBefore = process.cwd();
+        const stray = path.join(cwdBefore, "Untitled-1");
+        expect(fs.existsSync(stray)).toBe(false);
+
+        await expect(wfs.writeFile(nonFile("untitled:Untitled-1"), Buffer.from("x"))).rejects.toMatchObject({
+            code: "Unavailable",
+        });
+
+        expect(fs.existsSync(stray)).toBe(false);
+    });
+
+    it("file-схема продолжает работать", async () => {
+        const target = path.join(tmpDir, "ok.txt");
+        await wfs.writeFile(uri(target), Buffer.from("hi"));
+        expect(fs.readFileSync(target, "utf-8")).toBe("hi");
+    });
+});

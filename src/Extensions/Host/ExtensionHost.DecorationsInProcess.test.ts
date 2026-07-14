@@ -187,7 +187,7 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         expect(added.dashed).toBeUndefined();
     });
 
-    it("файловые декорации: badge/colorId по отдельности, не-объект, non-file и битый uri, снятие", async () => {
+    it("файловые декорации: badge/colorId по отдельности, не-объект, non-file отбрасывается, битый uri, снятие", async () => {
         const FILE = 0x112233;
         const h = makeHost({ "gitDecoration.modifiedResourceForeground": FILE });
 
@@ -197,8 +197,8 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
                 { uri: "file:///both.md", badge: "M", colorId: "gitDecoration.modifiedResourceForeground" },
                 { uri: "file:///badge.md", badge: "A" }, // только badge (colorId undefined)
                 { uri: "file:///color.md", colorId: "gitDecoration.modifiedResourceForeground" }, // только colorId (badge undefined)
-                { uri: "untitled:scratch", badge: "U" }, // не file:// → fileUriToPath возвращает как есть
-                { uri: "file:///%E0%A4%A", badge: "D" }, // битый percent-encoding → catch в fileUriToPath
+                { uri: "untitled:scratch", badge: "U" }, // не file: → отбрасывается, дерево адресуется путями
+                { uri: "file:///%E0%A4%A", badge: "D" }, // битый percent-encoding → путь остаётся как есть
             ],
         });
         await flushMicrotasks(10);
@@ -206,8 +206,10 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         expect(entries).toContainEqual({ path: "/both.md", color: FILE, badge: "M" });
         expect(entries).toContainEqual({ path: "/badge.md", badge: "A" }); // без color
         expect(entries).toContainEqual({ path: "/color.md", color: FILE }); // без badge
-        expect(entries).toContainEqual({ path: "untitled:scratch", badge: "U" }); // non-file uri — как есть
-        expect(entries).toContainEqual({ path: "/%E0%A4%A", badge: "D" }); // битый uri → rest из catch
+        // Не-file ресурс отбрасывается целиком: раньше схема уезжала в ключ
+        // ("untitled:scratch" как «путь») и молча не совпадала ни с чем в дереве.
+        expect(entries.some((e) => e.path.includes("scratch"))).toBe(false);
+        expect(entries).toContainEqual({ path: "/%E0%A4%A", badge: "D" }); // битый uri → путь как есть
 
         // Голый uri (без badge/colorId) → снятие.
         h.peer.notify("window.fileDecorationsChanged", { decorations: [{ uri: "file:///both.md" }] });
