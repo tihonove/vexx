@@ -755,23 +755,6 @@ export class AppController extends Disposable implements IController {
         this.fileTreeController.setFileDecorations(entries);
     }
 
-    /**
-     * Opens a user-config file (settings.json / keybindings.json) as an editor tab.
-     * The path is resolved at bootstrap; it is null in tests/demo where no user data
-     * dir is wired — then this is a no-op. On a fresh install the file may not exist
-     * yet: we seed it (create the parent dir + a minimal skeleton) so the editor opens
-     * a real file and a subsequent Ctrl+S can't fail with ENOENT, mirroring VS Code.
-     */
-    private openUserConfigFile(resource: string | null, kind: "settings" | "keybindings"): void {
-        if (resource === null) return;
-        if (!fs.existsSync(resource)) {
-            const skeleton = kind === "settings" ? "{}\n" : "[]\n";
-            fs.mkdirSync(path.dirname(resource), { recursive: true });
-            fs.writeFileSync(resource, skeleton, "utf-8");
-        }
-        this.openFile(resource);
-    }
-
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);

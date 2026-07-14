@@ -79,7 +79,8 @@ export class KeybindingDispatcher extends Disposable {
     private chordTimer: ReturnType<typeof setTimeout> | null = null;
     private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
     private swallowNextKeyPress = false;
-    private view: BodyElement | null = null;
+    // Проставляется в mount() до первого key-события (диспетчер без view не получает событий).
+    private view!: BodyElement;
 
     public constructor(private readonly deps: IKeybindingDispatcherDeps) {
         super();
@@ -210,7 +211,7 @@ export class KeybindingDispatcher extends Disposable {
         // commands scoped to the focused input/list/editor (their `when` names a focus context key
         // — e.g. clipboard / undo inside the quickpick query) may run. Workbench/navigation commands
         // are suppressed so a shortcut can't act on a panel behind the still-visible overlay.
-        const overlayCaptures = this.view?.overlayLayer.hasKeyboardCapturingOverlay() ?? false;
+        const overlayCaptures = this.view.overlayLayer.hasKeyboardCapturingOverlay();
 
         if (res.kind === "chord") {
             if (overlayCaptures) {
