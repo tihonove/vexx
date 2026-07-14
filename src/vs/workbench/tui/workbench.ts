@@ -20,11 +20,10 @@ import type { TUIFocusEvent } from "../../base/tui/events/tuiFocusEvent.ts";
 import type { TUIElement } from "../../base/tui/tuiElement.ts";
 import type { ConfirmDialogOptions } from "../../base/tui/ui/dialog/confirmDialogElement.tsx";
 import { DialogService } from "../services/dialogs/tui/dialogService.ts";
+import { WorkbenchContextKeys } from "./contextkeys.ts";
 import { BodyElement } from "../../base/tui/bodyElement.ts";
-import { InputElement } from "../../base/tui/ui/inputbox/inputElement.ts";
 import { MenuBarElement } from "../../base/tui/ui/menu/menuBarElement.ts";
 import type { OverlaySessionHandle } from "../../base/tui/ui/contextview/overlayLayer.ts";
-import { TreeViewElement } from "../../base/tui/ui/tree/treeViewElement.ts";
 import { WorkbenchLayoutElement } from "./layout.ts";
 
 import { quitAction } from "./actions/appActions.ts";
@@ -304,6 +303,7 @@ export class AppController extends Disposable implements IController {
     private editorGroupController: EditorGroupController;
     private dialogs: DialogService;
     private fileCommands: FileCommands;
+    private workbenchContextKeys: WorkbenchContextKeys;
     private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
     private fileClipboard: IFileClipboard;
@@ -445,6 +445,16 @@ export class AppController extends Disposable implements IController {
         this.view.setContent(this.workbenchLayout);
         this.view.setStatusBar(this.statusBarController.view);
         this.dialogs = new DialogService(this.view, themeService.theme);
+        this.workbenchContextKeys = new WorkbenchContextKeys({
+            view: this.view,
+            contextKeys,
+            editorGroup: this.editorGroupController,
+            layout: this.workbenchLayout,
+            inputWidgetController,
+            findController: this.findController,
+            completionController: this.completionController,
+            terminalEnv,
+        });
 
         this.quickOpenController.setHostView(this.view);
         this.quickInputController.setHostView(this.view);
@@ -926,35 +936,7 @@ export class AppController extends Disposable implements IController {
     }
 
     private updateContextKeys(): void {
-        const active = this.view.focusManager?.activeElement ?? null;
-        const editorCount = this.editorGroupController.editorCount;
-
-        this.contextKeys.set("textInputFocus", active instanceof EditorElement);
-        this.contextKeys.set("inputWidgetFocus", active instanceof InputElement);
-        this.contextKeys.set("listFocus", active instanceof TreeViewElement);
-        this.inputWidgetController.setActive(active instanceof InputElement ? active : null);
-        this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
-        this.contextKeys.set("editorTabsMultiple", editorCount > 1);
-        this.contextKeys.set("panelVisible", this.workbenchLayout.getBottomPanelVisible());
-        this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
-        this.contextKeys.set("suggestWidgetVisible", this.completionController.isOpen());
-
-        // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
-        // but mode can be force-toggled at runtime, so refresh alongside focus context.
-        const env = this.terminalEnv;
-        this.contextKeys.set("tier", env.tier);
-        this.contextKeys.set("os", env.os);
-        this.contextKeys.set("isMac", env.os === "mac");
-        this.contextKeys.set("isLinux", env.os === "linux");
-        this.contextKeys.set("isWindows", env.os === "windows");
-        this.contextKeys.set("cap_extendedKeys", env.hasCapability("extended-keys"));
-        this.contextKeys.set("cap_osc52", env.hasCapability("osc52"));
-        this.contextKeys.set("cap_truecolor", env.hasCapability("truecolor"));
-        this.contextKeys.set("cap_kittyGraphics", env.hasCapability("kitty-graphics"));
-        this.contextKeys.set("cap_mouseSgr", env.hasCapability("mouse-sgr"));
-        for (const name of env.getKnownModeNames()) {
-            this.contextKeys.setRaw(`mode_${name}`, env.isModeActive(name));
-        }
+        this.workbenchContextKeys.update();
     }
 
     private setupMenu(): void {
