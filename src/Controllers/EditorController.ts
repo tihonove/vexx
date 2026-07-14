@@ -52,6 +52,9 @@ interface IDiskStat {
     size: number;
 }
 
+/** Источник непрозрачных ключей истории отмены (см. {@link EditorController.undoContext}). */
+let nextUndoContextId = 1;
+
 export class EditorController extends Disposable implements IController {
     public static dependencies = [
         ThemeServiceDIToken,
@@ -285,10 +288,10 @@ export class EditorController extends Disposable implements IController {
                 this.foldingSubscription?.dispose();
             },
         });
-        // Очищаем историю отмены этого файла при закрытии вкладки.
+        // Очищаем историю отмены этого редактора при закрытии вкладки.
         this.register({
             dispose: () => {
-                this.undoRedoService.clear(this.undoContext());
+                this.undoRedoService.clear(this.undoContext);
             },
         });
     }
@@ -443,8 +446,10 @@ export class EditorController extends Disposable implements IController {
      * Writes the document to a new path and re-points the editor to it.
      *
      * Unlike {@link openFile}, the document/view-state/undo-history/cursor are
-     * preserved. The language is re-resolved for the new extension; the bound
-     * language listener re-tokenizes and repaints automatically. Firing
+     * preserved — the undo bucket is keyed by {@link undoContext}, which is tied to
+     * the editor rather than to its path, so re-pointing does not strand the history
+     * accumulated before the save. The language is re-resolved for the new extension;
+     * the bound language listener re-tokenizes and repaints automatically. Firing
      * `onDidSave` lets the group controller rename the tab and clear the dirty
      * marker.
      */
@@ -547,31 +552,45 @@ export class EditorController extends Disposable implements IController {
     }
 
     public undo(): void {
-        void this.undoRedoService.undo(this.undoContext());
+        void this.undoRedoService.undo(this.undoContext);
     }
 
     public redo(): void {
-        void this.undoRedoService.redo(this.undoContext());
-    }
-
-    /** Контекст-бакет истории отмены для этого редактора (путь файла). */
-    private undoContext(): string {
-        return this.filePath ?? "untitled";
+        void this.undoRedoService.redo(this.undoContext);
     }
 
     /**
+     * Контекст-бакет истории отмены этого редактора — непрозрачный идентификатор,
+     * выданный при создании. Намеренно НЕ путь и НЕ uri: история принадлежит
+     * редактору, а не ресурсу, поэтому ключ обязан быть стабильным на всём времени
+     * жизни. Путь бакетом быть не может — на нём ломались два бага: все безымянные
+     * буферы сходились в общий бакет `"untitled"`, а `saveAs` менял ключ и осиротлял
+     * уже накопленную историю.
+     *
+     * Ограничение: корректно, пока редактор и документ соотносятся 1:1 (дедуп вкладок
+     * в `EditorGroupController.openFile` это держит). Появятся сплиты — два редактора
+     * на один документ по семантике VS Code обязаны делить историю, и ключ переедет
+     * на документ.
+     */
+    public readonly undoContext = `editor-${nextUndoContextId++}`;
+
+    /**
      * Подключает текущий редактор к общей истории: каждый шаг `UndoManager` регистрирует
-     * обёртку в `UndoRedoService` под контекстом этого файла. Обёртка — токен порядка:
+     * обёртку в `UndoRedoService` под контекстом этого редактора. Обёртка — токен порядка:
      * её undo/redo делегируют в `UndoManager` (LIFO 1:1, поэтому стеки идут в ногу).
+     *
+     * Ключ бакета ({@link undoContext}) и `resources` — разные вещи: первый адресует
+     * историю и привязан к редактору, второй перечисляет затронутые пути и у безымянного
+     * буфера пуст.
      */
     private attachUndoRouting(): void {
         const editor = this.editor;
         editor.undoManager.onDidPush = (element) => {
-            const resource = this.undoContext();
+            const filePath = this.filePath;
             this.undoRedoService.pushElement(
                 {
                     label: element.label,
-                    resources: [resource],
+                    resources: filePath === null ? [] : [filePath],
                     undo: () => {
                         editor.undoManager.undo();
                         editor.markDirty();
@@ -581,7 +600,7 @@ export class EditorController extends Disposable implements IController {
                         editor.markDirty();
                     },
                 },
-                resource,
+                this.undoContext,
             );
         };
     }

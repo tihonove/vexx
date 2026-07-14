@@ -43,18 +43,18 @@ function make(): { controller: EditorController; undoRedo: UndoRedoService; file
 }
 
 describe("EditorController — text undo routes through the unified UndoRedoService", () => {
-    it("registers a step under the file path and undo reverts via the service", () => {
-        const { controller, undoRedo, file } = make();
+    it("registers a step under the editor's own context and undo reverts via the service", () => {
+        const { controller, undoRedo } = make();
 
         controller.pushUndo(controller.viewState.type("hello"));
         expect(controller.getText()).toBe("hello");
-        expect(undoRedo.canUndo(file)).toBe(true);
+        expect(undoRedo.canUndo(controller.undoContext)).toBe(true);
         // Not registered under the workspace (file-operations) context.
         expect(undoRedo.canUndo(WORKSPACE_UNDO_CONTEXT)).toBe(false);
 
         controller.undo();
         expect(controller.getText()).toBe("");
-        expect(undoRedo.canRedo(file)).toBe(true);
+        expect(undoRedo.canRedo(controller.undoContext)).toBe(true);
     });
 
     it("redo re-applies the edit", () => {
@@ -67,7 +67,7 @@ describe("EditorController — text undo routes through the unified UndoRedoServ
         expect(controller.getText()).toBe("abc");
     });
 
-    it("routes undo under the 'untitled' context when no file is open", () => {
+    it("routes undo under the editor's own context when no file is open", () => {
         const undoRedo = new UndoRedoService();
         const theme = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
         const controller = new EditorController(
@@ -79,7 +79,7 @@ describe("EditorController — text undo routes through the unified UndoRedoServ
         );
 
         controller.pushUndo(controller.viewState.type("hi"));
-        expect(undoRedo.canUndo("untitled")).toBe(true);
+        expect(undoRedo.canUndo(controller.undoContext)).toBe(true);
 
         controller.undo();
         expect(controller.getText()).toBe("");
@@ -87,12 +87,20 @@ describe("EditorController — text undo routes through the unified UndoRedoServ
         controller.dispose();
     });
 
-    it("clears the file's history when the controller is disposed", () => {
-        const { controller, undoRedo, file } = make();
+    it("gives each editor its own context, so histories never share a bucket", () => {
+        const first = make();
+        const second = make();
+
+        expect(first.controller.undoContext).not.toBe(second.controller.undoContext);
+    });
+
+    it("clears only this editor's history when the controller is disposed", () => {
+        const { controller, undoRedo } = make();
         controller.pushUndo(controller.viewState.type("x"));
-        expect(undoRedo.canUndo(file)).toBe(true);
+        const context = controller.undoContext;
+        expect(undoRedo.canUndo(context)).toBe(true);
 
         controller.dispose();
-        expect(undoRedo.canUndo(file)).toBe(false);
+        expect(undoRedo.canUndo(context)).toBe(false);
     });
 });
