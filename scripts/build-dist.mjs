@@ -12,13 +12,14 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { buildExtensions } from "./build-extensions.mjs";
+import { buildNodePtyBundle } from "./pack-node-pty.mjs";
 import { buildVexxBundle } from "./pack-assets.mjs";
 
 /**
- * Собирает `dist/main.js` и `dist/vexx.bundle`.
+ * Собирает `dist/main.js`, `dist/vexx.bundle` и `dist/node-pty.bundle`.
  *
  * @param {{ repoRoot: string }} params
- * @returns {Promise<{ distDir: string, mainJsPath: string, bundlePath: string }>}
+ * @returns {Promise<{ distDir: string, mainJsPath: string, bundlePath: string, nodePtyBundlePath: string }>}
  */
 export async function buildDistArtifacts({ repoRoot }) {
     const distDir = join(repoRoot, "dist");
@@ -41,5 +42,14 @@ export async function buildDistArtifacts({ repoRoot }) {
     writeFileSync(bundlePath, bundle);
     console.log(`[build-dist] Packed ${inputs.length} assets → ${bundlePath} (${(bundle.length / 1024).toFixed(1)} KB)`);
 
-    return { distDir, mainJsPath: join(distDir, "main.js"), bundlePath };
+    // 4. Пакуем рантайм-раскладку node-pty (нативный PTY) в dist/node-pty.bundle.
+    // SEA вшивает его ассетом, self-extract кладёт node-pty в node_modules payload'а.
+    const { bundle: ptyBundle, inputs: ptyInputs } = buildNodePtyBundle({ repoRoot });
+    const nodePtyBundlePath = join(distDir, "node-pty.bundle");
+    writeFileSync(nodePtyBundlePath, ptyBundle);
+    console.log(
+        `[build-dist] Packed ${ptyInputs.length} node-pty files → ${nodePtyBundlePath} (${(ptyBundle.length / 1024).toFixed(1)} KB)`,
+    );
+
+    return { distDir, mainJsPath: join(distDir, "main.js"), bundlePath, nodePtyBundlePath };
 }

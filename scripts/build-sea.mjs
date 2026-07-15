@@ -19,8 +19,8 @@ function run(cmd) {
     execSync(cmd, { stdio: "inherit", cwd: root });
 }
 
-// 1. Собираем dist/main.js + dist/vexx.bundle (общее с build-selfextract.mjs).
-const { mainJsPath, bundlePath } = await buildDistArtifacts({ repoRoot: root });
+// 1. Собираем dist/main.js + dist/vexx.bundle + dist/node-pty.bundle (общее с build-selfextract.mjs).
+const { mainJsPath, bundlePath, nodePtyBundlePath } = await buildDistArtifacts({ repoRoot: root });
 
 // 2. Generate SEA config
 const seaConfig = {
@@ -30,6 +30,9 @@ const seaConfig = {
     disableExperimentalSEAWarning: true,
     assets: {
         "vexx.bundle": bundlePath,
+        // Нативный node-pty: loadNodePty.ts распаковывает этот ассет в tmpdir и
+        // грузит через createRequire (нативный .node нельзя вшить в JS-blob).
+        "node-pty.bundle": nodePtyBundlePath,
     },
 };
 
