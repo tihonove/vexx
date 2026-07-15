@@ -50,6 +50,13 @@ function makeExtWithGrammar(): IExtension {
 
 const dummyAssets = {} as IAssetAccess;
 
+/** Промис, который резолвим/реджектим снаружи — чтобы держать загрузку in-flight. */
+function deferred<T>(): { promise: Promise<T>; reject: (err: unknown) => void } {
+    let reject!: (err: unknown) => void;
+    const promise = new Promise<T>((_, r) => (reject = r));
+    return { promise, reject };
+}
+
 describe("ExtensionTokenizationContributor — error handling", () => {
     it("logs an error and registers nothing when loadSupport() returns null", async () => {
         MockedLoader.mockImplementationOnce(function () {
@@ -60,7 +67,8 @@ describe("ExtensionTokenizationContributor — error handling", () => {
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(dummyAssets, [makeExtWithGrammar()], registry, logger);
 
-        await contributor.apply();
+        contributor.apply();
+        await registry.load("typescript");
 
         expect(registry.get("typescript")).toBeUndefined();
         expect(logger.error).toHaveBeenCalledWith(
@@ -78,12 +86,37 @@ describe("ExtensionTokenizationContributor — error handling", () => {
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(dummyAssets, [makeExtWithGrammar()], registry, logger);
 
-        await contributor.apply();
+        contributor.apply();
+        // load() глотает бросок фабрики и резолвится в undefined — иначе
+        // `void load(...)` в EditorController дал бы unhandled rejection.
+        await expect(registry.load("typescript")).resolves.toBeUndefined();
 
         expect(registry.get("typescript")).toBeUndefined();
         expect(logger.error).toHaveBeenCalledWith(
             expect.stringContaining('Error loading grammar "source.ts" (typescript)'),
             boom,
         );
+    });
+
+    // dispose() роняет vscode-textmate Registry под уже летящим loadGrammar —
+    // тот предсказуемо бросает. Это не сбой грамматики, и в лог сыпать не надо.
+    it("stays silent when dispose() tears the loader down under an in-flight load", async () => {
+        const gate = deferred<never>();
+        MockedLoader.mockImplementationOnce(function () {
+            return { loadSupport: vi.fn().mockReturnValue(gate.promise), dispose: vi.fn() } as never;
+        });
+
+        const logger = createLoggerSpy();
+        const registry = new TokenizationRegistry();
+        const contributor = new ExtensionTokenizationContributor(dummyAssets, [makeExtWithGrammar()], registry, logger);
+
+        contributor.apply();
+        const loading = registry.load("typescript");
+        contributor.dispose();
+        gate.reject(new Error("Registry has been disposed"));
+
+        await expect(loading).resolves.toBeUndefined();
+        expect(logger.error).not.toHaveBeenCalled();
+        expect(registry.get("typescript")).toBeUndefined();
     });
 });

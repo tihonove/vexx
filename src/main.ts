@@ -27,6 +27,7 @@ import { ChokidarFileWatcher } from "./Controllers/ChokidarFileWatcher.ts";
 import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
+import type { ILanguageService } from "./Editor/Tokenization/ILanguageService.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./Extensions/ExtensionInstaller.ts";
 import { scanExtensions } from "./Extensions/ExtensionScanner.ts";
@@ -192,7 +193,8 @@ async function runEditor(): Promise<void> {
         tokenizationRegistry,
         extensionsLogger,
     );
-    const grammarsLoading = tokenizationContributor.apply();
+    // Только регистрация ленивых фабрик — грамматики парсятся по требованию.
+    tokenizationContributor.apply();
 
     // ── Bootstrap через DI-контейнер ────────────────────────────
     const tokenStyleResolver = new TokenThemeResolver(initialTheme.tokenTheme);
@@ -298,12 +300,16 @@ async function runEditor(): Promise<void> {
     }
 
     await appController.activate();
-    // Дожидаемся регистрации TextMate-грамматик до открытия первых файлов,
-    // чтобы при создании `DocumentTokenStore` уже был полноценный токенайзер.
-    await grammarsLoading;
     const explicitFiles = resolvedPaths.filter((p) => !fs.statSync(p, { throwIfNoEntry: false })?.isDirectory());
+    // Явные файлы в CLI перебивают сохранённую сессию (как `code file.ts`).
+    const startupFiles = explicitFiles.length > 0 ? explicitFiles : appController.getOpenEditorsToRestore();
+    // Грамматики стартовых файлов ждём ДО открытия — иначе первый кадр вкладки
+    // покажет неподсвеченный текст, а цвета доедут репейнтом. Ждём именно те
+    // языки, что открываются (обычно один, ~2 мс), а не все 77 грамматик (~420 мс);
+    // остальные догоняет фоновый preloadAll ниже. После openFile ждать поздно:
+    // await отдаёт event loop, и отложенный рендер успевает нарисовать кадр.
+    await preloadGrammarsForFiles(startupFiles, languageRegistry, tokenizationRegistry);
     if (explicitFiles.length > 0) {
-        // Явные файлы в CLI перебивают сохранённую сессию (как `code file.ts`).
         for (const p of explicitFiles) appController.openFile(p);
     } else {
         // Иначе восстанавливаем открытые файлы прошлой сессии этого воркспейса.
@@ -387,6 +393,13 @@ async function runEditor(): Promise<void> {
     } catch (err) {
         extensionsLogger.error("extension host activation failed", err);
     }
+
+    // Остальные грамматики догружаем в фоне, чтобы переключение вкладки на другой
+    // язык не ждало парсинга. setImmediate — уже после первого кадра и спавна
+    // extension host'а, так что с критическим путём старта прогрев не конкурирует.
+    setImmediate(() => {
+        void tokenizationContributor.preloadAll();
+    });
 }
 
 /**
@@ -433,6 +446,29 @@ async function runExtensionManagement(cli: ICliArgs): Promise<never> {
         console.error(err instanceof Error ? err.message : String(err));
         process.exit(1);
     }
+}
+
+/**
+ * Ждёт грамматики языков, на которых написаны `files`. Вызывать до открытия
+ * этих файлов: иначе первый кадр вкладки выйдет на fallback-токенайзере, а
+ * подсветка догонит репейнтом.
+ *
+ * Языки дедуплицируются (десять `.ts`-вкладок — одна грамматика), неизвестные
+ * расширения отсеиваются. Загрузки идут параллельно: их единицы, и это не
+ * фоновый прогрев, а критический путь. `load()` не реджектится — сбойная
+ * грамматика просто оставит язык на fallback'е, стартовать это не помешает.
+ */
+async function preloadGrammarsForFiles(
+    files: readonly string[],
+    languageService: ILanguageService,
+    tokenizationRegistry: TokenizationRegistry,
+): Promise<void> {
+    const languageIds = new Set<string>();
+    for (const file of files) {
+        const languageId = languageService.getLanguageIdForResource(file);
+        if (languageId !== undefined) languageIds.add(languageId);
+    }
+    await Promise.all([...languageIds].map((languageId) => tokenizationRegistry.load(languageId)));
 }
 
 /**

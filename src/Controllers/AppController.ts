@@ -1173,6 +1173,11 @@ export class AppController extends Disposable implements IController {
         this.statusBarController.update();
     }
 
+    /** Пути, которые откроет {@link restoreOpenEditors} — бутстрапу для прогрева грамматик. */
+    public getOpenEditorsToRestore(): string[] {
+        return this.workbenchState.getOpenEditorsToRestore();
+    }
+
     /**
      * Восстанавливает открытые в прошлой сессии файлы этого воркспейса (реплей
      * сохранённых путей + активная вкладка). Вызывается из `main.ts`, только если

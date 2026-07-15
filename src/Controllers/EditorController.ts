@@ -326,7 +326,7 @@ export class EditorController extends Disposable implements IController {
         this.doc = new TextDocument("");
         this.savedEol = this.doc.eol;
         this.editorViewState = new EditorViewState(this.doc);
-        this.tokenStore = new DocumentTokenStore(this.doc, this.pickTokenizerForLanguage(this.doc.languageId));
+        this.tokenStore = new DocumentTokenStore(this.doc, this.ensureTokenizerForLanguage(this.doc.languageId));
         this.editorViewState.tokenStore = this.tokenStore;
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = tokenStyleResolver;
@@ -404,7 +404,7 @@ export class EditorController extends Disposable implements IController {
         this.doc = new TextDocument(content, this.resolveLanguageId(filePath));
         this.editorViewState = new EditorViewState(this.doc);
         this.tokenStore.dispose();
-        this.tokenStore = new DocumentTokenStore(this.doc, this.pickTokenizerForLanguage(this.doc.languageId));
+        this.tokenStore = new DocumentTokenStore(this.doc, this.ensureTokenizerForLanguage(this.doc.languageId));
         this.editorViewState.tokenStore = this.tokenStore;
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
@@ -864,13 +864,21 @@ export class EditorController extends Disposable implements IController {
         return this.languageService.getLanguageIdForResource(filePath) ?? "plaintext";
     }
 
-    private pickTokenizerForLanguage(languageId: string): ITokenizationSupport {
+    /**
+     * Отдаёт токенайзер языка, попутно запуская его ленивую загрузку. Это наш
+     * аналог `onLanguage`-активации: грамматика читается только когда язык
+     * реально понадобился документу. Пока она едет — работаем на fallback'е;
+     * подписка на `tokenizationRegistry.onDidChange` пересадит нас, когда
+     * support доедет.
+     */
+    private ensureTokenizerForLanguage(languageId: string): ITokenizationSupport {
+        void this.tokenizationRegistry.load(languageId); // fire-and-forget: load() не реджектится
         return this.tokenizationRegistry.get(languageId) ?? new PlainTextTokenizer();
     }
 
     /** Пересаживает токен-кеш текущего документа на актуальный токенизатор. */
     private applyTokenizer(): void {
-        this.tokenStore.setTokenizationSupport(this.pickTokenizerForLanguage(this.doc.languageId));
+        this.tokenStore.setTokenizationSupport(this.ensureTokenizerForLanguage(this.doc.languageId));
         this.editor.markDirty();
     }
 

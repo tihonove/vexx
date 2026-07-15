@@ -71,7 +71,7 @@ describe("ExtensionTokenizationContributor — grammar collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         expect(MockedLoader).not.toHaveBeenCalled();
         // dispose() with no loader and no registrations must be safe.
@@ -94,7 +94,7 @@ describe("ExtensionTokenizationContributor — grammar collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         expect(MockedLoader).toHaveBeenCalledTimes(1);
         // Only one grammar record was collected (from the contributing extension).
@@ -102,7 +102,7 @@ describe("ExtensionTokenizationContributor — grammar collection", () => {
         expect(records).toHaveLength(1);
         expect(records[0]).toMatchObject({ scopeName: "source.ts" });
 
-        expect(registry.get("typescript")).toBe(support);
+        expect(await registry.load("typescript")).toBe(support);
 
         contributor.dispose();
     });

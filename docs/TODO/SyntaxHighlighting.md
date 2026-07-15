@@ -1,6 +1,6 @@
 # Подсветка синтаксиса
 
-**Статус**: TextMate-движок работает (vscode-textmate + oniguruma), hot-swap токенайзера сделан; остались scope-селекторы, async/background токенизация.
+**Статус**: TextMate-движок работает (vscode-textmate + oniguruma), hot-swap токенайзера сделан, грамматики грузятся лениво (по языку открытого документа) + фоновый прогрев остальных; остались scope-селекторы, async/background токенизация.
 
 Архитектура повторяет VS Code:
 
@@ -14,7 +14,7 @@ DocumentTokenStore   TokenizationRegistry (DI)
 EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResolver
 ```
 
-Готовое (интерфейсы, `TokenizationRegistry`, `DocumentTokenStore`, полный TextMate-движок, `TokenThemeResolver`, language detection, hot-swap, перекраска на смене темы) — см. секцию **Editor/Tokenization/** в [docs/arch/Editor.md](../arch/Editor.md). Ниже — только открытое.
+Готовое (интерфейсы, `TokenizationRegistry`, `DocumentTokenStore`, полный TextMate-движок, `TokenThemeResolver`, language detection, hot-swap, перекраска на смене темы, ленивая загрузка грамматик) — см. секцию **Editor/Tokenization/** в [docs/arch/Editor.md](../arch/Editor.md) и «Активация» в [docs/arch/Extensions.md](../arch/Extensions.md). Ниже — только открытое.
 
 ## Осталось
 

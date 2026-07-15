@@ -69,13 +69,23 @@ export class WorkbenchStateController extends Disposable {
      * ранее активную вкладку. Отсутствующие на диске файлы пропускаются (как в
      * VS Code), индекс активной вкладки переотображается на выжившие.
      */
+    /**
+     * Пути, которые реально откроет {@link restoreOpenEditors} — сохранённые в
+     * сессии файлы, пережившие удаление с диска. Отдельно от `restoreOpenEditors`,
+     * потому что бутстрапу нужно узнать их **до** открытия: он прогревает их
+     * грамматики, чтобы первый кадр вкладки был уже подсвеченным.
+     */
+    public getOpenEditorsToRestore(): string[] {
+        return this.state.get(OPEN_EDITORS_STATE).files.filter((f) => fs.existsSync(f));
+    }
+
     public restoreOpenEditors(): void {
         const snapshot = this.state.get(OPEN_EDITORS_STATE);
         const activePath =
             snapshot.activeIndex >= 0 && snapshot.activeIndex < snapshot.files.length
                 ? snapshot.files[snapshot.activeIndex]
                 : undefined;
-        const surviving = snapshot.files.filter((f) => fs.existsSync(f));
+        const surviving = this.getOpenEditorsToRestore();
         for (const file of surviving) {
             this.editorGroup.openFile(file, { focus: false });
         }
