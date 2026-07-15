@@ -1,8 +1,16 @@
-import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { RenderContext } from "../TUIElement.ts";
 
-const THUMB_COLOR = packRgb(100, 100, 100);
-const TRACK_COLOR = packRgb(50, 50, 50);
+/**
+ * Resolved scrollbar colours. `background` fills the half of each cell the bar
+ * itself does not paint — the scrollbar lives on a dedicated row/column that the
+ * child never draws into, so without it those cells keep the terminal's default
+ * background and the bar looks like a hole punched through the widget.
+ */
+export interface ScrollBarColors {
+    readonly thumb: number;
+    readonly track: number;
+    readonly background: number;
+}
 
 export interface ScrollBarMetrics {
     /** Thumb start position in half-cell units (0 = top of track). */
@@ -73,19 +81,23 @@ export function renderScrollBar(
     contentHeight: number,
     scrollTop: number,
     viewportHeight: number,
+    colors: ScrollBarColors,
 ): void {
     const metrics = computeScrollBarMetrics(trackHeight, contentHeight, scrollTop, viewportHeight);
     const chars = getScrollBarCellChars(trackHeight, metrics);
 
     for (let row = 0; row < trackHeight; row++) {
         const char = chars[row];
-        // fg-only rendering: thumb uses THUMB_COLOR, track uses TRACK_COLOR.
-        // Background is always DEFAULT — no custom bg, no bleed.
-        const fg = char === "░" ? TRACK_COLOR : THUMB_COLOR;
-        context.setCell(x, row, { char, fg });
+        const fg = char === "░" ? colors.track : colors.thumb;
+        context.setCell(x, row, { char, fg, bg: colors.background });
     }
 }
 
+/**
+ * Horizontal bar on its own row. Uses "▄" (LOWER half block) so the bar sits on
+ * the bottom edge of the row, hugging the widget's frame rather than floating a
+ * half-cell above it.
+ */
 export function renderHorizontalScrollBar(
     context: RenderContext,
     y: number,
@@ -93,10 +105,12 @@ export function renderHorizontalScrollBar(
     contentWidth: number,
     scrollLeft: number,
     viewportWidth: number,
+    colors: ScrollBarColors,
 ): void {
     if (contentWidth <= viewportWidth) {
+        // Content fits — only reachable under policy "always"; the thumb spans the track.
         for (let col = 0; col < trackWidth; col++) {
-            context.setCell(col, y, { char: "▀", fg: THUMB_COLOR });
+            context.setCell(col, y, { char: "▄", fg: colors.thumb, bg: colors.background });
         }
         return;
     }
@@ -109,6 +123,6 @@ export function renderHorizontalScrollBar(
 
     for (let col = 0; col < trackWidth; col++) {
         const inThumb = col >= thumbStart && col < thumbEnd;
-        context.setCell(col, y, { char: "▀", fg: inThumb ? THUMB_COLOR : TRACK_COLOR });
+        context.setCell(col, y, { char: "▄", fg: inThumb ? colors.thumb : colors.track, bg: colors.background });
     }
 }

@@ -111,14 +111,14 @@ export interface IWorkbenchColors {
     // "input.placeholderForeground"?: number;
 
     // ── Scrollbar control ───────────────────────────────────
-    // /** Scrollbar track background color. */
-    // "scrollbar.background"?: number;
+    /** Scrollbar track background color. */
+    "scrollbar.background"?: number;
+    /** Scrollbar slider background color. */
+    "scrollbarSlider.background"?: number;
     // /** Scrollbar slider shadow to indicate that the view is scrolled. */
     // "scrollbar.shadow"?: number;
     // /** Scrollbar slider background color when clicked on. */
     // "scrollbarSlider.activeBackground"?: number;
-    // /** Scrollbar slider background color. */
-    // "scrollbarSlider.background"?: number;
     // /** Scrollbar slider background color when hovering. */
     // "scrollbarSlider.hoverBackground"?: number;
 

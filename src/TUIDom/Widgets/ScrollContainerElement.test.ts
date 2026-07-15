@@ -323,8 +323,9 @@ describe("ScrollBarDecorator horizontal scrollbar", () => {
         // Last row should be horizontal scrollbar
         const lines = backend.screenToString().split("\n");
         expect(lines.length).toBe(5);
-        // Content takes 4 rows (height - 1 for h-scrollbar), scrollbar on row 4
-        expect(lines[4]).toContain("▀");
+        // Content takes 4 rows (height - 1 for h-scrollbar), scrollbar on row 4.
+        // "▄" (lower half block) keeps the bar on the widget's bottom edge.
+        expect(lines[4]).toContain("▄");
     });
 
     it("hides horizontal scrollbar when content fits", () => {

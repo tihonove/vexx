@@ -30,6 +30,8 @@ import type { OverlayAnchorPosition } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
+import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
+
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
 import type { IFileWatcher } from "../Common/IFileWatcher.ts";
@@ -718,6 +720,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
         this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");
         this.editor.indentGuideActiveForeground = theme.getColor("editorIndentGuide.activeBackground1");
+        applyScrollBarTheme(this.view, theme, "editor.background");
     }
 
     /**
