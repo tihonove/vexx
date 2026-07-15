@@ -1777,12 +1777,12 @@ export class AppController extends Disposable implements IController {
         const editor = this.editorGroupController.getActiveEditor();
         if (!editor) return;
 
-        // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd и метки буфера
-        // (`Untitled-3`), а не от заглушки "untitled.txt".
+        // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd и предложенного
+        // имени (`Untitled-3.txt`: метка буфера + расширение его языка).
         const seed =
             editor.uri.scheme === "file"
                 ? editor.uri.fsPath
-                : path.join(process.cwd(), this.editorGroupController.displayName(editor));
+                : path.join(process.cwd(), this.editorGroupController.suggestedSaveName(editor));
         const target = await this.quickInputController.input({
             title: "Save As",
             placeholder: "Enter path to save",

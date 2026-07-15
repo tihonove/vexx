@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import {
     createExtensionTestHarness,
     EXTENSION_FIXTURES_DIR,
@@ -12,6 +13,7 @@ import { settle } from "../../TestUtils/timing.ts";
 
 /** Мини-сервис языков: `.ts` → typescript, иначе — undefined. */
 const TS_LANGUAGE_SERVICE: ILanguageService = {
+    ...NULL_LANGUAGE_SERVICE,
     getLanguageIdForResource: (filePath) => (filePath.endsWith(".ts") ? "typescript" : undefined),
     getLanguageDisplayName: () => undefined,
 };
