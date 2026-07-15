@@ -25,6 +25,13 @@ export interface ISaveSnapshot {
      * от целевого (иначе no-op, сохраняя redo-историю).
      */
     readonly eol: EndOfLine;
+    /**
+     * Кодировка, в которой документ будет записан на диск (id из
+     * SUPPORTED_ENCODINGS, см. Encoding.ts). Только для чтения участником:
+     * менять кодировку через will-save нельзя (как в VS Code — у TextEdit нет
+     * encoding-варианта), поэтому парного вида ISaveEdit нет.
+     */
+    readonly encoding: string;
 }
 
 /**
