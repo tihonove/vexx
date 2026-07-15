@@ -4,9 +4,9 @@
  *
  * Нативный аддон (`pty.node`) нельзя вшить в JS-blob SEA — `process.dlopen`
  * требует файл на диске. Поэтому пакуем `package.json` + рантайм-JS (`lib/**`) +
- * нативы (`build/Release/*`) в тот же bundle-формат, что и `vexx.bundle`
- * (см. pack-assets.mjs), а на первом запуске `loadNodePty.ts` распаковывает
- * ассет в `os.tmpdir()` и грузит через `createRequire`.
+ * нативы в тот же bundle-формат, что и `vexx.bundle` (см. pack-assets.mjs), а на
+ * первом запуске `loadNodePty.ts` распаковывает ассет в `os.tmpdir()` и грузит
+ * через `createRequire`.
  *
  * Виртуальные пути внутри бандла обязаны совпадать с ожиданиями
  * `src/Controllers/Terminal/loadNodePty.ts`: он распаковывает ассет в
@@ -14,11 +14,19 @@
  * `<targetDir>/node-pty` — значит каждая запись пакуется с префиксом
  * `node-pty/` (`node-pty/package.json`, `node-pty/lib/…`, `node-pty/build/Release/…`).
  *
- * Scope: только linux-x64. macOS (`prebuilds/darwin-*` spawn-helper + codesign)
- * и Windows (ConPTY-набор) сознательно не покрыты — их доведёт отдельная задача.
+ * Откуда берутся нативы — решает сам node-pty: его `lib/utils.js` ищет их в
+ * `build/Release` → `build/Release` → `prebuilds/<platform>-<arch>`. На Linux
+ * install компилирует аддон (`build/Release`), на macOS/Windows приезжают готовые
+ * `prebuilds/<platform>-<arch>` (в npm-пакете). Поэтому пакуем оба каталога, какие
+ * есть: относительная раскладка сохраняется, и тот же резолв срабатывает после
+ * распаковки. SEA пер-платформенный по природе — бандл собирается на своей ОС.
+ *
+ * Верифицирован **только linux-x64**; на macOS/Windows раскладка пакуется, но не
+ * проверена end-to-end (spawn-helper+codesign на Mac, ConPTY и выбор шелла по
+ * COMSPEC на Windows) — это доведёт отдельная задача, см. docs/TODO/IntegratedTerminal.md.
  */
 
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join, posix, relative, resolve, sep } from "node:path";
 
@@ -69,16 +77,30 @@ export function buildNodePtyBundle({ repoRoot }) {
     ).sort();
     for (const filePath of libFiles) addFile(filePath);
 
-    // build/Release/*: нативный аддон (pty.node). На linux-x64 spawn-helper'а нет —
-    // node-pty на Linux форкает сам; darwin/win-специфику не трогаем (см. шапку).
-    const releaseDir = join(nodePtyRoot, "build", "Release");
-    let releaseFiles;
-    try {
-        releaseFiles = walkFiles(releaseDir, () => true).sort();
-    } catch {
-        throw new Error(`[pack-node-pty] нет ${releaseDir} — соберите node-pty под текущую платформу`);
+    // Нативы: те же каталоги, в которых их ищет сам node-pty (lib/utils.js), и в том
+    // же порядке. Linux — скомпилированный на install `build/Release`; macOS/Windows —
+    // готовые `prebuilds/<platform>-<arch>` из npm-пакета (там же spawn-helper для Mac
+    // и ConPTY-набор для Windows). Берём каждый каталог, который есть: раскладка
+    // относительно node-pty сохраняется, поэтому после распаковки резолв тот же.
+    // .pdb — виндовые debug-символы (десятки МБ), в рантайме не нужны.
+    const nativeDirs = [
+        join(nodePtyRoot, "build", "Release"),
+        join(nodePtyRoot, "prebuilds", `${process.platform}-${process.arch}`),
+    ];
+    let nativeCount = 0;
+    for (const dir of nativeDirs) {
+        if (!existsSync(dir)) continue;
+        for (const filePath of walkFiles(dir, (p) => !p.endsWith(".pdb")).sort()) {
+            addFile(filePath);
+            nativeCount++;
+        }
     }
-    for (const filePath of releaseFiles) addFile(filePath);
+    if (nativeCount === 0) {
+        throw new Error(
+            `[pack-node-pty] нативы node-pty не найдены (искали ${nativeDirs.join(", ")}) — ` +
+                `соберите node-pty под текущую платформу`,
+        );
+    }
 
     const bundle = packBundle(inputs);
     return { bundle, inputs, nodePtyRoot };

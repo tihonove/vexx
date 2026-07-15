@@ -101,14 +101,18 @@ mouse-энкодер), наш рендер/цвета/стили/wide-chars/ку
 **Требует работы и проверки на целевой ОС — PTY и упаковка:**
 - **SEA пер-платформенный по природе** — нативный код вшивается под конкретную ОС/арх; билд гоняется
   на каждой цели (CI-матрица `ubuntu/macos/windows`), кросс-компиляции у Node SEA нет.
-- **Упаковщик сейчас linux-only** (`scripts/pack-node-pty.mjs` берёт только `build/Release/*`).
-  Нужный набор нативных файлов различается:
-  - **macOS**: `pty.node` **+ `spawn-helper`** (на Mac реально используется — guard `__APPLE__`), лежит в
-    `prebuilds/darwin-<arch>/`. Экстрактор (`loadNodePty.ts`) уже ставит `+x` на `spawn-helper`, но
-    упаковщик его не берёт. Codesign самого бинаря в `build-sea.mjs` уже есть.
-  - **Windows**: ConPTY — комплект, а не один файл: `pty.node`, `conpty.node`, `conpty.dll`,
-    `conpty_console_list.node`, `winpty-agent.exe`, `winpty.dll` + папка `conpty/` (`OpenConsole.exe`,
-    `conpty.dll`) — всё в `prebuilds/win32-<arch>/`.
+- **Упаковщик нативы берёт везде, но проверен только на Linux.** `scripts/pack-node-pty.mjs`
+  повторяет резолв самого node-pty (`lib/utils.js`: `build/Release` → `prebuilds/<platform>-<arch>`)
+  и пакует оба каталога, какие есть. На Linux это скомпилированный на install `build/Release/pty.node`;
+  на macOS/Windows install кладёт готовые `prebuilds/<platform>-<arch>` прямо из npm-пакета
+  (`.pdb` отсекаем — это виндовые debug-символы на десятки МБ). Что уезжает в бандл по факту:
+  - **macOS**: `pty.node` **+ `spawn-helper`** (на Mac реально используется — guard `__APPLE__`);
+    экстрактор (`loadNodePty.ts`) ставит ему `+x`. Codesign самого бинаря в `build-sea.mjs` уже есть,
+    но **распакованный в tmp `pty.node` под Gatekeeper не проверялся**.
+  - **Windows**: ConPTY-комплект целиком (`pty.node`, `conpty.node`, `conpty_console_list.node`,
+    `winpty-agent.exe`, `winpty.dll` + папка `conpty/` с `OpenConsole.exe`/`conpty.dll`).
+  Итог: сборка на всех трёх ОС проходит, но **живой шелл на macOS/Windows не проверялся**
+  (e2e-сценарий там пропускается) — нужен прогон харнесса на `macos-latest`/`windows-latest`.
 - **Рантайм node-pty отличается:**
   - **дефолтный шелл**: сейчас `SHELL ?? "bash"` — на Windows `SHELL` пуст → упадёт; нужно
     `win32 → COMSPEC/powershell`.
