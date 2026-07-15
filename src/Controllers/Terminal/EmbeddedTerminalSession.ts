@@ -36,7 +36,7 @@ export interface CoreMouseEvent {
     col: number; // 0-based
     row: number; // 0-based
     button: number; // LEFT=0 MIDDLE=1 RIGHT=2 NONE=3 WHEEL=4
-    action: number; // UP=0 DOWN=1 LEFT=2 RIGHT=3 MOVE=4
+    action: number; // UP=0 DOWN=1 LEFT=2 RIGHT=3 MOVE=32
     ctrl: boolean;
     alt: boolean;
     shift: boolean;
@@ -48,12 +48,17 @@ interface ICoreMouseService {
 
 // xterm CoreMouseButton / CoreMouseAction (значения enum-ов). Семантические строки
 // `ITerminalSurface` разворачиваем в эти числа именно здесь — виджет не знает про xterm.
-const CORE_BUTTON: Record<string, number> = { left: 0, middle: 1, right: 2, none: 3 };
+// Тип ключей точный (а не Record<string, …>) — тогда индексация тотальна и не нужен
+// недостижимый фоллбэк на случай «неизвестной» кнопки.
+const CORE_BUTTON: Record<Exclude<TerminalMouseButton, "wheel">, number> = { left: 0, middle: 1, right: 2, none: 3 };
 const WHEEL_BUTTON = 4;
 const ACTION_UP = 0;
 const ACTION_DOWN = 1;
-const ACTION_MOVE = 4;
-const WHEEL_ACTION: Record<string, number> = { up: 0, down: 1, left: 2, right: 3 };
+// MOVE — именно 32, а не следующий по порядку 4: в xterm это бит «motion», который
+// кодировщик подмешивает в кнопку. С 4 эмулятор глушил move целиком (`button===NONE`
+// допустим только с `action===MOVE`), а drag кодировал как повторное нажатие левой.
+const ACTION_MOVE = 32;
+const WHEEL_ACTION: Record<"up" | "down" | "left" | "right", number> = { up: 0, down: 1, left: 2, right: 3 };
 
 export interface EmbeddedTerminalOptions {
     cols: number;
@@ -69,7 +74,9 @@ export interface EmbeddedTerminalOptions {
 function currentEnv(): Record<string, string> {
     const out: Record<string, string> = {};
     for (const [key, value] of Object.entries(process.env)) {
+        /* v8 ignore start -- process.env never yields an undefined value (deleting a key removes the entry entirely), so the else path is unreachable; the guard exists only to satisfy the `string | undefined` type of ProcessEnv */
         if (value !== undefined) out[key] = value;
+        /* v8 ignore stop */
     }
     return out;
 }
@@ -122,9 +129,10 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
         this.pty.onData((data) => {
             this.term.write(data, () => this.emitUpdate());
         });
-        // Ответы эмулятора (DSR/DA и прочее) → обратно в шелл.
+        // Ответы эмулятора (DSR/DA, отчёты мыши) → обратно в шелл: тот же путь, что и
+        // пользовательский ввод, включая защиту от записи в уже мёртвый PTY.
         this.term.onData((data) => {
-            if (!this.exited) this.pty.write(data);
+            this.write(data);
         });
         this.pty.onExit(({ exitCode }) => {
             this.exited = true;
@@ -196,8 +204,10 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
     public sendMouse(event: TerminalMouseEventData): void {
         if (this.exited) return;
         const core = (this.term as unknown as { _core?: { coreMouseService?: ICoreMouseService } })._core;
+        /* v8 ignore start -- defensive: a live xterm Terminal always exposes _core.coreMouseService, so the optional chain and this guard are only a safety net against a change in xterm internals */
         const service = core?.coreMouseService;
         if (!service) return;
+        /* v8 ignore stop */
         service.triggerMouseEvent({
             col: event.col,
             row: event.row,
@@ -237,7 +247,7 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
 
 /** Семантическая кнопка → числовой CoreMouseButton xterm. */
 function mapButton(button: TerminalMouseButton): number {
-    return button === "wheel" ? WHEEL_BUTTON : (CORE_BUTTON[button] ?? CORE_BUTTON.none);
+    return button === "wheel" ? WHEEL_BUTTON : CORE_BUTTON[button];
 }
 
 /** Семантическое действие → числовой CoreMouseAction xterm. */

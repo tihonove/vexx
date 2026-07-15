@@ -1,40 +1,51 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
 import { FakeTerminalSurface } from "../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
+import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 
 import { createTestContainer } from "./Modules/TestProfile.ts";
-import { PanelController, PanelControllerDIToken, TERMINAL_VIEW_ID } from "./PanelController.ts";
+import { PanelController, PanelControllerDIToken, PROBLEMS_VIEW_ID, TERMINAL_VIEW_ID } from "./PanelController.ts";
 import { TerminalSessionFactoryDIToken } from "./Terminal/TerminalSessionFactory.ts";
 import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
+
+function buildHarness() {
+    const { container, bindApp } = createTestContainer();
+    const sessions: FakeTerminalSurface[] = [];
+    const factoryOptions: { cols: number; rows: number; cwd?: string }[] = [];
+    // Локальная фабрика, записывающая созданные сессии — так тест видит инстансы.
+    container.bind(TerminalSessionFactoryDIToken, () => (options) => {
+        factoryOptions.push(options);
+        const surface = new FakeTerminalSurface();
+        sessions.push(surface);
+        return surface;
+    });
+    const c = container.get(TerminalControllerDIToken);
+    const p = container.get(PanelControllerDIToken);
+    const app = TestApp.createWithContent(p.view, new Size(70, 12));
+    bindApp(app.app);
+    c.mount();
+    // Делаем TERMINAL активной вкладкой — так panel.getChildren() отражает контент
+    // терминала. setActiveView НЕ спавнит шелл (спавн только по клику/openTerminal).
+    p.showTerminal();
+    return {
+        controller: c,
+        panel: p,
+        testApp: app,
+        created: sessions,
+        factoryOptions,
+        themeService: container.get(ThemeServiceDIToken),
+    };
+}
 
 describe("TerminalController", () => {
     let controller: TerminalController;
     let panel: PanelController;
     let testApp: TestApp;
     let created: FakeTerminalSurface[];
-
-    function buildHarness() {
-        const { container, bindApp } = createTestContainer();
-        const sessions: FakeTerminalSurface[] = [];
-        // Локальная фабрика, записывающая созданные сессии — так тест видит инстансы.
-        container.bind(TerminalSessionFactoryDIToken, () => () => {
-            const surface = new FakeTerminalSurface();
-            sessions.push(surface);
-            return surface;
-        });
-        const c = container.get(TerminalControllerDIToken);
-        const p = container.get(PanelControllerDIToken);
-        const app = TestApp.createWithContent(p.view, new Size(70, 12));
-        bindApp(app.app);
-        c.mount();
-        // Делаем TERMINAL активной вкладкой — так panel.getChildren() отражает контент
-        // терминала. setActiveView НЕ спавнит шелл (спавн только по клику/openTerminal).
-        p.showTerminal();
-        return { controller: c, panel: p, testApp: app, created: sessions };
-    }
 
     beforeEach(() => {
         const h = buildHarness();
@@ -126,7 +137,169 @@ describe("TerminalController", () => {
         expect(widget.defaultBg).toBe(0x181818);
     });
 
+    it("ignores activation of a view that is not the terminal", () => {
+        // Слот onActivateView одиночный и общий для всей панели — чужие id не должны
+        // спавнить шелл.
+        panel.view.onActivateView?.(PROBLEMS_VIEW_ID);
+        expect(created).toHaveLength(0);
+        expect(controller.hasOpenTerminals).toBe(false);
+    });
+
+    it("spawns and focuses the terminal when its own tab is activated", () => {
+        panel.view.onActivateView?.(TERMINAL_VIEW_ID);
+        expect(created).toHaveLength(1);
+        expect(controller.hasOpenTerminals).toBe(true);
+    });
+
     afterEach(() => {
         controller.dispose();
+    });
+});
+
+describe("TerminalController — working directory", () => {
+    it("spawns in the configured working directory", () => {
+        const h = buildHarness();
+        h.controller.setWorkingDirectory("/tmp/workspace-folder");
+        h.controller.openTerminal();
+
+        expect(h.factoryOptions[0].cwd).toBe("/tmp/workspace-folder");
+        h.controller.dispose();
+    });
+
+    it("falls back to process.cwd() when no working directory was set", () => {
+        const h = buildHarness();
+        h.controller.openTerminal();
+
+        expect(h.factoryOptions[0].cwd).toBe(process.cwd());
+        h.controller.dispose();
+    });
+});
+
+describe("TerminalController — focusActive", () => {
+    it("focuses the active widget", () => {
+        const h = buildHarness();
+        h.controller.openTerminal();
+        h.testApp.render();
+        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
+        widget.blur();
+        h.testApp.render();
+        expect(widget.isFocused).toBe(false);
+
+        h.controller.focusActive();
+        h.testApp.render();
+        expect(widget.isFocused).toBe(true);
+        h.controller.dispose();
+    });
+
+    it("is a no-op when no terminal is open", () => {
+        const h = buildHarness();
+        // Ни одного инстанса — active() отдаёт undefined, опциональная цепочка молчит.
+        expect(() => {
+            h.controller.focusActive();
+        }).not.toThrow();
+        h.controller.dispose();
+    });
+});
+
+describe("TerminalController — exit handling", () => {
+    it("keeps the active terminal shown when a NON-active one exits", () => {
+        const h = buildHarness();
+        h.controller.newTerminal(); // #1
+        h.controller.newTerminal(); // #2 — активный
+        const activeWidget = h.panel.view.getChildren()[0];
+
+        h.created[0].emitExit(0); // выходит НЕактивный #1
+
+        // Активный не тронут: контент вкладки прежний, сессия жива.
+        expect(h.panel.view.getChildren()[0]).toBe(activeWidget);
+        expect(h.created[1].disposed).toBe(false);
+        expect(h.created[0].disposed).toBe(true);
+        expect(h.controller.hasOpenTerminals).toBe(true);
+        h.controller.dispose();
+    });
+
+    it("unsubscribes from a session it removed, so a repeated exit is inert", () => {
+        const h = buildHarness();
+        h.controller.openTerminal();
+        h.created[0].emitExit(0);
+        expect(h.controller.hasOpenTerminals).toBe(false);
+
+        // Подписку рвёт destroyInstance, поэтому повторный сигнал выхода до контроллера
+        // уже не доходит и ничего не ломает.
+        expect(() => {
+            h.created[0].emitExit(0);
+        }).not.toThrow();
+        expect(h.controller.hasOpenTerminals).toBe(false);
+        h.controller.dispose();
+    });
+
+    it("stops reacting to a session's exit after controller dispose", () => {
+        const h = buildHarness();
+        h.controller.openTerminal();
+        h.controller.dispose();
+
+        // dispose() снял подписки — «поздний» выход PTY не должен трогать контроллер.
+        expect(() => {
+            h.created[0].emitExit(0);
+        }).not.toThrow();
+        expect(h.controller.hasOpenTerminals).toBe(false);
+    });
+});
+
+describe("TerminalController — theme", () => {
+    /**
+     * Полноценная тема, из которой выброшены только terminal.* — так проверяются
+     * фоллбэки `getColor("terminal.*") ?? getRequiredColor(panel/editor)`. Остальные
+     * цвета оставляем дефолтными: их читает PanelController на том же onThemeChange.
+     */
+    function themeWithoutTerminalColors(): WorkbenchTheme {
+        const base = WorkbenchTheme.fromThemeFile({ name: "no-terminal-colors", type: "dark", colors: {} });
+        const colors = { ...base.colors };
+        delete colors["terminal.background"];
+        delete colors["terminal.foreground"];
+        colors["panel.background"] = 0x111111;
+        colors["editor.foreground"] = 0x222222;
+        return new WorkbenchTheme("no-terminal-colors", "dark", colors, base.tokenTheme);
+    }
+
+    it("re-applies colors to open widgets when the theme changes", () => {
+        const h = buildHarness();
+        h.controller.openTerminal();
+        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
+
+        h.themeService.setTheme(themeWithoutTerminalColors());
+
+        expect(widget.defaultBg).toBe(0x111111);
+        expect(widget.defaultFg).toBe(0x222222);
+        h.controller.dispose();
+    });
+
+    it("falls back to panel/editor colors for terminals created under such a theme", () => {
+        const h = buildHarness();
+        h.themeService.setTheme(themeWithoutTerminalColors());
+        h.controller.openTerminal();
+        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
+
+        expect(widget.defaultBg).toBe(0x111111);
+        expect(widget.defaultFg).toBe(0x222222);
+        h.controller.dispose();
+    });
+});
+
+describe("TerminalController — instance title", () => {
+    afterEach(() => {
+        vi.unstubAllEnvs();
+    });
+
+    it("names instances after $SHELL, falling back to bash", () => {
+        vi.stubEnv("SHELL", undefined);
+        const h = buildHarness();
+        // Титул не торчит наружу отдельным геттером — но ветка `process.env.SHELL ?? "bash"`
+        // исполняется при создании инстанса и не должна падать без $SHELL.
+        expect(() => {
+            h.controller.openTerminal();
+        }).not.toThrow();
+        expect(h.created).toHaveLength(1);
+        h.controller.dispose();
     });
 });

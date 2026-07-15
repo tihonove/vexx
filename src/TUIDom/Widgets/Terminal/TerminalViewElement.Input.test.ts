@@ -111,6 +111,25 @@ describe("TerminalViewElement — mouse", () => {
             { col: 2, row: 5, button: "wheel", action, ctrl: false, alt: false, shift: false },
         ]);
     });
+
+    it("treats a wheel event without a direction as a scroll up", () => {
+        const { el, surface } = makeElement();
+        // wheelDirection необязателен в TUIMouseEvent — бэкенд мог не распознать направление.
+        el.dispatchEvent(mouse("wheel", { localX: 0, localY: 0, wheelDirection: undefined }));
+        expect(surface.mouseEvents).toEqual([
+            { col: 0, row: 0, button: "wheel", action: "wheelUp", ctrl: false, alt: false, shift: false },
+        ]);
+    });
+
+    it("keeps modifier flags on wheel events", () => {
+        const { el, surface } = makeElement();
+        el.dispatchEvent(
+            mouse("wheel", { localX: 1, localY: 1, wheelDirection: "down", ctrlKey: true, altKey: true, shiftKey: true }),
+        );
+        expect(surface.mouseEvents).toEqual([
+            { col: 1, row: 1, button: "wheel", action: "wheelDown", ctrl: true, alt: true, shift: true },
+        ]);
+    });
 });
 
 describe("TerminalViewElement — layout", () => {

@@ -150,7 +150,9 @@ export class TerminalController extends Disposable {
     /** Обработка выхода шелла: снести инстанс, переключиться на самый свежий из оставшихся. */
     private handleExit(instance: TerminalInstance): void {
         const index = this.instances.indexOf(instance);
+        /* v8 ignore start -- defensive re-entrancy guard: both handleExit and dispose() drop the onExit subscription (via destroyInstance) as part of removing the instance, and a real session reports its exit asynchronously, so handleExit is never re-entered for an instance already gone from the list */
         if (index === -1) return; // уже снесён (dispose)
+        /* v8 ignore stop */
         const wasActive = this.activeId === instance.id;
         this.instances.splice(index, 1);
         this.destroyInstance(instance);

@@ -13,7 +13,7 @@ import { BoxConstraints, Size } from "../../../Common/GeometryPromitives.ts";
 import { DEFAULT_COLOR } from "../../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../../Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../../Events/TUIKeyboardEvent.ts";
-import type { TUIMouseEvent } from "../../Events/TUIMouseEvent.ts";
+import type { TUIMouseEvent, WheelDirection } from "../../Events/TUIMouseEvent.ts";
 import type { TUIPasteEvent } from "../../Events/TUIPasteEvent.ts";
 import { RenderContext, TUIElement } from "../../TUIElement.ts";
 
@@ -26,7 +26,9 @@ import type {
 } from "./ITerminalSurface.ts";
 
 // wheelDirection ("up"|"down"|"left"|"right") → семантический action поверхности.
-const WHEEL_ACTION: Record<string, TerminalMouseAction> = {
+// Ключи типизированы точно (WheelDirection, а не string) — индексация тотальна,
+// недостижимый фоллбэк на «неизвестное» направление не нужен.
+const WHEEL_ACTION: Record<WheelDirection, TerminalMouseAction> = {
     up: "wheelUp",
     down: "wheelDown",
     left: "wheelLeft",
@@ -69,7 +71,8 @@ export class TerminalViewElement extends TUIElement {
         });
         this.addEventListener("wheel", (event) => {
             const mouse = event as TUIMouseEvent;
-            const action = WHEEL_ACTION[mouse.wheelDirection ?? "up"] ?? "wheelUp";
+            // Колесо без направления (бэкенд его не распознал) трактуем как прокрутку вверх.
+            const action = WHEEL_ACTION[mouse.wheelDirection ?? "up"];
             this.sendMouse(mouse, "wheel", action);
         });
     }
