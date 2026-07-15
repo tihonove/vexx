@@ -60,9 +60,12 @@ describe("SEA binary — bundled assets", () => {
                 env: { CWD_OVERRIDE: tmp },
             });
 
-            const screen = await session.waitFor(
-                (s) => s.findText("const greeting") !== null,
-            );
+            // Ждём цвет, а не только текст: грамматики ленивые, текст выходит на
+            // экран раньше подсветки — ждать один лишь текст = гонка.
+            const screen = await session.waitFor((s) => {
+                const pos = s.findText("const greeting");
+                return pos !== null && s.cellAt(pos.x, pos.y).fg === KEYWORD_FG;
+            });
 
             // Минимальная проверка подсветки — `const` должен быть keyword-цветом,
             // что доказывает что грамматика реально загрузилась из bundle.

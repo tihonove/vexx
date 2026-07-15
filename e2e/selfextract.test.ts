@@ -123,7 +123,13 @@ describe.skipIf(process.platform === "win32")("self-extract binary", () => {
             env: { XDG_CACHE_HOME: cacheHome },
         });
 
-        const screen = await session.waitFor((s) => s.findText("const greeting") !== null);
+        // Ждём именно ЦВЕТ, а не только текст: грамматики грузятся лениво, поэтому
+        // текст выходит на экран раньше подсветки (как в sea-startup.test.ts).
+        // Ждать один лишь текст = гонка с загрузкой грамматики.
+        const screen = await session.waitFor((s) => {
+            const pos = s.findText("const greeting");
+            return pos !== null && s.cellAt(pos.x, pos.y).fg === KEYWORD_FG;
+        });
 
         // `const` keyword-цветом = грамматика + onig.wasm реально загрузились из
         // приклеенного bundle'а через fs-загрузчик. Ради этого весь #144 и делался.
