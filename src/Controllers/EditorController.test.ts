@@ -129,6 +129,7 @@ describe("EditorController", () => {
         it("re-picks the tokenizer for the new extension", async () => {
             const seen: string[] = [];
             const languageService: ILanguageService = {
+                ...NULL_LANGUAGE_SERVICE,
                 getLanguageIdForResource: (p) => {
                     seen.push(p);
                     return "typescript";
@@ -305,6 +306,7 @@ describe("EditorController", () => {
             const registry = new TokenizationRegistry();
             // Language service resolves an id, but the registry has nothing registered for it.
             const languageService: ILanguageService = {
+                ...NULL_LANGUAGE_SERVICE,
                 getLanguageIdForResource: () => "typescript",
                 getLanguageDisplayName: () => undefined,
             };
@@ -320,6 +322,7 @@ describe("EditorController", () => {
             const registry = new TokenizationRegistry();
             registry.register("typescript", new PlainTextTokenizer());
             const languageService: ILanguageService = {
+                ...NULL_LANGUAGE_SERVICE,
                 getLanguageIdForResource: () => "typescript",
                 getLanguageDisplayName: () => undefined,
             };

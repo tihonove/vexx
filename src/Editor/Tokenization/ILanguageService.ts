@@ -21,6 +21,17 @@ export interface ILanguageService {
      * alias'ов — потребитель откатывается на сырой language id.
      */
     getLanguageDisplayName(languageId: string): string | undefined;
+
+    /**
+     * Основное расширение языка вместе с точкой (`".ts"` для `typescript`) —
+     * обратная операция к {@link getLanguageIdForResource}. Конвенция та же, что
+     * у alias'ов: первое из `contributes.languages`. `undefined`, если язык не
+     * зарегистрирован или не заявил ни одного расширения.
+     *
+     * Нужно там, где имя файла надо предложить, а не разобрать: Save As
+     * безымянного буфера отталкивается от его языка (`plaintext` → `.txt`).
+     */
+    getExtensionForLanguage(languageId: string): string | undefined;
 }
 
 /**
@@ -30,4 +41,5 @@ export interface ILanguageService {
 export const NULL_LANGUAGE_SERVICE: ILanguageService = {
     getLanguageIdForResource: () => undefined,
     getLanguageDisplayName: () => undefined,
+    getExtensionForLanguage: () => undefined,
 };

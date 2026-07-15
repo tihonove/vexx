@@ -194,6 +194,43 @@ describe("EditorGroupController", () => {
             expect(tabLabels(ctrl)).toEqual(["Untitled-2", "Untitled-3"]);
         });
 
+        it("suggestedSaveName: метка + расширение языка буфера (plaintext → .txt)", () => {
+            const ctrl = createEditorGroupController({
+                languageService: {
+                    ...NULL_LANGUAGE_SERVICE,
+                    getExtensionForLanguage: (id) => (id === "plaintext" ? ".txt" : undefined),
+                },
+            });
+            ctrl.mount();
+            ctrl.newUntitled();
+
+            expect(ctrl.suggestedSaveName(ctrl.getActiveEditor()!)).toBe("Untitled-1.txt");
+        });
+
+        it("suggestedSaveName следует за сменой языка буфера, а не за зашитым дефолтом", () => {
+            const ctrl = createEditorGroupController({
+                languageService: {
+                    ...NULL_LANGUAGE_SERVICE,
+                    getExtensionForLanguage: (id) => (id === "typescript" ? ".ts" : ".txt"),
+                },
+            });
+            ctrl.mount();
+            ctrl.newUntitled();
+            const editor = ctrl.getActiveEditor()!;
+            expect(ctrl.suggestedSaveName(editor)).toBe("Untitled-1.txt");
+
+            editor.setLanguage("typescript");
+            expect(ctrl.suggestedSaveName(editor)).toBe("Untitled-1.ts");
+        });
+
+        it("suggestedSaveName: язык без расширения → имя без расширения", () => {
+            const ctrl = createEditorGroupController(); // NULL_LANGUAGE_SERVICE → undefined
+            ctrl.mount();
+            ctrl.newUntitled();
+
+            expect(ctrl.suggestedSaveName(ctrl.getActiveEditor()!)).toBe("Untitled-1");
+        });
+
         it("relabels to the basename after the buffer is saved to a path", async () => {
             const ctrl = createEditorGroupController();
             ctrl.mount();
@@ -674,6 +711,7 @@ describe("EditorGroupController", () => {
             const registry = new TokenizationRegistry();
             registry.register("typescript", new PlainTextTokenizer());
             const languageService: ILanguageService = {
+                ...NULL_LANGUAGE_SERVICE,
                 getLanguageIdForResource: () => "typescript",
                 getLanguageDisplayName: () => undefined,
             };
@@ -813,8 +851,8 @@ describe("EditorGroupController", () => {
         it("onEditorSaved стреляет при сохранении и отписывается через dispose", async () => {
             const ctrl = createEditorGroupController({
                 languageService: {
+                    ...NULL_LANGUAGE_SERVICE,
                     getLanguageIdForResource: (f) => (f.endsWith(".ts") ? "typescript" : undefined),
-                    getLanguageDisplayName: () => undefined,
                 },
             });
             ctrl.mount();

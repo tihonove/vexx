@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
@@ -64,6 +65,7 @@ describe("StatusBarController — language badge", () => {
 
     it("показывает display name из ILanguageService, беджик правее Ln/Col", () => {
         const languageService: ILanguageService = {
+            ...NULL_LANGUAGE_SERVICE,
             getLanguageIdForResource: () => undefined,
             getLanguageDisplayName: (id) => (id === "typescript" ? "TypeScript" : undefined),
         };

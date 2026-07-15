@@ -98,6 +98,20 @@ export class LanguageRegistry implements ILanguageService {
     }
 
     /**
+     * Основное расширение языка. Как и у alias'ов — первое заявленное: при
+     * нескольких расширениях (`.yml`/`.yaml`) предлагаем то, что расширение
+     * назвало первым.
+     *
+     * Внимание: у dotfile-языков «расширение» — это всё имя файла целиком
+     * (`.editorconfig`), так что склеивать результат с именем buffer'а осмысленно
+     * не для любого языка. Для безымянных буферов это не стреляет: их язык —
+     * `plaintext` (`.txt`), пока его явно не сменят.
+     */
+    public getExtensionForLanguage(languageId: string): string | undefined {
+        return this.languages.get(languageId)?.extensions[0];
+    }
+
+    /**
      * Определяет language id по пути к файлу.
      * Порядок матчинга (как в VS Code):
      *   1) точное совпадение `filenames`

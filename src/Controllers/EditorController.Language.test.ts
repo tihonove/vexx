@@ -5,6 +5,7 @@ import { Uri } from "../Common/Uri.ts";
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
 import { createLineTokens, createToken } from "../Editor/ILineTokens.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
 import type { ITokenizationResult, ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -28,6 +29,7 @@ function markerTokenizer(scope: string): ITokenizationSupport {
 }
 
 const TS_ONLY_LANGUAGE_SERVICE: ILanguageService = {
+    ...NULL_LANGUAGE_SERVICE,
     getLanguageIdForResource: (filePath) => (filePath.endsWith(".ts") ? "typescript" : undefined),
     getLanguageDisplayName: () => undefined,
 };

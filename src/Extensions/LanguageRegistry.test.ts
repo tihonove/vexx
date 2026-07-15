@@ -233,6 +233,23 @@ describe("LanguageRegistry", () => {
         expect(registry.getLanguageDisplayName("aliasless")).toBeUndefined();
     });
 
+    it("getExtensionForLanguage возвращает первое расширение — обратная операция к резолву по пути", () => {
+        const registry = new LanguageRegistry();
+        registry.register(makeExt("ts", [{ id: "typescript", extensions: [".ts", ".tsx"], aliases: ["TypeScript"] }]));
+
+        expect(registry.getExtensionForLanguage("typescript")).toBe(".ts");
+        // plaintext — core-язык: именно он даёт ".txt" безымянному буферу в Save As.
+        expect(registry.getExtensionForLanguage("plaintext")).toBe(".txt");
+    });
+
+    it("getExtensionForLanguage — undefined для незнакомого языка и языка без расширений", () => {
+        const registry = new LanguageRegistry();
+        registry.register(makeExt("x", [{ id: "extensionless", aliases: ["No Ext"] }]));
+
+        expect(registry.getExtensionForLanguage("unknown")).toBeUndefined();
+        expect(registry.getExtensionForLanguage("extensionless")).toBeUndefined();
+    });
+
     // WP8/WP9: completion-провайдер editorconfig завязан на languageId "editorconfig".
     // Стоковый editorconfig-vscode вносит язык через contributes.languages
     // **.extensions: [".editorconfig"]** (а `filenames` — пустой!), поэтому

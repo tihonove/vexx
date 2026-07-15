@@ -493,6 +493,21 @@ export class EditorGroupController extends Disposable implements IController {
         return uri.scheme === "file" ? path.basename(uri.fsPath) : uri.path;
     }
 
+    /**
+     * Имя файла, предлагаемое при Save As безымянного буфера: метка вкладки плюс
+     * расширение его текущего языка (`Untitled-1` + `plaintext` → `Untitled-1.txt`).
+     *
+     * Расширение выводим из языка, а не зашиваем: у свежего буфера язык `plaintext`,
+     * так что дефолт остаётся `.txt`, но стоит сменить язык буфера
+     * ({@link EditorController.setLanguage}) — и предложение поедет следом само.
+     * Язык без расширений (или незарегистрированный) → имя без расширения.
+     */
+    public suggestedSaveName(editor: EditorController): string {
+        const name = this.displayName(editor);
+        const extension = this.languageService.getExtensionForLanguage(editor.languageId);
+        return extension === undefined ? name : `${name}${extension}`;
+    }
+
     public syncTabs(): void {
         const labels = this.computeTabLabels();
         const tabs: TabInfo[] = this.editors.map((editor, i) => {
