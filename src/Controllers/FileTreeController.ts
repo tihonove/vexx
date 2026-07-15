@@ -193,6 +193,6 @@ export class FileTreeController extends Disposable implements IController {
             fg: theme.getRequiredColor("sideBar.foreground"),
             bg: theme.getRequiredColor("sideBar.background"),
         };
-        if (this.scrollBars) applyScrollBarTheme(this.scrollBars, theme, "sideBar.background");
+        applyScrollBarTheme(this.scrollBars, theme, "sideBar.background");
     }
 }

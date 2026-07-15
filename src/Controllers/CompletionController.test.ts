@@ -258,6 +258,23 @@ describe("CompletionController", () => {
             expect(edits[0].range).toEqual({ start: { line: 0, character: 2 }, end: { line: 0, character: 3 } });
         });
 
+        it("многострочный range провайдера берётся как есть (посимвольный сдвиг неприменим)", async () => {
+            const multiline: ICoreCompletionItem[] = [
+                {
+                    label: "editor.tabSize",
+                    insertText: '"editor.tabSize"',
+                    range: { start: { line: 0, character: 2 }, end: { line: 1, character: 4 } },
+                },
+            ];
+            const { controller, fake } = setup(multiline, '{ "e', 4);
+            await controller.trigger();
+            fake.type('{ "edi', 6);
+            controller.acceptSelected();
+
+            const [edits] = fake.applyExternalEdits.mock.calls[0];
+            expect(edits[0].range).toEqual({ start: { line: 0, character: 2 }, end: { line: 1, character: 4 } });
+        });
+
         it("без range провайдера заменяет живой префикс", async () => {
             const { controller, fake } = setup(ITEMS, "ind", 3);
             await controller.trigger();

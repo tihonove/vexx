@@ -100,6 +100,14 @@ describe("getSettingsCompletionContext — вне зоны ответствен�
     it("пустой документ → null", () => {
         expect(getSettingsCompletionContext("", 0)).toBeNull();
     });
+
+    it("значение у пустого ключа → null (схемы для «» нет)", () => {
+        expect(at('{\n    "": |\n}').context).toBeNull();
+    });
+
+    it("элемент массива на верхнем уровне → null (ключ там числовой индекс)", () => {
+        expect(at("[\n    |\n]").context).toBeNull();
+    });
 });
 
 describe("positionToOffset / offsetToPosition", () => {

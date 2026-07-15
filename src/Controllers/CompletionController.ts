@@ -361,16 +361,20 @@ export class CompletionController extends Disposable {
      * только часть набранного, оставив хвост (`"editor.tabSize"di`). Сдвигаем
      * конец на число набранных с триггера символов.
      *
-     * Сдвиг применим, только пока триггер, каретка и конец range на одной строке;
-     * иначе (мультистрочный range, каретка ушла на другую строку) берём range как есть.
+     * Сдвиг посимвольный, поэтому применим только к однострочному range.
      */
-    private resolveAcceptRange(core: ICoreCompletionItem, caret: IPosition | null): IRange | null {
+    private resolveAcceptRange(core: ICoreCompletionItem, prefixRange: IRange, caret: IPosition): IRange {
         const providerRange = core.range;
-        if (providerRange === undefined) return this.prefixRange;
+        if (providerRange === undefined) return prefixRange;
 
         const trigger = this.triggerCaret;
-        if (trigger === null || caret === null) return providerRange;
-        if (caret.line !== trigger.line || providerRange.end.line !== trigger.line) return providerRange;
+        /* v8 ignore start -- defensive: пока попап открыт, triggerCaret выставлен
+           (его ставит trigger(), снимает close()), а уход каретки на другую строку
+           закрывает попап через refilterOpen — то есть до accept дело не доходит */
+        if (trigger === null || caret.line !== trigger.line) return providerRange;
+        /* v8 ignore stop */
+        // Многострочный range провайдера: посимвольный сдвиг к нему неприменим.
+        if (providerRange.end.line !== trigger.line) return providerRange;
 
         const delta = caret.character - trigger.character;
         if (delta === 0) return providerRange;
@@ -385,12 +389,15 @@ export class CompletionController extends Disposable {
     private accept(item: CompletionListItem): void {
         const editor = this.activeEditor;
         const core = item.data as ICoreCompletionItem | undefined;
+        const prefixRange = this.prefixRange;
+        if (editor === null || core === undefined || prefixRange === null) {
+            this.close();
+            return;
+        }
         // Каретку читаем ДО close() — resolveAcceptRange сверяет её с triggerCaret.
-        const caret = editor !== null ? (editor.viewState.selections[0]?.active ?? null) : null;
-        const range = core !== undefined ? this.resolveAcceptRange(core, caret) : null;
-        const command = core?.command;
+        const range = this.resolveAcceptRange(core, prefixRange, editor.viewState.selections[0].active);
+        const command = core.command;
         this.close();
-        if (editor === null || core === undefined || range === null) return;
 
         // Правка ниже синхронно вызовет onCaretChanged — не даём ей авто-переоткрыть попап.
         this.suppressAutoSuggestOnce = true;
