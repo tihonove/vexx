@@ -45,6 +45,9 @@ export class CompletionController extends Disposable {
     private session: OverlaySessionHandle | null = null;
     private activeEditor: EditorController | null = null;
     private prefixRange: IRange | null = null;
+    // Каретка на момент запроса провайдеров. Провайдерский `range` — снапшот той же
+    // позиции, поэтому по нему мы отслеживаем, сколько символов добрали с триггера.
+    private triggerCaret: IPosition | null = null;
 
     // Подписки на активный редактор (пере-навешиваются при смене активного).
     private caretSub: IDisposable | null = null;
@@ -137,6 +140,7 @@ export class CompletionController extends Disposable {
 
         this.activeEditor = editor;
         this.prefixRange = createRange(active.line, prefixStart, active.line, active.character);
+        this.triggerCaret = { line: active.line, character: active.character };
 
         this.view.setItems(items.map(toListItem));
         this.view.setFilter(prefix);
@@ -153,6 +157,7 @@ export class CompletionController extends Disposable {
         if (this.session?.isOpen() === true) this.session.close();
         this.activeEditor = null;
         this.prefixRange = null;
+        this.triggerCaret = null;
     }
 
     /** Открыт ли попап (для `suggestWidgetVisible` и делегаторов команд). */
@@ -346,10 +351,43 @@ export class CompletionController extends Disposable {
             .map((word) => ({ label: word, insertText: word, kind: KIND_TEXT }));
     }
 
+    /**
+     * Диапазон, который реально заменяется при accept.
+     *
+     * Без провайдерского `range` берём `prefixRange` — он живой, `refilterOpen`
+     * держит его в актуальном состоянии. А вот `core.range` — снапшот момента
+     * триггера: попап при доборе символов не перезапрашивается (re-filter
+     * локальный), поэтому конец range отстаёт от каретки, и accept затёр бы
+     * только часть набранного, оставив хвост (`"editor.tabSize"di`). Сдвигаем
+     * конец на число набранных с триггера символов.
+     *
+     * Сдвиг применим, только пока триггер, каретка и конец range на одной строке;
+     * иначе (мультистрочный range, каретка ушла на другую строку) берём range как есть.
+     */
+    private resolveAcceptRange(core: ICoreCompletionItem, caret: IPosition | null): IRange | null {
+        const providerRange = core.range;
+        if (providerRange === undefined) return this.prefixRange;
+
+        const trigger = this.triggerCaret;
+        if (trigger === null || caret === null) return providerRange;
+        if (caret.line !== trigger.line || providerRange.end.line !== trigger.line) return providerRange;
+
+        const delta = caret.character - trigger.character;
+        if (delta === 0) return providerRange;
+        return createRange(
+            providerRange.start.line,
+            providerRange.start.character,
+            providerRange.end.line,
+            providerRange.end.character + delta,
+        );
+    }
+
     private accept(item: CompletionListItem): void {
         const editor = this.activeEditor;
         const core = item.data as ICoreCompletionItem | undefined;
-        const range = core?.range ?? this.prefixRange;
+        // Каретку читаем ДО close() — resolveAcceptRange сверяет её с triggerCaret.
+        const caret = editor !== null ? (editor.viewState.selections[0]?.active ?? null) : null;
+        const range = core !== undefined ? this.resolveAcceptRange(core, caret) : null;
         const command = core?.command;
         this.close();
         if (editor === null || core === undefined || range === null) return;

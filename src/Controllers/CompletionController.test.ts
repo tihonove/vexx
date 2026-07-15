@@ -200,6 +200,75 @@ describe("CompletionController", () => {
         expect(controller.view.items).toHaveLength(3);
     });
 
+    // Провайдер вправе прислать собственный range (vexx-settings накрывает им кавычки,
+    // чтобы вставить `"editor.tabSize"` вместо голого ключа). Range — снапшот момента
+    // триггера, а попап при доборе символов не перезапрашивается, поэтому его конец
+    // обязан догонять каретку.
+    describe("provider range", () => {
+        /** Элемент с явным range на `"e` (кавычка + первая буква) в строке `{ "e`. */
+        const QUOTED: ICoreCompletionItem[] = [
+            {
+                label: "editor.tabSize",
+                insertText: '"editor.tabSize"',
+                kind: 9,
+                range: { start: { line: 0, character: 2 }, end: { line: 0, character: 4 } },
+            },
+        ];
+
+        it("уважает range провайдера, когда с триггера ничего не добрали", async () => {
+            const { controller, fake } = setup(QUOTED, '{ "e', 4);
+            await controller.trigger();
+            controller.acceptSelected();
+
+            const [edits] = fake.applyExternalEdits.mock.calls[0];
+            expect(edits[0].text).toBe('"editor.tabSize"');
+            expect(edits[0].range).toEqual({ start: { line: 0, character: 2 }, end: { line: 0, character: 4 } });
+        });
+
+        it("догоняет кареткой конец range, когда добрали символы после триггера", async () => {
+            const { controller, fake } = setup(QUOTED, '{ "e', 4);
+            await controller.trigger();
+            expect(controller.isOpen()).toBe(true);
+
+            // Добираем `di` → `{ "edi`. Попап только ре-фильтруется, провайдера не
+            // перезапрашиваем, поэтому его range всё ещё указывает на `"e`.
+            fake.type('{ "edi', 6);
+            expect(controller.isOpen()).toBe(true);
+
+            controller.acceptSelected();
+
+            const [edits] = fake.applyExternalEdits.mock.calls[0];
+            expect(edits[0].text).toBe('"editor.tabSize"');
+            // Без сдвига заменилось бы только [2,4) и в буфере остался бы хвост `di`.
+            expect(edits[0].range).toEqual({ start: { line: 0, character: 2 }, end: { line: 0, character: 6 } });
+        });
+
+        it("сдвигает конец range назад при удалении символа после триггера", async () => {
+            const { controller, fake } = setup(QUOTED, '{ "e', 4);
+            await controller.trigger();
+
+            // Backspace → `{ "`. Каретка на границе префикса, попап остаётся открыт.
+            fake.type('{ "', 3);
+            expect(controller.isOpen()).toBe(true);
+
+            controller.acceptSelected();
+
+            const [edits] = fake.applyExternalEdits.mock.calls[0];
+            // Range сжался вслед за кареткой: заменяем `"`, а не `"e`.
+            expect(edits[0].range).toEqual({ start: { line: 0, character: 2 }, end: { line: 0, character: 3 } });
+        });
+
+        it("без range провайдера заменяет живой префикс", async () => {
+            const { controller, fake } = setup(ITEMS, "ind", 3);
+            await controller.trigger();
+            fake.type("inde", 4);
+            controller.acceptSelected();
+
+            const [edits] = fake.applyExternalEdits.mock.calls[0];
+            expect(edits[0].range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 4 } });
+        });
+    });
+
     it("word-based: без источника предлагает слова из документа", async () => {
         const fake = makeEditor("ind", 3, "indent_style indent_size root ab");
         const controller = new CompletionController(makeGroup(fake.editor, undefined));
