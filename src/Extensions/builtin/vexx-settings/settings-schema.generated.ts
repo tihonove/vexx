@@ -28,6 +28,6 @@ export const SETTINGS_SCHEMA: readonly ISettingSchemaEntry[] = [
     {"key":"terminal.capabilities","type":"object","default":{}},
     {"key":"terminal.customModes","type":"object","default":{}},
     {"key":"terminal.modes","type":"object","default":{}},
-    {"key":"terminal.tier","type":"string","default":"auto"},
-    {"key":"workbench.colorTheme","type":"string","default":"Dark Modern"},
+    {"key":"terminal.tier","type":"string","default":"auto","enum":["auto","legacy","csi-u","kitty"]},
+    {"key":"workbench.colorTheme","type":"string","default":"Dark Modern","enum":["Dark 2026","Dark Modern","Dark+","Monokai","Light Modern","Light+"]},
 ];

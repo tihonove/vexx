@@ -18,7 +18,20 @@
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
-import { transform } from "esbuild";
+import { build, transform } from "esbuild";
+
+/**
+ * Схемные метаданные для ключей из app-дефолтов. `Configuration/defaults.ts` — это
+ * голое дерево значений (тип и default выводятся из него, а вот множество
+ * допустимых значений — нет), тогда как у `contributes.configuration` схема есть
+ * своя. Здесь держим только то, что нельзя вывести из самого дефолта.
+ *
+ * `workbench.colorTheme` не тут, а собирается из реестра тем — см. loadThemeNames.
+ */
+const APP_DEFAULT_OVERRIDES = {
+    // Дословно из комментария в defaults.ts (`Tier override`).
+    "terminal.tier": { enum: ["auto", "legacy", "csi-u", "kitty"] },
+};
 
 /** Тип значения для `detail` в completion (VS Code JSON-schema types). */
 function inferType(value) {
@@ -52,6 +65,28 @@ async function loadAppDefaults(repoRoot) {
     const out = [];
     flattenDefaults(mod.getDefaultConfiguration(), "", out);
     return out;
+}
+
+/**
+ * Лейблы встроенных тем — допустимые значения `workbench.colorTheme`. В отличие от
+ * `defaults.ts`, у `themes/builtinThemes.ts` есть импорты, поэтому нужен bundle,
+ * а не transform. Каталог статичен на этапе сборки: темы, приносимые расширениями
+ * (`contributes.themes`), сюда не попадут.
+ */
+async function loadThemeNames(repoRoot) {
+    const entry = resolve(repoRoot, "src", "Theme", "themes", "builtinThemes.ts");
+    const result = await build({
+        entryPoints: [entry],
+        bundle: true,
+        write: false,
+        format: "esm",
+        platform: "neutral",
+        logLevel: "silent",
+    });
+    const code = result.outputFiles[0].text;
+    const url = `data:text/javascript;base64,${Buffer.from(code).toString("base64")}`;
+    const mod = await import(url);
+    return mod.builtinThemes.map((theme) => theme.name);
 }
 
 function collectBuiltinContributions(repoRoot) {
@@ -93,6 +128,16 @@ export async function generateSettingsSchema({ repoRoot }) {
     const byKey = new Map();
     // app-дефолты сначала; contributes перекрывают (у них richer description/enum).
     for (const e of await loadAppDefaults(repoRoot)) byKey.set(e.key, e);
+    // Схема поверх app-дефолтов (enum), но под contributes — у тех она своя, полная.
+    for (const [key, extra] of Object.entries(APP_DEFAULT_OVERRIDES)) {
+        if (byKey.has(key)) byKey.set(key, { ...byKey.get(key), ...extra });
+    }
+    if (byKey.has("workbench.colorTheme")) {
+        byKey.set("workbench.colorTheme", {
+            ...byKey.get("workbench.colorTheme"),
+            enum: await loadThemeNames(repoRoot),
+        });
+    }
     for (const e of collectBuiltinContributions(repoRoot)) byKey.set(e.key, { ...byKey.get(e.key), ...e });
 
     const entries = [...byKey.values()].sort((a, b) => a.key.localeCompare(b.key)).map(prune);
