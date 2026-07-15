@@ -4,6 +4,7 @@ import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.t
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
+import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
@@ -26,6 +27,7 @@ function createStatusBarController(languageService?: ILanguageService): {
                   container.get(ThemeServiceDIToken),
                   container.get(TerminalEnvironmentServiceDIToken),
                   languageService,
+                  container.get(CommandRegistryDIToken),
               );
 
     editorGroupController.mount();
@@ -79,6 +81,8 @@ describe("StatusBarController — language badge", () => {
         expect(statusBarController.view.getItems()).toEqual([
             { text: "legacy" },
             { text: "Ln 1, Col 1", align: "right" },
+            { text: "UTF-8", align: "right", onClick: expect.any(Function) },
+            { text: "LF", align: "right", onClick: expect.any(Function) },
             { text: "TypeScript", align: "right" },
         ]);
     });

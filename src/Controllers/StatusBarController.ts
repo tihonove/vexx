@@ -1,6 +1,8 @@
 import { token } from "../Common/DiContainer.ts";
 import { DisplayLine } from "../Common/DisplayLine.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import { getEncodingInfo } from "../Editor/Encoding.ts";
+import { EndOfLine } from "../Editor/EndOfLine.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -8,6 +10,8 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import { LanguageServiceDIToken } from "./CoreTokens.ts";
 import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
@@ -24,26 +28,32 @@ export class StatusBarController extends Disposable implements IController {
         ThemeServiceDIToken,
         TerminalEnvironmentServiceDIToken,
         LanguageServiceDIToken,
+        CommandRegistryDIToken,
     ] as const;
 
     public readonly view: StatusBarElement;
     private editorGroupController: EditorGroupController;
     private terminalEnv: TerminalEnvironmentService;
     private languageService: ILanguageService;
+    private commands: CommandRegistry;
     private chordHint: string | null = null;
     private cursorSubscription: IDisposable | null = null;
     private languageSubscription: IDisposable | null = null;
+    private eolSubscription: IDisposable | null = null;
+    private encodingSubscription: IDisposable | null = null;
 
     public constructor(
         editorGroupController: EditorGroupController,
         themeService: ThemeService,
         terminalEnv: TerminalEnvironmentService,
         languageService: ILanguageService,
+        commands: CommandRegistry,
     ) {
         super();
         this.editorGroupController = editorGroupController;
         this.terminalEnv = terminalEnv;
         this.languageService = languageService;
+        this.commands = commands;
         this.view = new StatusBarElement();
         this.register(
             themeService.onThemeChange((theme) => {
@@ -63,6 +73,8 @@ export class StatusBarController extends Disposable implements IController {
         );
         this.register({ dispose: () => this.cursorSubscription?.dispose() });
         this.register({ dispose: () => this.languageSubscription?.dispose() });
+        this.register({ dispose: () => this.eolSubscription?.dispose() });
+        this.register({ dispose: () => this.encodingSubscription?.dispose() });
     }
 
     public mount(): void {
@@ -84,6 +96,16 @@ export class StatusBarController extends Disposable implements IController {
         this.languageSubscription?.dispose();
         this.languageSubscription =
             editor?.onDidChangeLanguage(() => {
+                this.update();
+            }) ?? null;
+        this.eolSubscription?.dispose();
+        this.eolSubscription =
+            editor?.onDidChangeEol(() => {
+                this.update();
+            }) ?? null;
+        this.encodingSubscription?.dispose();
+        this.encodingSubscription =
+            editor?.onDidChangeEncoding(() => {
                 this.update();
             }) ?? null;
     }
@@ -122,14 +144,53 @@ export class StatusBarController extends Disposable implements IController {
             items.push({ text: position, align: "right" });
         }
 
-        // Правые элементы рендерятся в порядке массива — язык встаёт правее
-        // Ln/Col (как в VS Code; Spaces/Encoding/EOL добавятся между ними).
+        // Правые элементы рендерятся в порядке массива, как в VS Code:
+        // Ln/Col · Encoding · EOL · Language (Spaces добавится между Ln/Col и
+        // Encoding). Encoding и EOL кликабельны — открывают свои пикеры.
+        const encoding = this.encodingSegment(activeEditor);
+        if (encoding !== null) {
+            items.push({
+                text: encoding,
+                align: "right",
+                onClick: () => void this.commands.execute("workbench.action.editor.changeEncoding"),
+            });
+        }
+
+        const eol = this.eolSegment(activeEditor);
+        if (eol !== null) {
+            items.push({
+                text: eol,
+                align: "right",
+                onClick: () => void this.commands.execute("workbench.action.editor.changeEOL"),
+            });
+        }
+
         const language = this.languageSegment(activeEditor);
         if (language !== null) {
             items.push({ text: language, align: "right" });
         }
 
         this.view.setItems(items);
+    }
+
+    /**
+     * VS Code-style encoding indicator: the short status label of the active
+     * editor's disk encoding ("UTF-8", "Windows 1251"). Null without an active
+     * editor; unknown ids (defensive) fall back to the raw id.
+     */
+    private encodingSegment(editor: EditorController | null): string | null {
+        if (editor === null) return null;
+        const info = getEncodingInfo(editor.encoding);
+        /* v8 ignore start -- defensive: editor.encoding всегда табличный id (setEncoding валидирует, decodeBuffer возвращает элементы SUPPORTED_ENCODINGS) */
+        if (info === undefined) return editor.encoding;
+        /* v8 ignore stop */
+        return info.statusLabel;
+    }
+
+    /** VS Code-style end-of-line indicator: "LF" or "CRLF". */
+    private eolSegment(editor: EditorController | null): string | null {
+        if (editor === null) return null;
+        return editor.eol === EndOfLine.CRLF ? "CRLF" : "LF";
     }
 
     /**

@@ -6,6 +6,7 @@ import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { Uri } from "../Common/Uri.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
+import { decodeBuffer, DEFAULT_ENCODING, encodeText, getEncodingInfo } from "../Editor/Encoding.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import type { IGutterChangeDecoration } from "../Editor/Decorations/IGutterChangeDecoration.ts";
 import { computeIndentationFolds } from "../Editor/FoldingRangeProvider.ts";
@@ -86,6 +87,15 @@ export class EditorController extends Disposable implements IController {
     private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
     private eolSubscription: IDisposable | null = null;
     private eolChangeListeners: (() => void)[] = [];
+    /**
+     * Кодировка байтового представления на диске (id из SUPPORTED_ENCODINGS).
+     * В отличие от EOL это состояние контроллера, а не документа: модель видит
+     * только строки, а кодировка применяется на дисковой границе (read/write).
+     * Не undoable и не входит в isModified — Reopen заменяет документ целиком,
+     * Save with Encoding сохраняет сразу (как в VS Code).
+     */
+    private encodingValue: string = DEFAULT_ENCODING;
+    private encodingChangeListeners: (() => void)[] = [];
     private contentSubscription: IDisposable | null = null;
     private contentChangeListeners: (() => void)[] = [];
     private foldingSubscription: IDisposable | null = null;
@@ -122,6 +132,28 @@ export class EditorController extends Disposable implements IController {
 
     public get eol(): EndOfLine {
         return this.doc.eol;
+    }
+
+    /** Кодировка, в которой документ читается с диска и пишется на диск. */
+    public get encoding(): string {
+        return this.encodingValue;
+    }
+
+    /**
+     * Меняет кодировку, в которой документ будет записан на диск. Неизвестные
+     * id игнорируются (пикеры оперируют только элементами SUPPORTED_ENCODINGS).
+     * Содержимое буфера не трогает — перечитывание с диска делает
+     * {@link reopenWithEncoding}.
+     */
+    public setEncoding(encoding: string): void {
+        if (getEncodingInfo(encoding) === undefined) return;
+        this.applyEncoding(encoding);
+    }
+
+    private applyEncoding(encoding: string): void {
+        if (this.encodingValue === encoding) return;
+        this.encodingValue = encoding;
+        for (const listener of [...this.encodingChangeListeners]) listener();
     }
 
     public set contextMenuEntries(entries: MenuEntry[]) {
@@ -238,6 +270,20 @@ export class EditorController extends Disposable implements IController {
         };
     }
 
+    /**
+     * Событие смены кодировки (setEncoding, reopenWithEncoding или детект при
+     * открытии другого файла). Подписка живёт на контроллере.
+     */
+    public onDidChangeEncoding(listener: () => void): IDisposable {
+        this.encodingChangeListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.encodingChangeListeners.indexOf(listener);
+                if (i >= 0) this.encodingChangeListeners.splice(i, 1);
+            },
+        };
+    }
+
     /** Идентичность ресурса: `file:` — файл на диске, `untitled:` — безымянный буфер. */
     public get uri(): Uri {
         return this.uriValue;
@@ -345,11 +391,15 @@ export class EditorController extends Disposable implements IController {
 
     /**
      * Читает файл с диска в свежий документ/view-state (сбрасывает undo, курсор,
-     * токен-кеш). Общий путь для {@link openFile} и {@link revertToDisk}.
-     * Обновляет снимок `diskStat` и снимает флаг конфликта.
+     * токен-кеш). Общий путь для {@link openFile}, {@link revertToDisk} и
+     * {@link reopenWithEncoding}. Обновляет снимок `diskStat` и снимает флаг
+     * конфликта. Кодировка: `explicitEncoding` побеждает BOM-сниф; без него —
+     * сниф BOM, иначе utf-8 (revert пере-детектит, как reload в VS Code).
      */
-    private loadDocumentFromDisk(filePath: string): void {
-        const content = fs.existsSync(filePath) ? fs.readFileSync(filePath, "utf-8") : "";
+    private loadDocumentFromDisk(filePath: string, explicitEncoding?: string): void {
+        const buffer = fs.existsSync(filePath) ? fs.readFileSync(filePath) : Buffer.alloc(0);
+        const { text: content, encoding } = decodeBuffer(buffer, explicitEncoding);
+        this.applyEncoding(encoding);
         this.diskStat = this.readDiskStat(filePath);
         this.doc = new TextDocument(content, this.resolveLanguageId(filePath));
         this.editorViewState = new EditorViewState(this.doc);
@@ -385,13 +435,23 @@ export class EditorController extends Disposable implements IController {
         if (participant !== undefined) {
             await this.runSaveParticipant(participant);
         }
-        fs.writeFileSync(this.filePath, this.doc.serialize(), "utf-8");
+        fs.writeFileSync(this.filePath, encodeText(this.doc.serialize(), this.encodingValue));
         this.diskStat = this.readDiskStat(this.filePath);
         this.savedVersionId = this.doc.versionId;
         this.savedEol = this.doc.eol;
         this.setDiskConflict(false);
         this.onDidSave?.();
         return "saved";
+    }
+
+    /**
+     * Меняет кодировку и сразу сохраняет («Save with Encoding»). Для буфера без
+     * файла на диске возвращает "no-file" — вызывающий уводит в Save As
+     * (кодировка при этом уже выставлена).
+     */
+    public async saveWithEncoding(encoding: string, options?: { overwrite?: boolean }): Promise<SaveOutcome> {
+        this.setEncoding(encoding);
+        return this.save(options);
     }
 
     /**
@@ -402,6 +462,17 @@ export class EditorController extends Disposable implements IController {
     public revertToDisk(): boolean {
         if (this.filePath === null) return false;
         this.loadDocumentFromDisk(this.filePath);
+        return true;
+    }
+
+    /**
+     * Перечитывает файл с диска в указанной кодировке («Reopen with Encoding»),
+     * отбрасывая несохранённые правки — подтверждение у «грязного» буфера
+     * спрашивает вызывающий. Возвращает `false` для буфера без файла на диске.
+     */
+    public reopenWithEncoding(encoding: string): boolean {
+        if (this.filePath === null) return false;
+        this.loadDocumentFromDisk(this.filePath, encoding);
         return true;
     }
 
@@ -417,6 +488,7 @@ export class EditorController extends Disposable implements IController {
             isDirty: this.isModified,
             text: this.doc.getText(),
             eol: this.doc.eol,
+            encoding: this.encodingValue,
         };
         const edits = await participant(snapshot);
         this.applySaveEdits(edits);
@@ -501,7 +573,7 @@ export class EditorController extends Disposable implements IController {
         if (participant !== undefined) {
             await this.runSaveParticipant(participant);
         }
-        fs.writeFileSync(newPath, this.doc.serialize(), "utf-8");
+        fs.writeFileSync(newPath, encodeText(this.doc.serialize(), this.encodingValue));
         this.diskStat = this.readDiskStat(newPath);
         this.doc.setLanguage(this.resolveLanguageId(newPath));
         this.savedVersionId = this.doc.versionId;

@@ -15,6 +15,8 @@ import type { IConfigurationService } from "../Configuration/IConfigurationServi
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
+import { SUPPORTED_ENCODINGS } from "../Editor/Encoding.ts";
+import { EndOfLine } from "../Editor/EndOfLine.ts";
 import type { ThemeRegistry } from "../Theme/ThemeRegistry.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -77,7 +79,8 @@ import {
     selectAllAction,
     undoAction,
 } from "./Actions/EditorEditActions.ts";
-import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
+import { changeEncodingAction } from "./Actions/EncodingActions.ts";
+import { changeEolAction, convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
 import {
     fileOpenAction,
     fileOpenFolderAction,
@@ -594,6 +597,22 @@ export class AppController extends Disposable implements IController {
                 ...selectThemeAction,
                 run: () => {
                     void this.selectColorTheme();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...changeEncodingAction,
+                run: () => {
+                    void this.changeFileEncoding();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...changeEolAction,
+                run: () => {
+                    void this.changeEol();
                 },
             }),
         );
@@ -1989,6 +2008,129 @@ export class AppController extends Disposable implements IController {
 
         applyByLabel(picked.label);
         void this.configurationService.updateUserValue?.("workbench.colorTheme", picked.label);
+    }
+
+    /**
+     * Encoding picker (VS Code `workbench.action.editor.changeEncoding`):
+     * двухуровневый флоу — сначала «Reopen with Encoding» / «Save with
+     * Encoding», затем список кодировок с текущей в активной позиции.
+     * «Reopen» скрыт для буферов без файла на диске (untitled); на «грязном»
+     * буфере он сначала спрашивает подтверждение (перечитка отбрасывает
+     * несохранённые правки). «Save» у безымянного буфера выставляет кодировку
+     * и уводит в Save As; конфликт с внешней записью идёт через тот же
+     * Overwrite-диалог, что и обычный Save.
+     */
+    private async changeFileEncoding(): Promise<void> {
+        const editor = this.editorGroupController.getActiveEditor();
+        if (editor === null) return;
+
+        const canReopen = editor.absoluteFilePath !== null && fs.existsSync(editor.absoluteFilePath);
+        const modeItems = [
+            ...(canReopen
+                ? [{ label: "Reopen with Encoding", description: "Reinterpret the file on disk" }]
+                : []),
+            { label: "Save with Encoding", description: "Write the file in a different encoding" },
+        ];
+        const mode = await this.quickInputController.quickPick({
+            title: "Change File Encoding",
+            placeholder: "Select Action",
+            items: modeItems,
+        });
+        if (mode === undefined) return;
+
+        const current = editor.encoding;
+        const encodingItems = SUPPORTED_ENCODINGS.map((info) => ({ label: info.label, description: info.id }));
+        const picked = await this.quickInputController.quickPick({
+            title: mode.label,
+            placeholder: "Select File Encoding",
+            items: encodingItems,
+            activeIndex: Math.max(
+                0,
+                SUPPORTED_ENCODINGS.findIndex((info) => info.id === current),
+            ),
+        });
+        if (picked === undefined || picked.description === undefined) return;
+        const encoding = picked.description;
+
+        if (mode.label === "Reopen with Encoding") {
+            const doReopen = (): void => {
+                editor.reopenWithEncoding(encoding);
+                this.statusBarController.update();
+            };
+            if (editor.isModified) {
+                const name = this.editorGroupController.displayName(editor);
+                this.showConfirmDialog(
+                    {
+                        title: "Reopen with Encoding",
+                        message: [
+                            `"${name}" has unsaved changes.`,
+                            "Reopening the file will discard them. Continue?",
+                        ],
+                        confirmLabel: "Reopen",
+                        cancelLabel: "Cancel",
+                        defaultButton: "cancel",
+                    },
+                    { onConfirm: doReopen },
+                );
+                return;
+            }
+            doReopen();
+            return;
+        }
+
+        const outcome = await editor.saveWithEncoding(encoding);
+        if (outcome === "no-file") {
+            // Безымянный буфер: кодировка уже выставлена, путь спросит Save As.
+            await this.runSaveAs();
+            return;
+        }
+        if (outcome === "conflict") {
+            const name = this.editorGroupController.displayName(editor);
+            this.showConfirmDialog(
+                {
+                    title: "Overwrite",
+                    message: [
+                        `The file "${name}" has been changed on disk.`,
+                        "Do you want to overwrite the version on disk with your changes?",
+                    ],
+                    confirmLabel: "Overwrite",
+                    cancelLabel: "Cancel",
+                    defaultButton: "cancel",
+                },
+                {
+                    onConfirm: () => {
+                        void editor.save({ overwrite: true }).then(() => {
+                            this.statusBarController.update();
+                        });
+                    },
+                },
+            );
+            return;
+        }
+        this.statusBarController.update();
+    }
+
+    /**
+     * EOL picker (VS Code `workbench.action.editor.changeEOL`): quick pick с
+     * LF / CRLF, активная позиция — текущий EOL документа.
+     */
+    private async changeEol(): Promise<void> {
+        const editor = this.editorGroupController.getActiveEditor();
+        if (editor === null) return;
+
+        const picked = await this.quickInputController.quickPick({
+            title: "Change End of Line Sequence",
+            placeholder: "Select End of Line Sequence",
+            items: [
+                { label: "LF", description: "\\n" },
+                { label: "CRLF", description: "\\r\\n" },
+            ],
+            activeIndex: editor.eol === EndOfLine.CRLF ? 1 : 0,
+        });
+        if (picked === undefined) return;
+
+        editor.setEol(picked.label === "CRLF" ? EndOfLine.CRLF : EndOfLine.LF);
+        this.statusBarController.update();
     }
 
     public showAboutDialog(): void {

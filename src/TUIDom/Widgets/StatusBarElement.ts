@@ -5,6 +5,19 @@ export interface StatusBarItem {
     text: string;
     /** Side of the bar to render on. Defaults to "left". */
     align?: "left" | "right";
+    /**
+     * Invoked when the item's cells are clicked. A plain callback keeps the
+     * widget command-agnostic — the owning controller decides what a click
+     * means. Items without it are inert.
+     */
+    onClick?: () => void;
+}
+
+interface HitRegion {
+    readonly start: number;
+    /** Exclusive. */
+    readonly end: number;
+    readonly item: StatusBarItem;
 }
 
 export class StatusBarElement extends TUIElement {
@@ -17,6 +30,43 @@ export class StatusBarElement extends TUIElement {
     private static readonly paddingX = 1;
 
     private items: StatusBarItem[] = [];
+
+    public constructor() {
+        super();
+        this.addEventListener("click", (event) => {
+            this.hitTest(event.localX)?.item.onClick?.();
+        });
+    }
+
+    /**
+     * Maps a bar-local x coordinate to the item whose cells it lands on, or
+     * null for padding and the two-cell separators between items. Recomputes
+     * the same layout math as {@link render}, so it can't go stale between
+     * frames. Cells of a right-aligned item hidden by the left side (left wins
+     * on overlap, see render) hit nothing.
+     */
+    private hitTest(x: number): HitRegion | null {
+        const width = this.layoutSize.width;
+        const pad = StatusBarElement.paddingX;
+        const leftEnd = pad + this.leftText().length;
+
+        let cursor = pad;
+        for (const item of this.items.filter((i) => i.align !== "right")) {
+            if (x >= cursor && x < cursor + item.text.length) {
+                return { start: cursor, end: cursor + item.text.length, item };
+            }
+            cursor += item.text.length + 2;
+        }
+
+        cursor = width - pad - this.rightText().length;
+        for (const item of this.items.filter((i) => i.align === "right")) {
+            if (x >= cursor && x < cursor + item.text.length && x >= leftEnd) {
+                return { start: cursor, end: cursor + item.text.length, item };
+            }
+            cursor += item.text.length + 2;
+        }
+        return null;
+    }
 
     public setItems(items: StatusBarItem[]): void {
         this.items = items;
