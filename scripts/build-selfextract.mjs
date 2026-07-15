@@ -32,9 +32,10 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 import { buildDistArtifacts } from "./build-dist.mjs";
+import { buildNodePtyBundle } from "./pack-node-pty.mjs";
 import { resolveVexxVersion } from "./resolve-version.mjs";
 import { writeSelfExtract } from "./selfextract-format.mjs";
 import { smokeTestBinary } from "./smoke-binary.mjs";
@@ -187,6 +188,20 @@ function buildPayload({ target, nodeBinary, mainJsPath, bundlePath }) {
     chmodSync(join(stageDir, "node"), 0o755);
     cpSync(mainJsPath, join(stageDir, "main.js"));
     cpSync(bundlePath, join(stageDir, "vexx.bundle"));
+
+    // node-pty стейджим как node_modules/node-pty рядом с main.js: self-extract —
+    // НЕ SEA, поэтому loadNodePty.ts идёт dev-путём createRequire(import.meta.url)
+    // → require("node-pty"), а его разрешение стартует рядом с main.js. Кладём ту
+    // же отфильтрованную раскладку, что и в node-pty.bundle (package.json + lib/**
+    // рантайм-JS + build/Release/*), нативный .node помечаем исполняемым.
+    // Scope linux-x64 (см. pack-node-pty.mjs).
+    const { inputs: ptyInputs } = buildNodePtyBundle({ repoRoot: root });
+    for (const { virtualPath, data } of ptyInputs) {
+        const dest = join(stageDir, "node_modules", virtualPath);
+        mkdirSync(dirname(dest), { recursive: true });
+        writeFileSync(dest, data);
+        if (virtualPath.endsWith(".node") || virtualPath.endsWith("spawn-helper")) chmodSync(dest, 0o755);
+    }
 
     const payloadPath = join(stageDir, "..", `payload-${target}.tar.gz`);
     execFileSync("tar", ["-czf", payloadPath, "-C", stageDir, "."], {

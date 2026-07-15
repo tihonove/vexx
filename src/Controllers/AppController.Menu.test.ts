@@ -250,6 +250,7 @@ describe("AppController — menu bar wiring", () => {
             "Color Theme",
             "Explorer",
             "Problems",
+            "Terminal",
             "Toggle Primary Side Bar",
             "Toggle Panel",
             "Increase Side Bar Width",

@@ -13,7 +13,18 @@ export default defineConfig({
   // Список исчерпывающий: всё, что не перечислено, останется внешним import'ом,
   // которого рядом с main.js нет — бинарь упадёт с ERR_MODULE_NOT_FOUND на старте.
   // Новая рантайм-зависимость → сюда же.
-  noExternal: ["chokidar", "vscode-textmate", "vscode-oniguruma", "jsonc-parser", "yauzl", "vscode-uri", "iconv-lite"],
+  // node-pty здесь не нужен: в коде только type-import, в рантайме он грузится
+  // через createRequire (см. src/Controllers/Terminal/loadNodePty.ts).
+  noExternal: [
+    "@xterm/headless",
+    "chokidar",
+    "vscode-textmate",
+    "vscode-oniguruma",
+    "jsonc-parser",
+    "yauzl",
+    "vscode-uri",
+    "iconv-lite",
+  ],
   // SEA вшивает единственный main.js — code-splitting (дефолт tsup для esm)
   // вынес бы динамический import("yauzl") в отдельный chunk-*.js, которого в
   // бинаре нет. Держим всё в одном файле; import() остаётся ленивым инлайном.

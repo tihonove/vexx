@@ -35,6 +35,7 @@ import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry, MenuItemEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
@@ -188,6 +189,7 @@ import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { StateServiceDIToken } from "./Modules/StateModule.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
+import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
 import { QuickInputController } from "./QuickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
@@ -407,6 +409,7 @@ export class AppController extends Disposable implements IController {
     private diagnosticsController: DiagnosticsController;
     private panelController: PanelController;
     private problemsController: ProblemsController;
+    private terminalController: TerminalController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
@@ -482,6 +485,7 @@ export class AppController extends Disposable implements IController {
         this.diagnosticsController = this.register(accessor.get(DiagnosticsControllerDIToken));
         this.panelController = this.register(accessor.get(PanelControllerDIToken));
         this.problemsController = this.register(accessor.get(ProblemsControllerDIToken));
+        this.terminalController = this.register(accessor.get(TerminalControllerDIToken));
         this.commands = commands;
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
@@ -892,6 +896,47 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
+        // Integrated Terminal. Только tier csi-u/kitty умеет однозначно кодировать
+        // Ctrl+` (в legacy это NUL = Ctrl+Space), поэтому legacy-бинда нет.
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.terminal.toggleTerminal",
+                title: "Terminal: Toggle Terminal",
+                keybinding: { keys: parseKeybinding("ctrl+`"), when: "tier == 'kitty' || tier == 'csi-u'" },
+                run: () => {
+                    // Toggle like VS Code: hide the panel if Terminal is already the
+                    // visible view, otherwise show + spawn/focus a terminal.
+                    const showing =
+                        this.workbenchLayout.getBottomPanelVisible() && this.panelController.isTerminalActive();
+                    if (showing) {
+                        this.setPanelVisible(false);
+                    } else {
+                        this.panelController.showTerminal();
+                        this.setPanelVisible(true);
+                        this.terminalController.openTerminal();
+                        this.updateContextKeys();
+                    }
+                },
+            }),
+        );
+        // С зажатым Shift Kitty может слать shifted codepoint (`~`) вместо базового `` ` `` —
+        // зависит от терминала, поэтому регистрируем обе формы: Ctrl+Shift+` и Ctrl+Shift+~.
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.terminal.new",
+                title: "Terminal: Create New Terminal",
+                keybindings: [
+                    { keys: parseKeybinding("ctrl+shift+`"), when: "tier == 'kitty' || tier == 'csi-u'" },
+                    { keys: parseKeybinding("ctrl+shift+~"), when: "tier == 'kitty' || tier == 'csi-u'" },
+                ],
+                run: () => {
+                    this.panelController.showTerminal();
+                    this.setPanelVisible(true);
+                    this.terminalController.newTerminal();
+                    this.updateContextKeys();
+                },
+            }),
+        );
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...fileDeleteAction,
@@ -1103,6 +1148,7 @@ export class AppController extends Disposable implements IController {
         this.diagnosticsController.mount();
         this.panelController.mount();
         this.problemsController.mount();
+        this.terminalController.mount();
         // Применяем сохранённый layout до первого кадра (run() идёт после mount()).
         // Workspace-стор уже открыт: setWorkspaceFolder вызывается до mount().
         this.workbenchState.restoreLayout();
@@ -1157,6 +1203,8 @@ export class AppController extends Disposable implements IController {
 
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
+        // Новые терминалы спавнятся в папке воркспейса.
+        this.terminalController.setWorkingDirectory(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
         // Открыть per-project стор состояния для этой папки (переключение флашит
         // предыдущий). Дальше layout/открытые файлы читаются/пишутся в него.
@@ -1448,6 +1496,8 @@ export class AppController extends Disposable implements IController {
         this.contextKeys.set("panelVisible", this.workbenchLayout.getBottomPanelVisible());
         this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
         this.contextKeys.set("suggestWidgetVisible", this.completionController.isOpen());
+        this.contextKeys.set("terminalFocus", active instanceof TerminalViewElement);
+        this.contextKeys.set("terminalIsOpen", this.terminalController.hasOpenTerminals);
 
         // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
         // but mode can be force-toggled at runtime, so refresh alongside focus context.
@@ -1539,6 +1589,7 @@ export class AppController extends Disposable implements IController {
                     sep(),
                     item("Explorer", "workbench.view.explorer"),
                     item("Problems", "workbench.actions.view.problems"),
+                    item("Terminal", "workbench.action.terminal.toggleTerminal"),
                     item("Toggle Primary Side Bar", "workbench.action.toggleSidebarVisibility"),
                     item("Toggle Panel", "workbench.action.togglePanel"),
                     sep(),

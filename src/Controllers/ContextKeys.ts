@@ -91,8 +91,10 @@ export interface ContextKeyTypes {
     // inDebugRepl: boolean;
 
     // -- Integrated terminal contexts --
-    // terminalFocus: boolean;
-    // terminalIsOpen: boolean;
+    /** True while an integrated terminal widget has keyboard focus. */
+    terminalFocus: boolean;
+    /** True while at least one integrated terminal instance is open. */
+    terminalIsOpen: boolean;
 
     // -- Global UI contexts --
     // notificationFocus: boolean;
@@ -228,8 +230,8 @@ export const allContextKeys: ContextKey[] = [
     // "inDebugRepl",
 
     // -- Integrated terminal contexts --
-    // "terminalFocus",
-    // "terminalIsOpen",
+    "terminalFocus",
+    "terminalIsOpen",
 
     // -- Global UI contexts --
     // "notificationFocus",

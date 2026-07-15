@@ -57,6 +57,10 @@ const darkDefaults: Record<string, string> = {
     "panelTitle.activeForeground": "#E7E7E7",
     "panelTitle.inactiveForeground": "#8E8E8E",
 
+    // ── Integrated Terminal ─────────────────────────────────
+    "terminal.background": "#181818",
+    "terminal.foreground": "#CCCCCC",
+
     // ── Editor groups & tabs ────────────────────────────────
     "editorGroupHeader.tabsBackground": "#252526",
     "tab.activeBackground": "#1E1E1E",
@@ -146,6 +150,10 @@ const lightDefaults: Record<string, string> = {
     "panelTitle.activeBorder": "#3B3B3B",
     "panelTitle.activeForeground": "#3B3B3B",
     "panelTitle.inactiveForeground": "#8C8C8C",
+
+    // ── Integrated Terminal ─────────────────────────────────
+    "terminal.background": "#F8F8F8",
+    "terminal.foreground": "#333333",
 
     // ── Editor groups & tabs ────────────────────────────────
     "editorGroupHeader.tabsBackground": "#F8F8F8",

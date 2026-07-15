@@ -246,6 +246,13 @@ describe("parseInput", () => {
         expect(events).toEqual([kp("A", "\x1b[97;2u", { shiftKey: true, code: "KeyA" })]);
     });
 
+    // The integrated-terminal toggle (Ctrl+`) is only reachable under CSI-u/Kitty —
+    // legacy terminals collapse Ctrl+` to NUL. Pin the parse so the binding stays live.
+    it("parses Kitty CSI u: Ctrl+` (\\x1b[96;5u)", () => {
+        const events = parseInput("\x1b[96;5u");
+        expect(events).toEqual([kp("`", "\x1b[96;5u", { ctrlKey: true, code: "Backquote" })]);
+    });
+
     it("parses Kitty CSI u: Shift+Alt+a (\\x1b[97;4u)", () => {
         const events = parseInput("\x1b[97;4u");
         expect(events).toEqual([kp("A", "\x1b[97;4u", { shiftKey: true, altKey: true, code: "KeyA" })]);

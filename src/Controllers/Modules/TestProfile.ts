@@ -1,5 +1,7 @@
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
+import { FakeTerminalSurface } from "../../TestUtils/FakeTerminalSurface.ts";
+import { TerminalSessionFactoryDIToken } from "../Terminal/TerminalSessionFactory.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
@@ -59,6 +61,11 @@ export function createTestContainer(): TestContainerHandle {
         .use(fileWatcherModuleDefault)
         .use(markersModule, { settingsResource: null, keybindingsResource: null })
         .use(controllersModule);
+
+    // Перебиваем прод-фабрику терминальных сессий на фейк: тесты не спавнят реальные
+    // PTY. Каждый вызов возвращает свежий FakeTerminalSurface; тесты, которым нужен
+    // доступ к созданным инстансам, перебивают биндинг локально своей фабрикой.
+    container.bind(TerminalSessionFactoryDIToken, () => () => new FakeTerminalSurface());
 
     return {
         container,

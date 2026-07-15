@@ -7,6 +7,9 @@ import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWid
 import { PanelController, PanelControllerDIToken } from "../PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "../ProblemsController.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarController.ts";
+import { EmbeddedTerminalSession } from "../Terminal/EmbeddedTerminalSession.ts";
+import { TerminalSessionFactoryDIToken } from "../Terminal/TerminalSessionFactory.ts";
+import { TerminalController, TerminalControllerDIToken } from "../TerminalController.ts";
 
 /**
  * Контроллеры верхнего уровня. Зависят от `commandsModule`,
@@ -20,6 +23,10 @@ export const controllersModule: ContainerModule = (container) => {
     container.bind(DiagnosticsControllerDIToken, DiagnosticsController);
     container.bind(PanelControllerDIToken, PanelController);
     container.bind(ProblemsControllerDIToken, ProblemsController);
+    // Прод-фабрика сессий: реальная связка node-pty + @xterm/headless. Тестовый
+    // профиль перебивает биндинг на FakeTerminalSurface (см. TestProfile).
+    container.bind(TerminalSessionFactoryDIToken, () => (options) => new EmbeddedTerminalSession(options));
+    container.bind(TerminalControllerDIToken, TerminalController);
     container.bind(InputWidgetControllerDIToken, InputWidgetController);
     container.bind(AppControllerDIToken, AppController);
     // Минимальный шов: FileTreeController создаётся внутри AppController — отдаём

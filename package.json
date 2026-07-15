@@ -19,6 +19,7 @@
     "demo:raw-events": "node src/demos/tokenizeDemo.ts",
     "demo:renderer": "node src/demos/rendererDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
+    "demo:terminal": "tsx src/demos/terminal/terminalHost.ts",
     "story": "tsx src/StoryRunner/run.ts",
     "screenshots": "tsx e2e/scenarios/generate.ts",
     "build": "tsup",
@@ -47,7 +48,6 @@
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "jiti": "^2.6.1",
-    "node-pty": "^1.1.0",
     "prettier": "^3.8.1",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
@@ -58,9 +58,11 @@
     "yazl": "^3.3.1"
   },
   "dependencies": {
+    "@xterm/headless": "^6.0.0",
     "chokidar": "^5.0.0",
     "iconv-lite": "^0.7.3",
     "jsonc-parser": "^3.3.1",
+    "node-pty": "^1.1.0",
     "vscode-oniguruma": "^2.0.1",
     "vscode-textmate": "^9.3.2",
     "vscode-uri": "^3.1.0",

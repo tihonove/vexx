@@ -657,12 +657,12 @@ export interface IWorkbenchColors {
     // "quickInputList.focusBackground"?: number;
 
     // ── Integrated Terminal colors ──────────────────────────
-    // /** The background of the Integrated Terminal's viewport. */
-    // "terminal.background"?: number;
+    /** The background of the Integrated Terminal's viewport. */
+    "terminal.background"?: number;
     // /** The color of the border that separates split panes within the terminal. */
     // "terminal.border"?: number;
-    // /** The default foreground color of the Integrated Terminal. */
-    // "terminal.foreground"?: number;
+    /** The default foreground color of the Integrated Terminal. */
+    "terminal.foreground"?: number;
     // /** 'Black' ANSI color in the terminal. */
     // "terminal.ansiBlack"?: number;
     // /** 'Blue' ANSI color in the terminal. */

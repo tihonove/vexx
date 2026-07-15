@@ -72,6 +72,7 @@ export default defineConfig({
         "src/Common/IsSea.ts", // node:sea, только в SEA-бинаре
         "src/Common/Assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
         "src/Common/Assets/PackagedRuntime.ts", // node:sea + резолв import.meta.url; I/O-часть — в BundleFile.ts (юниты)
+        "src/Controllers/Terminal/loadNodePty.ts", // SEA-путь загрузки нативного node-pty: node:sea + распаковка .node в tmp + dlopen; e2e — terminal.scenario.ts на реальном SEA-бинаре
         "src/Extensions/Host/ExtensionHostSubprocess.ts", // точка входа subprocess + IPC
         "src/Extensions/builtin/git/main.ts", // extension entry (subprocess IO/glue); логика — в git/lib/* (юниты), e2e — интеграция
         "src/Extensions/builtin/vexx-settings/main.ts", // extension entry (грузится в subprocess); поведение — в ExtensionHost.SettingsCompletion.test.ts + e2e
