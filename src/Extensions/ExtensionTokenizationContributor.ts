@@ -66,8 +66,10 @@ export class ExtensionTokenizationContributor implements IDisposable {
             const languageId = grammar.language;
             const scopeName = grammar.scopeName;
             this.registrationDisposables.push(
+                // Фабрика не может стартовать после dispose(): он снимает
+                // lazy-записи из реестра, и load() до неё уже не доходит.
+                // Флаг disposed нужен только для in-flight-случая ниже.
                 this.tokenizationRegistry.registerLazy(languageId, async () => {
-                    if (this.disposed) return null;
                     try {
                         const support = await loader.loadSupport(scopeName);
                         if (support === null) {
