@@ -24,6 +24,21 @@ export const convertToCrlfAction: CommandAction = {
     },
 };
 
+/**
+ * Open the EOL picker (VS Code `workbench.action.editor.changeEOL`): a quick
+ * pick with LF / CRLF. The real handler is installed by `AppController`; this
+ * only declares id / title.
+ */
+export const changeEolAction: CommandAction = {
+    id: "workbench.action.editor.changeEOL",
+    title: "Change End of Line Sequence",
+    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime */
+    run() {
+        // Overridden in AppController
+    },
+    /* v8 ignore stop */
+};
+
 export const toggleEolAction: CommandAction = {
     id: "workbench.action.editor.toggleEOL",
     title: "End of Line: Toggle LF / CRLF",
