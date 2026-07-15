@@ -143,7 +143,9 @@ export function decodeBuffer(buffer: Buffer, explicitEncoding?: string): { text:
         encoding = sniffed ?? DEFAULT_ENCODING;
     }
 
-    const info = encodingsById.get(encoding) ?? encodingsById.get(DEFAULT_ENCODING)!;
+    // По построению encoding здесь всегда табличный id: explicit проверен через
+    // has(), значения снифа и DEFAULT_ENCODING — элементы таблицы.
+    const info = encodingsById.get(encoding)!;
     const body = info.bom !== undefined && startsWithBytes(buffer, info.bom) ? buffer.subarray(info.bom.length) : buffer;
     return { text: iconv.decode(body, info.iconvName, { stripBOM: false }), encoding: info.id };
 }

@@ -178,6 +178,17 @@ describe("EditorController — encoding axis", () => {
         controller.dispose();
     });
 
+    it("повторный dispose подписки onDidChangeEncoding безопасен", () => {
+        const controller = createEditorController();
+        let fired = 0;
+        const subscription = controller.onDidChangeEncoding(() => fired++);
+        subscription.dispose();
+        subscription.dispose(); // второй dispose: слушателя уже нет в списке
+        controller.setEncoding("koi8r");
+        expect(fired).toBe(0);
+        controller.dispose();
+    });
+
     it("revertToDisk пере-детектит кодировку (BOM-сниф, не прежний выбор)", () => {
         const controller = createEditorController();
         const fp = writeBytes("redetect.txt", iconv.encode("текст\n", "windows1251"));

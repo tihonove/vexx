@@ -180,7 +180,11 @@ export class StatusBarController extends Disposable implements IController {
      */
     private encodingSegment(editor: EditorController | null): string | null {
         if (editor === null) return null;
-        return getEncodingInfo(editor.encoding)?.statusLabel ?? editor.encoding;
+        const info = getEncodingInfo(editor.encoding);
+        /* v8 ignore start -- defensive: editor.encoding всегда табличный id (setEncoding валидирует, decodeBuffer возвращает элементы SUPPORTED_ENCODINGS) */
+        if (info === undefined) return editor.encoding;
+        /* v8 ignore stop */
+        return info.statusLabel;
     }
 
     /** VS Code-style end-of-line indicator: "LF" or "CRLF". */

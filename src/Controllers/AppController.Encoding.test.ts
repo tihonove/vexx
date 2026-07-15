@@ -3,6 +3,8 @@ import * as fs from "node:fs";
 import iconv from "iconv-lite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { EndOfLine } from "../Editor/EndOfLine.ts";
+
 import { StatusBarControllerDIToken } from "./StatusBarController.ts";
 
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
@@ -130,6 +132,61 @@ describe("AppController — Change File Encoding", () => {
         expect(h.activeEditor().encoding).toBe("windows1251");
     });
 
+    it("без активного редактора команда — no-op (пикер не открывается)", async () => {
+        h.commands.execute("workbench.action.editor.changeEncoding");
+        await flushMicrotasks();
+        h.testApp.render();
+
+        const pickers = h.testApp.querySelectorAll("QuickPickElement") as QuickPickElement[];
+        expect(pickers.every((p) => p.items.length === 0)).toBe(true);
+    });
+
+    it("Save with Encoding у безымянного буфера уводит в Save As с выставленной кодировкой", async () => {
+        h.commands.execute("workbench.action.files.newUntitledFile");
+        h.testApp.render();
+        h.activeEditor().viewState.type("Ёлка");
+
+        h.commands.execute("workbench.action.editor.changeEncoding");
+        await flushMicrotasks();
+        await pick(h, "Save with Encoding");
+        await pick(h, "Cyrillic (Windows 1251)");
+
+        // Кодировка уже на редакторе, путь спрашивает Save As InputBox.
+        expect(h.activeEditor().encoding).toBe("windows1251");
+        const pickers = h.testApp.querySelectorAll("QuickPickElement") as QuickPickElement[];
+        const input = pickers.find((p) => p.getQuery().length > 0);
+        expect(input).toBeDefined();
+
+        const target = ws.path("untitled-out.txt");
+        input!.setQuery(target);
+        h.testApp.sendKey("Enter");
+        await flushMicrotasks();
+
+        expect([...fs.readFileSync(target)]).toEqual([...iconv.encode("Ёлка", "windows1251")]);
+    });
+
+    it("Save with Encoding при внешнем изменении файла — Overwrite-диалог", async () => {
+        const filePath = ws.path("plain.txt");
+        h.commands.execute("workbench.openFile", filePath);
+        h.testApp.render();
+        // Внешняя правка после открытия: save() должен увидеть конфликт.
+        fs.writeFileSync(filePath, "external edit that changes size\n", "utf-8");
+
+        h.commands.execute("workbench.action.editor.changeEncoding");
+        await flushMicrotasks();
+        await pick(h, "Save with Encoding");
+        await pick(h, "Cyrillic (Windows 1251)");
+
+        // Файл не перезаписан — ждёт подтверждения.
+        expect(fs.readFileSync(filePath, "utf-8")).toBe("external edit that changes size\n");
+        const dialog = h.testApp.querySelector("ConfirmDialogElement") as ConfirmDialogElement | null;
+        expect(dialog).not.toBeNull();
+
+        dialog!.onConfirm?.();
+        await flushMicrotasks();
+        expect([...fs.readFileSync(filePath)]).toEqual([...iconv.encode("Ёлка\n", "windows1251")]);
+    });
+
     it("Escape на любом уровне ничего не меняет", async () => {
         const filePath = ws.path("plain.txt");
         const before = [...fs.readFileSync(filePath)];
@@ -173,5 +230,40 @@ describe("AppController — Change End of Line Sequence", () => {
         expect(editor.eol).toBe(2); // EndOfLine.CRLF
         const items = h.container.get(StatusBarControllerDIToken).view.getItems().map((item) => item.text);
         expect(items).toContain("CRLF");
+    });
+
+    it("выбор LF возвращает EOL обратно", async () => {
+        h.commands.execute("workbench.openFile", ws.path("a.txt"));
+        h.testApp.render();
+        h.activeEditor().setEol(EndOfLine.CRLF);
+
+        h.commands.execute("workbench.action.editor.changeEOL");
+        await flushMicrotasks();
+        // Запрос "LF" матчит и "LF", и "CRLF" — активным становится первый (LF).
+        await pick(h, "LF");
+
+        expect(h.activeEditor().eol).toBe(1); // EndOfLine.LF
+    });
+
+    it("Escape не меняет EOL", async () => {
+        h.commands.execute("workbench.openFile", ws.path("a.txt"));
+        h.testApp.render();
+
+        h.commands.execute("workbench.action.editor.changeEOL");
+        await flushMicrotasks();
+        h.testApp.render();
+        h.testApp.sendKey("Escape");
+        await flushMicrotasks();
+
+        expect(h.activeEditor().eol).toBe(1);
+    });
+
+    it("без активного редактора команда — no-op", async () => {
+        h.commands.execute("workbench.action.editor.changeEOL");
+        await flushMicrotasks();
+        h.testApp.render();
+
+        const pickers = h.testApp.querySelectorAll("QuickPickElement") as QuickPickElement[];
+        expect(pickers.every((p) => p.items.length === 0)).toBe(true);
     });
 });
