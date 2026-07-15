@@ -143,14 +143,17 @@ describe("FileSearchService — integration against real project", () => {
             expect(top5.some((p) => p.includes("KeybindingRegistry.ts"))).toBe(true);
         });
 
-        it("basename match ranks above path-only match", () => {
-            // "sc" query: ScrollContainerElement (basename) vs path-only matches
+        it('"sc": files sharing the Scroll* prefix score alike', () => {
+            // Ранее тут стояло «ScrollContainerElement.ts в топ-10». Это кодировало
+            // размер репозитория, а не качество ранжирования: любой новый файл с более
+            // плотным «sc» (напр. settingsContext.ts) сдвигает индекс, ничего не ломая.
+            // Сверяем счёт, а не позицию.
             const results = service.search("sc");
-            const scrollIdx = results.findIndex((r) => r.entry.relativePath.includes("ScrollContainerElement.ts"));
-            if (scrollIdx !== -1) {
-                // ScrollContainerElement.ts should be in top 10
-                expect(scrollIdx).toBeLessThan(10);
-            }
+            const container = scoreOf(results, "ScrollContainerElement.ts");
+            const renderer = scoreOf(results, "ScrollBarRenderer.ts");
+            expect(container).toBeDefined();
+            // Оба начинаются со `Scroll` — префикс матчится одинаково, счёт совпадает.
+            expect(container).toBe(renderer);
         });
 
         it("results are sorted by score descending", () => {
