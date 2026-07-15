@@ -56,8 +56,9 @@
 | `version` | Возвращает версию **Vexx**, а не VS Code (upstream JSDoc говорит «editor»). |
 | `Event<T>` | Слушатель `(e) => any` (upstream); хост оборачивает подписки через `EventEmitterImpl` в `Vscode/VscodeTypes.ts`. |
 | `TextEditorOptions.indentSize` | Хост алиасит его к `tabSize` (Vexx пока не различает); editorconfig шлёт `indent_size` так. |
-| `workspace.openTextDocument(…, { encoding })` | `encoding` принимается для совместимости, но ядро utf-8-only — при несовпадении graceful degrade с предупреждением. |
 | Namespaces / value-типы | Рантайм может опережать/отставать от типов; поверхность собирается в `Vscode/*` и отдаётся как `as unknown as typeof vscode.*`. |
+
+**Кодировки (#106).** `workspace.openTextDocument(…, { encoding })` реально декодирует не-utf8 файлы осью encoding ядра (`src/Editor/Encoding.ts`): explicit-кодировка побеждает BOM-сниф, неизвестный id молча откатывается к дефолту (контракт vscode.d.ts); эфемерный документ детектит и `encoding`, и `eol`. `ExtHostTextDocument.encoding`/`.eol` — живые: обновляются метой `editor.activeEditorChanged` и снапшотом will-save (`IWireWillSaveParams.encoding`). Дормантные `workspace.decode`/`encode` не раскомментированы (не понадобились).
 
 **Зависимости:** Extensions → Editor (через `ILanguageService`, `TextMateGrammarLoader`, `TokenizationRegistry`), Common. Подмодуль **`Extensions/Host` дополнительно → Controllers** (адаптеры над `EditorGroupController`/`FileTreeController`) и **→ Theme** (`ThemeColorResolverAdapter` над `ThemeService`) — единственное место, где Extensions поднимается выше Controllers.
 

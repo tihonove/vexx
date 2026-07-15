@@ -23,6 +23,10 @@ export interface IActiveEditorMeta {
     readonly uri: string | null;
     readonly languageId: string | null;
     readonly isDirty: boolean;
+    /** Кодировка дискового представления (id из SUPPORTED_ENCODINGS); `null` — нет редактора. */
+    readonly encoding: string | null;
+    /** Текущий EOL (`vscode.EndOfLine`: 1=LF, 2=CRLF); `null` — нет редактора. */
+    readonly eol: 1 | 2 | null;
 }
 
 import type { IDisposable } from "../../Common/Disposable.ts";

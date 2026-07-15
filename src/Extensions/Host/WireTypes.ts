@@ -32,6 +32,8 @@ export interface IWireWillSaveParams {
     readonly reason: number;
     /** Текущий EOL документа (`vscode.EndOfLine`: 1=LF, 2=CRLF). */
     readonly eol: number;
+    /** Кодировка дискового представления (id из SUPPORTED_ENCODINGS, напр. "windows1251"). */
+    readonly encoding?: string;
 }
 
 function isFiniteNumber(v: unknown): v is number {

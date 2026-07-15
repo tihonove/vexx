@@ -53,6 +53,27 @@ describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
         }
     });
 
+    it("document.encoding в участнике отражает кодировку ядрового документа (#106)", async () => {
+        const harness = await createExtensionTestHarness({
+            initialFile: { name: "enc.txt", content: "body\n" },
+            extensions: [extensionFixture("test.willSaveEncoding", "willSaveEchoEncoding.cjs")],
+        });
+        try {
+            await settle();
+            const editor = harness.group.getActiveEditor();
+            expect(editor).not.toBeNull();
+            editor?.setEncoding("windows1251");
+
+            await editor?.save();
+
+            const fp = path.join(harness.tmpDir, "enc.txt");
+            // Файл записан в cp1251; для ASCII-содержимого байты совпадают с utf-8.
+            expect(fs.readFileSync(fp, "utf-8")).toBe("encoding=windows1251\nbody\n");
+        } finally {
+            await harness.dispose();
+        }
+    });
+
     it("делегирование встроенной команде во время will-save (вложенный executeCommand)", async () => {
         const harness = await createExtensionTestHarness({
             initialFile: { name: "delegate.txt", content: "one  \ntwo\t\n" },

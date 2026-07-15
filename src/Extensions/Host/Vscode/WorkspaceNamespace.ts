@@ -2,6 +2,8 @@ import * as nodeFs from "node:fs/promises";
 
 import type * as vscode from "vscode";
 
+import { decodeBuffer } from "../../../Editor/Encoding.ts";
+import { detectEndOfLine, EndOfLine as CoreEndOfLine } from "../../../Editor/EndOfLine.ts";
 import type { WireTextEdit } from "../WireTypes.ts";
 
 import { ExtHostTextDocument } from "./ExtHostDocuments.ts";
@@ -31,12 +33,6 @@ function listenerTimeout(): Promise<readonly TextEdit[]> {
     });
 }
 
-/** utf-8 — единственная реально поддерживаемая кодировка (ядро utf-8-only). */
-function isUtf8(encoding: string): boolean {
-    const normalized = encoding.toLowerCase().replace(/[-_]/g, "");
-    return normalized === "utf8";
-}
-
 /** Сериализует `vscode.TextEdit` в wire-форму (subprocess → host). */
 function serializeTextEdit(edit: TextEdit): WireTextEdit {
     if (edit.newEol !== undefined) {
@@ -63,6 +59,8 @@ interface IWireWillSaveParams {
     readonly reason?: number;
     /** `vscode.EndOfLine`: 1=LF, 2=CRLF. */
     readonly eol?: number;
+    /** Кодировка дискового представления (id вида "utf8"/"windows1251"). */
+    readonly encoding?: string;
 }
 
 /** Папка воркспейса, полученная из `workspace.initialize`. */
@@ -141,6 +139,7 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
             isDirty: p.isDirty,
             text: p.text ?? "",
             ...(p.eol === 1 || p.eol === 2 ? { eol: p.eol } : {}),
+            ...(typeof p.encoding === "string" ? { encoding: p.encoding } : {}),
         });
         const thenables: Thenable<readonly vscode.TextEdit[]>[] = [];
         let collecting = true;
@@ -244,19 +243,19 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
         // (у не-file схем это не путь).
         if (uri.scheme !== "file") throw FileSystemError.Unavailable(uri as unknown as vscode.Uri);
 
-        // Ядро Vexx utf-8/LF-only, поэтому encoding принимается, но фактически
-        // используется utf-8: при несовпадении graceful degrade с предупреждением
-        // в лог хоста.
-        const encoding = options?.encoding;
-        if (encoding !== undefined && !isUtf8(encoding)) {
-            rpc.notify("window.showMessage", {
-                severity: "warn",
-                message: `openTextDocument("${uri.fsPath}"): encoding "${encoding}" is not supported, reading as utf-8`,
-            });
-        }
-        const text = await nodeFs.readFile(uri.fsPath, "utf8");
+        // Читаем сырые байты и декодируем осью encoding ядра: explicit-кодировка
+        // из options побеждает BOM-сниф; неизвестный id по контракту vscode.d.ts
+        // молча откатывается к дефолтному пути (BOM-сниф → utf-8). EOL для
+        // эфемерного документа детектим из текста — как делает ядро.
+        const buffer = await nodeFs.readFile(uri.fsPath);
+        const { text, encoding } = decodeBuffer(buffer, options?.encoding);
         const doc = new ExtHostTextDocument(uri);
-        doc.applyFull({ uri: uri.toString(), text });
+        doc.applyFull({
+            uri: uri.toString(),
+            text,
+            encoding,
+            eol: detectEndOfLine(text) === CoreEndOfLine.CRLF ? EndOfLine.CRLF : EndOfLine.LF,
+        });
         return doc as unknown as vscode.TextDocument;
     }
 

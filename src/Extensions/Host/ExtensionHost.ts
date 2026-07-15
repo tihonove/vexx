@@ -338,6 +338,7 @@ export class ExtensionHost extends Disposable {
                 text: snapshot.text,
                 reason: 1, // TextDocumentSaveReason.Manual
                 eol: snapshot.eol,
+                encoding: snapshot.encoding,
             },
             this.options.willSaveTimeoutMs,
         );

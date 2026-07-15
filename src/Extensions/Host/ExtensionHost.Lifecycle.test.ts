@@ -102,7 +102,13 @@ class FakeEditorOptions implements IEditorOptionsService {
         return this.filePath;
     }
     public getActiveEditorMeta(): IActiveEditorMeta {
-        return { uri: this.filePath === null ? null : Uri.file(this.filePath).toString(), languageId: null, isDirty: false };
+        return {
+            uri: this.filePath === null ? null : Uri.file(this.filePath).toString(),
+            languageId: null,
+            isDirty: false,
+            encoding: null,
+            eol: null,
+        };
     }
     public onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable {
         this.cb = cb;
@@ -113,7 +119,7 @@ class FakeEditorOptions implements IEditorOptionsService {
         };
     }
     public fireActiveEditorChanged(p: string | null): void {
-        this.cb?.({ uri: p === null ? null : Uri.file(p).toString(), languageId: null, isDirty: false });
+        this.cb?.({ uri: p === null ? null : Uri.file(p).toString(), languageId: null, isDirty: false, encoding: null, eol: null });
     }
 }
 

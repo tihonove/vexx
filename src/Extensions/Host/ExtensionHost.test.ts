@@ -27,7 +27,7 @@ class FakeOptionsService implements IEditorOptionsService {
         return null;
     }
     public getActiveEditorMeta(): IActiveEditorMeta {
-        return { uri: null, languageId: null, isDirty: false };
+        return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null };
     }
     public onActiveEditorChanged(_cb: (meta: IActiveEditorMeta) => void): { dispose(): void } {
         return { dispose: () => {} };
