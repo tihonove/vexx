@@ -140,6 +140,117 @@ describe("QuickPickElement — ArrowDown / ArrowUp navigation", () => {
     });
 });
 
+// ─── PageDown / PageUp navigation ────────────────────────────────────────────
+
+describe("QuickPickElement — PageDown / PageUp navigation", () => {
+    it("PageDown moves the selection down by one visible page", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 3;
+        picker.items = makeItems(10);
+        const app = createApp(picker, new Size(40, 7));
+
+        app.sendKey("PageDown");
+        expect(picker.selectedIndex).toBe(3);
+        app.sendKey("PageDown");
+        expect(picker.selectedIndex).toBe(6);
+    });
+
+    it("PageUp moves the selection back up by one visible page", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 3;
+        picker.items = makeItems(10);
+        const app = createApp(picker, new Size(40, 7));
+
+        app.sendKey("PageDown");
+        app.sendKey("PageDown");
+        expect(picker.selectedIndex).toBe(6);
+        app.sendKey("PageUp");
+        expect(picker.selectedIndex).toBe(3);
+    });
+
+    it("pages by the shorter list length when it is smaller than maxVisibleItems", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 10;
+        picker.items = makeItems(4);
+        const app = createApp(picker);
+
+        // A page is the visible row count (4), not maxVisibleItems (10) — the
+        // clamp lands it on the last item either way, so check PageUp symmetry.
+        app.sendKey("PageDown");
+        expect(picker.selectedIndex).toBe(3);
+        app.sendKey("PageUp");
+        expect(picker.selectedIndex).toBe(0);
+    });
+
+    it("PageDown clamps at the last item (no wrap)", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 3;
+        picker.items = makeItems(5);
+        const app = createApp(picker, new Size(40, 7));
+
+        app.sendKey("PageDown"); // 0 → 3
+        app.sendKey("PageDown"); // 3 → 6, clamped to 4
+        expect(picker.selectedIndex).toBe(4);
+        app.sendKey("PageDown"); // already at the end
+        expect(picker.selectedIndex).toBe(4);
+    });
+
+    it("PageUp clamps at the first item (no wrap)", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 3;
+        picker.items = makeItems(5);
+        const app = createApp(picker, new Size(40, 7));
+
+        app.sendKey("PageUp"); // already at 0
+        expect(picker.selectedIndex).toBe(0);
+    });
+
+    it("keeps the paged-to row visible", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 3;
+        picker.items = makeItems(10);
+        const app = createApp(picker, new Size(40, 7));
+
+        app.sendKey("PageDown");
+        app.sendKey("PageDown");
+        expect(picker.selectedIndex).toBe(6);
+
+        app.render();
+        expect(app.backend.screenToString()).toContain("item-7"); // index 6
+    });
+
+    it("fires onActiveItemChanged with the paged-to item", () => {
+        const picker = new QuickPickElement();
+        picker.maxVisibleItems = 3;
+        picker.items = makeItems(10);
+        const app = createApp(picker, new Size(40, 7));
+        const onActive = vi.fn();
+        picker.onActiveItemChanged = onActive;
+
+        app.sendKey("PageDown");
+        expect(onActive).toHaveBeenCalledExactlyOnceWith({ label: "item-4" }, 3);
+    });
+
+    it("paging does nothing when the items list is empty", () => {
+        const picker = new QuickPickElement();
+        picker.items = [];
+        const app = createApp(picker);
+
+        app.sendKey("PageDown");
+        app.sendKey("PageUp");
+        expect(picker.selectedIndex).toBe(0);
+    });
+
+    it("PageDown does not leak into the query input", () => {
+        const picker = new QuickPickElement();
+        picker.items = makeItems(10);
+        const app = createApp(picker);
+
+        app.sendKey("PageDown");
+        expect(picker.getQuery()).toBe("");
+    });
+});
+
 // ─── Scroll behaviour ────────────────────────────────────────────────────────
 
 describe("QuickPickElement — scroll on navigation", () => {
