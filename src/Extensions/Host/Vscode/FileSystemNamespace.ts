@@ -14,6 +14,11 @@ import { FileSystemError, FileType } from "./VscodeTypes.ts";
  * только `stat`/`readFile`/`writeFile` — минимум, нужный команде
  * `EditorConfig.generate` и чтению `.editorconfig` с диска.
  *
+ * Обслуживаем **только схему `file`**: в VS Code это роутер по `uri.scheme`
+ * (`vscode-remote:`, `vscode-vfs:`, кастомные провайдеры), у нас же есть лишь
+ * локальный диск. Прочие схемы получают `FileSystemError.Unavailable` — честный
+ * отказ вместо чтения/записи мусора мимо схемы.
+ *
  * Ошибки `node` маппятся в {@link FileSystemError} с тем же `code`, что и в
  * VS Code, чтобы расширения ловили их по `err.code === "FileNotFound"`.
  */
@@ -35,6 +40,19 @@ export function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
     }
 }
 
+/**
+ * Гейт схемы: `workspace.fs` в VS Code — роутер по `uri.scheme`, а у нас есть только
+ * локальный диск. Для не-`file` ресурса честно отказываем, а не читаем/пишем
+ * `uri.fsPath` как локальный путь.
+ *
+ * Без этого гейта промах тихий и разрушительный: `fsPath` у не-file схемы не бросает,
+ * а отдаёт путь как есть (`untitled:Untitled-1` → `"Untitled-1"`), поэтому `writeFile`
+ * создавал бы `$CWD/Untitled-1` вместо ошибки.
+ */
+function assertFileScheme(uri: vscode.Uri): void {
+    if (uri.scheme !== "file") throw FileSystemError.Unavailable(uri);
+}
+
 /** Минимум `fs.Stats`, нужный для определения {@link FileType}. */
 interface IStatKind {
     isFile(): boolean;
@@ -52,6 +70,7 @@ export function fileTypeFromStats(s: IStatKind): FileType {
 
 export function createFileSystemNamespace(): IFileSystemNamespace {
     async function stat(uri: vscode.Uri): Promise<vscode.FileStat> {
+        assertFileScheme(uri);
         try {
             const s = await fs.stat(uri.fsPath);
             return {
@@ -66,6 +85,7 @@ export function createFileSystemNamespace(): IFileSystemNamespace {
     }
 
     async function readFile(uri: vscode.Uri): Promise<Uint8Array> {
+        assertFileScheme(uri);
         try {
             return await fs.readFile(uri.fsPath);
         } catch (err) {
@@ -74,6 +94,7 @@ export function createFileSystemNamespace(): IFileSystemNamespace {
     }
 
     async function writeFile(uri: vscode.Uri, content: Uint8Array): Promise<void> {
+        assertFileScheme(uri);
         try {
             // VS Code создаёт недостающие родительские папки при записи.
             await fs.mkdir(path.dirname(uri.fsPath), { recursive: true });

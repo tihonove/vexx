@@ -4,7 +4,7 @@ import { EndOfLine, Position, Range, Uri } from "./VscodeTypes.ts";
  * Реестр документов на стороне subprocess со СТАБИЛЬНОЙ идентичностью.
  *
  * editorconfig сравнивает документы по ссылке (`activeTextEditor.document ===
- * doc`), поэтому на один `fileName` должен приходиться ровно один
+ * doc`), поэтому на один ресурс должен приходиться ровно один
  * {@link ExtHostTextDocument}, живущий весь жизненный цикл сессии.
  * Обновления метаданных/текста мутируют существующий объект, а не создают новый.
  *
@@ -14,7 +14,8 @@ import { EndOfLine, Position, Range, Uri } from "./VscodeTypes.ts";
 
 /** Метаданные документа (путь active-editor-change; без текста). */
 export interface ExtHostDocumentMeta {
-    readonly fileName: string;
+    /** Ресурс документа как `uri.toString()` — идентичность, из неё выводится `fileName`. */
+    readonly uri: string;
     readonly languageId?: string;
     readonly isDirty?: boolean;
 }
@@ -38,11 +39,25 @@ export interface TextLine {
 
 /** Стабильный объект документа. Идентичность сохраняется между upsert'ами. */
 export class ExtHostTextDocument {
-    public readonly fileName: string;
+    /** Идентичность ресурса — источник правды, как в `vscode.TextDocument.uri`. */
     public readonly uri: Uri;
-    public readonly isUntitled = false;
     public readonly isClosed = false;
     public readonly encoding = "utf8";
+
+    /**
+     * Путь ресурса на ФС. По спецификации (`vscode.d.ts`) это shorthand для
+     * `uri.fsPath`, «independent of the uri scheme» — то есть производное от uri,
+     * а не наоборот.
+     */
+    public get fileName(): string {
+        return this.uri.fsPath;
+    }
+
+    /** Безымянный буфер — это схема `untitled:`, а не отдельный флаг. */
+    public get isUntitled(): boolean {
+        return this.uri.scheme === "untitled";
+    }
+
     /** Отражает EOL ядрового документа: обновляется из снапшота на will-save. */
     public eol: EndOfLine = EndOfLine.LF;
 
@@ -53,9 +68,8 @@ export class ExtHostTextDocument {
     private text = "";
     private lineCache: string[] | null = null;
 
-    public constructor(fileName: string) {
-        this.fileName = fileName;
-        this.uri = Uri.file(fileName);
+    public constructor(uri: Uri) {
+        this.uri = uri;
     }
 
     /** Обновляет метаданные без смены текста/версии (active-editor-change). */
@@ -126,32 +140,37 @@ function firstNonWhitespace(text: string): number {
     return text.length;
 }
 
-/** Реестр `Map<fileName, ExtHostTextDocument>` со стабильной идентичностью. */
+/**
+ * Реестр `Map<uri.toString(), ExtHostTextDocument>` со стабильной идентичностью.
+ * Ключ — ресурс, а не путь: путь у не-file схем неоднозначен, а `Map` всё равно
+ * сравнивает только строки.
+ */
 export class DocumentRegistry {
     private readonly documents = new Map<string, ExtHostTextDocument>();
 
-    public get(fileName: string): ExtHostTextDocument | undefined {
-        return this.documents.get(fileName);
+    public get(uri: Uri): ExtHostTextDocument | undefined {
+        return this.documents.get(uri.toString());
     }
 
     /** Лениво создаёт стабильный документ (нужен ДО прихода снапшота). */
-    public getOrCreate(fileName: string): ExtHostTextDocument {
-        let doc = this.documents.get(fileName);
+    public getOrCreate(uri: Uri): ExtHostTextDocument {
+        const key = uri.toString();
+        let doc = this.documents.get(key);
         if (doc === undefined) {
-            doc = new ExtHostTextDocument(fileName);
-            this.documents.set(fileName, doc);
+            doc = new ExtHostTextDocument(uri);
+            this.documents.set(key, doc);
         }
         return doc;
     }
 
     public upsertMeta(meta: ExtHostDocumentMeta): ExtHostTextDocument {
-        const doc = this.getOrCreate(meta.fileName);
+        const doc = this.getOrCreate(Uri.parse(meta.uri));
         doc.applyMeta(meta);
         return doc;
     }
 
     public upsertFull(snapshot: ExtHostDocumentSnapshot): ExtHostTextDocument {
-        const doc = this.getOrCreate(snapshot.fileName);
+        const doc = this.getOrCreate(Uri.parse(snapshot.uri));
         doc.applyFull(snapshot);
         return doc;
     }

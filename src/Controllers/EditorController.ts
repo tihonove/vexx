@@ -3,6 +3,7 @@ import * as path from "node:path";
 
 import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import { Uri } from "../Common/Uri.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
@@ -52,6 +53,16 @@ interface IDiskStat {
     size: number;
 }
 
+/** Источник непрозрачных ключей истории отмены (см. {@link EditorController.undoContext}). */
+let nextUndoContextId = 1;
+
+/**
+ * Ресурс свежесозданного редактора: безымянный буфер без номера. Номер назначает группа
+ * ({@link EditorController.setUntitled}) — она владеет счётчиком; до этого редактора ещё
+ * никто не видит.
+ */
+const UNTITLED_PLACEHOLDER_URI = Uri.from({ scheme: "untitled", path: "Untitled" });
+
 export class EditorController extends Disposable implements IController {
     public static dependencies = [
         ThemeServiceDIToken,
@@ -80,13 +91,13 @@ export class EditorController extends Disposable implements IController {
     private foldingSubscription: IDisposable | null = null;
     private foldingRecomputeScheduled = false;
     private controllerDisposed = false;
-    private filePath: string | null = null;
     /**
-     * Порядковый номер безымянного буфера (`Untitled-N`), назначаемый группой при
-     * создании; `null` — у буфера есть путь (или он ещё не безымянный). Используется
-     * только для метки вкладки; на модель документа не влияет.
+     * Идентичность ресурса этого редактора — первичное состояние, из которого выводится
+     * всё остальное (путь, имя, признак безымянности). Не `null`: у свежего редактора
+     * это `untitled:`-буфер, а не «редактор без ресурса», поэтому ветку «пути нет»
+     * задаёт схема, а не отсутствие значения.
      */
-    public untitledNumber: number | null = null;
+    private uriValue: Uri = UNTITLED_PLACEHOLDER_URI;
     private savedVersionId = 0;
     private savedEol: EndOfLine;
     /**
@@ -227,8 +238,25 @@ export class EditorController extends Disposable implements IController {
         };
     }
 
+    /** Идентичность ресурса: `file:` — файл на диске, `untitled:` — безымянный буфер. */
+    public get uri(): Uri {
+        return this.uriValue;
+    }
+
+    /**
+     * Путь ресурса на диске или `null`, если его там нет (безымянный буфер).
+     *
+     * Гейт по схеме, а не по «`fsPath` непустой»: `fsPath` у не-file схемы не бросает,
+     * а отдаёт путь как есть (`untitled:Untitled-1` → `"Untitled-1"`), и такой «путь»
+     * ушёл бы в `node:fs` как относительный.
+     */
+    private get filePath(): string | null {
+        return this.uriValue.scheme === "file" ? this.uriValue.fsPath : null;
+    }
+
     public get fileName(): string | null {
-        return this.filePath ? path.basename(this.filePath) : null;
+        const filePath = this.filePath;
+        return filePath === null ? null : path.basename(filePath);
     }
 
     public get absoluteFilePath(): string | null {
@@ -285,16 +313,32 @@ export class EditorController extends Disposable implements IController {
                 this.foldingSubscription?.dispose();
             },
         });
-        // Очищаем историю отмены этого файла при закрытии вкладки.
+        // Очищаем историю отмены этого редактора при закрытии вкладки.
         this.register({
             dispose: () => {
-                this.undoRedoService.clear(this.undoContext());
+                this.undoRedoService.clear(this.undoContext);
             },
         });
     }
 
-    public openFile(filePath: string): void {
-        this.filePath = filePath;
+    /**
+     * Открывает файл с диска. Принимает уже поднятый `file:`-uri: подъём (и `path.resolve`
+     * относительных путей из CLI/дерева) делает группа — единственная точка, где строка
+     * становится ресурсом. `Uri.file` относительный путь НЕ резолвит, поэтому резолвить
+     * после подъёма было бы поздно.
+     */
+    /**
+     * Присваивает буферу номер безымянного (`untitled:Untitled-N`). Номерами владеет
+     * группа: счётчик общий на группу, а вызывать это надо до того, как редактор
+     * попадёт в список вкладок и станет кому-то виден.
+     */
+    public setUntitled(untitledNumber: number): void {
+        this.uriValue = Uri.from({ scheme: "untitled", path: `Untitled-${untitledNumber}` });
+    }
+
+    public openFile(uri: Uri): void {
+        this.uriValue = uri;
+        const filePath = uri.fsPath;
         this.loadDocumentFromDisk(filePath);
         this.startWatchingFile(filePath);
     }
@@ -339,7 +383,7 @@ export class EditorController extends Disposable implements IController {
         // остаётся синхронной в текущем тике (вызовы save() без await работают).
         const participant = this.saveParticipant;
         if (participant !== undefined) {
-            await this.runSaveParticipant(participant, this.filePath);
+            await this.runSaveParticipant(participant);
         }
         fs.writeFileSync(this.filePath, this.doc.serialize(), "utf-8");
         this.diskStat = this.readDiskStat(this.filePath);
@@ -365,9 +409,9 @@ export class EditorController extends Disposable implements IController {
      * Собирает снапшот, дожидается участника и применяет вернувшиеся правки к
      * буферу (undoable) до записи. Выделено, чтобы переиспользовать в saveAs.
      */
-    private async runSaveParticipant(participant: SaveParticipant, fileName: string): Promise<void> {
+    private async runSaveParticipant(participant: SaveParticipant): Promise<void> {
         const snapshot: ISaveSnapshot = {
-            fileName,
+            uri: this.uriValue.toString(),
             languageId: this.doc.languageId,
             versionId: this.doc.versionId,
             isDirty: this.isModified,
@@ -443,16 +487,19 @@ export class EditorController extends Disposable implements IController {
      * Writes the document to a new path and re-points the editor to it.
      *
      * Unlike {@link openFile}, the document/view-state/undo-history/cursor are
-     * preserved. The language is re-resolved for the new extension; the bound
-     * language listener re-tokenizes and repaints automatically. Firing
+     * preserved — the undo bucket is keyed by {@link undoContext}, which is tied to
+     * the editor rather than to its path, so re-pointing does not strand the history
+     * accumulated before the save. The language is re-resolved for the new extension;
+     * the bound language listener re-tokenizes and repaints automatically. Firing
      * `onDidSave` lets the group controller rename the tab and clear the dirty
      * marker.
      */
     public async saveAs(newPath: string): Promise<void> {
-        this.filePath = newPath;
+        // Смена идентичности на месте: у безымянного буфера это переход untitled: → file:.
+        this.uriValue = Uri.file(path.resolve(newPath));
         const participant = this.saveParticipant;
         if (participant !== undefined) {
-            await this.runSaveParticipant(participant, newPath);
+            await this.runSaveParticipant(participant);
         }
         fs.writeFileSync(newPath, this.doc.serialize(), "utf-8");
         this.diskStat = this.readDiskStat(newPath);
@@ -547,31 +594,45 @@ export class EditorController extends Disposable implements IController {
     }
 
     public undo(): void {
-        void this.undoRedoService.undo(this.undoContext());
+        void this.undoRedoService.undo(this.undoContext);
     }
 
     public redo(): void {
-        void this.undoRedoService.redo(this.undoContext());
-    }
-
-    /** Контекст-бакет истории отмены для этого редактора (путь файла). */
-    private undoContext(): string {
-        return this.filePath ?? "untitled";
+        void this.undoRedoService.redo(this.undoContext);
     }
 
     /**
+     * Контекст-бакет истории отмены этого редактора — непрозрачный идентификатор,
+     * выданный при создании. Намеренно НЕ путь и НЕ uri: история принадлежит
+     * редактору, а не ресурсу, поэтому ключ обязан быть стабильным на всём времени
+     * жизни. Путь бакетом быть не может — на нём ломались два бага: все безымянные
+     * буферы сходились в общий бакет `"untitled"`, а `saveAs` менял ключ и осиротлял
+     * уже накопленную историю.
+     *
+     * Ограничение: корректно, пока редактор и документ соотносятся 1:1 (дедуп вкладок
+     * в `EditorGroupController.openFile` это держит). Появятся сплиты — два редактора
+     * на один документ по семантике VS Code обязаны делить историю, и ключ переедет
+     * на документ.
+     */
+    public readonly undoContext = `editor-${nextUndoContextId++}`;
+
+    /**
      * Подключает текущий редактор к общей истории: каждый шаг `UndoManager` регистрирует
-     * обёртку в `UndoRedoService` под контекстом этого файла. Обёртка — токен порядка:
+     * обёртку в `UndoRedoService` под контекстом этого редактора. Обёртка — токен порядка:
      * её undo/redo делегируют в `UndoManager` (LIFO 1:1, поэтому стеки идут в ногу).
+     *
+     * Ключ бакета ({@link undoContext}) и `resources` — разные вещи: первый адресует
+     * историю и привязан к редактору, второй перечисляет затронутые пути и у безымянного
+     * буфера пуст.
      */
     private attachUndoRouting(): void {
         const editor = this.editor;
         editor.undoManager.onDidPush = (element) => {
-            const resource = this.undoContext();
+            const filePath = this.filePath;
             this.undoRedoService.pushElement(
                 {
                     label: element.label,
-                    resources: [resource],
+                    resources: filePath === null ? [] : [filePath],
                     undo: () => {
                         editor.undoManager.undo();
                         editor.markDirty();
@@ -581,7 +642,7 @@ export class EditorController extends Disposable implements IController {
                         editor.markDirty();
                     },
                 },
-                resource,
+                this.undoContext,
             );
         };
     }

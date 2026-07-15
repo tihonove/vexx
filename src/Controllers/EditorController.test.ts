@@ -2,6 +2,8 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { createCursorSelection } from "../Editor/ISelection.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
@@ -85,7 +87,7 @@ describe("EditorController", () => {
             const ctrl = createEditorController();
             const fp = writeFile("hello.ts", "x");
 
-            ctrl.openFile(fp);
+            ctrl.openFile(Uri.file(fp));
 
             expect(ctrl.fileName).toBe("hello.ts");
             expect(ctrl.absoluteFilePath).toBe(fp);
@@ -95,7 +97,7 @@ describe("EditorController", () => {
     describe("saveAs", () => {
         it("writes content to the new path and re-points the editor", async () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.txt", "content"));
+            ctrl.openFile(Uri.file(writeFile("a.txt", "content")));
             let saved = 0;
             ctrl.onDidSave = () => {
                 saved++;
@@ -113,7 +115,7 @@ describe("EditorController", () => {
 
         it("persists in-memory edits and clears the dirty flag", async () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.txt", ""));
+            ctrl.openFile(Uri.file(writeFile("a.txt", "")));
             ctrl.viewState.insertText("edited");
             expect(ctrl.isModified).toBe(true);
 
@@ -134,7 +136,7 @@ describe("EditorController", () => {
                 getLanguageDisplayName: () => undefined,
             };
             const ctrl = createEditorController({ languageService });
-            ctrl.openFile(writeFile("a.txt", "x"));
+            ctrl.openFile(Uri.file(writeFile("a.txt", "x")));
 
             const newPath = ws.path("b.ts");
             await ctrl.saveAs(newPath);
@@ -158,7 +160,7 @@ describe("EditorController", () => {
     describe("pushUndo", () => {
         it("ignores an undefined element", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.ts", "abc"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "abc")));
 
             // Should be a no-op: undo afterwards has nothing to revert.
             ctrl.pushUndo(undefined);
@@ -169,7 +171,7 @@ describe("EditorController", () => {
 
         it("registers a real undo element so undo reverts the edit", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.ts", ""));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "")));
 
             const undoElement = ctrl.viewState.insertText("foo");
             expect(ctrl.getText()).toBe("foo");
@@ -187,7 +189,7 @@ describe("EditorController", () => {
     describe("setIndentOptions", () => {
         it("applies a new tab size and disables auto-detection", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.ts", "x"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setIndentOptions({ tabSize: 2, insertSpaces: true });
 
@@ -198,7 +200,7 @@ describe("EditorController", () => {
 
         it("leaves state untouched when the patch matches current values", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.ts", "x"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
             const before = ctrl.viewState.detectIndentation;
 
             // tabSize 4 / insertSpaces false are the defaults → nothing changes.
@@ -212,7 +214,7 @@ describe("EditorController", () => {
 
         it("ignores a non-positive tab size", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.ts", "x"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setIndentOptions({ tabSize: 0 });
 
@@ -223,7 +225,7 @@ describe("EditorController", () => {
     describe("setCursorSurroundingLines", () => {
         it("normalizes fractional/negative values to a non-negative integer", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.ts", "x"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setCursorSurroundingLines(3.9);
             expect(ctrl.viewState.cursorSurroundingLines).toBe(3);
@@ -234,7 +236,7 @@ describe("EditorController", () => {
 
         it("is a no-op when the normalized value matches the current one", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.ts", "x"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setCursorSurroundingLines(2);
             expect(ctrl.viewState.cursorSurroundingLines).toBe(2);
@@ -249,7 +251,7 @@ describe("EditorController", () => {
         it("falls back to the editor background when gutter colors are absent", () => {
             const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
             const ctrl = createEditorController({ themeService });
-            ctrl.openFile(writeFile("a.ts", "x"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             // A theme that overrides the background but defines no gutter color.
             // editorGutter.background has no registry default (genuinely optional),
@@ -278,7 +280,7 @@ describe("EditorController", () => {
 
         it("highlights the word under the cursor using the theme's wordHighlight color", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.txt", "foo foo"));
+            ctrl.openFile(Uri.file(writeFile("a.txt", "foo foo")));
             ctrl.viewState.selections = [createCursorSelection(0, 0)];
 
             // gutterWidth = 6 (2 pad + 1 digit + 3 fold margin); content col 0 is the first "foo".
@@ -287,7 +289,7 @@ describe("EditorController", () => {
 
         it("stops highlighting once disabled via setOccurrenceHighlightEnabled", () => {
             const ctrl = createEditorController();
-            ctrl.openFile(writeFile("a.txt", "foo foo"));
+            ctrl.openFile(Uri.file(writeFile("a.txt", "foo foo")));
             ctrl.viewState.selections = [createCursorSelection(0, 0)];
 
             ctrl.setOccurrenceHighlightEnabled(false);
@@ -308,7 +310,7 @@ describe("EditorController", () => {
             };
             const ctrl = createEditorController({ registry, languageService });
 
-            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
 
             // The file opened through the fallback tokenizer path without error.
             expect(ctrl.getText()).toBe("const x = 1;");
@@ -323,7 +325,7 @@ describe("EditorController", () => {
             };
             const ctrl = createEditorController({ registry, languageService });
 
-            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+            ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
 
             expect(ctrl.getText()).toBe("const x = 1;");
         });

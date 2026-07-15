@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { getFileIcon } from "../Common/FileIcons.ts";
+import { Uri } from "../Common/Uri.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { CompletionSource } from "../Editor/ICompletionSource.ts";
@@ -28,7 +29,8 @@ export const EditorGroupControllerDIToken = token<EditorGroupController>("Editor
 
 /** Метаданные сохранённого редактора для проекции в subprocess (did-save). */
 export interface IEditorSavedMeta {
-    readonly fileName: string;
+    /** Ресурс как `uri.toString()`. */
+    readonly uri: string;
     readonly languageId: string;
 }
 
@@ -187,17 +189,23 @@ export class EditorGroupController extends Disposable implements IController {
         return paths;
     }
 
-    public openFile(filePath: string, { focus = true }: { focus?: boolean } = {}): void {
-        // Идентичность вкладки — по полному пути, а не по имени файла: два разных
+    /**
+     * Открывает файл по пути — строковая парадная дверь группы (CLI, дерево, сессия).
+     *
+     * Единственная точка подъёма строки в ресурс. `path.resolve` обязан стоять вплотную
+     * перед `Uri.file`: пути приходят относительными, а `Uri.file` их НЕ резолвит —
+     * просто префиксует слэшем, и резолвить после подъёма было бы уже поздно.
+     */
+    public openFile(filePath: string, options: { focus?: boolean } = {}): void {
+        this.openUri(Uri.file(path.resolve(filePath)), options);
+    }
+
+    /** Открывает ресурс по uri — вход для тех, у кого он уже есть (диагностики). */
+    public openUri(uri: Uri, { focus = true }: { focus?: boolean } = {}): void {
+        // Идентичность вкладки — по ресурсу целиком, а не по имени файла: два разных
         // файла с одинаковым basename (например, два index.ts из разных папок)
         // должны открываться в отдельных вкладках, а не переключать на первую.
-        const resolved = path.resolve(filePath);
-        const existingIndex = this.editors.findIndex((e) => {
-            /* v8 ignore start -- absoluteFilePath is always set for open editors */
-            if (e.absoluteFilePath === null) return false;
-            /* v8 ignore stop */
-            return path.resolve(e.absoluteFilePath) === resolved;
-        });
+        const existingIndex = this.editors.findIndex((e) => e.uri.toString() === uri.toString());
         if (existingIndex >= 0) {
             this.activateTab(existingIndex, { focus });
             return;
@@ -206,7 +214,7 @@ export class EditorGroupController extends Disposable implements IController {
         const editor = this.createAndWireEditor();
         // Наблюдатель проставлен в createAndWireEditor до openFile, чтобы слежение
         // началось с первой загрузки.
-        editor.openFile(filePath);
+        editor.openFile(uri);
         // Конфиг применяем после openFile: загрузка пересоздаёт view-state, и
         // настройки отступов надо писать уже в новое состояние.
         this.applyConfigurationToEditor(editor);
@@ -224,7 +232,8 @@ export class EditorGroupController extends Disposable implements IController {
         // Файл не грузим (view-state из конструктора не пересоздаётся) — конфиг
         // применяем сразу.
         this.applyConfigurationToEditor(editor);
-        editor.untitledNumber = ++this.untitledCounter;
+        // Номер выдаём до push: пока редактора нет в списке вкладок, его никто не видит.
+        editor.setUntitled(++this.untitledCounter);
         this.editors.push(editor);
         this.activateTab(this.editors.length - 1, { focus });
     }
@@ -477,11 +486,11 @@ export class EditorGroupController extends Disposable implements IController {
     /**
      * Имя буфера для вкладки/иконки: имя файла, либо `Untitled-N` для безымянного.
      */
-    private displayName(editor: EditorController): string {
-        if (editor.fileName !== null) return editor.fileName;
-        /* v8 ignore start -- defensive: безымянный буфер всегда получает номер в newUntitled */
-        return editor.untitledNumber !== null ? `Untitled-${editor.untitledNumber}` : "untitled";
-        /* v8 ignore stop */
+    public displayName(editor: EditorController): string {
+        // `untitled:Untitled-3`.path === "Untitled-3" — метка безымянного буфера уже
+        // лежит в самом ресурсе, отдельный счётчик-поле для неё не нужен.
+        const uri = editor.uri;
+        return uri.scheme === "file" ? path.basename(uri.fsPath) : uri.path;
     }
 
     public syncTabs(): void {
@@ -518,11 +527,15 @@ export class EditorGroupController extends Disposable implements IController {
         for (const indices of groups.values()) {
             if (indices.length < 2) continue;
             const dirs = indices.map((i) => {
-                const p = this.editors[i].absoluteFilePath;
-                /* v8 ignore start -- absoluteFilePath is always set for open editors */
-                if (p === null) return [];
+                const uri = this.editors[i].uri;
+                // Гейт по схеме, а не по «путь непустой»: fsPath у не-file схемы вернёт
+                // мусор, а не бросит. В группу тёзок не-file и не попадёт — метки
+                // безымянных буферов уникальны по построению (Untitled-N).
+                /* v8 ignore start -- defensive: одинаковый displayName бывает только у файлов */
+                if (uri.scheme !== "file") return [];
                 /* v8 ignore stop */
-                return path.dirname(path.resolve(p)).split(path.sep).filter(Boolean);
+                // Путь уже абсолютный: подъём в Uri.file идёт через path.resolve.
+                return path.dirname(uri.fsPath).split(path.sep).filter(Boolean);
             });
             const maxK = Math.max(0, ...dirs.map((d) => d.length));
             indices.forEach((editorIndex, a) => {
@@ -551,11 +564,8 @@ export class EditorGroupController extends Disposable implements IController {
     }
 
     private fireEditorSaved(editor: EditorController): void {
-        const fileName = editor.absoluteFilePath;
-        /* v8 ignore start -- defensive: editors are only added via openFile(), which always sets a file path */
-        if (fileName === null) return;
-        /* v8 ignore stop */
-        const meta: IEditorSavedMeta = { fileName, languageId: editor.languageId };
+        // Ресурс есть у любого редактора — гейт на "путь не задан" больше не нужен.
+        const meta: IEditorSavedMeta = { uri: editor.uri.toString(), languageId: editor.languageId };
         for (const cb of [...this.editorSavedListeners]) {
             cb(meta);
         }

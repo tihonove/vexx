@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { Uri } from "../../Common/Uri.ts";
+
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
 
 import { createInProcessChannelPair } from "./InProcessChannelPair.ts";
@@ -15,7 +17,7 @@ import {
 } from "./WireTypes.ts";
 
 const PARAMS = {
-    fileName: "/tmp/file.txt",
+    uri: Uri.file("/tmp/file.txt").toString(),
     languageId: "plaintext",
     version: 1,
     isDirty: true,
@@ -133,7 +135,7 @@ describe("WireTypes — requestWillSaveEdits (InProcessChannelPair)", () => {
 // ─── Completion ───────────────────────────────────────────────────────────────
 
 const COMPLETION_PARAMS = {
-    fileName: "/proj/.editorconfig",
+    uri: Uri.file("/proj/.editorconfig").toString(),
     languageId: "editorconfig",
     text: "ind",
     line: 0,

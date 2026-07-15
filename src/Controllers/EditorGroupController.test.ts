@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { loadConfiguration } from "../Configuration/ConfigurationService.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
+import { Uri } from "../Common/Uri.ts";
 import { resolveUserDataPaths } from "../Common/UserDataPaths.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
@@ -139,6 +140,20 @@ describe("EditorGroupController", () => {
             ctrl.openFile(writeFile(path.join("b", "index.ts"), "b"));
 
             expect(tabLabels(ctrl)).toEqual(["standalone.ts", "index.ts — a", "index.ts — b"]);
+        });
+
+        it("disambiguates same-named files while untitled buffers keep their own labels", () => {
+            // Смешанный случай: безымянные буферы не участвуют в разводке тёзок (их метки
+            // уникальны по построению), а их uri не file — путь у них брать нельзя.
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+
+            ctrl.newUntitled();
+            ctrl.openFile(writeFile(path.join("a", "index.ts"), "a"));
+            ctrl.newUntitled();
+            ctrl.openFile(writeFile(path.join("b", "index.ts"), "b"));
+
+            expect(tabLabels(ctrl)).toEqual(["Untitled-1", "index.ts — a", "Untitled-2", "index.ts — b"]);
         });
 
         it("extends the disambiguating suffix when parent directories also collide", () => {
@@ -806,10 +821,10 @@ describe("EditorGroupController", () => {
             const fp = writeFile("a.ts", "x");
             ctrl.openFile(fp);
 
-            const seen: { fileName: string; languageId: string }[] = [];
+            const seen: { uri: string; languageId: string }[] = [];
             const sub = ctrl.onEditorSaved((m) => seen.push(m));
             await ctrl.getActiveEditor()?.save();
-            expect(seen).toEqual([{ fileName: fp, languageId: "typescript" }]);
+            expect(seen).toEqual([{ uri: Uri.file(fp).toString(), languageId: "typescript" }]);
 
             sub.dispose();
             sub.dispose(); // повторный dispose — no-op (idx === -1)

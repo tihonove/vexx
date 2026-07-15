@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { createRange } from "../Editor/IRange.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
@@ -41,7 +43,7 @@ describe("EditorController — setGutterChangeDecorations", () => {
 
     it("forwards decorations to the editor so a bar paints, and marks it dirty for a repaint", () => {
         const ctrl = createEditorController();
-        ctrl.openFile(ws.writeFile("a.txt", "l0\nl1\nl2"));
+        ctrl.openFile(Uri.file(ws.writeFile("a.txt", "l0\nl1\nl2")));
 
         const app = TestApp.createWithContent(ctrl.view, new Size(20, 3));
         app.render();

@@ -2,7 +2,18 @@
 
 Часть архитектуры Vexx — обзорная карта в [../ARCHITECTURE.md](../ARCHITECTURE.md).
 
-Базовые типы и утилиты без внешних зависимостей: геометрия (`Point`, `Size`, `Rect`, `BoxConstraints`), `IDisposable`/`Disposable`, DI-примитивы (`Token`, `Container`, см. [../DI.md](../DI.md)). Unicode: `UnicodeWidth` и `DisplayLine` (маппинг строки документа на grapheme-слоты + двусторонний конвертер offset↔column) — общий инструмент корректной обработки wide chars / emoji / табов / combining marks во всех слоях (Editor, TUIDom, RenderContext).
+Базовые типы и утилиты: геометрия (`Point`, `Size`, `Rect`, `BoxConstraints`), `IDisposable`/`Disposable`, DI-примитивы (`Token`, `Container`, см. [../DI.md](../DI.md)). Unicode: `UnicodeWidth` и `DisplayLine` (маппинг строки документа на grapheme-слоты + двусторонний конвертер offset↔column) — общий инструмент корректной обработки wide chars / emoji / табов / combining marks во всех слоях (Editor, TUIDom, RenderContext).
+
+Слой не зависит от других слоёв проекта; leaf-библиотеки со стороны брать можно по политике зависимостей из [GOAL.md](../../GOAL.md) — так здесь живёт `Uri`.
+
+## Uri
+`Uri.ts` — идентичность ресурса (`scheme://authority/path?query#fragment`) и **единственный** способ адресовать ресурс в ядре и в extension host'е. Тонкий адаптер над `vscode-uri` — это upstream-реализация VS Code (`vs/base/common/uri.ts`, выделенная Microsoft в отдельный leaf-пакет, ноль транзитивных зависимостей), а не наш порт: семантика `fsPath`, percent-кодирования и Windows-путей полна нюансов. Адаптер добавляет ровно одно: статик `Uri.joinPath` (в `vscode-uri` он лежит в неймспейсе `Utils`, а расширения ждут `vscode.Uri.joinPath`); `Object.assign` сохраняет identity класса, поэтому `instanceof` внутри расширений работает. `Extensions/Host/Vscode/VscodeTypes.Uri` — ре-экспорт отсюда, один тип на оба процесса.
+
+Правила адресации:
+- **Ресурс = `Uri`, путь = производное.** Строкой путь остаётся только там, где он честный путь на диске: `UserDataPaths`, `StateService`, `KeybindingsService`, `ConfigurationService`, файловое дерево, персистентность сессии.
+- **Подъём строки в `Uri` — в одной точке**, и `path.resolve` стоит вплотную перед `Uri.file`: `Uri.file` относительные пути НЕ резолвит (только префиксует `/`), поэтому резолвить после подъёма поздно. Для ядра эта точка — `EditorGroupController.openFile`.
+- **Сравнение — по `uri.toString()`**, а не `path.resolve(a) === path.resolve(b)`. Реестры ключуются строкой `uri.toString()`: `Map` не сравнивает `Uri` по значению, поэтому вопрос не «Uri или строка», а «какая строка» — каноничную даёт сам `Uri`.
+- **Гейт дисковых операций — по `uri.scheme === "file"`**, а не по «путь непустой»: `fsPath` у не-file схемы не бросает, а возвращает путь как есть (`untitled:Untitled-1` → `"Untitled-1"`), и такой «путь» уйдёт в `node:fs` как относительный.
 
 IO-абстракции (интерфейс + no-op/in-memory заглушка), которыми пользуются разные слои: `IClipboard`/`InMemoryClipboard`, `IFileClipboard`/`InMemoryFileClipboard`, `IFileWatcher`/`NULL_FILE_WATCHER` (слежение за отдельным файлом; реальная `ChokidarFileWatcher` и DI-токен `IFileWatcherDIToken` — в Controllers, но интерфейс живёт здесь, чтобы им мог пользоваться и слой Configuration для live-reload настроек).
 

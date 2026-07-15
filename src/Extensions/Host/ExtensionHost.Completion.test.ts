@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { Uri } from "../../Common/Uri.ts";
+
 import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 
 const REQ = {
-    fileName: "/proj/.editorconfig",
+    uri: Uri.file("/proj/.editorconfig").toString(),
     languageId: "editorconfig",
     text: "ind",
     line: 0,
@@ -59,7 +61,7 @@ describe("ExtensionHost — completion bridge (subprocess)", () => {
         });
         try {
             const items = await harness.host.provideCompletionItems({
-                fileName: "/proj/main.ts",
+                uri: Uri.file("/proj/main.ts").toString(),
                 languageId: "typescript",
                 text: "x",
                 line: 0,

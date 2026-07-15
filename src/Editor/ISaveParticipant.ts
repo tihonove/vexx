@@ -7,8 +7,12 @@ import type { IRange } from "./IRange.ts";
  * EOL применяется отдельным эдитом (`kind: "eol"`).
  */
 export interface ISaveSnapshot {
-    /** Абсолютный путь сохраняемого файла. */
-    readonly fileName: string;
+    /**
+     * Ресурс сохраняемого документа как `uri.toString()`. Не путь: участник живёт за
+     * RPC, где документ адресуется ресурсом (`document.fileName` субпроцесс выводит
+     * из него сам, как того требует vscode.d.ts).
+     */
+    readonly uri: string;
     readonly languageId: string;
     readonly versionId: number;
     readonly isDirty: boolean;

@@ -2,6 +2,8 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { Uri } from "../../Common/Uri.ts";
+
 import type { IDisposable } from "../../Common/Disposable.ts";
 import { registerAndActivate } from "../../TestUtils/ExtensionTestHarness.ts";
 
@@ -100,7 +102,7 @@ class FakeEditorOptions implements IEditorOptionsService {
         return this.filePath;
     }
     public getActiveEditorMeta(): IActiveEditorMeta {
-        return { fileName: this.filePath, languageId: null, isDirty: false };
+        return { uri: this.filePath === null ? null : Uri.file(this.filePath).toString(), languageId: null, isDirty: false };
     }
     public onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable {
         this.cb = cb;
@@ -111,7 +113,7 @@ class FakeEditorOptions implements IEditorOptionsService {
         };
     }
     public fireActiveEditorChanged(p: string | null): void {
-        this.cb?.({ fileName: p, languageId: null, isDirty: false });
+        this.cb?.({ uri: p === null ? null : Uri.file(p).toString(), languageId: null, isDirty: false });
     }
 }
 
@@ -346,7 +348,7 @@ describe("ExtensionHost — editor options RPC handlers", () => {
         editorOptions.fireActiveEditorChanged("/other.ts");
 
         const notif = child.sent.filter((m) => m.kind === "notif" && m.method === "editor.activeEditorChanged");
-        expect(notif.at(-1)).toMatchObject({ params: { fileName: "/other.ts" } });
+        expect(notif.at(-1)).toMatchObject({ params: { uri: Uri.file("/other.ts").toString() } });
     });
 });
 

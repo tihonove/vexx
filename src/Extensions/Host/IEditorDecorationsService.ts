@@ -12,10 +12,12 @@ import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterCh
  */
 export interface IEditorDecorationsService {
     /**
-     * Проставляет полный набор gutter change-bar декораций для файла (по всем
+     * Проставляет полный набор gutter change-bar декораций для ресурса (по всем
      * открытым редакторам этого ресурса). Пустой массив снимает их.
+     *
+     * `uri` — ресурс как `uri.toString()`, а не путь на диске.
      */
-    setGutterChangeDecorations(fileName: string, decorations: readonly IGutterChangeDecoration[]): void;
+    setGutterChangeDecorations(uri: string, decorations: readonly IGutterChangeDecoration[]): void;
 }
 
 /** No-op реализация — для тестов/профилей без моста декораций. */

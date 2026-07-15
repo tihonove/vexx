@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { Uri } from "../../../Common/Uri.ts";
+
 import type { WireCompletionItem } from "../WireTypes.ts";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
@@ -19,7 +21,7 @@ function makeCtx(stub: IStubRpc = makeStubRpc()): { ctx: IVscodeHostContext; stu
 }
 
 const COMPLETION_PARAMS = {
-    fileName: "/proj/.editorconfig",
+    uri: Uri.file("/proj/.editorconfig").toString(),
     languageId: "editorconfig",
     text: "ind",
     line: 0,
@@ -198,7 +200,7 @@ describe("LanguagesNamespace", () => {
         );
         // Параметры только с fileName — остальные поля резолвятся дефолтами.
         const result = (await stub.callRequest("languages.provideCompletionItems", {
-            fileName: "/proj/.editorconfig",
+            uri: Uri.file("/proj/.editorconfig").toString(),
         })) as WireCompletionItem[];
         expect(result).toHaveLength(1);
         expect(result[0].documentation).toBe("root docs");

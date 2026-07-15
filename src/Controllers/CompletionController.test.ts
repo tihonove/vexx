@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import { Size } from "../Common/GeometryPromitives.ts";
 import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
 import type { ITextEdit } from "../Editor/ITextEdit.ts";
@@ -43,7 +45,7 @@ function makeEditor(lineContent: string, character: number, docText = lineConten
             };
         },
         getText: () => docText,
-        absoluteFilePath: "/proj/.editorconfig",
+        uri: Uri.file("/proj/.editorconfig"),
         languageId: "editorconfig",
         getCaretAnchor: () => (anchorNull ? null : { screenX: 5, screenY: 5, preferBelow: true }),
         applyExternalEdits,
@@ -170,7 +172,7 @@ describe("CompletionController", () => {
         const { controller, source } = setup(ITEMS);
         await controller.trigger();
         expect(source).toHaveBeenCalledWith({
-            fileName: "/proj/.editorconfig",
+            uri: Uri.file("/proj/.editorconfig").toString(),
             languageId: "editorconfig",
             text: "ind",
             line: 0,
@@ -350,16 +352,16 @@ describe("CompletionController", () => {
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
-    it("untitled (absoluteFilePath null) → fileName пустой в запросе", async () => {
+    it("безымянный буфер уходит в запрос как untitled:-ресурс, а не пустой строкой", async () => {
         const fake = makeEditor("ind", 3, "ind");
-        (fake.editor as unknown as { absoluteFilePath: string | null }).absoluteFilePath = null;
+        (fake.editor as unknown as { uri: Uri }).uri = Uri.parse("untitled:Untitled-1");
         const source = vi.fn(() => Promise.resolve(ITEMS));
         const controller = new CompletionController(makeGroup(fake.editor, source));
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
         controller.setHostView(body);
         await controller.trigger();
-        expect(source).toHaveBeenCalledWith(expect.objectContaining({ fileName: "" }));
+        expect(source).toHaveBeenCalledWith(expect.objectContaining({ uri: "untitled:Untitled-1" }));
     });
 
     it("word-based пропускает несуществующий (null) редактор группы", async () => {

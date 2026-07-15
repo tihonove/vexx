@@ -2,6 +2,7 @@ import * as path from "node:path";
 
 import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import { Uri } from "../Common/Uri.ts";
 import { getDefaultConfiguration } from "../Configuration/defaults.ts";
 import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
@@ -34,8 +35,14 @@ export class DiagnosticsController extends Disposable {
     private editorGroup: EditorGroupController;
     private markerService: MarkerService;
     private knownSettingKeys: Set<string>;
-    /** Resolved path of the Vexx settings.json we validate, or null when unknown. */
-    private settingsResource: string | null;
+    /**
+     * Ресурс настроек, который валидируем, или `null`, если он неизвестен.
+     *
+     * Шов между инфраструктурой и документами: `UserDataPaths` отдаёт settings.json
+     * строкой-путём (он там честный путь на диске), а поднимает его в ресурс тот, кто
+     * открывает файл как документ, — то есть мы, один раз в конструкторе.
+     */
+    private settingsResource: Uri | null;
     private activeContentSubscription: IDisposable | null = null;
 
     public constructor(
@@ -46,7 +53,8 @@ export class DiagnosticsController extends Disposable {
         super();
         this.editorGroup = editorGroup;
         this.markerService = markerService;
-        this.settingsResource = settingsResource === null ? null : path.resolve(settingsResource);
+        // path.resolve строго ДО Uri.file: Uri.file относительный путь не резолвит.
+        this.settingsResource = settingsResource === null ? null : Uri.file(path.resolve(settingsResource));
         this.knownSettingKeys = collectKnownSettingKeys(getDefaultConfiguration());
 
         this.register(
@@ -85,19 +93,15 @@ export class DiagnosticsController extends Disposable {
      */
     private validate(editor: EditorController | null): void {
         if (editor === null) return;
-        // Only the active-profile Vexx settings.json is validated — matched by exact
-        // path, not basename, so an unrelated settings.json (e.g. VS Code's own, or a
-        // workspace .vscode/settings.json) is left alone. Editors reach validate only
-        // through the group, which always opens files with a resolved path.
+        // Валидируем только settings.json активного профиля — сверяем ресурс целиком,
+        // а не basename, чтобы чужой settings.json (например, самого VS Code или
+        // workspace-ный .vscode/settings.json) остался нетронутым.
         if (this.settingsResource === null) return;
-        const resource = editor.absoluteFilePath;
-        /* v8 ignore start -- defensive: editors reach validate only through the group, which always opens files with a resolved path */
-        if (resource === null) return;
-        /* v8 ignore stop */
-        if (path.resolve(resource) !== this.settingsResource) return;
+        const resource = editor.uri;
+        if (resource.toString() !== this.settingsResource.toString()) return;
 
         const markers = validateSettingsJson(editor.getText(), (key) => this.knownSettingKeys.has(key));
-        this.markerService.changeOne(SETTINGS_OWNER, resource, markers);
+        this.markerService.changeOne(SETTINGS_OWNER, resource.toString(), markers);
     }
 
     /** Pushes the current markers for each changed resource to its open editor(s). */
@@ -113,16 +117,13 @@ export class DiagnosticsController extends Disposable {
     }
 
     private editorsForResource(resource: string): EditorController[] {
-        const resolved = path.resolve(resource);
         const result: EditorController[] = [];
         for (let i = 0; i < this.editorGroup.editorCount; i++) {
-            // i is bounded by editorCount, and open editors always have a path.
             const editor = this.editorGroup.getEditor(i);
             /* v8 ignore start -- defensive: i is bounded by editorCount, so getEditor always returns an open editor */
             if (editor === null) continue;
             /* v8 ignore stop */
-            const editorPath = editor.absoluteFilePath;
-            if (editorPath !== null && path.resolve(editorPath) === resolved) result.push(editor);
+            if (editor.uri.toString() === resource) result.push(editor);
         }
         return result;
     }

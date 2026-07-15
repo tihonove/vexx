@@ -32,11 +32,11 @@ export interface IMarkerData {
 
 /**
  * A marker as stored/read from the {@link IMarkerService}: an {@link IMarkerData}
- * tagged with the `owner` (provider namespace) and `resource` (file path/URI)
- * it belongs to.
+ * tagged with the `owner` (provider namespace) and `resource` it belongs to.
  */
 export interface IMarker extends IMarkerData {
     readonly owner: string;
+    /** Ресурс как `uri.toString()` — не путь на диске (бывает `untitled:`, `git:`, …). */
     readonly resource: string;
 }
 

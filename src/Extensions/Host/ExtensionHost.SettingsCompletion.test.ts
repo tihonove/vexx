@@ -2,6 +2,8 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
+import { Uri } from "../../Common/Uri.ts";
+
 import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 
@@ -25,7 +27,7 @@ function settingsExtension(): IExtensionRegistration {
  * `{\n    |\n}` — каретка в теле объекта, то есть в позиции ключа.
  */
 const SETTINGS_REQ = {
-    fileName: "/proj/.vexx/settings.json",
+    uri: Uri.file("/proj/.vexx/settings.json").toString(),
     languageId: "json",
     text: "{\n    \n}",
     line: 1,
@@ -70,7 +72,7 @@ describe("vexx-settings — автодополнение ключей в setting
         try {
             await harness.host.activateByEvent("onLanguage:json");
             await settle();
-            const items = await harness.host.provideCompletionItems({ ...SETTINGS_REQ, fileName: "/proj/other.json" });
+            const items = await harness.host.provideCompletionItems({ ...SETTINGS_REQ, uri: Uri.file("/proj/other.json").toString() });
             expect(items).toEqual([]);
         } finally {
             await harness.dispose();
@@ -103,7 +105,7 @@ describe("vexx-settings — кавычки и значения (e2e через s
             await harness.host.activateByEvent("onLanguage:json");
             await settle();
             return await harness.host.provideCompletionItems({
-                fileName: "/proj/.vexx/settings.json",
+                uri: Uri.file("/proj/.vexx/settings.json").toString(),
                 languageId: "json",
                 text,
                 line,

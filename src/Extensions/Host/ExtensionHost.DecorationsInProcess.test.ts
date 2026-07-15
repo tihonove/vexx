@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { ILogger } from "../../Common/Logging/ILogger.ts";
+import { Uri } from "../../Common/Uri.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import { flushMicrotasks } from "../../TestUtils/timing.ts";
 
@@ -22,7 +23,7 @@ const NOOP_EDITOR_OPTIONS = {
     getActiveEditorOptions: () => null,
     setActiveEditorOptions: () => undefined,
     getActiveEditorFilePath: () => null,
-    getActiveEditorMeta: () => ({ fileName: null, languageId: null, isDirty: false }),
+    getActiveEditorMeta: () => ({ uri: null, languageId: null, isDirty: false }),
     onActiveEditorChanged: () => ({ dispose: () => undefined }),
 } as unknown as IEditorOptionsService;
 
@@ -46,10 +47,10 @@ function makeLogger(): { logger: ILogger; lines: string[] } {
 }
 
 function makeHost(colors: Record<string, number>) {
-    const editorCalls: { fileName: string; decorations: readonly IGutterChangeDecoration[] }[] = [];
+    const editorCalls: { uri: string; decorations: readonly IGutterChangeDecoration[] }[] = [];
     const fileCalls: { path: string; color?: number; badge?: string }[][] = [];
     const editorDecorations: IEditorDecorationsService = {
-        setGutterChangeDecorations: (fileName, decorations) => editorCalls.push({ fileName, decorations }),
+        setGutterChangeDecorations: (uri, decorations) => editorCalls.push({ uri, decorations }),
     };
     const fileDecorations: IFileDecorationsService = {
         setFileDecorations: (entries) => fileCalls.push([...entries]),
@@ -97,7 +98,7 @@ function makeHost(colors: Record<string, number>) {
         configChanges,
         fireTheme: () => themeListeners.forEach((cb) => cb()),
         fireConfig: (keys: string[]) => configListeners.forEach((cb) => cb(keys)),
-        latestEditor: (file: string) => editorCalls.filter((c) => c.fileName === file).at(-1),
+        latestEditor: (file: string) => editorCalls.filter((c) => c.uri === Uri.file(file).toString()).at(-1),
     };
 }
 
@@ -110,7 +111,7 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
 
         // Битые параметры — ранний выход без throw (guard-ветки).
         h.peer.notify("window.createTextEditorDecorationType", { key: "nope" });
-        h.peer.notify("editor.setDecorations", { key: 5, fileName: 42 });
+        h.peer.notify("editor.setDecorations", { key: 5, uri: 42 });
         h.peer.notify("window.disposeTextEditorDecorationType", { key: "nope" });
         await flushMicrotasks(10);
 
@@ -128,8 +129,8 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         h.peer.notify("window.createTextEditorDecorationType", { key: 9, options: "not-an-object" });
         await flushMicrotasks(10);
 
-        h.peer.notify("editor.setDecorations", { key: 1, fileName: "/a.ts", ranges: [range(1)] });
-        h.peer.notify("editor.setDecorations", { key: 2, fileName: "/a.ts", ranges: [range(0)] });
+        h.peer.notify("editor.setDecorations", { key: 1, uri: Uri.file("/a.ts").toString(), ranges: [range(1)] });
+        h.peer.notify("editor.setDecorations", { key: 2, uri: Uri.file("/a.ts").toString(), ranges: [range(0)] });
         await flushMicrotasks(10);
 
         // dispose типа, которого нет ни в одном файле (key 9) — файл /a.ts есть, но без key 9.
@@ -148,12 +149,12 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         expect(h.editorCalls.length).toBeGreaterThan(before);
 
         // Пустой набор → снятие баров.
-        h.peer.notify("editor.setDecorations", { key: 1, fileName: "/a.ts", ranges: [] });
+        h.peer.notify("editor.setDecorations", { key: 1, uri: Uri.file("/a.ts").toString(), ranges: [] });
         await flushMicrotasks(10);
         expect(h.latestEditor("/a.ts")!.decorations).toEqual([]);
 
         // dispose типа → гасит его декорации.
-        h.peer.notify("editor.setDecorations", { key: 1, fileName: "/a.ts", ranges: [range(2)] });
+        h.peer.notify("editor.setDecorations", { key: 1, uri: Uri.file("/a.ts").toString(), ranges: [range(2)] });
         await flushMicrotasks(10);
         h.peer.notify("window.disposeTextEditorDecorationType", { key: 1 });
         await flushMicrotasks(10);
@@ -176,8 +177,8 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
             options: { overviewRulerColor: { $themeColor: "editorGutter.addedBackground" }, isWholeLine: true },
         });
         await flushMicrotasks(10);
-        h.peer.notify("editor.setDecorations", { key: 1, fileName: "/f.ts", ranges: [range(2)] });
-        h.peer.notify("editor.setDecorations", { key: 2, fileName: "/f.ts", ranges: [range(5)] });
+        h.peer.notify("editor.setDecorations", { key: 1, uri: Uri.file("/f.ts").toString(), ranges: [range(2)] });
+        h.peer.notify("editor.setDecorations", { key: 2, uri: Uri.file("/f.ts").toString(), ranges: [range(5)] });
         await flushMicrotasks(10);
 
         const decos = h.latestEditor("/f.ts")!.decorations;
@@ -187,7 +188,7 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         expect(added.dashed).toBeUndefined();
     });
 
-    it("файловые декорации: badge/colorId по отдельности, не-объект, non-file и битый uri, снятие", async () => {
+    it("файловые декорации: badge/colorId по отдельности, не-объект, non-file отбрасывается, битый uri, снятие", async () => {
         const FILE = 0x112233;
         const h = makeHost({ "gitDecoration.modifiedResourceForeground": FILE });
 
@@ -197,8 +198,8 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
                 { uri: "file:///both.md", badge: "M", colorId: "gitDecoration.modifiedResourceForeground" },
                 { uri: "file:///badge.md", badge: "A" }, // только badge (colorId undefined)
                 { uri: "file:///color.md", colorId: "gitDecoration.modifiedResourceForeground" }, // только colorId (badge undefined)
-                { uri: "untitled:scratch", badge: "U" }, // не file:// → fileUriToPath возвращает как есть
-                { uri: "file:///%E0%A4%A", badge: "D" }, // битый percent-encoding → catch в fileUriToPath
+                { uri: "untitled:scratch", badge: "U" }, // не file: → отбрасывается, дерево адресуется путями
+                { uri: "file:///%E0%A4%A", badge: "D" }, // битый percent-encoding → путь остаётся как есть
             ],
         });
         await flushMicrotasks(10);
@@ -206,8 +207,10 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         expect(entries).toContainEqual({ path: "/both.md", color: FILE, badge: "M" });
         expect(entries).toContainEqual({ path: "/badge.md", badge: "A" }); // без color
         expect(entries).toContainEqual({ path: "/color.md", color: FILE }); // без badge
-        expect(entries).toContainEqual({ path: "untitled:scratch", badge: "U" }); // non-file uri — как есть
-        expect(entries).toContainEqual({ path: "/%E0%A4%A", badge: "D" }); // битый uri → rest из catch
+        // Не-file ресурс отбрасывается целиком: раньше схема уезжала в ключ
+        // ("untitled:scratch" как «путь») и молча не совпадала ни с чем в дереве.
+        expect(entries.some((e) => e.path.includes("scratch"))).toBe(false);
+        expect(entries).toContainEqual({ path: "/%E0%A4%A", badge: "D" }); // битый uri → путь как есть
 
         // Голый uri (без badge/colorId) → снятие.
         h.peer.notify("window.fileDecorationsChanged", { decorations: [{ uri: "file:///both.md" }] });

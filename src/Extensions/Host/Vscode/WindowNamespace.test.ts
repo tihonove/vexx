@@ -24,7 +24,7 @@ describe("WindowNamespace", () => {
     it("activeEditorChanged с meta прокидывает languageId/isDirty в документ", () => {
         const { stub, window } = makeCtx();
         stub.fire("editor.activeEditorChanged", {
-            fileName: "/a.ts",
+            uri: Uri.file("/a.ts").toString(),
             languageId: "typescript",
             isDirty: true,
         });
@@ -40,21 +40,21 @@ describe("WindowNamespace", () => {
 
     it("editor.document стабилен по ссылке между обращениями", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts", languageId: "typescript" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString(), languageId: "typescript" });
         expect(window.activeTextEditor?.document).toBe(window.activeTextEditor?.document);
     });
 
     it("fileName=null → activeTextEditor undefined", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         expect(window.activeTextEditor).toBeDefined();
-        stub.fire("editor.activeEditorChanged", { fileName: null });
+        stub.fire("editor.activeEditorChanged", { uri: null });
         expect(window.activeTextEditor).toBeUndefined();
     });
 
     it("установка options проксируется в editor.setOptions", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         window.activeTextEditor!.options = { tabSize: 2, insertSpaces: true };
         expect(stub.requests).toContainEqual({
             method: "editor.setOptions",
@@ -64,7 +64,7 @@ describe("WindowNamespace", () => {
 
     it("indentSize форвардится в editor.setOptions", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         window.activeTextEditor!.options = { indentSize: 3 } as never;
         expect(stub.requests).toContainEqual({
             method: "editor.setOptions",
@@ -74,7 +74,7 @@ describe("WindowNamespace", () => {
 
     it('indentSize="tabSize" не форвардится (совпадает с tabSize)', () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         window.activeTextEditor!.options = { indentSize: "tabSize" } as never;
         expect(stub.requests).toHaveLength(0);
     });
@@ -119,11 +119,11 @@ describe("WindowNamespace", () => {
             bag as never,
         );
         expect(bag).toContain(d);
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         expect(received[0][0]).toBe("self");
         // после dispose слушатель отписан
         d.dispose();
-        stub.fire("editor.activeEditorChanged", { fileName: "/b.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/b.ts").toString() });
         expect(received).toHaveLength(1);
         // повторный dispose безопасен (idx < 0)
         expect(() => {
@@ -133,7 +133,7 @@ describe("WindowNamespace", () => {
 
     it("options принимает строковые tabSize/insertSpaces/indentSize", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         window.activeTextEditor!.options = { tabSize: "6", insertSpaces: "false" } as never;
         expect(stub.requests.at(-1)).toEqual({
             method: "editor.setOptions",
@@ -147,7 +147,7 @@ describe("WindowNamespace", () => {
 
     it("options с мусорными строками деградирует безопасно", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         // tabSize невалидна → 4; indentSize невалидна → не форвардится
         window.activeTextEditor!.options = { tabSize: "bad", indentSize: "bad" } as never;
         expect(stub.requests.at(-1)).toEqual({ method: "editor.setOptions", params: { tabSize: 4 } });
@@ -155,7 +155,7 @@ describe("WindowNamespace", () => {
 
     it("присвоение options не-объекта и других свойств отклоняется", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString() });
         const editor = window.activeTextEditor!;
         // options = не-объект → set-trap возвращает false (TypeError в strict mode)
         expect(() => {
@@ -217,7 +217,7 @@ describe("WindowNamespace", () => {
 
     it("editor.setDecorations шлёт notify с fileName активного редактора и nested-ranges", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/proj/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/proj/a.ts").toString() });
         const type = window.createTextEditorDecorationType({
             overviewRulerColor: new ThemeColor("editorGutter.modifiedBackground"),
         });
@@ -226,7 +226,7 @@ describe("WindowNamespace", () => {
             method: "editor.setDecorations",
             params: {
                 key: 1,
-                fileName: "/proj/a.ts",
+                uri: Uri.file("/proj/a.ts").toString(),
                 ranges: [
                     { start: { line: 1, character: 0 }, end: { line: 1, character: 0 } },
                     { start: { line: 4, character: 2 }, end: { line: 4, character: 5 } },
@@ -237,7 +237,7 @@ describe("WindowNamespace", () => {
 
     it("setDecorations с DecorationOptions[] берёт .range каждого элемента", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/proj/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/proj/a.ts").toString() });
         const type = window.createTextEditorDecorationType({});
         window.activeTextEditor!.setDecorations(type, [{ range: new Range(2, 0, 2, 3) }] as never);
         expect((stub.notifies.at(-1)!.params as { ranges: unknown }).ranges).toEqual([
@@ -247,7 +247,7 @@ describe("WindowNamespace", () => {
 
     it("setDecorations с неизвестным типом — no-op (нет notify)", () => {
         const { stub, window } = makeCtx();
-        stub.fire("editor.activeEditorChanged", { fileName: "/proj/a.ts" });
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/proj/a.ts").toString() });
         const before = stub.notifies.length;
         window.activeTextEditor!.setDecorations({ key: "999", dispose: () => undefined }, [new Range(0, 0, 0, 1)]);
         expect(stub.notifies.length).toBe(before);

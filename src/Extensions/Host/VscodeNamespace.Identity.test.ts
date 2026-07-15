@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Uri } from "../../Common/Uri.ts";
+
 import type { RpcEndpoint } from "./RpcEndpoint.ts";
 import { buildVscodeNamespace } from "./VscodeNamespace.ts";
 
@@ -10,7 +12,8 @@ import { buildVscodeNamespace } from "./VscodeNamespace.ts";
  */
 interface StubRpc {
     rpc: RpcEndpoint;
-    fireActiveEditorChanged: (fileName: string | null) => void;
+    /** Принимает путь на диске и поднимает его в ресурс — как это делает хост. */
+    fireActiveEditorChanged: (filePath: string | null) => void;
     request: ReturnType<typeof vi.fn>;
 }
 
@@ -30,9 +33,9 @@ function makeStubRpc(): StubRpc {
     return {
         rpc,
         request,
-        fireActiveEditorChanged: (fileName) => {
+        fireActiveEditorChanged: (filePath) => {
             if (activeEditorHandler === undefined) throw new Error("handler not registered");
-            activeEditorHandler({ fileName });
+            activeEditorHandler({ uri: filePath === null ? null : Uri.file(filePath).toString() });
         },
     };
 }
@@ -85,7 +88,7 @@ describe("VscodeNamespace — стабильная идентичность acti
         expect(request).toHaveBeenCalledWith("editor.setOptions", { tabSize: 2, insertSpaces: true });
     });
 
-    it("fileName=null → activeTextEditor undefined", () => {
+    it("отсутствие активного ресурса → activeTextEditor undefined", () => {
         const { rpc, fireActiveEditorChanged } = makeStubRpc();
         const vscode = buildVscodeNamespace(rpc).namespace;
         fireActiveEditorChanged("/f.ts");

@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Uri } from "../../Common/Uri.ts";
+
 import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
@@ -53,21 +55,41 @@ describe("EditorOptionsServiceAdapter", () => {
         expect(adapter.getActiveEditorFilePath()).toBeNull();
     });
 
-    it("getActiveEditorMeta() reports fileName/languageId/isDirty (nulls when no editor)", () => {
+    it("getActiveEditorFilePath() отдаёт путь для file:-ресурса", () => {
+        const group = {
+            getActiveEditor: () => ({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false }),
+        } as unknown as EditorGroupController;
+        expect(new EditorOptionsServiceAdapter(group).getActiveEditorFilePath()).toBe("/a/b.ts");
+    });
+
+    it("getActiveEditorFilePath() отдаёт null для безымянного буфера, а не мусорный путь", () => {
+        // fsPath у untitled: вернул бы относительный "Untitled-1" — потребителю
+        // (editorconfig) такой «путь» скармливать нельзя.
+        const group = {
+            getActiveEditor: () => ({
+                uri: Uri.parse("untitled:Untitled-1"),
+                languageId: "plaintext",
+                isModified: false,
+            }),
+        } as unknown as EditorGroupController;
+        expect(new EditorOptionsServiceAdapter(group).getActiveEditorFilePath()).toBeNull();
+    });
+
+    it("getActiveEditorMeta() reports uri/languageId/isDirty (nulls when no editor)", () => {
         const withEditor = {
             getActiveEditor: () => ({
-                absoluteFilePath: "/a/b.ts",
+                uri: Uri.file("/a/b.ts"),
                 languageId: "typescript",
                 isModified: true,
             }),
         } as unknown as EditorGroupController;
         expect(new EditorOptionsServiceAdapter(withEditor).getActiveEditorMeta()).toEqual({
-            fileName: "/a/b.ts",
+            uri: Uri.file("/a/b.ts").toString(),
             languageId: "typescript",
             isDirty: true,
         });
         expect(new EditorOptionsServiceAdapter(groupWithNoActiveEditor()).getActiveEditorMeta()).toEqual({
-            fileName: null,
+            uri: null,
             languageId: null,
             isDirty: false,
         });
@@ -92,13 +114,13 @@ describe("EditorOptionsServiceAdapter", () => {
         expect(registered).toBeDefined();
 
         // Active editor present → its meta is forwarded.
-        registered!({ absoluteFilePath: "/a/b.ts", languageId: "typescript", isModified: false });
+        registered!({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false });
         // No active editor → nulls are forwarded.
         registered!(null);
 
         expect(received).toEqual([
-            { fileName: "/a/b.ts", languageId: "typescript", isDirty: false },
-            { fileName: null, languageId: null, isDirty: false },
+            { uri: Uri.file("/a/b.ts").toString(), languageId: "typescript", isDirty: false },
+            { uri: null, languageId: null, isDirty: false },
         ]);
     });
 });

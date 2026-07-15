@@ -2,6 +2,8 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import type { IDisposable } from "../Common/Disposable.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -62,7 +64,7 @@ describe("EditorController — external change detection", () => {
         it("blocks the write when the file changed on disk and reports a conflict", async () => {
             const controller = createEditorController();
             const fp = writeFile("a.txt", "original\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
             controller.viewState.type("X"); // buffer now dirty
 
             // Another process rewrites the file behind our back.
@@ -80,7 +82,7 @@ describe("EditorController — external change detection", () => {
         it("overwrites when explicitly asked, clearing the conflict", async () => {
             const controller = createEditorController();
             const fp = writeFile("b.txt", "original\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
             controller.viewState.type("X");
             fs.writeFileSync(fp, "external\n", "utf-8");
 
@@ -96,7 +98,7 @@ describe("EditorController — external change detection", () => {
         it("saves normally when the file was not touched externally", async () => {
             const controller = createEditorController();
             const fp = writeFile("c.txt", "hello\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
             controller.viewState.type("Y");
 
             expect(await controller.save()).toBe("saved");
@@ -113,7 +115,7 @@ describe("EditorController — external change detection", () => {
         it("creates a file that did not exist on disk at open time", async () => {
             const controller = createEditorController();
             const fp = ws.path("fresh.txt"); // does not exist yet
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
             controller.viewState.type("brand new\n");
 
             expect(await controller.save()).toBe("saved");
@@ -128,7 +130,7 @@ describe("EditorController — external change detection", () => {
             const controller = createEditorController();
             controller.fileWatcher = watcher;
             const fp = writeFile("w.txt", "x\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
 
             expect(watcher.isWatching(fp)).toBe(true);
             controller.dispose();
@@ -140,7 +142,7 @@ describe("EditorController — external change detection", () => {
             const controller = createEditorController();
             controller.fileWatcher = watcher;
             const fp = writeFile("clean.txt", "v1\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
 
             let contentEvents = 0;
             let diskStateEvents = 0;
@@ -168,7 +170,7 @@ describe("EditorController — external change detection", () => {
             const controller = createEditorController();
             controller.fileWatcher = watcher;
             const fp = writeFile("dirty.txt", "v1\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
             controller.viewState.type("Z"); // dirty
 
             let diskStateEvents = 0;
@@ -188,7 +190,7 @@ describe("EditorController — external change detection", () => {
             const controller = createEditorController();
             controller.fileWatcher = watcher;
             const fp = writeFile("own.txt", "v1\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
             controller.viewState.type("A");
 
             await controller.save();
@@ -205,7 +207,7 @@ describe("EditorController — external change detection", () => {
             const controller = createEditorController();
             controller.fileWatcher = watcher;
             const fp = writeFile("atomic.txt", "keep\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
 
             fs.rmSync(fp);
             watcher.fire(fp);
@@ -223,7 +225,7 @@ describe("EditorController — external change detection", () => {
             const controller = createEditorController();
             controller.fileWatcher = watcher;
             const fp = writeFile("sub.txt", "v1\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
 
             let events = 0;
             const subscription = controller.onDidChangeDiskState(() => events++);
@@ -239,7 +241,7 @@ describe("EditorController — external change detection", () => {
         it("stops delivering content events after dispose (double dispose is a no-op)", () => {
             const controller = createEditorController();
             const fp = writeFile("sub2.txt", "v1\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
 
             let events = 0;
             const subscription = controller.onDidChangeContent(() => events++);
@@ -256,7 +258,7 @@ describe("EditorController — external change detection", () => {
         it("discards unsaved edits and reloads from disk", () => {
             const controller = createEditorController();
             const fp = writeFile("r.txt", "disk\n");
-            controller.openFile(fp);
+            controller.openFile(Uri.file(fp));
             controller.viewState.type("edit ");
             expect(controller.isModified).toBe(true);
 

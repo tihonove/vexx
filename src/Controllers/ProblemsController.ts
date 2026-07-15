@@ -1,5 +1,6 @@
 import { token } from "../Common/DiContainer.ts";
 import { Disposable } from "../Common/Disposable.ts";
+import { Uri } from "../Common/Uri.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -111,8 +112,9 @@ export class ProblemsController extends Disposable {
 
     private revealMarker(node: ProblemNode): void {
         if (node.kind !== "marker") return;
-        // openFile always opens/activates an editor for the resource.
-        this.editorGroup.openFile(node.resource);
+        // Ресурс маркера — уже uri (`uri.toString()`), а не путь: поднимаем его парсингом,
+        // а не Uri.file, иначе "file:///a.ts" стало бы путём с именем "file:".
+        this.editorGroup.openUri(Uri.parse(node.resource));
         const editor = this.editorGroup.getActiveEditor();
         /* v8 ignore start -- defensive: openFile always opens/activates an editor for the resource */
         if (editor === null) return;

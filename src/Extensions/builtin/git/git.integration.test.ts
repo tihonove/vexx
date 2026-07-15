@@ -38,10 +38,10 @@ function makeEditorSpy(): {
     service: IEditorDecorationsService;
     latestFor(suffix: string): readonly IGutterChangeDecoration[] | undefined;
 } {
-    const calls: { fileName: string; decorations: readonly IGutterChangeDecoration[] }[] = [];
+    const calls: { uri: string; decorations: readonly IGutterChangeDecoration[] }[] = [];
     return {
-        service: { setGutterChangeDecorations: (fileName, decorations) => calls.push({ fileName, decorations }) },
-        latestFor: (suffix) => calls.filter((c) => c.fileName.endsWith(suffix)).at(-1)?.decorations,
+        service: { setGutterChangeDecorations: (uri, decorations) => calls.push({ uri, decorations }) },
+        latestFor: (suffix) => calls.filter((c) => c.uri.endsWith(suffix)).at(-1)?.decorations,
     };
 }
 

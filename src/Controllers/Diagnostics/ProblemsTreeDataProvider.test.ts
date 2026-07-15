@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { Uri } from "../../Common/Uri.ts";
 import { createRange } from "../../Editor/IRange.ts";
 import type { IMarker } from "../../Editor/Markers/IMarker.ts";
 import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
@@ -7,8 +8,18 @@ import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
 import type { ProblemNode } from "./ProblemsTreeDataProvider.ts";
 import { ProblemsTreeDataProvider } from "./ProblemsTreeDataProvider.ts";
 
-function marker(resource: string, severity: MarkerSeverity, line: number, message: string, character = 0): IMarker {
-    return { owner: "settings", resource, severity, range: createRange(line, character, line, character + 1), message };
+/**
+ * Ресурс маркера — `uri.toString()`, а не путь: хелпер принимает путь и поднимает его,
+ * как это делает единственный писатель (`DiagnosticsController`).
+ */
+function marker(filePath: string, severity: MarkerSeverity, line: number, message: string, character = 0): IMarker {
+    return {
+        owner: "settings",
+        resource: Uri.file(filePath).toString(),
+        severity,
+        range: createRange(line, character, line, character + 1),
+        message,
+    };
 }
 
 const COLORS = { error: 0xff0000, warning: 0xffaa00, info: 0x0088ff, hint: 0xaaaaaa };
@@ -30,7 +41,9 @@ describe("ProblemsTreeDataProvider", () => {
             marker("/a.json", MarkerSeverity.Warning, 1, "a2"),
         ]);
         const files = p.getChildren() as Extract<ProblemNode, { kind: "file" }>[];
-        expect(files.map((f) => f.resource)).toEqual(["/a.json", "/b.json", "/c.json"]);
+        expect(files.map((f) => f.resource)).toEqual(
+            ["/a.json", "/b.json", "/c.json"].map((p) => Uri.file(p).toString()),
+        );
         expect(p.getChildren(files[0])).toHaveLength(2);
         expect(p.getChildren(files[1])).toHaveLength(1);
     });
@@ -60,7 +73,7 @@ describe("ProblemsTreeDataProvider", () => {
         expect(p.getTreeItem(file)).toMatchObject({ label: "a.json  (2)" });
 
         // A file node for a resource with no markers (e.g. cleared) yields nothing.
-        const gone: ProblemNode = { kind: "file", resource: "/removed.json" };
+        const gone: ProblemNode = { kind: "file", resource: Uri.file("/removed.json").toString() };
         expect(p.getChildren(gone)).toEqual([]);
         expect(p.getTreeItem(gone)).toMatchObject({ label: "removed.json  (0)" });
     });
@@ -70,7 +83,7 @@ describe("ProblemsTreeDataProvider", () => {
         const [file] = p.getChildren();
         const markerNodes = p.getChildren(file);
         expect(markerNodes).toHaveLength(1);
-        expect(markerNodes[0]).toMatchObject({ kind: "marker", resource: "/a.json", index: 0 });
+        expect(markerNodes[0]).toMatchObject({ kind: "marker", resource: Uri.file("/a.json").toString(), index: 0 });
         expect(p.getChildren(markerNodes[0])).toEqual([]);
     });
 
@@ -104,12 +117,30 @@ describe("ProblemsTreeDataProvider", () => {
     it("builds stable keys for files and markers", () => {
         const p = provider([marker("/a.json", MarkerSeverity.Error, 0, "x")]);
         const [file] = p.getChildren();
-        expect(p.getKey(file)).toBe("file:/a.json");
-        expect(p.getKey(p.getChildren(file)[0])).toBe("marker:/a.json:0");
+        expect(p.getKey(file)).toBe(`node:${Uri.file("/a.json").toString()}`);
+        expect(p.getKey(p.getChildren(file)[0])).toBe(`marker:${Uri.file("/a.json").toString()}:0`);
     });
 
     it("returns nothing for an empty snapshot", () => {
         const p = provider([]);
         expect(p.getChildren()).toEqual([]);
+    });
+});
+
+describe("ProblemsTreeDataProvider — ресурсы вне диска", () => {
+    it("метка безымянного буфера берётся из ресурса, а не из basename пути", () => {
+        // path.basename по "untitled:Untitled-1" дал бы неверный ответ — метку даёт uri.
+        const p = new ProblemsTreeDataProvider();
+        p.setMarkers([
+            {
+                owner: "settings",
+                resource: "untitled:Untitled-1",
+                severity: MarkerSeverity.Error,
+                range: createRange(0, 0, 0, 1),
+                message: "boom",
+            },
+        ]);
+        const [file] = p.getChildren();
+        expect(p.getTreeItem(file)).toMatchObject({ label: "Untitled-1  (1)" });
     });
 });
