@@ -13,6 +13,7 @@ export class MouseEventDispatcher {
     private pressedButton: "left" | "middle" | "right" | "none" | null = null;
     private lastClickTime = 0;
     private lastClickTarget: TUIElement | null = null;
+    private lastClickPosition: Point | null = null;
     private lastPosition: Point | null = null;
 
     private now: () => number;
@@ -73,13 +74,26 @@ export class MouseEventDispatcher {
         if (this.pressedElement === effectiveTarget && this.pressedButton === token.button) {
             this.dispatchOn(effectiveTarget, "click", token, screenX, screenY);
 
+            // A double click is two clicks on the same cell, not merely on the same
+            // element: clicking two different words of one editor in quick succession
+            // must stay two single clicks.
             const now = this.now();
-            if (this.lastClickTarget === effectiveTarget && now - this.lastClickTime < DOUBLE_CLICK_THRESHOLD) {
+            const samePosition =
+                this.lastClickPosition !== null &&
+                this.lastClickPosition.x === screenX &&
+                this.lastClickPosition.y === screenY;
+            if (
+                this.lastClickTarget === effectiveTarget &&
+                samePosition &&
+                now - this.lastClickTime < DOUBLE_CLICK_THRESHOLD
+            ) {
                 this.dispatchOn(effectiveTarget, "dblclick", token, screenX, screenY);
                 this.lastClickTarget = null;
+                this.lastClickPosition = null;
                 this.lastClickTime = 0;
             } else {
                 this.lastClickTarget = effectiveTarget;
+                this.lastClickPosition = new Point(screenX, screenY);
                 this.lastClickTime = now;
             }
         }

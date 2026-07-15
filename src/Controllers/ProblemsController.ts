@@ -6,6 +6,8 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
+
+import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { MarkerServiceDIToken } from "./CoreTokens.ts";
@@ -39,7 +41,7 @@ export class ProblemsController extends Disposable {
     private panel: PanelController;
     private editorGroup: EditorGroupController;
     private provider: ProblemsTreeDataProvider;
-    private treeContent: TUIElement;
+    private treeContent: ScrollBarDecorator;
     private treeShown = false;
 
     public constructor(
@@ -131,6 +133,7 @@ export class ProblemsController extends Disposable {
             fg: theme.getRequiredColor("editor.foreground"),
             bg: theme.getRequiredColor("panel.background"),
         };
+        applyScrollBarTheme(this.treeContent, theme, "panel.background");
         this.provider.severityColors = {
             error: theme.getRequiredColor("editorError.foreground"),
             warning: theme.getRequiredColor("editorWarning.foreground"),

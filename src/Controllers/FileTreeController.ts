@@ -7,6 +7,8 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { PaddingContainerElement } from "../TUIDom/Widgets/PaddingContainerElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
+
+import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
 import { TitledPanelElement } from "../TUIDom/Widgets/TitledPanelElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
@@ -24,6 +26,7 @@ export class FileTreeController extends Disposable implements IController {
     public onWatchError: ((dirPath: string, error: Error) => void) | null = null;
     private provider: FileTreeDataProvider | null = null;
     private tree: TreeViewElement<FileTreeNode> | null = null;
+    private scrollBars: ScrollBarDecorator | null = null;
     private rootPath: string | null = null;
     private mounted = false;
     private themeService: ThemeService | null = null;
@@ -47,10 +50,8 @@ export class FileTreeController extends Disposable implements IController {
             this.onWatchError?.(dirPath, error);
         };
         this.tree = new TreeViewElement(this.provider);
-        this.view = new TitledPanelElement(
-            "  EXPLORER",
-            new PaddingContainerElement(new ScrollBarDecorator(this.tree), { left: 1 }),
-        );
+        this.scrollBars = new ScrollBarDecorator(this.tree);
+        this.view = new TitledPanelElement("  EXPLORER", new PaddingContainerElement(this.scrollBars, { left: 1 }));
         if (this.themeService) {
             this.applyTheme(this.themeService.theme);
         }
@@ -192,5 +193,6 @@ export class FileTreeController extends Disposable implements IController {
             fg: theme.getRequiredColor("sideBar.foreground"),
             bg: theme.getRequiredColor("sideBar.background"),
         };
+        applyScrollBarTheme(this.scrollBars, theme, "sideBar.background");
     }
 }

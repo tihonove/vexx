@@ -6,6 +6,8 @@ import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
+import { createRange } from "./IRange.ts";
+import { isSelectionCollapsed, selectionToRange } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
 
 function createEditor(text: string, width = 30, height = 5): { app: TestApp; editor: EditorElement } {
@@ -25,6 +27,18 @@ function fireMouseDown(editor: EditorElement, localX: number, localY: number, sh
             localX,
             localY,
             shiftKey,
+        }),
+    );
+}
+
+function fireDoubleClick(editor: EditorElement, localX: number, localY: number, button: "left" | "right" = "left"): void {
+    editor.dispatchEvent(
+        new TUIMouseEvent("dblclick", {
+            button,
+            screenX: localX,
+            screenY: localY,
+            localX,
+            localY,
         }),
     );
 }
@@ -130,5 +144,103 @@ describe("EditorElement – mouse click cursor placement", () => {
         const sel = editor.viewState.selections[0];
         expect(sel.active.line).toBe(0);
         expect(sel.active.character).toBe(5);
+    });
+});
+
+describe("EditorElement – double click word selection", () => {
+    it("selects the word under the cursor", () => {
+        const { editor } = createEditor("hello world\nfoo", 30, 5);
+        const gw = editor.gutterWidth;
+
+        // Land inside "world" (starts at char 6)
+        fireDoubleClick(editor, gw + 8, 0);
+
+        const sel = editor.viewState.selections[0];
+        expect(selectionToRange(sel)).toEqual(createRange(0, 6, 0, 11));
+    });
+
+    it("selects the word when clicking its first character", () => {
+        const { editor } = createEditor("hello world", 30, 5);
+        const gw = editor.gutterWidth;
+
+        fireDoubleClick(editor, gw + 6, 0);
+
+        expect(selectionToRange(editor.viewState.selections[0])).toEqual(createRange(0, 6, 0, 11));
+    });
+
+    it("selects the word to the left when the caret lands just past its end", () => {
+        const { editor } = createEditor("hello world", 30, 5);
+        const gw = editor.gutterWidth;
+
+        // Column 5 is the space; VS Code treats a caret right after a word as on it.
+        fireDoubleClick(editor, gw + 5, 0);
+
+        expect(selectionToRange(editor.viewState.selections[0])).toEqual(createRange(0, 0, 0, 5));
+    });
+
+    it("stops at punctuation rather than swallowing the whole expression", () => {
+        const { editor } = createEditor("foo.barBaz(1)", 30, 5);
+        const gw = editor.gutterWidth;
+
+        fireDoubleClick(editor, gw + 5, 0); // inside "barBaz"
+
+        expect(selectionToRange(editor.viewState.selections[0])).toEqual(createRange(0, 4, 0, 10));
+    });
+
+    it("leaves the caret alone when double clicking whitespace", () => {
+        const { editor } = createEditor("a    b", 30, 5);
+        const gw = editor.gutterWidth;
+
+        fireMouseDown(editor, gw + 3, 0); // caret into the run of spaces
+        fireDoubleClick(editor, gw + 3, 0);
+
+        const sel = editor.viewState.selections[0];
+        expect(isSelectionCollapsed(sel)).toBe(true);
+        expect(sel.active.character).toBe(3);
+    });
+
+    it("selects on the correct line when scrolled vertically", () => {
+        const { editor } = createEditor("one\ntwo\nthree\nfour\nfive\nsix seven", 30, 3);
+        const gw = editor.gutterWidth;
+        editor.viewState.scrollTop = 5;
+
+        // Row 0 on screen is now line 5 ("six seven"); land inside "seven".
+        fireDoubleClick(editor, gw + 5, 0);
+
+        expect(selectionToRange(editor.viewState.selections[0])).toEqual(createRange(5, 4, 5, 9));
+    });
+
+    it("ignores double clicks on the gutter", () => {
+        const { editor } = createEditor("hello world", 30, 5);
+
+        fireMouseDown(editor, 0, 0);
+        fireDoubleClick(editor, 0, 0);
+
+        // Gutter is not text — must not select the line's first word.
+        expect(isSelectionCollapsed(editor.viewState.selections[0])).toBe(true);
+    });
+
+    it("ignores right-button double clicks", () => {
+        const { editor } = createEditor("hello world", 30, 5);
+        const gw = editor.gutterWidth;
+
+        fireMouseDown(editor, gw + 8, 0);
+        fireDoubleClick(editor, gw + 8, 0, "right");
+
+        expect(isSelectionCollapsed(editor.viewState.selections[0])).toBe(true);
+    });
+
+    it("clears the drag anchor so a stale mousedown cannot re-drag the selection", () => {
+        const { editor } = createEditor("hello world", 30, 5);
+        const gw = editor.gutterWidth;
+
+        fireMouseDown(editor, gw + 8, 0);
+        fireDoubleClick(editor, gw + 8, 0);
+        // A move with no button held must not collapse the word selection.
+        editor.dispatchEvent(
+            new TUIMouseEvent("mousemove", { button: "none", screenX: gw + 2, screenY: 0, localX: gw + 2, localY: 0 }),
+        );
+
+        expect(selectionToRange(editor.viewState.selections[0])).toEqual(createRange(0, 6, 0, 11));
     });
 });

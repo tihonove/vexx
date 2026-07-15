@@ -28,6 +28,7 @@ import { MarkerSeverity } from "./Markers/IMarker.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "./Tokenization/ITokenStyleResolver.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "./Tokenization/ITokenStyleResolver.ts";
 import { UndoManager } from "./UndoManager.ts";
+import { findWordRangeAt } from "./WordClassification.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);
 // Find-in-file highlights: all matches get a dim background; the current match a brighter one.
@@ -232,6 +233,9 @@ export class EditorElement extends TUIElement implements IScrollable {
         });
         this.addEventListener("mousedown", (event) => {
             this.handleMouseDown(event);
+        });
+        this.addEventListener("dblclick", (event) => {
+            this.handleDoubleClick(event);
         });
         this.addEventListener("mousemove", (event) => {
             this.handleMouseMove(event);
@@ -745,6 +749,26 @@ export class EditorElement extends TUIElement implements IScrollable {
             this.dragAnchor = { line: pos.line, character: pos.character };
             this.viewState.selections = [createCursorSelection(pos.line, pos.character)];
         }
+    }
+
+    /**
+     * Double click selects the word under the cursor (VS Code behaviour). The
+     * preceding mousedown has already collapsed the selection to a caret here, so
+     * this only has to widen it.
+     */
+    private handleDoubleClick(event: TUIMouseEvent): void {
+        if (event.button !== "left") return;
+        // The gutter is not text: screenToDocPosition would clamp to column 0 and
+        // select the line's first word, which is not what was clicked.
+        if (event.localX < this.gutterWidth) return;
+
+        const pos = this.screenToDocPosition(event.localX, event.localY);
+        const lineContent = this.viewState.document.getLineContent(pos.line);
+        const word = findWordRangeAt(lineContent, pos.character);
+        if (word === null) return; // whitespace or punctuation — leave the caret alone
+
+        this.dragAnchor = null;
+        this.viewState.selections = [createSelection(pos.line, word.start, pos.line, word.end)];
     }
 
     /**

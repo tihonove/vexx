@@ -80,6 +80,13 @@ const darkDefaults: Record<string, string> = {
     "list.hoverBackground": "#2A2D2E",
     "list.deemphasizedForeground": "#808080",
 
+    // ── Scrollbar control ───────────────────────────────────
+    // `scrollbarSlider.background` mirrors VS Code's registry default. VS Code
+    // leaves `scrollbar.background` unset (a transparent track); we draw the
+    // track as a visible dim line, so it needs a real value here.
+    "scrollbarSlider.background": "#79797966",
+    "scrollbar.background": "#3A3D3E",
+
     // ── Buttons ─────────────────────────────────────────────
     "button.background": "#0078D7",
     "button.foreground": "#FFFFFF",
@@ -162,6 +169,10 @@ const lightDefaults: Record<string, string> = {
     "list.inactiveSelectionForeground": "#3B3B3B",
     "list.hoverBackground": "#F2F2F2",
     "list.deemphasizedForeground": "#8E8E90",
+
+    // ── Scrollbar control ───────────────────────────────────
+    "scrollbarSlider.background": "#64646466",
+    "scrollbar.background": "#DADADA",
 
     // ── Buttons ─────────────────────────────────────────────
     "button.background": "#005FB8",

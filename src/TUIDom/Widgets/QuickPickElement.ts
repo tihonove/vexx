@@ -152,6 +152,14 @@ export class QuickPickElement extends TUIElement {
                     event.preventDefault();
                     this.moveSelection(-1);
                     break;
+                case "PageDown":
+                    event.preventDefault();
+                    this.moveSelection(this.visibleItemCount);
+                    break;
+                case "PageUp":
+                    event.preventDefault();
+                    this.moveSelection(-this.visibleItemCount);
+                    break;
                 case "Enter":
                     event.preventDefault();
                     // A hard validation error blocks accept in every mode.

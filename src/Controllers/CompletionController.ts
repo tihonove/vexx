@@ -45,6 +45,9 @@ export class CompletionController extends Disposable {
     private session: OverlaySessionHandle | null = null;
     private activeEditor: EditorController | null = null;
     private prefixRange: IRange | null = null;
+    // Каретка на момент запроса провайдеров. Провайдерский `range` — снапшот той же
+    // позиции, поэтому по нему мы отслеживаем, сколько символов добрали с триггера.
+    private triggerCaret: IPosition | null = null;
 
     // Подписки на активный редактор (пере-навешиваются при смене активного).
     private caretSub: IDisposable | null = null;
@@ -137,6 +140,7 @@ export class CompletionController extends Disposable {
 
         this.activeEditor = editor;
         this.prefixRange = createRange(active.line, prefixStart, active.line, active.character);
+        this.triggerCaret = { line: active.line, character: active.character };
 
         this.view.setItems(items.map(toListItem));
         this.view.setFilter(prefix);
@@ -153,6 +157,7 @@ export class CompletionController extends Disposable {
         if (this.session?.isOpen() === true) this.session.close();
         this.activeEditor = null;
         this.prefixRange = null;
+        this.triggerCaret = null;
     }
 
     /** Открыт ли попап (для `suggestWidgetVisible` и делегаторов команд). */
@@ -346,13 +351,53 @@ export class CompletionController extends Disposable {
             .map((word) => ({ label: word, insertText: word, kind: KIND_TEXT }));
     }
 
+    /**
+     * Диапазон, который реально заменяется при accept.
+     *
+     * Без провайдерского `range` берём `prefixRange` — он живой, `refilterOpen`
+     * держит его в актуальном состоянии. А вот `core.range` — снапшот момента
+     * триггера: попап при доборе символов не перезапрашивается (re-filter
+     * локальный), поэтому конец range отстаёт от каретки, и accept затёр бы
+     * только часть набранного, оставив хвост (`"editor.tabSize"di`). Сдвигаем
+     * конец на число набранных с триггера символов.
+     *
+     * Сдвиг посимвольный, поэтому применим только к однострочному range.
+     */
+    private resolveAcceptRange(core: ICoreCompletionItem, prefixRange: IRange, caret: IPosition): IRange {
+        const providerRange = core.range;
+        if (providerRange === undefined) return prefixRange;
+
+        const trigger = this.triggerCaret;
+        /* v8 ignore start -- defensive: пока попап открыт, triggerCaret выставлен
+           (его ставит trigger(), снимает close()), а уход каретки на другую строку
+           закрывает попап через refilterOpen — то есть до accept дело не доходит */
+        if (trigger === null || caret.line !== trigger.line) return providerRange;
+        /* v8 ignore stop */
+        // Многострочный range провайдера: посимвольный сдвиг к нему неприменим.
+        if (providerRange.end.line !== trigger.line) return providerRange;
+
+        const delta = caret.character - trigger.character;
+        if (delta === 0) return providerRange;
+        return createRange(
+            providerRange.start.line,
+            providerRange.start.character,
+            providerRange.end.line,
+            providerRange.end.character + delta,
+        );
+    }
+
     private accept(item: CompletionListItem): void {
         const editor = this.activeEditor;
         const core = item.data as ICoreCompletionItem | undefined;
-        const range = core?.range ?? this.prefixRange;
-        const command = core?.command;
+        const prefixRange = this.prefixRange;
+        if (editor === null || core === undefined || prefixRange === null) {
+            this.close();
+            return;
+        }
+        // Каретку читаем ДО close() — resolveAcceptRange сверяет её с triggerCaret.
+        const range = this.resolveAcceptRange(core, prefixRange, editor.viewState.selections[0].active);
+        const command = core.command;
         this.close();
-        if (editor === null || core === undefined || range === null) return;
 
         // Правка ниже синхронно вызовет onCaretChanged — не даём ей авто-переоткрыть попап.
         this.suppressAutoSuggestOnce = true;

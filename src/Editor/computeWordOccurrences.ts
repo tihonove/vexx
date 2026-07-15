@@ -2,7 +2,7 @@ import type { IPosition } from "./IPosition.ts";
 import type { IRange } from "./IRange.ts";
 import { createRange } from "./IRange.ts";
 import type { ITextDocument } from "./ITextDocument.ts";
-import { isWordChar } from "./WordClassification.ts";
+import { findWordRangeAt, isWordChar } from "./WordClassification.ts";
 
 /**
  * Computes the ranges of every occurrence of the word under `position`, to be
@@ -22,31 +22,10 @@ import { isWordChar } from "./WordClassification.ts";
 export function computeWordOccurrences(document: ITextDocument, position: IPosition): IRange[] {
     if (position.line < 0 || position.line >= document.lineCount) return [];
     const line = document.getLineContent(position.line);
-    const wordRange = wordRangeAt(line, position.character);
+    const wordRange = findWordRangeAt(line, position.character);
     if (wordRange === null) return [];
     const word = line.slice(wordRange.start, wordRange.end);
     return findWholeWordMatches(document, word);
-}
-
-/** [start, end) offsets of the word covering `character`, or null if none. */
-function wordRangeAt(line: string, character: number): { start: number; end: number } | null {
-    const len = line.length;
-    // Anchor onto a word char: the char at the caret, else the one just before
-    // it (caret sitting immediately after a word).
-    let anchor: number;
-    if (character < len && isWordChar(line[character])) {
-        anchor = character;
-    } else if (character > 0 && isWordChar(line[character - 1])) {
-        anchor = character - 1;
-    } else {
-        return null;
-    }
-
-    let start = anchor;
-    while (start > 0 && isWordChar(line[start - 1])) start--;
-    let end = anchor + 1;
-    while (end < len && isWordChar(line[end])) end++;
-    return { start, end };
 }
 
 /** All case-sensitive, whole-word matches of `word` in document order. */

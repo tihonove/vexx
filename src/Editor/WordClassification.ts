@@ -1,7 +1,8 @@
 /**
  * Shared word-character classification, matching VS Code's default word
- * separators. Used by cursor word-navigation (EditorViewState) and by the
- * occurrence highlighter (computeWordOccurrences).
+ * separators. Used by cursor word-navigation (EditorViewState), the occurrence
+ * highlighter (computeWordOccurrences) and double-click word selection
+ * (EditorElement).
  */
 
 /** Default word separators (mirrors VS Code `editor.wordSeparators`, plus whitespace). */
@@ -21,4 +22,38 @@ export function charClass(ch: string): number {
  */
 export function isWordChar(ch: string): boolean {
     return ch.length === 1 && charClass(ch) === 2;
+}
+
+/** Half-open `[start, end)` offsets of a word within a line. */
+export interface IWordRange {
+    readonly start: number;
+    readonly end: number;
+}
+
+/**
+ * `[start, end)` offsets of the word covering `character`, or `null` when the
+ * caret is not on a word (whitespace or punctuation).
+ *
+ * Mirrors VS Code's `getWordAtPosition`: the caret sitting immediately *after* a
+ * word's last character still counts as being on that word, so `foo|` selects
+ * `foo`.
+ */
+export function findWordRangeAt(line: string, character: number): IWordRange | null {
+    const len = line.length;
+    // Anchor onto a word char: the char at the caret, else the one just before
+    // it (caret sitting immediately after a word).
+    let anchor: number;
+    if (character < len && isWordChar(line[character])) {
+        anchor = character;
+    } else if (character > 0 && isWordChar(line[character - 1])) {
+        anchor = character - 1;
+    } else {
+        return null;
+    }
+
+    let start = anchor;
+    while (start > 0 && isWordChar(line[start - 1])) start--;
+    let end = anchor + 1;
+    while (end < len && isWordChar(line[end])) end++;
+    return { start, end };
 }

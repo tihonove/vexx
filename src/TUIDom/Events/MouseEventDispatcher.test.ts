@@ -219,6 +219,60 @@ describe("MouseEventDispatcher — dblclick", () => {
         expect(dblA).toHaveLength(0);
         expect(dblB).toHaveLength(0);
     });
+
+    it("does not generate dblclick on two fast clicks at different cells of one element", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const child = new TUIElement();
+        layoutElement(child, new Point(10, 5), new Size(20, 10));
+        root.addChild(child);
+
+        const dblclicks = collected(child, "dblclick");
+        let time = 1000;
+        const dispatcher = new MouseEventDispatcher(() => time);
+
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 16, y: 9 }), root);
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 16, y: 9 }), root);
+
+        // Same element, within the threshold, but a different cell — e.g. two
+        // different words of one editor. That is two single clicks, not a dblclick.
+        time = 1100;
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 24, y: 9 }), root);
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 24, y: 9 }), root);
+
+        expect(dblclicks).toHaveLength(0);
+    });
+
+    it("generates dblclick after a click at another cell moves back to the first", () => {
+        const root = new ContainerElement();
+        root.setAsRoot();
+        layoutElement(root, new Point(0, 0), new Size(80, 24));
+
+        const child = new TUIElement();
+        layoutElement(child, new Point(10, 5), new Size(20, 10));
+        root.addChild(child);
+
+        const dblclicks = collected(child, "dblclick");
+        let time = 1000;
+        const dispatcher = new MouseEventDispatcher(() => time);
+
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 16, y: 9 }), root);
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 16, y: 9 }), root);
+
+        // A click elsewhere re-anchors the series...
+        time = 1100;
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 24, y: 9 }), root);
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 24, y: 9 }), root);
+
+        // ...so a second click there does pair up.
+        time = 1200;
+        dispatcher.handleMouseToken(makeToken({ action: "press", x: 24, y: 9 }), root);
+        dispatcher.handleMouseToken(makeToken({ action: "release", x: 24, y: 9 }), root);
+
+        expect(dblclicks).toHaveLength(1);
+    });
 });
 
 describe("MouseEventDispatcher — mouseenter / mouseleave (basic)", () => {
