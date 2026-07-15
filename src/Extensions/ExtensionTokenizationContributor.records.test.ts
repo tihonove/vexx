@@ -64,7 +64,7 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         expect(MockedLoader).not.toHaveBeenCalled();
         expect(() => {
@@ -91,7 +91,7 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         const records = collectedRecords();
         expect(records).toHaveLength(1);
@@ -115,7 +115,7 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         const records = collectedRecords();
         expect(records[0].path).toBe("Extensions/builtin/ts/syntaxes/ts.tmLanguage.json");
@@ -137,7 +137,7 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         const records = collectedRecords();
         expect(records[0].injections).toEqual(["source.ts", "source.js"]);
@@ -155,7 +155,7 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         expect(collectedRecords()[0].injections).toBeUndefined();
         contributor.dispose();
@@ -179,7 +179,7 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         const scopes = collectedRecords().map((r) => r.scopeName);
         expect(scopes).toEqual(["source.ts", "source.tsx", "source.css"]);
@@ -204,12 +204,12 @@ describe("ExtensionTokenizationContributor — record collection", () => {
             registry,
         );
 
-        await contributor.apply();
+        contributor.apply();
 
         // Both grammars reach the loader...
         expect(collectedRecords().map((r) => r.scopeName)).toEqual(["todo.injection", "source.ts"]);
         // ...but only the one with a `language` is registered.
-        expect(registry.get("typescript")).toBe(support);
+        expect(await registry.load("typescript")).toBe(support);
         contributor.dispose();
     });
 });

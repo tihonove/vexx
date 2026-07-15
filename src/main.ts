@@ -192,7 +192,8 @@ async function runEditor(): Promise<void> {
         tokenizationRegistry,
         extensionsLogger,
     );
-    const grammarsLoading = tokenizationContributor.apply();
+    // Только регистрация ленивых фабрик — грамматики парсятся по требованию.
+    tokenizationContributor.apply();
 
     // ── Bootstrap через DI-контейнер ────────────────────────────
     const tokenStyleResolver = new TokenThemeResolver(initialTheme.tokenTheme);
@@ -298,9 +299,6 @@ async function runEditor(): Promise<void> {
     }
 
     await appController.activate();
-    // Дожидаемся регистрации TextMate-грамматик до открытия первых файлов,
-    // чтобы при создании `DocumentTokenStore` уже был полноценный токенайзер.
-    await grammarsLoading;
     const explicitFiles = resolvedPaths.filter((p) => !fs.statSync(p, { throwIfNoEntry: false })?.isDirectory());
     if (explicitFiles.length > 0) {
         // Явные файлы в CLI перебивают сохранённую сессию (как `code file.ts`).
@@ -387,6 +385,13 @@ async function runEditor(): Promise<void> {
     } catch (err) {
         extensionsLogger.error("extension host activation failed", err);
     }
+
+    // Остальные грамматики догружаем в фоне, чтобы переключение вкладки на другой
+    // язык не ждало парсинга. setImmediate — уже после первого кадра и спавна
+    // extension host'а, так что с критическим путём старта прогрев не конкурирует.
+    setImmediate(() => {
+        void tokenizationContributor.preloadAll();
+    });
 }
 
 /**

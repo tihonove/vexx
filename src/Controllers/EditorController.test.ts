@@ -5,10 +5,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { Uri } from "../Common/Uri.ts";
 
 import { Point, Size } from "../Common/GeometryPromitives.ts";
+import { createLineTokens, createToken } from "../Editor/ILineTokens.ts";
 import { createCursorSelection } from "../Editor/ISelection.ts";
 import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
+import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
+import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
@@ -36,6 +39,13 @@ function createEditorController(
         overrides.languageService ?? NULL_LANGUAGE_SERVICE,
         new UndoRedoService(),
     );
+}
+
+/** Скоуп первого токена первой строки — чем токенизирован документ прямо сейчас. */
+function firstScope(ctrl: EditorController): string | undefined {
+    const tokenStore = ctrl.viewState.tokenStore;
+    tokenStore?.tokenizeUpTo(0);
+    return tokenStore?.getLineTokens(0)?.tokens[0]?.scopes[0];
 }
 
 describe("EditorController", () => {
@@ -331,6 +341,41 @@ describe("EditorController", () => {
             ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
 
             expect(ctrl.getText()).toBe("const x = 1;");
+        });
+
+        // Открытие файла не ждёт грамматику: сначала fallback, затем пересадка
+        // на настоящий токенайзер, когда ленивая загрузка доедет.
+        it("triggers the lazy load for the opened language and swaps the tokenizer in", async () => {
+            const registry = new TokenizationRegistry();
+            const lazySupport: ITokenizationSupport = {
+                getInitialState: () => NULL_STATE,
+                tokenizeLine: () => ({
+                    tokens: createLineTokens([createToken(0, ["source.ts.lazy"])]),
+                    endState: NULL_STATE,
+                }),
+            };
+            let factoryCalls = 0;
+            registry.registerLazy("typescript", async () => {
+                factoryCalls++;
+                return lazySupport;
+            });
+            const languageService: ILanguageService = {
+                ...NULL_LANGUAGE_SERVICE,
+                getLanguageIdForResource: () => "typescript",
+                getLanguageDisplayName: () => undefined,
+            };
+            const ctrl = createEditorController({ registry, languageService });
+
+            ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
+
+            // Файл уже открыт и читается, грамматика ещё едет — работаем на fallback'е.
+            expect(ctrl.getText()).toBe("const x = 1;");
+            expect(factoryCalls).toBe(1);
+            expect(firstScope(ctrl)).toBe("text.plain");
+
+            await registry.load("typescript");
+
+            expect(firstScope(ctrl)).toBe("source.ts.lazy");
         });
     });
 });

@@ -12,8 +12,14 @@ import type { IExtension } from "./IExtension.ts";
  * Применяет вклад расширений в подсветку синтаксиса:
  *   - собирает {@link IGrammarRecord}[] из всех `contributes.grammars`,
  *   - создаёт общий {@link TextMateGrammarLoader},
- *   - для каждой грамматики с привязанным `language` загружает support
- *     и регистрирует его в {@link TokenizationRegistry}.
+ *   - для каждой грамматики с привязанным `language` регистрирует в
+ *     {@link TokenizationRegistry} **ленивую фабрику** support'а.
+ *
+ * `.tmLanguage.json` не читается и не парсится, пока язык не понадобится:
+ * грамматика грузится при первом `TokenizationRegistry.load(languageId)`
+ * (его дёргает редактор, открывший документ на этом языке), а остальные —
+ * фоновым {@link preloadAll} уже после первого кадра. Все 77 builtin-грамматик
+ * — это 6.6 MB JSON, парсить их на старте ради одного открытого файла незачем.
  *
  * Injection-грамматики (без `language`) только добавляются в loader —
  * vscode-textmate сам подмешает их в хост-грамматики через `getInjections`.
@@ -29,6 +35,7 @@ export class ExtensionTokenizationContributor implements IDisposable {
     private readonly logger: ILogger | undefined;
     private loader: TextMateGrammarLoader | undefined;
     private registrationDisposables: IDisposable[] = [];
+    private disposed = false;
 
     public constructor(
         assets: IAssetAccess,
@@ -43,42 +50,62 @@ export class ExtensionTokenizationContributor implements IDisposable {
     }
 
     /**
-     * Загружает все грамматики и регистрирует поддержку в `TokenizationRegistry`.
-     * До завершения промиса в реестре остаются ранее зарегистрированные
-     * fallback-токенайзеры (если есть).
+     * Регистрирует ленивые фабрики грамматик в `TokenizationRegistry`.
+     * Синхронный и без I/O: конструктор {@link TextMateGrammarLoader} только
+     * заполняет свои Map'ы, файлы читаются уже внутри фабрик.
      */
-    public async apply(): Promise<void> {
+    public apply(): void {
         const records = this.collectGrammarRecords();
         if (records.length === 0) return;
 
         const loader = new TextMateGrammarLoader(this.assets, records);
         this.loader = loader;
 
-        const tasks: Promise<void>[] = [];
         for (const grammar of this.iterAllGrammars()) {
             if (grammar.language === undefined) continue;
             const languageId = grammar.language;
             const scopeName = grammar.scopeName;
-            tasks.push(
-                (async () => {
+            this.registrationDisposables.push(
+                this.tokenizationRegistry.registerLazy(languageId, async () => {
+                    if (this.disposed) return null;
                     try {
                         const support = await loader.loadSupport(scopeName);
                         if (support === null) {
                             this.logger?.error(`Failed to load grammar "${scopeName}" for language "${languageId}"`);
-                            return;
+                            return null;
                         }
-                        const disposable = this.tokenizationRegistry.register(languageId, support);
-                        this.registrationDisposables.push(disposable);
+                        return support;
                     } catch (err) {
-                        this.logger?.error(`Error loading grammar "${scopeName}" (${languageId})`, err);
+                        // dispose() роняет vscode-textmate Registry под in-flight
+                        // loadGrammar — это ожидаемо, в лог сыпать не надо.
+                        if (!this.disposed) {
+                            this.logger?.error(`Error loading grammar "${scopeName}" (${languageId})`, err);
+                        }
+                        return null;
                     }
-                })(),
+                }),
             );
         }
-        await Promise.all(tasks);
+    }
+
+    /**
+     * Догружает в фоне все ещё не тронутые грамматики, чтобы переключение
+     * вкладки на другой язык не ждало парсинга. Вызывать только после первого
+     * кадра — это тёплый прогрев, а не часть старта.
+     *
+     * Последовательно, а не `Promise.all`: `JSON.parse` синхронен, и пачка
+     * параллельных загрузок слилась бы в один блокирующий бёрст. `await` между
+     * языками отдаёт event loop, так что ввод остаётся живым.
+     */
+    public async preloadAll(): Promise<void> {
+        for (const languageId of this.tokenizationRegistry.lazyLanguageIds()) {
+            if (this.disposed) return;
+            await this.tokenizationRegistry.load(languageId);
+        }
     }
 
     public dispose(): void {
+        this.disposed = true;
         for (const d of this.registrationDisposables) d.dispose();
         this.registrationDisposables = [];
         this.loader?.dispose();

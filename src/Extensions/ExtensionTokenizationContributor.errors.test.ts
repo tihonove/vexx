@@ -60,7 +60,8 @@ describe("ExtensionTokenizationContributor — error handling", () => {
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(dummyAssets, [makeExtWithGrammar()], registry, logger);
 
-        await contributor.apply();
+        contributor.apply();
+        await registry.load("typescript");
 
         expect(registry.get("typescript")).toBeUndefined();
         expect(logger.error).toHaveBeenCalledWith(
@@ -78,7 +79,10 @@ describe("ExtensionTokenizationContributor — error handling", () => {
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(dummyAssets, [makeExtWithGrammar()], registry, logger);
 
-        await contributor.apply();
+        contributor.apply();
+        // load() глотает бросок фабрики и резолвится в undefined — иначе
+        // `void load(...)` в EditorController дал бы unhandled rejection.
+        await expect(registry.load("typescript")).resolves.toBeUndefined();
 
         expect(registry.get("typescript")).toBeUndefined();
         expect(logger.error).toHaveBeenCalledWith(

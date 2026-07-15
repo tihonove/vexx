@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { createDevAssetAccess } from "../Common/Assets/createDefaultAssetAccess.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -16,10 +16,10 @@ describe("ExtensionTokenizationContributor", () => {
 
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
-        await contributor.apply();
+        contributor.apply();
 
         for (const lang of ["javascript", "javascriptreact", "typescript", "typescriptreact", "css"]) {
-            expect(registry.get(lang), `${lang} must be registered`).toBeDefined();
+            expect(await registry.load(lang), `${lang} must be loadable`).toBeDefined();
         }
         contributor.dispose();
     });
@@ -29,9 +29,9 @@ describe("ExtensionTokenizationContributor", () => {
         const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
-        await contributor.apply();
+        contributor.apply();
 
-        const ts = registry.get("typescript");
+        const ts = await registry.load("typescript");
         expect(ts).toBeDefined();
         const result = ts!.tokenizeLine("const x = 1;", ts!.getInitialState());
         const constTok = result.tokens.tokens.find((t) => t.startIndex === 0);
@@ -45,10 +45,61 @@ describe("ExtensionTokenizationContributor", () => {
         const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
         const registry = new TokenizationRegistry();
         const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
-        await contributor.apply();
+        contributor.apply();
+        expect(await registry.load("typescript")).toBeDefined();
         expect(registry.get("typescript")).toBeDefined();
 
         contributor.dispose();
+        expect(registry.get("typescript")).toBeUndefined();
+    });
+
+    // Регрессионный замок на eager-парсинг: 77 builtin-грамматик — это 6.6 MB
+    // JSON, и открытие одного .ts не должно их трогать.
+    it("apply() не читает ассеты — грамматика парсится только на load()", async () => {
+        const assets = createDevAssetAccess();
+        const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
+        const registry = new TokenizationRegistry();
+        const readText = vi.spyOn(assets, "readText");
+        const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
+
+        contributor.apply();
+        expect(readText).not.toHaveBeenCalled();
+
+        await registry.load("typescript");
+        expect(readText).toHaveBeenCalled();
+        // Грузим только запрошенный язык, а не весь builtin-набор.
+        expect(registry.get("css")).toBeUndefined();
+
+        contributor.dispose();
+        readText.mockRestore();
+    });
+
+    it("preloadAll() прогревает остальные языки", async () => {
+        const assets = createDevAssetAccess();
+        const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
+        const registry = new TokenizationRegistry();
+        const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
+        contributor.apply();
+
+        await registry.load("typescript");
+        expect(registry.get("css")).toBeUndefined();
+
+        await contributor.preloadAll();
+        expect(registry.get("css")).toBeDefined();
+        expect(registry.get("javascript")).toBeDefined();
+
+        contributor.dispose();
+    });
+
+    it("dispose() до load() — фабрика ничего не регистрирует", async () => {
+        const assets = createDevAssetAccess();
+        const exts = await scanBuiltinExtensions(assets, ROOT_PREFIX);
+        const registry = new TokenizationRegistry();
+        const contributor = new ExtensionTokenizationContributor(assets, exts, registry);
+        contributor.apply();
+        contributor.dispose();
+
+        expect(await registry.load("typescript")).toBeUndefined();
         expect(registry.get("typescript")).toBeUndefined();
     });
 });
