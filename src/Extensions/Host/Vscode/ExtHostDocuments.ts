@@ -18,13 +18,15 @@ export interface ExtHostDocumentMeta {
     readonly uri: string;
     readonly languageId?: string;
     readonly isDirty?: boolean;
+    /** Кодировка дискового представления (id вида "utf8"/"windows1251"). */
+    readonly encoding?: string;
+    /** Текущий EOL документа (`vscode.EndOfLine`: 1=LF, 2=CRLF). */
+    readonly eol?: EndOfLine;
 }
 
 /** Полный снапшот документа (путь will-save; с текстом). */
 export interface ExtHostDocumentSnapshot extends ExtHostDocumentMeta {
     readonly text: string;
-    /** Текущий EOL документа (`vscode.EndOfLine`: 1=LF, 2=CRLF). По умолчанию LF. */
-    readonly eol?: EndOfLine;
 }
 
 /** Строка документа (`vscode.TextLine`). */
@@ -42,7 +44,9 @@ export class ExtHostTextDocument {
     /** Идентичность ресурса — источник правды, как в `vscode.TextDocument.uri`. */
     public readonly uri: Uri;
     public readonly isClosed = false;
-    public readonly encoding = "utf8";
+
+    /** Отражает кодировку ядрового документа: обновляется из меты/снапшотов. */
+    public encoding = "utf8";
 
     /**
      * Путь ресурса на ФС. По спецификации (`vscode.d.ts`) это shorthand для
@@ -58,7 +62,7 @@ export class ExtHostTextDocument {
         return this.uri.scheme === "untitled";
     }
 
-    /** Отражает EOL ядрового документа: обновляется из снапшота на will-save. */
+    /** Отражает EOL ядрового документа: обновляется из меты/снапшотов. */
     public eol: EndOfLine = EndOfLine.LF;
 
     public languageId = "plaintext";
@@ -76,13 +80,14 @@ export class ExtHostTextDocument {
     public applyMeta(meta: ExtHostDocumentMeta): void {
         if (meta.languageId !== undefined) this.languageId = meta.languageId;
         if (meta.isDirty !== undefined) this.isDirty = meta.isDirty;
+        if (meta.encoding !== undefined) this.encoding = meta.encoding;
+        if (meta.eol !== undefined) this.eol = meta.eol;
     }
 
     /** Обновляет текст + метаданные и инкрементирует версию (will-save). */
     public applyFull(snapshot: ExtHostDocumentSnapshot): void {
         this.applyMeta(snapshot);
         this.text = snapshot.text;
-        if (snapshot.eol !== undefined) this.eol = snapshot.eol;
         this.lineCache = null;
         this.version += 1;
     }

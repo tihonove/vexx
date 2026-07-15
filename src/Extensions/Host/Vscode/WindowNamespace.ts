@@ -65,7 +65,13 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
     const decorationTypeKeys = new WeakMap<object, number>();
 
     rpc.handleNotification("editor.activeEditorChanged", (params) => {
-        const meta = params as { uri: string | null; languageId?: string | null; isDirty?: boolean };
+        const meta = params as {
+            uri: string | null;
+            languageId?: string | null;
+            isDirty?: boolean;
+            encoding?: string | null;
+            eol?: number | null;
+        };
         activeEditorUri = meta.uri;
         let editor: vscode.TextEditor | undefined;
         if (meta.uri != null) {
@@ -73,6 +79,8 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
                 uri: meta.uri,
                 languageId: meta.languageId ?? undefined,
                 isDirty: meta.isDirty,
+                encoding: meta.encoding ?? undefined,
+                eol: meta.eol === 1 || meta.eol === 2 ? meta.eol : undefined,
             });
             editor = getEditorFor(doc);
         }

@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
+import iconv from "iconv-lite";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
@@ -209,30 +210,48 @@ describe("WorkspaceNamespace — openTextDocument от диска (WP7)", () => 
         await expect(workspace.openTextDocument(path.join(tmpDir, "nope.txt"))).rejects.toThrow();
     });
 
-    it("не-utf8 encoding → warn через window.showMessage, текст всё равно utf-8", async () => {
+    it("не-utf8 encoding реально декодирует файл (windows1251) без предупреждений", async () => {
         const { stub, workspace } = makeCtx();
         const file = path.join(tmpDir, "a.txt");
-        fs.writeFileSync(file, "abc\n", "utf8");
+        fs.writeFileSync(file, iconv.encode("Привет, мир!\n", "windows1251"));
 
         const doc = (await workspace.openTextDocument(
             Uri.file(file) as never,
             {
-                encoding: "latin1",
+                encoding: "windows1251",
             } as never,
-        )) as unknown as { getText(): string };
-        expect(doc.getText()).toBe("abc\n");
-        expect(stub.notifies).toContainEqual({
-            method: "window.showMessage",
-            params: expect.objectContaining({ severity: "warn" }) as unknown,
-        });
+        )) as unknown as { getText(): string; encoding: string };
+        expect(doc.getText()).toBe("Привет, мир!\n");
+        expect(doc.encoding).toBe("windows1251");
+        expect(stub.notifies.some((n) => n.method === "window.showMessage")).toBe(false);
     });
 
-    it("utf-8 / utf8 encoding не вызывает предупреждения", async () => {
+    it("неизвестный encoding молча откатывается к дефолту (контракт vscode.d.ts)", async () => {
         const { stub, workspace } = makeCtx();
         const file = path.join(tmpDir, "b.txt");
         fs.writeFileSync(file, "x\n", "utf8");
-        await workspace.openTextDocument(Uri.file(file) as never, { encoding: "utf-8" } as never);
+        const doc = (await workspace.openTextDocument(Uri.file(file) as never, {
+            encoding: "martian",
+        } as never)) as unknown as { getText(): string; encoding: string };
+        expect(doc.getText()).toBe("x\n");
+        expect(doc.encoding).toBe("utf8");
         expect(stub.notifies.some((n) => n.method === "window.showMessage")).toBe(false);
+    });
+
+    it("эфемерный документ детектит encoding по BOM и EOL по содержимому", async () => {
+        const { workspace } = makeCtx();
+        const file = path.join(tmpDir, "bom.txt");
+        fs.writeFileSync(file, Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("a\r\nb\r\n", "utf8")]));
+
+        const doc = (await workspace.openTextDocument(file)) as unknown as {
+            getText(): string;
+            encoding: string;
+            eol: number;
+        };
+        expect(doc.encoding).toBe("utf8bom");
+        expect(doc.eol).toBe(2); // vscode.EndOfLine.CRLF
+        // BOM отрезан и не попал в текст.
+        expect(doc.getText().charCodeAt(0)).not.toBe(0xfeff);
     });
 });
 
@@ -329,6 +348,15 @@ describe("WorkspaceNamespace — will-save request handler", () => {
         });
         await stub.callRequest(REQUEST, { ...paramsFor("a\n"), eol: 2 });
         expect(ctx.registry.get(Uri.file("/f.txt"))?.eol).toBe(EndOfLine.CRLF);
+    });
+
+    it("прокидывает encoding документа в реестр (#106)", async () => {
+        const { stub, ctx, workspace } = makeCtx();
+        workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve([]));
+        });
+        await stub.callRequest(REQUEST, { ...paramsFor("a\n"), encoding: "windows1251" });
+        expect(ctx.registry.get(Uri.file("/f.txt"))?.encoding).toBe("windows1251");
     });
 
     it("минимальные params (без text/reason/languageId) не падают", async () => {

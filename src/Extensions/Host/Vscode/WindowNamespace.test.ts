@@ -38,6 +38,24 @@ describe("WindowNamespace", () => {
         expect(doc.isDirty).toBe(true);
     });
 
+    it("activeEditorChanged прокидывает encoding/eol в документ (#106)", () => {
+        const { stub, window } = makeCtx();
+        stub.fire("editor.activeEditorChanged", {
+            uri: Uri.file("/a.txt").toString(),
+            languageId: "plaintext",
+            isDirty: false,
+            encoding: "windows1251",
+            eol: 2,
+        });
+        const doc = window.activeTextEditor?.document as unknown as { encoding: string; eol: number };
+        expect(doc.encoding).toBe("windows1251");
+        expect(doc.eol).toBe(2);
+
+        // Мета без encoding/eol (старый хост) не затирает известные значения.
+        stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.txt").toString() });
+        expect(doc.encoding).toBe("windows1251");
+    });
+
     it("editor.document стабилен по ссылке между обращениями", () => {
         const { stub, window } = makeCtx();
         stub.fire("editor.activeEditorChanged", { uri: Uri.file("/a.ts").toString(), languageId: "typescript" });

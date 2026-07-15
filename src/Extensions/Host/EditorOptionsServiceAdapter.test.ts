@@ -81,17 +81,23 @@ describe("EditorOptionsServiceAdapter", () => {
                 uri: Uri.file("/a/b.ts"),
                 languageId: "typescript",
                 isModified: true,
+                encoding: "windows1251",
+                eol: 2,
             }),
         } as unknown as EditorGroupController;
         expect(new EditorOptionsServiceAdapter(withEditor).getActiveEditorMeta()).toEqual({
             uri: Uri.file("/a/b.ts").toString(),
             languageId: "typescript",
             isDirty: true,
+            encoding: "windows1251",
+            eol: 2,
         });
         expect(new EditorOptionsServiceAdapter(groupWithNoActiveEditor()).getActiveEditorMeta()).toEqual({
             uri: null,
             languageId: null,
             isDirty: false,
+            encoding: null,
+            eol: null,
         });
     });
 
@@ -114,13 +120,13 @@ describe("EditorOptionsServiceAdapter", () => {
         expect(registered).toBeDefined();
 
         // Active editor present → its meta is forwarded.
-        registered!({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false });
+        registered!({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false, encoding: "utf8", eol: 1 });
         // No active editor → nulls are forwarded.
         registered!(null);
 
         expect(received).toEqual([
-            { uri: Uri.file("/a/b.ts").toString(), languageId: "typescript", isDirty: false },
-            { uri: null, languageId: null, isDirty: false },
+            { uri: Uri.file("/a/b.ts").toString(), languageId: "typescript", isDirty: false, encoding: "utf8", eol: 1 },
+            { uri: null, languageId: null, isDirty: false, encoding: null, eol: null },
         ]);
     });
 });

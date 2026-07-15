@@ -52,11 +52,15 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     }
 }
 
-function metaOf(editor: { uri: Uri; languageId: string; isModified: boolean } | null): IActiveEditorMeta {
-    if (editor === null) return { uri: null, languageId: null, isDirty: false };
+function metaOf(
+    editor: { uri: Uri; languageId: string; isModified: boolean; encoding: string; eol: number } | null,
+): IActiveEditorMeta {
+    if (editor === null) return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null };
     return {
         uri: editor.uri.toString(),
         languageId: editor.languageId,
         isDirty: editor.isModified,
+        encoding: editor.encoding,
+        eol: editor.eol === 2 ? 2 : 1,
     };
 }
