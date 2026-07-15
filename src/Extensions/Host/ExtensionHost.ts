@@ -35,6 +35,7 @@ const MAX_WILL_SAVE_TEXT_BYTES = 8 * 1024 * 1024;
 
 /** Папка воркспейса, проецируемая в subprocess (`workspace.workspaceFolders`). */
 export interface IWorkspaceFolderInfo {
+    /** Ресурс папки как `uri.toString()` — настоящий uri, а не голый путь под именем uri. */
     readonly uri: string;
     readonly name: string;
     readonly index: number;
@@ -167,7 +168,7 @@ export class ExtensionHost extends Disposable {
     private readonly themeColorResolver: IThemeColorResolver;
     /** Реестр типов декораций: key → { overviewRulerColorId?, isWholeLine }. Gutter-тип = есть overviewRulerColor. */
     private readonly decorationTypes = new Map<number, { overviewRulerColorId?: string; isWholeLine: boolean }>();
-    /** Держимые декорации редактора: fileName → (key → ranges). Пере-резолвятся при смене темы. */
+    /** Держимые декорации редактора: uri → (key → ranges). Пере-резолвятся при смене темы. */
     private readonly editorDecorationsByFile = new Map<string, Map<number, readonly IRange[]>>();
     /** Держимые файловые декорации: absPath → { badge?, colorId? }. Пере-резолвятся при смене темы. */
     private readonly fileDecorationState = new Map<string, { badge?: string; colorId?: string }>();
@@ -321,7 +322,7 @@ export class ExtensionHost extends Disposable {
         /* v8 ignore start -- защитный лимит на снапшот 8 МБ; открытие такого файла в редакторе неподъёмно для unit-теста */
         if (snapshot.text.length > MAX_WILL_SAVE_TEXT_BYTES) {
             this.logger?.warn("skipping will-save participant: document too large", {
-                fileName: snapshot.fileName,
+                uri: snapshot.uri,
                 length: snapshot.text.length,
             });
             return [];
@@ -330,7 +331,7 @@ export class ExtensionHost extends Disposable {
         return requestWillSaveEdits(
             (method, params) => rpc.request(method, params),
             {
-                fileName: snapshot.fileName,
+                uri: snapshot.uri,
                 languageId: snapshot.languageId,
                 version: snapshot.versionId,
                 isDirty: snapshot.isDirty,
@@ -346,7 +347,7 @@ export class ExtensionHost extends Disposable {
      * Уведомляет субпроцесс о состоявшемся сохранении (`onDidSaveTextDocument`).
      * No-op, если субпроцесса нет или никто не подписан.
      */
-    public didSaveTextDocument(meta: { fileName: string; languageId: string }): void {
+    public didSaveTextDocument(meta: { uri: string; languageId: string }): void {
         const rpc = this.rpc;
         if (rpc === null || !this.didSaveSubscribed) return;
         rpc.notify("workspace.didSaveTextDocument", meta);
@@ -365,7 +366,7 @@ export class ExtensionHost extends Disposable {
         /* v8 ignore start -- защитный лимит на снапшот 8 МБ; открытие такого файла в редакторе неподъёмно для unit-теста */
         if (req.text.length > MAX_WILL_SAVE_TEXT_BYTES) {
             this.logger?.warn("skipping completion: document too large", {
-                fileName: req.fileName,
+                uri: req.uri,
                 length: req.text.length,
             });
             return [];
@@ -374,7 +375,7 @@ export class ExtensionHost extends Disposable {
         return requestCompletionItems(
             (method, params) => rpc.request(method, params),
             {
-                fileName: req.fileName,
+                uri: req.uri,
                 languageId: req.languageId,
                 text: req.text,
                 line: req.line,
@@ -544,25 +545,25 @@ export class ExtensionHost extends Disposable {
             if (typeof p.key !== "number") return;
             this.decorationTypes.delete(p.key);
             const affected: string[] = [];
-            for (const [fileName, byKey] of this.editorDecorationsByFile) {
-                if (byKey.delete(p.key)) affected.push(fileName);
+            for (const [uri, byKey] of this.editorDecorationsByFile) {
+                if (byKey.delete(p.key)) affected.push(uri);
             }
-            for (const fileName of affected) this.pushEditorDecorations(fileName);
+            for (const uri of affected) this.pushEditorDecorations(uri);
         });
-        // Набор диапазонов типа в файле. Пере-резолвим ThemeColor и проталкиваем
-        // gutter-декорации в редактор(ы) этого пути.
+        // Набор диапазонов типа в ресурсе. Пере-резолвим ThemeColor и проталкиваем
+        // gutter-декорации в редактор(ы) этого ресурса.
         rpc.handleNotification("editor.setDecorations", (params) => {
-            const p = params as { key?: unknown; fileName?: unknown; ranges?: unknown };
-            if (typeof p.key !== "number" || typeof p.fileName !== "string") return;
+            const p = params as { key?: unknown; uri?: unknown; ranges?: unknown };
+            if (typeof p.key !== "number" || typeof p.uri !== "string") return;
             const ranges = parseDecorationRanges(p.ranges);
-            let byKey = this.editorDecorationsByFile.get(p.fileName);
+            let byKey = this.editorDecorationsByFile.get(p.uri);
             if (byKey === undefined) {
                 byKey = new Map();
-                this.editorDecorationsByFile.set(p.fileName, byKey);
+                this.editorDecorationsByFile.set(p.uri, byKey);
             }
             if (ranges.length === 0) byKey.delete(p.key);
             else byKey.set(p.key, ranges);
-            this.pushEditorDecorations(p.fileName);
+            this.pushEditorDecorations(p.uri);
         });
         // Изменившиеся файловые декорации. Мержим в держимый набор (голый uri без
         // цвета/бейджа = снятие) и пере-push всего набора в дерево.
@@ -598,14 +599,14 @@ export class ExtensionHost extends Disposable {
     /**
      * Схлопывает держимые декорации файла в gutter change-bar'ы (только
      * gutter-типы — есть overviewRulerColor) с пере-резолвом ThemeColor и
-     * проталкивает их в редактор(ы) этого пути. Пустой набор снимает бары.
+     * проталкивает их в редактор(ы) этого ресурса. Пустой набор снимает бары.
      */
-    private pushEditorDecorations(fileName: string): void {
-        const byKey = this.editorDecorationsByFile.get(fileName);
+    private pushEditorDecorations(uri: string): void {
+        const byKey = this.editorDecorationsByFile.get(uri);
         const decorations: IGutterChangeDecoration[] = [];
-        /* v8 ignore start -- defensive: pushEditorDecorations зовётся только для файлов с записью (setDecorations/disposeType/repushAll) */
+        /* v8 ignore start -- defensive: pushEditorDecorations зовётся только для ресурсов с записью (setDecorations/disposeType/repushAll) */
         if (byKey === undefined) {
-            this.editorDecorations.setGutterChangeDecorations(fileName, decorations);
+            this.editorDecorations.setGutterChangeDecorations(uri, decorations);
             return;
         }
         /* v8 ignore stop */
@@ -618,7 +619,7 @@ export class ExtensionHost extends Disposable {
             const dashed = type.overviewRulerColorId === "editorGutter.modifiedBackground";
             for (const range of ranges) decorations.push({ range, color, ...(dashed ? { dashed: true } : {}) });
         }
-        this.editorDecorations.setGutterChangeDecorations(fileName, decorations);
+        this.editorDecorations.setGutterChangeDecorations(uri, decorations);
     }
 
     /** Пере-резолвит держимые файловые декорации и проталкивает полный набор в дерево. */
@@ -637,7 +638,7 @@ export class ExtensionHost extends Disposable {
 
     /** Пере-push всех держимых декораций в обе поверхности (на смену темы). */
     private repushAllDecorations(): void {
-        for (const fileName of this.editorDecorationsByFile.keys()) this.pushEditorDecorations(fileName);
+        for (const uri of this.editorDecorationsByFile.keys()) this.pushEditorDecorations(uri);
         this.pushFileDecorations();
     }
 

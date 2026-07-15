@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import { createCursorSelection } from "../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -39,7 +41,7 @@ describe("EditorController – undo/redo × folding", () => {
             NULL_LANGUAGE_SERVICE,
             new UndoRedoService(),
         );
-        ctrl.openFile(filePath);
+        ctrl.openFile(Uri.file(filePath));
         return ctrl;
     }
 

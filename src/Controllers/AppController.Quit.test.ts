@@ -4,8 +4,10 @@ import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
 import type { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
+import type { TextLabelElement } from "../TUIDom/Widgets/TextLabelElement.ts";
 
 import type { AppController } from "./AppController.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
 import { ServiceAccessorDIToken } from "./CoreTokens.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
@@ -13,11 +15,17 @@ interface TestQuitContext {
     testApp: TestApp;
     controller: AppController;
     accessor: ServiceAccessor;
+    commands: CommandRegistry;
 }
 
 function createTestContext(): TestQuitContext {
     const h = createAppTestHarness();
-    return { testApp: h.testApp, controller: h.controller, accessor: h.container.get(ServiceAccessorDIToken) };
+    return {
+        testApp: h.testApp,
+        controller: h.controller,
+        accessor: h.container.get(ServiceAccessorDIToken),
+        commands: h.commands,
+    };
 }
 
 /** Save теперь async — сохранение и последующий quit/close откладываются на
@@ -309,5 +317,44 @@ describe("AppController close-tab confirm flow", () => {
         testApp.render();
 
         expect(tabStrip.getItemElements()).toHaveLength(2);
+    });
+});
+
+/**
+ * Метка безымянного буфера в диалоге подтверждения. Раньше эти ветки прятались под
+ * `/* v8 ignore ... always have a file path *\/` (неправда — Ctrl+N их достаёт), и
+ * диалог писал «untitled», расходясь с меткой вкладки `Untitled-1`.
+ */
+describe("AppController — диалог сохранения для безымянного буфера", () => {
+    function dialogText(testApp: TestApp): string {
+        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        return dialog
+            .querySelectorAll("TextLabelElement")
+            .map((l) => (l as TextLabelElement).getText())
+            .join("\n");
+    }
+
+    it("называет буфер Untitled-1, а не «untitled» (quit)", () => {
+        const { testApp, controller, accessor, commands } = createTestContext();
+        commands.execute("workbench.action.files.newUntitledFile");
+        controller.focusEditor();
+        testApp.sendKey("x");
+
+        controller.requestQuit(accessor);
+
+        expect(dialogText(testApp)).toContain("Untitled-1");
+        expect(dialogText(testApp)).not.toContain("untitled?");
+    });
+
+    it("называет буфер Untitled-2, когда закрывают вторую вкладку (close)", () => {
+        const { testApp, controller, commands } = createTestContext();
+        commands.execute("workbench.action.files.newUntitledFile");
+        commands.execute("workbench.action.files.newUntitledFile");
+        controller.focusEditor();
+        testApp.sendKey("x");
+
+        commands.execute("workbench.action.closeActiveEditor");
+
+        expect(dialogText(testApp)).toContain("Untitled-2");
     });
 });

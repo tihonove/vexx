@@ -16,7 +16,8 @@ export interface ICompletionRegistration {
 
 /** Wire-параметры запроса completion (host → subprocess). */
 interface IWireCompletionParams {
-    readonly fileName: string;
+    /** Ресурс как `uri.toString()`. */
+    readonly uri: string;
     readonly languageId?: string;
     readonly text?: string;
     readonly line?: number;
@@ -144,7 +145,7 @@ export function createLanguagesNamespace(ctx: IVscodeHostContext): {
     rpc.handleRequest("languages.provideCompletionItems", async (params): Promise<WireCompletionItem[]> => {
         const p = params as IWireCompletionParams;
         const doc: ExtHostTextDocument = registry.upsertFull({
-            fileName: p.fileName,
+            uri: p.uri,
             ...(typeof p.languageId === "string" ? { languageId: p.languageId } : {}),
             text: p.text ?? "",
         });

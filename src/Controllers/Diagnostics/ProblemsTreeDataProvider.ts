@@ -1,8 +1,19 @@
 import * as path from "node:path";
 
+import { Uri } from "../../Common/Uri.ts";
 import type { IMarker } from "../../Editor/Markers/IMarker.ts";
 import { MarkerSeverity } from "../../Editor/Markers/IMarker.ts";
 import type { ITreeDataProvider, ITreeItem } from "../../TUIDom/Widgets/ITreeDataProvider.ts";
+
+/**
+ * Короткая метка ресурса для узла-файла. Ресурс маркера — `uri.toString()`, поэтому
+ * `path.basename` по нему брать нельзя: на `file:///a/b.ts` он сработал бы случайно,
+ * а на `untitled:Untitled-1` дал бы неверный ответ.
+ */
+function resourceLabel(resource: string): string {
+    const uri = Uri.parse(resource);
+    return uri.scheme === "file" ? path.basename(uri.fsPath) : uri.path;
+}
 
 /**
  * A node in the Problems tree: a lightweight file grouping (data looked up by
@@ -71,7 +82,7 @@ export class ProblemsTreeDataProvider implements ITreeDataProvider<ProblemNode> 
         if (element.kind === "file") {
             const count = this.byResource.get(element.resource)?.length ?? 0;
             return {
-                label: `${path.basename(element.resource)}  (${count})`,
+                label: `${resourceLabel(element.resource)}  (${count})`,
                 collapsible: true,
             };
         }
@@ -85,7 +96,9 @@ export class ProblemsTreeDataProvider implements ITreeDataProvider<ProblemNode> 
     }
 
     public getKey(element: ProblemNode): string {
-        return element.kind === "file" ? `file:${element.resource}` : `marker:${element.resource}:${element.index}`;
+        // Префикс — вид узла, а не схема: `resource` сам уже uri (`file:///a.json`),
+        // и `file:`-префикс поверх него читался бы как удвоенная схема.
+        return element.kind === "file" ? `node:${element.resource}` : `marker:${element.resource}:${element.index}`;
     }
 
     private colorFor(severity: MarkerSeverity): number {

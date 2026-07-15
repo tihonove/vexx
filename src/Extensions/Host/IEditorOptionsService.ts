@@ -19,7 +19,8 @@ export interface IEditorOptionsPatch {
  * приходит лишь на пути will-save, WP6).
  */
 export interface IActiveEditorMeta {
-    readonly fileName: string | null;
+    /** Ресурс активного документа как `uri.toString()`; `null` — активного редактора нет. */
+    readonly uri: string | null;
     readonly languageId: string | null;
     readonly isDirty: boolean;
 }

@@ -3,6 +3,8 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
@@ -38,7 +40,7 @@ function make(): { controller: EditorController; undoRedo: UndoRedoService; file
     );
     const file = path.join(tmpDir, "a.txt");
     fs.writeFileSync(file, "");
-    controller.openFile(file);
+    controller.openFile(Uri.file(file));
     return { controller, undoRedo, file };
 }
 

@@ -6,8 +6,8 @@ import type { IRange } from "./IRange.ts";
  * will-save, снапшот передаётся целиком).
  */
 export interface ICompletionRequest {
-    /** Абсолютный путь активного файла. */
-    readonly fileName: string;
+    /** Ресурс активного документа как `uri.toString()`. */
+    readonly uri: string;
     readonly languageId: string;
     /** Полный текст документа (LF-канонический). */
     readonly text: string;

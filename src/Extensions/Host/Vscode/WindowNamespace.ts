@@ -5,7 +5,7 @@ import { type IWireFileDecoration, serializeDecorationRenderOptions } from "../W
 
 import type { ExtHostTextDocument } from "./ExtHostDocuments.ts";
 import type { IVscodeHostContext } from "./VscodeHostContext.ts";
-import { DisposableImpl } from "./VscodeTypes.ts";
+import { DisposableImpl, Uri } from "./VscodeTypes.ts";
 
 /** Wire-форма диапазона декорации (nested `start`/`end`, совпадает с `IRange`). */
 interface IWireRange {
@@ -53,9 +53,9 @@ function normalizeChangedUris(changed: undefined | vscode.Uri | vscode.Uri[]): v
 export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.window {
     const { rpc, registry } = ctx;
 
-    let activeEditorFileName: string | null = null;
-    // Ключ — сам ExtHostTextDocument (стабилен по fileName), поэтому
-    // editor.document === registry.getOrCreate(fileName) по построению.
+    let activeEditorUri: string | null = null;
+    // Ключ — сам ExtHostTextDocument (стабилен по ресурсу), поэтому
+    // editor.document === registry.getOrCreate(uri) по построению.
     const editorCache = new WeakMap<ExtHostTextDocument, vscode.TextEditor>();
     const activeEditorListeners: ((editor: vscode.TextEditor | undefined) => void)[] = [];
 
@@ -65,12 +65,12 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
     const decorationTypeKeys = new WeakMap<object, number>();
 
     rpc.handleNotification("editor.activeEditorChanged", (params) => {
-        const meta = params as { fileName: string | null; languageId?: string | null; isDirty?: boolean };
-        activeEditorFileName = meta.fileName;
+        const meta = params as { uri: string | null; languageId?: string | null; isDirty?: boolean };
+        activeEditorUri = meta.uri;
         let editor: vscode.TextEditor | undefined;
-        if (meta.fileName != null) {
+        if (meta.uri != null) {
             const doc = registry.upsertMeta({
-                fileName: meta.fileName,
+                uri: meta.uri,
                 languageId: meta.languageId ?? undefined,
                 isDirty: meta.isDirty,
             });
@@ -104,7 +104,7 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
                 if (key === undefined) return;
                 rpc.notify("editor.setDecorations", {
                     key,
-                    fileName: document.fileName,
+                    uri: document.uri.toString(),
                     ranges: normalizeDecorationRanges(rangesOrOptions),
                 });
             },
@@ -162,8 +162,8 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
 
     const windowNs = {
         get activeTextEditor(): vscode.TextEditor | undefined {
-            if (activeEditorFileName === null) return undefined;
-            return getEditorFor(registry.getOrCreate(activeEditorFileName));
+            if (activeEditorUri === null) return undefined;
+            return getEditorFor(registry.getOrCreate(Uri.parse(activeEditorUri)));
         },
 
         // Оконное состояние. В TUI мы всегда «сфокусированы»; событие

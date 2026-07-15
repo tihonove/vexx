@@ -124,7 +124,7 @@ export class CompletionController extends Disposable {
         const source = this.group.completionSource;
         const extensionItems = source
             ? await source({
-                  fileName: editor.absoluteFilePath ?? "",
+                  uri: editor.uri.toString(),
                   languageId: editor.languageId,
                   text: editor.getText(),
                   line: active.line,

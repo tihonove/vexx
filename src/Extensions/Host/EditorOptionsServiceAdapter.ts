@@ -1,4 +1,5 @@
 import type { IDisposable } from "../../Common/Disposable.ts";
+import { Uri } from "../../Common/Uri.ts";
 import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
 
 import type {
@@ -35,7 +36,9 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     }
 
     public getActiveEditorFilePath(): string | null {
-        return this.group.getActiveEditor()?.absoluteFilePath ?? null;
+        const uri = this.group.getActiveEditor()?.uri;
+        // Потребитель (editorconfig) ждёт путь на диске; у безымянного буфера его нет.
+        return uri !== undefined && uri.scheme === "file" ? uri.fsPath : null;
     }
 
     public getActiveEditorMeta(): IActiveEditorMeta {
@@ -49,12 +52,10 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     }
 }
 
-function metaOf(
-    editor: { absoluteFilePath: string | null; languageId: string; isModified: boolean } | null,
-): IActiveEditorMeta {
-    if (editor === null) return { fileName: null, languageId: null, isDirty: false };
+function metaOf(editor: { uri: Uri; languageId: string; isModified: boolean } | null): IActiveEditorMeta {
+    if (editor === null) return { uri: null, languageId: null, isDirty: false };
     return {
-        fileName: editor.absoluteFilePath,
+        uri: editor.uri.toString(),
         languageId: editor.languageId,
         isDirty: editor.isModified,
     };

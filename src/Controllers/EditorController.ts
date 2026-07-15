@@ -3,6 +3,7 @@ import * as path from "node:path";
 
 import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
+import { Uri } from "../Common/Uri.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
@@ -55,6 +56,13 @@ interface IDiskStat {
 /** Источник непрозрачных ключей истории отмены (см. {@link EditorController.undoContext}). */
 let nextUndoContextId = 1;
 
+/**
+ * Ресурс свежесозданного редактора: безымянный буфер без номера. Номер назначает группа
+ * ({@link EditorController.setUntitled}) — она владеет счётчиком; до этого редактора ещё
+ * никто не видит.
+ */
+const UNTITLED_PLACEHOLDER_URI = Uri.from({ scheme: "untitled", path: "Untitled" });
+
 export class EditorController extends Disposable implements IController {
     public static dependencies = [
         ThemeServiceDIToken,
@@ -83,13 +91,13 @@ export class EditorController extends Disposable implements IController {
     private foldingSubscription: IDisposable | null = null;
     private foldingRecomputeScheduled = false;
     private controllerDisposed = false;
-    private filePath: string | null = null;
     /**
-     * Порядковый номер безымянного буфера (`Untitled-N`), назначаемый группой при
-     * создании; `null` — у буфера есть путь (или он ещё не безымянный). Используется
-     * только для метки вкладки; на модель документа не влияет.
+     * Идентичность ресурса этого редактора — первичное состояние, из которого выводится
+     * всё остальное (путь, имя, признак безымянности). Не `null`: у свежего редактора
+     * это `untitled:`-буфер, а не «редактор без ресурса», поэтому ветку «пути нет»
+     * задаёт схема, а не отсутствие значения.
      */
-    public untitledNumber: number | null = null;
+    private uriValue: Uri = UNTITLED_PLACEHOLDER_URI;
     private savedVersionId = 0;
     private savedEol: EndOfLine;
     /**
@@ -230,8 +238,25 @@ export class EditorController extends Disposable implements IController {
         };
     }
 
+    /** Идентичность ресурса: `file:` — файл на диске, `untitled:` — безымянный буфер. */
+    public get uri(): Uri {
+        return this.uriValue;
+    }
+
+    /**
+     * Путь ресурса на диске или `null`, если его там нет (безымянный буфер).
+     *
+     * Гейт по схеме, а не по «`fsPath` непустой»: `fsPath` у не-file схемы не бросает,
+     * а отдаёт путь как есть (`untitled:Untitled-1` → `"Untitled-1"`), и такой «путь»
+     * ушёл бы в `node:fs` как относительный.
+     */
+    private get filePath(): string | null {
+        return this.uriValue.scheme === "file" ? this.uriValue.fsPath : null;
+    }
+
     public get fileName(): string | null {
-        return this.filePath ? path.basename(this.filePath) : null;
+        const filePath = this.filePath;
+        return filePath === null ? null : path.basename(filePath);
     }
 
     public get absoluteFilePath(): string | null {
@@ -296,8 +321,24 @@ export class EditorController extends Disposable implements IController {
         });
     }
 
-    public openFile(filePath: string): void {
-        this.filePath = filePath;
+    /**
+     * Открывает файл с диска. Принимает уже поднятый `file:`-uri: подъём (и `path.resolve`
+     * относительных путей из CLI/дерева) делает группа — единственная точка, где строка
+     * становится ресурсом. `Uri.file` относительный путь НЕ резолвит, поэтому резолвить
+     * после подъёма было бы поздно.
+     */
+    /**
+     * Присваивает буферу номер безымянного (`untitled:Untitled-N`). Номерами владеет
+     * группа: счётчик общий на группу, а вызывать это надо до того, как редактор
+     * попадёт в список вкладок и станет кому-то виден.
+     */
+    public setUntitled(untitledNumber: number): void {
+        this.uriValue = Uri.from({ scheme: "untitled", path: `Untitled-${untitledNumber}` });
+    }
+
+    public openFile(uri: Uri): void {
+        this.uriValue = uri;
+        const filePath = uri.fsPath;
         this.loadDocumentFromDisk(filePath);
         this.startWatchingFile(filePath);
     }
@@ -342,7 +383,7 @@ export class EditorController extends Disposable implements IController {
         // остаётся синхронной в текущем тике (вызовы save() без await работают).
         const participant = this.saveParticipant;
         if (participant !== undefined) {
-            await this.runSaveParticipant(participant, this.filePath);
+            await this.runSaveParticipant(participant);
         }
         fs.writeFileSync(this.filePath, this.doc.serialize(), "utf-8");
         this.diskStat = this.readDiskStat(this.filePath);
@@ -368,9 +409,9 @@ export class EditorController extends Disposable implements IController {
      * Собирает снапшот, дожидается участника и применяет вернувшиеся правки к
      * буферу (undoable) до записи. Выделено, чтобы переиспользовать в saveAs.
      */
-    private async runSaveParticipant(participant: SaveParticipant, fileName: string): Promise<void> {
+    private async runSaveParticipant(participant: SaveParticipant): Promise<void> {
         const snapshot: ISaveSnapshot = {
-            fileName,
+            uri: this.uriValue.toString(),
             languageId: this.doc.languageId,
             versionId: this.doc.versionId,
             isDirty: this.isModified,
@@ -454,10 +495,11 @@ export class EditorController extends Disposable implements IController {
      * marker.
      */
     public async saveAs(newPath: string): Promise<void> {
-        this.filePath = newPath;
+        // Смена идентичности на месте: у безымянного буфера это переход untitled: → file:.
+        this.uriValue = Uri.file(path.resolve(newPath));
         const participant = this.saveParticipant;
         if (participant !== undefined) {
-            await this.runSaveParticipant(participant, newPath);
+            await this.runSaveParticipant(participant);
         }
         fs.writeFileSync(newPath, this.doc.serialize(), "utf-8");
         this.diskStat = this.readDiskStat(newPath);

@@ -155,18 +155,27 @@ describe("WorkspaceNamespace — folders & documents", () => {
 
     it("textDocuments отражает реестр", () => {
         const { ctx, workspace } = makeCtx();
-        ctx.registry.getOrCreate("/a.ts");
-        ctx.registry.getOrCreate("/b.ts");
+        ctx.registry.getOrCreate(Uri.file("/a.ts"));
+        ctx.registry.getOrCreate(Uri.file("/b.ts"));
         expect(workspace.textDocuments).toHaveLength(2);
     });
 
     it("openTextDocument резолвит открытый документ (строка и Uri)", async () => {
         const { ctx, workspace } = makeCtx();
-        ctx.registry.getOrCreate("/a.ts");
+        ctx.registry.getOrCreate(Uri.file("/a.ts"));
         const byString = await workspace.openTextDocument("/a.ts");
         expect((byString as unknown as { fileName: string }).fileName).toBe("/a.ts");
         const byUri = await workspace.openTextDocument(Uri.file("/a.ts") as never);
         expect((byUri as unknown as { fileName: string }).fileName).toBe("/a.ts");
+    });
+
+    it("openTextDocument с не-file URI отказывает и НЕ читает диск", async () => {
+        // Тот же класс бага, что #107: раньше схема падала через .fsPath, и
+        // "untitled:Untitled-1" уезжал в nodeFs.readFile как относительный путь.
+        const { workspace } = makeCtx();
+        await expect(workspace.openTextDocument(Uri.parse("untitled:Untitled-1") as never)).rejects.toMatchObject({
+            code: "Unavailable",
+        });
     });
 });
 
@@ -192,7 +201,7 @@ describe("WorkspaceNamespace — openTextDocument от диска (WP7)", () => 
         expect(doc.getText()).toBe("root = true\n");
         // Эфемерный: в реестр не попал.
         expect(ctx.registry.all()).toHaveLength(0);
-        expect(ctx.registry.get(file)).toBeUndefined();
+        expect(ctx.registry.get(Uri.file(file))).toBeUndefined();
     });
 
     it("несуществующий файл → reject", async () => {
@@ -280,7 +289,7 @@ describe("WorkspaceNamespace — save subscriptions", () => {
 describe("WorkspaceNamespace — will-save request handler", () => {
     const REQUEST = "workspace.willSaveTextDocument";
     const paramsFor = (text: string) => ({
-        fileName: "/f.txt",
+        uri: Uri.file("/f.txt").toString(),
         languageId: "plaintext",
         isDirty: true,
         text,
@@ -296,7 +305,7 @@ describe("WorkspaceNamespace — will-save request handler", () => {
         });
         const result = await stub.callRequest(REQUEST, paramsFor("abc   \n"));
         expect(result).toEqual([{ range: { startLine: 0, startCharacter: 3, endLine: 0, endCharacter: 6 }, text: "" }]);
-        expect(ctx.registry.get("/f.txt")?.getText()).toBe("abc   \n");
+        expect(ctx.registry.get(Uri.file("/f.txt"))?.getText()).toBe("abc   \n");
     });
 
     it("сериализует setEndOfLine (CRLF→2, LF→1)", async () => {
@@ -319,7 +328,7 @@ describe("WorkspaceNamespace — will-save request handler", () => {
             e.waitUntil(Promise.resolve([]));
         });
         await stub.callRequest(REQUEST, { ...paramsFor("a\n"), eol: 2 });
-        expect(ctx.registry.get("/f.txt")?.eol).toBe(EndOfLine.CRLF);
+        expect(ctx.registry.get(Uri.file("/f.txt"))?.eol).toBe(EndOfLine.CRLF);
     });
 
     it("минимальные params (без text/reason/languageId) не падают", async () => {
@@ -329,9 +338,9 @@ describe("WorkspaceNamespace — will-save request handler", () => {
             reason = e.reason as unknown as number;
             e.waitUntil(Promise.resolve([]));
         });
-        expect(await stub.callRequest(REQUEST, { fileName: "/x.txt" })).toEqual([]);
+        expect(await stub.callRequest(REQUEST, { uri: Uri.file("/x.txt").toString() })).toEqual([]);
         expect(reason).toBe(1); // TextDocumentSaveReason.Manual по умолчанию
-        expect(ctx.registry.get("/x.txt")?.getText()).toBe(""); // text ?? ""
+        expect(ctx.registry.get(Uri.file("/x.txt"))?.getText()).toBe(""); // text ?? ""
     });
 
     it("без слушателей возвращает []", async () => {
@@ -398,7 +407,7 @@ describe("WorkspaceNamespace — did-save notification", () => {
         workspace.onDidSaveTextDocument((doc) => {
             saved = doc as unknown as { fileName: string; languageId: string };
         });
-        stub.fire("workspace.didSaveTextDocument", { fileName: "/f.txt", languageId: "typescript" });
+        stub.fire("workspace.didSaveTextDocument", { uri: Uri.file("/f.txt").toString(), languageId: "typescript" });
         expect(saved?.fileName).toBe("/f.txt");
         expect(saved?.languageId).toBe("typescript");
     });
@@ -409,7 +418,7 @@ describe("WorkspaceNamespace — did-save notification", () => {
         workspace.onDidSaveTextDocument((doc) => {
             saved = doc as unknown as { languageId: string };
         });
-        stub.fire("workspace.didSaveTextDocument", { fileName: "/g.txt" });
+        stub.fire("workspace.didSaveTextDocument", { uri: Uri.file("/g.txt").toString() });
         expect(saved?.languageId).toBe("plaintext");
     });
 
@@ -419,7 +428,7 @@ describe("WorkspaceNamespace — did-save notification", () => {
         workspace.onDidSaveTextDocument(() => {
             fired = true;
         });
-        stub.fire("workspace.didSaveTextDocument", { fileName: 42 });
+        stub.fire("workspace.didSaveTextDocument", { uri: 42 });
         expect(fired).toBe(false);
     });
 });

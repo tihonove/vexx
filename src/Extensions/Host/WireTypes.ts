@@ -22,7 +22,8 @@ export type WireTextEdit =
 
 /** Параметры запроса will-save (host → subprocess). */
 export interface IWireWillSaveParams {
-    readonly fileName: string;
+    /** Ресурс как `uri.toString()`. `document.fileName` субпроцесс выводит из него сам. */
+    readonly uri: string;
     readonly languageId: string;
     readonly version: number;
     readonly isDirty: boolean;
@@ -160,7 +161,8 @@ export interface WireCompletionItem {
 
 /** Параметры запроса completion (host → subprocess). */
 export interface IWireCompletionParams {
-    readonly fileName: string;
+    /** Ресурс как `uri.toString()`. */
+    readonly uri: string;
     readonly languageId: string;
     readonly text: string;
     readonly line: number;
@@ -329,7 +331,8 @@ export interface IWireCreateDecorationType {
 /** Параметры нотификации `editor.setDecorations`. */
 export interface IWireSetDecorations {
     readonly key: number;
-    readonly fileName: string;
+    /** Ресурс как `uri.toString()`. */
+    readonly uri: string;
     readonly ranges: readonly IRange[];
 }
 

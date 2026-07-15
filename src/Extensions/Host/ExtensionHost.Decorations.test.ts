@@ -44,14 +44,15 @@ function makeControllableResolver(initial: Record<string, number>): {
 
 function makeEditorSpy(): {
     service: IEditorDecorationsService;
-    calls: { fileName: string; decorations: readonly IGutterChangeDecoration[] }[];
-    latestFor(suffix: string): { fileName: string; decorations: readonly IGutterChangeDecoration[] } | undefined;
+    calls: { uri: string; decorations: readonly IGutterChangeDecoration[] }[];
+    latestFor(suffix: string): { uri: string; decorations: readonly IGutterChangeDecoration[] } | undefined;
 } {
-    const calls: { fileName: string; decorations: readonly IGutterChangeDecoration[] }[] = [];
+    const calls: { uri: string; decorations: readonly IGutterChangeDecoration[] }[] = [];
     return {
-        service: { setGutterChangeDecorations: (fileName, decorations) => calls.push({ fileName, decorations }) },
+        service: { setGutterChangeDecorations: (uri, decorations) => calls.push({ uri, decorations }) },
         calls,
-        latestFor: (suffix) => calls.filter((c) => c.fileName.endsWith(suffix)).at(-1),
+        // Ресурс — uri ("file:///…/main.ts"), поэтому суффикс имени файла по нему матчится.
+        latestFor: (suffix) => calls.filter((c) => c.uri.endsWith(suffix)).at(-1),
     };
 }
 

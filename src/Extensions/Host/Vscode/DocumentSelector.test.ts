@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
+
 import type * as vscode from "vscode";
 
 import { matchDocumentSelector } from "./DocumentSelector.ts";
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
+import { Uri } from "./VscodeTypes.ts";
 
 function doc(fileName: string, languageId: string) {
     const registry = new DocumentRegistry();
-    return registry.upsertMeta({ fileName, languageId });
+    return registry.upsertMeta({ uri: Uri.file(fileName).toString(), languageId });
 }
 
 describe("matchDocumentSelector", () => {

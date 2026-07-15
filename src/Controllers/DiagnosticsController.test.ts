@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../Common/GeometryPromitives.ts";
+import { Uri } from "../Common/Uri.ts";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { createInsertEdit } from "../Editor/ITextEdit.ts";
 import { MarkerSeverity } from "../Editor/Markers/IMarker.ts";
@@ -63,13 +64,18 @@ describe("DiagnosticsController — settings.json validation", () => {
         return h.testApp.querySelector("EditorElement") as EditorElement;
     }
 
+    /** Ключ маркера — ресурс (`uri.toString()`), а не путь на диске. */
+    function resourceOf(filePath: string): string {
+        return Uri.file(filePath).toString();
+    }
+
     it("warns on unknown settings and pushes squiggle decorations to the editor", () => {
         const filePath = write("settings.json", UNKNOWN_SETTINGS);
         const h = createHarness(filePath);
         h.commands.execute("workbench.openFile", filePath);
         h.testApp.render();
 
-        const markers = h.markerService.read({ resource: filePath });
+        const markers = h.markerService.read({ resource: resourceOf(filePath) });
         expect(markers).toHaveLength(1);
         expect(markers[0].severity).toBe(MarkerSeverity.Warning);
         expect(markers[0].message).toContain("editor.fontSize");
@@ -88,7 +94,7 @@ describe("DiagnosticsController — settings.json validation", () => {
         h.commands.execute("workbench.openFile", filePath);
         h.testApp.render();
 
-        expect(h.markerService.read({ resource: filePath })).toEqual([]);
+        expect(h.markerService.read({ resource: resourceOf(filePath) })).toEqual([]);
         expect(activeEditorElement(h).markerDecorations).toEqual([]);
 
         h.controller.dispose();
@@ -127,12 +133,12 @@ describe("DiagnosticsController — settings.json validation", () => {
         const h = createHarness(filePath);
         h.commands.execute("workbench.openFile", filePath);
         h.testApp.render();
-        expect(h.markerService.read({ resource: filePath })[0].range.start.line).toBe(2);
+        expect(h.markerService.read({ resource: resourceOf(filePath) })[0].range.start.line).toBe(2);
 
         // Insert a blank first line; the unknown key shifts down and must be re-flagged there.
         h.group.getActiveEditor()?.applyExternalEdits([createInsertEdit(0, 0, "\n")], "test");
 
-        const markers = h.markerService.read({ resource: filePath });
+        const markers = h.markerService.read({ resource: resourceOf(filePath) });
         expect(markers).toHaveLength(1);
         expect(markers[0].range.start.line).toBe(3);
         expect(activeEditorElement(h).markerDecorations[0].range.start.line).toBe(3);

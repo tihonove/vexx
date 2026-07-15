@@ -2,6 +2,8 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import type { ISaveEdit } from "../Editor/ISaveParticipant.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
@@ -43,7 +45,7 @@ describe("EditorController — save participant", () => {
     it("применяет текстовые правки участника перед записью", async () => {
         const controller = createEditorController();
         const fp = writeFile("a.txt", "abc   \n");
-        controller.openFile(fp);
+        controller.openFile(Uri.file(fp));
         // Удаляем хвостовые пробелы: правка стирает диапазон 3..6 строки 0.
         controller.saveParticipant = () =>
             Promise.resolve<ISaveEdit[]>([
@@ -59,7 +61,7 @@ describe("EditorController — save participant", () => {
     it("клампит диапазоны правок к границам документа", async () => {
         const controller = createEditorController();
         const fp = writeFile("clamp.txt", "ab\ncd");
-        controller.openFile(fp);
+        controller.openFile(Uri.file(fp));
         controller.saveParticipant = () =>
             Promise.resolve<ISaveEdit[]>([
                 // line/char за верхней границей → (последняя строка, её длина)
@@ -91,7 +93,7 @@ describe("EditorController — save participant", () => {
     it("смена EOL из участника (kind: eol) пишет CRLF", async () => {
         const controller = createEditorController();
         const fp = writeFile("eol.txt", "a\nb\n");
-        controller.openFile(fp);
+        controller.openFile(Uri.file(fp));
         controller.saveParticipant = () => Promise.resolve<ISaveEdit[]>([{ kind: "eol", eol: EndOfLine.CRLF }]);
 
         await controller.save();
@@ -103,7 +105,7 @@ describe("EditorController — save participant", () => {
     it("saveAs тоже прогоняет участника", async () => {
         const controller = createEditorController();
         const fp = writeFile("src.txt", "hi   \n");
-        controller.openFile(fp);
+        controller.openFile(Uri.file(fp));
         controller.saveParticipant = () =>
             Promise.resolve<ISaveEdit[]>([
                 { kind: "text", range: { start: { line: 0, character: 2 }, end: { line: 0, character: 5 } }, text: "" },
@@ -119,7 +121,7 @@ describe("EditorController — save participant", () => {
     it("без участника save остаётся синхронной записью", async () => {
         const controller = createEditorController();
         const fp = writeFile("plain.txt", "keep   \n");
-        controller.openFile(fp);
+        controller.openFile(Uri.file(fp));
 
         await controller.save();
 

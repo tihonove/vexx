@@ -2,6 +2,8 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -43,7 +45,7 @@ describe("EditorController EOL", () => {
         const filePath = writeFile("crlf.txt", "a\r\nb\r\nc");
         const ctrl = createEditorController();
 
-        ctrl.openFile(filePath);
+        ctrl.openFile(Uri.file(filePath));
 
         expect(ctrl.eol).toBe(EndOfLine.CRLF);
         expect(ctrl.isModified).toBe(false);
@@ -54,7 +56,7 @@ describe("EditorController EOL", () => {
         const filePath = writeFile("crlf.txt", original);
         const ctrl = createEditorController();
 
-        ctrl.openFile(filePath);
+        ctrl.openFile(Uri.file(filePath));
         await ctrl.save();
 
         expect(fs.readFileSync(filePath, "utf-8")).toBe(original);
@@ -65,7 +67,7 @@ describe("EditorController EOL", () => {
         const filePath = writeFile("lf.txt", original);
         const ctrl = createEditorController();
 
-        ctrl.openFile(filePath);
+        ctrl.openFile(Uri.file(filePath));
         await ctrl.save();
 
         expect(fs.readFileSync(filePath, "utf-8")).toBe(original);
@@ -74,7 +76,7 @@ describe("EditorController EOL", () => {
     it("setEol marks the document modified and writes the new sequence on save", async () => {
         const filePath = writeFile("lf.txt", "a\nb\nc");
         const ctrl = createEditorController();
-        ctrl.openFile(filePath);
+        ctrl.openFile(Uri.file(filePath));
         expect(ctrl.isModified).toBe(false);
 
         ctrl.setEol(EndOfLine.CRLF);
@@ -89,7 +91,7 @@ describe("EditorController EOL", () => {
     it("setEol to the same sequence is a no-op (not modified)", () => {
         const filePath = writeFile("lf.txt", "a\nb");
         const ctrl = createEditorController();
-        ctrl.openFile(filePath);
+        ctrl.openFile(Uri.file(filePath));
 
         ctrl.setEol(EndOfLine.LF);
 
@@ -103,7 +105,7 @@ describe("EditorController EOL", () => {
 
         // Подписка сделана до openFile — документ внутри пересоздаётся,
         // но слушатель контроллера должен продолжать работать.
-        ctrl.openFile(writeFile("lf.txt", "a\nb"));
+        ctrl.openFile(Uri.file(writeFile("lf.txt", "a\nb")));
 
         ctrl.setEol(EndOfLine.CRLF);
         expect(fired).toBe(1);
@@ -114,7 +116,7 @@ describe("EditorController EOL", () => {
 
     it("dispose подписки onDidChangeEol останавливает доставку, повторный dispose — no-op", () => {
         const ctrl = createEditorController();
-        ctrl.openFile(writeFile("lf.txt", "a\nb"));
+        ctrl.openFile(Uri.file(writeFile("lf.txt", "a\nb")));
         let fired = 0;
         const subscription = ctrl.onDidChangeEol(() => fired++);
         const other = ctrl.onDidChangeEol(() => undefined);
@@ -130,7 +132,7 @@ describe("EditorController EOL", () => {
     it("undo of an eol change restores the eol and clears the modified flag", () => {
         const filePath = writeFile("lf.txt", "a\nb");
         const ctrl = createEditorController();
-        ctrl.openFile(filePath);
+        ctrl.openFile(Uri.file(filePath));
 
         ctrl.setEol(EndOfLine.CRLF);
         expect(ctrl.isModified).toBe(true);

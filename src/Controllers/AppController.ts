@@ -4,6 +4,7 @@ import * as path from "node:path";
 
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
+import { Uri } from "../Common/Uri.ts";
 import { Disposable } from "../Common/Disposable.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import type { IFileClipboard } from "../Common/IFileClipboard.ts";
@@ -1051,9 +1052,7 @@ export class AppController extends Disposable implements IController {
             /* v8 ignore start -- defensive: the callback is only invoked synchronously with a valid tab index, so the editor always exists */
             if (!editor) return;
             /* v8 ignore stop */
-            /* v8 ignore start -- defensive: editors opened via openFile() always have a file path, so fileName is never null */
-            this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
-                /* v8 ignore stop */
+            this.showConfirmSaveDialog(this.editorGroupController.displayName(editor), {
                 onSave: () => {
                     // Explicit "Save" while closing a modified tab: honour the
                     // user's edits even against an external change (overwrite),
@@ -1745,9 +1744,7 @@ export class AppController extends Disposable implements IController {
             return;
         }
         if (outcome === "conflict") {
-            /* v8 ignore start -- defensive: editors opened via openFile() always have a file path, so fileName is never null */
-            const name = editor.fileName ?? "untitled";
-            /* v8 ignore stop */
+            const name = this.editorGroupController.displayName(editor);
             this.showConfirmDialog(
                 {
                     title: "Overwrite",
@@ -1780,8 +1777,12 @@ export class AppController extends Disposable implements IController {
         const editor = this.editorGroupController.getActiveEditor();
         if (!editor) return;
 
-        // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd/untitled.txt.
-        const seed = editor.absoluteFilePath ?? path.join(process.cwd(), editor.fileName ?? "untitled.txt");
+        // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd и метки буфера
+        // (`Untitled-3`), а не от заглушки "untitled.txt".
+        const seed =
+            editor.uri.scheme === "file"
+                ? editor.uri.fsPath
+                : path.join(process.cwd(), this.editorGroupController.displayName(editor));
         const target = await this.quickInputController.input({
             title: "Save As",
             placeholder: "Enter path to save",
@@ -1813,8 +1814,9 @@ export class AppController extends Disposable implements IController {
             }
         };
 
-        // Overwriting a *different* existing file → confirm first.
-        if (resolved !== editor.absoluteFilePath && fs.existsSync(resolved)) {
+        // Overwriting a *different* existing file → confirm first. Сравниваем ресурсы,
+        // а не сырые строки: `resolved` уже абсолютный, но канонизацию даёт Uri.
+        if (Uri.file(resolved).toString() !== editor.uri.toString() && fs.existsSync(resolved)) {
             this.showConfirmDialog(
                 {
                     title: "Save As",
@@ -2180,9 +2182,7 @@ export class AppController extends Disposable implements IController {
             }
             return;
         }
-        /* v8 ignore start -- defensive: editors opened via openFile() always have a file path, so fileName is never null */
-        this.showConfirmSaveDialog(editor.fileName ?? "untitled", {
-            /* v8 ignore stop */
+        this.showConfirmSaveDialog(this.editorGroupController.displayName(editor), {
             onSave: () => {
                 // Explicit "Save" during quit: overwrite so the user's edits win
                 // over an external change (choosing Save must not drop their work).

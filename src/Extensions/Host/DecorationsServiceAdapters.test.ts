@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import * as path from "node:path";
+
+import { Uri } from "../../Common/Uri.ts";
+
 import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
 import type { FileTreeController } from "../../Controllers/FileTreeController.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
@@ -14,10 +18,10 @@ import { FileDecorationsServiceAdapter } from "./FileDecorationsServiceAdapter.t
 import { ThemeColorResolverAdapter } from "./ThemeColorResolverAdapter.ts";
 
 /** Мини-редактор с наблюдаемым setGutterChangeDecorations. */
-function fakeEditor(absoluteFilePath: string | null) {
+function fakeEditor(uri: Uri) {
     const received: (readonly IGutterChangeDecoration[])[] = [];
     return {
-        absoluteFilePath,
+        uri,
         setGutterChangeDecorations: (d: readonly IGutterChangeDecoration[]) => received.push(d),
         received,
     };
@@ -31,37 +35,45 @@ function fakeGroup(editors: ReturnType<typeof fakeEditor>[]): EditorGroupControl
 }
 
 describe("EditorDecorationsServiceAdapter", () => {
-    it("проталкивает декорации в редакторы совпадающего пути (и только в них)", () => {
-        const match = fakeEditor("/proj/a.ts");
-        const other = fakeEditor("/proj/b.ts");
+    it("проталкивает декорации в редакторы совпадающего ресурса (и только в них)", () => {
+        const match = fakeEditor(Uri.file("/proj/a.ts"));
+        const other = fakeEditor(Uri.file("/proj/b.ts"));
         const adapter = new EditorDecorationsServiceAdapter(fakeGroup([match, other]));
         const decos = [{ range: createRange(1, 0, 1, 0), color: 0x123456 }];
 
-        adapter.setGutterChangeDecorations("/proj/a.ts", decos);
+        adapter.setGutterChangeDecorations(Uri.file("/proj/a.ts").toString(), decos);
 
         expect(match.received).toEqual([decos]);
         expect(other.received).toEqual([]);
     });
 
-    it("нормализует путь через path.resolve (относительный vs абсолютный)", () => {
-        const match = fakeEditor("/proj/a.ts");
+    it("сверяет ресурсы, а не сырые строки: канонизацию даёт Uri", () => {
+        // Ненормализованный путь не долетает сюда: `path.resolve` стоит в единственной
+        // точке подъёма (`EditorGroupController.openFile`), а сюда ресурс приходит уже
+        // каноничным — субпроцесс шлёт `document.uri.toString()`.
+        const match = fakeEditor(Uri.file(path.resolve("/proj/./sub/../a.ts")));
         const adapter = new EditorDecorationsServiceAdapter(fakeGroup([match]));
-        adapter.setGutterChangeDecorations("/proj/./sub/../a.ts", []);
+        adapter.setGutterChangeDecorations(Uri.file("/proj/a.ts").toString(), []);
         expect(match.received).toEqual([[]]);
     });
 
-    it("редакторы без пути (null) пропускаются", () => {
-        const untitled = fakeEditor(null);
+    it("безымянные буферы (untitled:) пропускаются", () => {
+        const untitled = fakeEditor(Uri.parse("untitled:Untitled-1"));
         const adapter = new EditorDecorationsServiceAdapter(fakeGroup([untitled]));
-        adapter.setGutterChangeDecorations("/proj/a.ts", [{ range: createRange(0, 0, 0, 0), color: 1 }]);
+        adapter.setGutterChangeDecorations(Uri.file("/proj/a.ts").toString(), [
+            { range: createRange(0, 0, 0, 0), color: 1 },
+        ]);
         expect(untitled.received).toEqual([]);
     });
 
     it("пустой слот группы (getEditor === null) пропускается", () => {
         // editorCount > фактического числа редакторов → getEditor(1) === null.
-        const group = { editorCount: 2, getEditor: (i: number) => (i === 0 ? fakeEditor("/proj/a.ts") : null) };
+        const group = {
+            editorCount: 2,
+            getEditor: (i: number) => (i === 0 ? fakeEditor(Uri.file("/proj/a.ts")) : null),
+        };
         const adapter = new EditorDecorationsServiceAdapter(group as unknown as EditorGroupController);
-        expect(() => adapter.setGutterChangeDecorations("/proj/a.ts", [])).not.toThrow();
+        expect(() => adapter.setGutterChangeDecorations(Uri.file("/proj/a.ts").toString(), [])).not.toThrow();
     });
 });
 

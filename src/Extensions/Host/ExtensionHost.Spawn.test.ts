@@ -97,7 +97,7 @@ class FakeEditorOptions implements IEditorOptionsService {
         return null;
     }
     public getActiveEditorMeta(): IActiveEditorMeta {
-        return { fileName: null, languageId: null, isDirty: false };
+        return { uri: null, languageId: null, isDirty: false };
     }
     public onActiveEditorChanged(_cb: (meta: IActiveEditorMeta) => void): IDisposable {
         return { dispose: (): void => undefined };

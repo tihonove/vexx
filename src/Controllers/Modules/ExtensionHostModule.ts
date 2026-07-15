@@ -1,5 +1,7 @@
 import * as path from "node:path";
 
+import { Uri } from "../../Common/Uri.ts";
+
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { LogLevel } from "../../Common/Logging/LogLevel.ts";
@@ -56,7 +58,7 @@ export const extensionHostModule: ContainerModule = (container) => {
             getSnapshot: () => configService.getValue(),
             getWorkspaceFolders: () => {
                 const root = fileTree.getRootPath() ?? process.cwd();
-                return [{ uri: root, name: path.basename(root), index: 0 }];
+                return [{ uri: Uri.file(root).toString(), name: path.basename(root), index: 0 }];
             },
             onDidChange: (cb) =>
                 configService.onDidChangeConfiguration((event) => {

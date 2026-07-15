@@ -1,46 +1,46 @@
 import { describe, expect, it } from "vitest";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";
-import { EndOfLine, Position, Range } from "./VscodeTypes.ts";
+import { EndOfLine, Position, Range, Uri } from "./VscodeTypes.ts";
 
 describe("ExtHostDocuments — DocumentRegistry идентичность", () => {
-    it("getOrCreate возвращает ТУ ЖЕ ссылку для того же fileName", () => {
+    it("getOrCreate возвращает ТУ ЖЕ ссылку для того же ресурса", () => {
         const reg = new DocumentRegistry();
-        const a = reg.getOrCreate("/a.ts");
-        const b = reg.getOrCreate("/a.ts");
+        const a = reg.getOrCreate(Uri.file("/a.ts"));
+        const b = reg.getOrCreate(Uri.file("/a.ts"));
         expect(a).toBe(b);
-        expect(reg.getOrCreate("/other.ts")).not.toBe(a);
+        expect(reg.getOrCreate(Uri.file("/other.ts"))).not.toBe(a);
     });
 
     it("upsertMeta/upsertFull мутируют тот же объект (идентичность сохраняется)", () => {
         const reg = new DocumentRegistry();
-        const first = reg.upsertMeta({ fileName: "/a.ts" });
-        const second = reg.upsertMeta({ fileName: "/a.ts", languageId: "typescript", isDirty: true });
+        const first = reg.upsertMeta({ uri: Uri.file("/a.ts").toString() });
+        const second = reg.upsertMeta({ uri: Uri.file("/a.ts").toString(), languageId: "typescript", isDirty: true });
         expect(second).toBe(first);
         expect(first.languageId).toBe("typescript");
         expect(first.isDirty).toBe(true);
-        const third = reg.upsertFull({ fileName: "/a.ts", text: "x\n" });
+        const third = reg.upsertFull({ uri: Uri.file("/a.ts").toString(), text: "x\n" });
         expect(third).toBe(first);
     });
 
     it("all() отдаёт все известные документы", () => {
         const reg = new DocumentRegistry();
-        reg.getOrCreate("/a.ts");
-        reg.getOrCreate("/b.ts");
+        reg.getOrCreate(Uri.file("/a.ts"));
+        reg.getOrCreate(Uri.file("/b.ts"));
         expect(reg.all()).toHaveLength(2);
     });
 
     it("get() возвращает документ или undefined", () => {
         const reg = new DocumentRegistry();
-        const doc = reg.getOrCreate("/a.ts");
-        expect(reg.get("/a.ts")).toBe(doc);
-        expect(reg.get("/missing.ts")).toBeUndefined();
+        const doc = reg.getOrCreate(Uri.file("/a.ts"));
+        expect(reg.get(Uri.file("/a.ts"))).toBe(doc);
+        expect(reg.get(Uri.file("/missing.ts"))).toBeUndefined();
     });
 });
 
 describe("ExtHostDocuments — ExtHostTextDocument", () => {
     it("дефолты пустого документа", () => {
-        const doc = new DocumentRegistry().getOrCreate("/a.ts");
+        const doc = new DocumentRegistry().getOrCreate(Uri.file("/a.ts"));
         expect(doc.languageId).toBe("plaintext");
         expect(doc.isDirty).toBe(false);
         expect(doc.isUntitled).toBe(false);
@@ -52,27 +52,43 @@ describe("ExtHostDocuments — ExtHostTextDocument", () => {
         expect(doc.lineAt(0).text).toBe("");
     });
 
-    it("uri соответствует Uri.file(fileName)", () => {
-        const doc = new DocumentRegistry().getOrCreate("/dir/file.ts");
+    it("fileName выводится из uri (shorthand для uri.fsPath, как требует vscode.d.ts)", () => {
+        const doc = new DocumentRegistry().getOrCreate(Uri.file("/dir/file.ts"));
         expect(doc.uri.scheme).toBe("file");
         expect(doc.uri.fsPath).toBe("/dir/file.ts");
+        expect(doc.fileName).toBe(doc.uri.fsPath);
+        expect(doc.isUntitled).toBe(false);
+    });
+
+    it("isUntitled выводится из схемы untitled:", () => {
+        const doc = new DocumentRegistry().getOrCreate(Uri.parse("untitled:Untitled-1"));
+        expect(doc.isUntitled).toBe(true);
+        // fileName — shorthand для fsPath «independent of the uri scheme».
+        expect(doc.fileName).toBe("Untitled-1");
+    });
+
+    it("документы с одинаковым path, но разной схемой — разные объекты", () => {
+        const reg = new DocumentRegistry();
+        const file = reg.getOrCreate(Uri.file("/a.ts"));
+        const untitled = reg.getOrCreate(Uri.parse("untitled:/a.ts"));
+        expect(untitled).not.toBe(file);
     });
 
     it("version растёт только на upsertFull, не на applyMeta", () => {
         const reg = new DocumentRegistry();
-        const doc = reg.upsertMeta({ fileName: "/a.ts", isDirty: true });
+        const doc = reg.upsertMeta({ uri: Uri.file("/a.ts").toString(), isDirty: true });
         expect(doc.version).toBe(0);
-        reg.upsertMeta({ fileName: "/a.ts", languageId: "ts" });
+        reg.upsertMeta({ uri: Uri.file("/a.ts").toString(), languageId: "ts" });
         expect(doc.version).toBe(0);
-        reg.upsertFull({ fileName: "/a.ts", text: "a\n" });
+        reg.upsertFull({ uri: Uri.file("/a.ts").toString(), text: "a\n" });
         expect(doc.version).toBe(1);
-        reg.upsertFull({ fileName: "/a.ts", text: "b\n" });
+        reg.upsertFull({ uri: Uri.file("/a.ts").toString(), text: "b\n" });
         expect(doc.version).toBe(2);
     });
 
     it("getText/lineCount отражают снапшот", () => {
         const reg = new DocumentRegistry();
-        const doc = reg.upsertFull({ fileName: "/a.ts", text: "line0\nline1\nline2" });
+        const doc = reg.upsertFull({ uri: Uri.file("/a.ts").toString(), text: "line0\nline1\nline2" });
         expect(doc.getText()).toBe("line0\nline1\nline2");
         expect(doc.lineCount).toBe(3);
         expect(doc.lineAt(1).text).toBe("line1");
@@ -80,26 +96,26 @@ describe("ExtHostDocuments — ExtHostTextDocument", () => {
 
     it("upsertFull с eol обновляет doc.eol, без eol — оставляет прежний", () => {
         const reg = new DocumentRegistry();
-        const doc = reg.upsertFull({ fileName: "/a.ts", text: "a\n", eol: EndOfLine.CRLF });
+        const doc = reg.upsertFull({ uri: Uri.file("/a.ts").toString(), text: "a\n", eol: EndOfLine.CRLF });
         expect(doc.eol).toBe(EndOfLine.CRLF);
         // Следующий снапшот без eol не сбрасывает уже установленный.
-        reg.upsertFull({ fileName: "/a.ts", text: "b\n" });
+        reg.upsertFull({ uri: Uri.file("/a.ts").toString(), text: "b\n" });
         expect(doc.eol).toBe(EndOfLine.CRLF);
     });
 
     it("трейлинг \\n даёт пустую последнюю строку", () => {
-        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "a\nb\n" });
+        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "a\nb\n" });
         expect(doc.lineCount).toBe(3);
         expect(doc.lineAt(2).text).toBe("");
     });
 
     it("lineAt(number) и lineAt(Position) эквивалентны", () => {
-        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "a\nbb\nccc" });
+        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "a\nbb\nccc" });
         expect(doc.lineAt(1)).toEqual(doc.lineAt(new Position(1, 99)));
     });
 
     it("TextLine: range/rangeIncludingLineBreak (последняя строка без переноса)", () => {
-        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "ab\ncd" });
+        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "ab\ncd" });
         const l0 = doc.lineAt(0);
         expect(l0.range.end.character).toBe(2);
         expect(l0.rangeIncludingLineBreak.end.line).toBe(1);
@@ -110,7 +126,7 @@ describe("ExtHostDocuments — ExtHostTextDocument", () => {
     });
 
     it("firstNonWhitespaceCharacterIndex / isEmptyOrWhitespace", () => {
-        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "  x\n   \nq" });
+        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "  x\n   \nq" });
         expect(doc.lineAt(0).firstNonWhitespaceCharacterIndex).toBe(2);
         expect(doc.lineAt(0).isEmptyOrWhitespace).toBe(false);
         expect(doc.lineAt(1).firstNonWhitespaceCharacterIndex).toBe(3); // вся whitespace → длина
@@ -119,18 +135,18 @@ describe("ExtHostDocuments — ExtHostTextDocument", () => {
     });
 
     it("lineAt вне диапазона бросает", () => {
-        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "a\nb" });
+        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "a\nb" });
         expect(() => doc.lineAt(5)).toThrow(RangeError);
     });
 
     it("getText(range) режет по диапазону", () => {
-        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "hello\nworld" });
+        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "hello\nworld" });
         expect(doc.getText(new Range(0, 1, 0, 4))).toBe("ell");
         expect(doc.getText(new Range(0, 3, 1, 2))).toBe("lo\nwo");
     });
 
     it("getText(range) через несколько строк включает промежуточные целиком", () => {
-        const doc = new DocumentRegistry().upsertFull({ fileName: "/a.ts", text: "one\ntwo\nthree\nfour" });
+        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "one\ntwo\nthree\nfour" });
         expect(doc.getText(new Range(0, 1, 3, 2))).toBe("ne\ntwo\nthree\nfo");
     });
 });

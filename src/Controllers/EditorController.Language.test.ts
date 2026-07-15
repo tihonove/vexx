@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Uri } from "../Common/Uri.ts";
+
 import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
 import { createLineTokens, createToken } from "../Editor/ILineTokens.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
@@ -67,12 +69,12 @@ describe("EditorController — language", () => {
     });
 
     it("openFile резолвит язык через ILanguageService", () => {
-        ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+        ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
         expect(ctrl.languageId).toBe("typescript");
     });
 
     it("незнакомое расширение откатывается на plaintext", () => {
-        ctrl.openFile(writeFile("a.unknown", "?"));
+        ctrl.openFile(Uri.file(writeFile("a.unknown", "?")));
         expect(ctrl.languageId).toBe("plaintext");
     });
 
@@ -81,7 +83,7 @@ describe("EditorController — language", () => {
         // Подписка ДО openFile — должна пережить пересоздание документа.
         ctrl.onDidChangeLanguage((change) => changes.push(change));
 
-        ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+        ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
         ctrl.setLanguage("markdown");
 
         expect(ctrl.languageId).toBe("markdown");
@@ -91,7 +93,7 @@ describe("EditorController — language", () => {
     it("dispose подписки onDidChangeLanguage останавливает доставку, повторный dispose — no-op", () => {
         let fired = 0;
         const subscription = ctrl.onDidChangeLanguage(() => fired++);
-        ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+        ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
 
         ctrl.setLanguage("markdown");
         subscription.dispose();
@@ -103,7 +105,7 @@ describe("EditorController — language", () => {
 
     it("setLanguage пересаживает токенизатор на язык назначения", () => {
         registry.register("markdown", markerTokenizer("markup.markdown"));
-        ctrl.openFile(writeFile("a.ts", "# header"));
+        ctrl.openFile(Uri.file(writeFile("a.ts", "# header")));
         expect(firstScope(ctrl)).not.toBe("markup.markdown");
 
         ctrl.setLanguage("markdown");
@@ -112,7 +114,7 @@ describe("EditorController — language", () => {
     });
 
     it("hot-swap: грамматика, зарегистрированная после openFile, подхватывается", () => {
-        ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+        ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
         // Файл открыт до регистрации — работает fallback PlainTextTokenizer.
         expect(firstScope(ctrl)).not.toBe("source.ts");
 
@@ -123,7 +125,7 @@ describe("EditorController — language", () => {
 
     it("регистрация грамматики чужого языка не инвалидирует токены", () => {
         registry.register("typescript", markerTokenizer("source.ts"));
-        ctrl.openFile(writeFile("a.ts", "const x = 1;"));
+        ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
         expect(firstScope(ctrl)).toBe("source.ts");
 
         registry.register("python", markerTokenizer("source.python"));

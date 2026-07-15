@@ -24,6 +24,11 @@ export interface IMarkerReadFilter {
  * Storage is keyed `owner → resource → markers`, mirroring the way VS Code lets
  * each provider replace its own slice of a resource's markers without touching
  * another provider's.
+ *
+ * `resource` — это `uri.toString()`, а не путь на диске: диагностики бывают и у
+ * ресурсов вне диска (безымянный буфер, git-версия), а по пути их не адресовать.
+ * Ключ строковый, потому что `Map` не сравнивает `Uri` по значению — вопрос лишь в
+ * том, какая это строка; канонизацию даёт сам `Uri.toString()`.
  */
 export class MarkerService {
     private byOwner = new Map<string, Map<string, IMarker[]>>();
