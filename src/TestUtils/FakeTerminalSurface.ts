@@ -32,13 +32,15 @@ export interface FakeCellOptions {
  * (`write`/`sendMouse`/`resize`) пишутся в публичные массивы для ассертов, а `onUpdate`/
  * `onExit` дёргаются вручную через `emitUpdate`/`emitExit`.
  */
-export class FakeTerminalSurface implements ITerminalSurface {
+export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
     private grid: FakeSlot[][] = [];
     private cursor: { x: number; y: number } | null = null;
     private readonly updateListeners = new Set<() => void>();
     private readonly exitListeners = new Set<(exitCode: number) => void>();
 
     public isExited = false;
+    /** Стал ли фейк «убитым» — контроллер обязан звать dispose() при закрытии терминала. */
+    public disposed = false;
 
     // Записи обращений виджета — для ассертов.
     public readonly writes: string[] = [];
@@ -119,6 +121,11 @@ export class FakeTerminalSurface implements ITerminalSurface {
     public onExit(cb: (exitCode: number) => void): IDisposable {
         this.exitListeners.add(cb);
         return { dispose: () => this.exitListeners.delete(cb) };
+    }
+
+    /** Помечает фейк убитым (в реале — kill PTY + dispose эмулятора). */
+    public dispose(): void {
+        this.disposed = true;
     }
 
     private ensureRow(y: number): FakeSlot[] {

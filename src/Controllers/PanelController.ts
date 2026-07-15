@@ -12,6 +12,9 @@ export const PanelControllerDIToken = token<PanelController>("PanelController");
 /** VS Code view id of the Problems (Markers) view living in the bottom Panel. */
 export const PROBLEMS_VIEW_ID = "workbench.panel.markers.view";
 
+/** VS Code view id of the integrated Terminal view living in the bottom Panel. */
+export const TERMINAL_VIEW_ID = "terminal";
+
 /**
  * Owns the bottom **Panel** part ({@link PanelContainerElement}) and its views.
  * MVP: a single Problems view with a placeholder empty-state; the marker tree is
@@ -32,6 +35,14 @@ export class PanelController extends Disposable implements IController {
             title: "PROBLEMS",
             content: null,
             placeholder: "No problems have been detected in the workspace.",
+        });
+        // Вкладка TERMINAL присутствует всегда; шелл спавнится лениво при её активации
+        // (см. TerminalController), поэтому по умолчанию тут placeholder.
+        this.view.addView({
+            id: TERMINAL_VIEW_ID,
+            title: "TERMINAL",
+            content: null,
+            placeholder: "No active terminal.",
         });
         this.register(
             themeService.onThemeChange((theme) => {
@@ -56,6 +67,16 @@ export class PanelController extends Disposable implements IController {
     /** True when the Problems view is the active tab. */
     public isProblemsActive(): boolean {
         return this.view.getActiveViewId() === PROBLEMS_VIEW_ID;
+    }
+
+    /** Makes the Terminal view the active tab (used by the "Toggle Terminal" command). */
+    public showTerminal(): void {
+        this.view.setActiveView(TERMINAL_VIEW_ID);
+    }
+
+    /** True when the Terminal view is the active tab. */
+    public isTerminalActive(): boolean {
+        return this.view.getActiveViewId() === TERMINAL_VIEW_ID;
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
