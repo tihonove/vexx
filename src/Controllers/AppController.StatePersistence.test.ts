@@ -60,6 +60,32 @@ describe("AppController — session state persistence", () => {
         h2.dispose();
     });
 
+    // Бутстрап спрашивает пути ДО открытия, чтобы успеть прогреть их грамматики:
+    // подсветка должна быть уже в первом кадре вкладки.
+    it("reports the files restoreOpenEditors() will open — before opening them", () => {
+        const state1 = newState();
+        const h1: IAppHarness = createAppTestHarness({ workspaceFolder: ws.dir, stateService: state1 });
+        h1.controller.openFile(ws.path("a.ts"));
+        h1.controller.openFile(ws.path("b.ts"));
+        state1.flushSync();
+        h1.dispose();
+
+        const state2 = newState();
+        const h2: IAppHarness = createAppTestHarness({ workspaceFolder: ws.dir, stateService: state2 });
+
+        // Ещё ничего не открыто, но список уже известен.
+        expect(h2.container.get(EditorGroupControllerDIToken).getOpenFilePaths()).toEqual([]);
+        expect(h2.controller.getOpenEditorsToRestore()).toEqual([ws.path("a.ts"), ws.path("b.ts")]);
+
+        // И он совпадает с тем, что реально откроется.
+        h2.controller.restoreOpenEditors();
+        expect(h2.container.get(EditorGroupControllerDIToken).getOpenFilePaths()).toEqual([
+            ws.path("a.ts"),
+            ws.path("b.ts"),
+        ]);
+        h2.dispose();
+    });
+
     it("keeps state independent per workspace folder", () => {
         const ws2 = createTempWorkspace({ prefix: "vexx-persist-ws2-", files: { "z.ts": "Z" } });
         try {
