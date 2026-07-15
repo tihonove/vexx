@@ -350,6 +350,15 @@ describe("WorkspaceNamespace — will-save request handler", () => {
         expect(ctx.registry.get(Uri.file("/f.txt"))?.eol).toBe(EndOfLine.CRLF);
     });
 
+    it("прокидывает encoding документа в реестр (#106)", async () => {
+        const { stub, ctx, workspace } = makeCtx();
+        workspace.onWillSaveTextDocument((e) => {
+            e.waitUntil(Promise.resolve([]));
+        });
+        await stub.callRequest(REQUEST, { ...paramsFor("a\n"), encoding: "windows1251" });
+        expect(ctx.registry.get(Uri.file("/f.txt"))?.encoding).toBe("windows1251");
+    });
+
     it("минимальные params (без text/reason/languageId) не падают", async () => {
         const { stub, ctx, workspace } = makeCtx();
         let reason: number | undefined;
