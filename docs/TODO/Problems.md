@@ -16,7 +16,7 @@ Panel + дерево Problems) — см. [arch/Editor.md](../arch/Editor.md) (Ed
 
 `IMarker { owner, resource, severity, range, message, code?, source? }`:
 - `owner` — неймспейс поставщика (`"settings"`, позже `"typescript"`, `"eslint"`);
-- `resource` — путь/URI файла;
+- `resource` — ресурс как `uri.toString()` (не путь: диагностики бывают и у недисковых ресурсов);
 - `severity` — `Error | Warning | Info | Hint`;
 - `range` — `IRange` в документе.
 
