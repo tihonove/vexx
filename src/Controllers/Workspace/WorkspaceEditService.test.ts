@@ -72,6 +72,42 @@ describe("WorkspaceEditService — move", () => {
     });
 });
 
+describe("WorkspaceEditService — rename", () => {
+    it("renames a file in place (exact target path) and undo/redo round-trips it", async () => {
+        const { service } = makeService();
+        const src = write("old.txt", "hi");
+        const dest = path.join(tmpDir, "new.txt");
+
+        const element = service.applyFileEdits([{ kind: "rename", from: src, to: dest }], "Rename");
+        expect(element).not.toBeNull();
+        expect(fs.existsSync(src)).toBe(false);
+        expect(fs.readFileSync(dest, "utf8")).toBe("hi");
+
+        await element!.undo();
+        expect(fs.readFileSync(src, "utf8")).toBe("hi");
+        expect(fs.existsSync(dest)).toBe(false);
+
+        await element!.redo();
+        expect(fs.existsSync(src)).toBe(false);
+        expect(fs.readFileSync(dest, "utf8")).toBe("hi");
+    });
+
+    it("renames a directory in place", async () => {
+        const { service } = makeService();
+        write("dir/a.txt", "inside");
+        const src = path.join(tmpDir, "dir");
+        const dest = path.join(tmpDir, "renamed");
+
+        const element = service.applyFileEdits([{ kind: "rename", from: src, to: dest }], "Rename");
+        expect(element).not.toBeNull();
+        expect(fs.existsSync(src)).toBe(false);
+        expect(fs.readFileSync(path.join(dest, "a.txt"), "utf8")).toBe("inside");
+
+        await element!.undo();
+        expect(fs.readFileSync(path.join(src, "a.txt"), "utf8")).toBe("inside");
+    });
+});
+
 describe("WorkspaceEditService — copy", () => {
     it("copies a file; undo deletes the copy and is marked destructive", async () => {
         const { service } = makeService();

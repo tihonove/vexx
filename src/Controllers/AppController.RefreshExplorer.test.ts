@@ -53,9 +53,9 @@ describe("AppController — Refresh Explorer", () => {
         ws.writeFile("aaa-new.txt", "new");
 
         // Menu order (no clipboard): New File, New Folder, Copy, Cut, Copy Path,
-        // Copy Relative Path, Delete, Refresh Explorer (separators skipped) —
-        // 7 steps down, then Enter.
-        for (let i = 0; i < 7; i++) h.testApp.sendKey("ArrowDown");
+        // Copy Relative Path, Rename, Delete, Refresh Explorer (separators skipped) —
+        // 8 steps down, then Enter.
+        for (let i = 0; i < 8; i++) h.testApp.sendKey("ArrowDown");
         h.testApp.sendKey("Enter");
         await flushMicrotasks();
         h.testApp.render();
