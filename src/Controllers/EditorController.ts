@@ -233,6 +233,14 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
+     * Открывает контекстное меню редактора с клавиатуры (Shift+F10), заякорив его на
+     * каретке. Делегирует в {@link EditorElement.openContextMenuAtCaret}.
+     */
+    public showContextMenu(): void {
+        this.editor.openContextMenuAtCaret();
+    }
+
+    /**
      * Меняет язык документа вручную (закладка под будущий language picker,
      * аналог `editor.action.changeLanguage` из VS Code). Токенизатор
      * пересаживается автоматически через подписку на doc.onDidChangeLanguage.

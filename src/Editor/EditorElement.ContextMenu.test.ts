@@ -10,6 +10,7 @@ import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 
 import { EditorElement } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
+import { createCursorSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
 
 function createEditor(text: string, width = 40, height = 10): { app: TestApp; editor: EditorElement } {
@@ -149,5 +150,46 @@ describe("EditorElement — right-click context menu", () => {
         const item = app.root.overlayLayer.getItems()[0];
         expect(item.position.x).toBe(7);
         expect(item.position.y).toBe(3);
+    });
+});
+
+describe("EditorElement — keyboard context menu (Shift+F10)", () => {
+    it("opens the popup menu at the caret when entries are configured", () => {
+        const { app, editor } = createEditor("hello world");
+        editor.contextMenuEntries = [{ label: "Copy" }, { label: "Paste" }];
+        editor.viewState.selections = [createCursorSelection(0, 6)];
+
+        editor.openContextMenuAtCaret();
+
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
+        const item = app.root.overlayLayer.getItems()[0];
+        const caret = editor.getCaretScreenCell();
+        expect(caret).not.toBeNull();
+        expect(item.position.x).toBe(caret!.x);
+        expect(item.position.y).toBe(caret!.y);
+    });
+
+    it("does not open a popup when contextMenuEntries is empty", () => {
+        const { app, editor } = createEditor("hello world");
+
+        editor.openContextMenuAtCaret();
+
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(false);
+    });
+
+    it("falls back to the editor's top-left when the caret is scrolled out of view", () => {
+        const { app, editor } = createEditor("line0\nline1\nline2\nline3\nline4\nline5", 40, 3);
+        editor.contextMenuEntries = [{ label: "Copy" }];
+        // Move the caret far down, then scroll so it leaves the viewport.
+        editor.viewState.selections = [createCursorSelection(5, 0)];
+        editor.viewState.scrollTop = 0;
+        expect(editor.getCaretScreenCell()).toBeNull();
+
+        editor.openContextMenuAtCaret();
+
+        expect(app.root.overlayLayer.hasVisibleItems()).toBe(true);
+        const item = app.root.overlayLayer.getItems()[0];
+        expect(item.position.x).toBe(editor.globalPosition.x);
+        expect(item.position.y).toBe(editor.globalPosition.y);
     });
 });

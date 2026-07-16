@@ -120,6 +120,20 @@ export class FileTreeController extends Disposable implements IController {
     }
 
     /**
+     * Открывает контекстное меню дерева с клавиатуры (Shift+F10), заякорив его на
+     * выделенной строке. Переиспользует ровно тот же путь, что и правый клик —
+     * колбэк {@link onFileContextMenu} (в AppController он ведёт в
+     * `showFileTreeContextMenu`). No-op, если дерево пусто или выбор отсутствует.
+     */
+    public openContextMenuAtSelection(): void {
+        if (!this.tree) return;
+        const node = this.tree.getSelectedNode();
+        const anchor = this.tree.getSelectedRowGlobalPosition();
+        if (!node || !anchor) return;
+        this.onFileContextMenu?.(node, anchor.x, anchor.y);
+    }
+
+    /**
      * Каталог, в который должна выполняться вставка: сам узел под курсором, если это
      * папка, иначе — его родитель. При пустом дереве — корень.
      */

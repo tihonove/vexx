@@ -41,6 +41,7 @@ import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement
 
 import { quitAction } from "./Actions/AppActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./Actions/ClipboardActions.ts";
+import { showEditorContextMenuAction, showExplorerContextMenuAction } from "./Actions/ContextMenuActions.ts";
 import {
     cursorBottomAction,
     cursorBottomSelectAction,
@@ -272,6 +273,10 @@ const builtinActions = [
     clipboardCopyAction,
     clipboardCutAction,
     clipboardPasteAction,
+
+    // Context menu (Shift+F10)
+    showEditorContextMenuAction,
+    showExplorerContextMenuAction,
 
     // List
     listFocusPageDownAction,
