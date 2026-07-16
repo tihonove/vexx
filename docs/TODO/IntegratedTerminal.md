@@ -148,8 +148,14 @@ Scaleway, MacStadium, MacinCloud). Windows тестируется локальн
   шелла по ОС (`win32 → COMSPEC/powershell`); GitHub Actions workflow `ubuntu/macos/windows` (сборка SEA +
   прогон headless-харнесса), проверка resize-пути ConPTY на Windows.
 - **UX шелла**: скролбэк/выделение/копирование, кликабельные ссылки, bracketed-paste.
-- **Multiple-terminals UI**: контроллер уже держит список инстансов — добавить список/дропдаун переключения
-  и Kill Terminal (сейчас доступен только «активный» + `terminal.new`).
+- **Multiple-terminals UI**: **сделано** — вертикальный список терминалов справа от активного
+  (`TerminalPaneElement` + `TerminalListElement`, показывается при >1 терминале; клик по строке —
+  переключение, `×` — kill конкретного), тулбар New (`+`) / Kill (`🗑`) в шапке нижней Panel
+  (`PanelViewAction` — форма под будущий `contributes.menus → view/title`), команда
+  `workbench.action.terminal.kill` и `…focusNext/focusPrevious`, фасад `TerminalController`
+  (`getTerminals`/`activeTerminalId`/`setActiveTerminal`/`killTerminal` + события
+  `onDidOpen/Close/ChangeActiveTerminal`) под будущий `vscode.window.terminals`. Остаётся: настоящий
+  split-терминал (два PTY бок о бок), ресайз списка сэшем, дропдаун профилей запуска, скролл списка.
 - **Тема-реактивная ANSI-палитра**: `xtermPalette.ts` статичен; палитру 16/256 брать из активной темы
   (`terminal.ansi*`) и рефлоу при смене темы (сейчас реактивны только `terminal.background/foreground`).
 - **Проброс клавиш à la `terminal.integrated.commandsToSkipShell`**: список команд, которые перехватывает

@@ -1,7 +1,33 @@
+import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../../Rendering/StyleFlags.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
+
+/**
+ * A clickable control shown in the active view's header toolbar (right-aligned on
+ * the tab row), à la VS Code `view/title` menu contributions. The fields mirror a
+ * VS Code menu item so that, once `contributes.menus` is un-dormant, an extension's
+ * contribution maps onto this exact struct: `commandId`/`group`/`order`/`tooltip`
+ * are carried as metadata while the behaviour rides on `run()` — a plain callback
+ * (built by the owning controller) that keeps this widget command-registry-agnostic,
+ * exactly like {@link StatusBarItem.onClick}.
+ */
+export interface PanelViewAction {
+    /** VS Code command id — metadata only; the widget never resolves it. */
+    readonly commandId: string;
+    /** Glyph rendered in the toolbar (e.g. "+" or "🗑"); may be a wide grapheme. */
+    readonly icon: string;
+    /** Accessible label / future hover tooltip (usually the command title). */
+    readonly tooltip: string;
+    /** VS Code menu grouping, carried through for the future contributes.menus mapping. */
+    readonly group?: string;
+    readonly order?: number;
+    /** Disabled actions render dimmed and don't fire (e.g. Kill with no terminals). */
+    readonly enabled?: boolean;
+    /** Behaviour, built by the controller (typically `() => commands.execute(commandId)`). */
+    run(): void;
+}
 
 /** A view hosted in the bottom Panel (e.g. Problems, Output). */
 export interface PanelView {
@@ -11,6 +37,8 @@ export interface PanelView {
     content: TUIElement | null;
     /** Empty-state message shown when `content` is null (à la VS Code view welcome). */
     readonly placeholder?: string;
+    /** Header toolbar actions shown when this view is active (see {@link setViewActions}). */
+    actions?: PanelViewAction[];
 }
 
 interface TabSegment {
@@ -18,6 +46,18 @@ interface TabSegment {
     readonly start: number;
     readonly end: number;
 }
+
+interface ActionSegment {
+    readonly action: PanelViewAction;
+    readonly start: number;
+    /** Exclusive. */
+    readonly end: number;
+}
+
+/** Gap in columns between adjacent toolbar action glyphs. */
+const ACTION_GAP = 1;
+/** Right margin (columns) kept clear after the last toolbar action. */
+const ACTION_RIGHT_MARGIN = 1;
 
 const DEFAULT_BG = packRgb(24, 24, 24);
 const DEFAULT_TITLE_FG = packRgb(142, 142, 142);
@@ -49,6 +89,8 @@ export class PanelContainerElement extends TUIElement {
     public background = DEFAULT_BG;
     public titleForeground = DEFAULT_TITLE_FG;
     public borderColor = DEFAULT_BORDER;
+    /** Foreground of enabled toolbar action glyphs (brighter than dim tab labels). */
+    public actionForeground = DEFAULT_TITLE_FG;
 
     /** Fired when a tab is clicked (after the active view has switched). */
     public onActivateView?: (id: string) => void;
@@ -61,8 +103,17 @@ export class PanelContainerElement extends TUIElement {
         this.addEventListener("mousedown", (event) => {
             if (event.button !== "left") return;
             const localY = event.screenY - this.globalPosition.y;
-            if (localY !== TAB_ROW) return; // only the tab header row switches tabs
+            if (localY !== TAB_ROW) return; // only the tab header row is interactive
             const localX = event.screenX - this.globalPosition.x;
+
+            // Toolbar actions sit to the right of the tab labels; test them first so a
+            // click on a control fires it instead of falling through to a tab switch.
+            const action = this.actionSegments().find((s) => localX >= s.start && localX < s.end);
+            if (action !== undefined) {
+                if (action.action.enabled !== false) action.action.run();
+                return;
+            }
+
             const segment = this.tabSegments().find((s) => localX >= s.start && localX < s.end);
             if (segment === undefined) return;
             this.setActiveView(segment.id);
@@ -85,6 +136,19 @@ export class PanelContainerElement extends TUIElement {
         view.content = content;
         if (content !== null) content.setParent(this);
         this.markDirty();
+    }
+
+    /** Sets the header toolbar actions for a view (shown right-aligned when it's active). */
+    public setViewActions(id: string, actions: PanelViewAction[]): void {
+        const view = this.views.find((v) => v.id === id);
+        if (view === undefined) return;
+        view.actions = actions;
+        this.markDirty();
+    }
+
+    /** Current header toolbar actions of a view (empty if none / unknown id). */
+    public getViewActions(id: string): readonly PanelViewAction[] {
+        return this.views.find((v) => v.id === id)?.actions ?? [];
     }
 
     public setActiveView(id: string): void {
@@ -113,6 +177,41 @@ export class PanelContainerElement extends TUIElement {
             const width = view.title.length + TAB_PAD * 2;
             segments.push({ id: view.id, start: x, end: x + width });
             x += width;
+        }
+        return segments;
+    }
+
+    /** Column just past the last tab label — the toolbar never draws left of this (tabs win). */
+    private tabsEnd(): number {
+        // Only reached from the toolbar path, which runs solely when a view is active,
+        // so there is always at least one tab segment.
+        const segments = this.tabSegments();
+        return segments[segments.length - 1]!.end;
+    }
+
+    /**
+     * Right-aligned toolbar layout for the active view's actions, with hit ranges.
+     * Actions keep their array order left-to-right; the whole group is flush against
+     * the right edge (minus a margin). Segments clamped left of {@link tabsEnd} are
+     * dropped so tab labels always win an overlap on a narrow panel.
+     */
+    private actionSegments(): ActionSegment[] {
+        const actions = this.activeView()?.actions ?? [];
+        if (actions.length === 0) return [];
+        const width = this.layoutSize.width;
+        const widths = actions.map((a) => new DisplayLine(a.icon).displayWidth);
+        const total = widths.reduce((sum, w) => sum + w, 0) + ACTION_GAP * (actions.length - 1);
+
+        const minStart = this.tabsEnd();
+        let x = width - ACTION_RIGHT_MARGIN - total;
+        const segments: ActionSegment[] = [];
+        for (let i = 0; i < actions.length; i++) {
+            const start = x;
+            const end = x + widths[i];
+            if (start >= minStart && end <= width) {
+                segments.push({ action: actions[i], start, end });
+            }
+            x = end + ACTION_GAP;
         }
         return segments;
     }
@@ -166,6 +265,18 @@ export class PanelContainerElement extends TUIElement {
                 const char = isGlyph ? view.title[textIndex] : " ";
                 const style = isActive && isGlyph ? StyleFlags.Underline : StyleFlags.None;
                 context.setCell(x, TAB_ROW, { char, fg: this.titleForeground, bg: this.background, style });
+            }
+        }
+
+        // Header toolbar: the active view's actions, right-aligned on the tab row.
+        // Enabled glyphs use the brighter action colour; disabled ones stay dim.
+        for (const segment of this.actionSegments()) {
+            const fg = segment.action.enabled === false ? this.titleForeground : this.actionForeground;
+            const line = new DisplayLine(segment.action.icon);
+            for (let col = 0; col < line.displayWidth; col++) {
+                const char = line.charAtColumn(col);
+                if (char === "") continue; // wide-grapheme continuation cell (kept as background)
+                context.setCell(segment.start + col, TAB_ROW, { char, fg, bg: this.background });
             }
         }
 

@@ -83,6 +83,8 @@ export class PanelController extends Disposable implements IController {
         this.view.background = theme.getRequiredColor("panel.background");
         // Tab labels are drawn dim; the active tab is shown by its underline.
         this.view.titleForeground = theme.getRequiredColor("panelTitle.inactiveForeground");
+        // Header toolbar glyphs use the brighter active-title colour so controls stand out.
+        this.view.actionForeground = theme.getRequiredColor("panelTitle.activeForeground");
         this.view.borderColor = theme.getRequiredColor("panel.border");
         this.view.markDirty();
     }

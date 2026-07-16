@@ -28,6 +28,8 @@ function buildHarness() {
     const app = TestApp.createWithContent(p.view, new Size(70, 12));
     bindApp(app.app);
     c.mount();
+    // The TERMINAL tab now hosts a split pane (TerminalPaneElement); the active terminal
+    // widget is its first child. Tests reach it through the controller's pane.
     // Делаем TERMINAL активной вкладкой — так panel.getChildren() отражает контент
     // терминала. setActiveView НЕ спавнит шелл (спавн только по клику/openTerminal).
     p.showTerminal();
@@ -39,6 +41,13 @@ function buildHarness() {
         factoryOptions,
         themeService: container.get(ThemeServiceDIToken),
     };
+}
+
+/** The active terminal widget shown inside the controller's split pane. */
+function activeTerminalWidget(controller: TerminalController): TerminalViewElement {
+    const pane = controller.getPane();
+    if (pane === null) throw new Error("no terminal pane");
+    return pane.getChildren()[0] as TerminalViewElement;
 }
 
 describe("TerminalController", () => {
@@ -66,8 +75,8 @@ describe("TerminalController", () => {
         expect(created).toHaveLength(1);
         expect(controller.hasOpenTerminals).toBe(true);
         const content = panel.view.getChildren();
-        expect(content).toHaveLength(1);
-        expect(content[0]).toBeInstanceOf(TerminalViewElement);
+        expect(content).toHaveLength(1); // the split pane hosts the terminal
+        expect(activeTerminalWidget(controller)).toBeInstanceOf(TerminalViewElement);
     });
 
     it("reuses the active instance on subsequent opens (no extra session)", () => {
@@ -80,7 +89,7 @@ describe("TerminalController", () => {
         panel.showTerminal();
         controller.openTerminal();
         testApp.render();
-        const widget = panel.view.getChildren()[0] as TerminalViewElement;
+        const widget = activeTerminalWidget(controller);
         expect(widget.isFocused).toBe(true);
     });
 
@@ -102,10 +111,10 @@ describe("TerminalController", () => {
 
     it("makes a second terminal the active one and shows its widget", () => {
         controller.openTerminal();
-        const first = panel.view.getChildren()[0];
+        const first = activeTerminalWidget(controller);
         controller.newTerminal();
         expect(created).toHaveLength(2);
-        const second = panel.view.getChildren()[0];
+        const second = activeTerminalWidget(controller);
         expect(second).not.toBe(first);
     });
 
@@ -131,7 +140,7 @@ describe("TerminalController", () => {
 
     it("pushes terminal theme colors into each widget", () => {
         controller.openTerminal();
-        const widget = panel.view.getChildren()[0] as TerminalViewElement;
+        const widget = activeTerminalWidget(controller);
         // dark+ default: terminal.foreground #CCCCCC, terminal.background #181818.
         expect(widget.defaultFg).toBe(0xcccccc);
         expect(widget.defaultBg).toBe(0x181818);
@@ -180,7 +189,7 @@ describe("TerminalController — focusActive", () => {
         const h = buildHarness();
         h.controller.openTerminal();
         h.testApp.render();
-        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
+        const widget = activeTerminalWidget(h.controller);
         widget.blur();
         h.testApp.render();
         expect(widget.isFocused).toBe(false);
@@ -206,12 +215,12 @@ describe("TerminalController — exit handling", () => {
         const h = buildHarness();
         h.controller.newTerminal(); // #1
         h.controller.newTerminal(); // #2 — активный
-        const activeWidget = h.panel.view.getChildren()[0];
+        const shown = activeTerminalWidget(h.controller);
 
         h.created[0].emitExit(0); // выходит НЕактивный #1
 
-        // Активный не тронут: контент вкладки прежний, сессия жива.
-        expect(h.panel.view.getChildren()[0]).toBe(activeWidget);
+        // Активный не тронут: показанный виджет прежний, сессия жива.
+        expect(activeTerminalWidget(h.controller)).toBe(shown);
         expect(h.created[1].disposed).toBe(false);
         expect(h.created[0].disposed).toBe(true);
         expect(h.controller.hasOpenTerminals).toBe(true);
@@ -265,7 +274,7 @@ describe("TerminalController — theme", () => {
     it("re-applies colors to open widgets when the theme changes", () => {
         const h = buildHarness();
         h.controller.openTerminal();
-        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
+        const widget = activeTerminalWidget(h.controller);
 
         h.themeService.setTheme(themeWithoutTerminalColors());
 
@@ -278,7 +287,7 @@ describe("TerminalController — theme", () => {
         const h = buildHarness();
         h.themeService.setTheme(themeWithoutTerminalColors());
         h.controller.openTerminal();
-        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
+        const widget = activeTerminalWidget(h.controller);
 
         expect(widget.defaultBg).toBe(0x111111);
         expect(widget.defaultFg).toBe(0x222222);

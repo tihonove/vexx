@@ -187,7 +187,9 @@ import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybindin
 import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { StateServiceDIToken } from "./Modules/StateModule.ts";
-import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
+import type { PanelViewAction } from "../TUIDom/Widgets/PanelContainerElement.ts";
+
+import { PanelController, PanelControllerDIToken, TERMINAL_VIEW_ID } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
 import { QuickInputController } from "./QuickInputController.ts";
@@ -937,6 +939,35 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
+        // Kill the active terminal (VS Code ships this unbound). The header toolbar 🗑
+        // control invokes this command; enablement is driven by the toolbar itself.
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.terminal.kill",
+                title: "Terminal: Kill the Active Terminal Instance",
+                run: () => {
+                    this.terminalController.killActive();
+                    this.updateContextKeys();
+                },
+            }),
+        );
+        // Cycle the active terminal (used by the terminal list / future keybindings).
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.terminal.focusNext",
+                title: "Terminal: Focus Next Terminal",
+                when: "terminalFocus",
+                run: () => this.cycleTerminal(1),
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.terminal.focusPrevious",
+                title: "Terminal: Focus Previous Terminal",
+                when: "terminalFocus",
+                run: () => this.cycleTerminal(-1),
+            }),
+        );
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...fileDeleteAction,
@@ -1158,6 +1189,7 @@ export class AppController extends Disposable implements IController {
         this.panelController.mount();
         this.problemsController.mount();
         this.terminalController.mount();
+        this.setupTerminalToolbar();
         // Применяем сохранённый layout до первого кадра (run() идёт после mount()).
         // Workspace-стор уже открыт: setWorkspaceFolder вызывается до mount().
         this.workbenchState.restoreLayout();
@@ -1495,6 +1527,53 @@ export class AppController extends Disposable implements IController {
         this.workbenchLayout.setBottomPanelVisible(visible);
         this.workbenchLayout.markDirty();
         this.contextKeys.set("panelVisible", visible);
+    }
+
+    /**
+     * Builds the TERMINAL view's header toolbar (New / Kill) and keeps it fresh as
+     * terminals open and close. Actions are command-backed (`run` executes a VS Code
+     * command id), so this mirrors a future `contributes.menus` → `view/title`
+     * contribution — the toolbar model doesn't change when that arrives.
+     */
+    private setupTerminalToolbar(): void {
+        const rebuild = (): void => {
+            const actions: PanelViewAction[] = [
+                {
+                    commandId: "workbench.action.terminal.new",
+                    icon: "+",
+                    tooltip: "New Terminal",
+                    group: "navigation",
+                    order: 1,
+                    run: () => this.commands.execute("workbench.action.terminal.new"),
+                },
+                {
+                    commandId: "workbench.action.terminal.kill",
+                    icon: "🗑",
+                    tooltip: "Kill Terminal",
+                    group: "navigation",
+                    order: 2,
+                    enabled: this.terminalController.hasOpenTerminals,
+                    run: () => this.commands.execute("workbench.action.terminal.kill"),
+                },
+            ];
+            this.panelController.view.setViewActions(TERMINAL_VIEW_ID, actions);
+        };
+        rebuild();
+        // Kill's enablement follows the open-terminal count; refresh on open/close.
+        this.register(this.terminalController.onDidOpenTerminal(rebuild));
+        this.register(this.terminalController.onDidCloseTerminal(rebuild));
+    }
+
+    /** Cycles the active terminal by `delta` over the ordered list (wraps around). */
+    private cycleTerminal(delta: number): void {
+        const terminals = this.terminalController.getTerminals();
+        if (terminals.length === 0) return;
+        const activeId = this.terminalController.activeTerminalId;
+        const current = terminals.findIndex((t) => t.id === activeId);
+        const base = current === -1 ? 0 : current;
+        const next = terminals[(base + delta + terminals.length) % terminals.length];
+        this.terminalController.setActiveTerminal(next.id);
+        this.updateContextKeys();
     }
 
     private updateContextKeys(): void {

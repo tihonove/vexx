@@ -51,5 +51,22 @@ export default defineScenario({
         await editor.sendKey("Enter");
         await editor.waitForText((t) => t.split("vexx-term-ok").length - 1 >= 2);
         await editor.capture("terminal-echo");
+
+        // Open a SECOND terminal via the palette. With more than one terminal, the
+        // VS Code-style terminal list appears on the right of the panel, listing both
+        // instances (the active one highlighted); the header gains a "+"/🗑 toolbar.
+        // Menu accelerators are handled in the capture phase, so Alt+V still opens the
+        // menu even while the terminal is focused.
+        await editor.sendKey("Alt+V");
+        await editor.waitForText((t) => t.includes("Command Palette"));
+        await editor.sendKey("Enter");
+        await editor.waitForText((t) => t.includes("File: Save"));
+        await editor.sendText("Create New Terminal");
+        await editor.waitForText((t) => t.includes("Create New Terminal"));
+        await editor.sendKey("Enter");
+
+        // Both instances show in the right-hand list (titles `bash (1)` / `bash (2)`).
+        await editor.waitForText((t) => t.includes("bash (1)") && t.includes("bash (2)"));
+        await editor.capture("terminal-list");
     },
 });
