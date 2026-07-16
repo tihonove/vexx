@@ -259,9 +259,9 @@ describe("File tree context menu — right-click opens context menu", () => {
         expect(h.testApp.querySelector("PopupMenuElement")).not.toBeNull();
 
         // Menu order is New File, New Folder, (sep), Copy, Cut, (sep), Copy Path,
-        // Copy Relative Path, (sep), Delete — navigate down to Delete (separators
-        // are skipped) and activate it.
-        for (let i = 0; i < 6; i++) h.testApp.sendKey("ArrowDown");
+        // Copy Relative Path, (sep), Rename, Delete — navigate down to Delete
+        // (separators are skipped) and activate it.
+        for (let i = 0; i < 7; i++) h.testApp.sendKey("ArrowDown");
         h.testApp.sendKey("Enter");
         h.testApp.render();
 

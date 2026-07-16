@@ -89,7 +89,7 @@ import {
     fileSaveAsAction,
     newUntitledFileAction,
 } from "./Actions/FileActions.ts";
-import { fileDeleteAction } from "./Actions/FileTreeActions.ts";
+import { fileDeleteAction, fileRenameAction } from "./Actions/FileTreeActions.ts";
 import {
     buildPasteEdits,
     fileCopyAction,
@@ -961,6 +961,15 @@ export class AppController extends Disposable implements IController {
                 run: () => {
                     const paths = this.fileTreeController.getSelectedPaths();
                     if (paths.length > 0) this.fileClipboard.write(paths, "cut");
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                ...fileRenameAction,
+                run: (_a, ...args) => {
+                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
+                    if (filePath) void this.runRename(filePath);
                 },
             }),
         );
@@ -1955,6 +1964,41 @@ export class AppController extends Disposable implements IController {
     }
 
     /**
+     * Rename a file or folder in the explorer (VS Code `renameFile`, F2). Prompts
+     * for the new name pre-filled with the current basename, renames it in place via
+     * the undoable {@link WorkspaceEditService}, then refreshes and reveals it.
+     */
+    private async runRename(filePath: string): Promise<void> {
+        const parentDir = path.dirname(filePath);
+        const oldName = path.basename(filePath);
+
+        const name = await this.quickInputController.input({
+            title: "Rename",
+            placeholder: "Enter new name",
+            value: oldName,
+            validateInput: (value) => {
+                const trimmed = value.trim();
+                if (trimmed === "") return "Please enter a name";
+                if (path.isAbsolute(trimmed)) return "Please enter a relative name";
+                const segments = trimmed.split(/[\\/]/);
+                if (segments.some((s) => s === "" || s === "." || s === "..")) return "Invalid name";
+                if (trimmed === oldName) return null; // без изменений — валидно, но ниже это no-op
+                const resolved = path.resolve(parentDir, trimmed);
+                if (fs.existsSync(resolved)) return "A file or folder with that name already exists";
+                return null;
+            },
+        });
+        if (name === undefined) return;
+
+        const trimmed = name.trim();
+        if (trimmed === oldName) return; // имя не изменилось — ничего не делаем
+        const resolved = path.resolve(parentDir, trimmed);
+        this.workspaceEditService.applyFileEdits([{ kind: "rename", from: filePath, to: resolved }], "Rename");
+        await this.fileTreeController.refresh();
+        await this.fileTreeController.revealPath(resolved);
+    }
+
+    /**
      * Expand a leading `~` to the home directory, then resolve the path against
      * the current workspace root (falling back to the process cwd). Returns null
      * for an empty input.
@@ -2288,6 +2332,14 @@ export class AppController extends Disposable implements IController {
                 },
             },
             { type: "separator" },
+            {
+                label: "Rename...",
+                shortcut: "F2",
+                onSelect: () => {
+                    this.hideFileTreeContextMenu();
+                    this.commands.execute("fileOperations.rename", filePath);
+                },
+            },
             {
                 label: "Delete",
                 onSelect: () => {

@@ -12,3 +12,14 @@ export const fileDeleteAction: CommandAction = {
         fs.rmSync(filePath as string, { recursive: true, force: true });
     },
 };
+
+/**
+ * Переименование файла/каталога (VS Code `renameFile`, F2). `run` привязывается в
+ * AppController — нужны QuickInput (ввод имени) и WorkspaceEditService (undoable).
+ */
+export const fileRenameAction = {
+    id: "fileOperations.rename",
+    title: "File: Rename",
+    keybinding: parseKeybinding("f2"),
+    when: "listFocus",
+} satisfies Omit<CommandAction, "run">;

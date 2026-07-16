@@ -83,7 +83,7 @@ export class WorkspaceEditService {
         // Защита от значения, пришедшего в обход типов (kind типизирован строкой намеренно,
         // чтобы проверка не считалась «всегда истинной» и оставалась осмысленной в рантайме).
         const kind: string = edit.kind;
-        if (kind !== "move" && kind !== "copy" && kind !== "delete" && kind !== "create") {
+        if (kind !== "move" && kind !== "rename" && kind !== "copy" && kind !== "delete" && kind !== "create") {
             throw new Error(`Неподдерживаемый вид правки: ${kind}`);
         }
 
@@ -98,6 +98,23 @@ export class WorkspaceEditService {
                 },
                 redo: () => {
                     current = moveInto(current, toDir);
+                },
+            });
+        } else if (edit.kind === "rename") {
+            // В отличие от move, `to` — точный целевой путь (переименование на месте),
+            // а не каталог-назначение. Коллизию отсекает валидация в промпте.
+            const from = edit.from;
+            const to = edit.to;
+            moveToPath(from, to);
+            let current = to;
+            resources.push(from, to);
+            ops.push({
+                undo: () => {
+                    current = moveBack(current, from);
+                },
+                redo: () => {
+                    moveToPath(current, to);
+                    current = to;
                 },
             });
         } else if (edit.kind === "copy") {
