@@ -151,11 +151,16 @@ export class TerminalViewElement extends TUIElement {
             this.surface.write((event as TUIPasteEvent).text);
             return;
         }
-        if (event.type !== "keydown") return;
-        const bytes = encodeKeyForPty(event as TUIKeyboardEvent);
-        if (bytes !== "") {
-            event.preventDefault();
-            this.surface.write(bytes);
+        if (event.type === "keydown") {
+            const bytes = encodeKeyForPty(event as TUIKeyboardEvent);
+            if (bytes !== "") {
+                event.preventDefault();
+                this.surface.write(bytes);
+            }
+            return;
         }
+        // Всё остальное (в т.ч. mousedown) → базовое поведение: клик по фокусируемому
+        // элементу переводит на него фокус (TUIElement.performDefaultAction).
+        super.performDefaultAction(event);
     }
 }
