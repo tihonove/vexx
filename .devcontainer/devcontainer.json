@@ -2,7 +2,10 @@
 	"name": "Vexx Development",
 	"image": "mcr.microsoft.com/devcontainers/javascript-node:24",
 	"features": {
-		"ghcr.io/devcontainers/features/github-cli:1": {}
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "25"
+		}
 	},
 	"customizations": {
 		"vscode": {
@@ -13,7 +16,7 @@
 			]
 		}
 	},
-	"postCreateCommand": "sudo add-apt-repository ppa:lazygit-team/release -y && sudo apt-get update && sudo apt-get install -y lazygit kitty-terminfo locales tmux && sudo locale-gen en_US.UTF-8 && npm install -g prettier @anthropic-ai/claude-code && npm install && echo 'Vexx development environment ready!'",
+	"postCreateCommand": "sudo apt-get update && sudo apt-get install -y kitty-terminfo locales tmux curl && sudo locale-gen en_US.UTF-8 && curl -Lo lazygit.tar.gz https://github.com/jesseduffield/lazygit/releases/download/v0.45.2/lazygit_0.45.2_Linux_x86_64.tar.gz && tar xf lazygit.tar.gz lazygit && sudo install lazygit /usr/local/bin && rm lazygit.tar.gz lazygit && npm install -g prettier @anthropic-ai/claude-code && npm install && echo 'Vexx development environment ready!'",
 	"containerEnv": {
 		"LANG": "en_US.UTF-8"
 	},
