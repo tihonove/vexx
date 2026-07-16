@@ -1,6 +1,6 @@
 {
 	"name": "Vexx Development",
-	"image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+	"image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
 	"features": {
 		"ghcr.io/devcontainers/features/github-cli:1": {},
 		"ghcr.io/devcontainers/features/node:1": {
@@ -20,7 +20,7 @@
 	"containerEnv": {
 		"LANG": "en_US.UTF-8"
 	},
-	"remoteUser": "node",
+	"remoteUser": "vscode",
 	"mounts": [
 		"source=${localWorkspaceFolder}/.git,target=/workspaces/${localWorkspaceFolderBasename}/.git,type=bind,consistency=cached"
 	]
