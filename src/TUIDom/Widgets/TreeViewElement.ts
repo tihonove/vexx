@@ -1,4 +1,5 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
+import { Point } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
@@ -166,6 +167,21 @@ export class TreeViewElement<T> extends ScrollableElement {
             return this.flatNodes[this.selectedIndex].element;
         }
         return null;
+    }
+
+    /**
+     * Глобальные экранные координаты выделенной строки — якорь для контекстного меню,
+     * открытого с клавиатуры (Shift+F10). X сдвинут на отступ по глубине узла, чтобы
+     * меню появлялось у имени, а не у левого края панели. Возвращает `null`, если
+     * дерево пусто.
+     */
+    public getSelectedRowGlobalPosition(): Point | null {
+        if (this.selectedIndex < 0 || this.selectedIndex >= this.flatNodes.length) return null;
+        const indentX = this.flatNodes[this.selectedIndex].depth * INDENT_SIZE;
+        return new Point(
+            this.globalPosition.x + indentX - this.scrollLeft,
+            this.globalPosition.y + (this.selectedIndex - this.scrollTop),
+        );
     }
 
     /**

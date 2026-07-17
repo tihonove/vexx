@@ -136,3 +136,69 @@ describe("TreeViewElement - context menu (right-click)", () => {
         expect(onContextMenu).not.toHaveBeenCalled();
     });
 });
+
+const NESTED: TestNode[] = [
+    {
+        id: "src",
+        label: "src",
+        children: [
+            { id: "main", label: "main.ts" },
+            { id: "util", label: "util.ts" },
+        ],
+    },
+];
+
+describe("TreeViewElement - getSelectedRowGlobalPosition (keyboard context menu anchor)", () => {
+    it("returns null when the tree is empty", async () => {
+        const { tree, refresh } = createTree([]);
+        await refresh();
+
+        expect(tree.getSelectedRowGlobalPosition()).toBeNull();
+    });
+
+    it("anchors on the selected row relative to the tree's global position", async () => {
+        const { tree, refresh } = createTree(FLAT_NODES);
+        await refresh();
+
+        // Select row 1 (Beta) with a left click.
+        tree.dispatchEvent(makeClickEvent({ button: "left", screenX: 5, screenY: 1 }));
+
+        expect(tree.getSelectedRowGlobalPosition()).toEqual(new Point(0, 1));
+    });
+
+    it("offsets the anchor by the tree's own global position", async () => {
+        const { tree, refresh } = createTree(FLAT_NODES);
+        await refresh();
+        tree.globalPosition = new Point(3, 5);
+
+        tree.dispatchEvent(makeClickEvent({ button: "left", screenX: 5, screenY: 2 }));
+
+        // globalPosition (3,5) + row 2 → (3, 7)
+        expect(tree.getSelectedRowGlobalPosition()).toEqual(new Point(3, 7));
+    });
+
+    it("indents the anchor X by the selected node's depth", async () => {
+        const { tree, refresh } = createTree(NESTED);
+        await refresh();
+        await tree.toggleExpand(NESTED[0]); // src, main.ts, util.ts
+
+        // Select row 1 (main.ts, depth 1).
+        tree.dispatchEvent(makeClickEvent({ button: "left", screenX: 5, screenY: 1 }));
+
+        // depth 1 * INDENT_SIZE(2) = 2 → x offset
+        expect(tree.getSelectedRowGlobalPosition()).toEqual(new Point(2, 1));
+    });
+
+    it("accounts for vertical scroll", async () => {
+        const many: TestNode[] = Array.from({ length: 20 }, (_, i) => ({ id: `n${i}`, label: `Node ${i}` }));
+        const { tree, refresh } = createTree(many, new Size(40, 10));
+        await refresh();
+        tree.scrollTop = 5;
+
+        // Left click at localY 2 → selects row scrollTop(5) + 2 = 7.
+        tree.dispatchEvent(makeClickEvent({ button: "left", screenX: 5, screenY: 2 }));
+
+        // y = globalPosition.y(0) + (selectedIndex(7) - scrollTop(5)) = 2
+        expect(tree.getSelectedRowGlobalPosition()).toEqual(new Point(0, 2));
+    });
+});

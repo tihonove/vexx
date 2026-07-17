@@ -114,6 +114,42 @@ describe("FileTreeController", () => {
         expect(activated[0]).toBe(ws.path("README.md"));
     });
 
+    it("openContextMenuAtSelection fires onFileContextMenu for the selected node with an anchor", () => {
+        const calls: { path: string; x: number; y: number }[] = [];
+        controller.onFileContextMenu = (node, x, y) => {
+            calls.push({ path: node.path, x, y });
+        };
+
+        // "src" is the first/selected row after activation.
+        controller.openContextMenuAtSelection();
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0].path).toBe(ws.path("src"));
+        expect(Number.isFinite(calls[0].x)).toBe(true);
+        expect(Number.isFinite(calls[0].y)).toBe(true);
+    });
+
+    it("openContextMenuAtSelection follows the keyboard selection to another row", () => {
+        const calls: string[] = [];
+        controller.onFileContextMenu = (node) => {
+            calls.push(node.path);
+        };
+
+        app.sendKey("ArrowDown"); // move selection from "src" to "README.md"
+        app.render();
+        controller.openContextMenuAtSelection();
+
+        expect(calls).toEqual([ws.path("README.md")]);
+    });
+
+    it("openContextMenuAtSelection is a no-op when no onFileContextMenu handler is set", () => {
+        controller.onFileContextMenu = null;
+        // A row is selected, but with no handler the optional call short-circuits.
+        expect(() => {
+            controller.openContextMenuAtSelection();
+        }).not.toThrow();
+    });
+
     it("cleans up on dispose", () => {
         controller.dispose();
         // No error thrown — test passes
@@ -214,6 +250,15 @@ describe("FileTreeController — clipboard helpers before a root is assigned", (
         expect(() => {
             controller.setFileDecorations([{ path: "/x", color: 0x73c991, badge: "M" }]);
         }).not.toThrow();
+        // Контекстное меню по Shift+F10 без дерева — no-op, колбэк не дёргается.
+        let contextMenuCalls = 0;
+        controller.onFileContextMenu = () => {
+            contextMenuCalls++;
+        };
+        expect(() => {
+            controller.openContextMenuAtSelection();
+        }).not.toThrow();
+        expect(contextMenuCalls).toBe(0);
 
         controller.dispose();
     });
@@ -226,6 +271,14 @@ describe("FileTreeController — clipboard helpers before a root is assigned", (
         await controller.activate();
 
         expect(controller.getPasteTargetDir()).toBe(ws.dir);
+
+        // Tree exists but has no rows → no selected node/anchor → context menu is a no-op.
+        let contextMenuCalls = 0;
+        controller.onFileContextMenu = () => {
+            contextMenuCalls++;
+        };
+        controller.openContextMenuAtSelection();
+        expect(contextMenuCalls).toBe(0);
 
         controller.dispose();
         ws.dispose();

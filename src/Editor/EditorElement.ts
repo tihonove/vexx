@@ -790,6 +790,16 @@ export class EditorElement extends TUIElement implements IScrollable {
         return true;
     }
 
+    /**
+     * Открывает контекстное меню с клавиатуры (Shift+F10), заякорив его на каретке.
+     * Если каретка вне видимой области, {@link getCaretScreenCell} вернёт `null` —
+     * тогда якоримся в левый верхний угол редактора.
+     */
+    public openContextMenuAtCaret(): void {
+        const anchor = this.getCaretScreenCell() ?? this.globalPosition;
+        this.openContextMenu(anchor.x, anchor.y);
+    }
+
     private openContextMenu(screenX: number, screenY: number): void {
         this.closeContextMenu();
         if (this.contextMenuEntries.length === 0) return;
