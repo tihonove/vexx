@@ -38,10 +38,16 @@ API реестра: `changeOne(owner, resource, markers[])`, `read({ resource?, 
 
 ## Осталось
 
-### [ ] 3. Дополнительные поставщики
+### [~] 3. Дополнительные поставщики
+- **Problem matchers тасков — сделано (первый срез).** `TasksController` + `Controllers/Tasks/`
+  запускают `.vscode/tasks.json`-таски (one-shot `shell`/`process`), парсят вывод из raw
+  `pty.onData` (`$tsc`/`$gcc` + inline) и пишут `changeOne(owner, resource, markers)`. Детали
+  → [../arch/Controllers.md](../arch/Controllers.md) (Таски / проблем-матчеры). Осталось:
+  watch/background-матчеры (`beginsPattern`/`endsPattern`), матчеры из расширений
+  (`contributes.problemMatchers`/`taskDefinitions`), полный multi-terminal UI под вкладки тасков.
 - JSON Schema-валидация целиком (типы/enum'ы, не только неизвестные ключи).
 - Расширения: `vscode.languages.createDiagnosticCollection` → RPC → `changeOne`.
-- LSP `publishDiagnostics`, problem matchers тасков — по мере появления слоёв.
+- LSP `publishDiagnostics` — по мере появления слоёв.
 - Подмешать дефолты `contributes.configuration` расширений в валидатор `settings.json`
   (иначе реальные VS Code-настройки, ещё не реализованные в Vexx, помечаются как неизвестные).
 

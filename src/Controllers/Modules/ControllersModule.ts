@@ -9,6 +9,7 @@ import { ProblemsController, ProblemsControllerDIToken } from "../ProblemsContro
 import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarController.ts";
 import { EmbeddedTerminalSession } from "../Terminal/EmbeddedTerminalSession.ts";
 import { TerminalSessionFactoryDIToken } from "../Terminal/TerminalSessionFactory.ts";
+import { TasksController, TasksControllerDIToken } from "../TasksController.ts";
 import { TerminalController, TerminalControllerDIToken } from "../TerminalController.ts";
 
 /**
@@ -27,6 +28,8 @@ export const controllersModule: ContainerModule = (container) => {
     // профиль перебивает биндинг на FakeTerminalSurface (см. TestProfile).
     container.bind(TerminalSessionFactoryDIToken, () => (options) => new EmbeddedTerminalSession(options));
     container.bind(TerminalControllerDIToken, TerminalController);
+    // Таски переиспользуют ту же фабрику сессий (тест-профиль подменяет её на фейк).
+    container.bind(TasksControllerDIToken, TasksController);
     container.bind(InputWidgetControllerDIToken, InputWidgetController);
     container.bind(AppControllerDIToken, AppController);
     // Минимальный шов: FileTreeController создаётся внутри AppController — отдаём

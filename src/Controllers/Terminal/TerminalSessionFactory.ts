@@ -15,6 +15,16 @@ export interface ITerminalSessionOptions {
     env?: Record<string, string>;
 }
 
-export type TerminalSessionFactory = (options: ITerminalSessionOptions) => ITerminalSurface & IDisposable;
+/**
+ * Сессия встроенного терминала — {@link ITerminalSurface} (виджет-контракт) плюс
+ * Controllers-уровневый «сырой» tap `onData`: тот же поток `pty.onData` ДО VT-эмулятора,
+ * которым кормятся проблем-матчеры тасков. Держим его здесь, а не на `ITerminalSurface`,
+ * чтобы под `src/TUIDom/` не протекала байтовая/PTY-семантика.
+ */
+export interface ITerminalSession extends ITerminalSurface, IDisposable {
+    onData(cb: (data: string) => void): IDisposable;
+}
+
+export type TerminalSessionFactory = (options: ITerminalSessionOptions) => ITerminalSession;
 
 export const TerminalSessionFactoryDIToken = token<TerminalSessionFactory>("TerminalSessionFactory");

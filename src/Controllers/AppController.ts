@@ -189,6 +189,7 @@ import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { StateServiceDIToken } from "./Modules/StateModule.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
+import { TasksController, TasksControllerDIToken } from "./TasksController.ts";
 import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
 import { QuickInputController } from "./QuickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
@@ -410,6 +411,7 @@ export class AppController extends Disposable implements IController {
     private panelController: PanelController;
     private problemsController: ProblemsController;
     private terminalController: TerminalController;
+    private tasksController: TasksController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
@@ -486,6 +488,7 @@ export class AppController extends Disposable implements IController {
         this.panelController = this.register(accessor.get(PanelControllerDIToken));
         this.problemsController = this.register(accessor.get(ProblemsControllerDIToken));
         this.terminalController = this.register(accessor.get(TerminalControllerDIToken));
+        this.tasksController = this.register(accessor.get(TasksControllerDIToken));
         this.commands = commands;
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
@@ -937,6 +940,27 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
+        // Таски: запуск из палитры (quick-pick по `.vscode/tasks.json`) и Run Build Task.
+        // Ctrl+Shift+B гейтим по tier (в legacy Ctrl+Shift+B == Ctrl+B), палитра доступна везде.
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.tasks.runTask",
+                title: "Tasks: Run Task",
+                run: () => {
+                    void this.pickAndRunTask();
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.tasks.build",
+                title: "Tasks: Run Build Task",
+                keybinding: { keys: parseKeybinding("ctrl+shift+b"), when: "tier == 'kitty' || tier == 'csi-u'" },
+                run: () => {
+                    void this.runBuildTaskCommand();
+                },
+            }),
+        );
         this.register(
             registerAction(commands, keybindings, accessor, {
                 ...fileDeleteAction,
@@ -1158,6 +1182,7 @@ export class AppController extends Disposable implements IController {
         this.panelController.mount();
         this.problemsController.mount();
         this.terminalController.mount();
+        this.tasksController.mount();
         // Применяем сохранённый layout до первого кадра (run() идёт после mount()).
         // Workspace-стор уже открыт: setWorkspaceFolder вызывается до mount().
         this.workbenchState.restoreLayout();
@@ -1219,6 +1244,8 @@ export class AppController extends Disposable implements IController {
         this.fileTreeController.setRootPath(dirPath);
         // Новые терминалы спавнятся в папке воркспейса.
         this.terminalController.setWorkingDirectory(dirPath);
+        // Таски читают .vscode/tasks.json и спавнятся в той же папке.
+        this.tasksController.setWorkspaceFolder(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
         // Открыть per-project стор состояния для этой папки (переключение флашит
         // предыдущий). Дальше layout/открытые файлы читаются/пишутся в него.
@@ -2108,6 +2135,30 @@ export class AppController extends Disposable implements IController {
 
         applyByLabel(picked.label);
         void this.configurationService.updateUserValue?.("workbench.colorTheme", picked.label);
+    }
+
+    /** Палитра тасков: выбрать таск из `.vscode/tasks.json` и запустить его. */
+    private async pickAndRunTask(): Promise<void> {
+        const tasks = await this.tasksController.listTasks();
+        if (tasks.length === 0) return;
+        const picked = await this.quickInputController.quickPick({
+            title: "Run Task",
+            placeholder: "Select the task to run",
+            items: tasks.map((task) => ({ label: task.label, description: task.command })),
+        });
+        if (picked === undefined) return;
+        const task = tasks.find((t) => t.label === picked.label);
+        if (task === undefined) return;
+        this.setPanelVisible(true);
+        this.tasksController.runTask(task);
+        this.updateContextKeys();
+    }
+
+    /** Run Build Task: запустить build-таск (или единственный) и показать панель. */
+    private async runBuildTaskCommand(): Promise<void> {
+        this.setPanelVisible(true);
+        await this.tasksController.runBuildTask();
+        this.updateContextKeys();
     }
 
     /**

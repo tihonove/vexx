@@ -16,6 +16,12 @@ export const PROBLEMS_VIEW_ID = "workbench.panel.markers.view";
 export const TERMINAL_VIEW_ID = "terminal";
 
 /**
+ * View id выделенной вкладки вывода тасков. Вкладку создаёт лениво {@link TasksController}
+ * при первом запуске таска (в конструкторе панели её нет), поэтому здесь только константа.
+ */
+export const TASK_OUTPUT_VIEW_ID = "workbench.panel.tasks";
+
+/**
  * Owns the bottom **Panel** part ({@link PanelContainerElement}) and its views.
  * MVP: a single Problems view with a placeholder empty-state; the marker tree is
  * a follow-up (it becomes the view's content). Visibility itself is owned by the

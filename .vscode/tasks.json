@@ -12,14 +12,14 @@
             "label": "npm lint",
             "type": "npm",
             "script": "lint",
-            "problemMatcher": ["$eslint-compact"],
+            "problemMatcher": ["$eslint-stylish"],
             "detail": "eslint src/"
         },
         {
             "label": "npm lint:fix",
             "type": "npm",
             "script": "lint:fix",
-            "problemMatcher": ["$eslint-compact"],
+            "problemMatcher": ["$eslint-stylish"],
             "detail": "eslint src/ --fix"
         },
         {

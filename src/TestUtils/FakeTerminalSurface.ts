@@ -37,6 +37,7 @@ export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
     private cursor: { x: number; y: number } | null = null;
     private readonly updateListeners = new Set<() => void>();
     private readonly exitListeners = new Set<(exitCode: number) => void>();
+    private readonly dataListeners = new Set<(data: string) => void>();
 
     public isExited = false;
     /** Стал ли фейк «убитым» — контроллер обязан звать dispose() при закрытии терминала. */
@@ -84,6 +85,11 @@ export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
         for (const cb of this.exitListeners) cb(exitCode);
     }
 
+    /** Подать сырой chunk в tap onData (эмуляция вывода команды для матчеров тасков). */
+    public emitData(data: string): void {
+        for (const cb of this.dataListeners) cb(data);
+    }
+
     // ─── ITerminalSurface ───
 
     public readCell(x: number, y: number, out: TerminalCell): boolean {
@@ -121,6 +127,11 @@ export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
     public onExit(cb: (exitCode: number) => void): IDisposable {
         this.exitListeners.add(cb);
         return { dispose: () => this.exitListeners.delete(cb) };
+    }
+
+    public onData(cb: (data: string) => void): IDisposable {
+        this.dataListeners.add(cb);
+        return { dispose: () => this.dataListeners.delete(cb) };
     }
 
     /** Помечает фейк убитым (в реале — kill PTY + dispose эмулятора). */

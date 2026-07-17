@@ -86,6 +86,8 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
     private readonly term: Terminal;
     private readonly updateListeners = new Set<() => void>();
     private readonly exitListeners = new Set<(exitCode: number) => void>();
+    // Подписчики на сырой вывод PTY (до VT-эмулятора) — проблем-матчеры тасков.
+    private readonly dataListeners = new Set<(data: string) => void>();
     // Переиспользуемая ячейка — getCell(x, cell) не аллоцирует новый объект на каждую ячейку.
     private cellBuffer: IBufferCell | undefined;
     private cols: number;
@@ -128,6 +130,8 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
         // читает устаревшее состояние, и картинка отстаёт на одно событие («залипание»).
         this.pty.onData((data) => {
             this.term.write(data, () => this.emitUpdate());
+            // Сырой chunk — параллельно в tap (матчеры парсят raw-поток, не грид).
+            for (const cb of this.dataListeners) cb(data);
         });
         // Ответы эмулятора (DSR/DA, отчёты мыши) → обратно в шелл: тот же путь, что и
         // пользовательский ввод, включая защиту от записи в уже мёртвый PTY.
@@ -222,6 +226,12 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
     public onUpdate(callback: () => void): IDisposable {
         this.updateListeners.add(callback);
         return { dispose: () => this.updateListeners.delete(callback) };
+    }
+
+    /** Подписка на сырой вывод PTY (для проблем-матчеров тасков). */
+    public onData(callback: (data: string) => void): IDisposable {
+        this.dataListeners.add(callback);
+        return { dispose: () => this.dataListeners.delete(callback) };
     }
 
     public onExit(callback: (exitCode: number) => void): IDisposable {
