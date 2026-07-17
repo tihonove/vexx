@@ -91,14 +91,14 @@ export interface IWorkbenchColors {
     // "button.secondaryBorder"?: number;
 
     // ── Dropdown control ────────────────────────────────────
-    // /** Dropdown background. */
-    // "dropdown.background"?: number;
+    /** Dropdown background. */
+    "dropdown.background"?: number;
+    /** Dropdown border. */
+    "dropdown.border"?: number;
+    /** Dropdown foreground. */
+    "dropdown.foreground"?: number;
     // /** Dropdown list background. */
     // "dropdown.listBackground"?: number;
-    // /** Dropdown border. */
-    // "dropdown.border"?: number;
-    // /** Dropdown foreground. */
-    // "dropdown.foreground"?: number;
 
     // ── Input control ───────────────────────────────────────
     // /** Input box background. */
