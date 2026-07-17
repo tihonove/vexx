@@ -11,6 +11,12 @@ export interface PanelView {
     content: TUIElement | null;
     /** Empty-state message shown when `content` is null (à la VS Code view welcome). */
     readonly placeholder?: string;
+    /**
+     * Optional per-view control pinned to the right of the tab header (VS Code's
+     * view toolbar, e.g. the Output channel dropdown). Shown only while this view
+     * is active; laid out and hit-tested as a real child.
+     */
+    headerControl?: TUIElement | null;
 }
 
 interface TabSegment {
@@ -27,6 +33,8 @@ const DEFAULT_BORDER = packRgb(43, 43, 43);
 const TAB_PAD = 1;
 /** Indent of the tab strip from the left edge. */
 const TAB_INDENT = 1;
+/** Right margin for a view's header control (mirrors {@link TAB_INDENT}). */
+const HEADER_CONTROL_MARGIN = 1;
 /** Row the tab header sits on (below the top border strip). */
 const TAB_ROW = 1;
 /** First content row (below the top border strip + tab header). */
@@ -73,6 +81,7 @@ export class PanelContainerElement extends TUIElement {
     public addView(view: PanelView): void {
         this.views.push(view);
         if (view.content !== null) view.content.setParent(this);
+        if (view.headerControl != null) view.headerControl.setParent(this);
         this.activeId ??= view.id;
         this.markDirty();
     }
@@ -84,6 +93,16 @@ export class PanelContainerElement extends TUIElement {
         if (view.content !== null) view.content.setParent(null);
         view.content = content;
         if (content !== null) content.setParent(this);
+        this.markDirty();
+    }
+
+    /** Sets (or clears) the control pinned to the right of the tab header for a view. */
+    public setViewHeaderControl(id: string, control: TUIElement | null): void {
+        const view = this.views.find((v) => v.id === id);
+        if (view === undefined) return;
+        if (view.headerControl != null) view.headerControl.setParent(null);
+        view.headerControl = control;
+        if (control !== null) control.setParent(this);
         this.markDirty();
     }
 
@@ -118,13 +137,17 @@ export class PanelContainerElement extends TUIElement {
     }
 
     public override getChildren(): readonly TUIElement[] {
-        const content = this.activeView()?.content;
-        return content != null ? [content] : [];
+        const active = this.activeView();
+        const children: TUIElement[] = [];
+        if (active?.content != null) children.push(active.content);
+        if (active?.headerControl != null) children.push(active.headerControl);
+        return children;
     }
 
     public override performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
-        const content = this.activeView()?.content;
+        const active = this.activeView();
+        const content = active?.content;
         if (content != null) {
             const contentWidth = Math.max(0, containerSize.width - CONTENT_LEFT);
             const contentHeight = Math.max(0, containerSize.height - CONTENT_TOP);
@@ -134,6 +157,18 @@ export class PanelContainerElement extends TUIElement {
                 this.globalPosition.y + CONTENT_TOP,
             );
             content.performLayout(BoxConstraints.tight(new Size(contentWidth, contentHeight)));
+        }
+
+        const headerControl = active?.headerControl;
+        if (headerControl != null) {
+            const controlWidth = Math.min(
+                headerControl.getMaxIntrinsicWidth(1),
+                Math.max(0, containerSize.width - TAB_INDENT),
+            );
+            const controlX = Math.max(TAB_INDENT, containerSize.width - controlWidth - HEADER_CONTROL_MARGIN);
+            headerControl.localPosition = new Offset(controlX, TAB_ROW);
+            headerControl.globalPosition = new Point(this.globalPosition.x + controlX, this.globalPosition.y + TAB_ROW);
+            headerControl.performLayout(BoxConstraints.tight(new Size(controlWidth, 1)));
         }
         return containerSize;
     }
@@ -169,8 +204,16 @@ export class PanelContainerElement extends TUIElement {
             }
         }
 
-        // Active view's content element, or its placeholder empty-state message.
+        // Active view's header control (e.g. Output channel dropdown), pinned right of the tabs.
         const active = this.activeView();
+        if (active?.headerControl != null) {
+            const control = active.headerControl;
+            const offset = new Offset(control.localPosition.dx, control.localPosition.dy);
+            const clip = new Rect(control.globalPosition, control.layoutSize);
+            control.render(context.withOffset(offset).withClip(clip));
+        }
+
+        // Active view's content element, or its placeholder empty-state message.
         if (active?.content != null) {
             const offset = new Offset(active.content.localPosition.dx, active.content.localPosition.dy);
             const clip = new Rect(active.content.globalPosition, active.content.layoutSize);

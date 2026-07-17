@@ -7,9 +7,13 @@
 
 ## Открытые фазы
 
-- [ ] **Phase 4 — Output UI**
-  TUI-виджет (вкладка/панель) поверх `RingBufferSink`: список каналов, live-tail через `onDidAppend`, фильтры по уровню/каналу,
-  clear/scroll. Контроллер — `OutputController` (Controllers/), читает sink через DI.
+- [~] **Phase 4 — Output UI**
+  Базовый MVP готов: вкладка OUTPUT в нижней Panel поверх `RingBufferSink` — скроллируемый
+  `OutputViewElement` с live-tail (`ILogService.onDidAppend`, фильтр по активному каналу),
+  селектор канала `DropdownElement` (select-подобный контрол) в шапке панели, команды
+  `workbench.action.output.toggleOutput` и `workbench.output.action.clearOutput`. Контроллер —
+  `OutputController` (Controllers/), читает `RingBufferSink` через DI (`RingBufferSinkDIToken`).
+  Осталось: **фильтр по уровню** (Trace/Debug/…/Error) и keybinding для toggle.
 
 - [ ] **Phase 5 — Extension Host inner tracing**
   Внутри subprocess: пробросить `ILogger` в его `RpcEndpoint` (например, через стартовый `host.setLogLevel`-handshake), чтобы видеть исполнение handler'ов с той стороны.

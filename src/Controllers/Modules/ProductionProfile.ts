@@ -2,6 +2,7 @@ import type { ITerminalBackend } from "../../Backend/ITerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
 import type { ILogService } from "../../Common/Logging/ILogService.ts";
+import type { RingBufferSink } from "../../Common/Logging/sinks/RingBufferSink.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import type { IStateService } from "../../Configuration/IStateService.ts";
 import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService.ts";
@@ -41,6 +42,8 @@ export interface ProductionProfileContext {
     stateService: IStateService;
     userKeybindings: readonly IUserKeybindingRule[];
     logService: ILogService;
+    /** In-memory лог-буфер, уже подключённый к `logService` — источник Output-панели. */
+    ringBuffer: RingBufferSink;
     /** Absolute path of the active-profile Vexx settings.json (for diagnostics scoping). */
     settingsResource: string;
     /** Absolute path of the active-profile Vexx keybindings.json (for the open-keybindings command). */
@@ -54,7 +57,7 @@ export interface ProductionProfileContext {
 export function createProductionContainer(ctx: ProductionProfileContext): Container {
     return new Container()
         .use(coreModule, { app: ctx.app })
-        .use(loggingModule, { logService: ctx.logService })
+        .use(loggingModule, { logService: ctx.logService, ringBuffer: ctx.ringBuffer })
         .use(commandsModule)
         .use(themeModule, { theme: ctx.theme, themeRegistry: ctx.themeRegistry })
         .use(backendModule, { clipboard: ctx.clipboard })

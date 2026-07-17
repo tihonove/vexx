@@ -99,6 +99,11 @@ const darkDefaults: Record<string, string> = {
     "button.secondaryForeground": "#CCCCCC",
     "button.secondaryHoverBackground": "#45494E",
 
+    // ── Dropdown ────────────────────────────────────────────
+    "dropdown.background": "#3C3C3C",
+    "dropdown.border": "#3C3C3C",
+    "dropdown.foreground": "#CCCCCC",
+
     // ── Menus ───────────────────────────────────────────────
     "menu.foreground": "#CCCCCC",
     "menu.background": "#252526",
@@ -189,6 +194,11 @@ const lightDefaults: Record<string, string> = {
     "button.secondaryBackground": "#E5E5E5",
     "button.secondaryForeground": "#3B3B3B",
     "button.secondaryHoverBackground": "#CCCCCC",
+
+    // ── Dropdown ────────────────────────────────────────────
+    "dropdown.background": "#FFFFFF",
+    "dropdown.border": "#CECECE",
+    "dropdown.foreground": "#3B3B3B",
 
     // ── Menus ───────────────────────────────────────────────
     "menu.foreground": "#616161",

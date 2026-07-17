@@ -4,6 +4,7 @@ import { DiagnosticsController, DiagnosticsControllerDIToken } from "../Diagnost
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { FileTreeControllerDIToken } from "../FileTreeController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWidgetController.ts";
+import { OutputController, OutputControllerDIToken } from "../OutputController.ts";
 import { PanelController, PanelControllerDIToken } from "../PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "../ProblemsController.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarController.ts";
@@ -23,6 +24,7 @@ export const controllersModule: ContainerModule = (container) => {
     container.bind(DiagnosticsControllerDIToken, DiagnosticsController);
     container.bind(PanelControllerDIToken, PanelController);
     container.bind(ProblemsControllerDIToken, ProblemsController);
+    container.bind(OutputControllerDIToken, OutputController);
     // Прод-фабрика сессий: реальная связка node-pty + @xterm/headless. Тестовый
     // профиль перебивает биндинг на FakeTerminalSurface (см. TestProfile).
     container.bind(TerminalSessionFactoryDIToken, () => (options) => new EmbeddedTerminalSession(options));

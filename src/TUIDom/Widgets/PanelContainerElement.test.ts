@@ -41,6 +41,26 @@ class MarkerContent extends TUIElement {
     }
 }
 
+/** A fixed-width header control that records mousedown hits. */
+class MarkerControl extends TUIElement {
+    public clicked = false;
+    public constructor(private readonly width: number) {
+        super();
+        this.addEventListener("mousedown", () => {
+            this.clicked = true;
+        });
+    }
+    public override getMinIntrinsicWidth(): number {
+        return this.width;
+    }
+    public override getMaxIntrinsicWidth(): number {
+        return this.width;
+    }
+    public override render(context: RenderContext): void {
+        context.setCell(0, 0, { char: "D" });
+    }
+}
+
 function makeToken(overrides: Partial<MouseToken> & { action: MouseToken["action"] }): MouseToken {
     return {
         kind: "mouse",
@@ -251,6 +271,80 @@ describe("PanelContainerElement", () => {
                 dispatcher.handleMouseToken(makeToken({ action: "press", x: 13, y: 2 }), root);
             }).not.toThrow();
             expect(panel.getActiveViewId()).toBe("b");
+        });
+    });
+
+    describe("header control", () => {
+        it("lays out the active view's header control right-aligned on the tab row and renders it", () => {
+            const panel = themed();
+            const control = new MarkerControl(8);
+            panel.addView({ id: "a", title: "PROBLEMS", content: null, headerControl: control });
+            layoutPanel(panel, new Size(40, 6));
+
+            // Right-aligned: x = width - controlWidth - margin = 40 - 8 - 1 = 31, on the tab row (y 1).
+            expect(control.globalPosition).toEqual(new Point(31, 1));
+            expect(control.layoutSize).toEqual(new Size(8, 1));
+            expect(panel.getChildren()).toContain(control);
+
+            const backend = renderPanel(panel, new Size(40, 6));
+            expect(backend.getTextAt(new Point(31, 1), 1)).toBe("D");
+        });
+
+        it("shows only the active view's header control", () => {
+            const panel = themed();
+            const controlA = new MarkerControl(8);
+            const controlB = new MarkerControl(8);
+            panel.addView({ id: "a", title: "PROBLEMS", content: null, headerControl: controlA });
+            panel.addView({ id: "b", title: "OUTPUT", content: null, headerControl: controlB });
+            layoutPanel(panel, new Size(40, 6));
+            expect(panel.getChildren()).toContain(controlA);
+            expect(panel.getChildren()).not.toContain(controlB);
+
+            panel.setActiveView("b");
+            layoutPanel(panel, new Size(40, 6));
+            expect(panel.getChildren()).toContain(controlB);
+            expect(panel.getChildren()).not.toContain(controlA);
+        });
+
+        it("sets and swaps a header control, re-parenting elements", () => {
+            const panel = themed();
+            panel.addView({ id: "a", title: "P", content: null });
+            const first = new MarkerControl(6);
+            panel.setViewHeaderControl("a", first);
+            expect(first.getParent()).toBe(panel);
+            const second = new MarkerControl(6);
+            panel.setViewHeaderControl("a", second);
+            expect(first.getParent()).toBeNull();
+            expect(second.getParent()).toBe(panel);
+            panel.setViewHeaderControl("a", null);
+            expect(second.getParent()).toBeNull();
+            panel.setViewHeaderControl("missing", first); // unknown id — no-op
+        });
+
+        it("routes a click on the header control to it without switching tabs", () => {
+            const root = new ContainerElement();
+            root.setAsRoot();
+            root.globalPosition = new Point(0, 0);
+            root.performLayout(BoxConstraints.tight(new Size(40, 8)));
+
+            const panel = themed();
+            const control = new MarkerControl(8);
+            panel.addView({ id: "a", title: "PROBLEMS", content: null, headerControl: control });
+            panel.addView({ id: "b", title: "OUTPUT", content: null });
+            panel.globalPosition = new Point(0, 0);
+            panel.performLayout(BoxConstraints.tight(new Size(40, 8)));
+            root.addChild(panel);
+
+            const activated: string[] = [];
+            panel.onActivateView = (id) => activated.push(id);
+
+            const dispatcher = new MouseEventDispatcher();
+            // Control sits at screen x 31 (token 32), tab row 1 (token y 2).
+            dispatcher.handleMouseToken(makeToken({ action: "press", x: 32, y: 2 }), root);
+
+            expect(control.clicked).toBe(true);
+            expect(panel.getActiveViewId()).toBe("a");
+            expect(activated).toEqual([]);
         });
     });
 

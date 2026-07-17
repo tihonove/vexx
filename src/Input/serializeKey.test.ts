@@ -136,6 +136,14 @@ describe("serializeKey", () => {
         expect(serializeKey("Alt+a")).toBe("\x1ba");
     });
 
+    it("serializes Ctrl+Shift+P as Kitty CSI-u (codepoint 112, mod 6)", () => {
+        expect(serializeKey("Ctrl+Shift+P")).toBe("\x1b[112;6u");
+    });
+
+    it("serializes Shift+P as Kitty CSI-u (codepoint 112, mod 2)", () => {
+        expect(serializeKey("Shift+P")).toBe("\x1b[112;2u");
+    });
+
     it("serializes Shift+Tab as backtab (CSI Z, line 100)", () => {
         expect(serializeKey("Shift+Tab")).toBe("\x1b[Z");
     });
@@ -158,7 +166,7 @@ describe("serializeKey", () => {
     // ─── Error handling ───
 
     it("throws on unknown key name", () => {
-        expect(() => serializeKey("Ctrl+Shift+a")).toThrow("unknown key name");
+        expect(() => serializeKey("Ctrl+Frobnicate")).toThrow("unknown key name");
     });
 
     // ─── Meta modifier ───

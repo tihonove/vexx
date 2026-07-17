@@ -6,7 +6,7 @@ TUI-фреймворк — дерево элементов с layout, событ
 
 `RenderContext` инкапсулирует то, что виджеты не обязаны знать: рендеринг wide chars (`drawText` через `DisplayLine` — без ручной возни с grapheme-слотами) и рамки (`drawBox` — углы/линии одним вызовом, `fill`, `separators`, пресеты из `BorderStyle.ts`, канон — `BORDER_ROUNDED`). Все бордер-виджеты рисуют рамку через него — единый стиль, без дублированных циклов.
 
-Подсистемы: **Events** (capture/bubble, клавиатура/фокус, менеджер фокуса с tab-навигацией, default actions), **Styles** (наследование `fg`/`bg` от родителя, sentinel `INHERITED_*`, dirty-пропагация + top-down резолвинг; компонент-специфичные стили через generic `TUIElement<S extends TUIStyle>`), **Widgets** (боксы с рамкой, стек, word-wrap текст, скролл, меню, `CompletionListElement` и др.).
+Подсистемы: **Events** (capture/bubble, клавиатура/фокус, менеджер фокуса с tab-навигацией, default actions), **Styles** (наследование `fg`/`bg` от родителя, sentinel `INHERITED_*`, dirty-пропагация + top-down резолвинг; компонент-специфичные стили через generic `TUIElement<S extends TUIStyle>`), **Widgets** (боксы с рамкой, стек, word-wrap текст, скролл, меню, `CompletionListElement`, `DropdownElement` — select-подобный контрол, открывающий список в `OverlayLayer` через переиспользование `PopupMenuElement`; `OutputViewElement` — скроллируемый лог-вью с live-tail для Output-панели; и др.).
 
 ## OverlayLayer + pointerPolicy (инвариант)
 `OverlayLayer` — overlay-менеджер с session API (`createSession`/`openPopupSession`): единый lifecycle popup/dialog/quick-open, политики закрытия, restore-focus, якорное позиционирование с clamp/flip по экрану.

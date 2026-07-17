@@ -187,6 +187,7 @@ import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybindin
 import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { StateServiceDIToken } from "./Modules/StateModule.ts";
+import { OutputController, OutputControllerDIToken } from "./OutputController.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
@@ -410,6 +411,7 @@ export class AppController extends Disposable implements IController {
     private panelController: PanelController;
     private problemsController: ProblemsController;
     private terminalController: TerminalController;
+    private outputController: OutputController;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
@@ -486,6 +488,7 @@ export class AppController extends Disposable implements IController {
         this.panelController = this.register(accessor.get(PanelControllerDIToken));
         this.problemsController = this.register(accessor.get(ProblemsControllerDIToken));
         this.terminalController = this.register(accessor.get(TerminalControllerDIToken));
+        this.outputController = this.register(accessor.get(OutputControllerDIToken));
         this.commands = commands;
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
@@ -528,6 +531,8 @@ export class AppController extends Disposable implements IController {
         this.quickOpenController.setHostView(this.view);
         this.quickInputController.setHostView(this.view);
         this.completionController.setHostView(this.view);
+        // The Output channel dropdown opens its list into the shared overlay layer.
+        this.outputController.setOverlayLayer(this.view.overlayLayer);
         this.completionController.onExecuteCommand = (id, ...args) => {
             this.commands.execute(id, ...args);
         };
@@ -896,6 +901,34 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
+        // Output panel (channel log viewer over the RingBufferSink).
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.action.output.toggleOutput",
+                title: "View: Toggle Output",
+                run: () => {
+                    // Toggle like VS Code: show + focus Output, or hide the panel if
+                    // Output is already the visible view.
+                    const showing = this.workbenchLayout.getBottomPanelVisible() && this.panelController.isOutputActive();
+                    if (showing) {
+                        this.setPanelVisible(false);
+                    } else {
+                        this.panelController.showOutput();
+                        this.setPanelVisible(true);
+                        this.outputController.focus();
+                    }
+                },
+            }),
+        );
+        this.register(
+            registerAction(commands, keybindings, accessor, {
+                id: "workbench.output.action.clearOutput",
+                title: "Output: Clear Output",
+                run: () => {
+                    this.outputController.clear();
+                },
+            }),
+        );
         // Integrated Terminal. Только tier csi-u/kitty умеет однозначно кодировать
         // Ctrl+` (в legacy это NUL = Ctrl+Space), поэтому legacy-бинда нет.
         this.register(
@@ -1158,6 +1191,7 @@ export class AppController extends Disposable implements IController {
         this.panelController.mount();
         this.problemsController.mount();
         this.terminalController.mount();
+        this.outputController.mount();
         // Применяем сохранённый layout до первого кадра (run() идёт после mount()).
         // Workspace-стор уже открыт: setWorkspaceFolder вызывается до mount().
         this.workbenchState.restoreLayout();

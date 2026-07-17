@@ -28,7 +28,9 @@ IO-абстракции (интерфейс + no-op/in-memory заглушка),
 Формат и потребители у всех трёх общие — меняется только источник байтов, поэтому новый способ упаковки не стоит ничего ни одному downstream-потребителю.
 
 ## Common/Logging/
-Логирование в стиле VS Code: один `ILogService` на процесс (`ILogServiceDIToken`), из него `ILogger` per channel (dotted, напр. `extensions.host`). Уровень канала резолвится walk-up по точкам → wildcard `*` → дефолт. Sinks (`ILogSink`) — fan-out fire-and-forget: `RingBufferSink` (источник для будущей Output-вкладки) и `FileSink` (append-only). В тестах биндится `NULL_LOG_SERVICE`.
+Логирование в стиле VS Code: один `ILogService` на процесс (`ILogServiceDIToken`), из него `ILogger` per channel (dotted, напр. `extensions.host`). Уровень канала резолвится walk-up по точкам → wildcard `*` → дефолт. Sinks (`ILogSink`) — fan-out fire-and-forget: `RingBufferSink` (in-memory источник Output-вкладки) и `FileSink` (append-only). В тестах биндится `NULL_LOG_SERVICE`.
+
+`RingBufferSink` отдаётся в DI под `RingBufferSinkDIToken` (бинд в `Controllers/Modules/LoggingModule.ts`; прод-экземпляр создаётся в `main.ts` и передаётся через `ProductionProfileContext.ringBuffer`) — его читает `OutputController` для вкладки OUTPUT (см. [Controllers.md](Controllers.md)). В тестах/demo `loggingModuleDefault` биндит свежий пустой буфер.
 
 Неочевидные гейты:
 - **dev vs packaged:** `FileSink` (`./vexx.log`) добавляется только когда `isPackagedRuntime() === false`; в упакованных сборках файлового sink нет. Гейт идёт именно по `isPackagedRuntime()` (`Assets/PackagedRuntime.ts`), а не по `isSeaBinary()`: self-extract — тоже прод, но `isSea()` там `false`, и по старому гейту прод писал бы `vexx.log` в cwd пользователя.

@@ -121,6 +121,14 @@ export function serializeKey(name: string): string {
         return `\x1b${remaining}`;
     }
 
+    // Other modified single characters (e.g. Ctrl+Shift+P, Shift+P) in Kitty CSI-u
+    // form: CSI codepoint;mod u. Reaches here only after the plain Ctrl+letter and
+    // Alt+char forms above, so it covers Shift/Ctrl+Shift/… combinations.
+    if (hasModifiers && remaining.length === 1) {
+        const mod = encodeModifier(ctrl, shift, alt, meta);
+        return `\x1b[${remaining.toLowerCase().charCodeAt(0).toString()};${mod.toString()}u`;
+    }
+
     // CSI letter keys (cursor keys, F1–F4)
     if (remaining in csiLetterKeys) {
         const letter = csiLetterKeys[remaining];

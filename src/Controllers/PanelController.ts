@@ -15,6 +15,9 @@ export const PROBLEMS_VIEW_ID = "workbench.panel.markers.view";
 /** VS Code view id of the integrated Terminal view living in the bottom Panel. */
 export const TERMINAL_VIEW_ID = "terminal";
 
+/** VS Code view id of the Output view living in the bottom Panel. */
+export const OUTPUT_VIEW_ID = "workbench.panel.output";
+
 /**
  * Owns the bottom **Panel** part ({@link PanelContainerElement}) and its views.
  * MVP: a single Problems view with a placeholder empty-state; the marker tree is
@@ -43,6 +46,13 @@ export class PanelController extends Disposable implements IController {
             title: "TERMINAL",
             content: null,
             placeholder: "No active terminal.",
+        });
+        // Вкладка OUTPUT; содержимое и селектор канала вкидывает OutputController.
+        this.view.addView({
+            id: OUTPUT_VIEW_ID,
+            title: "OUTPUT",
+            content: null,
+            placeholder: "No output yet.",
         });
         this.register(
             themeService.onThemeChange((theme) => {
@@ -77,6 +87,16 @@ export class PanelController extends Disposable implements IController {
     /** True when the Terminal view is the active tab. */
     public isTerminalActive(): boolean {
         return this.view.getActiveViewId() === TERMINAL_VIEW_ID;
+    }
+
+    /** Makes the Output view the active tab (used by the "Toggle Output" command). */
+    public showOutput(): void {
+        this.view.setActiveView(OUTPUT_VIEW_ID);
+    }
+
+    /** True when the Output view is the active tab. */
+    public isOutputActive(): boolean {
+        return this.view.getActiveViewId() === OUTPUT_VIEW_ID;
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
