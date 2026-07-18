@@ -34,6 +34,11 @@ export class CommandRegistry implements IDisposable {
         return this.entries.has(id);
     }
 
+    /** Человекочитаемый title команды (для label пунктов меню), или undefined. */
+    public getTitle(id: string): string | undefined {
+        return this.entries.get(id)?.title;
+    }
+
     public listCommands(): { id: string; title: string }[] {
         const result: { id: string; title: string }[] = [];
         for (const [id, entry] of this.entries) {

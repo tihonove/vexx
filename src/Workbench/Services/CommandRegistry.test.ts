@@ -55,6 +55,16 @@ describe("CommandRegistry", () => {
         expect(registry.has("test.command")).toBe(false);
     });
 
+    it("getTitle() returns the registered title, or undefined", () => {
+        const registry = new CommandRegistry();
+        registry.register("with.title", () => {}, "With Title");
+        registry.register("no.title", () => {});
+
+        expect(registry.getTitle("with.title")).toBe("With Title");
+        expect(registry.getTitle("no.title")).toBeUndefined();
+        expect(registry.getTitle("unregistered")).toBeUndefined();
+    });
+
     it("unregisters command via returned disposable", () => {
         const registry = new CommandRegistry();
         const disposable = registry.register("test.command", () => {
