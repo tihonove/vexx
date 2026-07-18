@@ -9,6 +9,7 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { FindWidgetElement } from "../TUIDom/Widgets/FindWidgetElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 
+import { applyButtonTheme } from "./applyButtonTheme.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
 /**
@@ -46,7 +47,9 @@ export class FindController extends Disposable {
 
     /** Push the active theme into the widget's buttons. */
     public applyTheme(theme: WorkbenchTheme): void {
-        this.view.applyTheme(theme);
+        for (const button of this.view.getButtons()) {
+            applyButtonTheme(button, theme);
+        }
     }
 
     /** Attaches the widget to the editor group's overlay layer. */

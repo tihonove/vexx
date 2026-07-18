@@ -1,7 +1,6 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { ButtonElement } from "./ButtonElement.ts";
@@ -95,21 +94,12 @@ export class FindWidgetElement extends TUIElement {
     }
 
     /**
-     * Push button colors from the active theme. The buttons are never focused, so the
-     * "secondary" tokens drive their look. The `button.*` tokens are guaranteed by the
-     * default color registry, so no inline fallback is needed. Mirrors
-     * {@link ConfirmSaveDialogElement}.
+     * Кнопки ↑ ↓ ✕ — для покраски владельцем (color-props задаются снаружи,
+     * контрол про темы приложения не знает). Кнопки никогда не в фокусе, так
+     * что их вид определяют «normal»-цвета.
      */
-    public applyTheme(theme: WorkbenchTheme): void {
-        for (const button of this.buttons()) {
-            button.focusedBg = theme.getRequiredColor("button.background");
-            button.focusedFg = theme.getRequiredColor("button.foreground");
-            button.focusedHoverBg = theme.getRequiredColor("button.hoverBackground");
-            button.normalBg = theme.getRequiredColor("button.secondaryBackground");
-            button.normalFg = theme.getRequiredColor("button.secondaryForeground");
-            button.normalHoverBg = theme.getRequiredColor("button.secondaryHoverBackground");
-            button.markDirty();
-        }
+    public getButtons(): readonly ButtonElement[] {
+        return this.buttons();
     }
 
     /** Delegate focus to the inner input. */
