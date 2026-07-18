@@ -1,12 +1,12 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { CompositeElement } from "../CompositeElement.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { JsxNode } from "../JSX/jsx-runtime.ts";
 
 import { BoxContainer } from "./BoxContainerElement.ts";
-import { ButtonElement } from "./ButtonElement.ts";
+import type { IButtonStyles } from "./ButtonElement.ts";
+import { ButtonElement, unthemedButtonStyles } from "./ButtonElement.ts";
 import { HFlex, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts";
 import { PaddingContainer } from "./PaddingContainerElement.ts";
 import { TextLabel } from "./TextLabelElement.ts";
@@ -32,6 +32,12 @@ export interface ConfirmDialogOptions {
     /** Какая кнопка в фокусе по умолчанию. По умолчанию — Cancel (безопаснее). */
     readonly defaultButton?: "confirm" | "cancel";
 }
+
+export interface IConfirmDialogStyles {
+    readonly button: IButtonStyles;
+}
+
+export const unthemedConfirmDialogStyles: IConfirmDialogStyles = { button: unthemedButtonStyles };
 
 /**
  * Универсальный модальный диалог подтверждения (заголовок + текст + Confirm/Cancel).
@@ -64,15 +70,9 @@ export class ConfirmDialogElement extends CompositeElement {
         this.rebuild();
     }
 
-    public applyTheme(theme: WorkbenchTheme): void {
+    public setStyles(styles: IConfirmDialogStyles): void {
         for (const button of [this.confirmButton, this.cancelButton]) {
-            button.focusedBg = theme.getRequiredColor("button.background");
-            button.focusedFg = theme.getRequiredColor("button.foreground");
-            button.focusedHoverBg = theme.getRequiredColor("button.hoverBackground");
-            button.normalBg = theme.getRequiredColor("button.secondaryBackground");
-            button.normalFg = theme.getRequiredColor("button.secondaryForeground");
-            button.normalHoverBg = theme.getRequiredColor("button.secondaryHoverBackground");
-            button.markDirty();
+            button.setStyles(styles.button);
         }
     }
 

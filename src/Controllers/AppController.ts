@@ -38,6 +38,12 @@ import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
+import {
+    getAboutDialogStyles,
+    getConfirmDialogStyles,
+    getConfirmSaveDialogStyles,
+    getMenuStyles,
+} from "../Workbench/Styles/defaultStyles.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./Actions/ClipboardActions.ts";
@@ -1257,10 +1263,10 @@ export class AppController extends Disposable implements IController {
             fg: theme.getRequiredColor("foreground"),
             bg: theme.getRequiredColor("editor.background"),
         };
-        this.confirmDialog?.applyTheme(theme);
-        this.aboutDialog?.applyTheme(theme);
+        this.confirmDialog?.setStyles(getConfirmSaveDialogStyles(theme));
+        this.aboutDialog?.setStyles(getAboutDialogStyles(theme));
         this.findController.applyTheme(theme);
-        this.menuBar?.applyTheme(theme);
+        this.menuBar?.setStyles(getMenuStyles(theme));
         this.workbenchLayout.setSashHoverColor(theme.getRequiredColor("sash.hoverBorder"));
     }
 
@@ -1638,7 +1644,7 @@ export class AppController extends Disposable implements IController {
         ];
 
         const menuBar = new MenuBarElement(menuItems);
-        menuBar.applyTheme(this.themeService.theme);
+        menuBar.setStyles(getMenuStyles(this.themeService.theme));
         this.menuBar = menuBar;
         this.view.setMenuBar(menuBar);
     }
@@ -1649,7 +1655,7 @@ export class AppController extends Disposable implements IController {
     ): void {
         if (!this.confirmDialog) {
             this.confirmDialog = new ConfirmSaveDialogElement(filename);
-            this.confirmDialog.applyTheme(this.themeService.theme);
+            this.confirmDialog.setStyles(getConfirmSaveDialogStyles(this.themeService.theme));
             this.confirmDialogSession = this.view.overlayLayer.createSession(this.confirmDialog, new Point(0, 0), {
                 visible: false,
                 restoreFocus: true,
@@ -1779,7 +1785,7 @@ export class AppController extends Disposable implements IController {
         this.hideConfirmActionDialog();
 
         const dialog = new ConfirmDialogElement(options);
-        dialog.applyTheme(this.themeService.theme);
+        dialog.setStyles(getConfirmDialogStyles(this.themeService.theme));
         dialog.onConfirm = () => {
             this.hideConfirmActionDialog();
             callbacks.onConfirm();
@@ -2241,7 +2247,7 @@ export class AppController extends Disposable implements IController {
     public showAboutDialog(): void {
         if (!this.aboutDialog) {
             this.aboutDialog = new AboutDialogElement();
-            this.aboutDialog.applyTheme(this.themeService.theme);
+            this.aboutDialog.setStyles(getAboutDialogStyles(this.themeService.theme));
             this.aboutDialog.onClose = () => {
                 this.hideAboutDialog();
             };
@@ -2365,7 +2371,7 @@ export class AppController extends Disposable implements IController {
         );
 
         const menu = new PopupMenuElement(entries);
-        menu.applyTheme(this.themeService.theme);
+        menu.setStyles(getMenuStyles(this.themeService.theme));
         menu.tabIndex = 0;
 
         let session: OverlaySessionHandle | null = null;

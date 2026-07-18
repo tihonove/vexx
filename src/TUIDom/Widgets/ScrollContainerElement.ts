@@ -9,7 +9,7 @@ import { renderHorizontalScrollBar, renderScrollBar } from "./ScrollBarRenderer.
 export type ScrollBarPolicy = "auto" | "always" | "never";
 
 // Standalone defaults for theme-less use (stories, tests). Controllers overwrite
-// these from the active theme in their applyTheme — see FileTreeController.
+// these from the active theme — see applyScrollBarTheme / FileTreeController.
 const DEFAULT_THUMB_COLOR = packRgb(100, 100, 100);
 const DEFAULT_TRACK_COLOR = packRgb(50, 50, 50);
 

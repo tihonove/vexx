@@ -2,7 +2,6 @@ import { DisplayLine } from "../Common/DisplayLine.ts";
 import { Point } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { StyleFlags } from "../Rendering/StyleFlags.ts";
-import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../TUIDom/Events/TUIEventBase.ts";
 import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
@@ -13,6 +12,8 @@ import type { IScrollable } from "../TUIDom/Widgets/IScrollable.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import type { IMenuStyles } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
+import { unthemedMenuStyles } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
 
 import { computeWordOccurrences } from "./computeWordOccurrences.ts";
 import type { IGutterChangeDecoration } from "./Decorations/IGutterChangeDecoration.ts";
@@ -134,8 +135,8 @@ export class EditorElement extends TUIElement implements IScrollable {
     public hintForeground: number | undefined;
 
     public contextMenuEntries: MenuEntry[] = [];
-    /** Тема для тематизации контекстного меню (`menu.*`); задаётся контроллером. */
-    public menuTheme: WorkbenchTheme | null = null;
+    /** Стили контекстного меню (цвета `menu.*` уже резолвнуты); задаются контроллером. */
+    public menuStyles: IMenuStyles = unthemedMenuStyles;
 
     private contentWidthCache: { versionId: number; value: number } | null = null;
     private occurrenceCache: { versionId: number; line: number; character: number; ranges: IRange[] } | null = null;
@@ -817,9 +818,7 @@ export class EditorElement extends TUIElement implements IScrollable {
         });
 
         const menu = new PopupMenuElement(wrappedEntries);
-        if (this.menuTheme) {
-            menu.applyTheme(this.menuTheme);
-        }
+        menu.setStyles(this.menuStyles);
 
         const layer = this.getOverlayLayer();
         if (!layer) return;

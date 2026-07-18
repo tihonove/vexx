@@ -8,7 +8,7 @@ import { TestApp } from "../../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 
-import { ButtonElement } from "./ButtonElement.ts";
+import { ButtonElement, unthemedButtonStyles } from "./ButtonElement.ts";
 
 const BUTTON_FG = packRgb(204, 204, 204);
 const BUTTON_BG = packRgb(60, 60, 60);
@@ -99,13 +99,20 @@ describe("ButtonElement — hover", () => {
         expect(testApp.backend.getBgAt(new Point(pos.x, pos.y))).toBe(BUTTON_SEL_HOVER_BG);
     });
 
-    it("honors externally overridden colors in render", () => {
+    it("honors styles set via setStyles in render", () => {
         const button = new ButtonElement("OK");
         const customHoverBg = packRgb(1, 2, 3);
-        button.normalHoverBg = customHoverBg;
+        button.setStyles({ ...unthemedButtonStyles, hoverBg: customHoverBg });
         hover(button, "mouseenter");
         const backend = renderStandalone(button);
         expect(backend.getBgAt(new Point(0, 0))).toBe(customHoverBg);
+    });
+
+    it("honors styles passed via constructor options in render", () => {
+        const customBg = packRgb(7, 8, 9);
+        const button = new ButtonElement("OK", { styles: { ...unthemedButtonStyles, bg: customBg } });
+        const backend = renderStandalone(button);
+        expect(backend.getBgAt(new Point(0, 0))).toBe(customBg);
     });
 
     it("ignores a repeated mouseenter without re-marking dirty", () => {

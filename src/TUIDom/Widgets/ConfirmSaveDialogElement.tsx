@@ -1,12 +1,12 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { CompositeElement } from "../CompositeElement.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { JsxNode } from "../JSX/jsx-runtime.ts";
 
 import { BoxContainer } from "./BoxContainerElement.ts";
-import { ButtonElement } from "./ButtonElement.ts";
+import type { IButtonStyles } from "./ButtonElement.ts";
+import { ButtonElement, unthemedButtonStyles } from "./ButtonElement.ts";
 import { HFlex, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts";
 import { PaddingContainer } from "./PaddingContainerElement.ts";
 import type { StyledChar } from "./TextLabelElement.ts";
@@ -29,6 +29,12 @@ const STATIC_TEXT_MIN_WIDTH = 46;
 const BUTTONS_TOTAL_WIDTH = 14 + 2 + 10 + 2 + 8;
 const MAX_INNER_WIDTH = 70;
 const MAX_FILENAME_DISPLAY = MAX_INNER_WIDTH - 4; // -3 for "   " prefix, -1 for "?" suffix
+
+export interface IConfirmSaveDialogStyles {
+    readonly button: IButtonStyles;
+}
+
+export const unthemedConfirmSaveDialogStyles: IConfirmSaveDialogStyles = { button: unthemedButtonStyles };
 
 export class ConfirmSaveDialogElement extends CompositeElement {
     public onSave?: () => void;
@@ -69,20 +75,9 @@ export class ConfirmSaveDialogElement extends CompositeElement {
         this.rebuild();
     }
 
-    /**
-     * Push button colors from the active theme. The focused (default) button maps to the
-     * VS Code "primary" button, the rest to the "secondary" button. The `button.*` tokens
-     * are guaranteed by the default color registry, so no inline fallback is needed.
-     */
-    public applyTheme(theme: WorkbenchTheme): void {
+    public setStyles(styles: IConfirmSaveDialogStyles): void {
         for (const button of [this.dontSaveButton, this.cancelButton, this.saveButton]) {
-            button.focusedBg = theme.getRequiredColor("button.background");
-            button.focusedFg = theme.getRequiredColor("button.foreground");
-            button.focusedHoverBg = theme.getRequiredColor("button.hoverBackground");
-            button.normalBg = theme.getRequiredColor("button.secondaryBackground");
-            button.normalFg = theme.getRequiredColor("button.secondaryForeground");
-            button.normalHoverBg = theme.getRequiredColor("button.secondaryHoverBackground");
-            button.markDirty();
+            button.setStyles(styles.button);
         }
     }
 

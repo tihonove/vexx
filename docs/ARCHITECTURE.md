@@ -51,6 +51,9 @@ TUI-фреймворк — дерево элементов с layout, событ
 ### Theme/
 Система темизации, совместимая с VS Code theme files: `WorkbenchTheme`, реестр дефолтов `defaultColors`, `ThemeService`/`ThemeRegistry`, встроенные темы. Все цвета UI берутся только из активной темы. Детали → [arch/Theme.md](arch/Theme.md).
 
+### Workbench/
+Мост тема → стили контролов TUIDom: `Workbench/Styles/defaultStyles.ts` резолвит ключи активной темы (`button.*`, `menu.*`, …) в плоские styles-интерфейсы виджетов (`IButtonStyles`, `IMenuStyles`, …) — по функции `getXxxStyles(theme)` на контрол. Единственное место, где тема встречается со стилями виджетов: сами виджеты TUIDom про Theme не знают (получают готовые packed-цвета через `setStyles`), а контроллеры зовут эти функции при смене темы.
+
 ### Controllers/
 Контроллеры с чётким lifecycle (constructor → mount → activate → dispose), система команд (VS Code-style ID, when-контексты), `IFileWatcherDIToken`/`ChokidarFileWatcher` (интерфейс `IFileWatcher` — в Common), диагностики (`DiagnosticsController` + нижняя Panel/Problems), встроенный терминал (`TerminalController` + подкаталог `Terminal/`: `EmbeddedTerminalSession` за `ITerminalSurface`, фабрика-DI-шов, загрузчик node-pty), подкаталоги `Workspace/` (единая система отмены), `TerminalEnvironment/` (детект tier/capabilities/modes) и `Modules/` (модули и профили DI). Детали → [arch/Controllers.md](arch/Controllers.md).
 
@@ -79,7 +82,8 @@ App → Extensions → Controllers → Editor → TUIDom → { Input, Rendering,
 - **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme и Extensions — связь через интерфейсы (`ITokenStyleResolver`, `ILanguageService`)
 - **Theme/Tokenization** реализует `ITokenStyleResolver` из `Editor/Tokenization`
 - **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик. Подмодуль **`Extensions/Host`** дополнительно зависит от `Controllers` (адаптеры над `EditorGroupController`/`FileTreeController`) и `Theme` (адаптер над `ThemeService` — резолв `ThemeColor` для декораций) — единственное место, где Extensions поднимается выше Controllers. Ядро про источник декораций (git/SCM) не знает: адаптеры отдают уже резолвнутые цвета.
-- **Controllers** зависит от Editor, TUIDom, Theme, Configuration, Common и от интерфейса `Backend` (`ITerminalBackend` через `TerminalBackendDIToken` — `TerminalEnvironmentService` пробит терминал; Backend ниже по стеку)
+- **Workbench** зависит от Theme и TUIDom (styles-интерфейсы виджетов): мост «тема → стили контролов». Используется Controllers
+- **Controllers** зависит от Editor, TUIDom, Theme, Workbench, Configuration, Common и от интерфейса `Backend` (`ITerminalBackend` через `TerminalBackendDIToken` — `TerminalEnvironmentService` пробит терминал; Backend ниже по стеку)
 - **App** (main.ts) зависит от всех слоёв и оркеструет загрузку builtin-расширений до bootstrap DI
 - **Inspector** зависит от TUIDom (чтение дерева/типов) и Common; плюс тип-only зависимость на `GridSnapshot` из Rendering (тип результата `captureFrame`). Транспорт — встроенный `node:http` (рукописный WebSocket, без сторонних зависимостей). Не зависит от Controllers/Editor/Backend (write/capture-порт `InspectorDriver` — интерфейс; адаптер над бэкендом даёт App-слой)
 

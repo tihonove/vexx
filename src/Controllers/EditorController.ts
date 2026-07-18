@@ -30,7 +30,10 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { OverlayAnchorPosition } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import type { IMenuStyles } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
+import { unthemedMenuStyles } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
+import { getMenuStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
 
@@ -124,7 +127,7 @@ export class EditorController extends Disposable implements IController {
     private readonly languageService: ILanguageService;
     private readonly undoRedoService: UndoRedoService;
     private contextMenuEntriesValue: MenuEntry[] = [];
-    private currentTheme: WorkbenchTheme | null = null;
+    private currentMenuStyles: IMenuStyles = unthemedMenuStyles;
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId || this.doc.eol !== this.savedEol;
@@ -418,7 +421,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
-        this.editor.menuTheme = this.currentTheme;
+        this.editor.menuStyles = this.currentMenuStyles;
         this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
@@ -845,7 +848,7 @@ export class EditorController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        this.currentTheme = theme;
+        this.currentMenuStyles = getMenuStyles(theme);
         const fg = theme.getRequiredColor("editor.foreground");
         const bg = theme.getRequiredColor("editor.background");
         this.editor.style = { fg, bg };
@@ -857,7 +860,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.warningForeground = theme.getColor("editorWarning.foreground");
         this.editor.infoForeground = theme.getColor("editorInfo.foreground");
         this.editor.hintForeground = theme.getColor("editorHint.foreground");
-        this.editor.menuTheme = theme;
+        this.editor.menuStyles = this.currentMenuStyles;
         this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
         this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");
         this.editor.indentGuideActiveForeground = theme.getColor("editorIndentGuide.activeBackground1");

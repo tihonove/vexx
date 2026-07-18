@@ -1,5 +1,4 @@
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
@@ -12,6 +11,8 @@ import type { OverlayLayer } from "./OverlayLayer.ts";
 import type { OverlaySessionHandle } from "./OverlayLayer.ts";
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
+import type { IMenuStyles } from "./PopupMenuItemElement.tsx";
+import { unthemedMenuStyles } from "./PopupMenuItemElement.tsx";
 
 export interface MenuBarItem {
     label: string;
@@ -29,15 +30,15 @@ export class MenuBarElement extends TUIElement {
     private hflex: HFlexElement;
     private previousFocusedElement: TUIElement | null = null;
     private parentMnemonicHandler: ((event: TUIKeyboardEvent) => void) | null = null;
-    private currentTheme: WorkbenchTheme | null = null;
+    private menuStyles: IMenuStyles = unthemedMenuStyles;
 
     /**
-     * Кэширует активную тему, чтобы прокинуть её цвета `menu.*` в дропдаун,
-     * который меню-бар создаёт при открытии (сам виджет полосы не тематизируется).
+     * Кэширует стили меню, чтобы прокинуть их в дропдаун, который меню-бар
+     * создаёт при открытии (сам виджет полосы не тематизируется).
      */
-    public applyTheme(theme: WorkbenchTheme): void {
-        this.currentTheme = theme;
-        this.activeMenu?.applyTheme(theme);
+    public setStyles(styles: IMenuStyles): void {
+        this.menuStyles = styles;
+        this.activeMenu?.setStyles(styles);
     }
 
     private updateItemActiveStates(): void {
@@ -244,9 +245,7 @@ export class MenuBarElement extends TUIElement {
         this.activeIndex = index;
         this.updateItemActiveStates();
         const menu = new PopupMenuElement(wrappedEntries);
-        if (this.currentTheme) {
-            menu.applyTheme(this.currentTheme);
-        }
+        menu.setStyles(this.menuStyles);
         this.activeMenu = menu;
 
         const layer = this.getOverlayLayer();

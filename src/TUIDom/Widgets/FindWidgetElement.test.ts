@@ -4,10 +4,10 @@ import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Point, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
-import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 
 import type { ButtonElement } from "./ButtonElement.ts";
+import { unthemedButtonStyles } from "./ButtonElement.ts";
 import { FindWidgetElement } from "./FindWidgetElement.ts";
 
 const WIDTH = 44;
@@ -107,24 +107,20 @@ describe("FindWidgetElement — hover", () => {
     });
 });
 
-describe("FindWidgetElement — applyTheme", () => {
-    it("pushes the theme's secondary button colors into the buttons", () => {
+describe("FindWidgetElement — setStyles", () => {
+    it("pushes the button styles into the buttons", () => {
         const SECONDARY_BG = packRgb(0x0b, 0x16, 0x21);
         const SECONDARY_HOVER_BG = packRgb(0x2c, 0x37, 0x42);
-        // Overrides only the secondary button colors; the focused (primary)
-        // button.* tokens are supplied by the default color registry.
-        const theme = WorkbenchTheme.fromThemeFile({
-            name: "test",
-            type: "dark",
-            colors: {
-                "button.secondaryBackground": "#0B1621",
-                "button.secondaryForeground": "#C8C8C8",
-                "button.secondaryHoverBackground": "#2C3742",
+        // The buttons are never focused, so only the non-focused fields matter here.
+        const widget = new FindWidgetElement();
+        widget.setStyles({
+            button: {
+                ...unthemedButtonStyles,
+                fg: packRgb(0xc8, 0xc8, 0xc8),
+                bg: SECONDARY_BG,
+                hoverBg: SECONDARY_HOVER_BG,
             },
         });
-
-        const widget = new FindWidgetElement();
-        widget.applyTheme(theme);
         render(widget);
 
         const close = buttons(widget)[2];

@@ -1,13 +1,13 @@
 import { BoxConstraints, Size } from "../../Common/GeometryPromitives.ts";
 import { APP_NAME, REPO_URL, VEXX_VERSION } from "../../Common/Version.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { CompositeElement } from "../CompositeElement.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import type { JsxNode } from "../JSX/jsx-runtime.ts";
 
 import { BoxContainer } from "./BoxContainerElement.ts";
-import { ButtonElement } from "./ButtonElement.ts";
+import type { IButtonStyles } from "./ButtonElement.ts";
+import { ButtonElement, unthemedButtonStyles } from "./ButtonElement.ts";
 import { HFlex, hflexFill, hflexFit } from "./HFlexElement.ts";
 import { PaddingContainer } from "./PaddingContainerElement.ts";
 import { TextLabel } from "./TextLabelElement.ts";
@@ -19,6 +19,12 @@ const BORDER_FG = packRgb(80, 80, 80);
 const TITLE_FG = packRgb(230, 230, 230);
 const NAME_FG = packRgb(230, 230, 230);
 const LINK_FG = packRgb(100, 130, 200);
+
+export interface IAboutDialogStyles {
+    readonly button: IButtonStyles;
+}
+
+export const unthemedAboutDialogStyles: IAboutDialogStyles = { button: unthemedButtonStyles };
 
 export class AboutDialogElement extends CompositeElement {
     public onClose?: () => void;
@@ -39,15 +45,8 @@ export class AboutDialogElement extends CompositeElement {
         this.rebuild();
     }
 
-    /** Push button colors from the active theme (mirrors ConfirmSaveDialogElement). */
-    public applyTheme(theme: WorkbenchTheme): void {
-        this.okButton.focusedBg = theme.getRequiredColor("button.background");
-        this.okButton.focusedFg = theme.getRequiredColor("button.foreground");
-        this.okButton.focusedHoverBg = theme.getRequiredColor("button.hoverBackground");
-        this.okButton.normalBg = theme.getRequiredColor("button.secondaryBackground");
-        this.okButton.normalFg = theme.getRequiredColor("button.secondaryForeground");
-        this.okButton.normalHoverBg = theme.getRequiredColor("button.secondaryHoverBackground");
-        this.okButton.markDirty();
+    public setStyles(styles: IAboutDialogStyles): void {
+        this.okButton.setStyles(styles.button);
     }
 
     public focusDefault(): void {

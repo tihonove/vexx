@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TuiApplication } from "../TuiApplication.ts";
 import { TUIElement } from "../TUIElement.ts";
 
@@ -9,6 +10,7 @@ import { BodyElement } from "./BodyElement.ts";
 import type { MenuBarItem } from "./MenuBarElement.ts";
 import { MenuBarElement } from "./MenuBarElement.ts";
 import { ACTIVE_MENU_BG, ACTIVE_MENU_FG, MENU_BAR_BG, MENU_BAR_FG } from "./MenuBarItemElement.tsx";
+import { unthemedMenuStyles } from "./PopupMenuItemElement.tsx";
 import { VStackElement } from "./VStackElement.ts";
 
 class FocusableChild extends TUIElement {
@@ -137,5 +139,33 @@ describe("MenuBarElement focus colors", () => {
         for (let x = 0; x < 18; x++) {
             expect(backend.getBgAt(new Point(x, 0))).toBe(MENU_BAR_BG);
         }
+    });
+});
+
+describe("MenuBarElement menu styles", () => {
+    const customStyles = { ...unthemedMenuStyles, bg: packRgb(0x12, 0x34, 0x56) };
+
+    it("applies cached styles to a dropdown opened later", () => {
+        const { backend, menuBar } = setup(simpleItems());
+
+        menuBar.setStyles(customStyles); // no menu open yet
+        backend.sendKey("Tab"); // focus menuBar → "File"
+        backend.sendKey("Enter"); // open dropdown
+
+        // Top-left corner of the dropdown frame (x=2: "File" starts after the 2-cell spacer).
+        expect(backend.getBgAt(new Point(2, 1))).toBe(customStyles.bg);
+    });
+
+    it("restyles an already open dropdown", () => {
+        const { backend, menuBar } = setup(simpleItems());
+
+        backend.sendKey("Tab");
+        backend.sendKey("Enter"); // open dropdown with the unthemed styles
+        expect(backend.getBgAt(new Point(2, 1))).toBe(unthemedMenuStyles.bg);
+
+        menuBar.setStyles(customStyles);
+        backend.sendKey("x"); // inert for the open menu; forces a synchronous re-render
+
+        expect(backend.getBgAt(new Point(2, 1))).toBe(customStyles.bg);
     });
 });
