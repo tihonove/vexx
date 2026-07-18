@@ -1,6 +1,21 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { QuitHandlerDIToken } from "../Actions/AppActions.ts";
 import { WorkspaceFolderOpenerDIToken } from "../Actions/FileActions.ts";
+import { EditorGroupComponent, EditorGroupComponentDIToken } from "../Components/Editor/EditorGroupComponent.ts";
+import { FindComponent, FindComponentDIToken } from "../Components/Editor/FindComponent.ts";
+import { SuggestComponent, SuggestComponentDIToken } from "../Components/Editor/SuggestComponent.ts";
+import { ExplorerComponent, ExplorerComponentDIToken } from "../Components/Explorer/ExplorerComponent.ts";
+import { PanelComponent, PanelComponentDIToken } from "../Components/Panel/PanelComponent.ts";
+import {
+    MarkerRevealTargetDIToken,
+    ProblemsComponent,
+    ProblemsComponentDIToken,
+} from "../Components/Panel/ProblemsComponent.ts";
+import { TerminalPanelComponent, TerminalPanelComponentDIToken } from "../Components/Panel/TerminalPanelComponent.ts";
+import { QuickInputComponent, QuickInputComponentDIToken } from "../Components/QuickInput/QuickInputComponent.ts";
+import { MenuBarComponent, MenuBarComponentDIToken } from "../Components/Shell/MenuBarComponent.ts";
+import { WorkbenchComponent, WorkbenchComponentDIToken } from "../Components/Shell/WorkbenchComponent.ts";
+import { StatusBarComponent, StatusBarComponentDIToken } from "../Components/StatusBar/StatusBarComponent.ts";
 import { AutoRevealContribution, AutoRevealContributionDIToken } from "../Contributions/AutoRevealContribution.ts";
 import {
     EditorContextMenuContribution,
@@ -17,21 +32,6 @@ import {
     WorkbenchContributionsRegistry,
     WorkbenchContributionsRegistryDIToken,
 } from "../Contributions/WorkbenchContributionsRegistry.ts";
-import { EditorGroupComponent, EditorGroupComponentDIToken } from "../Components/Editor/EditorGroupComponent.ts";
-import { FindComponent, FindComponentDIToken } from "../Components/Editor/FindComponent.ts";
-import { SuggestComponent, SuggestComponentDIToken } from "../Components/Editor/SuggestComponent.ts";
-import { ExplorerComponent, ExplorerComponentDIToken } from "../Components/Explorer/ExplorerComponent.ts";
-import { PanelComponent, PanelComponentDIToken } from "../Components/Panel/PanelComponent.ts";
-import {
-    MarkerRevealTargetDIToken,
-    ProblemsComponent,
-    ProblemsComponentDIToken,
-} from "../Components/Panel/ProblemsComponent.ts";
-import { TerminalPanelComponent, TerminalPanelComponentDIToken } from "../Components/Panel/TerminalPanelComponent.ts";
-import { QuickInputComponent, QuickInputComponentDIToken } from "../Components/QuickInput/QuickInputComponent.ts";
-import { MenuBarComponent, MenuBarComponentDIToken } from "../Components/Shell/MenuBarComponent.ts";
-import { WorkbenchComponent, WorkbenchComponentDIToken } from "../Components/Shell/WorkbenchComponent.ts";
-import { StatusBarComponent, StatusBarComponentDIToken } from "../Components/StatusBar/StatusBarComponent.ts";
 import { CompletionService, CompletionServiceDIToken } from "../Services/CompletionService.ts";
 import {
     DiagnosticsEditorSourceDIToken,
