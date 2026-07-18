@@ -3,6 +3,7 @@ import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { token } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
 import type { IFileClipboard } from "../../Common/IFileClipboard.ts";
+import type { IStateService } from "../../Configuration/IStateService.ts";
 import type { MarkerService } from "../../Editor/Markers/MarkerService.ts";
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -18,6 +19,8 @@ export const TokenizationRegistryDIToken = token<TokenizationRegistry>("Tokeniza
 export const TokenStyleResolverDIToken = token<ITokenStyleResolver>("TokenStyleResolver");
 export const LanguageServiceDIToken = token<ILanguageService>("LanguageService");
 export const MarkerServiceDIToken = token<MarkerService>("MarkerService");
+/** DI-токен машинного состояния UI/сессии ({@link IStateService}, см. docs/arch/State.md). */
+export const StateServiceDIToken = token<IStateService>("StateService");
 /** Absolute path of the active-profile Vexx settings.json, or null when unknown (tests/demo). */
 export const SettingsResourceDIToken = token<string | null>("SettingsResource");
 /** Absolute path of the active-profile Vexx keybindings.json, or null when unknown (tests/demo). */

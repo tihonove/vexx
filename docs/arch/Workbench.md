@@ -104,8 +104,9 @@ class ButtonElement {
   chord-режим с таймаутами и swallow продолжения, chord-хинт/«is not a command» через
   `StatusBarService`, hold-сессии через `ModifierReleaseArmory`, runtime-детект CSI-u,
   применение user keybindings.json; view не знает — владелец корневого дерева (сейчас
-  `AppController`) вешает его capture/bubble-листенеры и подключает два хука-шва:
-  `updateContextKeys` и `hasKeyboardCapturingOverlay`), `StateKeys`,
+  `AppController`) вешает его capture/bubble-листенеры и подключает хук-шов
+  `hasKeyboardCapturingOverlay`; второй хук — `updateContextKeys` — замыкает на
+  себя `WorkbenchContextKeys`), `StateKeys`,
   `ModifierReleaseArmory`, `ChokidarFileWatcher` + `IFileWatcherDIToken`,
   `FileSearchService`, `QuickOpenParsing`, `collectWordCompletions`, `CoreTokens`,
   каталоги `Workspace/` (undo/redo + `TrashService`/`WorkspaceEditService`/
@@ -148,9 +149,9 @@ class ButtonElement {
     (+ `buildPasteEdits`), workspace-undo/redo, `resolveInputPath` (`~`, корень
     воркспейса).
   - `Services/InputWidgetService.ts` — целевой сервис input-команд: держит
-    активный `InputElement` (ставит AppController из `updateContextKeys`) и
+    активный `InputElement` (ставит `WorkbenchContextKeys.update()`) и
     исполняет курсор/правки/выделение/клипборд для него (читают экшены
-    `Controllers/Actions/InputActions.ts` под `when: inputWidgetFocus`).
+    `Workbench/Actions/InputActions.ts` под `when: inputWidgetFocus`).
 - **QuickInput-кластер (этап 8)** — квик-инпут/квик-опен поверх ОДНОГО общего
   виджета:
   - `Components/QuickInput/QuickInputComponent.ts` — `ThemedComponent`; владеет
@@ -203,7 +204,13 @@ class ButtonElement {
   навигация/accept/hide попапа → `CompletionService`); экшены под
   `findWidgetVisible`/`suggestWidgetVisible` идут ХВОСТОМ `builtinActions`,
   чтобы победить editor-команды (резолвер берёт последний зарегистрированный
-  с проходящим `when`).
+  с проходящим `when`). С этапа 11 `Controllers/Actions/` растворён целиком:
+  сюда переехали Editor*/Input*/Clipboard*/Folding*/List*/Tab*/Whitespace*/App*/
+  Preferences*-экшены (Preferences и save/saveAs/newUntitled — с реальными
+  `run(accessor)`, About — экшен поверх DialogService; у quit `run` перекрывает
+  AppController confirm-save-флоу), добавились `LayoutActions.ts`/
+  `TerminalActions.ts`, а сам упорядоченный список — `builtinActions.ts`
+  (регистрирует владелец приложения одним циклом).
 - **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
   (наследник `ThemedComponent`; владеет `FitContentElement`-view и строит в нём
   JSX-дерево примитивов через reconcile — компонент **компонует** контролы, не
@@ -251,7 +258,7 @@ class ButtonElement {
     `onDidChangeViews`, `onDidChangeActiveView`, `onDidActivateView`
     (пользовательская активация — клик по табу; программный `setActiveView` его
     **не** порождает — на нём висят ленивые фичи), `onDidChangeVisibility`
-    (владелец layout'а — сейчас AppController — двигает `WorkbenchLayoutElement`
+    (с этапа 11 за ней следует `LayoutService`: двигает `WorkbenchLayoutElement`
     и контекст-ключ `panelVisible`).
   - `Components/Panel/PanelComponent.ts` — `ThemedComponent`; владеет
     `PanelContainerElement` (`view.id = "panel"`, стили —
@@ -367,9 +374,55 @@ class ButtonElement {
     accept (замена префикса/провайдерского range с догоном каретки;
     `item.command` исполняется напрямую через `CommandRegistry.execute` в
     микротаске), делегаторы select*/accept/hide для команд, `onFocusChanged`
-    (зовёт AppController при смене фокуса — клавиатурный уход с редактора
-    закрывает попап).
-- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/`, `QuickInput/` и `Editor/`.
+    (зовёт `WorkbenchContextKeys.handleFocusChange` при смене фокуса —
+    клавиатурный уход с редактора закрывает попап).
+- **Shell-кластер (этап 11)** — меню, layout, персист сессии и контекст-ключи:
+  - `Services/MenuService.ts` — декларативная модель главного меню
+    (`IMenuModel`/`MenuEntryModel`): пункты собираются из command-id, лейблов и
+    мнемоник; отображаемый шорткат резолвится из
+    `KeybindingRegistry.getKeybindingForCommand` (тот же источник, что у command
+    palette), поэтому меню не расходится с реальными биндингами. Про контролы и
+    исполнение сервис не знает.
+  - `Components/Shell/MenuBarComponent.ts` — `ThemedComponent`; владеет
+    `MenuBarElement` (`view.id = "menuBar"`; стили — `getMenuStyles`), строит
+    items из `MenuService.getMenus()`, выбор пункта исполняет команду через
+    `CommandRegistry`. Резолвится ПОСЛЕ применения user keybindings (шорткаты
+    снимаются на момент постройки); `view` вставляет владелец корневой view
+    (`BodyElement.setMenuBar`).
+  - `Services/LayoutService.ts` — логика workbench-layout'а: сайдбар
+    (видимость/`toggleSidebar`/`nudgeSidebarWidth`/`resetSidebarWidth`) и
+    нижняя панель (`isPanelVisible`/`setPanelVisible`; истина видимости — в
+    `PanelService`, layout и контекст-ключ `panelVisible` следуют за
+    `onDidChangeVisibility`). Персист layout'а поверх `IStateService`
+    (`StateKeys.ts`): `restoreLayout()` до первого кадра (+ синхронизация истины
+    в PanelService), write-through `captureLayout()` по
+    `WorkbenchLayoutElement.onDidChangeLayout` (drag сэша и команды; во время
+    restore глушится re-entrancy-guard'ом). Сам `WorkbenchLayoutElement` остаётся
+    контролом у владельца корневой view (сейчас AppController) и приходит через
+    late-init шов `attachLayout`.
+  - `Services/WorkbenchStateService.ts` — персист открытых редакторов (headless):
+    `openWorkspace` (per-project стор), `captureOpenEditors` (write-through —
+    собственная подписка на `EditorService.onActiveEditorChanged`),
+    `getOpenEditorsToRestore`/`restoreOpenEditors` (реплей выживших путей +
+    активная вкладка). См. [State.md](State.md).
+  - `Services/WorkbenchContextKeys.ts` — выставляет контекст-ключи
+    (`ContextKeys.ts`) из фокуса и сервисов: `update()` читает активный элемент
+    из FocusManager корневой view (шов `attachView`; ключи
+    `textInputFocus`/`inputWidgetFocus`/`listFocus`/`terminalFocus` + передача
+    активного `InputElement` в `InputWidgetService`), состояние сервисов
+    (`editorGroupHasEditors`/`editorTabsMultiple`/`panelVisible`/
+    `findWidgetVisible`/`suggestWidgetVisible`/`terminalIsOpen`) и терминальное
+    окружение (tier/os/cap_*/mode_*; динамические `mode_<name>` регистрирует в
+    конструкторе + подписка на `onDidChange`). Замыкает на себя хук
+    `KeybindingDispatcher.updateContextKeys`; `handleFocusChange` (capture
+    focus/blur листенеры вешает владелец дерева) сбрасывает незавершённый чорд и
+    закрывает suggest-попап при уходе фокуса с редактора.
+  - Экшены: `LayoutActions.ts` (toggle sidebar Ctrl+B, show explorer
+    Ctrl+Shift+E, reveal active file, width-команды, toggle panel Ctrl+J,
+    Problems Ctrl+Shift+M) и `TerminalActions.ts` (toggle Ctrl+` / new
+    Ctrl+Shift+` на tier kitty/csi-u) — поверх LayoutService/PanelService/
+    TerminalService/WorkbenchContextKeys.
+- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/`, `QuickInput/`, `Editor/` и `Shell/` (меню-бар).
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
 интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench

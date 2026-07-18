@@ -211,7 +211,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
 
     /**
      * Абсолютные пути открытых файлов в позиционном порядке вкладок — снимок для
-     * персистентности сессии (см. `WorkbenchStateController`). Безымянные буферы
+     * персистентности сессии (см. `WorkbenchStateService`). Безымянные буферы
      * (без пути на диске) пропускаются: их нечего восстанавливать по пути.
      */
     public getOpenFilePaths(): string[] {

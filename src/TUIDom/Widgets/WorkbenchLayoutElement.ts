@@ -38,7 +38,7 @@ export class WorkbenchLayoutElement extends TUIElement {
     /**
      * Уведомление о смене layout по действию пользователя (drag сэша или команда):
      * ширина/высота/видимость панелей. Плейн-колбэк (без DI) — TUIDom не знает про
-     * контроллеры; подписчик (`WorkbenchStateController` через `AppController`)
+     * сервисы; подписчик (`LayoutService` через `attachLayout`)
      * персистит состояние. НЕ вызывается из `performLayout` (display-клампы — не
      * действие пользователя).
      */

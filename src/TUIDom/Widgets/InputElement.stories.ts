@@ -22,7 +22,7 @@ import {
     inputSelectToHomeAction,
     inputSelectWordLeftAction,
     inputSelectWordRightAction,
-} from "../../Controllers/Actions/InputActions.ts";
+} from "../../Workbench/Actions/InputActions.ts";
 import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { ContextKeyService } from "../../Workbench/Services/ContextKeyService.ts";

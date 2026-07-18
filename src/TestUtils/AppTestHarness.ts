@@ -7,11 +7,14 @@ import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
-import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
+import {
+    KeybindingsResourceDIToken,
+    SettingsResourceDIToken,
+    StateServiceDIToken,
+} from "../Workbench/Services/CoreTokens.ts";
 import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
 import { EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
-import { StateServiceDIToken } from "../Controllers/Modules/StateModule.ts";
 
 import { TestApp } from "./TestApp.ts";
 

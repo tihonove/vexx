@@ -1,6 +1,6 @@
-import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
-import { parseChord, parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
+import type { CommandAction } from "./CommandAction.ts";
+import { EditorServiceDIToken } from "../Services/EditorService.ts";
+import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
 
 // ─── Basic Cursor Movement ──────────────────────────────────
 

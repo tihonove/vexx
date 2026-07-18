@@ -134,7 +134,32 @@ Workbench и может его импортировать; обратно — н
        `builtinActions` (биндинги `*WidgetVisible` должны победить
        editor-команды). Тесты → `Services/CompletionService.test.ts` /
        `Services/FindService.test.ts`; биндинги — `Modules/WorkbenchModule.ts`
-- [ ] 11. `MenuService`+`MenuBarComponent`, `LayoutService`, `WorkbenchStateService`, ContextKeys
+- [x] 11. `MenuService`+`MenuBarComponent`, `LayoutService`, `WorkbenchStateService`, ContextKeys:
+       `MenuService` (декларативная модель главного меню из command-id; шорткаты —
+       `KeybindingRegistry.getKeybindingForCommand`, строится ПОСЛЕ user keybindings) +
+       `MenuBarComponent` (`Components/Shell/`; владеет `MenuBarElement`,
+       `view.id="menuBar"`, исполнение — `CommandRegistry`, стили — `getMenuStyles`);
+       `LayoutService` (сайдбар: видимость/ширина/toggle/nudge/reset; панель —
+       истина в `PanelService`, layout и ключ `panelVisible` следуют за
+       `onDidChangeVisibility`; персист layout'а поверх StateService c
+       restore/capture + write-through `onDidChangeLayout`; сам
+       `WorkbenchLayoutElement` — у AppController, шов `attachLayout`);
+       `WorkbenchStateController` → `Services/WorkbenchStateService.ts` (только
+       открытые редакторы + `openWorkspace`; write-through-подписка на
+       `onActiveEditorChanged` — внутри сервиса); `WorkbenchContextKeys`
+       (updateContextKeys/handleFocusChange из AppController: фокус из FocusManager
+       корневой view через шов `attachView`, ключи Editor/Find/Suggest/Terminal/env;
+       замыкает хук `KeybindingDispatcher.updateContextKeys`);
+       `StateServiceDIToken` переехал в `Workbench/Services/CoreTokens.ts`.
+       Каталог `Controllers/Actions/` растворён ЦЕЛИКОМ в `Workbench/Actions/`
+       (git mv; `FileActions` слиты, save/saveAs/newUntitled получили реальные
+       `run(accessor)` — раньше их перекрывал AppController; Preferences — реальные
+       run поверх `SettingsResource`/`KeybindingsResource`; About — экшен); список
+       `builtinActions` — `Workbench/Actions/builtinActions.ts`; новые
+       `LayoutActions.ts` (toggle sidebar/panel, show explorer/problems, reveal,
+       width-команды) и `TerminalActions.ts` (toggle/new terminal) вместо
+       inline-registerAction в AppController. AppController: 1267 → ~430 строк
+       (скорлупа: Body/Layout + вставка view + attach-швы + bootstrap + quit)
 - [ ] 12. Финал: `WorkbenchComponent`, Modules → Workbench, смерть `src/Controllers/`
 - [ ] 13. Зачистка + документация (arch/Workbench.md, ARCHITECTURE.md, DI.md)
 

@@ -33,6 +33,12 @@ import { FileSearchService, FileSearchServiceDIToken } from "../../Workbench/Ser
 import { InputWidgetService, InputWidgetServiceDIToken } from "../../Workbench/Services/InputWidgetService.ts";
 import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../../Workbench/Services/KeybindingDispatcher.ts";
 import { LifecycleService, LifecycleServiceDIToken } from "../../Workbench/Services/LifecycleService.ts";
+import { LayoutService, LayoutServiceDIToken } from "../../Workbench/Services/LayoutService.ts";
+import { MenuService, MenuServiceDIToken } from "../../Workbench/Services/MenuService.ts";
+import {
+    MenuBarComponent,
+    MenuBarComponentDIToken,
+} from "../../Workbench/Components/Shell/MenuBarComponent.ts";
 import { PanelService, PanelServiceDIToken } from "../../Workbench/Services/PanelService.ts";
 import { QuickInputService, QuickInputServiceDIToken } from "../../Workbench/Services/QuickInputService.ts";
 import {
@@ -57,6 +63,14 @@ import { SuggestComponent, SuggestComponentDIToken } from "../../Workbench/Compo
 import { CompletionService, CompletionServiceDIToken } from "../../Workbench/Services/CompletionService.ts";
 import { EditorService, EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { FindService, FindServiceDIToken } from "../../Workbench/Services/FindService.ts";
+import {
+    WorkbenchContextKeys,
+    WorkbenchContextKeysDIToken,
+} from "../../Workbench/Services/WorkbenchContextKeys.ts";
+import {
+    WorkbenchStateService,
+    WorkbenchStateServiceDIToken,
+} from "../../Workbench/Services/WorkbenchStateService.ts";
 import { AppControllerDIToken } from "../AppController.ts";
 
 /**
@@ -128,4 +142,14 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(DiagnosticsEditorSourceDIToken, () => container.get(EditorServiceDIToken));
     container.bind(MarkerRevealTargetDIToken, () => container.get(EditorServiceDIToken));
     container.bind(DiagnosticsServiceDIToken, DiagnosticsService);
+    // Этап 11: layout-логика (сайдбар/панель + персист layout'а; сам
+    // WorkbenchLayoutElement приходит от владельца view через attachLayout),
+    // персист открытых редакторов, контекст-ключи workbench'а (замыкают
+    // KeybindingDispatcher.updateContextKeys; корневая view — через attachView)
+    // и главное меню (модель — MenuService, контрол — MenuBarComponent).
+    container.bind(LayoutServiceDIToken, LayoutService);
+    container.bind(WorkbenchStateServiceDIToken, WorkbenchStateService);
+    container.bind(WorkbenchContextKeysDIToken, WorkbenchContextKeys);
+    container.bind(MenuServiceDIToken, MenuService);
+    container.bind(MenuBarComponentDIToken, MenuBarComponent);
 };

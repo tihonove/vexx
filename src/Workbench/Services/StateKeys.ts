@@ -3,8 +3,9 @@ import type { IStateDescriptor } from "../../Configuration/IStateService.ts";
 /**
  * Реестр дескрипторов машинного состояния — «инструкция», какие свойства у
  * каждого сохраняемого значения (ключ, scope, дефолт, версия). Параллель
- * `ContextKeys.ts`. Потребитель — {@link WorkbenchStateController}; движок и
- * правила — docs/arch/State.md.
+ * `ContextKeys.ts`. Потребители — {@link WorkbenchStateService} (открытые
+ * редакторы) и {@link LayoutService} (layout); движок и правила —
+ * docs/arch/State.md.
  *
  * Scope по решению: всё состояние UI/сессии — **`workspace`** (по-проектно), с
  * fallback на `global`-стор, когда проект не открыт. Дефолты дублируют встроенные

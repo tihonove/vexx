@@ -14,14 +14,14 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
-import { fileSaveAction } from "../Controllers/Actions/FileActions.ts";
+import { fileSaveAction } from "../Workbench/Actions/FileActions.ts";
 import { findAction } from "../Workbench/Actions/FindActions.ts";
 import { quickOpenAction, showCommandsAction } from "../Workbench/Actions/QuickOpenActions.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,
     previousEditorInGroupAction,
-} from "../Controllers/Actions/TabActions.ts";
+} from "../Workbench/Actions/TabActions.ts";
 import type { CommandAction } from "../Workbench/Actions/CommandAction.ts";
 import { formatKeybinding, type Keybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import {
