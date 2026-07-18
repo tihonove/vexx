@@ -1,11 +1,10 @@
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 
 function setActiveEditorEol(accessor: Parameters<CommandAction["run"]>[0], eol: EndOfLine): void {
+    // Сегмент статус-бара обновится сам: EditorStatusContribution подписан на onDidChangeEol.
     accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.setEol(eol);
-    accessor.get(StatusBarControllerDIToken).update();
 }
 
 export const convertToLfAction: CommandAction = {
@@ -46,6 +45,5 @@ export const toggleEolAction: CommandAction = {
         const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
         if (editor === null) return;
         editor.setEol(editor.eol === EndOfLine.CRLF ? EndOfLine.LF : EndOfLine.CRLF);
-        accessor.get(StatusBarControllerDIToken).update();
     },
 };

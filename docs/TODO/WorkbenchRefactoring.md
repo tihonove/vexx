@@ -41,8 +41,11 @@ Workbench и может его импортировать; обратно — н
 - [x] 3. Каркас Workbench (`Component`/`ThemedComponent`) + переезд готовых сервисов
        (CommandRegistry, KeybindingRegistry, ContextKeyService, Workspace/, TerminalEnvironment/, …;
        в Controllers остались `TrashService`/`WorkspaceEditService` — тянут `Actions/fileClipboardFs.ts` —
-       и `TerminalEnvironmentIntegration.test.ts` — тянет `StatusBarController`)
-- [ ] 4. Пилот: `StatusBarService` + `StatusBarComponent` (эталонная пара)
+       и `TerminalEnvironmentIntegration.test.ts` — тянет `AppController`)
+- [x] 4. Пилот: `StatusBarService` + `StatusBarComponent` (эталонная пара; `StatusBarController`
+       растворён: сегменты публикуют `EditorStatusContribution` (шов
+       `IActiveEditorStatusSource` → `EditorGroupController`) и `TerminalEnvStatusContribution`,
+       chord-хинт — `AppController` через `StatusBarService`; биндинги — `Modules/WorkbenchModule.ts`)
 - [ ] 5. Вынос из AppController: `KeybindingDispatcher`, `DialogService`, `LifecycleService`
 - [ ] 6. Panel-кластер: `DiagnosticsService`, `PanelService`+`PanelComponent`,
        `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent`

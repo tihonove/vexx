@@ -105,7 +105,26 @@ class ButtonElement {
   каталоги `Workspace/` (undo/redo; `TrashService`/`WorkspaceEditService` пока в
   Controllers), `TerminalEnvironment/`, `Terminal/` (EmbeddedTerminalSession, фабрика,
   загрузчик node-pty), `Diagnostics/`.
-- `Components/` — появится начиная с пилота `StatusBarComponent` (этап 4).
+- **Статус-бар — эталонная пара Service ↔ Component** (пилот, этап 4):
+  - `Services/StatusBarService.ts` — реестр записей статус-бара (аналог
+    `IStatusbarService` VS Code): `addEntry(IStatusBarEntry) → IStatusBarEntryHandle`
+    (`update`/`dispose`), `onDidChangeEntries`, `entries()` (left, затем right; внутри
+    стороны — по убыванию `priority`, выше — левее, как в VS Code). Про поставщиков
+    и контролы не знает.
+  - `Components/StatusBar/StatusBarComponent.ts` — `ThemedComponent`; владеет
+    `StatusBarElement` (`view.id = "statusBar"`), перерисовывает айтемы по
+    `onDidChangeEntries`, красит бар из темы в `updateStyles()`.
+  - Сегменты публикуют contribution-сервисы: `Services/EditorStatusContribution.ts`
+    (правые, порядок VS Code: `Ln X, Col Y` · Encoding · EOL · Language; Encoding/EOL
+    кликабельны — команды `changeEncoding`/`changeEOL` через `CommandRegistry`) и
+    `Services/TerminalEnvironment/TerminalEnvStatusContribution.ts` (tier + моды).
+    Активный редактор приходит через **интерфейсный шов**: Workbench объявляет
+    `IActiveEditorStatusSource`/`IActiveEditorStatus` (минимальный срез:
+    `onActiveEditorChanged`, курсор/encoding/EOL/язык), `EditorGroupController`
+    соответствует ему структурно; связывание — биндинг
+    `ActiveEditorStatusSourceDIToken` в `Controllers/Modules/WorkbenchModule.ts`.
+    Chord-хинт публикует `AppController` как обычную запись сервиса.
+- `Components/` — UI-компоненты; первый обитатель — `StatusBar/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
 интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench

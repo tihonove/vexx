@@ -199,8 +199,11 @@ import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsControl
 import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
 import { QuickInputController } from "./QuickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
-import { StatusBarControllerDIToken } from "./StatusBarController.ts";
-import { StatusBarController } from "./StatusBarController.ts";
+import { StatusBarComponent, StatusBarComponentDIToken } from "../Workbench/Components/StatusBar/StatusBarComponent.ts";
+import { EditorStatusContributionDIToken } from "../Workbench/Services/EditorStatusContribution.ts";
+import type { IStatusBarEntryHandle, StatusBarService } from "../Workbench/Services/StatusBarService.ts";
+import { StatusBarServiceDIToken } from "../Workbench/Services/StatusBarService.ts";
+import { TerminalEnvStatusContributionDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
 import type { TerminalEnvironmentService } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "../Workbench/Services/Workspace/UndoRedoService.ts";
@@ -387,7 +390,7 @@ export class AppController extends Disposable implements IController {
         CommandRegistryDIToken,
         KeybindingRegistryDIToken,
         ServiceAccessorDIToken,
-        StatusBarControllerDIToken,
+        StatusBarComponentDIToken,
         ThemeServiceDIToken,
         ContextKeyServiceDIToken,
         InputWidgetControllerDIToken,
@@ -416,7 +419,10 @@ export class AppController extends Disposable implements IController {
     private quickInputController: QuickInputController;
     private completionController: CompletionController;
     private findController: FindController;
-    private statusBarController: StatusBarController;
+    private statusBarComponent: StatusBarComponent;
+    private statusBarService: StatusBarService;
+    /** Запись chord-хинта в статус-баре; null, когда хинт скрыт. */
+    private chordHintEntry: IStatusBarEntryHandle | null = null;
     private diagnosticsController: DiagnosticsController;
     private panelController: PanelController;
     private problemsController: ProblemsController;
@@ -444,7 +450,7 @@ export class AppController extends Disposable implements IController {
         commands: CommandRegistry,
         keybindings: KeybindingRegistry,
         accessor: ServiceAccessor,
-        statusBarController: StatusBarController,
+        statusBarComponent: StatusBarComponent,
         themeService: ThemeService,
         contextKeys: ContextKeyService,
         inputWidgetController: InputWidgetController,
@@ -492,7 +498,12 @@ export class AppController extends Disposable implements IController {
         this.completionController = this.register(new CompletionController(this.editorGroupController));
         this.findController = this.register(new FindController(this.editorGroupController));
         this.findController.applyTheme(themeService.theme);
-        this.statusBarController = this.register(statusBarController);
+        this.statusBarComponent = this.register(statusBarComponent);
+        this.statusBarService = accessor.get(StatusBarServiceDIToken);
+        // Contribution-сервисы статус-бара: инстанцируем через DI и владеем их жизнью.
+        this.register(accessor.get(EditorStatusContributionDIToken));
+        this.register(accessor.get(TerminalEnvStatusContributionDIToken));
+        this.register({ dispose: () => this.chordHintEntry?.dispose() });
         this.diagnosticsController = this.register(accessor.get(DiagnosticsControllerDIToken));
         this.panelController = this.register(accessor.get(PanelControllerDIToken));
         this.problemsController = this.register(accessor.get(ProblemsControllerDIToken));
@@ -503,12 +514,12 @@ export class AppController extends Disposable implements IController {
         this.inputWidgetController = inputWidgetController;
 
         // Make custom-mode names (mode_<name>) valid `when` identifiers, then keep context
-        // keys + status bar in sync when the environment changes (detection finalize / mode toggle).
+        // keys in sync when the environment changes (detection finalize / mode toggle);
+        // сегмент статус-бара обновляет TerminalEnvStatusContribution по тому же событию.
         registerContextKeys(this.terminalEnv.getKnownModeNames().map((n) => `mode_${n}`));
         this.register(
             this.terminalEnv.onDidChange(() => {
                 this.updateContextKeys();
-                this.statusBarController.update();
             }),
         );
 
@@ -534,7 +545,7 @@ export class AppController extends Disposable implements IController {
 
         this.view = new BodyElement();
         this.view.setContent(this.workbenchLayout);
-        this.view.setStatusBar(this.statusBarController.view);
+        this.view.setStatusBar(this.statusBarComponent.view);
 
         this.quickOpenController.setHostView(this.view);
         this.quickInputController.setHostView(this.view);
@@ -561,7 +572,6 @@ export class AppController extends Disposable implements IController {
             commands.register("workbench.openFile", (absolutePath: unknown) => {
                 this.editorGroupController.openFile(absolutePath as string);
                 this.updateContextKeys();
-                this.statusBarController.update();
             }),
         );
         this.quickOpenController.onExecuteCommand = (id, ...args) => {
@@ -720,7 +730,6 @@ export class AppController extends Disposable implements IController {
                 () => {
                     this.editorGroupController.newUntitled();
                     this.updateContextKeys();
-                    this.statusBarController.update();
                 },
                 "File: New Untitled File",
             ),
@@ -1126,7 +1135,6 @@ export class AppController extends Disposable implements IController {
         this.view.addEventListener("keydown", this.handleKeyDownCapture, { capture: true });
         this.view.addEventListener("keypress", this.handleKeyPressCapture, { capture: true });
         this.view.addEventListener("keydown", this.handleKeyDown);
-        this.view.addEventListener("keypress", this.handleKeyPress);
         this.view.addEventListener("keyup", this.handleKeyUp);
         this.view.addEventListener("focus", this.handleFocusChange, { capture: true });
         this.view.addEventListener("blur", this.handleFocusChange, { capture: true });
@@ -1159,12 +1167,10 @@ export class AppController extends Disposable implements IController {
         this.fileTreeController.onFileActivate = (filePath) => {
             this.editorGroupController.openFile(filePath);
             this.updateContextKeys();
-            this.statusBarController.update();
         };
         this.fileTreeController.onFileContextMenu = (node, screenX, screenY) => {
             this.showFileTreeContextMenu(node.path, screenX, screenY);
         };
-        this.statusBarController.mount();
         this.diagnosticsController.mount();
         this.panelController.mount();
         this.problemsController.mount();
@@ -1183,14 +1189,12 @@ export class AppController extends Disposable implements IController {
         this.terminalEnv.detect();
         await this.editorGroupController.activate();
         await this.fileTreeController.activate();
-        await this.statusBarController.activate();
         await this.panelController.activate();
     }
 
     public openFile(filePath: string): void {
         this.editorGroupController.openFile(filePath);
         this.updateContextKeys();
-        this.statusBarController.update();
     }
 
     /** Пути, которые откроет {@link restoreOpenEditors} — бутстрапу для прогрева грамматик. */
@@ -1206,7 +1210,6 @@ export class AppController extends Disposable implements IController {
     public restoreOpenEditors(): void {
         this.workbenchState.restoreOpenEditors();
         this.updateContextKeys();
-        this.statusBarController.update();
     }
 
     /**
@@ -1359,12 +1362,12 @@ export class AppController extends Disposable implements IController {
             if (overlayCaptures) {
                 // No new chord may start while an overlay owns the keyboard.
                 this.keybindings.resetPending();
-                this.statusBarController.setChordHint(null);
+                this.setChordHint(null);
                 return false;
             }
             // Prefix key of a chord — swallow its keypress and wait for the next.
             this.swallowNextKeyPress = true;
-            this.statusBarController.setChordHint(
+            this.setChordHint(
                 `(${formatKeybinding(res.chord)}) was pressed. Waiting for next key…`,
             );
             this.startChordTimeout();
@@ -1380,10 +1383,10 @@ export class AppController extends Disposable implements IController {
             if (overlayCaptures && !isFocusScopedWhen(res.when)) {
                 // A workbench/navigation shortcut fired while an overlay owns the keyboard:
                 // swallow it (no preventDefault) instead of acting behind the overlay.
-                this.statusBarController.setChordHint(null);
+                this.setChordHint(null);
                 return false;
             }
-            this.statusBarController.setChordHint(null);
+            this.setChordHint(null);
             // Даём команде контекст модификаторов аккорда: команды с «hold-сессией»
             // (MRU-вкладки) взводят коммит на отпускание удерживающего модификатора
             // именно по ним. Через контекст, а не позиционный аргумент — чтобы не
@@ -1417,15 +1420,39 @@ export class AppController extends Disposable implements IController {
             return true; // consumed (no command, no leak)
         }
 
-        this.statusBarController.setChordHint(null);
+        this.setChordHint(null);
         return false;
     }
 
+    /**
+     * Показывает (или скрывает, при null) транзиентный хинт аккорда в статус-баре,
+     * например "(Ctrl+K) was pressed. Waiting for next key…". Живёт как обычная
+     * запись StatusBarService левее прочих левых сегментов (priority ниже
+     * терминального индикатора).
+     */
+    private setChordHint(text: string | null): void {
+        if (text === null) {
+            this.chordHintEntry?.dispose();
+            this.chordHintEntry = null;
+            return;
+        }
+        if (this.chordHintEntry !== null) {
+            this.chordHintEntry.update({ text });
+            return;
+        }
+        this.chordHintEntry = this.statusBarService.addEntry({
+            id: "status.chordHint",
+            text,
+            alignment: "left",
+            priority: 50,
+        });
+    }
+
     private showChordNotFound(combo: string): void {
-        this.statusBarController.setChordHint(`(${combo}) is not a command`);
+        this.setChordHint(`(${combo}) is not a command`);
         this.notFoundTimer = setTimeout(() => {
             this.notFoundTimer = null;
-            this.statusBarController.setChordHint(null);
+            this.setChordHint(null);
         }, CHORD_NOT_FOUND_MS);
     }
 
@@ -1441,7 +1468,7 @@ export class AppController extends Disposable implements IController {
             this.chordTimer = null;
             this.keybindings.resetPending();
             this.swallowNextKeyPress = false;
-            this.statusBarController.setChordHint(null);
+            this.setChordHint(null);
         }, CHORD_TIMEOUT_MS);
     }
 
@@ -1460,12 +1487,8 @@ export class AppController extends Disposable implements IController {
         this.clearNotFoundTimer();
         this.keybindings.resetPending();
         this.swallowNextKeyPress = false;
-        this.statusBarController.setChordHint(null);
+        this.setChordHint(null);
     }
-
-    private handleKeyPress = (): void => {
-        this.statusBarController.update();
-    };
 
     // Отпускание модификатора завершает «hold-сессии» команд (MRU-переключение
     // вкладок и т.п.) через ModifierReleaseArmory. Какой именно модификатор ждать,
@@ -1853,15 +1876,12 @@ export class AppController extends Disposable implements IController {
                 },
                 {
                     onConfirm: () => {
-                        void editor.save({ overwrite: true }).then(() => {
-                            this.statusBarController.update();
-                        });
+                        void editor.save({ overwrite: true });
                     },
                 },
             );
             return;
         }
-        this.statusBarController.update();
     }
 
     /**
@@ -1901,7 +1921,6 @@ export class AppController extends Disposable implements IController {
             try {
                 await editor.saveAs(resolved);
                 this.updateContextKeys();
-                this.statusBarController.update();
             } catch (error) {
                 /* v8 ignore start -- defensive: surfaces a filesystem write failure (permissions/disk); not reproducible in tests */
                 this.logger.error("Save As failed", { path: resolved, error: String(error) });
@@ -1970,7 +1989,6 @@ export class AppController extends Disposable implements IController {
         if (kind === "file") {
             this.editorGroupController.openFile(resolved);
             this.updateContextKeys();
-            this.statusBarController.update();
         }
     }
 
@@ -2166,7 +2184,6 @@ export class AppController extends Disposable implements IController {
         if (mode.label === "Reopen with Encoding") {
             const doReopen = (): void => {
                 editor.reopenWithEncoding(encoding);
-                this.statusBarController.update();
             };
             if (editor.isModified) {
                 const name = this.editorGroupController.displayName(editor);
@@ -2210,15 +2227,12 @@ export class AppController extends Disposable implements IController {
                 },
                 {
                     onConfirm: () => {
-                        void editor.save({ overwrite: true }).then(() => {
-                            this.statusBarController.update();
-                        });
+                        void editor.save({ overwrite: true });
                     },
                 },
             );
             return;
         }
-        this.statusBarController.update();
     }
 
     /**
@@ -2241,7 +2255,6 @@ export class AppController extends Disposable implements IController {
         if (picked === undefined) return;
 
         editor.setEol(picked.label === "CRLF" ? EndOfLine.CRLF : EndOfLine.LF);
-        this.statusBarController.update();
     }
 
     public showAboutDialog(): void {

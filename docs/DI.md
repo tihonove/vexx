@@ -166,7 +166,8 @@ const container = new Container()
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
 | `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorGroupController`, `FileDecorationsServiceAdapter` поверх `FileTreeController`, `ThemeColorResolverAdapter` поверх `ThemeService`) |
-| `controllersModule` | — | `EditorGroupController`, `StatusBarController`, `AppController`, `FileTreeController` (шов: отдаётся из `AppController.fileTree`) |
+| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`, `StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`) + шов `ActiveEditorStatusSource` → `EditorGroupController` |
+| `controllersModule` | — | `EditorGroupController`, `AppController`, `FileTreeController` (шов: отдаётся из `AppController.fileTree`) |
 
 ### Профили
 

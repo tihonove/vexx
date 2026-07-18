@@ -23,6 +23,7 @@ import { markersModule } from "./MarkersModule.ts";
 import { stateModuleDefault } from "./StateModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { workbenchModule } from "./WorkbenchModule.ts";
 import { workspaceModule } from "./WorkspaceModule.ts";
 
 /**
@@ -60,6 +61,7 @@ export function createTestContainer(): TestContainerHandle {
         .use(workspaceModule)
         .use(fileWatcherModuleDefault)
         .use(markersModule, { settingsResource: null, keybindingsResource: null })
+        .use(workbenchModule)
         .use(controllersModule);
 
     // Перебиваем прод-фабрику терминальных сессий на фейк: тесты не спавнят реальные

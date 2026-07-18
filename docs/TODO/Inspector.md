@@ -34,7 +34,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 - `MenuBarElement` (`src/TUIDom/Widgets/MenuBarElement.ts`) — держит `activeMenu`,
   открытие/закрытие popup, навигацию, мнемоники, слушает родителя. **Чёткий
   кандидат**: вынести `MenuBarController`, элемент сделать тонким; связь
-  callback'ами (эталон — `StatusBarController`/`EditorGroupController`).
+  callback'ами (эталон — `StatusBarComponent`/`EditorGroupController`).
 - `ContextMenuLayer` — менеджер overlay-сессий (политики close/focus/anchor), не
   виджет. Разделить: `OverlayManager`-сервис (Controllers) + тонкий
   overlay-контейнер (TUIDom). **Инвазивно** (потребители: `AppController`,
@@ -55,9 +55,9 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 ### Эталон разделения (к нему приводим B)
 Controller + тонкий Element + опц. State-класс — паттерн вынесен в
 [../arch/Controllers.md](../arch/Controllers.md) (раздел «Разделение Controller /
-Element / State»). Эталоны: `StatusBarController` ↔ `StatusBarElement`,
-`EditorGroupController` ↔ `EditorGroupElement`, `InputWidgetController` ↔
-`InputElement` + `InputState`.
+Element / State»). Эталоны: `StatusBarComponent` ↔ `StatusBarElement` (уже в
+Workbench-модели Service ↔ Component), `EditorGroupController` ↔
+`EditorGroupElement`, `InputWidgetController` ↔ `InputElement` + `InputState`.
 
 ## Основа приложения (bootstrap)
 - `TuiApplication` (`src/TUIDom/TuiApplication.ts`) уже generic ядро рантайма

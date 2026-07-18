@@ -26,6 +26,7 @@ import { markersModule } from "./MarkersModule.ts";
 import { stateModule } from "./StateModule.ts";
 import { themeModule } from "./ThemeModule.ts";
 import { tokenizationModule } from "./TokenizationModule.ts";
+import { workbenchModule } from "./WorkbenchModule.ts";
 import { workspaceModule } from "./WorkspaceModule.ts";
 
 export interface ProductionProfileContext {
@@ -70,6 +71,7 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
         .use(workspaceModule)
         .use(fileWatcherModule)
         .use(markersModule, { settingsResource: ctx.settingsResource, keybindingsResource: ctx.keybindingsResource })
+        .use(workbenchModule)
         .use(controllersModule)
         .use(extensionHostModule);
 }

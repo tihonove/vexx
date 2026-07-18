@@ -47,5 +47,5 @@ API реестра: `changeOne(owner, resource, markers[])`, `read({ resource?, 
 
 ### [ ] 4. Прочие потребители
 Метки в gutter/overview ruler, навигация по маркерам (F8/Shift+F8), hover с сообщением.
-Счётчик ошибок/варнингов в `StatusBarController` (нужен минорный апгрейд `StatusBarItem` —
+Счётчик ошибок/варнингов — contribution к `StatusBarService` (нужен минорный апгрейд `StatusBarItem` —
 клик/цвет per-item); отдельный контекст-ключ `problemsFocus` (сейчас дерево Problems под `listFocus`).

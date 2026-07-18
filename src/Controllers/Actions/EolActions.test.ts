@@ -18,7 +18,6 @@ import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
-import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 import { UndoRedoService } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
 
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./EolActions.ts";
@@ -46,8 +45,6 @@ function openEditor(content: string) {
     const keybindings = new KeybindingRegistry();
     const accessor = new Container();
     accessor.bind(EditorGroupControllerDIToken, () => ctrl);
-    // Stub StatusBarController — the actions only call update().
-    accessor.bind(StatusBarControllerDIToken, () => ({ update() {} }) as never);
 
     function exec(action: CommandAction): void {
         registerAction(commands, keybindings, accessor, action);
@@ -105,7 +102,6 @@ describe("EolActions", () => {
         const keybindings = new KeybindingRegistry();
         const accessor = new Container();
         accessor.bind(EditorGroupControllerDIToken, () => ({ getActiveEditor: () => null }) as never);
-        accessor.bind(StatusBarControllerDIToken, () => ({ update() {} }) as never);
 
         for (const action of [convertToLfAction, convertToCrlfAction, toggleEolAction]) {
             registerAction(commands, keybindings, accessor, action);
