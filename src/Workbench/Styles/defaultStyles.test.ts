@@ -54,9 +54,16 @@ describe("dialog and find-widget styles", () => {
         expect(styles.button).toEqual(getDialogButtonStyles(theme));
     });
 
-    it("getFindWidgetStyles reuses the dialog button mapping", () => {
+    it("getFindWidgetStyles maps the find widget to editorWidget.*/description/error keys", () => {
         const theme = makeTheme();
-        expect(getFindWidgetStyles(theme)).toEqual({ button: getDialogButtonStyles(theme) });
+        expect(getFindWidgetStyles(theme)).toEqual({
+            bg: theme.getRequiredColor("editorWidget.background"),
+            fg: theme.getRequiredColor("editorWidget.foreground"),
+            borderFg: theme.getRequiredColor("editorWidget.border"),
+            counterFg: theme.getRequiredColor("descriptionForeground"),
+            noResultsFg: theme.getRequiredColor("editorError.foreground"),
+            button: getDialogButtonStyles(theme),
+        });
     });
 });
 
