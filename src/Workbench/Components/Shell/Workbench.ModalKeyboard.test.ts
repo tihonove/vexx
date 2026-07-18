@@ -167,7 +167,7 @@ describe("Workbench — global keybindings are suppressed while an overlay owns 
         h.commands.execute("actions.find");
         h.testApp.render();
 
-        const findWidget = h.testApp.querySelector("FindWidgetElement");
+        const findWidget = h.testApp.querySelector("#findWidget");
         expect(findWidget).toBeTruthy();
         // Find genuinely opened and owns focus, so the scenario is real.
         expect(isDescendantOf(h.testApp.focusedElement, findWidget!)).toBe(true);

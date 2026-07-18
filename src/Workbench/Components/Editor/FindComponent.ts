@@ -2,19 +2,64 @@ import { token } from "../../../Common/DiContainer.ts";
 import { Point } from "../../../Common/GeometryPromitives.ts";
 import type { ThemeService } from "../../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
+import { BoxContainerElement } from "../../../TUIDom/Widgets/BoxContainerElement.ts";
+import type { IButtonStyles } from "../../../TUIDom/Widgets/ButtonElement.ts";
+import { ButtonElement } from "../../../TUIDom/Widgets/ButtonElement.ts";
 import type { EditorGroupElement } from "../../../TUIDom/Widgets/EditorGroupElement.ts";
-import { FindWidgetElement } from "../../../TUIDom/Widgets/FindWidgetElement.ts";
+import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "../../../TUIDom/Widgets/HFlexElement.ts";
+import { InputElement } from "../../../TUIDom/Widgets/InputElement.ts";
 import type { OverlaySessionHandle } from "../../../TUIDom/Widgets/OverlayLayer.ts";
+import { SizedBoxElement } from "../../../TUIDom/Widgets/SizedBoxElement.ts";
+import { TextLabelElement } from "../../../TUIDom/Widgets/TextLabelElement.ts";
 import { ThemedComponent } from "../../Component.ts";
 import { getFindWidgetStyles } from "../../Styles/defaultStyles.ts";
 
 export const FindComponentDIToken = token<FindComponent>("FindComponent");
 
 /**
- * Компонент find-виджета: владеет {@link FindWidgetElement} и его
- * overlay-сессией в ЛОКАЛЬНОМ слое группы редакторов (не в глобальном
- * body-слое — виджет прижат к правому краю группы, под tab strip). Логика
- * поиска (query → matches → индекс, подсветка/reveal в редакторе) живёт в
+ * Packed-цвета find-виджета. Единственный источник значений —
+ * `getFindWidgetStyles(theme)` в `Workbench/Styles/defaultStyles.ts`
+ * (ключи VS Code `editorWidget.*`, `descriptionForeground`, `editorError.foreground`).
+ */
+export interface IFindWidgetStyles {
+    /** Фон окна виджета (`editorWidget.background`). */
+    readonly bg: number;
+    /** Основной текст (`editorWidget.foreground`). */
+    readonly fg: number;
+    /** Рамка окна (`editorWidget.border`). */
+    readonly borderFg: number;
+    /** Счётчик совпадений «{i} of {n}» (`descriptionForeground`). */
+    readonly counterFg: number;
+    /** «No results» — акцент ошибки (`editorError.foreground`). */
+    readonly noResultsFg: number;
+    /** Кнопки ↑ ↓ ✕ (`button.*`). */
+    readonly button: IButtonStyles;
+}
+
+// Навигационные / close-глифы, выровнены по правому краю строки запроса.
+const PREV_GLYPH = "↑";
+const NEXT_GLYPH = "↓";
+const CLOSE_GLYPH = "✕";
+
+const WIDGET_HEIGHT = 3;
+const DEFAULT_WIDTH = 44;
+const BUTTON_GAP = 1; // зазор между соседними кнопками
+const COUNTER_GAP = 2; // зазор между счётчиком и рядом кнопок
+
+/**
+ * Компонент find-виджета: композиционный корень, собранный из примитивов
+ * ({@link SizedBoxElement} → {@link BoxContainerElement} → {@link HFlexElement}
+ * со строкой запроса, счётчиком совпадений и кнопками ↑ ↓ ✕). Ручного рендера
+ * нет — рамку, фон и раскладку дают примитивы, цвета приходят из активной темы
+ * через {@link getFindWidgetStyles} (паттерн диалогов; ключи `editorWidget.*`).
+ *
+ * Дерево строится ОДИН раз в конструкторе и дальше мутируется на месте
+ * (`setQuery`/`setCounter` меняют только текст/цвет счётчика и его зазор) — так
+ * строка запроса ({@link InputElement}) никогда не переподключается к дереву и
+ * не теряет фокус между нажатиями. Виджет НЕ владеет навигационными клавишами:
+ * open/next/prev/close ведут зарегистрированные команды; клик по кнопке зовёт
+ * колбэк. Кнопки non-focusable (`tabIndex = -1`) — клик не уводит фокус из
+ * строки запроса. Логика поиска (query → matches → index) живёт в
  * {@link import("../../Services/FindService.ts").FindService}.
  *
  * Overlay-хост ({@link EditorGroupElement} с локальным overlay-слоем) приходит
@@ -24,23 +69,104 @@ export const FindComponentDIToken = token<FindComponent>("FindComponent");
 export class FindComponent extends ThemedComponent {
     public static dependencies = [ThemeServiceDIToken] as const;
 
-    public readonly view: FindWidgetElement;
+    public readonly view: SizedBoxElement;
+
+    public onQueryChange: ((query: string) => void) | null = null;
+    public onNext: (() => void) | null = null;
+    public onPrev: (() => void) | null = null;
+    public onClose: (() => void) | null = null;
+
+    private readonly box: BoxContainerElement;
+    private readonly input: InputElement;
+    private readonly counterLabel: TextLabelElement;
+    private readonly counterGap: TextLabelElement;
+    private readonly prevButton: ButtonElement;
+    private readonly nextButton: ButtonElement;
+    private readonly closeButton: ButtonElement;
+
+    private preferredWidth = DEFAULT_WIDTH;
+    private matchCurrent = 0;
+    private matchTotal = 0;
 
     private groupView: EditorGroupElement | null = null;
     private session: OverlaySessionHandle | null = null;
 
     public constructor(themeService: ThemeService) {
         super(themeService);
-        this.view = new FindWidgetElement();
+
+        this.view = new SizedBoxElement(this.preferredWidth, WIDGET_HEIGHT);
         this.view.id = "findWidget";
+
+        this.input = new InputElement();
+        this.input.showBorder = false;
+        this.input.placeholder = "Find";
+        this.input.onChange = (value) => {
+            this.onQueryChange?.(value);
+        };
+
+        this.counterLabel = new TextLabelElement("");
+        this.counterGap = new TextLabelElement("");
+        this.prevButton = this.createButton(PREV_GLYPH, () => this.onPrev?.());
+        this.nextButton = this.createButton(NEXT_GLYPH, () => this.onNext?.());
+        this.closeButton = this.createButton(CLOSE_GLYPH, () => this.onClose?.());
+
+        // Строка запроса (растягивается) | счётчик | зазор | ↑ · ↓ · ✕.
+        const row = new HFlexElement();
+        row.addChild(this.input, { width: hflexFill(), height: 1 });
+        row.addChild(this.counterLabel, { width: hflexFit(), height: 1 });
+        row.addChild(this.counterGap, { width: hflexFixed(0), height: 1 });
+        row.addChild(this.prevButton, { width: hflexFit(), height: 1 });
+        row.addChild(new TextLabelElement(""), { width: hflexFixed(BUTTON_GAP), height: 1 });
+        row.addChild(this.nextButton, { width: hflexFit(), height: 1 });
+        row.addChild(new TextLabelElement(""), { width: hflexFixed(BUTTON_GAP), height: 1 });
+        row.addChild(this.closeButton, { width: hflexFit(), height: 1 });
+
+        this.box = new BoxContainerElement();
+        this.box.setChild(row);
+        this.view.setChild(this.box);
+
         this.register({
             dispose: () => {
                 this.session?.dispose();
                 this.session = null;
             },
         });
+
         this.initStyles();
     }
+
+    private createButton(label: string, onActivate: () => void): ButtonElement {
+        const button = new ButtonElement(label);
+        button.tabIndex = -1; // keep focus in the query input on click
+        button.onActivate = onActivate;
+        return button;
+    }
+
+    // ─── Public API (виджетная поверхность для FindService) ───────────────────
+
+    public getQuery(): string {
+        return this.input.inputState.value;
+    }
+
+    public setQuery(value: string): void {
+        this.input.inputState.value = value;
+        this.input.markDirty();
+        this.refreshCounter();
+    }
+
+    /** Обновляет счётчик совпадений. `current` — 1-based; `total` 0 — совпадений нет. */
+    public setCounter(current: number, total: number): void {
+        this.matchCurrent = current;
+        this.matchTotal = total;
+        this.refreshCounter();
+    }
+
+    /** Делегирует фокус строке запроса. */
+    public focus(): void {
+        this.input.focus();
+    }
+
+    // ─── Overlay-сессия ───────────────────────────────────────────────────────
 
     /** Прикрепляет виджет к overlay-слою группы редакторов (до первого показа). */
     public attachHost(groupView: EditorGroupElement): void {
@@ -60,12 +186,12 @@ export class FindComponent extends ThemedComponent {
     /**
      * Позиционирует виджет (правый край группы, под tab strip), открывает
      * сессию и фокусирует строку запроса. Без прикреплённого хоста — no-op по
-     * позиции/сессии (как раньше у контроллера без setHostView).
+     * позиции/сессии.
      */
     public show(): void {
         this.updatePosition();
         this.session?.open();
-        this.view.focus();
+        this.focus();
     }
 
     /** Закрывает сессию; no-op, если уже закрыта. */
@@ -73,8 +199,38 @@ export class FindComponent extends ThemedComponent {
         if (this.session?.isOpen()) this.session.close();
     }
 
+    // ─── Стили / состояние ────────────────────────────────────────────────────
+
     protected updateStyles(): void {
-        this.view.setStyles(getFindWidgetStyles(this.theme));
+        const styles = getFindWidgetStyles(this.theme);
+        this.box.setBg(styles.bg);
+        this.box.setFg(styles.fg);
+        this.box.setBorderFg(styles.borderFg);
+        this.counterGap.setColors(styles.fg, styles.bg);
+        for (const button of this.buttons()) {
+            button.setStyles(styles.button);
+        }
+        this.refreshCounter();
+    }
+
+    /** Обновляет текст/цвет счётчика и его зазор под текущее состояние + тему. */
+    private refreshCounter(): void {
+        const styles = getFindWidgetStyles(this.theme);
+        const counter = this.counterText();
+        this.counterLabel.setText(counter);
+        this.counterLabel.setColors(this.matchTotal === 0 ? styles.noResultsFg : styles.counterFg, styles.bg);
+        this.counterGap.layoutStyle = { width: hflexFixed(counter === "" ? 0 : COUNTER_GAP), height: 1 };
+        this.counterGap.markDirty();
+    }
+
+    private buttons(): readonly ButtonElement[] {
+        return [this.prevButton, this.nextButton, this.closeButton];
+    }
+
+    private counterText(): string {
+        if (this.input.inputState.value.length === 0) return "";
+        if (this.matchTotal === 0) return "No results";
+        return `${this.matchCurrent} of ${this.matchTotal}`;
     }
 
     private updatePosition(): void {
@@ -82,7 +238,8 @@ export class FindComponent extends ThemedComponent {
         if (group === null) return;
         const groupWidth = group.layoutSize.width;
         const widgetW = Math.min(60, Math.max(28, groupWidth - 2));
-        this.view.preferredWidth = widgetW;
+        this.preferredWidth = widgetW;
+        this.view.setPreferredWidth(widgetW);
         const px = Math.max(0, groupWidth - widgetW - 1); // right-align with a 1-col margin to the group's edge
         const py = 1; // directly under the tab strip
         this.session?.setPosition(new Point(px, py));

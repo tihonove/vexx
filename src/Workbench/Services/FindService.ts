@@ -33,17 +33,16 @@ export class FindService extends Disposable {
         super();
         this.component = component;
         this.editorService = editorService;
-        const view = this.component.view;
-        view.onQueryChange = () => {
+        component.onQueryChange = () => {
             this.recompute();
         };
-        view.onNext = () => {
+        component.onNext = () => {
             this.next();
         };
-        view.onPrev = () => {
+        component.onPrev = () => {
             this.prev();
         };
-        view.onClose = () => {
+        component.onClose = () => {
             this.close();
         };
         // Find оперирует только активным редактором — смена активного закрывает
@@ -61,7 +60,7 @@ export class FindService extends Disposable {
 
     public open(): void {
         if (this.component.isOpen()) {
-            this.component.view.focus();
+            this.component.focus();
             return;
         }
 
@@ -70,7 +69,7 @@ export class FindService extends Disposable {
         if (editor) {
             const selected = editor.viewState.getSelectedText();
             if (selected.length > 0 && !selected.includes("\n")) {
-                this.component.view.setQuery(selected);
+                this.component.setQuery(selected);
             }
         }
 
@@ -115,16 +114,15 @@ export class FindService extends Disposable {
      * cursor, and refreshes the editor highlights + counter.
      */
     private recompute(): void {
-        const view = this.component.view;
         const editor = this.editorService.getActiveEditor();
         if (!editor) {
             this.matches = [];
             this.currentIndex = -1;
-            view.setCounter(0, 0);
+            this.component.setCounter(0, 0);
             return;
         }
 
-        this.matches = findMatches(editor.viewState.document, view.getQuery());
+        this.matches = findMatches(editor.viewState.document, this.component.getQuery());
 
         if (this.matches.length === 0) {
             this.currentIndex = -1;
@@ -136,7 +134,7 @@ export class FindService extends Disposable {
         if (this.currentIndex >= 0) {
             editor.revealRange(this.matches[this.currentIndex]);
         }
-        view.setCounter(this.currentIndex + 1, this.matches.length);
+        this.component.setCounter(this.currentIndex + 1, this.matches.length);
     }
 
     private setCurrent(index: number): void {
@@ -146,7 +144,7 @@ export class FindService extends Disposable {
             editor.setSearchDecorations(this.matches, index);
             editor.revealRange(this.matches[index]);
         }
-        this.component.view.setCounter(index + 1, this.matches.length);
+        this.component.setCounter(index + 1, this.matches.length);
     }
 
     /** First match starting at or after `cursor`, wrapping to the first match. */

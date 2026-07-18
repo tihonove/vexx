@@ -17,6 +17,7 @@ import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
+import type { InputElement } from "../../TUIDom/Widgets/InputElement.ts";
 import { EditorGroupComponent } from "../Components/Editor/EditorGroupComponent.ts";
 import type { EditorPane } from "../Components/Editor/EditorPane.ts";
 import { FindComponent } from "../Components/Editor/FindComponent.ts";
@@ -46,8 +47,9 @@ function makeGroup(): {
 
 /** Simulates typing into the find input (drives the onChange → recompute chain). */
 function typeQuery(component: FindComponent, query: string): void {
-    component.view.inputElement.inputState.value = query;
-    component.view.inputElement.onChange?.(query);
+    const input = component.view.querySelector("InputElement") as InputElement;
+    input.inputState.value = query;
+    input.onChange?.(query);
 }
 
 describe("FindService", () => {
@@ -162,7 +164,7 @@ describe("FindService", () => {
         const { find, component, editor } = setup("foo bar foo");
         editor.viewState.selections = [createSelection(0, 0, 0, 3)]; // selects "foo"
         find.open();
-        expect(component.view.getQuery()).toBe("foo");
+        expect(component.getQuery()).toBe("foo");
         expect(editor.viewState.searchMatches).toHaveLength(2);
     });
 
@@ -200,7 +202,7 @@ describe("FindService", () => {
 
         find.open(); // already open — must not reset the query or the current match
         expect(find.isVisible()).toBe(true);
-        expect(component.view.getQuery()).toBe("foo");
+        expect(component.getQuery()).toBe("foo");
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
     });
 
@@ -228,11 +230,11 @@ describe("FindService", () => {
         find.open();
         typeQuery(component, "foo");
 
-        component.view.onNext?.();
+        component.onNext?.();
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
-        component.view.onPrev?.();
+        component.onPrev?.();
         expect(editor.viewState.currentSearchMatchIndex).toBe(0);
-        component.view.onClose?.();
+        component.onClose?.();
         expect(find.isVisible()).toBe(false);
     });
 

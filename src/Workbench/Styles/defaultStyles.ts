@@ -4,7 +4,6 @@ import type { IWorkbenchColors } from "../../Theme/IWorkbenchColors.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { IButtonStyles } from "../../TUIDom/Widgets/ButtonElement.ts";
 import type { ITabStripStyles } from "../../TUIDom/Widgets/EditorTabStripElement.ts";
-import type { IFindWidgetStyles } from "../../TUIDom/Widgets/FindWidgetElement.ts";
 import type { IPanelContainerStyles } from "../../TUIDom/Widgets/PanelContainerElement.ts";
 import type { IMenuStyles } from "../../TUIDom/Widgets/PopupMenuItemElement.tsx";
 import { unthemedMenuStyles } from "../../TUIDom/Widgets/PopupMenuItemElement.tsx";
@@ -12,6 +11,7 @@ import type { IScrollBarStyles } from "../../TUIDom/Widgets/ScrollContainerEleme
 import type { ITerminalViewStyles } from "../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import type { ITreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
 import { unthemedTreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
+import type { IFindWidgetStyles } from "../Components/Editor/FindComponent.ts";
 import type { IDialogStyles } from "../Components/Dialogs/DialogComponent.ts";
 
 /**
@@ -55,8 +55,21 @@ export function getDialogStyles(theme: WorkbenchTheme): IDialogStyles {
     };
 }
 
+/**
+ * Find-виджет рисуется как editor-widget: фон/текст/рамка — ключи VS Code
+ * `editorWidget.*`, счётчик совпадений — `descriptionForeground`, «No results» —
+ * `editorError.foreground`, кнопки ↑ ↓ ✕ — общий `getDialogButtonStyles`. Все
+ * ключи гарантированы реестром дефолтов.
+ */
 export function getFindWidgetStyles(theme: WorkbenchTheme): IFindWidgetStyles {
-    return { button: getDialogButtonStyles(theme) };
+    return {
+        bg: theme.getRequiredColor("editorWidget.background"),
+        fg: theme.getRequiredColor("editorWidget.foreground"),
+        borderFg: theme.getRequiredColor("editorWidget.border"),
+        counterFg: theme.getRequiredColor("descriptionForeground"),
+        noResultsFg: theme.getRequiredColor("editorError.foreground"),
+        button: getDialogButtonStyles(theme),
+    };
 }
 
 /**
