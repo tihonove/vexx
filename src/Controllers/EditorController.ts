@@ -4,7 +4,8 @@ import * as path from "node:path";
 import { token } from "../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../Common/Disposable.ts";
 import { Uri } from "../Common/Uri.ts";
-import { EditorElement } from "../Editor/EditorElement.ts";
+import type { IEditorStyles } from "../Editor/EditorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "../Editor/EditorElement.ts";
 import { EditorViewState } from "../Editor/EditorViewState.ts";
 import { decodeBuffer, DEFAULT_ENCODING, encodeText, getEncodingInfo } from "../Editor/Encoding.ts";
 import { EndOfLine } from "../Editor/EndOfLine.ts";
@@ -30,10 +31,8 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { OverlayAnchorPosition } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
-import type { IMenuStyles } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
-import { unthemedMenuStyles } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
-import { getMenuStyles, getScrollBarStyles } from "../Workbench/Styles/defaultStyles.ts";
+import { getEditorStyles, getScrollBarStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
@@ -125,7 +124,12 @@ export class EditorController extends Disposable implements IController {
     private readonly languageService: ILanguageService;
     private readonly undoRedoService: UndoRedoService;
     private contextMenuEntriesValue: MenuEntry[] = [];
-    private currentMenuStyles: IMenuStyles = unthemedMenuStyles;
+    /**
+     * Кэш стилей редактора из последнего applyTheme: EditorElement пересоздаётся
+     * в {@link loadDocumentFromDisk}, и свежий экземпляр должен получить те же
+     * стили без повторного визита темы.
+     */
+    private currentEditorStyles: IEditorStyles = unthemedEditorStyles;
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId || this.doc.eol !== this.savedEol;
@@ -419,7 +423,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
-        this.editor.menuStyles = this.currentMenuStyles;
+        this.editor.setStyles(this.currentEditorStyles);
         this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
@@ -846,22 +850,11 @@ export class EditorController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        this.currentMenuStyles = getMenuStyles(theme);
+        this.currentEditorStyles = getEditorStyles(theme);
         const fg = theme.getRequiredColor("editor.foreground");
         const bg = theme.getRequiredColor("editor.background");
         this.editor.style = { fg, bg };
-        this.editor.gutterBackground = theme.getColor("editorGutter.background") ?? bg;
-        this.editor.lineNumberForeground = theme.getColor("editorLineNumber.foreground");
-        this.editor.lineNumberActiveForeground = theme.getColor("editorLineNumber.activeForeground");
-        this.editor.occurrenceHighlightBackground = theme.getColor("editor.wordHighlightBackground");
-        this.editor.errorForeground = theme.getColor("editorError.foreground");
-        this.editor.warningForeground = theme.getColor("editorWarning.foreground");
-        this.editor.infoForeground = theme.getColor("editorInfo.foreground");
-        this.editor.hintForeground = theme.getColor("editorHint.foreground");
-        this.editor.menuStyles = this.currentMenuStyles;
-        this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
-        this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");
-        this.editor.indentGuideActiveForeground = theme.getColor("editorIndentGuide.activeBackground1");
+        this.editor.setStyles(this.currentEditorStyles);
         this.view.setStyles(getScrollBarStyles(theme, "editor.background"));
     }
 

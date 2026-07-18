@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { unthemedEditorStyles } from "../../Editor/EditorElement.ts";
+import { dark2026Theme } from "../../Theme/themes/dark2026.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { unthemedMenuStyles } from "../../TUIDom/Widgets/PopupMenuItemElement.tsx";
@@ -10,6 +12,7 @@ import {
     getConfirmDialogStyles,
     getConfirmSaveDialogStyles,
     getDialogButtonStyles,
+    getEditorStyles,
     getFileTreeStyles,
     getFindWidgetStyles,
     getMenuStyles,
@@ -93,6 +96,64 @@ describe("getMenuStyles", () => {
 
         expect(getDialogButtonStyles(theme).bg).toBe(theme.getRequiredColor("button.secondaryBackground"));
         expect(getMenuStyles(theme).bg).toBe(theme.getRequiredColor("menu.background"));
+    });
+});
+
+describe("getEditorStyles", () => {
+    it("resolves the registry-guaranteed editor keys from the theme", () => {
+        const theme = makeTheme();
+
+        const styles = getEditorStyles(theme);
+
+        expect(styles.lineNumberForeground).toBe(theme.getRequiredColor("editorLineNumber.foreground"));
+        expect(styles.lineNumberActiveForeground).toBe(theme.getRequiredColor("editorLineNumber.activeForeground"));
+        expect(styles.occurrenceHighlightBackground).toBe(theme.getRequiredColor("editor.wordHighlightBackground"));
+        expect(styles.errorForeground).toBe(theme.getRequiredColor("editorError.foreground"));
+        expect(styles.warningForeground).toBe(theme.getRequiredColor("editorWarning.foreground"));
+        expect(styles.infoForeground).toBe(theme.getRequiredColor("editorInfo.foreground"));
+        expect(styles.hintForeground).toBe(theme.getRequiredColor("editorHint.foreground"));
+    });
+
+    it("uses the optional gutter/indent-guide keys when the theme defines them (Dark+)", () => {
+        // darkPlus defines editorGutter.foldingControlForeground and both indent-guide keys.
+        const theme = makeTheme();
+
+        const styles = getEditorStyles(theme);
+
+        expect(styles.foldingControlForeground).toBe(theme.getColor("editorGutter.foldingControlForeground"));
+        expect(styles.indentGuideForeground).toBe(theme.getColor("editorIndentGuide.background1"));
+        expect(styles.indentGuideActiveForeground).toBe(theme.getColor("editorIndentGuide.activeBackground1"));
+    });
+
+    it("uses editorGutter.background when the theme defines it (Dark 2026)", () => {
+        const theme = WorkbenchTheme.fromThemeFile(dark2026Theme);
+
+        expect(getEditorStyles(theme).gutterBackground).toBe(theme.getColor("editorGutter.background"));
+    });
+
+    it("falls back to the editor background for themes without a gutter color", () => {
+        // darkPlus defines no editorGutter.background (and the key has no registry default).
+        const theme = makeTheme();
+
+        expect(getEditorStyles(theme).gutterBackground).toBe(theme.getRequiredColor("editor.background"));
+    });
+
+    it("keeps the unthemed baseline for optional keys absent from the theme", () => {
+        // No theme colors at all: the registry backfills the guaranteed keys, but
+        // the fold-control/indent-guide keys stay undefined → unthemed defaults.
+        const theme = WorkbenchTheme.fromThemeFile({ name: "sparse", type: "dark", colors: {} });
+
+        const styles = getEditorStyles(theme);
+
+        expect(styles.foldingControlForeground).toBe(unthemedEditorStyles.foldingControlForeground);
+        expect(styles.indentGuideForeground).toBe(unthemedEditorStyles.indentGuideForeground);
+        expect(styles.indentGuideActiveForeground).toBe(unthemedEditorStyles.indentGuideActiveForeground);
+    });
+
+    it("carries the context-menu styles through the same channel", () => {
+        const theme = makeTheme();
+
+        expect(getEditorStyles(theme).menu).toEqual(getMenuStyles(theme));
     });
 });
 

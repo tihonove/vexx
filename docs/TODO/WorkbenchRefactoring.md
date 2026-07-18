@@ -34,7 +34,10 @@ Workbench и может его импортировать; обратно — н
        FindWidget/диалоги теряют `applyTheme(WorkbenchTheme)`; `Workbench/Styles/defaultStyles.ts`;
        1b: TreeView/ScrollBar/TabStrip/QuickPick/CompletionList/TerminalView/PanelContainer,
        `applyScrollBarTheme` растворён в `getScrollBarStyles`)
-- [ ] 2. `IEditorStyles`: дестемизация `EditorElement` (включая `menuTheme`)
+- [x] 2. `IEditorStyles`: дестемизация `EditorElement` (включая `menuTheme`) — специализированные
+       цвета (гуттер/номера строк/word-highlight/indent-guides/fold-контрол/squiggles) + `menu`
+       единым каналом `setStyles(IEditorStyles)`; маппинг — `getEditorStyles` в
+       `Workbench/Styles/defaultStyles.ts`; основные fg/bg остаются на `editor.style = { fg, bg }`
 - [ ] 3. Каркас Workbench (`Component`/`ThemedComponent`) + переезд готовых сервисов
        (CommandRegistry, KeybindingRegistry, ContextKeyService, Workspace/, TerminalEnvironment/, …)
 - [ ] 4. Пилот: `StatusBarService` + `StatusBarComponent` (эталонная пара)

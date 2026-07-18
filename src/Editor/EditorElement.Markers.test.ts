@@ -4,7 +4,7 @@ import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
-import { EditorElement } from "./EditorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { createRange } from "./IRange.ts";
 import { MarkerSeverity } from "./Markers/IMarker.ts";
@@ -23,7 +23,7 @@ const WARNING_FG = packRgb(1, 2, 3);
 describe("EditorElement — marker squiggle decorations", () => {
     it("paints the severity foreground over the marker range only", () => {
         const editor = makeEditor("abcdef");
-        editor.warningForeground = WARNING_FG;
+        editor.setStyles({ ...unthemedEditorStyles, warningForeground: WARNING_FG });
         editor.markerDecorations = [{ range: createRange(0, 0, 0, 3), severity: MarkerSeverity.Warning }];
 
         const app = TestApp.createWithContent(editor, new Size(40, 4));
@@ -46,7 +46,7 @@ describe("EditorElement — marker squiggle decorations", () => {
         ];
         for (const { severity, field, color } of cases) {
             const editor = makeEditor("abcdef");
-            editor[field] = color;
+            editor.setStyles({ ...unthemedEditorStyles, [field]: color });
             editor.markerDecorations = [{ range: createRange(0, 0, 0, 2), severity }];
             const app = TestApp.createWithContent(editor, new Size(40, 4));
             app.render();

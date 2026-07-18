@@ -4,7 +4,7 @@ import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
-import { EditorElement } from "./EditorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { computeIndentationFolds } from "./FoldingRangeProvider.ts";
 import { createCursorSelection } from "./ISelection.ts";
@@ -114,8 +114,7 @@ describe("EditorElement – indentation guides", () => {
         const fg = packRgb(11, 22, 33);
         const activeFg = packRgb(200, 210, 220);
         const { app, editor } = createEditor(SAMPLE, 3);
-        editor.indentGuideForeground = fg;
-        editor.indentGuideActiveForeground = activeFg;
+        editor.setStyles({ ...unthemedEditorStyles, indentGuideForeground: fg, indentGuideActiveForeground: activeFg });
         app.render();
         const gw = editor.gutterWidth;
         expect(app.backend.getFgAt(new Point(gw + 2, 3))).toBe(activeFg); // active (if-body)

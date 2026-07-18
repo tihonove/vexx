@@ -1,3 +1,5 @@
+import type { IEditorStyles } from "../../Editor/EditorElement.ts";
+import { unthemedEditorStyles } from "../../Editor/EditorElement.ts";
 import type { IWorkbenchColors } from "../../Theme/IWorkbenchColors.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { IAboutDialogStyles } from "../../TUIDom/Widgets/AboutDialogElement.tsx";
@@ -67,6 +69,35 @@ export function getMenuStyles(theme: WorkbenchTheme): IMenuStyles {
         shortcutFg: unthemedMenuStyles.shortcutFg,
         borderFg: theme.getRequiredColor("menu.border"),
         separatorFg: theme.getRequiredColor("menu.separatorBackground"),
+    };
+}
+
+/**
+ * Специализированные цвета редактора. Основные fg/bg (`editor.foreground`/
+ * `editor.background`) сюда не входят — они идут через `editor.style = { fg, bg }`
+ * (наследование TUIStyle). Ключи с реестровым дефолтом читаются через
+ * `getRequiredColor`; genuinely-optional ключи (`editorGutter.*`,
+ * `editorIndentGuide.*` — без реестрового дефолта) — через `getColor` с
+ * фоллбэком: гуттер падает на фон редактора (как в VS Code), остальные — на
+ * unthemed-baseline. Контекстное меню редактора едет тем же каналом (`menu`).
+ */
+export function getEditorStyles(theme: WorkbenchTheme): IEditorStyles {
+    return {
+        gutterBackground: theme.getColor("editorGutter.background") ?? theme.getRequiredColor("editor.background"),
+        lineNumberForeground: theme.getRequiredColor("editorLineNumber.foreground"),
+        lineNumberActiveForeground: theme.getRequiredColor("editorLineNumber.activeForeground"),
+        occurrenceHighlightBackground: theme.getRequiredColor("editor.wordHighlightBackground"),
+        foldingControlForeground:
+            theme.getColor("editorGutter.foldingControlForeground") ?? unthemedEditorStyles.foldingControlForeground,
+        indentGuideForeground:
+            theme.getColor("editorIndentGuide.background1") ?? unthemedEditorStyles.indentGuideForeground,
+        indentGuideActiveForeground:
+            theme.getColor("editorIndentGuide.activeBackground1") ?? unthemedEditorStyles.indentGuideActiveForeground,
+        errorForeground: theme.getRequiredColor("editorError.foreground"),
+        warningForeground: theme.getRequiredColor("editorWarning.foreground"),
+        infoForeground: theme.getRequiredColor("editorInfo.foreground"),
+        hintForeground: theme.getRequiredColor("editorHint.foreground"),
+        menu: getMenuStyles(theme),
     };
 }
 
