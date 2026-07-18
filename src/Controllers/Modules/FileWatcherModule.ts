@@ -1,7 +1,7 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
-import { ChokidarFileWatcher } from "../ChokidarFileWatcher.ts";
+import { ChokidarFileWatcher } from "../../Workbench/Services/ChokidarFileWatcher.ts";
 import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
-import { IFileWatcherDIToken } from "../IFileWatcherDIToken.ts";
+import { IFileWatcherDIToken } from "../../Workbench/Services/IFileWatcherDIToken.ts";
 
 /**
  * Продакшен: реальный watcher поверх chokidar. Следит за открытыми файлами и

@@ -14,7 +14,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
-import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 let ws: ITempWorkspace;
 let tmpDir: string;

@@ -1,8 +1,8 @@
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import type { IDisposable } from "../Common/Disposable.ts";
 
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import type { Keybinding, KeybindingChord, KeybindingRegistry } from "./KeybindingRegistry.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import type { Keybinding, KeybindingChord, KeybindingRegistry } from "../Workbench/Services/KeybindingRegistry.ts";
 
 /**
  * A binding plus an optional `when` that narrows JUST this binding — used for

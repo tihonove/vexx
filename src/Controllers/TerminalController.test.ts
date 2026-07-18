@@ -9,7 +9,7 @@ import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElem
 
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { PanelController, PanelControllerDIToken, PROBLEMS_VIEW_ID, TERMINAL_VIEW_ID } from "./PanelController.ts";
-import { TerminalSessionFactoryDIToken } from "./Terminal/TerminalSessionFactory.ts";
+import { TerminalSessionFactoryDIToken } from "../Workbench/Services/Terminal/TerminalSessionFactory.ts";
 import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
 
 function buildHarness() {

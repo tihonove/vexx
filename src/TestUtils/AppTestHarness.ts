@@ -5,9 +5,9 @@ import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationSer
 import type { IStateService } from "../Configuration/IStateService.ts";
 import type { AppController } from "../Controllers/AppController.ts";
 import { AppControllerDIToken } from "../Controllers/AppController.ts";
-import type { CommandRegistry } from "../Controllers/CommandRegistry.ts";
-import { CommandRegistryDIToken } from "../Controllers/CommandRegistry.ts";
-import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Controllers/CoreTokens.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
+import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
 import type { EditorController } from "../Controllers/EditorController.ts";
 import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";

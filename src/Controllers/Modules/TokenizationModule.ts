@@ -2,7 +2,7 @@ import type { ContainerModule } from "../../Common/DiContainer.ts";
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
 import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../CoreTokens.ts";
+import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../../Workbench/Services/CoreTokens.ts";
 
 export interface TokenizationModuleContext {
     tokenizationRegistry: TokenizationRegistry;

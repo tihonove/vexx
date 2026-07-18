@@ -7,13 +7,13 @@ import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import type { ContextKeyService } from "./ContextKeyService.ts";
-import type { FileSearchResult, FileSearchService } from "./FileSearchService.ts";
-import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
-import { formatKeybinding } from "./KeybindingRegistry.ts";
-import type { ParsedGoto } from "./QuickOpenParsing.ts";
-import { parseGotoLineQuery, splitFileQuery } from "./QuickOpenParsing.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
+import type { FileSearchResult, FileSearchService } from "../Workbench/Services/FileSearchService.ts";
+import type { KeybindingRegistry } from "../Workbench/Services/KeybindingRegistry.ts";
+import { formatKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
+import type { ParsedGoto } from "../Workbench/Services/QuickOpenParsing.ts";
+import { parseGotoLineQuery, splitFileQuery } from "../Workbench/Services/QuickOpenParsing.ts";
 
 type OpenMode = "files" | "commands" | "line";
 

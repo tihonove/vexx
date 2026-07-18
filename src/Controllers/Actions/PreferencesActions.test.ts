@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
 import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
-import { formatKeybinding, KeybindingRegistry } from "../KeybindingRegistry.ts";
+import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
+import { formatKeybinding, KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 import { openKeybindingsAction, openSettingsAction } from "./PreferencesActions.ts";
 

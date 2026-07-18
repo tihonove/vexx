@@ -1,5 +1,5 @@
 import type { CommandAction } from "../CommandAction.ts";
-import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseChord, parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 /**
  * Open the user settings.json (VS Code `workbench.action.openSettings`). Vexx has

@@ -7,8 +7,8 @@ import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWid
 import { PanelController, PanelControllerDIToken } from "../PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "../ProblemsController.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarController.ts";
-import { EmbeddedTerminalSession } from "../Terminal/EmbeddedTerminalSession.ts";
-import { TerminalSessionFactoryDIToken } from "../Terminal/TerminalSessionFactory.ts";
+import { EmbeddedTerminalSession } from "../../Workbench/Services/Terminal/EmbeddedTerminalSession.ts";
+import { TerminalSessionFactoryDIToken } from "../../Workbench/Services/Terminal/TerminalSessionFactory.ts";
 import { TerminalController, TerminalControllerDIToken } from "../TerminalController.ts";
 
 /**

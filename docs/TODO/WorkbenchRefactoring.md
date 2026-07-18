@@ -38,8 +38,10 @@ Workbench и может его импортировать; обратно — н
        цвета (гуттер/номера строк/word-highlight/indent-guides/fold-контрол/squiggles) + `menu`
        единым каналом `setStyles(IEditorStyles)`; маппинг — `getEditorStyles` в
        `Workbench/Styles/defaultStyles.ts`; основные fg/bg остаются на `editor.style = { fg, bg }`
-- [ ] 3. Каркас Workbench (`Component`/`ThemedComponent`) + переезд готовых сервисов
-       (CommandRegistry, KeybindingRegistry, ContextKeyService, Workspace/, TerminalEnvironment/, …)
+- [x] 3. Каркас Workbench (`Component`/`ThemedComponent`) + переезд готовых сервисов
+       (CommandRegistry, KeybindingRegistry, ContextKeyService, Workspace/, TerminalEnvironment/, …;
+       в Controllers остались `TrashService`/`WorkspaceEditService` — тянут `Actions/fileClipboardFs.ts` —
+       и `TerminalEnvironmentIntegration.test.ts` — тянет `StatusBarController`)
 - [ ] 4. Пилот: `StatusBarService` + `StatusBarComponent` (эталонная пара)
 - [ ] 5. Вынос из AppController: `KeybindingDispatcher`, `DialogService`, `LifecycleService`
 - [ ] 6. Panel-кластер: `DiagnosticsService`, `PanelService`+`PanelComponent`,

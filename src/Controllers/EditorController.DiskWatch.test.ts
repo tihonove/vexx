@@ -15,7 +15,7 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorController } from "./EditorController.ts";
 import type { IFileWatcher } from "../Common/IFileWatcher.ts";
-import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 /** Fake watcher: records the onChange callback per path so tests fire it by hand. */
 class FakeFileWatcher implements IFileWatcher {

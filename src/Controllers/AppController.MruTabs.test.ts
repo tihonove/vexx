@@ -5,7 +5,7 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "./ModifierReleaseArmory.ts";
+import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../Workbench/Services/ModifierReleaseArmory.ts";
 
 /**
  * Проверяет маршрутизацию keyup в AppController: любое отпускание клавиши идёт в

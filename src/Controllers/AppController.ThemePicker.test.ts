@@ -8,7 +8,7 @@ import { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
 import { AppController, AppControllerDIToken, themeTypeLabel } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 interface ThemeContext {

@@ -1,6 +1,6 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { MarkerService } from "../../Editor/Markers/MarkerService.ts";
-import { KeybindingsResourceDIToken, MarkerServiceDIToken, SettingsResourceDIToken } from "../CoreTokens.ts";
+import { KeybindingsResourceDIToken, MarkerServiceDIToken, SettingsResourceDIToken } from "../../Workbench/Services/CoreTokens.ts";
 
 export interface MarkersModuleContext {
     /** Absolute path of the active-profile Vexx settings.json, or null when unknown (tests/demo). */

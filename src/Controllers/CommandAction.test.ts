@@ -4,10 +4,10 @@ import { Container, token } from "../Common/DiContainer.ts";
 
 import type { CommandAction } from "./CommandAction.ts";
 import { combineWhen, registerAction } from "./CommandAction.ts";
-import { CommandRegistry } from "./CommandRegistry.ts";
-import { ContextKeyService } from "./ContextKeyService.ts";
-import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
-import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
+import type { KeyboardEventLike } from "../Workbench/Services/KeybindingRegistry.ts";
+import { KeybindingRegistry, parseChord, parseKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 
 // Maps the structured resolveKey result to a command id (or undefined).
 function resolve(

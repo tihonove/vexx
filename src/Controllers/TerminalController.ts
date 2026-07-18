@@ -20,7 +20,7 @@ import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElem
 import { getTerminalViewStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { PanelController, PanelControllerDIToken, TERMINAL_VIEW_ID } from "./PanelController.ts";
-import { type TerminalSessionFactory, TerminalSessionFactoryDIToken } from "./Terminal/TerminalSessionFactory.ts";
+import { type TerminalSessionFactory, TerminalSessionFactoryDIToken } from "../Workbench/Services/Terminal/TerminalSessionFactory.ts";
 
 export const TerminalControllerDIToken = token<TerminalController>("TerminalController");
 

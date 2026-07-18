@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
+import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 
 import { CommandServiceAdapter } from "./CommandServiceAdapter.ts";
 import { NULL_COMMAND_SERVICE } from "./ICommandService.ts";

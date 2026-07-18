@@ -23,13 +23,15 @@
 
 ## Где объявлять токены
 
-DI-токены и зависимости (`static dependencies`) объявляются **только на уровнях Controllers и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны импортировать `Container`, `token()` или `Token` и не должны объявлять DI-токены.
+DI-токены и зависимости (`static dependencies`) объявляются **только на уровнях Controllers, Workbench и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны импортировать `Container`, `token()` или `Token` и не должны объявлять DI-токены.
 
 `Common/DiContainer.ts` реализует механизм DI, но конкретные токены в Common/ не объявляются.
 
+Сквозные токены ядра (`TuiApplicationDIToken`, `TerminalBackendDIToken`, `ClipboardDIToken`, `MarkerServiceDIToken` и др.) живут в `src/Workbench/Services/CoreTokens.ts`; там же, в `Workbench/Services/`, — токены переехавших сервисов (`CommandRegistryDIToken`, `KeybindingRegistryDIToken`, `ContextKeyServiceDIToken`, `IFileWatcherDIToken`, `FileSearchServiceDIToken`, `UndoRedoServiceDIToken` и т.п.). Токены контроллеров — по-прежнему рядом с ними в `src/Controllers/`.
+
 ## Объявление токенов
 
-Токены объявляются рядом с реализацией сервиса в Controllers/:
+Токены объявляются рядом с реализацией сервиса (Controllers/ или Workbench/Services/):
 
 ```typescript
 import { token } from "../Common/DiContainer.ts";
@@ -124,7 +126,7 @@ const ctrl = new AppController(mockApp, mockEditor);
 `(container, ctx) => void`. Модули собираются в **профили** — фабрики готовых
 контейнеров под конкретный сценарий (production, test).
 
-Файлы: `src/Controllers/Modules/`.
+Файлы: `src/Controllers/Modules/` (исключение — `terminalEnvironmentModule`, живёт рядом со своим сервисом в `src/Workbench/Services/TerminalEnvironment/`). Биндинги остаются в `Controllers/Modules/` до этапа 12 Workbench-рефакторинга.
 
 ### `ContainerModule<Ctx>`
 

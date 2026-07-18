@@ -1,8 +1,8 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
-import { ModifierReleaseArmoryDIToken } from "../ModifierReleaseArmory.ts";
+import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
+import { ModifierReleaseArmoryDIToken } from "../../Workbench/Services/ModifierReleaseArmory.ts";
 
 /**
  * Один шаг MRU-переключения вкладок. Каждое нажатие шагает по стеку, а отпускание

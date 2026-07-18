@@ -1,5 +1,5 @@
 import type { CommandAction } from "../CommandAction.ts";
-import { parseChord } from "../KeybindingRegistry.ts";
+import { parseChord } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 /**
  * Open the color-theme picker (VS Code `workbench.action.selectTheme`). Default

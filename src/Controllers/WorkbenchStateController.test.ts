@@ -14,7 +14,7 @@ import {
     PANEL_VISIBLE_STATE,
     SIDEBAR_VISIBLE_STATE,
     SIDEBAR_WIDTH_STATE,
-} from "./StateKeys.ts";
+} from "../Workbench/Services/StateKeys.ts";
 import { WorkbenchStateController } from "./WorkbenchStateController.ts";
 
 /** Минимальный дублёр EditorGroupController — только методы, что дёргает координатор. */

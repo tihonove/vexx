@@ -11,7 +11,7 @@ import type { CompletionListItem } from "../TUIDom/Widgets/CompletionListElement
 import { CompletionListElement } from "../TUIDom/Widgets/CompletionListElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 
-import { collectWordCompletions } from "./collectWordCompletions.ts";
+import { collectWordCompletions } from "../Workbench/Services/collectWordCompletions.ts";
 import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 

@@ -21,7 +21,7 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 function createEditorGroupController(
     overrides: {

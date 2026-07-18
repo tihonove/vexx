@@ -23,7 +23,7 @@ import {
     previousEditorInGroupAction,
 } from "../Controllers/Actions/TabActions.ts";
 import type { CommandAction } from "../Controllers/CommandAction.ts";
-import { formatKeybinding, type Keybinding } from "../Controllers/KeybindingRegistry.ts";
+import { formatKeybinding, type Keybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import {
     detectBaseModes,
     detectExtendedKeysHint,
@@ -31,7 +31,7 @@ import {
     detectTruecolor,
     emptyCapabilities,
     resolveTier,
-} from "../Controllers/TerminalEnvironment/TerminalEnvironmentModel.ts";
+} from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentModel.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
 import { tokenize } from "../Input/tokenize.ts";

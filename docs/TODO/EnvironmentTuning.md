@@ -29,7 +29,7 @@
 - запись рекомендаций в лог.
 
 Источник сигналов у нас уже есть: `TerminalEnvironmentService`
-(`src/Controllers/TerminalEnvironment/TerminalEnvironmentService.ts`) детектит
+(`src/Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts`) детектит
 окружение и capability `extended-keys` (env-хинты + fire-and-forget проба
 клавиатурного протокола). Его естественно переиспользовать как вход для подсказок.
 

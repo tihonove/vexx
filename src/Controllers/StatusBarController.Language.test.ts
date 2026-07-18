@@ -4,11 +4,11 @@ import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.t
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
-import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 
 function createStatusBarController(languageService?: ILanguageService): {
     statusBarController: StatusBarController;

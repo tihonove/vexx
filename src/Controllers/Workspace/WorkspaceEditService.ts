@@ -6,10 +6,10 @@ import type { IConfigurationService } from "../../Configuration/IConfigurationSe
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { copyInto, moveInto, moveToPath, resolveNonConflictingDest } from "../Actions/fileClipboardFs.ts";
 
-import type { IUndoRedoElement } from "./IUndoRedoElement.ts";
+import type { IUndoRedoElement } from "../../Workbench/Services/Workspace/IUndoRedoElement.ts";
 import { TrashService, TrashServiceDIToken } from "./TrashService.ts";
-import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./UndoRedoService.ts";
-import type { ResourceFileEdit } from "./WorkspaceEdit.ts";
+import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
+import type { ResourceFileEdit } from "../../Workbench/Services/Workspace/WorkspaceEdit.ts";
 
 interface ReversibleOp {
     undo(): void;

@@ -4,8 +4,8 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import type { TestApp } from "../TestUtils/TestApp.ts";
 
 import type { AppController } from "./AppController.ts";
-import type { ContextKeyService } from "./ContextKeyService.ts";
-import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
+import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
+import { ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
 import type { EditorController } from "./EditorController.ts";
 
 export interface FindContext {

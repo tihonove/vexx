@@ -9,8 +9,8 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { settle } from "../TestUtils/timing.ts";
 
-import { MarkerServiceDIToken } from "./CoreTokens.ts";
-import type { ProblemNode } from "./Diagnostics/ProblemsTreeDataProvider.ts";
+import { MarkerServiceDIToken } from "../Workbench/Services/CoreTokens.ts";
+import type { ProblemNode } from "../Workbench/Services/Diagnostics/ProblemsTreeDataProvider.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";

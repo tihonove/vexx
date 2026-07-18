@@ -5,7 +5,7 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import type { TestApp } from "../TestUtils/TestApp.ts";
 
 import type { AppController } from "./AppController.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { type EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 
 interface TestContext {

@@ -8,10 +8,10 @@ import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
 
-import { CommandRegistry } from "./CommandRegistry.ts";
-import { ContextKeyService } from "./ContextKeyService.ts";
-import type { FileSearchEntry, FileSearchResult, FileSearchService } from "./FileSearchService.ts";
-import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
+import type { FileSearchEntry, FileSearchResult, FileSearchService } from "../Workbench/Services/FileSearchService.ts";
+import { KeybindingRegistry, parseChord, parseKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import type { IGotoLineEditor } from "./QuickOpenController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 

@@ -10,8 +10,8 @@ import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts"
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { getProblemsTreeStyles, getScrollBarStyles } from "../Workbench/Styles/defaultStyles.ts";
 
-import { MarkerServiceDIToken } from "./CoreTokens.ts";
-import { type ProblemNode, ProblemsTreeDataProvider } from "./Diagnostics/ProblemsTreeDataProvider.ts";
+import { MarkerServiceDIToken } from "../Workbench/Services/CoreTokens.ts";
+import { type ProblemNode, ProblemsTreeDataProvider } from "../Workbench/Services/Diagnostics/ProblemsTreeDataProvider.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { PanelController, PanelControllerDIToken, PROBLEMS_VIEW_ID } from "./PanelController.ts";
 

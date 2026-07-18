@@ -13,7 +13,7 @@
 //
 // См. docs/TODO/IntegratedTerminal.md.
 
-import { EmbeddedTerminalSession } from "../../Controllers/Terminal/EmbeddedTerminalSession.ts";
+import { EmbeddedTerminalSession } from "../../Workbench/Services/Terminal/EmbeddedTerminalSession.ts";
 import { NodeTerminalBackend } from "../../Backend/NodeTerminalBackend.ts";
 import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";

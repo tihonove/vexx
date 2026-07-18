@@ -7,8 +7,8 @@ import type { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDial
 import type { TextLabelElement } from "../TUIDom/Widgets/TextLabelElement.ts";
 
 import type { AppController } from "./AppController.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { ServiceAccessorDIToken } from "./CoreTokens.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import { ServiceAccessorDIToken } from "../Workbench/Services/CoreTokens.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
 interface TestQuitContext {

@@ -4,10 +4,10 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
-import { CommandRegistry } from "../Controllers/CommandRegistry.ts";
+import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
 import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { UndoRedoService } from "../Controllers/Workspace/UndoRedoService.ts";
+import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";

@@ -4,7 +4,7 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import type { PanelContainerElement } from "../TUIDom/Widgets/PanelContainerElement.ts";
 
-import { ContextKeyService, ContextKeyServiceDIToken } from "./ContextKeyService.ts";
+import { ContextKeyService, ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
 import { PROBLEMS_VIEW_ID } from "./PanelController.ts";
 
 const TOGGLE_PANEL = "workbench.action.togglePanel";

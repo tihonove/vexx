@@ -8,8 +8,8 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { SettingsResourceDIToken } from "./CoreTokens.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
+import { SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 

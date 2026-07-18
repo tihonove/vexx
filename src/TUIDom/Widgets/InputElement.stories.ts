@@ -24,11 +24,11 @@ import {
     inputSelectWordRightAction,
 } from "../../Controllers/Actions/InputActions.ts";
 import { registerAction } from "../../Controllers/CommandAction.ts";
-import { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
-import { ContextKeyService } from "../../Controllers/ContextKeyService.ts";
-import { ClipboardDIToken } from "../../Controllers/CoreTokens.ts";
+import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
+import { ContextKeyService } from "../../Workbench/Services/ContextKeyService.ts";
+import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "../../Controllers/InputWidgetController.ts";
-import { KeybindingRegistry } from "../../Controllers/KeybindingRegistry.ts";
+import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
 import type { StoryContext, StoryMeta } from "../../StoryRunner/StoryTypes.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 

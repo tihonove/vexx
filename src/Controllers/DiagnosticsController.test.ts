@@ -10,8 +10,8 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { AppController, AppControllerDIToken } from "./AppController.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { MarkerServiceDIToken, SettingsResourceDIToken } from "./CoreTokens.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
+import { MarkerServiceDIToken, SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 

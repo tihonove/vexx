@@ -2,10 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
 import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
+import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { KeybindingRegistry } from "../KeybindingRegistry.ts";
-import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../ModifierReleaseArmory.ts";
+import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
+import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../../Workbench/Services/ModifierReleaseArmory.ts";
 
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./TabActions.ts";
 

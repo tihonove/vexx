@@ -10,15 +10,15 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
 import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { LanguageServiceDIToken } from "./CoreTokens.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
+import { LanguageServiceDIToken } from "../Workbench/Services/CoreTokens.ts";
 import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import type { IController } from "./IController.ts";
-import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
-import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+import type { TerminalEnvironmentService } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 
 export const StatusBarControllerDIToken = token<StatusBarController>("StatusBarController");
 

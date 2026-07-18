@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";

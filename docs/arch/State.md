@@ -57,7 +57,7 @@
 
 **Правило co-location.** Дескриптор объявляется рядом с **контроллером**-владельцем,
 а НЕ с TUIDom-элементом: элементы (напр. `WorkbenchLayoutElement`) в слое TUIDom и
-не могут импортировать Configuration. Реестр дескрипторов — `Controllers/StateKeys.ts`
+не могут импортировать Configuration. Реестр дескрипторов — `Workbench/Services/StateKeys.ts`
 (параллель `ContextKeys.ts`).
 
 ## Движок (`Configuration/StateService.ts`)

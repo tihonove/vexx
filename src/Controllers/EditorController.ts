@@ -34,10 +34,10 @@ import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 import { getEditorStyles, getScrollBarStyles } from "../Workbench/Styles/defaultStyles.ts";
 
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
+import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../Workbench/Services/CoreTokens.ts";
 import type { IController } from "./IController.ts";
 import type { IFileWatcher } from "../Common/IFileWatcher.ts";
-import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 export const EditorControllerDIToken = token<EditorController>("EditorController");
 

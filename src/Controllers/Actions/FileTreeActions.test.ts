@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 import { fileDeleteAction } from "./FileTreeActions.ts";
 

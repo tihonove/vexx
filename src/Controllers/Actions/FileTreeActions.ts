@@ -1,7 +1,7 @@
 import * as fs from "node:fs";
 
 import type { CommandAction } from "../CommandAction.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 export const fileDeleteAction: CommandAction = {
     id: "fileOperations.deleteFile",

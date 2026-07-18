@@ -3,7 +3,7 @@ import type { IClipboard } from "../../Common/IClipboard.ts";
 import type { IFileClipboard } from "../../Common/IFileClipboard.ts";
 import { InMemoryClipboard } from "../../Common/InMemoryClipboard.ts";
 import { InMemoryFileClipboard } from "../../Common/InMemoryFileClipboard.ts";
-import { ClipboardDIToken, FileClipboardDIToken } from "../CoreTokens.ts";
+import { ClipboardDIToken, FileClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
 
 export interface BackendModuleContext {
     clipboard: IClipboard;

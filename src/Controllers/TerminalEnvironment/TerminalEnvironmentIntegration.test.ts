@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { createAppTestHarness } from "../../TestUtils/AppTestHarness.ts";
-import { registerContextKeys } from "../ContextKeys.ts";
-import { ContextKeyServiceDIToken } from "../ContextKeyService.ts";
-import { TerminalBackendDIToken } from "../CoreTokens.ts";
+import { registerContextKeys } from "../../Workbench/Services/ContextKeys.ts";
+import { ContextKeyServiceDIToken } from "../../Workbench/Services/ContextKeyService.ts";
+import { TerminalBackendDIToken } from "../../Workbench/Services/CoreTokens.ts";
 import { StatusBarControllerDIToken } from "../StatusBarController.ts";
 
-import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "../../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 
 describe("Terminal environment integration (context keys + status bar)", () => {
     let savedEnv: NodeJS.ProcessEnv;

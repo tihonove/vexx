@@ -1,5 +1,5 @@
 import type { CommandAction } from "../CommandAction.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // All run() bodies are placeholders — AppController installs the real handlers
 // (wired to CompletionController) at runtime, like the find/quick-open actions.

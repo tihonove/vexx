@@ -11,7 +11,7 @@ import type { TokenizationRegistry } from "../../Editor/Tokenization/Tokenizatio
 import type { ThemeRegistry } from "../../Theme/ThemeRegistry.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
-import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
+import { terminalEnvironmentModule } from "../../Workbench/Services/TerminalEnvironment/TerminalEnvironmentModule.ts";
 
 import { backendModule } from "./BackendModule.ts";
 import { commandsModule } from "./CommandsModule.ts";

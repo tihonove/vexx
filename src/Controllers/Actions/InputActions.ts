@@ -1,7 +1,7 @@
 import type { CommandAction } from "../CommandAction.ts";
-import { ClipboardDIToken } from "../CoreTokens.ts";
+import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
 import { InputWidgetControllerDIToken } from "../InputWidgetController.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // ─── Cursor Movement ─────────────────────────────────────────
 

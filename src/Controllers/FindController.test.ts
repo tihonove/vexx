@@ -21,7 +21,7 @@ import type { EditorController } from "./EditorController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FindController } from "./FindController.ts";
 import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
+import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 function makeGroup(): EditorGroupController {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));

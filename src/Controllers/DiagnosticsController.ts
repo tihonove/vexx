@@ -7,8 +7,8 @@ import { getDefaultConfiguration } from "../Configuration/defaults.ts";
 import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
 import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
 
-import { MarkerServiceDIToken, SettingsResourceDIToken } from "./CoreTokens.ts";
-import { collectKnownSettingKeys, validateSettingsJson } from "./Diagnostics/SettingsDiagnostics.ts";
+import { MarkerServiceDIToken, SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
+import { collectKnownSettingKeys, validateSettingsJson } from "../Workbench/Services/Diagnostics/SettingsDiagnostics.ts";
 import type { EditorController } from "./EditorController.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";

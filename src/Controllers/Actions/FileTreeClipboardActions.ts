@@ -1,7 +1,7 @@
 import type { FileClipboardEntry } from "../../Common/IFileClipboard.ts";
 import type { CommandAction } from "../CommandAction.ts";
-import { parseChord, parseKeybinding } from "../KeybindingRegistry.ts";
-import type { ResourceFileEdit } from "../Workspace/WorkspaceEdit.ts";
+import { parseChord, parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
+import type { ResourceFileEdit } from "../../Workbench/Services/Workspace/WorkspaceEdit.ts";
 
 /**
  * Дескрипторы команд copy/cut/paste для explorer (без `run` — он привязывается в

@@ -12,12 +12,12 @@ import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { CommandAction } from "../CommandAction.ts";
 import { registerAction } from "../CommandAction.ts";
-import { CommandRegistry } from "../CommandRegistry.ts";
+import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupController } from "../EditorGroupController.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
-import { KeybindingRegistry } from "../KeybindingRegistry.ts";
-import { UndoRedoService } from "../Workspace/UndoRedoService.ts";
+import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
+import { UndoRedoService } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
 
 import {
     deleteLeftAction,

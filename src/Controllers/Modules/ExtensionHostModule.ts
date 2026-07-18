@@ -17,7 +17,7 @@ import {
 } from "../../Extensions/Host/ExtensionHost.ts";
 import { FileDecorationsServiceAdapter } from "../../Extensions/Host/FileDecorationsServiceAdapter.ts";
 import { ThemeColorResolverAdapter } from "../../Extensions/Host/ThemeColorResolverAdapter.ts";
-import { CommandRegistryDIToken } from "../CommandRegistry.ts";
+import { CommandRegistryDIToken } from "../../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { FileTreeControllerDIToken } from "../FileTreeController.ts";
 

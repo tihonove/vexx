@@ -1,15 +1,15 @@
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import { FakeTerminalSurface } from "../../TestUtils/FakeTerminalSurface.ts";
-import { TerminalSessionFactoryDIToken } from "../Terminal/TerminalSessionFactory.ts";
+import { TerminalSessionFactoryDIToken } from "../../Workbench/Services/Terminal/TerminalSessionFactory.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
-import { TuiApplicationDIToken } from "../CoreTokens.ts";
-import { terminalEnvironmentModule } from "../TerminalEnvironment/TerminalEnvironmentModule.ts";
+import { TuiApplicationDIToken } from "../../Workbench/Services/CoreTokens.ts";
+import { terminalEnvironmentModule } from "../../Workbench/Services/TerminalEnvironment/TerminalEnvironmentModule.ts";
 
 import { backendModuleDefault } from "./BackendModule.ts";
 import { commandsModule } from "./CommandsModule.ts";

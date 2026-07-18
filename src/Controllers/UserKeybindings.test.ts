@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 
 import { AppControllerDIToken } from "./AppController.ts";
-import type { KeyboardEventLike } from "./KeybindingRegistry.ts";
-import { KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
+import type { KeyboardEventLike } from "../Workbench/Services/KeybindingRegistry.ts";
+import { KeybindingRegistryDIToken } from "../Workbench/Services/KeybindingRegistry.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 

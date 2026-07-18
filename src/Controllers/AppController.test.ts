@@ -14,7 +14,7 @@ import type { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
 import type { AppController } from "./AppController.ts";
 import { AppControllerDIToken } from "./AppController.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
-import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 
 describe("AppController integration", () => {
     it("creates UI tree with menubar and editor", () => {

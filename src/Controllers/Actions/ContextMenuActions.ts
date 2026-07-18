@@ -1,7 +1,7 @@
 import type { CommandAction } from "../CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { FileTreeControllerDIToken } from "../FileTreeController.ts";
-import { parseKeybinding } from "../KeybindingRegistry.ts";
+import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 /**
  * Открывает контекстное меню редактора с клавиатуры (Shift+F10, как в VS Code),

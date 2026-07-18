@@ -1,6 +1,6 @@
 import type { ContainerModule, ServiceAccessor } from "../../Common/DiContainer.ts";
 import type { TuiApplication } from "../../TUIDom/TuiApplication.ts";
-import { ServiceAccessorDIToken, TuiApplicationDIToken } from "../CoreTokens.ts";
+import { ServiceAccessorDIToken, TuiApplicationDIToken } from "../../Workbench/Services/CoreTokens.ts";
 
 export interface CoreModuleContext {
     app: TuiApplication;

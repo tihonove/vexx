@@ -18,13 +18,13 @@ import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
 import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import { getTabStripStyles } from "../Workbench/Styles/defaultStyles.ts";
 
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
+import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../Workbench/Services/CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
 import type { IController } from "./IController.ts";
 import type { IFileWatcher } from "../Common/IFileWatcher.ts";
 
-import { IFileWatcherDIToken } from "./IFileWatcherDIToken.ts";
-import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
+import { IFileWatcherDIToken } from "../Workbench/Services/IFileWatcherDIToken.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 

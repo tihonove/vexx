@@ -8,7 +8,7 @@ import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfiguratio
 import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
 
 import { TrashService } from "./TrashService.ts";
-import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "./UndoRedoService.ts";
+import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
 import { WorkspaceEditService } from "./WorkspaceEditService.ts";
 
 let tmpDir: string;

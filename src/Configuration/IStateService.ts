@@ -49,7 +49,7 @@ export type StateScope =
 /**
  * Дескриптор одного сохраняемого состояния. Объявляется рядом с
  * контроллером-владельцем (не с TUIDom-элементом — тот не знает про
- * Configuration); агрегируются в `Controllers/StateKeys.ts`.
+ * Configuration); агрегируются в `Workbench/Services/StateKeys.ts`.
  */
 export interface IStateDescriptor<T> {
     /** Ключ в сторе, namespaced в стиле VS Code (`"workbench.sideBar.width"`). */
