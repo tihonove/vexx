@@ -33,7 +33,7 @@ export const WorkbenchContextKeysDIToken = token<WorkbenchContextKeys>("Workbenc
 /**
  * Выставляет контекст-ключи workbench'а (`ContextKeys.ts`) из фокуса и состояния
  * сервисов: слушает FocusManager корневой view (capture-листенеры focus/blur
- * вешает владелец дерева — сейчас `AppController` — на {@link handleFocusChange})
+ * вешает владелец дерева — `WorkbenchComponent` — на {@link handleFocusChange})
  * и сервисы Editor/Find/Completion/Terminal/TerminalEnvironment. Хук
  * `KeybindingDispatcher.updateContextKeys` замкнут на {@link update} — перед
  * резолвом каждого биндинга ключи свежие.

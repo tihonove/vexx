@@ -296,12 +296,12 @@ describe("QuickOpenService — files mode", () => {
     });
 
     it("items show basename as label and directory as description", () => {
-        const results = [makeSearchResult("src/Controllers/AppController.ts")];
+        const results = [makeSearchResult("src/Controls/AppContainer.ts")];
         const { service, view } = createService(results);
         service.open("files");
         const items = view.items;
-        expect(items[0].label).toBe("AppController.ts");
-        expect(items[0].description).toBe("src/Controllers");
+        expect(items[0].label).toBe("AppContainer.ts");
+        expect(items[0].description).toBe("src/Controls");
     });
 
     it("file in root directory has empty description", () => {

@@ -37,9 +37,9 @@ describe("fuzzyMatch — basic matching", () => {
     });
 
     it("is case-insensitive", () => {
-        expect(fuzzyMatch("AC", "AppController")).not.toBeNull();
-        expect(fuzzyMatch("ac", "AppController")).not.toBeNull();
-        expect(fuzzyMatch("AC", "appcontroller")).not.toBeNull();
+        expect(fuzzyMatch("AC", "AppContainer")).not.toBeNull();
+        expect(fuzzyMatch("ac", "AppContainer")).not.toBeNull();
+        expect(fuzzyMatch("AC", "appcontainer")).not.toBeNull();
     });
 });
 
@@ -60,7 +60,7 @@ describe("fuzzyMatch — matchedIndices", () => {
     });
 
     it("length of matchedIndices equals query length", () => {
-        const result = fuzzyMatch("ctrl", "Controllers");
+        const result = fuzzyMatch("ctrl", "Controls");
         expect(result!.matchedIndices).toHaveLength(4);
     });
 });
@@ -69,8 +69,8 @@ describe("fuzzyMatch — matchedIndices", () => {
 
 describe("fuzzyMatch — word boundary scoring", () => {
     it("word-boundary match scores higher than mid-word match", () => {
-        // 'A' and 'C' are both word-boundary starts in "AppController"
-        const boundary = fuzzyMatch("ac", "AppController");
+        // 'A' and 'C' are both word-boundary starts in "AppContainer"
+        const boundary = fuzzyMatch("ac", "AppContainer");
         // 'a' at 0, 'c' at 4 in "abstract" — 'a' is boundary but 'c' is not
         const midword = fuzzyMatch("ac", "abstract");
         expect(boundary).not.toBeNull();
@@ -93,8 +93,8 @@ describe("fuzzyMatch — word boundary scoring", () => {
     });
 
     it("camelCase boundary is detected", () => {
-        // 'C' in "AppController" follows lowercase 'p' → word boundary
-        const result = fuzzyMatch("AC", "AppController");
+        // 'C' in "AppContainer" follows lowercase 'p' → word boundary
+        const result = fuzzyMatch("AC", "AppContainer");
         expect(result).not.toBeNull();
         // Both A (pos 0, first char) and C (pos 3, camelCase boundary) get WORD_START_BONUS
         // This makes the score quite high
@@ -125,14 +125,14 @@ describe("fuzzyMatch — consecutive bonus", () => {
 // ─── Ranking comparisons (VS Code-like expectations) ─────────────────────────
 
 describe("fuzzyMatch — ranking", () => {
-    it('query "ac": AppController ranks above abstract', () => {
-        const controller = fuzzyMatch("ac", "AppController");
+    it('query "ac": AppContainer ranks above abstract', () => {
+        const container = fuzzyMatch("ac", "AppContainer");
         const abstract_ = fuzzyMatch("ac", "abstract");
-        expect(controller!.score).toBeGreaterThan(abstract_!.score);
+        expect(container!.score).toBeGreaterThan(abstract_!.score);
     });
 
-    it('query "fc": FileController ranks above first_contact', () => {
-        const fileCtrl = fuzzyMatchBest("fc", "FileController");
+    it('query "fc": FileContainer ranks above first_contact', () => {
+        const fileCtrl = fuzzyMatchBest("fc", "FileContainer");
         const firstContact = fuzzyMatchBest("fc", "first_contact");
         expect(fileCtrl).not.toBeNull();
         expect(firstContact).not.toBeNull();
@@ -150,9 +150,9 @@ describe("fuzzyMatch — ranking", () => {
     });
 
     it("shorter file with same boundary chars ranks higher than longer", () => {
-        // "AC" in "AppController" (13 chars) vs "AppControllerFactory" (20 chars)
-        const shorter = fuzzyMatch("ac", "AppController");
-        const longer = fuzzyMatch("ac", "AppControllerFactory");
+        // "AC" in "AppContainer" (13 chars) vs "AppContainerFactory" (20 chars)
+        const shorter = fuzzyMatch("ac", "AppContainer");
+        const longer = fuzzyMatch("ac", "AppContainerFactory");
         // Both start at same positions so score should be equal or shorter wins via gap
         expect(shorter).not.toBeNull();
         expect(longer).not.toBeNull();
@@ -177,7 +177,7 @@ describe("fuzzyMatchBest", () => {
     });
 
     it("returns match when characters present", () => {
-        expect(fuzzyMatchBest("ac", "AppController")).not.toBeNull();
+        expect(fuzzyMatchBest("ac", "AppContainer")).not.toBeNull();
     });
 
     it("prefers word-boundary start over mid-word start", () => {
@@ -304,10 +304,10 @@ describe("fuzzyMatch — gap penalty", () => {
 
 describe("fuzzyMatchLower / fuzzyMatchBestLower — parity with wrappers", () => {
     const cases: [string, string][] = [
-        ["ac", "AppController"],
+        ["ac", "AppContainer"],
         ["fss", "FileSearchService.ts"],
-        ["src", "src/Controllers/FileSearchService.ts"],
-        ["zz", "AppController"], // no match
+        ["src", "src/Controls/FileSearchService.ts"],
+        ["zz", "AppContainer"], // no match
         ["", "anything"], // empty query
     ];
 
@@ -328,9 +328,9 @@ describe("fuzzyMatchLower / fuzzyMatchBestLower — parity with wrappers", () =>
     });
 
     it("scoring still uses original case for camelCase word boundaries", () => {
-        // 'c' should score the word-boundary 'C' in AppController higher than a
+        // 'c' should score the word-boundary 'C' in AppContainer higher than a
         // mid-word 'c' in a lowercase string of the same length.
-        const camel = fuzzyMatchBestLower("c", "AppController", "appcontroller");
+        const camel = fuzzyMatchBestLower("c", "AppContainer", "appcontainer");
         const flat = fuzzyMatchBestLower("c", "appxxxxxxxxxx", "appxxxxxxxxxx");
         expect(camel).not.toBeNull();
         expect(flat).toBeNull(); // no 'c' in the flat string at all
@@ -371,7 +371,7 @@ describe("charMask — presence prefilter", () => {
     it("never rejects a real fuzzy match across a sample (soundness)", () => {
         // For any (query, text) where fuzzyMatch succeeds, the mask filter must
         // also pass — a real match implies every query char is present.
-        const texts = ["AppController.ts", "src/Common/FuzzySearch.ts", "file_search.test.ts", "a1b2c3"];
+        const texts = ["AppContainer.ts", "src/Common/FuzzySearch.ts", "file_search.test.ts", "a1b2c3"];
         const queries = ["ac", "fz", "search", "a1c3", "test", "zzz", "9x"];
         for (const t of texts) {
             const tMask = charMask(t.toLowerCase());

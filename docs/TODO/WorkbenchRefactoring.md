@@ -1,6 +1,7 @@
 # Workbench-рефакторинг: Controllers → Services + Components, контролы TUIDom как «вещь в себе»
 
-Статус: `[~]` в работе.
+Статус: `[x]` завершено. Документ — исторический: фиксирует план и ход миграции;
+актуальное описание слоя — [../arch/Workbench.md](../arch/Workbench.md).
 
 ## Цель
 
@@ -160,8 +161,26 @@ Workbench и может его импортировать; обратно — н
        width-команды) и `TerminalActions.ts` (toggle/new terminal) вместо
        inline-registerAction в AppController. AppController: 1267 → ~430 строк
        (скорлупа: Body/Layout + вставка view + attach-швы + bootstrap + quit)
-- [ ] 12. Финал: `WorkbenchComponent`, Modules → Workbench, смерть `src/Controllers/`
-- [ ] 13. Зачистка + документация (arch/Workbench.md, ARCHITECTURE.md, DI.md)
+- [x] 12. Финал: `WorkbenchComponent`, Modules → Workbench, смерть `src/Controllers/`:
+       AppController → `Workbench/Components/Shell/WorkbenchComponent.ts` (наследник
+       `ThemedComponent`: `applyTheme` → `updateStyles`, `view.id="workbench"`; публичный
+       bootstrap-API mount/activate/openFile/setWorkspaceFolder/restoreOpenEditors/
+       getOpenEditorsToRestore/fileIndexReady/focusEditor/requestQuit сохранён — его ведёт
+       `main.ts`); `Controllers/Modules/` → `Workbench/Modules/` (git mv; `controllersModule`
+       растворён — `WorkbenchComponentDIToken` биндит `workbenchModule`, шов
+       `IWorkspaceFolderOpener` замкнут на `WorkbenchComponent`); `IController` умер
+       (у компонентов контракта lifecycle нет — у корня он собственный); тесты
+       `AppController.*.test.ts` → `Workbench/Components/Shell/Workbench.*.test.ts`
+       (git mv, сценарии 1:1; обвязка — `WorkbenchComponentDIToken`, `h.workbench`),
+       `TerminalEnvironmentIntegration.test.ts` → `Workbench/Services/TerminalEnvironment/`;
+       `main.ts` и `AppTestHarness` — на `WorkbenchComponentDIToken`
+- [x] 13. Зачистка + документация: остаточные `*Controller*`-упоминания вычищены из
+       src/ и docs/ (fixture-имена в тестах переименованы; исторические записи в этом
+       файле и changelog-подобных оставлены); `docs/arch/Controllers.md` удалён — живое
+       содержимое (конвенции системы команд, паттерн Service/Component/Element/State)
+       переехало в arch/Workbench.md; ARCHITECTURE.md — финальная схема слоёв без
+       Controllers (переходное правило снято), DI-границы — Workbench и App; DI.md —
+       модули по новым путям; TESTING.md/AGENTS.md обновлены
 
 ## Ключевые контракты
 

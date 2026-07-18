@@ -47,7 +47,7 @@ export class FindService extends Disposable {
             this.close();
         };
         // Find оперирует только активным редактором — смена активного закрывает
-        // виджет (раньше эту подписку держал AppController).
+        // виджет (раньше эту подписку держал корневой контроллер).
         this.register(
             this.editorService.onActiveEditorChanged(() => {
                 this.close();

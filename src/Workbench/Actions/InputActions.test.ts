@@ -198,7 +198,7 @@ describe("InputActions — no active input", () => {
             await Promise.resolve(commands.execute(action.id));
         }
 
-        // Controller still works once a real input is attached (it survived the null-active calls).
+        // The service still works once a real input is attached (it survived the null-active calls).
         const input = new InputElement();
         input.inputState.value = "ab";
         controller.setActive(input);

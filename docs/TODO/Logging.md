@@ -9,7 +9,7 @@
 
 - [ ] **Phase 4 — Output UI**
   TUI-виджет (вкладка/панель) поверх `RingBufferSink`: список каналов, live-tail через `onDidAppend`, фильтры по уровню/каналу,
-  clear/scroll. Контроллер — `OutputController` (Controllers/), читает sink через DI.
+  clear/scroll. Пара `OutputService` + `OutputComponent` (Workbench), читает sink через DI.
 
 - [ ] **Phase 5 — Extension Host inner tracing**
   Внутри subprocess: пробросить `ILogger` в его `RpcEndpoint` (например, через стартовый `host.setLogLevel`-handshake), чтобы видеть исполнение handler'ов с той стороны.

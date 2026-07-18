@@ -17,9 +17,9 @@ import type { CommandAction } from "./CommandAction.ts";
 
 /**
  * Смена папки воркспейса (Open Folder). Интерфейсный шов: Workbench объявляет,
- * владелец приложения (сейчас `AppController`: дерево, стейт, поисковый индекс,
+ * владелец приложения (`WorkbenchComponent`: дерево, стейт, поисковый индекс,
  * cwd терминалов) соответствует структурно; биндинг — в
- * `Controllers/Modules/WorkbenchModule.ts`.
+ * `Workbench/Modules/WorkbenchModule.ts`.
  */
 export interface IWorkspaceFolderOpener {
     setWorkspaceFolder(dirPath: string): void;

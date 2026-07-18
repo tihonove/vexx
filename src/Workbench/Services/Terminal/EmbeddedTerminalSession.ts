@@ -7,7 +7,7 @@
 // (`sendMouse`), сменить размер (`resize`), подписаться на «есть новые данные»
 // (`onUpdate`) и на выход шелла (`onExit`).
 //
-// Это Controllers-слой (выше TUIDom), поэтому импорт node-pty здесь допустим: слои
+// Это Workbench-слой (выше TUIDom), поэтому импорт node-pty здесь допустим: слои
 // TUIDom и ниже остаются чистыми, а виджет `TerminalViewElement` видит только
 // `ITerminalSurface`. См. docs/TODO/IntegratedTerminal.md.
 

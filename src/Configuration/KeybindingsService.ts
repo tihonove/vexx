@@ -7,7 +7,7 @@ import type { ILogger } from "../Common/Logging/ILogger.ts";
 /**
  * A single user keybinding rule, VS Code-shaped. Pure data — parsing the `key`
  * into chords and registering into the KeybindingRegistry happens in the
- * Controllers layer (this layer must not depend on it).
+ * Workbench layer (this layer must not depend on it).
  *
  *   [
  *     { "key": "ctrl+shift+right", "command": "cursorWordRight", "when": "tier == 'kitty'" },

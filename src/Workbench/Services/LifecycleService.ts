@@ -38,7 +38,7 @@ export interface IShutdownParticipant {
  * {@link requestQuit} последовательно спрашивает про каждый «грязный» элемент
  * участников через `DialogService.confirmSave`; Cancel прерывает выход,
  * иначе по завершении зовётся `onQuit` (остановку TuiApplication/process.exit
- * передаёт владелец приложения — AppController).
+ * передаёт владелец приложения — WorkbenchComponent).
  */
 export class LifecycleService {
     public static dependencies = [DialogServiceDIToken] as const;

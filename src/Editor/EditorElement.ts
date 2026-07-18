@@ -90,7 +90,7 @@ export interface IEditorStyles {
 
 // Defaults preserve the historical theme-less look (VS Code dark values; the
 // occurrence highlight is an opaque approximation of #575757b8 composited over
-// the editor bg). Controllers override them via setStyles from the active theme.
+// the editor bg). Workbench components override them via setStyles from the active theme.
 export const unthemedEditorStyles: IEditorStyles = {
     gutterBackground: undefined,
     lineNumberForeground: packRgb(133, 133, 133),

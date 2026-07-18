@@ -115,7 +115,7 @@ export interface StatusBarHarness {
 }
 
 /**
- * Собирает полную связку статус-бара без DI-контейнера и слоя Controllers:
+ * Собирает полную связку статус-бара без DI-контейнера:
  * StatusBarService + оба contribution'а + StatusBarComponent. Терминальное
  * окружение — настоящий `TerminalEnvironmentService` (тесты чистят env-переменные,
  * чтобы сегмент детерминированно резолвился в "legacy").

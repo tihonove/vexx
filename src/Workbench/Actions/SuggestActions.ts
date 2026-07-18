@@ -5,7 +5,7 @@ import type { CommandAction } from "./CommandAction.ts";
 // Тонкие экшены suggest-попапа поверх CompletionService (этап 10:
 // run-обработчики живут в самих экшенах, как у find/quick-open). Экшены под
 // `suggestWidgetVisible` регистрируются ПОСЛЕ builtin editor-экшенов (хвост
-// builtinActions в AppController), чтобы победить cursorDown/indentLines при
+// builtinActions в WorkbenchComponent), чтобы победить cursorDown/indentLines при
 // открытом попапе (KeybindingRegistry.resolveKey: последний зарегистрированный
 // с проходящим `when` выигрывает).
 

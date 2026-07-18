@@ -5,7 +5,7 @@
 // полноэкранные TUI (htop/vim) и реакцию на ресайз (кнопки Narrower/Wider и ресайз окна).
 //
 // Контрол и связка с PTY уже интегрированы в приложение — демо потребляет те же модули:
-// `EmbeddedTerminalSession` (Controllers) реализует `ITerminalSurface`, а
+// `EmbeddedTerminalSession` (Workbench) реализует `ITerminalSurface`, а
 // `TerminalViewElement` (TUIDom) рендерит эту абстрактную поверхность. Отдельного
 // demo-only копипаста больше нет.
 //

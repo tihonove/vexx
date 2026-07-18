@@ -27,7 +27,7 @@ API реестра: `changeOne(owner, resource, markers[])`, `read({ resource?, 
 
 - **Реестр** — `src/Editor/Markers/` (чистый, без DI — зеркало `Editor/Tokenization`,
   `TokenizationRegistry`). DI-токен `MarkerServiceDIToken` — в `Workbench/Services/CoreTokens.ts`,
-  модуль — `Controllers/Modules/MarkersModule.ts`.
+  модуль — `Workbench/Modules/MarkersModule.ts`.
 - **Поставщик** — `DiagnosticsService` (`Workbench/Services/Diagnostics/`). Пишет через `changeOne`.
 - **Потребитель (editor squiggly)** — тот же `DiagnosticsService` подписан на `onDidChangeMarkers`,
   фильтрует маркеры открытых редакторов (шов `IDiagnosticsEditorSource`), пушит диапазоны+severity в

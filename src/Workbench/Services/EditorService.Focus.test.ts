@@ -9,7 +9,7 @@ import { type EditorService, EditorServiceDIToken } from "./EditorService.ts";
 
 interface TestContext {
     testApp: TestApp;
-    controller: IAppHarness["controller"];
+    workbench: IAppHarness["workbench"];
     commandRegistry: CommandRegistry;
     editorService: EditorService;
 }
@@ -18,7 +18,7 @@ function createTestContext(): TestContext {
     const h = createAppTestHarness();
     return {
         testApp: h.testApp,
-        controller: h.controller,
+        workbench: h.workbench,
         commandRegistry: h.commands,
         editorService: h.container.get(EditorServiceDIToken),
     };
@@ -36,9 +36,9 @@ describe("EditorService focus management on tab close", () => {
     });
 
     it("focusManager.activeElement is null after closing the only tab", () => {
-        const { testApp, controller, editorService } = createTestContext();
-        controller.openFile(ws.writeFile("a.ts", "a"));
-        controller.focusEditor();
+        const { testApp, workbench, editorService } = createTestContext();
+        workbench.openFile(ws.writeFile("a.ts", "a"));
+        workbench.focusEditor();
 
         expect(testApp.focusedElement).not.toBeNull();
 
@@ -48,10 +48,10 @@ describe("EditorService focus management on tab close", () => {
     });
 
     it("focus moves to the new active editor after closing the last tab when two are open", () => {
-        const { testApp, controller, editorService } = createTestContext();
-        controller.openFile(ws.writeFile("a.ts", "a"));
-        controller.openFile(ws.writeFile("b.ts", "b"));
-        controller.focusEditor();
+        const { testApp, workbench, editorService } = createTestContext();
+        workbench.openFile(ws.writeFile("a.ts", "a"));
+        workbench.openFile(ws.writeFile("b.ts", "b"));
+        workbench.focusEditor();
 
         const initialFocused = testApp.focusedElement;
         expect(initialFocused).not.toBeNull();
@@ -64,9 +64,9 @@ describe("EditorService focus management on tab close", () => {
     });
 
     it("keyboard hotkeys work after closing the only tab", () => {
-        const { testApp, controller, commandRegistry, editorService } = createTestContext();
-        controller.openFile(ws.writeFile("a.ts", "a"));
-        controller.focusEditor();
+        const { testApp, workbench, commandRegistry, editorService } = createTestContext();
+        workbench.openFile(ws.writeFile("a.ts", "a"));
+        workbench.focusEditor();
         editorService.closeTab(0);
 
         const executeSpy = vi.spyOn(commandRegistry, "execute");
@@ -82,11 +82,11 @@ describe("EditorService focus management on tab close", () => {
     });
 
     it("activeElement points to living element in the tree after tab switch on close", () => {
-        const { testApp, controller, editorService } = createTestContext();
-        controller.openFile(ws.writeFile("a.ts", "a"));
-        controller.openFile(ws.writeFile("b.ts", "b"));
-        controller.openFile(ws.writeFile("c.ts", "c"));
-        controller.focusEditor();
+        const { testApp, workbench, editorService } = createTestContext();
+        workbench.openFile(ws.writeFile("a.ts", "a"));
+        workbench.openFile(ws.writeFile("b.ts", "b"));
+        workbench.openFile(ws.writeFile("c.ts", "c"));
+        workbench.focusEditor();
 
         // close active (index 2)
         editorService.closeTab(2);
@@ -98,9 +98,9 @@ describe("EditorService focus management on tab close", () => {
     });
 
     it("activeElement is null (not orphaned) after closing the only tab", () => {
-        const { testApp, controller, editorService } = createTestContext();
-        controller.openFile(ws.writeFile("a.ts", "a"));
-        controller.focusEditor();
+        const { testApp, workbench, editorService } = createTestContext();
+        workbench.openFile(ws.writeFile("a.ts", "a"));
+        workbench.focusEditor();
 
         editorService.closeTab(0);
 
@@ -124,28 +124,28 @@ describe("EditorService auto-focus on file open", () => {
     });
 
     it("editor receives focus automatically when a file is opened", () => {
-        const { testApp, controller } = createTestContext();
-        controller.openFile(ws.writeFile("a.ts", "a"));
+        const { testApp, workbench } = createTestContext();
+        workbench.openFile(ws.writeFile("a.ts", "a"));
 
         expect(testApp.focusedElement).not.toBeNull();
         expect(testApp.querySelector("EditorElement")).toBe(testApp.focusedElement);
     });
 
     it("editor receives focus when switching to an already-open file", () => {
-        const { testApp, controller } = createTestContext();
+        const { testApp, workbench } = createTestContext();
         const fp = ws.writeFile("a.ts", "a");
-        controller.openFile(fp);
-        controller.openFile(ws.writeFile("b.ts", "b"));
+        workbench.openFile(fp);
+        workbench.openFile(ws.writeFile("b.ts", "b"));
         // open a.ts again — should switch tab and focus
-        controller.openFile(fp);
+        workbench.openFile(fp);
 
         expect(testApp.focusedElement).not.toBeNull();
         expect(testApp.querySelector("EditorElement")).toBe(testApp.focusedElement);
     });
 
     it("focusManager.activeElement is the exact EditorElement instance after openFile", () => {
-        const { testApp, editorService, controller } = createTestContext();
-        controller.openFile(ws.writeFile("a.ts", "a"));
+        const { testApp, editorService, workbench } = createTestContext();
+        workbench.openFile(ws.writeFile("a.ts", "a"));
 
         const editorElement = editorService.getActiveEditor()!.view.getChild();
         expect(testApp.app.focusManager?.activeElement).toBe(editorElement);

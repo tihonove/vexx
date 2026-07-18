@@ -21,7 +21,7 @@ export const QuickInputComponentDIToken = token<QuickInputComponent>("QuickInput
  *
  * Overlay-хост (корневая BodyElement-view приложения) приходит через late-init
  * шов {@link attachHost} — его зовёт владелец корневой view (сейчас
- * AppController) после её постройки, как у DialogService/ExplorerComponent.
+ * WorkbenchComponent) после её постройки, как у DialogService/ExplorerComponent.
  */
 export class QuickInputComponent extends ThemedComponent {
     public static dependencies = [ThemeServiceDIToken] as const;

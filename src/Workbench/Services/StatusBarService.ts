@@ -3,7 +3,7 @@ import type { IDisposable } from "../../Common/Disposable.ts";
 
 /**
  * Запись статус-бара (аналог VS Code `IStatusbarEntry`). Записи публикуют
- * сервисы-поставщики (contribution'ы) и `AppController` (chord-хинт);
+ * сервисы-поставщики (contribution'ы) и `WorkbenchComponent` (chord-хинт);
  * сам сервис про содержимое ничего не знает.
  */
 export interface IStatusBarEntry {

@@ -68,13 +68,13 @@ describe("FileSearchService — indexing", () => {
         });
 
         it("indexes files recursively", async () => {
-            ws.writeFile("src/Controllers/AppController.ts", "");
+            ws.writeFile("src/Controls/AppContainer.ts", "");
             ws.writeFile("src/Common/DiContainer.ts", "");
             ws.writeFile("package.json", "");
             await service.activate(ws.dir);
 
             const paths = indexedPaths(service);
-            expect(paths).toContain("src/Controllers/AppController.ts");
+            expect(paths).toContain("src/Controls/AppContainer.ts");
             expect(paths).toContain("src/Common/DiContainer.ts");
             expect(paths).toContain("package.json");
         });

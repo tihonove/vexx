@@ -40,8 +40,8 @@ Vexx — терминальный текстовый редактор (клон 
 Сквозные конвенции, которые надо держать в голове. Полные формулировки — в детальных arch-доках по ссылкам.
 - **Цвета** — все цвета UI берутся только из активной темы через `theme.getColor`/`getRequiredColor`; никаких литералов и инлайн-фоллбэков. Новый цвет — ключ в `IWorkbenchColors` + дефолт в `defaultColors.ts`. Детали → [docs/arch/Theme.md](docs/arch/Theme.md).
 - **Рост `vscode.d.ts`** — файл **запиннен** к тегу upstream (шапка + `src/Extensions/builtin/VSCODE_VERSION`, держи в лок-степе). Активная поверхность — это **дословно раскомментированные** строки нижней (закомментированной) копии; **единственная** ручная правка файла — снятие `// `, ничего не сужать/переписывать/переоформлять. Тянет незакомментированный тип — раскомментируй и его, либо отложи блок; для «тяжёлых» блоков допускается **bounded member-level uncommenting** (раскомментировать подмножество членов). Дормантную часть регенерирует `scripts/import-vscode-dts.mjs`; апдейт upstream — ручной трёхсторонний merge против запинненной базы. Детали → [docs/arch/Extensions.md](docs/arch/Extensions.md).
-- **DI** — токены именуются `*DIToken`; объявлять токены и импортировать `Container` можно только на уровнях Controllers и App. Детали → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#di-контейнер-границы-использования).
-- **Система команд** — ID команд, отражающих VS Code Workbench/Editor, именуются в стиле VS Code; доступность — через typed when-контексты из `ContextKeys.ts`. Детали → [docs/arch/Controllers.md](docs/arch/Controllers.md).
+- **DI** — токены именуются `*DIToken`; объявлять токены и импортировать `Container` можно только на уровнях Workbench и App. Детали → [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#di-контейнер-границы-использования).
+- **Система команд** — ID команд, отражающих VS Code Workbench/Editor, именуются в стиле VS Code; доступность — через typed when-контексты из `ContextKeys.ts`. Детали → [docs/arch/Workbench.md](docs/arch/Workbench.md).
 
 # Файловая структура
 Файлы с тестам не должны быть слишком большими -- у нас может быть много кейсов поэтому надо писать тесты не в одном 

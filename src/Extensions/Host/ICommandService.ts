@@ -3,7 +3,7 @@ import type { IDisposable } from "../../Common/Disposable.ts";
 /**
  * Тонкий «port» поверх host-реестра команд ({@link CommandRegistry}), нужный
  * {@link ExtensionHost} для двустороннего моста команд без прямой зависимости
- * на слой Controllers внутри runtime'а расширения.
+ * на слой Workbench внутри runtime'а расширения.
  *
  * Паттерн повторяет {@link IEditorOptionsService} — адаптер живёт в слое
  * Extensions, ядро про host ничего не знает.

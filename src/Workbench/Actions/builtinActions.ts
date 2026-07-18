@@ -137,7 +137,7 @@ import { insertFinalNewLineAction, trimTrailingWhitespaceAction } from "./Whites
 
 /**
  * Реестр встроенных экшенов Workbench'а. Регистрирует их владелец приложения
- * (сейчас `AppController`) единым циклом `registerAction`; ПОРЯДОК ВАЖЕН —
+ * (`WorkbenchComponent`) единым циклом `registerAction`; ПОРЯДОК ВАЖЕН —
  * `KeybindingRegistry.resolveKey` берёт последний зарегистрированный биндинг с
  * проходящим `when` (см. комментарий у Find/Suggest-хвоста).
  */

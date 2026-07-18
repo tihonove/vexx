@@ -16,7 +16,7 @@ import { WorkbenchContextKeys } from "./WorkbenchContextKeys.ts";
 
 /**
  * Юнит-сценарии поверх фейков — краевые случаи, не достижимые из интеграционных
- * AppController-тестов: update() до attachView (фокуса ещё нет) и проводка
+ * Workbench-тестов: update() до attachView (фокуса ещё нет) и проводка
  * хуков (dispatcher.updateContextKeys, onDidChange терминального окружения).
  */
 function makeHarness() {

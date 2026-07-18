@@ -65,7 +65,7 @@
 - **Слои:** движок key/value поверх plain-JSON файлов, зависит только от Common +
   fs. Живёт в `Configuration/` (сосед `ConfigurationService`);
   `StateServiceDIToken` объявлен в `Workbench/Services/CoreTokens.ts` (потребители-
-  сервисы — в Workbench), биндинг — модуль `Controllers/Modules/StateModule.ts`.
+  сервисы — в Workbench), биндинг — модуль `Workbench/Modules/StateModule.ts`.
 - **Write-through + debounce + flushSync:** `store` обновляет in-memory стор
   синхронно, запись на диск — debounced (async). Durability гарантирует
   `flushSync()` на выходе процесса. Так `get` всегда видит последнее значение.
@@ -83,7 +83,7 @@
 ```
 main.ts: build container ─► process.on("exit", stateService.flushSync)
    │
-   ├─ первый CLI-arg — папка? ─► AppController.setWorkspaceFolder(dir)
+   ├─ первый CLI-arg — папка? ─► WorkbenchComponent.setWorkspaceFolder(dir)
    │                              └─► WorkbenchStateService.openWorkspace(dir)  (load per-project стор)
    ├─ mount()  ─► LayoutService.restoreLayout()   (перед первым кадром; + sync истины в PanelService)
    ├─ run()
@@ -132,7 +132,7 @@ main.ts: build container ─► process.on("exit", stateService.flushSync)
   preservation, workspace↔global fallback, версии),
   `Workbench/Services/WorkbenchStateService.test.ts` (открытые редакторы),
   `Workbench/Services/LayoutService.test.ts` (restore/capture layout, сайдбар/панель).
-- Integration: `AppController.StatePersistence.test.ts` — реальный `StateService`
+- Integration: `Workbench.StatePersistence.test.ts` — реальный `StateService`
   через `createAppTestHarness({ stateService })`, round-trip restore на двух
   «запусках».
 - Демо: `e2e/scenarios/sessionLayout.scenario.ts` (видимая раскладка, которая

@@ -80,7 +80,7 @@ function eventToKeybinding(event: TUIKeyboardEvent): Keybinding {
  * ведение chord-режима (таймауты, «swallow» продолжения, хинт в статус-баре через
  * StatusBarService) и применение пользовательских keybindings.json-правил.
  *
- * Сервис не владеет view: владелец корневого дерева (сейчас AppController) вешает
+ * Сервис не владеет view: владелец корневого дерева (WorkbenchComponent) вешает
  * capture/bubble-листенеры на BodyElement и подключает два хука —
  * {@link updateContextKeys} и {@link hasKeyboardCapturingOverlay}.
  */
@@ -97,13 +97,13 @@ export class KeybindingDispatcher extends Disposable {
 
     /**
      * Хук владельца view: обновить контекстные ключи (фокус/панели/окружение) перед
-     * резолвом биндинга. AppController подставляет свой updateContextKeys().
+     * резолвом биндинга. WorkbenchComponent подставляет свой updateContextKeys().
      */
     public updateContextKeys: () => void = () => {};
 
     /**
      * Хук владельца view: владеет ли клавиатурой модальный оверлей (quickpick / диалог /
-     * меню). AppController подставляет view.overlayLayer.hasKeyboardCapturingOverlay().
+     * меню). WorkbenchComponent подставляет view.overlayLayer.hasKeyboardCapturingOverlay().
      */
     public hasKeyboardCapturingOverlay: () => boolean = () => false;
 

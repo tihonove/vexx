@@ -17,21 +17,21 @@
 
 - `EditorServiceDIToken` — токен для `EditorService`
 - `TuiApplicationDIToken` — токен для `TuiApplication`
-- `AppControllerDIToken` — токен для `AppController`
+- `WorkbenchComponentDIToken` — токен для `WorkbenchComponent`
 
 Не используем префикс `I` (как `IEditorCtrl`) — только суффикс `DIToken`.
 
 ## Где объявлять токены
 
-DI-токены и зависимости (`static dependencies`) объявляются **только на уровнях Controllers, Workbench и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны импортировать `Container`, `token()` или `Token` и не должны объявлять DI-токены.
+DI-токены и зависимости (`static dependencies`) объявляются **только на уровнях Workbench и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны импортировать `Container`, `token()` или `Token` и не должны объявлять DI-токены.
 
 `Common/DiContainer.ts` реализует механизм DI, но конкретные токены в Common/ не объявляются.
 
-Сквозные токены ядра (`TuiApplicationDIToken`, `TerminalBackendDIToken`, `ClipboardDIToken`, `MarkerServiceDIToken`, `StateServiceDIToken`, `SettingsResourceDIToken`/`KeybindingsResourceDIToken` и др.) живут в `src/Workbench/Services/CoreTokens.ts`; там же, в `Workbench/Services/`, — токены переехавших сервисов (`CommandRegistryDIToken`, `KeybindingRegistryDIToken`, `ContextKeyServiceDIToken`, `IFileWatcherDIToken`, `FileSearchServiceDIToken`, `UndoRedoServiceDIToken` и т.п.). Токены контроллеров — по-прежнему рядом с ними в `src/Controllers/` (остался один `AppControllerDIToken`).
+Сквозные токены ядра (`TuiApplicationDIToken`, `TerminalBackendDIToken`, `ClipboardDIToken`, `MarkerServiceDIToken`, `StateServiceDIToken`, `SettingsResourceDIToken`/`KeybindingsResourceDIToken` и др.) живут в `src/Workbench/Services/CoreTokens.ts`; там же, в `Workbench/Services/`, — токены сервисов (`CommandRegistryDIToken`, `KeybindingRegistryDIToken`, `ContextKeyServiceDIToken`, `IFileWatcherDIToken`, `FileSearchServiceDIToken`, `UndoRedoServiceDIToken` и т.п.). Токены компонентов (`*ComponentDIToken`) — рядом с компонентами в `Workbench/Components/`.
 
 ## Объявление токенов
 
-Токены объявляются рядом с реализацией сервиса (Controllers/ или Workbench/Services/):
+Токены объявляются рядом с реализацией (`Workbench/Services/` для сервисов, `Workbench/Components/` для компонентов):
 
 ```typescript
 import { token } from "../Common/DiContainer.ts";
@@ -45,14 +45,14 @@ export const EditorServiceDIToken = token<EditorService>("EditorService");
 Компилятор проверяет, что типы токенов совпадают с типами параметров:
 
 ```typescript
-import { TuiApplicationDIToken } from "./CoreTokens.ts";
-import { EditorServiceDIToken } from "./EditorService.ts";
+import { StatusBarServiceDIToken } from "../Services/StatusBarService.ts";
+import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 
-export class AppController extends Disposable {
-    static dependencies = [TuiApplicationDIToken, EditorServiceDIToken] as const;
+export class StatusBarComponent extends ThemedComponent {
+    static dependencies = [StatusBarServiceDIToken, ThemeServiceDIToken] as const;
 
-    constructor(app: TuiApplication, editorService: EditorService) {
-        super();
+    constructor(statusBar: StatusBarService, themeService: ThemeService) {
+        super(themeService);
         // ...
     }
 }
@@ -80,9 +80,9 @@ import { Container } from "./Common/DiContainer.ts";
 const container = new Container()
     .bind(TuiApplicationDIToken, () => application) // фабрика для leaf-сервисов
     .bind(EditorServiceDIToken, EditorService)      // класс — deps из static dependencies
-    .bind(AppControllerDIToken, AppController);
+    .bind(WorkbenchComponentDIToken, WorkbenchComponent);
 
-const appCtrl = container.get(AppControllerDIToken);
+const workbench = container.get(WorkbenchComponentDIToken);
 ```
 
 Два варианта `.bind()`:
@@ -116,7 +116,7 @@ const appCtrl = container.get(AppControllerDIToken);
 В тестах можно создавать экземпляры напрямую:
 
 ```typescript
-const ctrl = new AppController(mockApp, mockEditor);
+const component = new StatusBarComponent(fakeStatusBarService, themeService);
 ```
 
 ## Модули и профили
@@ -126,7 +126,7 @@ const ctrl = new AppController(mockApp, mockEditor);
 `(container, ctx) => void`. Модули собираются в **профили** — фабрики готовых
 контейнеров под конкретный сценарий (production, test).
 
-Файлы: `src/Controllers/Modules/` (исключение — `terminalEnvironmentModule`, живёт рядом со своим сервисом в `src/Workbench/Services/TerminalEnvironment/`). Биндинги остаются в `Controllers/Modules/` до этапа 12 Workbench-рефакторинга.
+Файлы: `src/Workbench/Modules/` (исключение — `terminalEnvironmentModule`, живёт рядом со своим сервисом в `src/Workbench/Services/TerminalEnvironment/`).
 
 ### `ContainerModule<Ctx>`
 
@@ -143,7 +143,7 @@ const container = new Container()
     .use(coreModule, { app })
     .use(commandsModule)
     .use(themeModule, { theme })
-    .use(controllersModule);
+    .use(workbenchModule);
 ```
 
 `.use()` возвращает контейнер — его можно чейнить с обычным `.bind()`.
@@ -153,7 +153,7 @@ const container = new Container()
 | Модуль | Контекст | Что регистрирует |
 |--------|----------|------------------|
 | `coreModule` | `{ app }` | `ServiceAccessor`, `TuiApplication` |
-| `coreModuleLate` | — | Только `ServiceAccessor`. Для тестов, где `TuiApplication` создаётся позже от view контроллера. |
+| `coreModuleLate` | — | Только `ServiceAccessor`. Для тестов, где `TuiApplication` создаётся позже от view корневого компонента. |
 | `commandsModule` | — | `CommandRegistry`, `KeybindingRegistry`, `ContextKeyService` |
 | `themeModule` | `{ theme }` | `ThemeService` |
 | `tokenizationModule` | `{ tokenizationRegistry, tokenStyleResolver, languageService }` | Соответствующие токены. Реализации передаются снаружи. |
@@ -166,8 +166,7 @@ const container = new Container()
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
 | `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorService` (Workbench), `FileDecorationsServiceAdapter` поверх `ExplorerService` (Workbench), `ThemeColorResolverAdapter` поверх `ThemeService`) |
-| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`; Explorer-кластер — `ExplorerService`+`ExplorerComponent`, `FileOperationsService`, `InputWidgetService`; QuickInput-кластер — `QuickInputComponent` (общий виджет), `QuickInputService`, `FileSearchService`, `QuickOpenService`; Editor-кластер — `EditorService`+`EditorGroupComponent`; Find/Suggest-кластер — `FindService`+`FindComponent` и `CompletionService`+`SuggestComponent`; Shell-кластер (этап 11) — `LayoutService`, `WorkbenchStateService`, `WorkbenchContextKeys`, `MenuService`+`MenuBarComponent`. Швы → `EditorService`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget`, `GotoLineEditorSource`; шов → `AppController`: `WorkspaceFolderOpener` (Open Folder) |
-| `controllersModule` | — | `AppController` |
+| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`; Explorer-кластер — `ExplorerService`+`ExplorerComponent`, `FileOperationsService`, `InputWidgetService`; QuickInput-кластер — `QuickInputComponent` (общий виджет), `QuickInputService`, `FileSearchService`, `QuickOpenService`; Editor-кластер — `EditorService`+`EditorGroupComponent`; Find/Suggest-кластер — `FindService`+`FindComponent` и `CompletionService`+`SuggestComponent`; Shell-кластер (этап 11) — `LayoutService`, `WorkbenchStateService`, `WorkbenchContextKeys`, `MenuService`+`MenuBarComponent`; корневой `WorkbenchComponent` (этап 12). Швы → `EditorService`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget`, `GotoLineEditorSource`; шов → `WorkbenchComponent`: `WorkspaceFolderOpener` (Open Folder) |
 
 ### Профили
 
@@ -182,10 +181,10 @@ const container = new Container()
 
 ```typescript
 const { container, bindApp } = createTestContainer();
-const controller = container.get(AppControllerDIToken);
-controller.mount();
+const workbench = container.get(WorkbenchComponentDIToken);
+workbench.mount();
 
-const testApp = TestApp.create(controller.view, size);
+const testApp = TestApp.create(workbench.view, size);
 bindApp(testApp.app);
 ```
 

@@ -41,7 +41,6 @@ export default defineConfig({
         "src/Common/Logging/ILogService.ts",
         "src/Common/Logging/ILogger.ts",
         "src/Configuration/IConfigurationService.ts",
-        "src/Controllers/IController.ts",
         "src/Editor/Decorations/IGutterChangeDecoration.ts",
         "src/Editor/IDocumentContentChange.ts",
         "src/Editor/ITextDocument.ts",
@@ -78,7 +77,7 @@ export default defineConfig({
         "src/Extensions/builtin/vexx-settings/main.ts", // extension entry (грузится в subprocess); поведение — в ExtensionHost.SettingsCompletion.test.ts + e2e
         "src/**/*.generated.ts", // сгенерированные data-файлы (напр. settings-schema.generated.ts), исполняются в subprocess
         "src/Extensions/Host/VscodeNamespace.ts", // RPC-проводка в subprocess
-        "src/Controllers/Modules/**", // DI-проводка (integration/e2e)
+        "src/Workbench/Modules/**", // DI-проводка (integration/e2e)
         "src/Configuration/NullConfigurationService.ts", // null-object заглушка
         "src/Configuration/NullStateService.ts", // null-object заглушка
         "src/Inspector/InspectorDriver.ts", // только интерфейс write/capture-порта

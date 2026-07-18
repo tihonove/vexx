@@ -1,10 +1,12 @@
 # Workbench/
 
 Часть архитектуры Vexx — обзорная карта в [../ARCHITECTURE.md](../ARCHITECTURE.md).
-План миграции Controllers → Workbench — [../TODO/WorkbenchRefactoring.md](../TODO/WorkbenchRefactoring.md).
+История миграции Controllers → Workbench (задача завершена, слой Controllers растворён) —
+[../TODO/WorkbenchRefactoring.md](../TODO/WorkbenchRefactoring.md).
 
 Прикладной слой приложения. Здесь живут **сервисы** (логика приложения) и **компоненты**
-(UI-сборка поверх контролов TUIDom) — как в VS Code (services + Part/ViewPane).
+(UI-сборка поверх контролов TUIDom) — как в VS Code (services + Part/ViewPane), а также
+встроенные экшены (`Actions/`) и DI-модули с профилями (`Modules/`).
 
 ## Модель Service ↔ Component
 
@@ -24,6 +26,9 @@ export interface IActivatable {
 ```
 
 У компонентов отдельных `mount()`/`activate()` **нет** — вся сборка происходит в конструкторе.
+Единственное исключение — корневой `WorkbenchComponent`: у корня есть реальная
+bootstrap-последовательность приложения (mount → activate → open/restore файлов),
+которую ведёт `main.ts`.
 
 ## Контракты Component / ThemedComponent (`src/Workbench/Component.ts`)
 
@@ -80,31 +85,35 @@ class ButtonElement {
 - **component ↔ service**: конструкторная инъекция + подписки на события сервиса.
 - **component ↔ component**: напрямую **запрещено** — только через общий сервис.
 
-## Чек-лист миграции view-контроллера
+## Чек-лист новой пары Service ↔ Component
 
-1. Логику — в `Workbench/Services/<Area>/`, UI-сборку — в `Workbench/Components/<Area>/`
+Исторически — чек-лист миграции view-контроллера (миграция завершена, слой
+Controllers растворён); остаётся конвенцией для нового кода:
+
+1. Логика — в `Workbench/Services/<Area>/`, UI-сборка — в `Workbench/Components/<Area>/`
    (компонент наследует `Component`/`ThemedComponent`).
-2. `applyTheme(...)` / ручные подписки на тему → `updateStyles()` +
-   `getXxxStyles(theme)` из `Workbench/Styles/defaultStyles.ts`.
-3. `mount()`/`activate()` контроллера: wiring — в конструктор компонента,
-   async-часть — в сервис (`IActivatable`).
+2. Стили — `updateStyles()` + `getXxxStyles(theme)` из `Workbench/Styles/defaultStyles.ts`
+   (никаких `applyTheme(...)` у контролов и ручных подписок на тему).
+3. Wiring — в конструктор компонента, async-часть — в сервис (`IActivatable`).
 4. DI-токен компонента — `*ComponentDIToken`, рядом с компонентом; биндинг — в
-   `Controllers/Modules/` (до этапа 12 рефакторинга).
-5. `view.id` — на корневой контрол компонента; тесты переезжают `git mv` вместе с кодом.
-6. Проверить направление зависимостей: Workbench не импортирует Controllers (никогда).
+   `Workbench/Modules/`.
+5. `view.id` — на корневой контрол компонента; тесты живут рядом с кодом.
 
 ## Текущие обитатели
 
 - `Component.ts` — база `Component`/`ThemedComponent`.
 - `IActivatable.ts` — контракт async-инициализации сервисов.
 - `Styles/` — мост тема → стили контролов (`defaultStyles.ts`).
+- `Modules/` — DI-модули и профили (`ProductionProfile`/`TestProfile`,
+  `WorkbenchModule` со всеми парами Service ↔ Component и интерфейсными швами,
+  `ExtensionHostModule` и др.) — см. [../DI.md](../DI.md).
 - `Services/` — переехавшие из Controllers сервисы: система команд (`CommandRegistry`,
   `KeybindingRegistry`, `ContextKeyService`, `ContextKeys`), `KeybindingDispatcher`
   (клавиатурный диспатч: резолв keydown против `KeybindingRegistry` + `ContextKeyService`,
   chord-режим с таймаутами и swallow продолжения, chord-хинт/«is not a command» через
   `StatusBarService`, hold-сессии через `ModifierReleaseArmory`, runtime-детект CSI-u,
-  применение user keybindings.json; view не знает — владелец корневого дерева (сейчас
-  `AppController`) вешает его capture/bubble-листенеры и подключает хук-шов
+  применение user keybindings.json; view не знает — владелец корневого дерева
+  (`WorkbenchComponent`) вешает его capture/bubble-листенеры и подключает хук-шов
   `hasKeyboardCapturingOverlay`; второй хук — `updateContextKeys` — замыкает на
   себя `WorkbenchContextKeys`), `StateKeys`,
   `ModifierReleaseArmory`, `ChokidarFileWatcher` + `IFileWatcherDIToken`,
@@ -121,7 +130,7 @@ class ButtonElement {
     корень воркспейса + владение провайдером (`setRootPath` пересоздаёт провайдер и
     файрит `onDidChangeRoot`), `revealPath` (построение цепочки предков),
     `autoRevealActiveFile` (настройка `explorer.autoReveal`; активный файл передаёт
-    AppController), выбор (`getSelectedPaths`/`getPasteTargetDir`),
+    `WorkbenchComponent`), выбор (`getSelectedPaths`/`getPasteTargetDir`),
     `setFileDecorations` (мост декораций extension-host'а: адаптер
     `FileDecorationsServiceAdapter` типизирован минимальным интерфейсом
     `IFileDecorationsTarget`, сервис соответствует структурно), подсветка
@@ -194,8 +203,8 @@ class ButtonElement {
   `themeTypeLabel`), `FileActions.ts` (Open File / Open Folder: InputBox-промпт
   пути + `FileOperationsService.resolveInputPath`; открытие — команда
   `workbench.openFile`, смена воркспейса — шов `IWorkspaceFolderOpener` →
-  `AppController` структурно, биндинг в `Modules/WorkbenchModule.ts`).
-  Регистрирует их (пока) AppController в общем цикле `builtinActions`.
+  `WorkbenchComponent` структурно, биндинг в `Modules/WorkbenchModule.ts`).
+  Регистрирует их `WorkbenchComponent` в общем цикле `builtinActions`.
   С этапа 9b здесь же экшены активного редактора поверх `EditorService`:
   `EncodingActions.ts` (двухуровневый пикер Reopen/Save with Encoding),
   `EolActions.ts` (convert/toggle/пикер EOL), `ContextMenuActions.ts`
@@ -208,7 +217,7 @@ class ButtonElement {
   сюда переехали Editor*/Input*/Clipboard*/Folding*/List*/Tab*/Whitespace*/App*/
   Preferences*-экшены (Preferences и save/saveAs/newUntitled — с реальными
   `run(accessor)`, About — экшен поверх DialogService; у quit `run` перекрывает
-  AppController confirm-save-флоу), добавились `LayoutActions.ts`/
+  `WorkbenchComponent` confirm-save-флоу), добавились `LayoutActions.ts`/
   `TerminalActions.ts`, а сам упорядоченный список — `builtinActions.ts`
   (регистрирует владелец приложения одним циклом).
 - **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
@@ -224,14 +233,14 @@ class ButtonElement {
   `showConfirmDialog`/`showConfirmSaveDialog` (+ promise-обёртка `confirmSave`)/
   `showAboutDialog`, `getOpen*` для тестов/оркестрации. OverlayLayer приходит
   через late-init шов `attachHost(BodyElement)` — его зовёт владелец корневой
-  view (сейчас AppController) после её постройки.
+  view (`WorkbenchComponent`) после её постройки.
 - **Жизненный цикл (этап 5c)** — `Services/LifecycleService.ts`:
   `requestQuit(onQuit)` последовательно спрашивает про «грязные» элементы
   участников через `DialogService.confirmSave` (Cancel прерывает выход; чистый
   выход — синхронно, до первого await). Шов — интерфейс `IShutdownParticipant`
   (`collectDirty(): IShutdownDirtyItem[]` — имя + `isStillDirty()` + `save()`
   с overwrite): Workbench объявляет, `EditorService` реализует
-  структурно, регистрирует его AppController; сам выход (teardown TUI +
+  структурно, регистрирует его `WorkbenchComponent`; сам выход (teardown TUI +
   `process.exit`) остаётся колбэком `onQuit` от владельца приложения.
 - **Статус-бар — эталонная пара Service ↔ Component** (пилот, этап 4):
   - `Services/StatusBarService.ts` — реестр записей статус-бара (аналог
@@ -250,7 +259,7 @@ class ButtonElement {
     `IActiveEditorStatusSource`/`IActiveEditorStatus` (минимальный срез:
     `onActiveEditorChanged`, курсор/encoding/EOL/язык), `EditorService`
     соответствует ему структурно; связывание — биндинг
-    `ActiveEditorStatusSourceDIToken` в `Controllers/Modules/WorkbenchModule.ts`.
+    `ActiveEditorStatusSourceDIToken` в `Modules/WorkbenchModule.ts`.
     Chord-хинт публикует `KeybindingDispatcher` как обычную запись сервиса.
 - **Panel-кластер (этап 6)** — нижняя панель и её вкладки:
   - `Services/PanelService.ts` — реестр вкладок нижней Panel (id, title, content,
@@ -348,7 +357,7 @@ class ButtonElement {
     overlay-сессией в ЛОКАЛЬНОМ слое группы редакторов (`pointerPolicy:
     "passthrough"` — док-виджет, клики мимо уходят в редактор). Хост
     (`EditorGroupElement`) приходит через late-init шов `attachHost` — его зовёт
-    AppController после постройки дерева. `show()` позиционирует виджет (правый
+    `WorkbenchComponent` после постройки дерева. `show()` позиционирует виджет (правый
     край группы с 1-колоночным отступом, под tab strip) и фокусирует input.
   - `Services/FindService.ts` — состояние поиска query → matches → current
     index: `open` (сеет запрос из однострочного выделения), `close` (курсор
@@ -376,7 +385,28 @@ class ButtonElement {
     микротаске), делегаторы select*/accept/hide для команд, `onFocusChanged`
     (зовёт `WorkbenchContextKeys.handleFocusChange` при смене фокуса —
     клавиатурный уход с редактора закрывает попап).
-- **Shell-кластер (этап 11)** — меню, layout, персист сессии и контекст-ключи:
+- **Shell-кластер (этапы 11–12)** — корневой компонент, меню, layout, персист
+  сессии и контекст-ключи:
+  - `Components/Shell/WorkbenchComponent.ts` — **корневой компонент приложения**
+    (финал этапа 12; бывший `AppController`): владеет корневой view
+    (`BodyElement`, `view.id = "workbench"`, + `WorkbenchLayoutElement` с сэшами),
+    вставляет в неё view компонентов (`EditorGroupComponent` в центр,
+    `PanelComponent` вниз, `ExplorerComponent` в сайдбар при
+    `setWorkspaceFolder`, `StatusBarComponent`, `MenuBarComponent` — ПОСЛЕ
+    применения user keybindings), прикрепляет late-init швы
+    (`DialogService`/`ExplorerComponent`/`QuickInputComponent`/`SuggestComponent`
+    `attachHost(BodyElement)`, `FindComponent.attachHost(EditorGroupElement)`,
+    `LayoutService.attachLayout`, `WorkbenchContextKeys.attachView`), вешает
+    листенеры `KeybindingDispatcher` и фокус-хуки, регистрирует команду
+    `workbench.openFile` и весь список `builtinActions` одним циклом (+
+    перекрывает `run` у quit: confirm-save через `LifecycleService`, выход —
+    teardown TUI + `process.exit`). Наследник `ThemedComponent`:
+    `updateStyles()` красит корень (fg/bg body) и hover-цвет сэшей.
+    Единственный компонент с lifecycle за пределами конструктора — bootstrap
+    ведёт `main.ts`: `setWorkspaceFolder` → `mount()` (листенеры + restore
+    layout до первого кадра) → `run()` → `activate()` (контекст-ключи, probe
+    терминала, активация редакторов/Explorer'а) → `openFile`/
+    `restoreOpenEditors` → `focusEditor`.
   - `Services/MenuService.ts` — декларативная модель главного меню
     (`IMenuModel`/`MenuEntryModel`): пункты собираются из command-id, лейблов и
     мнемоник; отображаемый шорткат резолвится из
@@ -398,7 +428,7 @@ class ButtonElement {
     в PanelService), write-through `captureLayout()` по
     `WorkbenchLayoutElement.onDidChangeLayout` (drag сэша и команды; во время
     restore глушится re-entrancy-guard'ом). Сам `WorkbenchLayoutElement` остаётся
-    контролом у владельца корневой view (сейчас AppController) и приходит через
+    контролом у владельца корневой view (`WorkbenchComponent`) и приходит через
     late-init шов `attachLayout`.
   - `Services/WorkbenchStateService.ts` — персист открытых редакторов (headless):
     `openWorkspace` (per-project стор), `captureOpenEditors` (write-through —
@@ -422,8 +452,43 @@ class ButtonElement {
     Problems Ctrl+Shift+M) и `TerminalActions.ts` (toggle Ctrl+` / new
     Ctrl+Shift+` на tier kitty/csi-u) — поверх LayoutService/PanelService/
     TerminalService/WorkbenchContextKeys.
-- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/`, `QuickInput/`, `Editor/` и `Shell/` (меню-бар).
+- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/`, `QuickInput/`, `Editor/` и `Shell/` (корневой `WorkbenchComponent` + меню-бар).
+
+## Конвенции системы команд
+
+- ID команд, отражающих VS Code Workbench/Editor, именуются в стиле VS Code
+  (`workbench.action.closeActiveEditor`).
+- Доступность кейбиндингов — через typed when-контексты из
+  `Workbench/Services/ContextKeys.ts` (`ContextKeyService`); фокус/UI-состояния
+  обновляет `WorkbenchContextKeys.update()`.
+- Кейбинды адаптируются к терминалу по трём осям — **capability** / **tier**
+  (`legacy < csi-u < kitty`) / **mode** (`local`/`ssh`/`tmux`) — доступны в
+  when-клаузах (`tier == 'kitty'`, `cap_osc52`, `mode_ssh`, `os == 'mac'`).
+  Default-бинды задают tier-зависимые fallback'и через per-binding `when`;
+  пользовательские — через `keybindings.json` (VS Code-семантика `-command`
+  для unbind).
+- Экшены объявляются `CommandAction`/`registerAction` в `Workbench/Actions/`;
+  упорядоченный список — `builtinActions.ts`, регистрирует `WorkbenchComponent`
+  одним циклом. Порядок важен: резолвер берёт последний зарегистрированный
+  биндинг с проходящим `when`.
+
+## Разделение Service/Component / Element / State
+
+Виджет со сколько-нибудь сложным поведением строится из трёх частей, а не из
+«толстого» элемента:
+
+- **Service/Component** (слой Workbench) — логика, I/O, подписки, оркестрация;
+- **Element** (слой TUIDom) — тонкий: только render + локальные input-события;
+- опц. **State-класс** — выделенное изменяемое состояние виджета.
+
+Связь двунаправленная и без обратной зависимости TUIDom → Workbench:
+`element.onX = …` (element → component) и `component.update(view)`
+(component → element). Эталоны: `EditorGroupComponent` ↔ `EditorGroupElement`,
+`InputWidgetService` ↔ `InputElement` + `InputState`, `StatusBarComponent` ↔
+`StatusBarElement`. «Контроллеры под видом элемента» (напр. `MenuBarElement`,
+`ContextMenuLayer`) сводим к этому паттерну — см.
+[../TODO/Inspector.md](../TODO/Inspector.md).
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
-интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench
-(импортирует его), по завершении миграции будет растворён.
+интерфейс Backend }. Workbench — верхний слой ядра приложения; выше него только
+Extensions (host-адаптеры) и App (`main.ts`).

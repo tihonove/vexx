@@ -257,20 +257,20 @@ describe("QuickPickElement — match highlight colours", () => {
         const picker = new QuickPickElement();
         // Put a match-highlighted item at index 1 so it is NOT selected
         // (index 0 is selected by default and uses activeSelectionFg).
-        picker.items = [{ label: "Other" }, { label: "AppController", labelMatchRanges: [[0, 3]] }];
+        picker.items = [{ label: "Other" }, { label: "AppContainer", labelMatchRanges: [[0, 3]] }];
         const backend = renderPicker(picker, 40);
 
         // Row 4 = item index 1 (not selected)
         // Label starts at x=2 (no icon column)
         const matchedFg = backend.getFgAt(new Point(2, 4)); // 'A' in "App"
-        const unmatchedFg = backend.getFgAt(new Point(5, 4)); // 'C' in "Controller"
+        const unmatchedFg = backend.getFgAt(new Point(5, 4)); // 'C' in "Container"
         expect(matchedFg).toBe(unthemedQuickPickStyles.matchFg);
         expect(unmatchedFg).not.toBe(unthemedQuickPickStyles.matchFg);
     });
 
     it("no special colour when labelMatchRanges is empty", () => {
         const picker = new QuickPickElement();
-        picker.items = [{ label: "AppController" }];
+        picker.items = [{ label: "AppContainer" }];
         const backend = renderPicker(picker, 40);
 
         const fg = backend.getFgAt(new Point(2, 3));

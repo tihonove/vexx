@@ -73,7 +73,7 @@
     (`src/Backend/NodeTerminalBackend.ts`) — это помогает терминалам/мультиплексорам, которые
     его понимают; на чистом kitty работает kitty-протокол. С tmux 3.4+kitty не спасает (см. выше).
   - Runtime-детект tier из фактически пришедшей CSI-u клавиши
-    (`TerminalEnvironmentService.noteExtendedKeysObserved()` + хук в `AppController`) — индикатор
+    (`TerminalEnvironmentService.noteExtendedKeysObserved()` + хук в `WorkbenchComponent`) — индикатор
     и tier-gated биндинги поднимаются по реальному вводу, а не только по пробе/хинту.
   - Диагностический демо `src/demos/keyDiagnosticsDemo.ts`.
 
@@ -87,7 +87,7 @@
   - **Фолбэк уже сейчас (любой tmux):** `Ctrl+PageDown`/`Ctrl+PageUp` (и `Alt+PageUp/Down`)
     переключают вкладки и **без** extended-keys — модификаторы на спец-клавишах кодируются
     стандартным `;mod`-параметром, который tmux пропускает всегда
-    (`src/Controllers/Actions/TabActions.ts`).
+    (`src/Workbench/Actions/TabActions.ts`).
 
 - **Дальнейшие шаги (detect & advise — суть трекера).**
   - Детектить ситуацию «внутри tmux, но расширенные клавиши фактически не приходят» (например:

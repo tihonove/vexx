@@ -192,7 +192,7 @@ export class CompletionService extends Disposable {
      * Пере-навешивает подписки на нового активного редактора. Безусловный
      * {@link close} (а не «закрыть, если открыт»): смена активного редактора
      * должна гасить и отложенный авто-suggest — раньше это делал отдельный
-     * обработчик AppController, теперь сложено сюда.
+     * обработчик корневого контроллера, теперь сложено сюда.
      */
     private bindEditor(editor: EditorPane | null): void {
         this.unbindEditor();

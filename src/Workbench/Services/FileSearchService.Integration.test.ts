@@ -51,15 +51,15 @@ describe("FileSearchService — integration against real project", () => {
             expect(results.length).toBeGreaterThan(50);
         });
 
-        it("indexes AppController.ts", () => {
+        it("indexes WorkbenchComponent.ts", () => {
             // pass large maxResults — default 50 may not cover all files
             const paths = relativePaths(service.search("", 2000));
-            expect(paths.some((p) => p.includes("AppController.ts"))).toBe(true);
+            expect(paths.some((p) => p.includes("WorkbenchComponent.ts"))).toBe(true);
         });
 
         it("indexes files in nested directories", () => {
             const paths = relativePaths(service.search("", 2000));
-            expect(paths.some((p) => p.includes("Controllers/"))).toBe(true);
+            expect(paths.some((p) => p.includes("Workbench/"))).toBe(true);
             expect(paths.some((p) => p.includes("TUIDom/"))).toBe(true);
             expect(paths.some((p) => p.includes("Editor/"))).toBe(true);
         });
@@ -81,9 +81,9 @@ describe("FileSearchService — integration against real project", () => {
     });
 
     describe("finding well-known files", () => {
-        it('"ac" finds AppController.ts', () => {
-            const paths = relativePaths(service.search("ac"));
-            expect(paths.some((p) => p.includes("AppController.ts"))).toBe(true);
+        it('"wbc" finds WorkbenchComponent.ts', () => {
+            const paths = relativePaths(service.search("wbc"));
+            expect(paths.some((p) => p.includes("WorkbenchComponent.ts"))).toBe(true);
         });
 
         it('"ftdp" finds FileTreeDataProvider.ts', () => {
@@ -118,17 +118,17 @@ describe("FileSearchService — integration against real project", () => {
     });
 
     describe("ranking on real files", () => {
-        it('"ac": AppController.ts ties for the top score among "ac" matches', () => {
-            const results = service.search("ac");
+        it('"wbc": WorkbenchComponent.ts ties for the top score among "wbc" matches', () => {
+            const results = service.search("wbc");
             expect(results.length).toBeGreaterThan(0);
-            // AppController.ts ties for the best score — both A and C are word boundaries.
-            // Its sibling AppController.*.test.ts files share that top score, so asserting an
+            // WorkbenchComponent.ts ties for the best score — W, b and C hit word/camel boundaries.
+            // Files sharing the same boundary pattern (e.g. WorkbenchContextKeys.ts) share that top score, so asserting an
             // exact position is brittle (it depends on walk order and how many siblings exist);
             // assert instead that nothing outscores it.
-            const appControllerScore = scoreOf(results, "AppController.ts");
-            expect(appControllerScore).toBeDefined();
+            const workbenchComponentScore = scoreOf(results, "WorkbenchComponent.ts");
+            expect(workbenchComponentScore).toBeDefined();
             const maxScore = Math.max(...results.map((r) => r.score));
-            expect(appControllerScore).toBe(maxScore);
+            expect(workbenchComponentScore).toBe(maxScore);
         });
 
         it('"cr": CommandRegistry.ts scores higher than files with c...r scattered', () => {
@@ -163,18 +163,18 @@ describe("FileSearchService — integration against real project", () => {
             }
         });
 
-        it('"AppController" exact substring \u2014 all results contain AppController in basename', () => {
-            const results = service.search("AppController");
+        it('"WorkbenchComponent" exact substring \u2014 all results contain WorkbenchComponent in basename', () => {
+            const results = service.search("WorkbenchComponent");
             expect(results.length).toBeGreaterThan(0);
-            // Every result should have "AppController" in basename (high word-boundary score)
+            // Every result should have "WorkbenchComponent" in basename (high word-boundary score)
             // or at least in the path; files without it should score too low to appear in top-N
             const top = results.slice(0, results.length);
-            // All top results share the same matched region — verify they are all AppController files
+            // All top results share the same matched region — verify they are all WorkbenchComponent files
             const scores = top.map((r) => r.score);
             const maxScore = scores[0];
-            // Files sharing the top score should all be AppController*.ts variants
+            // Files sharing the top score should all be WorkbenchComponent*.ts variants
             const topTier = top.filter((r) => r.score === maxScore);
-            expect(topTier.every((r) => r.entry.relativePath.includes("AppController"))).toBe(true);
+            expect(topTier.every((r) => r.entry.relativePath.includes("WorkbenchComponent"))).toBe(true);
         });
 
         it("searching by full filename with extension works", () => {

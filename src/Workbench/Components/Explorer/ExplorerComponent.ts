@@ -77,7 +77,7 @@ export class ExplorerComponent extends ThemedComponent {
     /**
      * Прикрепляет хост с overlay-слоем (корневую BodyElement-view приложения) —
      * в нём открываются popup-сессии контекстного меню. Зовёт владелец корневой
-     * view (сейчас AppController) после её постройки, как у DialogService.
+     * view (WorkbenchComponent) после её постройки, как у DialogService.
      */
     public attachHost(host: BodyElement): void {
         this.host = host;

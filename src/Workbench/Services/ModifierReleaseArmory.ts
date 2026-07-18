@@ -30,7 +30,7 @@ export function holdModifierOf(trigger: CommandTrigger): string | undefined {
 /**
  * Общий шов для команд типа «удерживай модификатор — циклим, отпустил — коммитим»
  * (MRU-переключение вкладок и т.п.). Команда при запуске «взводит» коммит через
- * {@link armOnHoldRelease}; AppController оборачивает запуск команды в
+ * {@link armOnHoldRelease}; WorkbenchComponent оборачивает запуск команды в
  * {@link withTrigger} (чтобы взвод знал модификатор аккорда) и на каждый keyup
  * дёргает {@link fireRelease}. Модификатор берётся из триггера, поэтому ребинд
  * (например, на Alt+Tab) не ломает механику.

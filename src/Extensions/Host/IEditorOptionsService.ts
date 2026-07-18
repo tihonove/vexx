@@ -34,7 +34,7 @@ import type { IDisposable } from "../../Common/Disposable.ts";
 /**
  * Тонкий «port» поверх {@link EditorService}, нужный
  * {@link ExtensionHost} для применения изменений `TextEditor.options`
- * к активному редактору без прямого знания о слое Controllers/Editor
+ * к активному редактору без прямого знания о слоях Workbench/Editor
  * внутри runtime'а расширения.
  */
 export interface IEditorOptionsService {

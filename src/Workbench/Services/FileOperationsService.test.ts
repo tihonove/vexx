@@ -14,7 +14,7 @@ import type { WorkspaceEditService } from "./Workspace/WorkspaceEditService.ts";
 /**
  * Юнит-крайности FileOperationsService: отменённый промпт (Escape / клик мимо →
  * `input()` резолвится undefined) оставляет create/rename no-op'ом. Основные
- * флоу покрыты интеграционно (AppController.FileCreate/FileRename/FileDelete/…).
+ * флоу покрыты интеграционно (Workbench.FileCreate/FileRename/FileDelete/…).
  */
 function makeService(explorer: Partial<ExplorerService>): { service: FileOperationsService; edits: unknown[] } {
     const edits: unknown[] = [];

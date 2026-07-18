@@ -4,7 +4,7 @@
 
 Реализовать систему контекстных условий по аналогии с VS Code `when` clause — определяет, когда команда/кейбиндинг/пункт меню активен.
 
-`ContextKeyService` и интеграция с `KeybindingRegistry`/меню уже сделаны (описание — [arch/Controllers.md](../arch/Controllers.md), раздел про систему команд). Осталось:
+`ContextKeyService` и интеграция с `KeybindingRegistry`/меню уже сделаны (описание — [arch/Workbench.md](../arch/Workbench.md), раздел про систему команд). Осталось:
 
 ## Осталось
 

@@ -35,7 +35,7 @@ interface PanelViewRecord {
  * контент подменяют они же (`setViewContent`), а `PanelComponent` подписан на
  * `onDidChange*` и отражает реестр в `PanelContainerElement`. Видимость — тоже
  * здесь: toggle-команды зовут {@link setVisible}, владелец layout'а (сейчас
- * `AppController`) подписан на {@link onDidChangeVisibility} и двигает
+ * `WorkbenchComponent`) подписан на {@link onDidChangeVisibility} и двигает
  * `WorkbenchLayoutElement` + контекст-ключ `panelVisible`.
  */
 export class PanelService {

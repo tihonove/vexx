@@ -2,7 +2,7 @@
 //
 // TUIElement-лист: каждый кадр читает абстрактную сетку ячеек через `ITerminalSurface`
 // и блитит её в наш grid через `RenderContext.setCell`. Виджет НЕ знает про PTY/эмулятор:
-// вся связка (node-pty + @xterm/headless) живёт за `ITerminalSurface` на слое Controllers,
+// вся связка (node-pty + @xterm/headless) живёт за `ITerminalSurface` на слое Workbench,
 // поэтому TUIDom остаётся чистым (без импортов @xterm/headless и node-pty).
 // Размером PTY управляет по реально выделенному месту (`performLayout` → `surface.resize`),
 // поэтому ресайз окна автоматически рефлоует шелл. Ввод пробрасывает в surface через

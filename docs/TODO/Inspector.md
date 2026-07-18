@@ -30,19 +30,19 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 [README](README.md)). Перед заменой лейаутеров, возможно, доработать
 `FlexContainer` (несколько fill с весами).
 
-### B. Контроллеры под видом элемента → логику в слой Controllers
+### B. Контроллеры под видом элемента → логику в слой Workbench
 - `MenuBarElement` (`src/TUIDom/Widgets/MenuBarElement.ts`) — держит `activeMenu`,
   открытие/закрытие popup, навигацию, мнемоники, слушает родителя. **Чёткий
-  кандидат**: вынести `MenuBarController`, элемент сделать тонким; связь
+  кандидат**: перевести на пару `MenuService` ↔ `MenuBarComponent` целиком, элемент сделать тонким; связь
   callback'ами (эталон — `StatusBarComponent`/`EditorGroupComponent`).
 - `ContextMenuLayer` — менеджер overlay-сессий (политики close/focus/anchor), не
-  виджет. Разделить: `OverlayManager`-сервис (Controllers) + тонкий
-  overlay-контейнер (TUIDom). **Инвазивно** (потребители: `AppController`,
+  виджет. Разделить: `OverlayManager`-сервис (Workbench) + тонкий
+  overlay-контейнер (TUIDom). **Инвазивно** (потребители: `WorkbenchComponent`,
   `EditorElement`, `MenuBar`, file-tree) → отдельная осторожная фаза.
 
 ### НЕ трогать (поправки к первичному аудиту)
 - `EditorElement` — разделение уже корректное: `EditorViewState` (модель) /
-  `EditorElement` (тонкий view) / `EditorController` (I/O, save, токенизация).
+  `EditorElement` (тонкий view) / `TextFileModel`+`EditorComponent` (I/O, save, токенизация).
   Это эталон, а не проблема.
 - `QuickPickElement` — пограничный; навигация по списку нормальна для виджета,
   фильтрация уже в `QuickOpenService`. Максимум — вынести
@@ -53,8 +53,8 @@ Windows/macOS (см. [E2E.md](E2E.md)).
   честные, не трогаем.
 
 ### Эталон разделения (к нему приводим B)
-Controller + тонкий Element + опц. State-класс — паттерн вынесен в
-[../arch/Controllers.md](../arch/Controllers.md) (раздел «Разделение Controller /
+Service/Component + тонкий Element + опц. State-класс — паттерн вынесен в
+[../arch/Workbench.md](../arch/Workbench.md) (раздел «Разделение Service/Component /
 Element / State»). Эталоны: `StatusBarComponent` ↔ `StatusBarElement` (уже в
 Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
 `EditorGroupElement`, `InputWidgetService` ↔ `InputElement` + `InputState`.
@@ -67,7 +67,7 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
   `src/TestUtils/TestApp.ts` (мини-фасад), `src/TestUtils/ExtensionTestHarness.ts`
   (собирает сервисы руками, в обход DI → максимум дублирования).
 - Действие: выделить `bootstrapApp(opts)` (новый `src/AppRuntime/`, слой App),
-  возвращающий `{ app, appController, container, dispose }` **без** `run()`/
+  возвращающий `{ app, workbench, container, dispose }` **без** `run()`/
   `mount()` (ответственность caller). `main.ts`, харнесс и инспектор переиспользуют.
 - Инспектор: caller после `bootstrapApp()` создаёт `new InspectorServer(app)` и
   поднимает порт вокруг `app.run()` (по флагу `--inspect-tui`).
@@ -77,7 +77,7 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
    `ExtensionTestHarness` на неё. Низкий риск, прямой фундамент инспектора.
 2. **Лейаутеры (A)**: при необходимости сперва `FlexContainer` (TODO #6), затем
    `EditorGroup`/`Body`/`Workbench`/`TabStrip`/`PopupMenu` на композицию.
-3. **MenuBar (B)**: вынести `MenuBarController`, тонкий `MenuBarElement`.
+3. **MenuBar (B)**: логику MenuBar целиком в `MenuService`/`MenuBarComponent`, тонкий `MenuBarElement`.
 4. **ContextMenuLayer (B)**: `OverlayManager` + тонкий контейнер, мигрировать
    потребителей по одному.
 5. **Инспектор**: `[~]` первый срез готов — `src/Inspector/` (`InspectorCore` +

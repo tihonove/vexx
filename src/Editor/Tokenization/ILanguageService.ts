@@ -1,10 +1,10 @@
 /**
  * Сервис определения language id по пути к файлу.
  *
- * Реализуется в `Extensions/LanguageRegistry`. Editor/Controllers зависят
+ * Реализуется в `Extensions/LanguageRegistry`. Editor/Workbench зависят
  * только от этого интерфейса — это та же дисциплина, что и с
  * {@link ITokenStyleResolver}: тип живёт здесь, реализация — в верхних
- * слоях. Никаких прямых импортов `Extensions/*` из Editor/Controllers.
+ * слоях. Никаких прямых импортов `Extensions/*` из Editor/Workbench.
  */
 export interface ILanguageService {
     /**

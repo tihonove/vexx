@@ -5,7 +5,7 @@ import type { CommandAction } from "./CommandAction.ts";
 // Тонкие экшены find-виджета поверх FindService (этап 10: run-обработчики живут
 // в самих экшенах, как у quick-open). nextMatch/previousMatch/closeFindWidget
 // регистрируются ПОСЛЕ builtin editor-экшенов (хвост builtinActions в
-// AppController): резолвер кейбиндов берёт последний зарегистрированный с
+// WorkbenchComponent): резолвер кейбиндов берёт последний зарегистрированный с
 // проходящим `when`, и биндинги `findWidgetVisible` должны победить.
 
 export const findAction: CommandAction = {

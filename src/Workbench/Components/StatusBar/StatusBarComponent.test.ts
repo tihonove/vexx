@@ -103,7 +103,7 @@ describe("StatusBarComponent", () => {
     it("shows the chord hint entry and clears it on dispose", () => {
         const { component, statusBarService } = createStatusBarHarness();
 
-        // Chord-хинт публикует AppController как обычную запись сервиса.
+        // Chord-хинт публикует KeybindingDispatcher как обычную запись сервиса.
         const hint = statusBarService.addEntry({
             id: "status.chordHint",
             text: "(Ctrl+K) was pressed. Waiting for next key…",

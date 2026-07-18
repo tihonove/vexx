@@ -20,7 +20,7 @@ export const FindComponentDIToken = token<FindComponent>("FindComponent");
  *
  * Overlay-хост ({@link EditorGroupElement} с локальным overlay-слоем) приходит
  * через late-init шов {@link attachHost} — его зовёт владелец корневой view
- * (сейчас AppController) после постройки дерева, как у QuickInputComponent.
+ * (WorkbenchComponent) после постройки дерева, как у QuickInputComponent.
  */
 export class FindComponent extends ThemedComponent {
     public static dependencies = [ThemeServiceDIToken] as const;

@@ -4,7 +4,7 @@ import { DialogServiceDIToken } from "../Services/DialogService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 
 /**
- * Немедленный выход (teardown TUI + exit). AppController перекрывает `run`
+ * Немедленный выход (teardown TUI + exit). WorkbenchComponent перекрывает `run`
  * confirm-save последовательностью (`requestQuit` через LifecycleService) —
  * здесь остаётся «голый» выход для окружений без несохранённых буферов.
  */

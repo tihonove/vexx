@@ -70,7 +70,7 @@ EditorElement.render() ── ITokenStyleResolver ── (Theme) TokenThemeResol
 - [ ] **mimetypes** — типизировано, не используется.
 - [ ] **VS Code-style modeline** (`vim: set filetype=...`) — отдельная задача.
 - [ ] **`filenamePatterns` с `/`** (например `**/.gitconfig`) не матчатся: `matchGlob` сравнивает только basename. Pre-existing ограничение, стало заметнее с полным набором языковых паков.
-- [ ] **Команда `editor.action.changeLanguage`** — UI-пикер поверх готовой закладки: `EditorController.setLanguage(langId)` уже меняет язык документа и пересаживает токенизатор; языки для пикера — `LanguageRegistry.allLanguages()`.
+- [ ] **Команда `editor.action.changeLanguage`** — UI-пикер поверх готовой закладки: `EditorPane.setLanguage(langId)` уже меняет язык документа и пересаживает токенизатор; языки для пикера — `LanguageRegistry.allLanguages()`.
 
 ### [ ] Bracket pair colorization (низкий приоритет)
 VS Code держит отдельный bracket pair index поверх токенов. Можно отложить до полного TM. Точка интеграции — `TokenIndex` в `EditorElement.render` мог бы дополнительно отдавать bracket-level для оверрайда цвета.
@@ -83,5 +83,5 @@ VS Code держит отдельный bracket pair index поверх токе
 - `src/Editor/Tokenization/` — все интерфейсы и реализации
 - `src/Theme/Tokenization/TokenThemeResolver.ts` — резолвер скоупов
 - `src/Editor/EditorElement.ts` — `TokenIndex`, `packStyleFlags`, рендеринг с цветами
-- `src/Controllers/EditorController.ts` — wiring per-document store
+- `src/Workbench/Components/Editor/EditorComponent.ts` — wiring per-document store
 - `src/main.ts` — регистрация встроенных токенайзеров

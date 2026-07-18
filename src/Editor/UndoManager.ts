@@ -26,7 +26,7 @@ export class UndoManager {
     /**
      * Вызывается после каждого `pushUndoElement` — единая точка-чока для всех правок
      * (набор текста, удаления, вставка). Контроллер вешает сюда регистрацию шага в общий
-     * `UndoRedoService`. Editor-слой при этом не зависит от Controllers.
+     * `UndoRedoService`. Editor-слой при этом не зависит от Workbench.
      */
     public onDidPush: ((element: IUndoElement) => void) | null = null;
 

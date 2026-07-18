@@ -23,7 +23,7 @@ export const LayoutServiceDIToken = token<LayoutService>("LayoutService");
  * `onDidChangeLayout` — drag сэша и команды).
  *
  * Сам контрол `WorkbenchLayoutElement` остаётся у владельца корневой view
- * (сейчас `AppController`) и приходит через late-init шов {@link attachLayout} —
+ * (`WorkbenchComponent`) и приходит через late-init шов {@link attachLayout} —
  * TUIDom про DI/StateService не знает, сервис читает/пишет элемент через его
  * публичные геттеры/сеттеры.
  *

@@ -26,7 +26,7 @@ export interface IMarkerRevealEditor {
 /**
  * Минимальный срез группы редакторов, нужный для reveal маркера: открыть ресурс
  * и довести до позиции. `EditorService` соответствует ему структурно —
- * Workbench не импортирует Controllers, связывание делает DI-модуль
+ * связывание делает DI-модуль
  * ({@link MarkerRevealTargetDIToken}).
  */
 export interface IMarkerRevealTarget {

@@ -14,9 +14,9 @@
 
 ---
 
-## Controllers
+## Workbench (интеграционные тесты приложения)
 
-Контроллеры тестируем как **чёрный ящик**. Контроллер — это штука, которая создаёт UI-дерево и связывает поведение. Проверяем результат через DOM-элементы и визуальное состояние, а не через внутренние поля контроллера.
+Корневой `WorkbenchComponent` и связки Service ↔ Component тестируем как **чёрный ящик**: компонент создаёт UI-дерево и связывает поведение. Проверяем результат через DOM-элементы и визуальное состояние, а не через внутренние поля компонента.
 
 ### Что проверяем
 - Структуру созданного DOM-дерева (`querySelector`, `querySelectorAll`)
@@ -26,8 +26,8 @@
 - Текстовое содержимое через DOM-элементы (например, текст в `EditorElement`)
 
 ### Чего НЕ делаем
-- Не обращаемся к дочерним контроллерам: ~~`controller["editorController"]`~~
-- Не шпионим за методами внутренних объектов контроллера
+- Не обращаемся к внутренним компонентам/сервисам через bracket notation: ~~`workbench["editorService"]`~~
+- Не шпионим за методами внутренних объектов компонента
 - Не проверяем внутреннее состояние — только наблюдаемое поведение через DOM
 
 ### Как создаём тестовое окружение
@@ -48,14 +48,14 @@ afterEach(() => {
 });
 ```
 
-Харнесс даёт `h.testApp`, `h.commands`, `h.controller`, а suite-specific сервисы достаём через `h.container.get(ThemeServiceDIToken)`. Низкоуровневый примитив под харнессом — тестовый профиль `createTestContainer()` (см. [DI.md](DI.md#профили)); напрямую он нужен только если тест не про `AppController`.
+Харнесс даёт `h.testApp`, `h.commands`, `h.workbench`, а suite-specific сервисы достаём через `h.container.get(ThemeServiceDIToken)`. Низкоуровневый примитив под харнессом — тестовый профиль `createTestContainer()` (см. [DI.md](DI.md#профили)); напрямую он нужен только если тест не про `WorkbenchComponent`.
 
 ### Пример: проверяем набор текста через DOM
 
 ```ts
-// Плохо — лезем в приватное поле контроллера
-const editorController = controller["editorController"];
-expect(editorController.getText()).toBe("hi");
+// Плохо — лезем в приватное поле компонента
+const editorService = workbench["editorService"];
+expect(editorService.getActiveEditor()?.getText()).toBe("hi");
 
 // Хорошо — проверяем через DOM-элемент или рендер
 const editor = testApp.querySelector("EditorElement");
@@ -66,7 +66,7 @@ expect(editor.getText()).toBe("hi");
 
 ## TUIDom
 
-Тестируем элементы, геометрию, события и фокус. Слой ниже контроллеров — здесь допустимо создавать элементы напрямую и проверять их API.
+Тестируем элементы, геометрию, события и фокус. Слой ниже Workbench — здесь допустимо создавать элементы напрямую и проверять их API.
 
 ### Что проверяем
 - Layout и координатную систему (`performLayout`, `localToGlobal`)
@@ -189,7 +189,7 @@ it("resolves a registered token", () => {
 ## Тестовые утилиты
 
 ### AppTestHarness (`TestUtils/AppTestHarness.ts`)
-Boot-харнесс интеграционных тестов над `AppController`: `createAppTestHarness({ workspaceFolder?, size?, openFile?, focusEditor? })` собирает тестовый DI-контейнер, монтирует контроллер и оборачивает его view в `TestApp`. Возвращает `{ testApp, controller, commands, container, activeEditor(), dispose() }`. Харнесс синхронный — async-активация (`await controller.activate()`, `fileIndexReady`) остаётся в тесте. Воркспейсом не владеет — композиция с `createTempWorkspace` (см. канонический сниппет в разделе Controllers).
+Boot-харнесс интеграционных тестов над `WorkbenchComponent`: `createAppTestHarness({ workspaceFolder?, size?, openFile?, focusEditor? })` собирает тестовый DI-контейнер, монтирует корневой компонент и оборачивает его view в `TestApp`. Возвращает `{ testApp, workbench, commands, container, activeEditor(), dispose() }`. Харнесс синхронный — async-активация (`await workbench.activate()`, `fileIndexReady`) остаётся в тесте. Воркспейсом не владеет — композиция с `createTempWorkspace` (см. канонический сниппет в разделе Workbench).
 
 ### TempWorkspace (`TestUtils/TempWorkspace.ts`)
 Временный воркспейс: `createTempWorkspace({ prefix?, files? })` → `{ dir, writeFile(rel, content), path(rel), dispose() }`. Сид-файлы поддерживают вложенные пути; `dispose()` — рекурсивный `rmSync`, безопасен в `afterEach`/`finally`.
@@ -265,6 +265,6 @@ npm run test:coverage      # = vitest run --coverage
 Исключения (`coverage.exclude`) добавляем **только** если файл попадает в одну из категорий:
 
 1. **Чистые типы** — интерфейсы `I*.ts`, `*.d.ts`, barrel-`index.ts`. Исполнять нечего; чистый интерфейс добавляем в **явный список** exclude (глоб `I*.ts` НЕ используем — см. ниже).
-2. **Непокрываемое юнит-тестами** — реальный tty (`NodeTerminalBackend`), subprocess-точка входа (`ExtensionHostSubprocess`), SEA-детект (`IsSea`, `createDefaultAssetAccess`), RPC-стаб в subprocess (`VscodeNamespace`), DI-проводка (`Controllers/Modules/**`), null-object заглушки. Это проверяется e2e (`vitest.e2e.config.ts`), а не юнит-тестами.
+2. **Непокрываемое юнит-тестами** — реальный tty (`NodeTerminalBackend`), subprocess-точка входа (`ExtensionHostSubprocess`), SEA-детект (`IsSea`, `createDefaultAssetAccess`), RPC-стаб в subprocess (`VscodeNamespace`), DI-проводка (`Workbench/Modules/**`), null-object заглушки. Это проверяется e2e (`vitest.e2e.config.ts`), а не юнит-тестами.
 
 **Важно:** реальную логику в файлах с префиксом `I*` (например хелперы `createRange` в `IRange.ts`, `NULL_STATE` в `IState.ts`, `isScrollable` в `IScrollable.ts`) **не прячем** — её покрываем. Поэтому интерфейсы исключаем поимённо, а не глобом `src/**/I*.ts`.

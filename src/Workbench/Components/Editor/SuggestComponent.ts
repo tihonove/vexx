@@ -21,7 +21,7 @@ export const SuggestComponentDIToken = token<SuggestComponent>("SuggestComponent
  *
  * Overlay-хост (корневая BodyElement-view приложения) приходит через late-init
  * шов {@link attachHost} — его зовёт владелец корневой view (сейчас
- * AppController) после её постройки, как у QuickInputComponent/DialogService.
+ * WorkbenchComponent) после её постройки, как у QuickInputComponent/DialogService.
  */
 export class SuggestComponent extends Component {
     public static dependencies = [] as const;

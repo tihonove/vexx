@@ -3,7 +3,7 @@ import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterCh
 /**
  * Тонкий «port» поверх {@link EditorService}, нужный {@link ExtensionHost}
  * для проекции gutter change-bar декораций расширения на открытые редакторы без
- * прямого знания о слое Controllers/Editor внутри host-моста.
+ * прямого знания о слоях Workbench/Editor внутри host-моста.
  *
  * Цвета приходят уже резолвнутыми (packed-RGB) — тема резолвится на стороне
  * host'а через {@link IThemeColorResolver}. Паттерн повторяет

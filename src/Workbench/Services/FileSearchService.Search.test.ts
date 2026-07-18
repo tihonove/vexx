@@ -62,7 +62,7 @@ describe("FileSearchService — search()", () => {
 
     describe("basic matching", () => {
         const FILES = [
-            "src/Controllers/AppController.ts",
+            "src/Controls/AppContainer.ts",
             "src/Workbench/Services/FileTreeDataProvider.ts",
             "src/Common/DiContainer.ts",
             "package.json",
@@ -72,7 +72,7 @@ describe("FileSearchService — search()", () => {
             ({ service, ws } = await makeService(FILES));
             const results = service.search("ac");
             const paths = results.map((r) => r.entry.relativePath);
-            expect(paths.some((p) => p.includes("AppController"))).toBe(true);
+            expect(paths.some((p) => p.includes("AppContainer"))).toBe(true);
         });
 
         it("is case-insensitive", async () => {
@@ -89,7 +89,7 @@ describe("FileSearchService — search()", () => {
         });
 
         it("respects maxResults on non-empty query", async () => {
-            ({ service, ws } = await makeService(["a/Controller1.ts", "b/Controller2.ts", "c/Controller3.ts"]));
+            ({ service, ws } = await makeService(["a/Container1.ts", "b/Container2.ts", "c/Container3.ts"]));
             const results = service.search("ctrl", 2);
             expect(results.length).toBeLessThanOrEqual(2);
         });
@@ -98,16 +98,16 @@ describe("FileSearchService — search()", () => {
     // ── Ranking: word-boundary ─────────────────────────────────────────────────
 
     describe("ranking — word boundaries", () => {
-        it("AppController ranks above abstract_class for query 'ac'", async () => {
-            ({ service, ws } = await makeService(["AppController.ts", "abstract_class.ts"]));
+        it("AppContainer ranks above abstract_class for query 'ac'", async () => {
+            ({ service, ws } = await makeService(["AppContainer.ts", "abstract_class.ts"]));
             const results = service.search("ac");
-            expect(results[0].entry.relativePath).toBe("AppController.ts");
+            expect(results[0].entry.relativePath).toBe("AppContainer.ts");
         });
 
-        it("FileController ranks above first_contact for query 'fc'", async () => {
-            ({ service, ws } = await makeService(["FileController.ts", "first_contact.ts"]));
+        it("FileContainer ranks above first_contact for query 'fc'", async () => {
+            ({ service, ws } = await makeService(["FileContainer.ts", "first_contact.ts"]));
             const results = service.search("fc");
-            expect(results[0].entry.relativePath).toBe("FileController.ts");
+            expect(results[0].entry.relativePath).toBe("FileContainer.ts");
         });
 
         it("CommandRegistry ranks above continuous_record for query 'cr'", async () => {
@@ -121,23 +121,23 @@ describe("FileSearchService — search()", () => {
 
     describe("ranking — basename priority", () => {
         it("file matching in basename ranks above file matching only in path", async () => {
-            // "ac" matches the basename "AppController.ts"
+            // "ac" matches the basename "AppContainer.ts"
             // "ac" also matches "src/actions/config.ts" via path only
             ({ service, ws } = await makeService([
                 "src/actions/config.ts", // 'a'ctions + 'c'onfig in path
-                "AppController.ts", // basename match
+                "AppContainer.ts", // basename match
             ]));
             const results = service.search("ac");
-            expect(results[0].entry.relativePath).toBe("AppController.ts");
+            expect(results[0].entry.relativePath).toBe("AppContainer.ts");
         });
 
         it("basename match score is higher than full-path-only match score", async () => {
             ({ service, ws } = await makeService([
                 "controllers/actions/util.ts", // match in path dirs, not basename
-                "ActionController.ts", // basename word-boundary match
+                "ActionContainer.ts", // basename word-boundary match
             ]));
             const results = service.search("ac");
-            const basenameIdx = results.findIndex((r) => r.entry.relativePath === "ActionController.ts");
+            const basenameIdx = results.findIndex((r) => r.entry.relativePath === "ActionContainer.ts");
             const pathIdx = results.findIndex((r) => r.entry.relativePath === "controllers/actions/util.ts");
             // Both should be found
             expect(basenameIdx).not.toBe(-1);
@@ -151,11 +151,11 @@ describe("FileSearchService — search()", () => {
 
     describe("ranking — path search", () => {
         it("finds files when query contains path separator segments", async () => {
-            ({ service, ws } = await makeService(["src/Controllers/AppController.ts", "src/Common/AppConfig.ts"]));
-            // "ctrl" — 'c'ontrollers matches 'c', 'trl' consecutive
+            ({ service, ws } = await makeService(["src/Controls/AppContainer.ts", "src/Common/AppConfig.ts"]));
+            // "ctrl" — 'c'ontrols matches 'c', then 'trl'
             const results = service.search("ctrl");
             const paths = results.map((r) => r.entry.relativePath);
-            expect(paths.some((p) => p.includes("Controllers"))).toBe(true);
+            expect(paths.some((p) => p.includes("Controls"))).toBe(true);
         });
 
         it("deep nested file is found by basename", async () => {
@@ -170,7 +170,7 @@ describe("FileSearchService — search()", () => {
 
     describe("result structure", () => {
         it("result contains entry with relativePath and absolutePath", async () => {
-            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controls/AppContainer.ts"]));
             const results = service.search("ac");
             expect(results.length).toBeGreaterThan(0);
             const result = results[0];
@@ -180,19 +180,19 @@ describe("FileSearchService — search()", () => {
         });
 
         it("result contains score (number)", async () => {
-            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controls/AppContainer.ts"]));
             const results = service.search("ac");
             expect(typeof results[0].score).toBe("number");
         });
 
         it("result contains matchedIndices array", async () => {
-            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controls/AppContainer.ts"]));
             const results = service.search("ac");
             expect(Array.isArray(results[0].matchedIndices)).toBe(true);
         });
 
         it("results are sorted by score descending", async () => {
-            ({ service, ws } = await makeService(["src/Controllers/AppController.ts"]));
+            ({ service, ws } = await makeService(["src/Controls/AppContainer.ts"]));
             const results = service.search("c");
             for (let i = 1; i < results.length; i++) {
                 expect(results[i - 1].score).toBeGreaterThanOrEqual(results[i].score);
@@ -204,9 +204,9 @@ describe("FileSearchService — search()", () => {
 
     describe("bitmask prefilter does not change results", () => {
         const FILES = [
-            "src/Controllers/AppController.ts",
+            "src/Controls/AppContainer.ts",
             "src/Workbench/Services/FileTreeDataProvider.ts",
-            "src/Controllers/FileSearchService.ts",
+            "src/Controls/FileSearchService.ts",
             "src/Common/DiContainer.ts",
             "src/Common/FuzzySearch.ts",
             "package.json",

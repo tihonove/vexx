@@ -45,7 +45,7 @@ export interface IWorkspaceFolderInfo {
  * Провайдер конфигурации для push-модели: host рассылает снапшот настроек и
  * папки воркспейса в subprocess (`getConfiguration(...).get(...)` в расширениях
  * синхронный, RPC-per-get невозможен). Внедряется в {@link ExtensionHost} из
- * {@link ../../Controllers/Modules/ExtensionHostModule.ts} поверх
+ * {@link ../../Workbench/Modules/ExtensionHostModule.ts} поверх
  * `IConfigurationService`, чтобы не тянуть слой Configuration в рантайм host'а.
  */
 export interface IExtensionHostConfigProvider {

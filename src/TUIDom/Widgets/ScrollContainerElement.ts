@@ -15,7 +15,7 @@ export interface IScrollBarStyles {
     readonly background: number;
 }
 
-// Standalone defaults for theme-less use (stories, tests). Controllers overwrite
+// Standalone defaults for theme-less use (stories, tests). Workbench components overwrite
 // these from the active theme — see getScrollBarStyles (defaultStyles.ts).
 export const unthemedScrollBarStyles: IScrollBarStyles = {
     thumb: packRgb(100, 100, 100),
