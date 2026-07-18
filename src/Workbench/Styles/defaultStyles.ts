@@ -131,7 +131,7 @@ export function getFileTreeStyles(theme: WorkbenchTheme): ITreeViewStyles {
 
 /**
  * Дерево Problems: cut/symlink-декораций у него нет, эти цвета остаются
- * unthemed-дефолтами (исторически ProblemsController их не задавал).
+ * unthemed-дефолтами (исторически Problems-дерево их не задавало).
  */
 export function getProblemsTreeStyles(theme: WorkbenchTheme): ITreeViewStyles {
     return {
@@ -168,7 +168,7 @@ export function getTabStripStyles(theme: WorkbenchTheme): ITabStripStyles {
 
 /**
  * Встроенный терминал: `terminal.*`, с фоллбэком на панель/редактор для тем
- * без терминальных цветов (маппинг 1:1 из бывшего TerminalController.applyThemeToWidget).
+ * без терминальных цветов (маппинг 1:1 исторической покраски терминального виджета).
  */
 export function getTerminalViewStyles(theme: WorkbenchTheme): ITerminalViewStyles {
     return {

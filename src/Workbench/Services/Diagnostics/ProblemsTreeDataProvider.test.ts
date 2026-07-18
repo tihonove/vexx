@@ -10,7 +10,7 @@ import { ProblemsTreeDataProvider } from "./ProblemsTreeDataProvider.ts";
 
 /**
  * Ресурс маркера — `uri.toString()`, а не путь: хелпер принимает путь и поднимает его,
- * как это делает единственный писатель (`DiagnosticsController`).
+ * как это делает единственный писатель (`DiagnosticsService`).
  */
 function marker(filePath: string, severity: MarkerSeverity, line: number, message: string, character = 0): IMarker {
     return {

@@ -110,7 +110,8 @@ class ButtonElement {
   `FileSearchService`, `QuickOpenParsing`, `collectWordCompletions`, `CoreTokens`,
   каталоги `Workspace/` (undo/redo; `TrashService`/`WorkspaceEditService` пока в
   Controllers), `TerminalEnvironment/`, `Terminal/` (EmbeddedTerminalSession, фабрика,
-  загрузчик node-pty), `Diagnostics/`.
+  загрузчик node-pty, `TerminalService`), `Diagnostics/` (валидатор settings.json,
+  `ProblemsTreeDataProvider`, `DiagnosticsService`).
 - **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
   (наследник `ThemedComponent`; владеет `FitContentElement`-view и строит в нём
   JSX-дерево примитивов через reconcile — компонент **компонует** контролы, не
@@ -152,7 +153,47 @@ class ButtonElement {
     соответствует ему структурно; связывание — биндинг
     `ActiveEditorStatusSourceDIToken` в `Controllers/Modules/WorkbenchModule.ts`.
     Chord-хинт публикует `KeybindingDispatcher` как обычную запись сервиса.
-- `Components/` — UI-компоненты: `StatusBar/` (пилот) и `Dialogs/`.
+- **Panel-кластер (этап 6)** — нижняя панель и её вкладки:
+  - `Services/PanelService.ts` — реестр вкладок нижней Panel (id, title, content,
+    placeholder), активная вкладка и **видимость** панели. События:
+    `onDidChangeViews`, `onDidChangeActiveView`, `onDidActivateView`
+    (пользовательская активация — клик по табу; программный `setActiveView` его
+    **не** порождает — на нём висят ленивые фичи), `onDidChangeVisibility`
+    (владелец layout'а — сейчас AppController — двигает `WorkbenchLayoutElement`
+    и контекст-ключ `panelVisible`).
+  - `Components/Panel/PanelComponent.ts` — `ThemedComponent`; владеет
+    `PanelContainerElement` (`view.id = "panel"`, стили —
+    `getPanelContainerStyles`), отражает реестр сервиса (вкладки/контент/актив)
+    и возвращает клик по табу в `PanelService.activateView`.
+  - `Components/Panel/ProblemsComponent.ts` — `ThemedComponent`; дерево
+    «файл → маркеры» (`TreeViewElement` поверх `ProblemsTreeDataProvider`,
+    `view` = `ScrollBarDecorator`, `view.id = "problemsView"`; стили —
+    `getProblemsTreeStyles` + `getScrollBarStyles`). Регистрирует вкладку
+    PROBLEMS (`PROBLEMS_VIEW_ID`); пока маркеров нет — контент null (панель
+    рендерит placeholder). Reveal маркера — через **интерфейсный шов**
+    `IMarkerRevealTarget` (`openUri` + `getActiveEditor` с
+    `goToPosition`/`revealRange`); `EditorGroupController` соответствует
+    структурно, биндинг `MarkerRevealTargetDIToken` — в `Modules/WorkbenchModule.ts`.
+  - `Services/Terminal/TerminalService.ts` — headless-оркестратор терминала:
+    инстансы (id/title/session), lazy spawn через `TerminalSessionFactory`,
+    регистрация вкладки TERMINAL (`TERMINAL_VIEW_ID`) + подписка на её
+    активацию, чистка PTY при выходе шелла/dispose. События:
+    `onDidOpenInstance`/`onDidCloseInstance`/`onDidChangeActiveInstance`/
+    `onDidRequestFocus`.
+  - `Components/Panel/TerminalPanelComponent.ts` — view-владелец терминала:
+    строит `TerminalViewElement` по каждому инстансу, вкидывает виджет
+    активного в TERMINAL-вкладку (через `PanelService.setViewContent`), красит
+    виджеты (`getTerminalViewStyles`). **Не** наследник `Component`: корневого
+    контрола нет — его UI это несколько виджетов. ВАЖНО: у `TUIElement` нет
+    unmount-хуков, поэтому компонент **обязан** сам dispose'ить виджеты — при
+    закрытии инстанса и при своём `dispose()`.
+  - `Services/Diagnostics/DiagnosticsService.ts` — headless-проводник диагностик
+    поверх `MarkerService`: поставщик — валидатор активного settings.json,
+    потребитель — editor squiggles (Problems — второй потребитель того же
+    реестра). Редакторы приходят через шов `IDiagnosticsEditorSource` /
+    `IDiagnosticsEditor` (`EditorGroupController`/`EditorController`
+    структурно; биндинг `DiagnosticsEditorSourceDIToken` — в WorkbenchModule).
+- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/` и `Panel/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
 интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench

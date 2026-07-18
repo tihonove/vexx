@@ -1,38 +1,58 @@
 import * as path from "node:path";
 
-import { token } from "../Common/DiContainer.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import { Uri } from "../Common/Uri.ts";
-import { getDefaultConfiguration } from "../Configuration/defaults.ts";
-import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
-import type { MarkerService } from "../Editor/Markers/MarkerService.ts";
+import { token } from "../../../Common/DiContainer.ts";
+import { Disposable, type IDisposable } from "../../../Common/Disposable.ts";
+import { Uri } from "../../../Common/Uri.ts";
+import { getDefaultConfiguration } from "../../../Configuration/defaults.ts";
+import type { IMarkerDecoration } from "../../../Editor/Markers/IMarker.ts";
+import type { MarkerService } from "../../../Editor/Markers/MarkerService.ts";
 
-import { MarkerServiceDIToken, SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
-import { collectKnownSettingKeys, validateSettingsJson } from "../Workbench/Services/Diagnostics/SettingsDiagnostics.ts";
-import type { EditorController } from "./EditorController.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-
-export const DiagnosticsControllerDIToken = token<DiagnosticsController>("DiagnosticsController");
+import { MarkerServiceDIToken, SettingsResourceDIToken } from "../CoreTokens.ts";
+import { collectKnownSettingKeys, validateSettingsJson } from "./SettingsDiagnostics.ts";
 
 /** Marker owner used by the built-in settings.json validator. */
 const SETTINGS_OWNER = "settings";
+
+/**
+ * Минимальный срез открытого редактора, нужный диагностикам: ресурс, текст,
+ * событие изменения контента и канал squiggle-декораций. `EditorController`
+ * соответствует ему структурно — Workbench не импортирует Controllers,
+ * связывание делает DI-модуль ({@link DiagnosticsEditorSourceDIToken}).
+ */
+export interface IDiagnosticsEditor {
+    readonly uri: Uri;
+    getText(): string;
+    onDidChangeContent(listener: () => void): IDisposable;
+    setMarkerDecorations(decorations: readonly IMarkerDecoration[]): void;
+}
+
+/** Поставщик открытых редакторов для {@link DiagnosticsService}. */
+export interface IDiagnosticsEditorSource {
+    readonly editorCount: number;
+    getEditor(index: number): IDiagnosticsEditor | null;
+    getActiveEditor(): IDiagnosticsEditor | null;
+    onActiveEditorChanged(listener: (editor: IDiagnosticsEditor | null) => void): IDisposable;
+}
+
+export const DiagnosticsEditorSourceDIToken = token<IDiagnosticsEditorSource>("DiagnosticsEditorSource");
+export const DiagnosticsServiceDIToken = token<DiagnosticsService>("DiagnosticsService");
 
 /**
  * Wires the built-in diagnostic providers into the {@link MarkerService} and
  * pushes the resulting markers back to open editors as squiggle decorations.
  *
  * MVP: a single provider — the settings.json validator — and a single consumer
- * — editor squiggles. The problems panel (future) is just another consumer of
- * the same service. No language server or problem matcher involved.
+ * — editor squiggles. The problems panel is just another consumer of the same
+ * service. No language server or problem matcher involved.
  *
- * Not an {@link IController} (no view yet): a headless observer that AppController
- * mounts alongside the UI controllers.
+ * Headless-сервис: все подписки живут с конструктора; там же подхватывается
+ * редактор, ставший активным до создания сервиса (как у contribution'ов
+ * статус-бара).
  */
-export class DiagnosticsController extends Disposable {
-    public static dependencies = [EditorGroupControllerDIToken, MarkerServiceDIToken, SettingsResourceDIToken] as const;
+export class DiagnosticsService extends Disposable {
+    public static dependencies = [DiagnosticsEditorSourceDIToken, MarkerServiceDIToken, SettingsResourceDIToken] as const;
 
-    private editorGroup: EditorGroupController;
+    private editorSource: IDiagnosticsEditorSource;
     private markerService: MarkerService;
     private knownSettingKeys: Set<string>;
     /**
@@ -46,19 +66,19 @@ export class DiagnosticsController extends Disposable {
     private activeContentSubscription: IDisposable | null = null;
 
     public constructor(
-        editorGroup: EditorGroupController,
+        editorSource: IDiagnosticsEditorSource,
         markerService: MarkerService,
         settingsResource: string | null,
     ) {
         super();
-        this.editorGroup = editorGroup;
+        this.editorSource = editorSource;
         this.markerService = markerService;
         // path.resolve строго ДО Uri.file: Uri.file относительный путь не резолвит.
         this.settingsResource = settingsResource === null ? null : Uri.file(path.resolve(settingsResource));
         this.knownSettingKeys = collectKnownSettingKeys(getDefaultConfiguration());
 
         this.register(
-            this.editorGroup.onActiveEditorChanged((editor) => {
+            this.editorSource.onActiveEditorChanged((editor) => {
                 this.bindActiveEditor(editor);
                 this.validate(editor);
             }),
@@ -69,17 +89,15 @@ export class DiagnosticsController extends Disposable {
             }),
         );
         this.register({ dispose: () => this.activeContentSubscription?.dispose() });
-    }
 
-    public mount(): void {
         // Pick up an editor that became active before this subscription existed.
-        const active = this.editorGroup.getActiveEditor();
+        const active = this.editorSource.getActiveEditor();
         this.bindActiveEditor(active);
         this.validate(active);
     }
 
     /** Re-validates the active editor whenever its content changes. */
-    private bindActiveEditor(editor: EditorController | null): void {
+    private bindActiveEditor(editor: IDiagnosticsEditor | null): void {
         this.activeContentSubscription?.dispose();
         this.activeContentSubscription =
             editor?.onDidChangeContent(() => {
@@ -91,7 +109,7 @@ export class DiagnosticsController extends Disposable {
      * Runs the applicable providers for `editor` and publishes their markers.
      * Currently only the settings.json validator; no-op for other files.
      */
-    private validate(editor: EditorController | null): void {
+    private validate(editor: IDiagnosticsEditor | null): void {
         if (editor === null) return;
         // Валидируем только settings.json активного профиля — сверяем ресурс целиком,
         // а не basename, чтобы чужой settings.json (например, самого VS Code или
@@ -116,10 +134,10 @@ export class DiagnosticsController extends Disposable {
         }
     }
 
-    private editorsForResource(resource: string): EditorController[] {
-        const result: EditorController[] = [];
-        for (let i = 0; i < this.editorGroup.editorCount; i++) {
-            const editor = this.editorGroup.getEditor(i);
+    private editorsForResource(resource: string): IDiagnosticsEditor[] {
+        const result: IDiagnosticsEditor[] = [];
+        for (let i = 0; i < this.editorSource.editorCount; i++) {
+            const editor = this.editorSource.getEditor(i);
             /* v8 ignore start -- defensive: i is bounded by editorCount, so getEditor always returns an open editor */
             if (editor === null) continue;
             /* v8 ignore stop */

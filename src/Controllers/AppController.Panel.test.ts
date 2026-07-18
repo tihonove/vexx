@@ -4,8 +4,8 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import type { PanelContainerElement } from "../TUIDom/Widgets/PanelContainerElement.ts";
 
+import { PROBLEMS_VIEW_ID } from "../Workbench/Components/Panel/ProblemsComponent.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
-import { PROBLEMS_VIEW_ID } from "./PanelController.ts";
 
 const TOGGLE_PANEL = "workbench.action.togglePanel";
 const TOGGLE_PROBLEMS = "workbench.actions.view.problems";
@@ -30,7 +30,7 @@ describe("AppController — bottom panel visibility commands", () => {
         return h.controller.workbenchLayout.getBottomPanel() as PanelContainerElement;
     }
 
-    it("mounts the Panel controller's view as the workbench bottom panel, hidden initially", () => {
+    it("mounts the Panel component's view as the workbench bottom panel, hidden initially", () => {
         expect(panel().getViewIds()).toContain(PROBLEMS_VIEW_ID);
         expect(h.controller.workbenchLayout.getBottomPanelVisible()).toBe(false);
     });

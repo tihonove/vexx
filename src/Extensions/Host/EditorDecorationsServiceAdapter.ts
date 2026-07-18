@@ -9,7 +9,7 @@ import type { IEditorDecorationsService } from "./IEditorDecorationsService.ts";
  * Живёт в слое Extensions (Controllers ничего не знает про host).
  *
  * Находит открытые редакторы по совпадению ресурса (образец —
- * `DiagnosticsController.editorsForResource`) и проталкивает набор в каждый.
+ * `DiagnosticsService.editorsForResource`) и проталкивает набор в каждый.
  */
 export class EditorDecorationsServiceAdapter implements IEditorDecorationsService {
     private readonly group: EditorGroupController;

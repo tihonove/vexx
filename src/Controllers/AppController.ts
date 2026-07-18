@@ -176,7 +176,6 @@ import {
     SettingsResourceDIToken,
     TuiApplicationDIToken,
 } from "../Workbench/Services/CoreTokens.ts";
-import { DiagnosticsController, DiagnosticsControllerDIToken } from "./DiagnosticsController.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FileSearchService } from "../Workbench/Services/FileSearchService.ts";
@@ -190,9 +189,20 @@ import type { KeybindingRegistry } from "../Workbench/Services/KeybindingRegistr
 import { formatKeybinding, KeybindingRegistryDIToken, parseKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { StateServiceDIToken } from "./Modules/StateModule.ts";
-import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
-import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
-import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
+import { PanelComponentDIToken } from "../Workbench/Components/Panel/PanelComponent.ts";
+import {
+    type ProblemsComponent,
+    ProblemsComponentDIToken,
+    PROBLEMS_VIEW_ID,
+} from "../Workbench/Components/Panel/ProblemsComponent.ts";
+import { TerminalPanelComponentDIToken } from "../Workbench/Components/Panel/TerminalPanelComponent.ts";
+import { DiagnosticsServiceDIToken } from "../Workbench/Services/Diagnostics/DiagnosticsService.ts";
+import { type PanelService, PanelServiceDIToken } from "../Workbench/Services/PanelService.ts";
+import {
+    TERMINAL_VIEW_ID,
+    type TerminalService,
+    TerminalServiceDIToken,
+} from "../Workbench/Services/Terminal/TerminalService.ts";
 import { QuickInputController } from "./QuickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarComponent, StatusBarComponentDIToken } from "../Workbench/Components/StatusBar/StatusBarComponent.ts";
@@ -369,10 +379,9 @@ export class AppController extends Disposable implements IController {
     private completionController: CompletionController;
     private findController: FindController;
     private statusBarComponent: StatusBarComponent;
-    private diagnosticsController: DiagnosticsController;
-    private panelController: PanelController;
-    private problemsController: ProblemsController;
-    private terminalController: TerminalController;
+    private panelService: PanelService;
+    private problemsComponent: ProblemsComponent;
+    private terminalService: TerminalService;
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
@@ -458,10 +467,15 @@ export class AppController extends Disposable implements IController {
         // Contribution-сервисы статус-бара: инстанцируем через DI и владеем их жизнью.
         this.register(accessor.get(EditorStatusContributionDIToken));
         this.register(accessor.get(TerminalEnvStatusContributionDIToken));
-        this.diagnosticsController = this.register(accessor.get(DiagnosticsControllerDIToken));
-        this.panelController = this.register(accessor.get(PanelControllerDIToken));
-        this.problemsController = this.register(accessor.get(ProblemsControllerDIToken));
-        this.terminalController = this.register(accessor.get(TerminalControllerDIToken));
+        // Panel-кластер (Workbench): диагностики (headless), реестр вкладок панели,
+        // Problems и терминал. Порядок резолва задаёт порядок табов: PROBLEMS
+        // регистрирует ProblemsComponent, TERMINAL — TerminalService.
+        this.register(accessor.get(DiagnosticsServiceDIToken));
+        this.panelService = accessor.get(PanelServiceDIToken);
+        this.problemsComponent = this.register(accessor.get(ProblemsComponentDIToken));
+        this.terminalService = this.register(accessor.get(TerminalServiceDIToken));
+        const panelComponent = this.register(accessor.get(PanelComponentDIToken));
+        this.register(accessor.get(TerminalPanelComponentDIToken));
         this.commands = commands;
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
@@ -480,7 +494,15 @@ export class AppController extends Disposable implements IController {
         this.workbenchLayout = new WorkbenchLayoutElement();
         this.workbenchLayout.setSashHoverColor(themeService.theme.getRequiredColor("sash.hoverBorder"));
         this.workbenchLayout.setCenterContent(this.editorGroupController.view);
-        this.workbenchLayout.setBottomPanel(this.panelController.view);
+        this.workbenchLayout.setBottomPanel(panelComponent.view);
+        // Видимость панели живёт в PanelService; layout и контекст-ключ следуют за ней.
+        this.register(
+            this.panelService.onDidChangeVisibility((visible) => {
+                this.workbenchLayout.setBottomPanelVisible(visible);
+                this.workbenchLayout.markDirty();
+                this.contextKeys.set("panelVisible", visible);
+            }),
+        );
 
         // Персистентность workbench-состояния (открытые файлы + layout). Координатор
         // читает/пишет layout-элемент и группу редакторов; сам элемент про него не
@@ -854,13 +876,14 @@ export class AppController extends Disposable implements IController {
                     // Toggle like VS Code: show + focus Problems, or hide the panel if
                     // Problems is already the visible view.
                     const showing =
-                        this.workbenchLayout.getBottomPanelVisible() && this.panelController.isProblemsActive();
+                        this.workbenchLayout.getBottomPanelVisible() &&
+                        this.panelService.getActiveViewId() === PROBLEMS_VIEW_ID;
                     if (showing) {
                         this.setPanelVisible(false);
                     } else {
-                        this.panelController.showProblems();
+                        this.panelService.setActiveView(PROBLEMS_VIEW_ID);
                         this.setPanelVisible(true);
-                        this.problemsController.focus();
+                        this.problemsComponent.focus();
                     }
                 },
             }),
@@ -876,13 +899,14 @@ export class AppController extends Disposable implements IController {
                     // Toggle like VS Code: hide the panel if Terminal is already the
                     // visible view, otherwise show + spawn/focus a terminal.
                     const showing =
-                        this.workbenchLayout.getBottomPanelVisible() && this.panelController.isTerminalActive();
+                        this.workbenchLayout.getBottomPanelVisible() &&
+                        this.panelService.getActiveViewId() === TERMINAL_VIEW_ID;
                     if (showing) {
                         this.setPanelVisible(false);
                     } else {
-                        this.panelController.showTerminal();
+                        this.panelService.setActiveView(TERMINAL_VIEW_ID);
                         this.setPanelVisible(true);
-                        this.terminalController.openTerminal();
+                        this.terminalService.openTerminal();
                         this.updateContextKeys();
                     }
                 },
@@ -899,9 +923,9 @@ export class AppController extends Disposable implements IController {
                     { keys: parseKeybinding("ctrl+shift+~"), when: "tier == 'kitty' || tier == 'csi-u'" },
                 ],
                 run: () => {
-                    this.panelController.showTerminal();
+                    this.panelService.setActiveView(TERMINAL_VIEW_ID);
                     this.setPanelVisible(true);
-                    this.terminalController.newTerminal();
+                    this.terminalService.newTerminal();
                     this.updateContextKeys();
                 },
             }),
@@ -1122,13 +1146,12 @@ export class AppController extends Disposable implements IController {
         this.fileTreeController.onFileContextMenu = (node, screenX, screenY) => {
             this.showFileTreeContextMenu(node.path, screenX, screenY);
         };
-        this.diagnosticsController.mount();
-        this.panelController.mount();
-        this.problemsController.mount();
-        this.terminalController.mount();
         // Применяем сохранённый layout до первого кадра (run() идёт после mount()).
         // Workspace-стор уже открыт: setWorkspaceFolder вызывается до mount().
         this.workbenchState.restoreLayout();
+        // restoreLayout пишет видимость панели прямо в layout-элемент — синхронизируем
+        // истину PanelService (иначе первый toggle после рестора отработал бы вхолостую).
+        this.panelService.setVisible(this.workbenchLayout.getBottomPanelVisible());
     }
 
     public async activate(): Promise<void> {
@@ -1140,7 +1163,6 @@ export class AppController extends Disposable implements IController {
         this.terminalEnv.detect();
         await this.editorGroupController.activate();
         await this.fileTreeController.activate();
-        await this.panelController.activate();
     }
 
     public openFile(filePath: string): void {
@@ -1183,7 +1205,7 @@ export class AppController extends Disposable implements IController {
     public setWorkspaceFolder(dirPath: string): void {
         this.fileTreeController.setRootPath(dirPath);
         // Новые терминалы спавнятся в папке воркспейса.
-        this.terminalController.setWorkingDirectory(dirPath);
+        this.terminalService.setWorkingDirectory(dirPath);
         this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
         // Открыть per-project стор состояния для этой папки (переключение флашит
         // предыдущий). Дальше layout/открытые файлы читаются/пишутся в него.
@@ -1245,11 +1267,13 @@ export class AppController extends Disposable implements IController {
         this.completionController.onFocusChanged(active instanceof EditorElement);
     };
 
-    /** Shows/hides the bottom Panel and keeps the `panelVisible` context key in sync. */
+    /**
+     * Shows/hides the bottom Panel. Истина видимости — {@link PanelService};
+     * layout и контекст-ключ `panelVisible` следуют за ней через подписку
+     * `onDidChangeVisibility` (см. конструктор).
+     */
     private setPanelVisible(visible: boolean): void {
-        this.workbenchLayout.setBottomPanelVisible(visible);
-        this.workbenchLayout.markDirty();
-        this.contextKeys.set("panelVisible", visible);
+        this.panelService.setVisible(visible);
     }
 
     private updateContextKeys(): void {
@@ -1266,7 +1290,7 @@ export class AppController extends Disposable implements IController {
         this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
         this.contextKeys.set("suggestWidgetVisible", this.completionController.isOpen());
         this.contextKeys.set("terminalFocus", active instanceof TerminalViewElement);
-        this.contextKeys.set("terminalIsOpen", this.terminalController.hasOpenTerminals);
+        this.contextKeys.set("terminalIsOpen", this.terminalService.hasOpenTerminals);
 
         // Terminal environment (tier / capabilities / modes / OS) — mostly static per session,
         // but mode can be force-toggled at runtime, so refresh alongside focus context.

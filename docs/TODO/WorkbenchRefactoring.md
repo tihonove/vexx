@@ -54,8 +54,17 @@ Workbench и может его импортировать; обратно — н
        нового примитива `FitContentElement`; цвета из `editorWidget.*` вместо
        хардкодов); 5c — `LifecycleService` (`requestQuit` + `IShutdownParticipant`,
        участник — `EditorGroupController`; выход — колбэк `onQuit` от AppController)
-- [ ] 6. Panel-кластер: `DiagnosticsService`, `PanelService`+`PanelComponent`,
-       `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent`
+- [x] 6. Panel-кластер: `DiagnosticsService` (шов `IDiagnosticsEditorSource` →
+       `EditorGroupController`), `PanelService` (реестр вкладок + активная +
+       видимость; `onDidActivateView` — только пользовательская активация) +
+       `PanelComponent` (владеет `PanelContainerElement`), `ProblemsComponent`
+       (вкладка PROBLEMS + дерево; шов reveal `IMarkerRevealTarget` →
+       `EditorGroupController`), `TerminalService` (инстансы, lazy spawn,
+       вкладка TERMINAL) + `TerminalPanelComponent` (view-владелец виджетов
+       `TerminalViewElement`; не наследник `Component` — корневого контрола нет,
+       обязан dispose'ить виджеты: у TUIElement нет unmount-хуков); toggle-команды
+       панели — `AppController` поверх `PanelService` (layout/`panelVisible` следуют
+       за `onDidChangeVisibility`); биндинги — `Modules/WorkbenchModule.ts`
 - [ ] 7. Explorer: `ExplorerService`+`ExplorerComponent`+`InputWidgetComponent`,
        `FileOperationsService`
 - [ ] 8. `QuickInputService`+`QuickInputComponent`, `QuickOpenService`, пикеры → Actions

@@ -7,11 +7,12 @@ import { settle } from "../TestUtils/timing.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 
+import type { EditorElement } from "../Editor/EditorElement.ts";
+import { ProblemsComponent, ProblemsComponentDIToken } from "../Workbench/Components/Panel/ProblemsComponent.ts";
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import { SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
-import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsController.ts";
 
 const UNKNOWN_SETTINGS = ["{", '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
 
@@ -22,7 +23,7 @@ describe("AppController — Problems view end-to-end", () => {
     let controller: AppController;
     let commands: CommandRegistry;
     let testApp: TestApp;
-    let problems: ProblemsController;
+    let problems: ProblemsComponent;
     let panelBg: number;
     let settingsPath: string;
 
@@ -43,7 +44,7 @@ describe("AppController — Problems view end-to-end", () => {
         testApp = TestApp.create(controller.view, new Size(90, 22));
         bindApp(testApp.app);
         commands = container.get(CommandRegistryDIToken);
-        problems = container.get(ProblemsControllerDIToken);
+        problems = container.get(ProblemsComponentDIToken);
         panelBg = container.get(ThemeServiceDIToken).theme.getRequiredColor("panel.background");
     });
 
@@ -63,6 +64,11 @@ describe("AppController — Problems view end-to-end", () => {
         const screen = testApp.backend.screenToString();
         expect(screen).toContain("settings.json  (1)");
         expect(screen).toContain("Unknown Configuration Setting: editor.fontSize");
+
+        // E2E-шов DiagnosticsService → EditorGroupController: маркер того же
+        // валидатора дошёл и до squiggle-декораций открытого редактора.
+        const editorElement = testApp.querySelector("EditorElement") as EditorElement;
+        expect(editorElement.markerDecorations).toHaveLength(1);
 
         // Bug 1 — the panel subtree's style is resolved (tree bg = panel bg, not the
         // unresolved default), so the tree area is actually painted.

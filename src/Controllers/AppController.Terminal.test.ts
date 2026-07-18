@@ -5,8 +5,11 @@ import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorks
 import type { PanelContainerElement } from "../TUIDom/Widgets/PanelContainerElement.ts";
 
 import { ContextKeyService, ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
-import { TERMINAL_VIEW_ID } from "./PanelController.ts";
-import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
+import {
+    TERMINAL_VIEW_ID,
+    TerminalService,
+    TerminalServiceDIToken,
+} from "../Workbench/Services/Terminal/TerminalService.ts";
 
 const TOGGLE_TERMINAL = "workbench.action.terminal.toggleTerminal";
 const NEW_TERMINAL = "workbench.action.terminal.new";
@@ -15,13 +18,13 @@ describe("AppController — integrated terminal", () => {
     let ws: ITempWorkspace;
     let h: IAppHarness;
     let contextKeys: ContextKeyService;
-    let terminal: TerminalController;
+    let terminal: TerminalService;
 
     beforeEach(() => {
         ws = createTempWorkspace({ prefix: "vexx-terminal-" });
         h = createAppTestHarness({ workspaceFolder: ws.dir });
         contextKeys = h.container.get(ContextKeyServiceDIToken);
-        terminal = h.container.get(TerminalControllerDIToken);
+        terminal = h.container.get(TerminalServiceDIToken);
     });
 
     afterEach(() => {
@@ -81,7 +84,8 @@ describe("AppController — integrated terminal", () => {
         expect(terminal.hasOpenTerminals).toBe(false);
 
         // Simulate a click on the TERMINAL tab: the panel switches the active view,
-        // then fires onActivateView (claimed by TerminalController.mount()).
+        // then fires onActivateView (wired by PanelComponent → PanelService.activateView,
+        // на котором висит ленивый спавн TerminalService).
         panel().setActiveView(TERMINAL_VIEW_ID);
         panel().onActivateView?.(TERMINAL_VIEW_ID);
 

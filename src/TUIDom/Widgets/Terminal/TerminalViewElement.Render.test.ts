@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../../Common/GeometryPromitives.ts";
 import type { CellPatch } from "../../../Rendering/Grid.ts";
@@ -170,6 +170,19 @@ describe("TerminalViewElement — updates", () => {
         const context2 = new RecordingContext(new TerminalScreen(new Size(1, 1)));
         el.render(context2);
         expect(context2.patchAt(0, 0)?.char).toBe("b");
+    });
+
+    it("re-renders on shell exit (to hide the cursor)", () => {
+        const surface = new FakeTerminalSurface();
+        const el = new TerminalViewElement(surface);
+        const markDirty = vi.spyOn(el, "markDirty");
+
+        surface.emitExit(0);
+
+        // markDirty подписан на onExit — курсор прячется в ближайшем кадре (isExited в render).
+        expect(markDirty).toHaveBeenCalled();
+        markDirty.mockRestore();
+        el.dispose();
     });
 
     it("stops reacting to the surface after dispose", () => {
