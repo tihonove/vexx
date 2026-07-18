@@ -1,11 +1,8 @@
 import type { ServiceAccessor } from "../../../Common/DiContainer.ts";
 import { token } from "../../../Common/DiContainer.ts";
-import type { IConfigurationService } from "../../../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../../../Configuration/IConfigurationServiceDIToken.ts";
 import type { IUserKeybindingRule } from "../../../Configuration/KeybindingsService.ts";
-import type { ThemeRegistry } from "../../../Theme/ThemeRegistry.ts";
 import type { ThemeService } from "../../../Theme/ThemeService.ts";
-import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
+import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import { BodyElement } from "../../../TUIDom/Widgets/BodyElement.ts";
 import { WorkbenchLayoutElement } from "../../../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 import { quitAction } from "../../Actions/AppActions.ts";
@@ -99,7 +96,6 @@ export class WorkbenchComponent extends ThemedComponent {
     private explorerService: ExplorerService;
     private explorerComponent: ExplorerComponent;
     private fileOperations: FileOperationsService;
-    private configurationService: IConfigurationService;
     private fileSearchService: FileSearchService;
     private quickInput: QuickInputService;
     private statusBarComponent: StatusBarComponent;
@@ -107,8 +103,6 @@ export class WorkbenchComponent extends ThemedComponent {
     private layoutService: LayoutService;
     private workbenchContextKeys: WorkbenchContextKeys;
     private workbenchState: WorkbenchStateService;
-    private commands: CommandRegistry;
-    private themeRegistry: ThemeRegistry;
     private terminalEnv: TerminalEnvironmentService;
     private dispatcher: KeybindingDispatcher;
     private contributionsRegistry: WorkbenchContributionsRegistry;
@@ -131,7 +125,6 @@ export class WorkbenchComponent extends ThemedComponent {
         this.lifecycleService = lifecycleService;
         // Несохранённые редакторы участвуют в confirm-save последовательности выхода.
         this.lifecycleService.registerShutdownParticipant(editorService);
-        this.themeRegistry = accessor.get(ThemeRegistryDIToken);
         this.editorService = this.register(editorService);
         // Editor-кластер: компонент группового контрола (tab strip + контент
         // активного редактора) поверх EditorService.
@@ -145,7 +138,6 @@ export class WorkbenchComponent extends ThemedComponent {
         // WorkbenchContextKeys) — сам сервис про view ничего не знает.
         this.dispatcher = this.register(accessor.get(KeybindingDispatcherDIToken));
         this.dispatcher.hasKeyboardCapturingOverlay = () => this.view.overlayLayer.hasKeyboardCapturingOverlay();
-        this.configurationService = accessor.get(IConfigurationServiceDIToken);
         // QuickInput-кластер: файловый индекс, общий виджет-компонент (host
         // прикрепляется ниже, после постройки view), InputBox/list-pick сервис и
         // Quick Open поверх них. WorkbenchComponent владеет их жизнью.
@@ -172,7 +164,6 @@ export class WorkbenchComponent extends ThemedComponent {
         this.terminalService = this.register(accessor.get(TerminalServiceDIToken));
         const panelComponent = this.register(accessor.get(PanelComponentDIToken));
         this.register(accessor.get(TerminalPanelComponentDIToken));
-        this.commands = commands;
         // Layout-логика (сайдбар/панель + персист layout'а) и контекст-ключи
         // workbench'а (фокус/сервисы → ContextKeyService; замыкают хук
         // dispatcher.updateContextKeys). Сам layout-элемент и корневую view
@@ -210,15 +201,6 @@ export class WorkbenchComponent extends ThemedComponent {
         suggestComponent.attachHost(this.view);
         findComponent.attachHost(this.editorGroupComponent.view);
         this.register(
-            this.editorService.onActiveEditorChanged(() => {
-                // Автоподсветка активного файла в дереве (`explorer.autoReveal`) —
-                // сам флоу живёт в ExplorerService.
-                this.explorerService.autoRevealActiveFile(
-                    this.editorService.getActiveEditor()?.absoluteFilePath ?? null,
-                );
-            }),
-        );
-        this.register(
             commands.register("workbench.openFile", (absolutePath: unknown) => {
                 this.editorService.openFile(absolutePath as string);
                 this.workbenchContextKeys.update();
@@ -243,50 +225,7 @@ export class WorkbenchComponent extends ThemedComponent {
         // пунктов резолвятся из реестра биндингов на момент постройки модели.
         const menuBarComponent = this.register(accessor.get(MenuBarComponentDIToken));
         this.view.setMenuBar(menuBarComponent.view);
-        // Live-reload: смена `workbench.colorTheme` в settings.json перекрашивает UI
-        // без рестарта. Explorer-настройки (`explorer.*`) читаются on-demand, поэтому
-        // отдельная подписка им не нужна — reload модели применяет их сам. Editor-
-        // настройки перепримeняет EditorService.
-        this.register(
-            this.configurationService.onDidChangeConfiguration((event) => {
-                if (!event.affectsConfiguration("workbench.colorTheme")) return;
-                this.applyColorThemeFromConfiguration();
-            }),
-        );
 
-        this.editorService.onEditorCreate = (editor) => {
-            editor.contextMenuEntries = [
-                {
-                    label: "Copy",
-                    shortcut: "Ctrl+C",
-                    onSelect: () => {
-                        this.commands.execute("editor.action.clipboardCopyAction");
-                    },
-                },
-                {
-                    label: "Cut",
-                    shortcut: "Ctrl+X",
-                    onSelect: () => {
-                        this.commands.execute("editor.action.clipboardCutAction");
-                    },
-                },
-                {
-                    label: "Paste",
-                    shortcut: "Ctrl+V",
-                    onSelect: () => {
-                        this.commands.execute("editor.action.clipboardPasteAction");
-                    },
-                },
-                { type: "separator" },
-                {
-                    label: "Undo",
-                    shortcut: "Ctrl+Z",
-                    onSelect: () => {
-                        this.commands.execute("undo");
-                    },
-                },
-            ];
-        };
         this.initStyles();
     }
 
@@ -406,20 +345,6 @@ export class WorkbenchComponent extends ThemedComponent {
             bg: this.theme.getRequiredColor("editor.background"),
         };
         this.workbenchLayout.setSashHoverColor(this.theme.getRequiredColor("sash.hoverBorder"));
-    }
-
-    /**
-     * Резолвит тему по имени из `workbench.colorTheme` и применяет её через
-     * `ThemeService` (что дёрнет `onThemeChange` → {@link updateStyles}). Guard по
-     * имени: если тема уже активна (напр. правку внёс сам theme-picker через
-     * `updateUserValue`), лишнего перекраса не делаем. Неизвестное имя игнорируем.
-     */
-    private applyColorThemeFromConfiguration(): void {
-        const name = this.configurationService.get<string>("workbench.colorTheme");
-        if (name === undefined) return;
-        if (name === this.themeService.theme.name) return;
-        const theme = this.themeRegistry.resolve(name);
-        if (theme) this.themeService.setTheme(theme);
     }
 
     public showConfirmSaveDialog(

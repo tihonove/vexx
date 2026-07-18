@@ -1,5 +1,11 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { WorkspaceFolderOpenerDIToken } from "../Actions/FileActions.ts";
+import { AutoRevealContribution, AutoRevealContributionDIToken } from "../Contributions/AutoRevealContribution.ts";
+import {
+    EditorContextMenuContribution,
+    EditorContextMenuContributionDIToken,
+} from "../Contributions/EditorContextMenuContribution.ts";
+import { ThemeConfigContribution, ThemeConfigContributionDIToken } from "../Contributions/ThemeConfigContribution.ts";
 import { WORKBENCH_CONTRIBUTIONS } from "../Contributions/workbenchContributions.ts";
 import {
     WorkbenchContributionsDIToken,
@@ -122,6 +128,9 @@ export const workbenchModule: ContainerModule = (container) => {
     // (Restored — в mount()) и main.ts (Eventually — после первого кадра).
     container.bind(WorkbenchContributionsDIToken, () => WORKBENCH_CONTRIBUTIONS);
     container.bind(WorkbenchContributionsRegistryDIToken, WorkbenchContributionsRegistry);
+    container.bind(AutoRevealContributionDIToken, AutoRevealContribution);
+    container.bind(ThemeConfigContributionDIToken, ThemeConfigContribution);
+    container.bind(EditorContextMenuContributionDIToken, EditorContextMenuContribution);
     // Panel-кластер (этап 6): реестр вкладок нижней панели + компонент-контрол,
     // Problems-дерево и встроенный терминал (сервис инстансов + view-владелец).
     container.bind(PanelServiceDIToken, PanelService);
