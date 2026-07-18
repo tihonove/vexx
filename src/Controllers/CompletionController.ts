@@ -27,7 +27,7 @@ const KIND_TEXT = 0;
  * `EditorGroupController.completionSource` (провайдеры расширений через host),
  * показывает {@link CompletionListElement} у каретки и вставляет выбранный
  * элемент. `item.command` исполняется через {@link onExecuteCommand}
- * (commands bridge). Построен по образцу `QuickOpenController`.
+ * (commands bridge). Построен по образцу quick-open-оверлея (ныне `QuickOpenService`).
  */
 export class CompletionController extends Disposable {
     public readonly view: CompletionListElement;

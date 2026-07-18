@@ -1,5 +1,7 @@
+import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
+import { QuickInputServiceDIToken } from "../../Workbench/Services/QuickInputService.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 
 function setActiveEditorEol(accessor: Parameters<CommandAction["run"]>[0], eol: EndOfLine): void {
@@ -24,18 +26,35 @@ export const convertToCrlfAction: CommandAction = {
 };
 
 /**
- * Open the EOL picker (VS Code `workbench.action.editor.changeEOL`): a quick
- * pick with LF / CRLF. The real handler is installed by `AppController`; this
- * only declares id / title.
+ * EOL picker (VS Code `workbench.action.editor.changeEOL`): quick pick с
+ * LF / CRLF, активная позиция — текущий EOL документа. Остаётся в
+ * Controllers/Actions: тянет активный редактор через `EditorGroupController`
+ * (уедет со швом редактора на этапе 9).
  */
+async function changeEol(accessor: ServiceAccessor): Promise<void> {
+    const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+    if (editor === null) return;
+
+    const picked = await accessor.get(QuickInputServiceDIToken).quickPick({
+        title: "Change End of Line Sequence",
+        placeholder: "Select End of Line Sequence",
+        items: [
+            { label: "LF", description: "\\n" },
+            { label: "CRLF", description: "\\r\\n" },
+        ],
+        activeIndex: editor.eol === EndOfLine.CRLF ? 1 : 0,
+    });
+    if (picked === undefined) return;
+
+    editor.setEol(picked.label === "CRLF" ? EndOfLine.CRLF : EndOfLine.LF);
+}
+
 export const changeEolAction: CommandAction = {
     id: "workbench.action.editor.changeEOL",
     title: "Change End of Line Sequence",
-    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime */
-    run() {
-        // Overridden in AppController
+    run(accessor) {
+        void changeEol(accessor);
     },
-    /* v8 ignore stop */
 };
 
 export const toggleEolAction: CommandAction = {

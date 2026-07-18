@@ -12,9 +12,9 @@ import type { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 import type { WorkspaceEditService } from "./Workspace/WorkspaceEditService.ts";
 
 /**
- * Юнит-крайности FileOperationsService: без прикреплённого inputPrompt
- * (QuickInput ещё не отдан владельцем) create/rename — no-op. Основные флоу
- * покрыты интеграционно (AppController.FileCreate/FileRename/FileDelete/…).
+ * Юнит-крайности FileOperationsService: отменённый промпт (Escape / клик мимо →
+ * `input()` резолвится undefined) оставляет create/rename no-op'ом. Основные
+ * флоу покрыты интеграционно (AppController.FileCreate/FileRename/FileDelete/…).
  */
 function makeService(explorer: Partial<ExplorerService>): { service: FileOperationsService; edits: unknown[] } {
     const edits: unknown[] = [];
@@ -24,6 +24,8 @@ function makeService(explorer: Partial<ExplorerService>): { service: FileOperati
             return null;
         },
     } as unknown as WorkspaceEditService;
+    // Промпт, который пользователь сразу отменяет (шов IExplorerInputPrompt).
+    const cancelledPrompt = { input: () => Promise.resolve(undefined) };
     const service = new FileOperationsService(
         explorer as ExplorerService,
         workspaceEdits,
@@ -32,12 +34,13 @@ function makeService(explorer: Partial<ExplorerService>): { service: FileOperati
         NULL_CONFIGURATION_SERVICE,
         new InMemoryFileClipboard(),
         new CommandRegistry(),
+        cancelledPrompt,
     );
     return { service, edits };
 }
 
-describe("FileOperationsService — без прикреплённого inputPrompt", () => {
-    it("runCreate is a no-op when no input prompt is attached", async () => {
+describe("FileOperationsService — отменённый промпт", () => {
+    it("runCreate is a no-op when the prompt is cancelled", async () => {
         const ws = createTempWorkspace({ prefix: "vexx-fileops-" });
         const { service, edits } = makeService({ getPasteTargetDir: () => ws.dir });
 
@@ -46,7 +49,7 @@ describe("FileOperationsService — без прикреплённого inputPro
         ws.dispose();
     });
 
-    it("runRename is a no-op when no input prompt is attached", async () => {
+    it("runRename is a no-op when the prompt is cancelled", async () => {
         const { service, edits } = makeService({});
 
         await expect(service.runRename("/ws/old.txt")).resolves.toBeUndefined();

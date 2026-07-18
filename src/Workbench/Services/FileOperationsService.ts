@@ -14,6 +14,7 @@ import type { DialogService } from "./DialogService.ts";
 import { DialogServiceDIToken } from "./DialogService.ts";
 import type { ExplorerService } from "./ExplorerService.ts";
 import { ExplorerServiceDIToken } from "./ExplorerService.ts";
+import { QuickInputServiceDIToken } from "./QuickInputService.ts";
 import type { ResourceFileEdit } from "./Workspace/WorkspaceEdit.ts";
 import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
 import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
@@ -21,9 +22,9 @@ import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/W
 export const FileOperationsServiceDIToken = token<FileOperationsService>("FileOperationsService");
 
 /**
- * Промпт ввода имени/пути (InputBox). Минимальный шов до этапа 8: Workbench
- * объявляет интерфейс, `QuickInputController` соответствует ему структурно, а
- * владелец (сейчас AppController) прикрепляет его через поле {@link FileOperationsService.inputPrompt}.
+ * Промпт ввода имени/пути (InputBox) — узкий срез `QuickInputService.input`
+ * (соответствует структурно). Оставлен интерфейсом, чтобы юнит-тесты могли
+ * подставлять фейковый промпт; в DI шов замкнут на `QuickInputServiceDIToken`.
  */
 export interface IExplorerInputPrompt {
     input(options: {
@@ -61,10 +62,8 @@ export class FileOperationsService {
         IConfigurationServiceDIToken,
         FileClipboardDIToken,
         CommandRegistryDIToken,
+        QuickInputServiceDIToken,
     ] as const;
-
-    /** Прикрепляется владельцем QuickInput'а (сейчас AppController); без него create/rename — no-op. */
-    public inputPrompt: IExplorerInputPrompt | null = null;
 
     public constructor(
         private readonly explorer: ExplorerService,
@@ -74,6 +73,7 @@ export class FileOperationsService {
         private readonly configurationService: IConfigurationService,
         private readonly fileClipboard: IFileClipboard,
         private readonly commands: CommandRegistry,
+        private readonly inputPrompt: IExplorerInputPrompt,
     ) {}
 
     /** Кладёт выбранные в дереве пути в файловый буфер (режим copy). */
@@ -192,7 +192,6 @@ export class FileOperationsService {
                 : path.dirname(explorerPath)
             : this.explorer.getPasteTargetDir();
         if (!targetDir) return;
-        if (!this.inputPrompt) return;
 
         const name = await this.inputPrompt.input({
             title: kind === "file" ? "New File" : "New Folder",
@@ -231,7 +230,6 @@ export class FileOperationsService {
      * the undoable {@link WorkspaceEditService}, then refreshes and reveals it.
      */
     public async runRename(filePath: string): Promise<void> {
-        if (!this.inputPrompt) return;
         const parentDir = path.dirname(filePath);
         const oldName = path.basename(filePath);
 

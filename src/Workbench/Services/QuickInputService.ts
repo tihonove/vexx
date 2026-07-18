@@ -1,9 +1,10 @@
-import { Disposable } from "../Common/Disposable.ts";
-import { Point } from "../Common/GeometryPromitives.ts";
-import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
-import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
-import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
+import { token } from "../../Common/DiContainer.ts";
+import type { QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
+
+import type { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
+import { QuickInputComponentDIToken } from "../Components/QuickInput/QuickInputComponent.ts";
+
+export const QuickInputServiceDIToken = token<QuickInputService>("QuickInputService");
 
 /**
  * Options for a single-line text prompt, mirroring VS Code's `showInputBox`.
@@ -48,58 +49,21 @@ export interface QuickPickOptions {
  * VS Code-style QuickInput service (the reusable "enter a value" / "pick from a
  * list" control).
  *
- * Owns ONE reusable {@link QuickPickElement} hosted in a single overlay session,
- * mirroring {@link import("./QuickOpenController.ts").QuickOpenController}. Only
- * one quick-input is ever active at a time; a new call cancels any previous one.
+ * Виджетом и overlay-сессией владеет {@link QuickInputComponent} — общий с
+ * {@link import("./QuickOpenService.ts").QuickOpenService}; сервис на каждый
+ * показ полностью ре-инициализирует состояние и колбэки виджета. Only one
+ * quick-input is ever active at a time; a new call cancels any previous one.
  *
  * Exposes the InputBox flavor (`input()`) and the list-pick flavor
  * (`quickPick()`). The file-dialog flavor reuses the same widget/session and is a
  * future addition.
  */
-export class QuickInputController extends Disposable {
-    public readonly view: QuickPickElement;
+export class QuickInputService {
+    public static dependencies = [QuickInputComponentDIToken] as const;
 
-    private hostBody: BodyElement | null = null;
-    private session: OverlaySessionHandle | null = null;
     private pendingResolve: ((value: string | QuickPickItem | undefined) => void) | null = null;
 
-    public constructor() {
-        super();
-        this.view = new QuickPickElement();
-        this.view.onCancel = () => {
-            this.settle(undefined);
-        };
-        this.view.onAcceptValue = (value) => {
-            // The widget already blocks Enter on a hard validation error.
-            // Defer to a microtask (like QuickOpenController): closing the session here
-            // restores focus to the editor, and doing that synchronously mid-keypress would
-            // let the trailing key event of the same Enter land in the now-focused editor.
-            queueMicrotask(() => {
-                this.settle(value);
-            });
-        };
-    }
-
-    public setHostView(body: BodyElement): void {
-        this.hostBody = body;
-        this.session = body.overlayLayer.createSession(this.view, new Point(0, 0), {
-            visible: false,
-            restoreFocus: true,
-            closeOnEscape: true,
-            pointerPolicy: "close-on-outside",
-            onClose: () => {
-                // Outside click / Escape / programmatic close all resolve as cancelled.
-                this.settle(undefined);
-            },
-        });
-
-        this.register({
-            dispose: () => {
-                this.session?.dispose();
-                this.session = null;
-            },
-        });
-    }
+    public constructor(private readonly component: QuickInputComponent) {}
 
     /**
      * Prompt the user for a single line of text. Resolves with the entered value
@@ -108,12 +72,15 @@ export class QuickInputController extends Disposable {
      */
     public input(opts: InputBoxOptions = {}): Promise<string | undefined> {
         // A previous prompt still open? Cancel it before starting a new one.
+        // (Включая чужой показ на общем виджете — например, открытый Quick Open.)
         this.settle(undefined);
+        this.component.hide();
 
         return new Promise<string | undefined>((resolve) => {
             this.pendingResolve = resolve as (value: string | QuickPickItem | undefined) => void;
+            this.takeOwnership();
 
-            const view = this.view;
+            const view = this.component.view;
             view.acceptMode = "value";
             view.items = [];
             view.title = opts.title;
@@ -134,9 +101,7 @@ export class QuickInputController extends Disposable {
             // Seed the validation state for the initial value.
             view.validationMessage = validate ? (validate(view.getQuery()) ?? null) : null;
 
-            this.updatePosition();
-            this.session?.open();
-            view.focus();
+            this.component.show();
         });
     }
 
@@ -149,14 +114,17 @@ export class QuickInputController extends Disposable {
      * changes (open, navigation, filtering) — the seam for live preview.
      */
     public quickPick(opts: QuickPickOptions): Promise<QuickPickItem | undefined> {
-        // A previous prompt still open? Cancel it before starting a new one.
+        // A previous pick still open? Cancel it before starting a new one.
+        // (Включая чужой показ на общем виджете — например, открытый Quick Open.)
         this.settle(undefined);
+        this.component.hide();
 
         return new Promise<QuickPickItem | undefined>((resolve) => {
             this.pendingResolve = resolve as (value: string | QuickPickItem | undefined) => void;
+            this.takeOwnership();
 
             const allItems = opts.items;
-            const view = this.view;
+            const view = this.component.view;
             view.acceptMode = "item";
             view.title = opts.title;
             view.prompt = undefined;
@@ -195,10 +163,33 @@ export class QuickInputController extends Disposable {
             if (opts.activeIndex !== undefined) view.setActiveIndex(opts.activeIndex);
             notifyActive();
 
-            this.updatePosition();
-            this.session?.open();
-            view.focus();
+            this.component.show();
         });
+    }
+
+    /**
+     * Перехват общего виджета этим сервисом: колбэки отмены/принятия значения и
+     * канал закрытия сессии перенастраиваются на текущий промис (Quick Open при
+     * своём открытии выставляет их обратно на себя).
+     */
+    private takeOwnership(): void {
+        const view = this.component.view;
+        view.onCancel = () => {
+            this.settle(undefined);
+        };
+        view.onAcceptValue = (value) => {
+            // The widget already blocks Enter on a hard validation error.
+            // Defer to a microtask (like QuickOpenService): closing the session here
+            // restores focus to the editor, and doing that synchronously mid-keypress would
+            // let the trailing key event of the same Enter land in the now-focused editor.
+            queueMicrotask(() => {
+                this.settle(value);
+            });
+        };
+        this.component.onDidClose = () => {
+            // Outside click / Escape / programmatic close all resolve as cancelled.
+            this.settle(undefined);
+        };
     }
 
     /** Resolve the pending promise exactly once and close the overlay. */
@@ -206,23 +197,7 @@ export class QuickInputController extends Disposable {
         const resolve = this.pendingResolve;
         if (resolve === null) return;
         this.pendingResolve = null;
-        if (this.session?.isOpen()) {
-            this.session.close();
-        }
+        this.component.hide();
         resolve(value);
-    }
-
-    private updatePosition(): void {
-        if (!this.hostBody) return;
-
-        const screenW = this.hostBody.layoutSize.width;
-        const screenH = this.hostBody.layoutSize.height;
-
-        const width = Math.min(80, Math.max(40, screenW - 4));
-        const px = Math.max(0, Math.floor((screenW - width) / 2));
-        const py = Math.max(1, Math.floor(screenH * 0.1));
-
-        this.view.preferredWidth = width;
-        this.session?.setPosition(new Point(px, py));
     }
 }

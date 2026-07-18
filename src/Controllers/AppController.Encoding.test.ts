@@ -27,7 +27,7 @@ async function pick(h: IAppHarness, query: string): Promise<void> {
     h.testApp.render();
     const picker = visiblePicker(h);
     picker.setQuery(query);
-    // setQuery не дёргает колбэк — фильтрацию запускает QuickInputController
+    // setQuery не дёргает колбэк — фильтрацию запускает QuickInputService
     // через onQueryChange (как при живом вводе).
     picker.onQueryChange?.(query);
     h.testApp.sendKey("Enter");

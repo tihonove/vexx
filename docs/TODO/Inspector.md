@@ -45,7 +45,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
   `EditorElement` (тонкий view) / `EditorController` (I/O, save, токенизация).
   Это эталон, а не проблема.
 - `QuickPickElement` — пограничный; навигация по списку нормальна для виджета,
-  фильтрация уже в `QuickOpenController`. Максимум — вынести
+  фильтрация уже в `QuickOpenService`. Максимум — вынести
   `selectedIndex`/`scrollOffset` в state-класс. Низкий приоритет.
 - ~14 примитивов (`Box`, `TextLabel`, `TextBlock`, `Input`, `ScrollViewport`,
   `TitledPanel`, `StatusBar`, `EditorTabItem`, `BoxContainer`,

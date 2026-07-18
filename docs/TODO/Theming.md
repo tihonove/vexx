@@ -40,8 +40,7 @@ themes/*.ts ──▶ ThemeRegistry (label → IThemeFile) ──▶ resolve(lab
 ## Связанные файлы
 - `src/Theme/ThemeRegistry.ts`, `src/Theme/themes/*` — реестр и встроенные темы
 - `scripts/import-vscode-themes.mjs` — импорт тем из microsoft/vscode
-- `src/Controllers/QuickInputController.ts` — `quickPick()` list-pick flavor
-- `src/Controllers/AppController.ts` — `selectColorTheme`, команда/меню
-- `src/Controllers/Actions/ThemeActions.ts` — дескриптор команды
+- `src/Workbench/Services/QuickInputService.ts` — `quickPick()` list-pick flavor
+- `src/Workbench/Actions/ThemeActions.ts` — `selectColorTheme` (экшен-пикер), меню — `AppController`
 - `src/Configuration/ConfigurationService.ts` — `updateUserValue` (persist)
 - `src/main.ts` — выбор активной темы на старте

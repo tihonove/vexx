@@ -16,7 +16,7 @@
 
 import { fileSaveAction } from "../Controllers/Actions/FileActions.ts";
 import { findAction } from "../Controllers/Actions/FindActions.ts";
-import { quickOpenAction, showCommandsAction } from "../Controllers/Actions/QuickOpenActions.ts";
+import { quickOpenAction, showCommandsAction } from "../Workbench/Actions/QuickOpenActions.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,

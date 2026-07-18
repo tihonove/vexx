@@ -12,8 +12,6 @@ import type { IConfigurationService } from "../Configuration/IConfigurationServi
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { IUserKeybindingRule } from "../Configuration/KeybindingsService.ts";
 import { EditorElement } from "../Editor/EditorElement.ts";
-import { SUPPORTED_ENCODINGS } from "../Editor/Encoding.ts";
-import { EndOfLine } from "../Editor/EndOfLine.ts";
 import type { ThemeRegistry } from "../Theme/ThemeRegistry.ts";
 import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
@@ -95,13 +93,8 @@ import {
 } from "./Actions/EditorEditActions.ts";
 import { changeEncodingAction } from "./Actions/EncodingActions.ts";
 import { changeEolAction, convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
-import {
-    fileOpenAction,
-    fileOpenFolderAction,
-    fileSaveAction,
-    fileSaveAsAction,
-    newUntitledFileAction,
-} from "./Actions/FileActions.ts";
+import { fileSaveAction, fileSaveAsAction, newUntitledFileAction } from "./Actions/FileActions.ts";
+import { fileOpenAction, fileOpenFolderAction } from "../Workbench/Actions/FileActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
     acceptSelectedSuggestionAction,
@@ -154,9 +147,9 @@ import {
     listFocusPageUpAction,
 } from "./Actions/ListActions.ts";
 import { openKeybindingsAction, openSettingsAction } from "./Actions/PreferencesActions.ts";
-import { gotoLineAction, quickOpenAction, showCommandsAction } from "./Actions/QuickOpenActions.ts";
+import { gotoLineAction, quickOpenAction, showCommandsAction } from "../Workbench/Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
-import { selectThemeAction } from "./Actions/ThemeActions.ts";
+import { selectThemeAction } from "../Workbench/Actions/ThemeActions.ts";
 import {
     insertFinalNewLineAction,
     triggerSuggestAction,
@@ -180,7 +173,8 @@ import { EditorGroupController } from "./EditorGroupController.ts";
 import { ExplorerComponent, ExplorerComponentDIToken } from "../Workbench/Components/Explorer/ExplorerComponent.ts";
 import { ExplorerService, ExplorerServiceDIToken } from "../Workbench/Services/ExplorerService.ts";
 import { FileOperationsService, FileOperationsServiceDIToken } from "../Workbench/Services/FileOperationsService.ts";
-import { FileSearchService } from "../Workbench/Services/FileSearchService.ts";
+import type { FileSearchService } from "../Workbench/Services/FileSearchService.ts";
+import { FileSearchServiceDIToken } from "../Workbench/Services/FileSearchService.ts";
 import { FindController } from "./FindController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetService, InputWidgetServiceDIToken } from "../Workbench/Services/InputWidgetService.ts";
@@ -204,8 +198,10 @@ import {
     type TerminalService,
     TerminalServiceDIToken,
 } from "../Workbench/Services/Terminal/TerminalService.ts";
-import { QuickInputController } from "./QuickInputController.ts";
-import { QuickOpenController } from "./QuickOpenController.ts";
+import { QuickInputComponentDIToken } from "../Workbench/Components/QuickInput/QuickInputComponent.ts";
+import type { QuickInputService } from "../Workbench/Services/QuickInputService.ts";
+import { QuickInputServiceDIToken } from "../Workbench/Services/QuickInputService.ts";
+import { QuickOpenServiceDIToken } from "../Workbench/Services/QuickOpenService.ts";
 import { StatusBarComponent, StatusBarComponentDIToken } from "../Workbench/Components/StatusBar/StatusBarComponent.ts";
 import { EditorStatusContributionDIToken } from "../Workbench/Services/EditorStatusContribution.ts";
 import { TerminalEnvStatusContributionDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
@@ -219,6 +215,16 @@ const builtinActions = [
     // App
     fileSaveAction,
     newUntitledFileAction,
+    fileOpenAction,
+    fileOpenFolderAction,
+
+    // Quick Open / пикеры (этап 8: run-обработчики живут в самих экшенах)
+    quickOpenAction,
+    showCommandsAction,
+    gotoLineAction,
+    selectThemeAction,
+    changeEncodingAction,
+    changeEolAction,
 
     // Cursor movement
     cursorLeftAction,
@@ -343,20 +349,6 @@ const builtinActions = [
 // Columns added/removed per increase/decrease Side Bar Width command.
 const SIDEBAR_WIDTH_STEP = 3;
 
-/** Human-readable base-type label shown next to a theme in the picker. */
-export function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {
-    switch (type) {
-        case "light":
-            return "light";
-        case "hc":
-            return "high contrast";
-        case "hcLight":
-            return "high contrast light";
-        default:
-            return "dark";
-    }
-}
-
 export class AppController extends Disposable implements IController {
     public static dependencies = [
         EditorGroupControllerDIToken,
@@ -385,8 +377,7 @@ export class AppController extends Disposable implements IController {
     private fileOperations: FileOperationsService;
     private configurationService: IConfigurationService;
     private fileSearchService: FileSearchService;
-    private quickOpenController: QuickOpenController;
-    private quickInputController: QuickInputController;
+    private quickInput: QuickInputService;
     private completionController: CompletionController;
     private findController: FindController;
     private statusBarComponent: StatusBarComponent;
@@ -448,16 +439,17 @@ export class AppController extends Disposable implements IController {
         this.configurationService = accessor.get(IConfigurationServiceDIToken);
         this.settingsResource = accessor.get(SettingsResourceDIToken);
         this.keybindingsResource = accessor.get(KeybindingsResourceDIToken);
-        this.fileSearchService = this.register(new FileSearchService());
-        this.quickOpenController = this.register(
-            new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
-        );
-        this.quickInputController = this.register(new QuickInputController());
-        // Файловые операции (Workbench-сервис): промпт имени/пути приходит от
-        // QuickInputController через минимальный шов IExplorerInputPrompt — сам
-        // QuickInput мигрирует на этапе 8.
+        // QuickInput-кластер (Workbench, этап 8): файловый индекс, общий
+        // виджет-компонент (host прикрепляется ниже, после постройки view),
+        // InputBox/list-pick сервис и Quick Open поверх них. AppController
+        // владеет их жизнью.
+        this.fileSearchService = this.register(accessor.get(FileSearchServiceDIToken));
+        const quickInputComponent = this.register(accessor.get(QuickInputComponentDIToken));
+        this.quickInput = accessor.get(QuickInputServiceDIToken);
+        this.register(accessor.get(QuickOpenServiceDIToken));
+        // Файловые операции (Workbench-сервис): промпт имени/пути — QuickInputService
+        // (шов IExplorerInputPrompt замкнут в DI).
         this.fileOperations = accessor.get(FileOperationsServiceDIToken);
-        this.fileOperations.inputPrompt = this.quickInputController;
         this.completionController = this.register(new CompletionController(this.editorGroupController));
         this.findController = this.register(new FindController(this.editorGroupController));
         this.findController.applyTheme(themeService.theme);
@@ -524,8 +516,8 @@ export class AppController extends Disposable implements IController {
         this.view.setContent(this.workbenchLayout);
         this.view.setStatusBar(this.statusBarComponent.view);
 
-        this.quickOpenController.setHostView(this.view);
-        this.quickInputController.setHostView(this.view);
+        // Общий виджет QuickInput/QuickOpen живёт в overlay-слое корневой view.
+        quickInputComponent.attachHost(this.view);
         this.completionController.setHostView(this.view);
         this.completionController.onExecuteCommand = (id, ...args) => {
             this.commands.execute(id, ...args);
@@ -549,13 +541,6 @@ export class AppController extends Disposable implements IController {
                 this.updateContextKeys();
             }),
         );
-        this.quickOpenController.onExecuteCommand = (id, ...args) => {
-            this.commands.execute(id, ...args);
-        };
-        // Go-to-Line targets the active editor (read lazily, so a `file:line`
-        // accept jumps in the editor opened by the same accept).
-        this.quickOpenController.getActiveEditor = () => this.editorGroupController.getActiveEditor();
-
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
         }
@@ -578,46 +563,6 @@ export class AppController extends Disposable implements IController {
         );
         this.register(
             registerAction(commands, keybindings, accessor, {
-                ...quickOpenAction,
-                run: () => {
-                    this.quickOpenController.open("files");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...showCommandsAction,
-                run: () => {
-                    this.quickOpenController.open("commands");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectThemeAction,
-                run: () => {
-                    void this.selectColorTheme();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...changeEncodingAction,
-                run: () => {
-                    void this.changeFileEncoding();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...changeEolAction,
-                run: () => {
-                    void this.changeEol();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
                 ...openSettingsAction,
                 run: () => {
                     this.openUserConfigFile(this.settingsResource, "settings");
@@ -634,33 +579,9 @@ export class AppController extends Disposable implements IController {
         );
         this.register(
             registerAction(commands, keybindings, accessor, {
-                ...gotoLineAction,
-                run: () => {
-                    this.quickOpenController.open("line");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
                 ...fileSaveAsAction,
                 run: () => {
                     void this.runSaveAs();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileOpenAction,
-                run: () => {
-                    void this.runOpenFile();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileOpenFolderAction,
-                run: () => {
-                    void this.runOpenFolder();
                 },
             }),
         );
@@ -1347,7 +1268,7 @@ export class AppController extends Disposable implements IController {
             editor.uri.scheme === "file"
                 ? editor.uri.fsPath
                 : path.join(process.cwd(), this.editorGroupController.suggestedSaveName(editor));
-        const target = await this.quickInputController.input({
+        const target = await this.quickInput.input({
             title: "Save As",
             placeholder: "Enter path to save",
             value: seed,
@@ -1392,218 +1313,6 @@ export class AppController extends Disposable implements IController {
             return;
         }
         void doSave();
-    }
-
-    /**
-     * Open File flow: prompt for a path (InputBox), validate it points at an
-     * existing file, then open it in the active editor group. The prompt opens
-     * empty; a relative path is resolved against the workspace root.
-     */
-    private async runOpenFile(): Promise<void> {
-        const target = await this.quickInputController.input({
-            title: "Open File",
-            placeholder: "Enter a file path",
-            validateInput: (value) => {
-                const resolved = this.fileOperations.resolveInputPath(value);
-                // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
-                if (!resolved) return null;
-                if (!fs.existsSync(resolved)) return `File does not exist: ${resolved}`;
-                if (fs.statSync(resolved).isDirectory()) return "That is a folder, not a file";
-                return null;
-            },
-        });
-        if (target === undefined) return;
-        // An accepted-but-empty value resolves to null → nothing to open.
-        const resolved = this.fileOperations.resolveInputPath(target);
-        if (resolved) this.openFile(resolved);
-    }
-
-    /**
-     * Open Folder flow: prompt for a path (InputBox), validate it points at an
-     * existing directory, then swap the workspace root to it (file tree, side
-     * panel and the Quick Open search index all re-target the new folder).
-     */
-    private async runOpenFolder(): Promise<void> {
-        const target = await this.quickInputController.input({
-            title: "Open Folder",
-            placeholder: "Enter a folder path",
-            validateInput: (value) => {
-                const resolved = this.fileOperations.resolveInputPath(value);
-                // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
-                if (!resolved) return null;
-                if (!fs.existsSync(resolved)) return `Folder does not exist: ${resolved}`;
-                if (!fs.statSync(resolved).isDirectory()) return "That is a file, not a folder";
-                return null;
-            },
-        });
-        if (target === undefined) return;
-        // An accepted-but-empty value resolves to null → nothing to swap to.
-        const resolved = this.fileOperations.resolveInputPath(target);
-        if (resolved) this.setWorkspaceFolder(resolved);
-    }
-
-    /**
-     * Color-theme picker (VS Code `workbench.action.selectTheme`). Lists every
-     * registered theme, applies it live as you arrow through the list, and on
-     * Enter persists the choice to `workbench.colorTheme`. Escape / dismiss
-     * restores the theme that was active before the picker opened.
-     */
-    private async selectColorTheme(): Promise<void> {
-        const originalTheme = this.themeService.theme;
-        const descriptors = this.themeRegistry.list();
-
-        const items = descriptors.map((d) => ({
-            label: d.label,
-            description: themeTypeLabel(d.type),
-        }));
-        const activeIndex = Math.max(
-            0,
-            descriptors.findIndex((d) => d.label === originalTheme.name),
-        );
-
-        const applyByLabel = (label: string): void => {
-            const theme = this.themeRegistry.resolve(label);
-            /* v8 ignore start -- defensive: `label` always originates from the registry's own list()/picker items, so resolve() never returns undefined */
-            if (theme) this.themeService.setTheme(theme);
-            /* v8 ignore stop */
-        };
-
-        const picked = await this.quickInputController.quickPick({
-            title: "Color Theme",
-            placeholder: "Select Color Theme (Up/Down Keys to Preview)",
-            items,
-            activeIndex,
-            onDidChangeActive: (item) => {
-                if (item) applyByLabel(item.label);
-            },
-        });
-
-        if (picked === undefined) {
-            // Cancelled — undo any live preview by restoring the original theme.
-            this.themeService.setTheme(originalTheme);
-            return;
-        }
-
-        applyByLabel(picked.label);
-        void this.configurationService.updateUserValue?.("workbench.colorTheme", picked.label);
-    }
-
-    /**
-     * Encoding picker (VS Code `workbench.action.editor.changeEncoding`):
-     * двухуровневый флоу — сначала «Reopen with Encoding» / «Save with
-     * Encoding», затем список кодировок с текущей в активной позиции.
-     * «Reopen» скрыт для буферов без файла на диске (untitled); на «грязном»
-     * буфере он сначала спрашивает подтверждение (перечитка отбрасывает
-     * несохранённые правки). «Save» у безымянного буфера выставляет кодировку
-     * и уводит в Save As; конфликт с внешней записью идёт через тот же
-     * Overwrite-диалог, что и обычный Save.
-     */
-    private async changeFileEncoding(): Promise<void> {
-        const editor = this.editorGroupController.getActiveEditor();
-        if (editor === null) return;
-
-        const canReopen = editor.absoluteFilePath !== null && fs.existsSync(editor.absoluteFilePath);
-        const modeItems = [
-            ...(canReopen
-                ? [{ label: "Reopen with Encoding", description: "Reinterpret the file on disk" }]
-                : []),
-            { label: "Save with Encoding", description: "Write the file in a different encoding" },
-        ];
-        const mode = await this.quickInputController.quickPick({
-            title: "Change File Encoding",
-            placeholder: "Select Action",
-            items: modeItems,
-        });
-        if (mode === undefined) return;
-
-        const current = editor.encoding;
-        const encodingItems = SUPPORTED_ENCODINGS.map((info) => ({ label: info.label, description: info.id }));
-        const picked = await this.quickInputController.quickPick({
-            title: mode.label,
-            placeholder: "Select File Encoding",
-            items: encodingItems,
-            activeIndex: Math.max(
-                0,
-                SUPPORTED_ENCODINGS.findIndex((info) => info.id === current),
-            ),
-        });
-        if (picked === undefined || picked.description === undefined) return;
-        const encoding = picked.description;
-
-        if (mode.label === "Reopen with Encoding") {
-            const doReopen = (): void => {
-                editor.reopenWithEncoding(encoding);
-            };
-            if (editor.isModified) {
-                const name = this.editorGroupController.displayName(editor);
-                this.showConfirmDialog(
-                    {
-                        title: "Reopen with Encoding",
-                        message: [
-                            `"${name}" has unsaved changes.`,
-                            "Reopening the file will discard them. Continue?",
-                        ],
-                        confirmLabel: "Reopen",
-                        cancelLabel: "Cancel",
-                        defaultButton: "cancel",
-                    },
-                    { onConfirm: doReopen },
-                );
-                return;
-            }
-            doReopen();
-            return;
-        }
-
-        const outcome = await editor.saveWithEncoding(encoding);
-        if (outcome === "no-file") {
-            // Безымянный буфер: кодировка уже выставлена, путь спросит Save As.
-            await this.runSaveAs();
-            return;
-        }
-        if (outcome === "conflict") {
-            const name = this.editorGroupController.displayName(editor);
-            this.showConfirmDialog(
-                {
-                    title: "Overwrite",
-                    message: [
-                        `The file "${name}" has been changed on disk.`,
-                        "Do you want to overwrite the version on disk with your changes?",
-                    ],
-                    confirmLabel: "Overwrite",
-                    cancelLabel: "Cancel",
-                    defaultButton: "cancel",
-                },
-                {
-                    onConfirm: () => {
-                        void editor.save({ overwrite: true });
-                    },
-                },
-            );
-            return;
-        }
-    }
-
-    /**
-     * EOL picker (VS Code `workbench.action.editor.changeEOL`): quick pick с
-     * LF / CRLF, активная позиция — текущий EOL документа.
-     */
-    private async changeEol(): Promise<void> {
-        const editor = this.editorGroupController.getActiveEditor();
-        if (editor === null) return;
-
-        const picked = await this.quickInputController.quickPick({
-            title: "Change End of Line Sequence",
-            placeholder: "Select End of Line Sequence",
-            items: [
-                { label: "LF", description: "\\n" },
-                { label: "CRLF", description: "\\r\\n" },
-            ],
-            activeIndex: editor.eol === EndOfLine.CRLF ? 1 : 0,
-        });
-        if (picked === undefined) return;
-
-        editor.setEol(picked.label === "CRLF" ? EndOfLine.CRLF : EndOfLine.LF);
     }
 
     public showAboutDialog(): void {

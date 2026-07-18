@@ -140,9 +140,10 @@ class ButtonElement {
     late-init шов `attachHost(BodyElement)` (как у DialogService).
   - `Services/FileOperationsService.ts` — файловые операции поверх
     `WorkspaceEditService`/`DialogService`/`UndoRedoService`/`IFileClipboard`:
-    `runCreate`/`runRename` (промпт имени через минимальный шов
-    `IExplorerInputPrompt` — `QuickInputController` соответствует структурно,
-    прикрепляет AppController до этапа 8), `requestDeleteFile` (корзина/
+    `runCreate`/`runRename` (промпт имени через узкий шов
+    `IExplorerInputPrompt` — срез `QuickInputService.input`, в DI замкнут на
+    `QuickInputServiceDIToken`; интерфейс оставлен ради фейков в тестах),
+    `requestDeleteFile` (корзина/
     безвозвратно + подтверждения), `copySelected`/`cutSelected`/`paste`
     (+ `buildPasteEdits`), workspace-undo/redo, `resolveInputPath` (`~`, корень
     воркспейса).
@@ -150,12 +151,53 @@ class ButtonElement {
     активный `InputElement` (ставит AppController из `updateContextKeys`) и
     исполняет курсор/правки/выделение/клипборд для него (читают экшены
     `Controllers/Actions/InputActions.ts` под `when: inputWidgetFocus`).
+- **QuickInput-кластер (этап 8)** — квик-инпут/квик-опен поверх ОДНОГО общего
+  виджета:
+  - `Components/QuickInput/QuickInputComponent.ts` — `ThemedComponent`; владеет
+    единственным переиспользуемым `QuickPickElement` (`view.id = "quickInput"`;
+    внутри — `InputElement` строки запроса) и его overlay-сессией
+    (`restoreFocus`, `closeOnEscape`, `pointerPolicy: "close-on-outside"`).
+    Overlay-хост — late-init шов `attachHost(BodyElement)` (как у
+    DialogService). API для сервисов-клиентов: `show()` (позиция: центр, ~10%
+    от верха + open + focus), `hide()`, `isOpen()`, канал закрытия `onDidClose`
+    (Escape / клик мимо / программное — один путь). Стили: пуш
+    `unthemedQuickPickStyles` — пикер пока на исторической unthemed-палитре,
+    маппинг на ключи темы — отдельная задача.
+  - `Services/QuickInputService.ts` — VS Code-style QuickInput: `input(opts)`
+    (InputBox: title/prompt/placeholder/value/`validateInput`; Enter блокируется
+    hard-ошибкой) и `quickPick(opts)` (фильтруемый список, `activeIndex`,
+    `onDidChangeActive` — шов live-preview). Промисы резолвятся значением/
+    выбранным айтемом или `undefined` при отмене; новый вызов отменяет
+    предыдущий. На каждый показ полностью ре-инициализирует состояние и колбэки
+    общего виджета.
+  - `Services/QuickOpenService.ts` — Quick Open: файловый режим (фоновый индекс
+    `FileSearchService`, leading+trailing debounce 16мс, live-refresh по
+    `onIndexChanged` c сохранением курсора, `file:line[:col]`-суффикс через
+    `QuickOpenParsing`), command palette (`>`: `CommandRegistry.listCommands` +
+    шорткаты из `KeybindingRegistry`/`ContextKeyService`) и goto-line (`:`;
+    активный редактор — шов `IGotoLineEditorSource` → `EditorGroupController`
+    структурно, биндинг в `Modules/WorkbenchModule.ts`). Принятие уходит в
+    команды (`workbench.openFile` / id команды). UI — тот же
+    `QuickInputComponent`; сервис-клиент, занявший виджет позже, закрывает
+    предыдущий показ (его промис отменяется через `onDidClose`).
 - **`Actions/`** — экшены Workbench (`CommandAction`/`registerAction` — описание
   команды + кейбинды; переехали из Controllers): `FileTreeActions.ts`
   (delete/rename/refresh/undo/redo + Shift+F10-меню Explorer'а),
   `FileTreeClipboardActions.ts` (copy/cut/paste, copyPath/copyRelativePath),
-  `FileTreeCreateActions.ts` (`explorer.newFile`/`explorer.newFolder`).
+  `FileTreeCreateActions.ts` (`explorer.newFile`/`explorer.newFolder`);
+  с этапа 8 — тонкие экшены-пикеры с реальными `run(accessor)`:
+  `QuickOpenActions.ts` (Ctrl+P / Show Commands / goto-line →
+  `QuickOpenService.open`), `ThemeActions.ts` (`selectColorTheme` поверх
+  `QuickInputService.quickPick` + `ThemeRegistry`/`ThemeService`, live-preview
+  через `onDidChangeActive`, персист в `workbench.colorTheme`; здесь же
+  `themeTypeLabel`), `FileActions.ts` (Open File / Open Folder: InputBox-промпт
+  пути + `FileOperationsService.resolveInputPath`; открытие — команда
+  `workbench.openFile`, смена воркспейса — шов `IWorkspaceFolderOpener` →
+  `AppController` структурно, биндинг в `Modules/WorkbenchModule.ts`).
   Регистрирует их (пока) AppController в общем цикле `builtinActions`.
+  Пикеры `changeEncoding`/`changeEOL` остались тонкими экшенами в
+  `Controllers/Actions/` — тянут активный редактор через
+  `EditorGroupController` (этап 9).
 - **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
   (наследник `ThemedComponent`; владеет `FitContentElement`-view и строит в нём
   JSX-дерево примитивов через reconcile — компонент **компонует** контролы, не
@@ -237,7 +279,7 @@ class ButtonElement {
     реестра). Редакторы приходят через шов `IDiagnosticsEditorSource` /
     `IDiagnosticsEditor` (`EditorGroupController`/`EditorController`
     структурно; биндинг `DiagnosticsEditorSourceDIToken` — в WorkbenchModule).
-- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/` и `Explorer/`.
+- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/` и `QuickInput/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
 интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench

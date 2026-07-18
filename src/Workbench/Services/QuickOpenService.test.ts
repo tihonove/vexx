@@ -1,19 +1,27 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { charMask } from "../Common/FuzzySearch.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
-import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
+import { charMask } from "../../Common/FuzzySearch.ts";
+import { Size } from "../../Common/GeometryPromitives.ts";
+import { TestApp } from "../../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
+import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
+import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
+import { InputElement } from "../../TUIDom/Widgets/InputElement.ts";
+import type { QuickPickElement, QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
 
-import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
-import { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
-import type { FileSearchEntry, FileSearchResult, FileSearchService } from "../Workbench/Services/FileSearchService.ts";
-import { KeybindingRegistry, parseChord, parseKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
-import type { IGotoLineEditor } from "./QuickOpenController.ts";
-import { QuickOpenController } from "./QuickOpenController.ts";
+import { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
+import { CommandRegistry } from "./CommandRegistry.ts";
+import { ContextKeyService } from "./ContextKeyService.ts";
+import type { FileSearchEntry, FileSearchResult, FileSearchService } from "./FileSearchService.ts";
+import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
+import type { IGotoLineEditor, IGotoLineEditorSource } from "./QuickOpenService.ts";
+import { QuickOpenService } from "./QuickOpenService.ts";
+
+function makeComponent(): QuickInputComponent {
+    return new QuickInputComponent(new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)));
+}
 
 interface FakeGotoLineEditor extends IGotoLineEditor {
     goToPosition: ReturnType<typeof vi.fn<(line: number, column?: number) => void>>;
@@ -61,74 +69,84 @@ function makeFileSearchStub(results: FileSearchResult[] = []): FileSearchService
     } as unknown as FileSearchService;
 }
 
-function createController(fileResults: FileSearchResult[] = []): {
-    controller: QuickOpenController;
+/** Мутабельный источник активного редактора: тесты подменяют getActiveEditor по ходу. */
+interface MutableGotoLineSource extends IGotoLineEditorSource {
+    getActiveEditor: () => IGotoLineEditor | null;
+}
+
+function createService(fileResults: FileSearchResult[] = []): {
+    service: QuickOpenService;
     commands: CommandRegistry;
     keybindings: KeybindingRegistry;
     contextKeys: ContextKeyService;
     body: BodyElement;
     testApp: TestApp;
     fileSearch: FileSearchService;
+    component: QuickInputComponent;
+    view: QuickPickElement;
+    gotoSource: MutableGotoLineSource;
 } {
     const commands = new CommandRegistry();
     const keybindings = new KeybindingRegistry();
     const contextKeys = new ContextKeyService();
     const fileSearch = makeFileSearchStub(fileResults);
-    const controller = new QuickOpenController(fileSearch, commands, keybindings, contextKeys);
+    const component = makeComponent();
+    const gotoSource: MutableGotoLineSource = { getActiveEditor: () => null };
+    const service = new QuickOpenService(fileSearch, commands, keybindings, contextKeys, gotoSource, component);
 
     const body = new BodyElement();
     const testApp = TestApp.create(body, new Size(80, 24));
-    controller.setHostView(body);
+    component.attachHost(body);
 
-    return { controller, commands, keybindings, contextKeys, body, testApp, fileSearch };
+    return { service, commands, keybindings, contextKeys, body, testApp, fileSearch, component, view: component.view, gotoSource };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
-describe("QuickOpenController — open/close", () => {
+describe("QuickOpenService — open/close", () => {
     it("picker is hidden by default", () => {
-        const { body } = createController();
+        const { body } = createService();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("open() makes picker visible", () => {
-        const { controller, body } = createController();
-        controller.open("files");
+        const { service, body } = createService();
+        service.open("files");
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("close() hides picker", () => {
-        const { controller, body } = createController();
-        controller.open("files");
-        controller.close();
+        const { service, body } = createService();
+        service.open("files");
+        service.close();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("open() sets focus to QuickPickElement", () => {
-        const { controller, testApp } = createController();
-        controller.open("files");
+        const { service, testApp } = createService();
+        service.open("files");
         expect(testApp.focusedElement?.constructor.name).toBe("InputElement");
     });
 
     it("open() when already open calls focus instead of re-opening", () => {
-        const { controller, body } = createController();
-        controller.open("files");
+        const { service, body } = createService();
+        service.open("files");
         const setVisibleSpy = vi.spyOn(body.overlayLayer, "setVisible");
-        controller.open("files");
+        service.open("files");
         // setVisible should not be called again (already visible, just focuses)
         expect(setVisibleSpy).not.toHaveBeenCalled();
     });
 
     it("Escape key closes picker", () => {
-        const { controller, body, testApp } = createController();
-        controller.open("files");
+        const { service, body, testApp } = createService();
+        service.open("files");
         testApp.sendKey("Escape");
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("an outside pointer press closes the picker (closeOnOutsidePointer)", () => {
-        const { controller, body } = createController();
-        controller.open("files");
+        const { service, body } = createService();
+        service.open("files");
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
 
         // A mousedown whose target is the body (outside the QuickPick widget) closes it.
@@ -148,16 +166,16 @@ describe("QuickOpenController — open/close", () => {
     });
 
     it("close() on a never-opened picker is a no-op", () => {
-        const { controller, fileSearch } = createController();
+        const { service, fileSearch } = createService();
         // Subscribe a marker so we can prove close() short-circuits before touching it.
         fileSearch.onIndexChanged = () => undefined;
-        controller.close();
+        service.close();
         // Early return: the index subscription is left untouched.
         expect(fileSearch.onIndexChanged).not.toBeNull();
     });
 
     it("close() restores focus to previously focused element", () => {
-        const { controller, testApp, body } = createController();
+        const { service, body, testApp } = createService();
         // Put something focusable in the body and focus it first
         const dummyInput = new InputElement();
         dummyInput.tabIndex = 0;
@@ -166,36 +184,36 @@ describe("QuickOpenController — open/close", () => {
         dummyInput.focus();
         const prevFocused = testApp.focusedElement;
 
-        controller.open("files");
-        controller.close();
+        service.open("files");
+        service.close();
 
         expect(testApp.focusedElement).toBe(prevFocused);
     });
 });
 
-describe("QuickOpenController — files mode", () => {
+describe("QuickOpenService — files mode", () => {
     it("open('files') sets empty placeholder", () => {
-        const { controller } = createController();
-        controller.open("files");
-        expect(controller.view.placeholder).toBe("Go to File...");
+        const { service, view } = createService();
+        service.open("files");
+        expect(view.placeholder).toBe("Go to File...");
     });
 
     it("open('files') calls search with empty query", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
+        const { service, fileSearch } = createService();
+        service.open("files");
         expect(fileSearch.search).toHaveBeenCalledWith("", 50);
     });
 
     it("open('files') kicks a throttled background re-index", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
+        const { service, fileSearch } = createService();
+        service.open("files");
         expect(fileSearch.refreshIfStale).toHaveBeenCalled();
     });
 
     it("index growing while open re-runs the current query", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
-        controller.view.setQuery("App");
+        const { service, fileSearch, view } = createService();
+        service.open("files");
+        view.setQuery("App");
         (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
         // Simulate the background walk publishing more entries.
@@ -205,13 +223,13 @@ describe("QuickOpenController — files mode", () => {
     });
 
     it("a late index-changed callback after close does not re-run the search", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
+        const { service, fileSearch } = createService();
+        service.open("files");
         // Capture the index-changed handler the controller installed.
         const handler = fileSearch.onIndexChanged;
         expect(handler).not.toBeNull();
 
-        controller.close();
+        service.close();
         (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
         // Fire the captured callback after the session is closed: handleIndexChanged
@@ -221,9 +239,9 @@ describe("QuickOpenController — files mode", () => {
     });
 
     it("switching to command mode stops live file refreshes", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
-        controller.view.onQueryChange?.(">cmd"); // now in command mode
+        const { service, fileSearch, view } = createService();
+        service.open("files");
+        view.onQueryChange?.(">cmd"); // now in command mode
         (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
         fileSearch.onIndexChanged?.();
@@ -232,10 +250,10 @@ describe("QuickOpenController — files mode", () => {
     });
 
     it("close() unsubscribes from index changes", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
+        const { service, fileSearch } = createService();
+        service.open("files");
         expect(fileSearch.onIndexChanged).not.toBeNull();
-        controller.close();
+        service.close();
         expect(fileSearch.onIndexChanged).toBeNull();
     });
 
@@ -248,55 +266,55 @@ describe("QuickOpenController — files mode", () => {
             makeSearchResult("src/c.ts"),
             makeSearchResult("src/d.ts"),
         ];
-        const { controller, testApp, fileSearch } = createController(results);
-        controller.open("files");
+        const { service, testApp, fileSearch, view } = createService(results);
+        service.open("files");
 
         testApp.sendKey("ArrowDown");
         testApp.sendKey("ArrowDown");
-        expect(controller.view.selectedIndex).toBe(2);
+        expect(view.selectedIndex).toBe(2);
 
         // Background walk publishes more entries → onIndexChanged fires.
         fileSearch.onIndexChanged?.();
 
         // Cursor preserved (previously it snapped back to 0).
-        expect(controller.view.selectedIndex).toBe(2);
-        expect(controller.view.items[2].label).toBe("c.ts");
+        expect(view.selectedIndex).toBe(2);
+        expect(view.items[2].label).toBe("c.ts");
     });
 
     it("a query change resets the cursor to the top", () => {
         const results = [makeSearchResult("src/a.ts"), makeSearchResult("src/b.ts"), makeSearchResult("src/c.ts")];
-        const { controller, testApp } = createController(results);
-        controller.open("files");
+        const { service, testApp, view } = createService(results);
+        service.open("files");
 
         testApp.sendKey("ArrowDown");
         testApp.sendKey("ArrowDown");
-        expect(controller.view.selectedIndex).toBe(2);
+        expect(view.selectedIndex).toBe(2);
 
         // Typing a new query is a real query change → selection resets.
-        controller.view.onQueryChange?.("a");
-        expect(controller.view.selectedIndex).toBe(0);
+        view.onQueryChange?.("a");
+        expect(view.selectedIndex).toBe(0);
     });
 
     it("items show basename as label and directory as description", () => {
         const results = [makeSearchResult("src/Controllers/AppController.ts")];
-        const { controller } = createController(results);
-        controller.open("files");
-        const items = controller.view.items;
+        const { service, view } = createService(results);
+        service.open("files");
+        const items = view.items;
         expect(items[0].label).toBe("AppController.ts");
         expect(items[0].description).toBe("src/Controllers");
     });
 
     it("file in root directory has empty description", () => {
         const results = [makeSearchResult("README.md")];
-        const { controller } = createController(results);
-        controller.open("files");
-        expect(controller.view.items[0].description).toBe("");
+        const { service, view } = createService(results);
+        service.open("files");
+        expect(view.items[0].description).toBe("");
     });
 
     it("typing triggers search with new query", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
-        controller.view.onQueryChange?.("App");
+        const { service, fileSearch, view } = createService();
+        service.open("files");
+        view.onQueryChange?.("App");
         expect(fileSearch.search).toHaveBeenCalledWith("App", 50);
     });
 
@@ -310,9 +328,9 @@ describe("QuickOpenController — files mode", () => {
                 matchedIndices: [4, 5, 6],
             },
         ];
-        const { controller } = createController(results);
-        controller.open("files");
-        const item = controller.view.items[0];
+        const { service, view } = createService(results);
+        service.open("files");
+        const item = view.items[0];
         expect(item.labelMatchRanges).toEqual([[0, 3]]);
     });
 
@@ -326,9 +344,9 @@ describe("QuickOpenController — files mode", () => {
                 matchedIndices: [0, 1, 2],
             },
         ];
-        const { controller } = createController(results);
-        controller.open("files");
-        const item = controller.view.items[0];
+        const { service, view } = createService(results);
+        service.open("files");
+        const item = view.items[0];
         expect(item.descriptionMatchRanges).toEqual([[0, 3]]);
         // Nothing matched inside the basename.
         expect(item.labelMatchRanges).toEqual([]);
@@ -344,9 +362,9 @@ describe("QuickOpenController — files mode", () => {
                 matchedIndices: [0, 2],
             },
         ];
-        const { controller } = createController(results);
-        controller.open("files");
-        const item = controller.view.items[0];
+        const { service, view } = createService(results);
+        service.open("files");
+        const item = view.items[0];
         expect(item.descriptionMatchRanges).toEqual([
             [0, 1],
             [2, 3],
@@ -363,22 +381,21 @@ describe("QuickOpenController — files mode", () => {
                 matchedIndices: [2, 3, 4, 5],
             },
         ];
-        const { controller } = createController(results);
-        controller.open("files");
-        const item = controller.view.items[0];
+        const { service, view } = createService(results);
+        service.open("files");
+        const item = view.items[0];
         expect(item.descriptionMatchRanges).toEqual([[2, 4]]);
         expect(item.labelMatchRanges).toEqual([[0, 2]]);
     });
 
     it("onAccept calls onExecuteCommand with workbench.openFile and absolutePath", async () => {
         const results = [makeSearchResult("src/main.ts", [])];
-        const { controller } = createController(results);
-        const execSpy = vi.fn();
-        controller.onExecuteCommand = execSpy;
-        controller.open("files");
+        const { service, commands, view } = createService(results);
+        const execSpy = vi.spyOn(commands, "execute");
+        service.open("files");
 
-        const item = controller.view.items[0] as QuickPickItem & { absolutePath: string };
-        controller.view.onAccept?.(item, 0);
+        const item = view.items[0] as QuickPickItem & { absolutePath: string };
+        view.onAccept?.(item, 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -387,14 +404,13 @@ describe("QuickOpenController — files mode", () => {
     });
 
     it("accepting an item with neither commandId nor path does nothing", async () => {
-        const { controller, body } = createController();
-        const execSpy = vi.fn();
-        controller.onExecuteCommand = execSpy;
-        controller.open("files");
+        const { service, commands, body, view } = createService();
+        const execSpy = vi.spyOn(commands, "execute");
+        service.open("files");
 
         // A bare item carrying no routing metadata (no commandId, no absolutePath).
         const bareItem: QuickPickItem = { label: "orphan" };
-        controller.view.onAccept?.(bareItem, 0);
+        view.onAccept?.(bareItem, 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -406,10 +422,10 @@ describe("QuickOpenController — files mode", () => {
 
     it("accepting file closes the picker", async () => {
         const results = [makeSearchResult("src/main.ts")];
-        const { controller, body } = createController(results);
-        controller.open("files");
-        const item = controller.view.items[0];
-        controller.view.onAccept?.(item, 0);
+        const { service, commands, body, view } = createService(results);
+        service.open("files");
+        const item = view.items[0];
+        view.onAccept?.(item, 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -417,107 +433,106 @@ describe("QuickOpenController — files mode", () => {
     });
 });
 
-describe("QuickOpenController — commands mode", () => {
+describe("QuickOpenService — commands mode", () => {
     it("open('commands') sets placeholder", () => {
-        const { controller } = createController();
-        controller.open("commands");
-        expect(controller.view.placeholder).toBe("Show All Commands");
+        const { service, commands, view } = createService();
+        service.open("commands");
+        expect(view.placeholder).toBe("Show All Commands");
     });
 
     it("open('commands') sets '>' query", () => {
-        const { controller } = createController();
-        controller.open("commands");
-        expect(controller.view.getQuery()).toBe(">");
+        const { service, commands, view } = createService();
+        service.open("commands");
+        expect(view.getQuery()).toBe(">");
     });
 
     it("lists registered commands with titles", () => {
-        const { controller, commands } = createController();
+        const { service, commands, view } = createService();
         commands.register("cmd.a", () => {}, "Command A");
         commands.register("cmd.b", () => {}, "Command B");
-        controller.open("commands");
-        const labels = controller.view.items.map((i) => i.label);
+        service.open("commands");
+        const labels = view.items.map((i) => i.label);
         expect(labels).toContain("Command A");
         expect(labels).toContain("Command B");
     });
 
     it("commands without title are not listed", () => {
-        const { controller, commands } = createController();
+        const { service, commands, view } = createService();
         commands.register("cmd.hidden", () => {});
         commands.register("cmd.visible", () => {}, "Visible");
-        controller.open("commands");
-        const labels = controller.view.items.map((i) => i.label);
+        service.open("commands");
+        const labels = view.items.map((i) => i.label);
         expect(labels).toContain("Visible");
         expect(labels).not.toContain("cmd.hidden");
     });
 
     it("shows the keybinding shortcut for a command", () => {
-        const { controller, commands, keybindings } = createController();
+        const { service, commands, keybindings, view } = createService();
         commands.register("cmd.save", () => {}, "File: Save");
         keybindings.register(parseKeybinding("ctrl+s"), "cmd.save");
-        controller.open("commands");
-        const item = controller.view.items.find((i) => i.label === "File: Save");
+        service.open("commands");
+        const item = view.items.find((i) => i.label === "File: Save");
         expect(item?.shortcut).toBe("Ctrl+S");
     });
 
     it("renders chord bindings as a space-separated sequence", () => {
-        const { controller, commands, keybindings } = createController();
+        const { service, commands, keybindings, view } = createService();
         commands.register("cmd.save", () => {}, "File: Save");
         keybindings.register(parseChord("ctrl+k s"), "cmd.save");
-        controller.open("commands");
-        const item = controller.view.items.find((i) => i.label === "File: Save");
+        service.open("commands");
+        const item = view.items.find((i) => i.label === "File: Save");
         expect(item?.shortcut).toBe("Ctrl+K S");
     });
 
     it("shows no shortcut when the command has no binding", () => {
-        const { controller, commands } = createController();
+        const { service, commands, view } = createService();
         commands.register("cmd.x", () => {}, "Do X");
-        controller.open("commands");
-        const item = controller.view.items.find((i) => i.label === "Do X");
+        service.open("commands");
+        const item = view.items.find((i) => i.label === "Do X");
         expect(item?.shortcut).toBeUndefined();
     });
 
     it("with multiple bindings shows the first registered", () => {
-        const { controller, commands, keybindings } = createController();
+        const { service, commands, keybindings, view } = createService();
         commands.register("cmd.save", () => {}, "File: Save");
         keybindings.register(parseKeybinding("ctrl+s"), "cmd.save");
         keybindings.register(parseChord("ctrl+k s"), "cmd.save");
-        controller.open("commands");
-        const item = controller.view.items.find((i) => i.label === "File: Save");
+        service.open("commands");
+        const item = view.items.find((i) => i.label === "File: Save");
         expect(item?.shortcut).toBe("Ctrl+S");
     });
 
     it("with when-conditioned bindings shows the one matching the current context", () => {
-        const { controller, commands, keybindings, contextKeys } = createController();
+        const { service, commands, keybindings, contextKeys, view } = createService();
         commands.register("cmd.go", () => {}, "Go");
         keybindings.register(parseKeybinding("ctrl+s"), "cmd.go", "textInputFocus");
         keybindings.register(parseKeybinding("ctrl+l"), "cmd.go", "listFocus");
         contextKeys.set("listFocus", true);
-        controller.open("commands");
-        const item = controller.view.items.find((i) => i.label === "Go");
+        service.open("commands");
+        const item = view.items.find((i) => i.label === "Go");
         expect(item?.shortcut).toBe("Ctrl+L");
     });
 
     it("typing after '>' filters commands by title (case-insensitive)", () => {
-        const { controller, commands } = createController();
+        const { service, commands, view } = createService();
         commands.register("cmd.save", () => {}, "File: Save");
         commands.register("cmd.open", () => {}, "File: Open");
         commands.register("cmd.quit", () => {}, "Quit");
-        controller.open("commands");
-        controller.view.onQueryChange?.(">save");
-        const labels = controller.view.items.map((i) => i.label);
+        service.open("commands");
+        view.onQueryChange?.(">save");
+        const labels = view.items.map((i) => i.label);
         expect(labels).toContain("File: Save");
         expect(labels).not.toContain("File: Open");
         expect(labels).not.toContain("Quit");
     });
 
     it("onAccept fires onExecuteCommand with commandId", async () => {
-        const { controller, commands } = createController();
+        const { service, commands, view } = createService();
         commands.register("cmd.x", () => {}, "Do X");
-        const execSpy = vi.fn();
-        controller.onExecuteCommand = execSpy;
-        controller.open("commands");
-        const item = controller.view.items[0];
-        controller.view.onAccept?.(item, 0);
+        const execSpy = vi.spyOn(commands, "execute");
+        service.open("commands");
+        const item = view.items[0];
+        view.onAccept?.(item, 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -525,11 +540,11 @@ describe("QuickOpenController — commands mode", () => {
     });
 
     it("accepting command closes the picker", async () => {
-        const { controller, commands, body } = createController();
+        const { service, commands, body, view } = createService();
         commands.register("cmd.x", () => {}, "Do X");
-        controller.open("commands");
-        const item = controller.view.items[0];
-        controller.view.onAccept?.(item, 0);
+        service.open("commands");
+        const item = view.items[0];
+        view.onAccept?.(item, 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -537,88 +552,109 @@ describe("QuickOpenController — commands mode", () => {
     });
 });
 
-describe("QuickOpenController — mode switching via '>'", () => {
+describe("QuickOpenService — mode switching via '>'", () => {
     it("typing '>' in file mode switches to command items", () => {
-        const { controller, commands } = createController();
+        const { service, commands, view } = createService();
         commands.register("cmd.a", () => {}, "Command A");
-        controller.open("files");
-        controller.view.onQueryChange?.(">Command");
-        const labels = controller.view.items.map((i) => i.label);
+        service.open("files");
+        view.onQueryChange?.(">Command");
+        const labels = view.items.map((i) => i.label);
         expect(labels).toContain("Command A");
     });
 
     it("removing '>' switches back to file results", () => {
         const results = [makeSearchResult("src/main.ts")];
-        const { controller } = createController(results);
-        controller.open("files");
-        controller.view.onQueryChange?.(">foo");
-        controller.view.onQueryChange?.("main");
-        const labels = controller.view.items.map((i) => i.label);
+        const { service, view } = createService(results);
+        service.open("files");
+        view.onQueryChange?.(">foo");
+        view.onQueryChange?.("main");
+        const labels = view.items.map((i) => i.label);
         expect(labels).toContain("main.ts");
     });
 });
 
-describe("QuickOpenController — position and size", () => {
+describe("QuickOpenService — position and size", () => {
     it("open() sets preferredWidth to computed pickerW", () => {
         // 80-wide screen: pickerW = min(80, max(40, 80-4)) = 76
-        const { controller } = createController();
-        controller.open("files");
-        expect(controller.view.preferredWidth).toBe(76);
+        const { service, view } = createService();
+        service.open("files");
+        expect(view.preferredWidth).toBe(76);
     });
 
     it("open() sets smaller pickerW on narrow screen", () => {
         const commands = new CommandRegistry();
         const fileSearch = makeFileSearchStub();
-        const ctrl = new QuickOpenController(fileSearch, commands, new KeybindingRegistry(), new ContextKeyService());
+        const component = makeComponent();
+        const svc = new QuickOpenService(
+            fileSearch,
+            commands,
+            new KeybindingRegistry(),
+            new ContextKeyService(),
+            { getActiveEditor: () => null },
+            component,
+        );
         const body = new BodyElement();
         const testApp = TestApp.create(body, new Size(50, 24));
-        ctrl.setHostView(body);
+        component.attachHost(body);
 
-        ctrl.open("files");
+        svc.open("files");
         // pickerW = min(80, max(40, 50-4)) = min(80, 46) = 46
-        expect(ctrl.view.preferredWidth).toBe(46);
+        expect(component.view.preferredWidth).toBe(46);
         testApp.render();
-        expect(ctrl.view.layoutSize.width).toBe(46);
+        expect(component.view.layoutSize.width).toBe(46);
     });
 
-    it("open() without a host view is a no-op for positioning", () => {
-        // No setHostView() → hostBody is null and there is no overlay session.
+    it("open() without an attached host is a no-op for positioning", () => {
+        // No attachHost() → the component has no host body and no overlay session.
         const commands = new CommandRegistry();
         const fileSearch = makeFileSearchStub();
-        const ctrl = new QuickOpenController(fileSearch, commands, new KeybindingRegistry(), new ContextKeyService());
+        const component = makeComponent();
+        const svc = new QuickOpenService(
+            fileSearch,
+            commands,
+            new KeybindingRegistry(),
+            new ContextKeyService(),
+            { getActiveEditor: () => null },
+            component,
+        );
 
         // open() reaches updatePosition, which must early-return without throwing
         // because there is no host body to measure against.
         expect(() => {
-            ctrl.open("files");
+            svc.open("files");
         }).not.toThrow();
         // preferredWidth keeps its default since positioning was skipped (no recompute).
-        expect(ctrl.view.preferredWidth).toBe(60);
+        expect(component.view.preferredWidth).toBe(60);
+        // Без сессии компонент считается закрытым; live-обновления индекса не запрашивают поиск.
+        expect(component.isOpen()).toBe(false);
+        (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
+        fileSearch.onIndexChanged?.();
+        expect(fileSearch.search).not.toHaveBeenCalled();
     });
 
     it("picker is horizontally centred after layout", () => {
-        const { controller, testApp } = createController();
-        controller.open("files");
+        const { service, testApp, view } = createService();
+        service.open("files");
         testApp.render();
         // pickerW=76, screen=80: px = floor((80-76)/2) = 2
-        expect(controller.view.globalPosition.x).toBe(2);
+        expect(view.globalPosition.x).toBe(2);
     });
 
     it("picker width after layout matches preferredWidth", () => {
-        const { controller, testApp } = createController();
-        controller.open("files");
+        const { service, testApp, view } = createService();
+        service.open("files");
         testApp.render();
-        expect(controller.view.layoutSize.width).toBe(controller.view.preferredWidth);
+        expect(view.layoutSize.width).toBe(view.preferredWidth);
     });
 });
 
-describe("QuickOpenController — file-search debounce", () => {
+describe("QuickOpenService — file-search debounce", () => {
     it("first keystroke after idle runs search synchronously (leading edge)", () => {
-        const { controller, fileSearch } = createController();
-        controller.open("files");
+        const { service, fileSearch, view } = createService();
+        service.open("files");
         (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
-        controller.view.onQueryChange?.("App");
+        view.onQueryChange?.("App");
 
         expect(fileSearch.search).toHaveBeenCalledTimes(1);
         expect(fileSearch.search).toHaveBeenLastCalledWith("App", 50);
@@ -627,13 +663,13 @@ describe("QuickOpenController — file-search debounce", () => {
     it("a burst of keystrokes coalesces into one leading + one trailing run", () => {
         vi.useFakeTimers();
         try {
-            const { controller, fileSearch } = createController();
-            controller.open("files");
+            const { service, fileSearch, view } = createService();
+            service.open("files");
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
-            controller.view.onQueryChange?.("A"); // leading → runs now
-            controller.view.onQueryChange?.("Ap"); // within cooldown → pending
-            controller.view.onQueryChange?.("App"); // within cooldown → replaces pending
+            view.onQueryChange?.("A"); // leading → runs now
+            view.onQueryChange?.("Ap"); // within cooldown → pending
+            view.onQueryChange?.("App"); // within cooldown → replaces pending
 
             // Only the leading run has happened so far.
             expect(fileSearch.search).toHaveBeenCalledTimes(1);
@@ -651,11 +687,11 @@ describe("QuickOpenController — file-search debounce", () => {
     it("no trailing run when nothing changed during the cooldown", () => {
         vi.useFakeTimers();
         try {
-            const { controller, fileSearch } = createController();
-            controller.open("files");
+            const { service, fileSearch, view } = createService();
+            service.open("files");
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
-            controller.view.onQueryChange?.("App"); // leading only
+            view.onQueryChange?.("App"); // leading only
             vi.runAllTimers();
 
             expect(fileSearch.search).toHaveBeenCalledTimes(1);
@@ -667,13 +703,13 @@ describe("QuickOpenController — file-search debounce", () => {
     it("closing cancels a pending trailing run", () => {
         vi.useFakeTimers();
         try {
-            const { controller, fileSearch } = createController();
-            controller.open("files");
+            const { service, fileSearch, view } = createService();
+            service.open("files");
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
-            controller.view.onQueryChange?.("A"); // leading
-            controller.view.onQueryChange?.("Ap"); // pending
-            controller.close();
+            view.onQueryChange?.("A"); // leading
+            view.onQueryChange?.("Ap"); // pending
+            service.close();
 
             vi.runAllTimers();
 
@@ -687,13 +723,13 @@ describe("QuickOpenController — file-search debounce", () => {
     it("switching to command mode runs synchronously and drops a pending file search", () => {
         vi.useFakeTimers();
         try {
-            const { controller, fileSearch } = createController();
-            controller.open("files");
+            const { service, fileSearch, view } = createService();
+            service.open("files");
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
-            controller.view.onQueryChange?.("A"); // file leading
-            controller.view.onQueryChange?.("Ap"); // file pending
-            controller.view.onQueryChange?.(">cmd"); // command mode → sync, cancels pending
+            view.onQueryChange?.("A"); // file leading
+            view.onQueryChange?.("Ap"); // file pending
+            view.onQueryChange?.(">cmd"); // command mode → sync, cancels pending
 
             vi.runAllTimers();
 
@@ -706,55 +742,55 @@ describe("QuickOpenController — file-search debounce", () => {
     });
 });
 
-describe("QuickOpenController — go to line mode", () => {
+describe("QuickOpenService — go to line mode", () => {
     it("open('line') seeds a ':' query", () => {
-        const { controller } = createController();
-        controller.getActiveEditor = () => makeGotoLineEditor();
-        controller.open("line");
-        expect(controller.view.getQuery()).toBe(":");
+        const { service, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => makeGotoLineEditor();
+        service.open("line");
+        expect(view.getQuery()).toBe(":");
     });
 
     it("placeholder reports the current position and line count", () => {
-        const { controller } = createController();
-        controller.getActiveEditor = () => makeGotoLineEditor(340, 11, 6);
-        controller.open("line");
-        expect(controller.view.placeholder).toBe(
+        const { service, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => makeGotoLineEditor(340, 11, 6);
+        service.open("line");
+        expect(view.placeholder).toBe(
             "Current Line: 12, Character: 7. Type a line number between 1 and 340 to navigate to.",
         );
     });
 
     it("shows an info hint before a number is typed", () => {
-        const { controller } = createController();
-        controller.getActiveEditor = () => makeGotoLineEditor(200);
-        controller.open("line");
-        expect(controller.view.items).toHaveLength(1);
-        expect(controller.view.items[0].label).toBe("Type a line number between 1 and 200 to navigate to");
+        const { service, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => makeGotoLineEditor(200);
+        service.open("line");
+        expect(view.items).toHaveLength(1);
+        expect(view.items[0].label).toBe("Type a line number between 1 and 200 to navigate to");
     });
 
     it("shows an actionable 'Go to line N' item once a number is typed", () => {
-        const { controller } = createController();
-        controller.getActiveEditor = () => makeGotoLineEditor();
-        controller.open("line");
-        controller.view.onQueryChange?.(":42");
-        expect(controller.view.items[0].label).toBe("Go to line 42");
+        const { service, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => makeGotoLineEditor();
+        service.open("line");
+        view.onQueryChange?.(":42");
+        expect(view.items[0].label).toBe("Go to line 42");
     });
 
     it("includes the column in the 'Go to line' label", () => {
-        const { controller } = createController();
-        controller.getActiveEditor = () => makeGotoLineEditor();
-        controller.open("line");
-        controller.view.onQueryChange?.(":42:8");
-        expect(controller.view.items[0].label).toBe("Go to line 42:8");
+        const { service, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => makeGotoLineEditor();
+        service.open("line");
+        view.onQueryChange?.(":42:8");
+        expect(view.items[0].label).toBe("Go to line 42:8");
     });
 
     it("accepting navigates the active editor to the 0-based position and closes", async () => {
         const editor = makeGotoLineEditor();
-        const { controller, body } = createController();
-        controller.getActiveEditor = () => editor;
-        controller.open("line");
-        controller.view.onQueryChange?.(":42:8");
+        const { service, body, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => editor;
+        service.open("line");
+        view.onQueryChange?.(":42:8");
 
-        controller.view.onAccept?.(controller.view.items[0], 0);
+        view.onAccept?.(view.items[0], 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -766,11 +802,11 @@ describe("QuickOpenController — go to line mode", () => {
 
     it("accepting the info hint is a no-op and keeps the picker open", async () => {
         const editor = makeGotoLineEditor();
-        const { controller, body } = createController();
-        controller.getActiveEditor = () => editor;
-        controller.open("line");
+        const { service, body, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => editor;
+        service.open("line");
 
-        controller.view.onAccept?.(controller.view.items[0], 0);
+        view.onAccept?.(view.items[0], 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -781,14 +817,14 @@ describe("QuickOpenController — go to line mode", () => {
 
     it("accepting is a safe no-op if the active editor vanished before accept", async () => {
         const editor = makeGotoLineEditor();
-        const { controller, body } = createController();
+        const { service, body, view, gotoSource } = createService();
         // Present while building the item, gone by the time accept navigates.
-        controller.getActiveEditor = () => editor;
-        controller.open("line");
-        controller.view.onQueryChange?.(":5");
-        controller.getActiveEditor = () => null;
+        gotoSource.getActiveEditor = () => editor;
+        service.open("line");
+        view.onQueryChange?.(":5");
+        gotoSource.getActiveEditor = () => null;
 
-        controller.view.onAccept?.(controller.view.items[0], 0);
+        view.onAccept?.(view.items[0], 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -798,40 +834,39 @@ describe("QuickOpenController — go to line mode", () => {
     });
 
     it("shows a fallback when there is no active editor", () => {
-        const { controller } = createController();
-        controller.getActiveEditor = () => null;
-        controller.open("line");
-        expect(controller.view.placeholder).toBe("Go to line");
-        expect(controller.view.items[0].label).toBe("No active editor to navigate");
+        const { service, view, gotoSource } = createService();
+        gotoSource.getActiveEditor = () => null;
+        service.open("line");
+        expect(view.placeholder).toBe("Go to line");
+        expect(view.items[0].label).toBe("No active editor to navigate");
     });
 });
 
-describe("QuickOpenController — file:line suffix", () => {
+describe("QuickOpenService — file:line suffix", () => {
     it("strips the ':line' suffix before searching so the colon does not pollute the filter", () => {
-        const { controller, fileSearch } = createController([makeSearchResult("src/main.ts")]);
-        controller.open("files");
-        controller.view.onQueryChange?.("main:42");
+        const { service, fileSearch, view } = createService([makeSearchResult("src/main.ts")]);
+        service.open("files");
+        view.onQueryChange?.("main:42");
         expect(fileSearch.search).toHaveBeenLastCalledWith("main", 50);
     });
 
     it("strips a bare trailing colon (mid-typing) from the search query", () => {
-        const { controller, fileSearch } = createController([makeSearchResult("src/main.ts")]);
-        controller.open("files");
-        controller.view.onQueryChange?.("main:");
+        const { service, fileSearch, view } = createService([makeSearchResult("src/main.ts")]);
+        service.open("files");
+        view.onQueryChange?.("main:");
         expect(fileSearch.search).toHaveBeenLastCalledWith("main", 50);
     });
 
     it("opens the file then jumps to the parsed position", async () => {
         const editor = makeGotoLineEditor();
         const results = [makeSearchResult("src/main.ts")];
-        const { controller } = createController(results);
-        const execSpy = vi.fn();
-        controller.onExecuteCommand = execSpy;
-        controller.getActiveEditor = () => editor;
-        controller.open("files");
-        controller.view.onQueryChange?.("main:42:8");
+        const { service, commands, view, gotoSource } = createService(results);
+        const execSpy = vi.spyOn(commands, "execute");
+        gotoSource.getActiveEditor = () => editor;
+        service.open("files");
+        view.onQueryChange?.("main:42:8");
 
-        controller.view.onAccept?.(controller.view.items[0], 0);
+        view.onAccept?.(view.items[0], 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });
@@ -843,13 +878,12 @@ describe("QuickOpenController — file:line suffix", () => {
     it("opens the file without navigating when there is no line suffix", async () => {
         const editor = makeGotoLineEditor();
         const results = [makeSearchResult("src/main.ts")];
-        const { controller } = createController(results);
-        controller.onExecuteCommand = vi.fn();
-        controller.getActiveEditor = () => editor;
-        controller.open("files");
-        controller.view.onQueryChange?.("main");
+        const { service, view, gotoSource } = createService(results);
+        gotoSource.getActiveEditor = () => editor;
+        service.open("files");
+        view.onQueryChange?.("main");
 
-        controller.view.onAccept?.(controller.view.items[0], 0);
+        view.onAccept?.(view.items[0], 0);
         await new Promise<void>((r) => {
             queueMicrotask(r);
         });

@@ -1,19 +1,29 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
+import { Size } from "../../Common/GeometryPromitives.ts";
+import { TestApp } from "../../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
+import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
+import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
+import type { QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
 
-import { QuickInputController } from "./QuickInputController.ts";
+import { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
+import { QuickInputService } from "./QuickInputService.ts";
 
-function createController(): { controller: QuickInputController; body: BodyElement; testApp: TestApp } {
-    const controller = new QuickInputController();
+function createService(): {
+    service: QuickInputService;
+    component: QuickInputComponent;
+    body: BodyElement;
+    testApp: TestApp;
+} {
+    const component = new QuickInputComponent(new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)));
+    const service = new QuickInputService(component);
     const body = new BodyElement();
     const testApp = TestApp.create(body, new Size(80, 24));
-    controller.setHostView(body);
-    return { controller, body, testApp };
+    component.attachHost(body);
+    return { service, component, body, testApp };
 }
 
 function outsideClick(body: BodyElement): void {
@@ -29,46 +39,46 @@ const ITEMS: QuickPickItem[] = [
     { label: "Light Modern", description: "light" },
 ];
 
-describe("QuickInputController.quickPick", () => {
+describe("QuickInputService.quickPick", () => {
     it("opens a visible overlay", () => {
-        const { controller, body } = createController();
-        void controller.quickPick({ items: ITEMS });
+        const { service, body } = createService();
+        void service.quickPick({ items: ITEMS });
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("resolves with the highlighted item on Enter", async () => {
-        const { controller, testApp } = createController();
-        const result = controller.quickPick({ items: ITEMS });
+        const { service, testApp } = createService();
+        const result = service.quickPick({ items: ITEMS });
         testApp.sendKey("ArrowDown");
         testApp.sendKey("Enter");
         await expect(result).resolves.toMatchObject({ label: "Dark+" });
     });
 
     it("resolves undefined on Escape", async () => {
-        const { controller, testApp } = createController();
-        const result = controller.quickPick({ items: ITEMS });
+        const { service, testApp } = createService();
+        const result = service.quickPick({ items: ITEMS });
         testApp.sendKey("Escape");
         await expect(result).resolves.toBeUndefined();
     });
 
     it("resolves undefined on an outside click", async () => {
-        const { controller, body } = createController();
-        const result = controller.quickPick({ items: ITEMS });
+        const { service, body } = createService();
+        const result = service.quickPick({ items: ITEMS });
         outsideClick(body);
         await expect(result).resolves.toBeUndefined();
     });
 
     it("pre-highlights the given activeIndex", async () => {
-        const { controller, testApp } = createController();
-        const result = controller.quickPick({ items: ITEMS, activeIndex: 2 });
+        const { service, testApp } = createService();
+        const result = service.quickPick({ items: ITEMS, activeIndex: 2 });
         testApp.sendKey("Enter");
         await expect(result).resolves.toMatchObject({ label: "Monokai" });
     });
 
     it("fires onDidChangeActive on open and on navigation (live preview)", async () => {
-        const { controller, testApp } = createController();
+        const { service, testApp } = createService();
         const seen: (string | undefined)[] = [];
-        const result = controller.quickPick({
+        const result = service.quickPick({
             items: ITEMS,
             activeIndex: 0,
             onDidChangeActive: (item) => seen.push(item?.label),
@@ -86,39 +96,39 @@ describe("QuickInputController.quickPick", () => {
     });
 
     it("filters items live by label substring", async () => {
-        const { controller, testApp } = createController();
-        const result = controller.quickPick({ items: ITEMS });
+        const { service, component, testApp } = createService();
+        const result = service.quickPick({ items: ITEMS });
         // Type "light" → only "Light Modern" remains; it becomes the active item.
         for (const ch of "light") testApp.sendKey(ch);
-        expect(controller.view.items.map((i) => i.label)).toEqual(["Light Modern"]);
+        expect(component.view.items.map((i) => i.label)).toEqual(["Light Modern"]);
         testApp.sendKey("Enter");
         await expect(result).resolves.toMatchObject({ label: "Light Modern" });
     });
 
     it("restores the full list when the query is cleared", () => {
-        const { controller, testApp } = createController();
-        void controller.quickPick({ items: ITEMS });
+        const { service, component, testApp } = createService();
+        void service.quickPick({ items: ITEMS });
         for (const ch of "light") testApp.sendKey(ch);
-        expect(controller.view.items).toHaveLength(1);
+        expect(component.view.items).toHaveLength(1);
 
         // Backspace the query empty again → the empty-needle branch returns every item.
         for (const _ch of "light") testApp.sendKey("Backspace");
-        expect(controller.view.items.map((i) => i.label)).toEqual(ITEMS.map((i) => i.label));
+        expect(component.view.items.map((i) => i.label)).toEqual(ITEMS.map((i) => i.label));
     });
 
     it("reports undefined active item when the filter matches nothing", () => {
-        const { controller, testApp } = createController();
+        const { service, component, testApp } = createService();
         const seen: (string | undefined)[] = [];
-        void controller.quickPick({ items: ITEMS, onDidChangeActive: (item) => seen.push(item?.label) });
+        void service.quickPick({ items: ITEMS, onDidChangeActive: (item) => seen.push(item?.label) });
         for (const ch of "zzz") testApp.sendKey(ch);
-        expect(controller.view.items).toHaveLength(0);
+        expect(component.view.items).toHaveLength(0);
         expect(seen.at(-1)).toBeUndefined();
     });
 
     it("supersedes a previous open pick (resolves it undefined)", async () => {
-        const { controller, testApp } = createController();
-        const first = controller.quickPick({ items: ITEMS });
-        const second = controller.quickPick({ items: ITEMS });
+        const { service, testApp } = createService();
+        const first = service.quickPick({ items: ITEMS });
+        const second = service.quickPick({ items: ITEMS });
         await expect(first).resolves.toBeUndefined();
         testApp.sendKey("Enter");
         await expect(second).resolves.toMatchObject({ label: "Dark Modern" });

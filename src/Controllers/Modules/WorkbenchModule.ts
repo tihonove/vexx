@@ -10,7 +10,12 @@ import {
     TerminalPanelComponent,
     TerminalPanelComponentDIToken,
 } from "../../Workbench/Components/Panel/TerminalPanelComponent.ts";
+import {
+    QuickInputComponent,
+    QuickInputComponentDIToken,
+} from "../../Workbench/Components/QuickInput/QuickInputComponent.ts";
 import { StatusBarComponent, StatusBarComponentDIToken } from "../../Workbench/Components/StatusBar/StatusBarComponent.ts";
+import { WorkspaceFolderOpenerDIToken } from "../../Workbench/Actions/FileActions.ts";
 import {
     ActiveEditorStatusSourceDIToken,
     EditorStatusContribution,
@@ -24,10 +29,17 @@ import {
 import { DialogService, DialogServiceDIToken } from "../../Workbench/Services/DialogService.ts";
 import { ExplorerService, ExplorerServiceDIToken } from "../../Workbench/Services/ExplorerService.ts";
 import { FileOperationsService, FileOperationsServiceDIToken } from "../../Workbench/Services/FileOperationsService.ts";
+import { FileSearchService, FileSearchServiceDIToken } from "../../Workbench/Services/FileSearchService.ts";
 import { InputWidgetService, InputWidgetServiceDIToken } from "../../Workbench/Services/InputWidgetService.ts";
 import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../../Workbench/Services/KeybindingDispatcher.ts";
 import { LifecycleService, LifecycleServiceDIToken } from "../../Workbench/Services/LifecycleService.ts";
 import { PanelService, PanelServiceDIToken } from "../../Workbench/Services/PanelService.ts";
+import { QuickInputService, QuickInputServiceDIToken } from "../../Workbench/Services/QuickInputService.ts";
+import {
+    GotoLineEditorSourceDIToken,
+    QuickOpenService,
+    QuickOpenServiceDIToken,
+} from "../../Workbench/Services/QuickOpenService.ts";
 import { StatusBarService, StatusBarServiceDIToken } from "../../Workbench/Services/StatusBarService.ts";
 import { EmbeddedTerminalSession } from "../../Workbench/Services/Terminal/EmbeddedTerminalSession.ts";
 import { TerminalService, TerminalServiceDIToken } from "../../Workbench/Services/Terminal/TerminalService.ts";
@@ -36,6 +48,7 @@ import {
     TerminalEnvStatusContribution,
     TerminalEnvStatusContributionDIToken,
 } from "../../Workbench/Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
+import { AppControllerDIToken } from "../AppController.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 
 /**
@@ -65,6 +78,17 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(ExplorerComponentDIToken, ExplorerComponent);
     container.bind(FileOperationsServiceDIToken, FileOperationsService);
     container.bind(InputWidgetServiceDIToken, InputWidgetService);
+    // QuickInput-кластер (этап 8): общий виджет-компонент (host прикрепляет
+    // AppController через attachHost), InputBox/list-pick сервис и Quick Open
+    // (файлы/команды/goto-line) поверх файлового индекса. Швы: активный редактор
+    // для goto-line и смена папки воркспейса (Open Folder) — реализуются
+    // контроллерами структурно.
+    container.bind(QuickInputComponentDIToken, QuickInputComponent);
+    container.bind(QuickInputServiceDIToken, QuickInputService);
+    container.bind(FileSearchServiceDIToken, FileSearchService);
+    container.bind(GotoLineEditorSourceDIToken, () => container.get(EditorGroupControllerDIToken));
+    container.bind(QuickOpenServiceDIToken, QuickOpenService);
+    container.bind(WorkspaceFolderOpenerDIToken, () => container.get(AppControllerDIToken));
     container.bind(ActiveEditorStatusSourceDIToken, () => container.get(EditorGroupControllerDIToken));
     container.bind(EditorStatusContributionDIToken, EditorStatusContribution);
     container.bind(TerminalEnvStatusContributionDIToken, TerminalEnvStatusContribution);

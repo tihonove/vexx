@@ -36,24 +36,6 @@ export const fileSaveAsAction: CommandAction = {
     /* v8 ignore stop */
 };
 
-export const fileOpenAction: CommandAction = {
-    id: "workbench.action.files.openFile",
-    title: "File: Open File...",
-    keybinding: parseKeybinding("ctrl+o"),
-    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime (needs QuickInput path prompt) */
-    run() {
-        // Overridden in AppController.
-    },
-    /* v8 ignore stop */
-};
-
-export const fileOpenFolderAction: CommandAction = {
-    id: "workbench.action.files.openFolder",
-    title: "File: Open Folder...",
-    keybinding: parseChord("ctrl+k ctrl+o"),
-    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime (needs QuickInput path prompt) */
-    run() {
-        // Overridden in AppController.
-    },
-    /* v8 ignore stop */
-};
+// fileOpenAction / fileOpenFolderAction переехали в Workbench/Actions/FileActions.ts
+// (этап 8): их флоу целиком живёт на Workbench-сервисах (QuickInputService,
+// FileOperationsService) и шве IWorkspaceFolderOpener.

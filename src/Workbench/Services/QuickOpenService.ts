@@ -1,27 +1,28 @@
 import * as nodePath from "node:path";
 
-import { Disposable } from "../Common/Disposable.ts";
-import { Point } from "../Common/GeometryPromitives.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
-import type { QuickPickItem } from "../TUIDom/Widgets/QuickPickElement.ts";
-import { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
+import { token } from "../../Common/DiContainer.ts";
+import { Disposable } from "../../Common/Disposable.ts";
+import type { QuickPickElement, QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
 
-import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
-import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
-import type { FileSearchResult, FileSearchService } from "../Workbench/Services/FileSearchService.ts";
-import type { KeybindingRegistry } from "../Workbench/Services/KeybindingRegistry.ts";
-import { formatKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
-import type { ParsedGoto } from "../Workbench/Services/QuickOpenParsing.ts";
-import { parseGotoLineQuery, splitFileQuery } from "../Workbench/Services/QuickOpenParsing.ts";
+import type { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
+import { QuickInputComponentDIToken } from "../Components/QuickInput/QuickInputComponent.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { ContextKeyService } from "./ContextKeyService.ts";
+import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
+import type { FileSearchResult, FileSearchService } from "./FileSearchService.ts";
+import { FileSearchServiceDIToken } from "./FileSearchService.ts";
+import type { KeybindingRegistry } from "./KeybindingRegistry.ts";
+import { formatKeybinding, KeybindingRegistryDIToken } from "./KeybindingRegistry.ts";
+import type { ParsedGoto } from "./QuickOpenParsing.ts";
+import { parseGotoLineQuery, splitFileQuery } from "./QuickOpenParsing.ts";
 
-type OpenMode = "files" | "commands" | "line";
+export type QuickOpenMode = "files" | "commands" | "line";
 
 /**
  * The active editor as seen by Go-to-Line. Structurally satisfied by
- * {@link import("./EditorController.ts").EditorController}; kept as a narrow
- * interface so the controller does not depend on the whole editor. All values
- * are 0-based (document coordinates).
+ * `EditorController`; kept as a narrow interface so the service does not depend
+ * on the whole editor. All values are 0-based (document coordinates).
  */
 export interface IGotoLineEditor {
     readonly lineCount: number;
@@ -29,6 +30,19 @@ export interface IGotoLineEditor {
     readonly primaryCursorColumn: number;
     goToPosition(line: number, column?: number): void;
 }
+
+/**
+ * Источник активного редактора для Go-to-Line (`:`-режим и `file:line`).
+ * Интерфейсный шов: Workbench объявляет, `EditorGroupController` соответствует
+ * структурно; биндинг — в `Controllers/Modules/WorkbenchModule.ts`. Читается
+ * лениво — accept `file:line` берёт редактор *после* открытия файла, так что
+ * прыжок происходит в свежеактивированном редакторе.
+ */
+export interface IGotoLineEditorSource {
+    getActiveEditor(): IGotoLineEditor | null;
+}
+
+export const GotoLineEditorSourceDIToken = token<IGotoLineEditorSource>("GotoLineEditorSource");
 
 /**
  * Debounce window for file-mode search. A single keystroke after an idle period
@@ -47,87 +61,91 @@ interface QuickPickItemWithMeta extends QuickPickItem {
     gotoColumn?: number;
 }
 
-export class QuickOpenController extends Disposable {
-    public readonly view: QuickPickElement;
+export const QuickOpenServiceDIToken = token<QuickOpenService>("QuickOpenService");
 
-    private readonly fileSearch: FileSearchService;
-    private readonly commands: CommandRegistry;
-    private readonly keybindings: KeybindingRegistry;
-    private readonly contextKeys: ContextKeyService;
-    private hostBody: BodyElement | null = null;
-    private quickOpenSession: OverlaySessionHandle | null = null;
-    private currentMode: OpenMode = "files";
+/**
+ * Quick Open (Ctrl+P): файловый поиск поверх {@link FileSearchService},
+ * command palette (`>`) и goto-line (`:`). UI — общий виджет
+ * {@link QuickInputComponent}; на каждый показ сервис полностью
+ * ре-инициализирует состояние и колбэки виджета (соседний клиент —
+ * `QuickInputService` — делает то же). Принятие файла/команды уходит в
+ * {@link CommandRegistry} (`workbench.openFile` / id команды).
+ */
+export class QuickOpenService extends Disposable {
+    public static dependencies = [
+        FileSearchServiceDIToken,
+        CommandRegistryDIToken,
+        KeybindingRegistryDIToken,
+        ContextKeyServiceDIToken,
+        GotoLineEditorSourceDIToken,
+        QuickInputComponentDIToken,
+    ] as const;
+
+    private currentMode: QuickOpenMode = "files";
+    /** Владеем ли текущим показом общего виджета (сессию мог занять QuickInputService). */
+    private active = false;
 
     /** Active cooldown timer for the file-search debounce; null when idle. */
     private searchTimer: ReturnType<typeof setTimeout> | null = null;
     /** Latest file query awaiting a trailing run, or null if none pending. */
     private pendingQuery: string | null = null;
 
-    public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
-
-    /**
-     * Resolves the editor targeted by Go-to-Line (`:` mode and `file:line`
-     * accepts). Set by {@link import("./AppController.ts").AppController} to the
-     * active editor. For `file:line` it is read *after* the file opens, so it
-     * returns the freshly-activated editor.
-     */
-    public getActiveEditor: (() => IGotoLineEditor | null) | null = null;
-
     public constructor(
-        fileSearch: FileSearchService,
-        commands: CommandRegistry,
-        keybindings: KeybindingRegistry,
-        contextKeys: ContextKeyService,
+        private readonly fileSearch: FileSearchService,
+        private readonly commands: CommandRegistry,
+        private readonly keybindings: KeybindingRegistry,
+        private readonly contextKeys: ContextKeyService,
+        private readonly editorSource: IGotoLineEditorSource,
+        private readonly component: QuickInputComponent,
     ) {
         super();
-        this.fileSearch = fileSearch;
-        this.commands = commands;
-        this.keybindings = keybindings;
-        this.contextKeys = contextKeys;
-        this.view = new QuickPickElement();
-        this.view.maxVisibleItems = 10;
-
-        this.view.onQueryChange = (query) => {
-            this.handleQueryChange(query);
-        };
-        this.view.onAccept = (item) => {
-            this.handleAccept(item);
-        };
-        this.view.onCancel = () => {
-            this.close();
-        };
     }
 
-    public setHostView(body: BodyElement): void {
-        this.hostBody = body;
-        this.quickOpenSession = body.overlayLayer.createSession(this.view, new Point(0, 0), {
-            visible: false,
-            restoreFocus: true,
-            pointerPolicy: "close-on-outside",
-        });
-
-        this.register({
-            dispose: () => {
-                this.quickOpenSession?.dispose();
-                this.quickOpenSession = null;
-            },
-        });
+    private get view(): QuickPickElement {
+        return this.component.view;
     }
 
-    public open(mode: OpenMode): void {
-        if (this.quickOpenSession?.isOpen()) {
+    public open(mode: QuickOpenMode): void {
+        if (this.active && this.component.isOpen()) {
             this.view.focus();
             return;
         }
+        // Общий виджет мог держать чужой показ (InputBox/список QuickInputService) —
+        // закрываем его (его промис отменится через onDidClose) перед перехватом.
+        this.component.hide();
 
         this.currentMode = mode;
+        this.active = true;
+
+        const view = this.view;
+        // Полный ре-инит общего виджета под Quick Open.
+        view.maxVisibleItems = 10;
+        view.acceptMode = "item";
+        view.title = undefined;
+        view.prompt = undefined;
+        view.validationMessage = null;
+        view.onAcceptValue = null;
+        view.onActiveItemChanged = null;
+        view.onQueryChange = (query) => {
+            this.handleQueryChange(query);
+        };
+        view.onAccept = (item) => {
+            this.handleAccept(item);
+        };
+        view.onCancel = () => {
+            this.close();
+        };
+        this.component.onDidClose = () => {
+            // Клик мимо / Escape / программное закрытие — единый путь зачистки.
+            this.handleDidClose();
+        };
 
         if (mode === "commands") {
-            this.view.setQuery(">");
+            view.setQuery(">");
         } else if (mode === "line") {
-            this.view.setQuery(":");
+            view.setQuery(":");
         } else {
-            this.view.setQuery("");
+            view.setQuery("");
             // Kick a throttled background re-index and refresh the list live as
             // it grows (the index builds in the background, not on a watcher).
             this.fileSearch.refreshIfStale();
@@ -137,18 +155,16 @@ export class QuickOpenController extends Disposable {
         }
         this.applyPlaceholder(mode);
 
-        this.updatePosition();
-        this.updateItems(this.view.getQuery());
+        this.updateItems(view.getQuery());
 
-        this.quickOpenSession?.open();
-        this.view.focus();
+        this.component.show();
     }
 
     public close(): void {
-        if (!this.quickOpenSession?.isOpen()) return;
-        this.cancelPendingSearch();
-        this.fileSearch.onIndexChanged = null;
-        this.quickOpenSession.close();
+        if (!this.active || !this.component.isOpen()) return;
+        // Зачистка (отписка от индекса, отмена debounce) — в handleDidClose,
+        // куда onDidClose приводит и этот программный путь.
+        this.component.hide();
     }
 
     public override dispose(): void {
@@ -158,9 +174,15 @@ export class QuickOpenController extends Disposable {
 
     // ─── Private ─────────────────────────────────────────────────────────────
 
+    private handleDidClose(): void {
+        this.active = false;
+        this.cancelPendingSearch();
+        this.fileSearch.onIndexChanged = null;
+    }
+
     private handleIndexChanged(): void {
         if (this.currentMode !== "files") return;
-        if (!this.quickOpenSession?.isOpen()) return;
+        if (!this.active || !this.component.isOpen()) return;
         // The list grew in the background for the same query — refresh the
         // results without resetting the cursor the user is navigating.
         this.updateItems(this.view.getQuery(), true);
@@ -218,10 +240,10 @@ export class QuickOpenController extends Disposable {
         queueMicrotask(() => {
             if (meta.commandId !== undefined) {
                 this.close();
-                this.onExecuteCommand?.(meta.commandId);
+                this.commands.execute(meta.commandId);
             } else if (meta.absolutePath !== undefined) {
                 this.close();
-                this.onExecuteCommand?.("workbench.openFile", meta.absolutePath);
+                this.commands.execute("workbench.openFile", meta.absolutePath);
                 // Read the active editor *after* the file opened above so a
                 // `file:line` accept jumps in the just-opened editor.
                 if (meta.gotoLine !== undefined) {
@@ -239,7 +261,7 @@ export class QuickOpenController extends Disposable {
 
     /** Jumps the active editor to a 1-based line/column, converting to 0-based. */
     private navigateActiveEditor(line: number, column: number | undefined): void {
-        const editor = this.getActiveEditor?.() ?? null;
+        const editor = this.editorSource.getActiveEditor();
         if (editor === null) return;
         editor.goToPosition(line - 1, column !== undefined ? column - 1 : 0);
     }
@@ -271,7 +293,7 @@ export class QuickOpenController extends Disposable {
      * one-line affordance instead of a list.
      */
     private buildLineItems(query: string): QuickPickItem[] {
-        const editor = this.getActiveEditor?.() ?? null;
+        const editor = this.editorSource.getActiveEditor();
         if (editor === null) {
             return [{ label: "No active editor to navigate" }];
         }
@@ -346,7 +368,7 @@ export class QuickOpenController extends Disposable {
         });
     }
 
-    private applyPlaceholder(mode: OpenMode): void {
+    private applyPlaceholder(mode: QuickOpenMode): void {
         if (mode === "commands") {
             this.view.placeholder = "Show All Commands";
         } else if (mode === "line") {
@@ -358,31 +380,16 @@ export class QuickOpenController extends Disposable {
 
     /** VS Code-style hint for Go-to-Line mode, showing the current position. */
     private gotoLinePlaceholder(): string {
-        const editor = this.getActiveEditor?.() ?? null;
+        const editor = this.editorSource.getActiveEditor();
         if (editor === null) return "Go to line";
         const line = editor.primaryCursorLine + 1;
         const character = editor.primaryCursorColumn + 1;
         return `Current Line: ${line}, Character: ${character}. Type a line number between 1 and ${editor.lineCount} to navigate to.`;
     }
-
-    private updatePosition(): void {
-        if (!this.hostBody) return;
-
-        const screenW = this.hostBody.layoutSize.width;
-        const screenH = this.hostBody.layoutSize.height;
-
-        const pickerW = Math.min(80, Math.max(40, screenW - 4));
-        const px = Math.max(0, Math.floor((screenW - pickerW) / 2));
-        // Sit just below the menu bar (row 1)
-        const py = Math.max(1, Math.floor(screenH * 0.1));
-
-        this.view.preferredWidth = pickerW;
-        this.quickOpenSession?.setPosition(new Point(px, py));
-    }
 }
 
 /** Picks the Quick Open mode from the query's leading sigil (`>` / `:`). */
-function detectMode(query: string): OpenMode {
+function detectMode(query: string): QuickOpenMode {
     if (query.startsWith(">")) return "commands";
     if (query.startsWith(":")) return "line";
     return "files";

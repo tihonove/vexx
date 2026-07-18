@@ -7,7 +7,8 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 
-import { AppController, AppControllerDIToken, themeTypeLabel } from "./AppController.ts";
+import { AppController, AppControllerDIToken } from "./AppController.ts";
+import { themeTypeLabel } from "../Workbench/Actions/ThemeActions.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 

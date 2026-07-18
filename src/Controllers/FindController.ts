@@ -15,7 +15,7 @@ import type { EditorGroupController } from "./EditorGroupController.ts";
 /**
  * Drives the find-in-file widget: owns the query → matches → current-index
  * state and pushes it to the active editor for highlighting + reveal. Mirrors
- * {@link QuickOpenController}'s overlay lifecycle, but the overlay lives in the
+ * the quick-open overlay lifecycle (`QuickOpenService`), but the overlay lives in the
  * editor group's local layer (not the global body layer).
  */
 export class FindController extends Disposable {

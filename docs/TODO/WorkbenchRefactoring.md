@@ -81,7 +81,21 @@ Workbench и может его импортировать; обратно — н
        перевязаны на сервисы; `showEditorContextMenuAction` остался в
        Controllers/Actions — тянет `EditorGroupController`, этап 9); биндинги —
        `Modules/WorkbenchModule.ts`, шов `FileTreeControllerDIToken` удалён
-- [ ] 8. `QuickInputService`+`QuickInputComponent`, `QuickOpenService`, пикеры → Actions
+- [x] 8. QuickInput-кластер: `QuickInputComponent` (ЕДИНСТВЕННЫЙ общий
+       `QuickPickElement` + overlay-сессия, `attachHost`, unthemed-стили 1:1) +
+       `QuickInputService` (`input`/`quickPick`; шов `IExplorerInputPrompt`
+       FileOperationsService замкнут на него в DI) + `QuickOpenService`
+       (файлы/`>`команды/`:`goto-line; активный редактор — шов
+       `IGotoLineEditorSource` → `EditorGroupController`; accept — команды
+       `workbench.openFile`/id); `FileSearchService` забиндин в DI; пикеры из
+       AppController → тонкие экшены: `Workbench/Actions/QuickOpenActions.ts`,
+       `ThemeActions.ts` (selectColorTheme + `themeTypeLabel`),
+       `FileActions.ts` (Open File/Open Folder; шов `IWorkspaceFolderOpener` →
+       `AppController`); `changeEncoding`/`changeEOL` — тонкие экшены, но
+       остались в `Controllers/Actions/` (тянут `EditorGroupController` —
+       активный редактор/displayName/Save As; уедут со швом редактора на
+       этапе 9); контроллеры QuickInput/QuickOpen растворены, биндинги —
+       `Modules/WorkbenchModule.ts`
 - [ ] 9. Editor: `TextFileModel`+`EditorComponent`; `EditorService`+`EditorGroupComponent`
 - [ ] 10. `CompletionService`+`SuggestComponent`, `FindService`+`FindComponent`
 - [ ] 11. `MenuService`+`MenuBarComponent`, `LayoutService`, `WorkbenchStateService`, ContextKeys
