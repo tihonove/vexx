@@ -1,4 +1,5 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
+import { QuitHandlerDIToken } from "../Actions/AppActions.ts";
 import { WorkspaceFolderOpenerDIToken } from "../Actions/FileActions.ts";
 import { EditorGroupComponent, EditorGroupComponentDIToken } from "../Components/Editor/EditorGroupComponent.ts";
 import { FindComponent, FindComponentDIToken } from "../Components/Editor/FindComponent.ts";
@@ -15,6 +16,22 @@ import { QuickInputComponent, QuickInputComponentDIToken } from "../Components/Q
 import { MenuBarComponent, MenuBarComponentDIToken } from "../Components/Shell/MenuBarComponent.ts";
 import { WorkbenchComponent, WorkbenchComponentDIToken } from "../Components/Shell/WorkbenchComponent.ts";
 import { StatusBarComponent, StatusBarComponentDIToken } from "../Components/StatusBar/StatusBarComponent.ts";
+import { AutoRevealContribution, AutoRevealContributionDIToken } from "../Contributions/AutoRevealContribution.ts";
+import {
+    EditorContextMenuContribution,
+    EditorContextMenuContributionDIToken,
+} from "../Contributions/EditorContextMenuContribution.ts";
+import {
+    OpenFileCommandContribution,
+    OpenFileCommandContributionDIToken,
+} from "../Contributions/OpenFileCommandContribution.ts";
+import { ThemeConfigContribution, ThemeConfigContributionDIToken } from "../Contributions/ThemeConfigContribution.ts";
+import { WORKBENCH_CONTRIBUTIONS } from "../Contributions/workbenchContributions.ts";
+import {
+    WorkbenchContributionsDIToken,
+    WorkbenchContributionsRegistry,
+    WorkbenchContributionsRegistryDIToken,
+} from "../Contributions/WorkbenchContributionsRegistry.ts";
 import { CompletionService, CompletionServiceDIToken } from "../Services/CompletionService.ts";
 import {
     DiagnosticsEditorSourceDIToken,
@@ -94,6 +111,9 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(GotoLineEditorSourceDIToken, () => container.get(EditorServiceDIToken));
     container.bind(QuickOpenServiceDIToken, QuickOpenService);
     container.bind(WorkspaceFolderOpenerDIToken, () => container.get(WorkbenchComponentDIToken));
+    // Выход из приложения (Ctrl+Q / меню / палитра → quitAction) — структурно
+    // выполняет WorkbenchComponent (confirm-save + teardown + exit).
+    container.bind(QuitHandlerDIToken, () => container.get(WorkbenchComponentDIToken));
     // Editor-кластер (этап 9b): логика группы редакторов (открытые EditorPane-пары,
     // активная вкладка, MRU) + компонент группового контрола (tab strip + контент).
     container.bind(EditorServiceDIToken, EditorService);
@@ -111,6 +131,15 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(EditorStatusContributionDIToken, EditorStatusContribution);
     container.bind(TerminalEnvStatusContributionDIToken, TerminalEnvStatusContribution);
     container.bind(StatusBarComponentDIToken, StatusBarComponent);
+    // Реестр workbench-contributions: явный список (WORKBENCH_CONTRIBUTIONS) +
+    // сам реестр, инстанцирующий их по фазам. Фазы прогоняет WorkbenchComponent
+    // (Restored — в mount()) и main.ts (Eventually — после первого кадра).
+    container.bind(WorkbenchContributionsDIToken, () => WORKBENCH_CONTRIBUTIONS);
+    container.bind(WorkbenchContributionsRegistryDIToken, WorkbenchContributionsRegistry);
+    container.bind(AutoRevealContributionDIToken, AutoRevealContribution);
+    container.bind(ThemeConfigContributionDIToken, ThemeConfigContribution);
+    container.bind(EditorContextMenuContributionDIToken, EditorContextMenuContribution);
+    container.bind(OpenFileCommandContributionDIToken, OpenFileCommandContribution);
     // Panel-кластер (этап 6): реестр вкладок нижней панели + компонент-контрол,
     // Problems-дерево и встроенный терминал (сервис инстансов + view-владелец).
     container.bind(PanelServiceDIToken, PanelService);

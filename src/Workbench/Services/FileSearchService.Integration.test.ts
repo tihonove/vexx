@@ -82,7 +82,10 @@ describe("FileSearchService — integration against real project", () => {
 
     describe("finding well-known files", () => {
         it('"wbc" finds WorkbenchComponent.ts', () => {
-            const paths = relativePaths(service.search("wbc"));
+            // Десятки файлов `Workbench*` делят топовый счёт «wbc» (W·b·C по границам
+            // слов/камела), поэтому WorkbenchComponent.ts может стоять за дефолтным
+            // капом 50 — проверяем обнаруживаемость с большим maxResults, а не позицию.
+            const paths = relativePaths(service.search("wbc", 2000));
             expect(paths.some((p) => p.includes("WorkbenchComponent.ts"))).toBe(true);
         });
 
@@ -119,7 +122,10 @@ describe("FileSearchService — integration against real project", () => {
 
     describe("ranking on real files", () => {
         it('"wbc": WorkbenchComponent.ts ties for the top score among "wbc" matches', () => {
-            const results = service.search("wbc");
+            // Большой maxResults: WorkbenchComponent.ts делит топовый счёт с десятками
+            // `Workbench*`-соседей, поэтому за дефолтным капом 50 его может не быть.
+            // Проверяем именно «ничто не обходит его по счёту», а не позицию в срезе.
+            const results = service.search("wbc", 2000);
             expect(results.length).toBeGreaterThan(0);
             // WorkbenchComponent.ts ties for the best score — W, b and C hit word/camel boundaries.
             // Files sharing the same boundary pattern (e.g. WorkbenchContextKeys.ts) share that top score, so asserting an

@@ -1,37 +1,28 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
+import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { Container } from "../../Common/DiContainer.ts";
-import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
 import { CommandRegistry } from "../Services/CommandRegistry.ts";
-import { TuiApplicationDIToken } from "../Services/CoreTokens.ts";
 import { KeybindingRegistry } from "../Services/KeybindingRegistry.ts";
 
-import { quitAction } from "./AppActions.ts";
+import { type IQuitHandler, quitAction, QuitHandlerDIToken } from "./AppActions.ts";
 import { registerAction } from "./CommandAction.ts";
 
 describe("AppActions — quit", () => {
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
-
-    it("tears down the backend and exits the process", () => {
-        const backend = new MockTerminalBackend();
-        const teardown = vi.spyOn(backend, "teardown");
-        // Stop execution at process.exit without actually killing the test runner.
-        const exit = vi.spyOn(process, "exit").mockImplementation(((): never => {
-            throw new Error("__exit__");
-        }) as never);
-
-        const app = new TuiApplication(backend);
+    it("делегирует выход в QuitHandler (WorkbenchComponent.requestQuit)", () => {
+        const calls: ServiceAccessor[] = [];
+        const quitHandler: IQuitHandler = {
+            requestQuit: (accessor) => {
+                calls.push(accessor);
+            },
+        };
         const accessor = new Container();
-        accessor.bind(TuiApplicationDIToken, () => app);
+        accessor.bind(QuitHandlerDIToken, () => quitHandler);
         const commands = new CommandRegistry();
         registerAction(commands, new KeybindingRegistry(), accessor, quitAction);
 
-        expect(() => commands.execute(quitAction.id)).toThrow("__exit__");
+        commands.execute(quitAction.id);
 
-        expect(teardown).toHaveBeenCalledTimes(1);
-        expect(exit).toHaveBeenCalledWith(0);
+        expect(calls).toEqual([accessor]);
     });
 });

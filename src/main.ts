@@ -397,7 +397,9 @@ async function runEditor(): Promise<void> {
     // Остальные грамматики догружаем в фоне, чтобы переключение вкладки на другой
     // язык не ждало парсинга. setImmediate — уже после первого кадра и спавна
     // extension host'а, так что с критическим путём старта прогрев не конкурирует.
+    // Здесь же — фаза Eventually workbench-contributions (idle после первого кадра).
     setImmediate(() => {
+        workbench.runEventuallyPhase();
         void tokenizationContributor.preloadAll();
     });
 }

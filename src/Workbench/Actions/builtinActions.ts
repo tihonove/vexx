@@ -1,4 +1,4 @@
-import { showAboutDialogAction } from "./AppActions.ts";
+import { quitAction, showAboutDialogAction } from "./AppActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./ClipboardActions.ts";
 import type { CommandAction } from "./CommandAction.ts";
 import { showEditorContextMenuAction } from "./ContextMenuActions.ts";
@@ -151,6 +151,7 @@ export const builtinActions: readonly CommandAction[] = [
     openSettingsAction,
     openKeybindingsAction,
     showAboutDialogAction,
+    quitAction,
 
     // Quick Open / пикеры (этап 8: run-обработчики живут в самих экшенах)
     quickOpenAction,
