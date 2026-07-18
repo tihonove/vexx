@@ -4,6 +4,8 @@
 
 TUI-фреймворк — дерево элементов с layout, событиями, фокусом (аналог браузерного DOM). Layout и позиционирование — в [../LAYOUT.md](../LAYOUT.md).
 
+**Инвариант: контролы — «вещь в себе».** TUIDom не импортирует Theme и не знает других app-концепций — слой переиспользуем в другом приложении как есть. Цвета контрол получает через plain color-props (поля или объект вроде `MenuColors`) с theme-less дефолтами; маппинг активной темы в эти props делает владелец (см. [Theme.md](Theme.md), [Workbench.md](Workbench.md)). App-специфичные виджеты здесь не живут — они собираются из контролов на слое Workbench (пример: диалоги поверх `FitContentElement` — примитива «размер по содержимому» для окон в overlay).
+
 `RenderContext` инкапсулирует то, что виджеты не обязаны знать: рендеринг wide chars (`drawText` через `DisplayLine` — без ручной возни с grapheme-слотами) и рамки (`drawBox` — углы/линии одним вызовом, `fill`, `separators`, пресеты из `BorderStyle.ts`, канон — `BORDER_ROUNDED`). Все бордер-виджеты рисуют рамку через него — единый стиль, без дублированных циклов.
 
 Подсистемы: **Events** (capture/bubble, клавиатура/фокус, менеджер фокуса с tab-навигацией, default actions), **Styles** (наследование `fg`/`bg` от родителя, sentinel `INHERITED_*`, dirty-пропагация + top-down резолвинг; компонент-специфичные стили через generic `TUIElement<S extends TUIStyle>`), **Widgets** (боксы с рамкой, стек, word-wrap текст, скролл, меню, `CompletionListElement` и др.).

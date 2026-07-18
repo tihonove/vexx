@@ -23,7 +23,7 @@
 
 ## Где объявлять токены
 
-DI-токены и зависимости (`static dependencies`) объявляются **только на уровнях Controllers и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны импортировать `Container`, `token()` или `Token` и не должны объявлять DI-токены.
+DI-токены и зависимости (`static dependencies`) объявляются **только на уровнях Controllers, Workbench и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны импортировать `Container`, `token()` или `Token` и не должны объявлять DI-токены.
 
 `Common/DiContainer.ts` реализует механизм DI, но конкретные токены в Common/ не объявляются.
 
@@ -164,7 +164,7 @@ const container = new Container()
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
 | `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorGroupController`, `FileDecorationsServiceAdapter` поверх `FileTreeController`, `ThemeColorResolverAdapter` поверх `ThemeService`) |
-| `controllersModule` | — | `EditorGroupController`, `StatusBarController`, `AppController`, `FileTreeController` (шов: отдаётся из `AppController.fileTree`) |
+| `controllersModule` | — | `EditorGroupController`, `StatusBarComponent` и `DialogService` (слой Workbench), `AppController`, `FileTreeController` (шов: отдаётся из `AppController.fileTree`) |
 
 ### Профили
 
