@@ -22,7 +22,6 @@ import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
-import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { AboutDialogElement } from "../TUIDom/Widgets/AboutDialogElement.tsx";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
@@ -189,9 +188,10 @@ import { FileTreeController } from "./FileTreeController.ts";
 import { FindController } from "./FindController.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
-import type { Keybinding, KeybindingRegistry } from "../Workbench/Services/KeybindingRegistry.ts";
-import { formatKeybinding, KeybindingRegistryDIToken, parseChord, parseKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
-import { type CommandTrigger, ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../Workbench/Services/ModifierReleaseArmory.ts";
+import type { KeybindingDispatcher } from "../Workbench/Services/KeybindingDispatcher.ts";
+import { KeybindingDispatcherDIToken } from "../Workbench/Services/KeybindingDispatcher.ts";
+import type { KeybindingRegistry } from "../Workbench/Services/KeybindingRegistry.ts";
+import { formatKeybinding, KeybindingRegistryDIToken, parseKeybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import { UserKeybindingsDIToken } from "./Modules/KeybindingsModule.ts";
 import { StateServiceDIToken } from "./Modules/StateModule.ts";
 import { PanelController, PanelControllerDIToken } from "./PanelController.ts";
@@ -201,8 +201,6 @@ import { QuickInputController } from "./QuickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
 import { StatusBarComponent, StatusBarComponentDIToken } from "../Workbench/Components/StatusBar/StatusBarComponent.ts";
 import { EditorStatusContributionDIToken } from "../Workbench/Services/EditorStatusContribution.ts";
-import type { IStatusBarEntryHandle, StatusBarService } from "../Workbench/Services/StatusBarService.ts";
-import { StatusBarServiceDIToken } from "../Workbench/Services/StatusBarService.ts";
 import { TerminalEnvStatusContributionDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
 import type { TerminalEnvironmentService } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
@@ -323,52 +321,8 @@ const builtinActions = [
     inputRedoAction,
 ];
 
-// How long to wait for the next chord part before cancelling (matches VS Code).
 // Columns added/removed per increase/decrease Side Bar Width command.
 const SIDEBAR_WIDTH_STEP = 3;
-
-const CHORD_TIMEOUT_MS = 5000;
-
-// How long the "… is not a command" status message lingers after a broken chord.
-const CHORD_NOT_FOUND_MS = 4000;
-
-// Context keys that reflect WHAT IS FOCUSED (set from `activeElement` in updateContextKeys).
-// A keybinding whose `when` names one of these is scoped to the focused input/list/editor —
-// e.g. clipboard / undo / cursor commands that edit the focused widget. While a capturing overlay
-// (quickpick, dialog, menu) owns the keyboard, only such focus-scoped commands may run; everything
-// else (workbench/navigation commands, which carry no focus-scoped `when`) is suppressed so a
-// shortcut can't act on a panel behind the still-visible overlay. See dispatchKey.
-const FOCUS_SCOPED_CONTEXT_KEYS = ["inputWidgetFocus", "textInputFocus", "listFocus"] as const;
-
-function isFocusScopedWhen(when: string | undefined): boolean {
-    return when !== undefined && FOCUS_SCOPED_CONTEXT_KEYS.some((key) => when.includes(key));
-}
-
-// Modifier keys that arrive as standalone keydowns (Kitty protocol). They must
-// not break or advance an in-progress chord.
-const modifierKeyNames = new Set(["Control", "Shift", "Alt", "Meta", "Hyper", "Super", "AltGraph", "CapsLock"]);
-
-function isModifierKey(key: string): boolean {
-    return modifierKeyNames.has(key);
-}
-
-/**
- * A CSI-u encoded key (`ESC [ <code>[;<mods>] u`). A key only arrives in this form when the
- * Kitty keyboard protocol / xterm modifyOtherKeys is actually engaged — so receiving one is
- * proof of `extended-keys` support, even behind tmux where the capability probe can't confirm.
- */
-// eslint-disable-next-line no-control-regex
-const CSI_U_KEY_RAW = /^\x1b\[[0-9;:]*u$/;
-
-function eventToKeybinding(event: TUIKeyboardEvent): Keybinding {
-    return {
-        key: event.key,
-        ctrlKey: event.ctrlKey,
-        shiftKey: event.shiftKey,
-        altKey: event.altKey,
-        metaKey: event.metaKey,
-    };
-}
 
 /** Human-readable base-type label shown next to a theme in the picker. */
 export function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {
@@ -420,9 +374,6 @@ export class AppController extends Disposable implements IController {
     private completionController: CompletionController;
     private findController: FindController;
     private statusBarComponent: StatusBarComponent;
-    private statusBarService: StatusBarService;
-    /** Запись chord-хинта в статус-баре; null, когда хинт скрыт. */
-    private chordHintEntry: IStatusBarEntryHandle | null = null;
     private diagnosticsController: DiagnosticsController;
     private panelController: PanelController;
     private problemsController: ProblemsController;
@@ -435,10 +386,7 @@ export class AppController extends Disposable implements IController {
     private themeRegistry: ThemeRegistry;
     private menuBar: MenuBarElement | null = null;
     private terminalEnv: TerminalEnvironmentService;
-    private armory: ModifierReleaseArmory;
-    private chordTimer: ReturnType<typeof setTimeout> | null = null;
-    private notFoundTimer: ReturnType<typeof setTimeout> | null = null;
-    private swallowNextKeyPress = false;
+    private dispatcher: KeybindingDispatcher;
     private logger: ILogger;
     /** Resolved path of the active-profile settings.json, or null when unknown (tests/demo). */
     private settingsResource: string | null;
@@ -477,7 +425,14 @@ export class AppController extends Disposable implements IController {
                     : "";
             watcherLogger.warn(`file watcher error${hint}`, { dirPath, code, error: String(error) });
         };
-        this.armory = accessor.get(ModifierReleaseArmoryDIToken);
+        // Клавиатурный диспатчер (Workbench-сервис): AppController владеет его жизнью
+        // и подключает view-хуки (контекстные ключи + модальные оверлеи) — сам сервис
+        // про view ничего не знает.
+        this.dispatcher = this.register(accessor.get(KeybindingDispatcherDIToken));
+        this.dispatcher.updateContextKeys = () => {
+            this.updateContextKeys();
+        };
+        this.dispatcher.hasKeyboardCapturingOverlay = () => this.view.overlayLayer.hasKeyboardCapturingOverlay();
         this.fileClipboard = accessor.get(FileClipboardDIToken);
         this.workspaceEditService = accessor.get(WorkspaceEditServiceDIToken);
         this.undoRedoService = accessor.get(UndoRedoServiceDIToken);
@@ -499,11 +454,9 @@ export class AppController extends Disposable implements IController {
         this.findController = this.register(new FindController(this.editorGroupController));
         this.findController.applyTheme(themeService.theme);
         this.statusBarComponent = this.register(statusBarComponent);
-        this.statusBarService = accessor.get(StatusBarServiceDIToken);
         // Contribution-сервисы статус-бара: инстанцируем через DI и владеем их жизнью.
         this.register(accessor.get(EditorStatusContributionDIToken));
         this.register(accessor.get(TerminalEnvStatusContributionDIToken));
-        this.register({ dispose: () => this.chordHintEntry?.dispose() });
         this.diagnosticsController = this.register(accessor.get(DiagnosticsControllerDIToken));
         this.panelController = this.register(accessor.get(PanelControllerDIToken));
         this.problemsController = this.register(accessor.get(ProblemsControllerDIToken));
@@ -562,12 +515,6 @@ export class AppController extends Disposable implements IController {
                 this.autoRevealActiveFile();
             }),
         );
-        this.register({
-            dispose: () => {
-                this.clearChordTimeout();
-                this.clearNotFoundTimer();
-            },
-        });
         this.register(
             commands.register("workbench.openFile", (absolutePath: unknown) => {
                 this.editorGroupController.openFile(absolutePath as string);
@@ -1074,7 +1021,7 @@ export class AppController extends Disposable implements IController {
 
         // Apply user keybindings AFTER all defaults so they take precedence (the registry
         // resolves the last-registered matching binding) and so `-command` unbinds can remove defaults.
-        this.applyUserKeybindings(userKeybindings);
+        this.dispatcher.applyUserKeybindings(userKeybindings);
 
         this.setupMenu();
         this.register(
@@ -1132,10 +1079,12 @@ export class AppController extends Disposable implements IController {
         // Capture-phase listeners run before the focused widget (the target),
         // so while a chord is in progress they can swallow keys entirely —
         // keeping them out of the editor whether or not they match a command.
-        this.view.addEventListener("keydown", this.handleKeyDownCapture, { capture: true });
-        this.view.addEventListener("keypress", this.handleKeyPressCapture, { capture: true });
-        this.view.addEventListener("keydown", this.handleKeyDown);
-        this.view.addEventListener("keyup", this.handleKeyUp);
+        // Сама обработка живёт в KeybindingDispatcher (Workbench); AppController
+        // лишь вешает его листенеры на корневое дерево, которым владеет.
+        this.view.addEventListener("keydown", this.dispatcher.handleKeyDownCapture, { capture: true });
+        this.view.addEventListener("keypress", this.dispatcher.handleKeyPressCapture, { capture: true });
+        this.view.addEventListener("keydown", this.dispatcher.handleKeyDown);
+        this.view.addEventListener("keyup", this.dispatcher.handleKeyUp);
         this.view.addEventListener("focus", this.handleFocusChange, { capture: true });
         this.view.addEventListener("blur", this.handleFocusChange, { capture: true });
         this.editorGroupController.mount();
@@ -1287,242 +1236,14 @@ export class AppController extends Disposable implements IController {
         if (theme) this.themeService.setTheme(theme);
     }
 
-    // Capture phase: while a chord is in progress, intercept the next key
-    // before it reaches the focused widget and swallow it entirely — so the
-    // continuation key never leaks into the editor, matched or not.
-    private handleKeyDownCapture = (event: TUIKeyboardEvent): void => {
-        this.observeExtendedKeys(event);
-        if (this.keybindings.pendingLength === 0) return; // not in a chord — let the bubble handler run
-        if (isModifierKey(event.key)) return; // holding a modifier must not break the chord
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        this.dispatchKey(event);
-    };
-
-    /**
-     * Promote the terminal tier off `legacy` the moment a CSI-u key actually arrives — the only
-     * reliable extended-keys signal behind tmux, which drops the startup capability probe.
-     */
-    private observeExtendedKeys(event: TUIKeyboardEvent): void {
-        if (this.terminalEnv.hasCapability("extended-keys")) return;
-        if (CSI_U_KEY_RAW.test(event.raw)) this.terminalEnv.noteExtendedKeysObserved();
-    }
-
-    private handleKeyPressCapture = (event: TUIKeyboardEvent): void => {
-        if (!this.swallowNextKeyPress) return;
-        this.swallowNextKeyPress = false;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-    };
-
-    // Bubble phase: only reached when no chord is pending (otherwise the capture
-    // handler stops propagation). Handles ordinary bindings and chord starts.
-    private handleKeyDown = (event: TUIKeyboardEvent): void => {
-        if (this.dispatchKey(event)) {
-            event.preventDefault();
-        }
-    };
-
-    /**
-     * Resolves a key against the keybinding registry and applies the outcome
-     * (run command, enter/cancel chord mode, update the status-bar hint).
-     * Returns true if the key was consumed (caller should preventDefault).
-     */
-    private dispatchKey(event: TUIKeyboardEvent): boolean {
-        this.updateContextKeys();
-        this.clearChordTimeout();
-        this.clearNotFoundTimer();
-        this.swallowNextKeyPress = false;
-        const pendingBefore = this.keybindings.pendingLength;
-        // Capture the chord prefix BEFORE resolving (resolveKey clears it on a break).
-        const prefix = pendingBefore > 0 ? this.keybindings.getPendingChord(this.contextKeys) : [];
-        const res = this.keybindings.resolveKey(event, this.contextKeys);
-
-        this.logger.debug("keydown", {
-            key: event.key,
-            code: event.code,
-            ctrl: event.ctrlKey,
-            shift: event.shiftKey,
-            alt: event.altKey,
-            meta: event.metaKey,
-            pendingBefore,
-            result: res.kind,
-            commandId: res.kind === "command" ? res.commandId : undefined,
-            chord: res.kind === "chord" ? formatKeybinding(res.chord) : undefined,
-        });
-
-        // Keyboard modality, symmetric to the pointer path (OverlayLayer.elementFromPoint stops a
-        // click landing behind a modal). While a quickpick / dialog / menu owns the keyboard, only
-        // commands scoped to the focused input/list/editor (their `when` names a focus context key
-        // — e.g. clipboard / undo inside the quickpick query) may run. Workbench/navigation commands
-        // are suppressed so a shortcut can't act on a panel behind the still-visible overlay.
-        const overlayCaptures = this.view.overlayLayer.hasKeyboardCapturingOverlay();
-
-        if (res.kind === "chord") {
-            if (overlayCaptures) {
-                // No new chord may start while an overlay owns the keyboard.
-                this.keybindings.resetPending();
-                this.setChordHint(null);
-                return false;
-            }
-            // Prefix key of a chord — swallow its keypress and wait for the next.
-            this.swallowNextKeyPress = true;
-            this.setChordHint(
-                `(${formatKeybinding(res.chord)}) was pressed. Waiting for next key…`,
-            );
-            this.startChordTimeout();
-            return true;
-        }
-
-        // A continuation key (command or none) ends chord mode; its keypress
-        // must be swallowed too so a broken chord does not leak into the editor.
-        const wasInChord = pendingBefore > 0;
-        if (wasInChord) this.swallowNextKeyPress = true;
-
-        if (res.kind === "command" && this.commands.has(res.commandId)) {
-            if (overlayCaptures && !isFocusScopedWhen(res.when)) {
-                // A workbench/navigation shortcut fired while an overlay owns the keyboard:
-                // swallow it (no preventDefault) instead of acting behind the overlay.
-                this.setChordHint(null);
-                return false;
-            }
-            this.setChordHint(null);
-            // Даём команде контекст модификаторов аккорда: команды с «hold-сессией»
-            // (MRU-вкладки) взводят коммит на отпускание удерживающего модификатора
-            // именно по ним. Через контекст, а не позиционный аргумент — чтобы не
-            // конфликтовать с командами, у которых есть свои аргументы.
-            const trigger: CommandTrigger = {
-                ctrlKey: event.ctrlKey,
-                shiftKey: event.shiftKey,
-                altKey: event.altKey,
-                metaKey: event.metaKey,
-            };
-            this.armory.withTrigger(trigger, () => this.commands.execute(res.commandId));
-            // A key that would otherwise be TYPED into the editor still emits a paired
-            // keypress (preventDefault on keydown does not suppress it — only
-            // swallowNextKeyPress does). When such a key ran a command over a text input
-            // (e.g. Enter → acceptSelectedSuggestion), swallow the keypress so it does
-            // not also insert a newline/character behind the command. Gated on
-            // textInputFocus to keep inputs/lists/find untouched.
-            const wouldType =
-                event.key === "Enter" ||
-                (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey);
-            if (wouldType && this.contextKeys.get("textInputFocus") === true) {
-                this.swallowNextKeyPress = true;
-            }
-            return true;
-        }
-
-        if (wasInChord) {
-            // Broken chord: report the unmatched combination, like VS Code.
-            const combo = formatKeybinding([...prefix, eventToKeybinding(event)]);
-            this.showChordNotFound(combo);
-            return true; // consumed (no command, no leak)
-        }
-
-        this.setChordHint(null);
-        return false;
-    }
-
-    /**
-     * Показывает (или скрывает, при null) транзиентный хинт аккорда в статус-баре,
-     * например "(Ctrl+K) was pressed. Waiting for next key…". Живёт как обычная
-     * запись StatusBarService левее прочих левых сегментов (priority ниже
-     * терминального индикатора).
-     */
-    private setChordHint(text: string | null): void {
-        if (text === null) {
-            this.chordHintEntry?.dispose();
-            this.chordHintEntry = null;
-            return;
-        }
-        if (this.chordHintEntry !== null) {
-            this.chordHintEntry.update({ text });
-            return;
-        }
-        this.chordHintEntry = this.statusBarService.addEntry({
-            id: "status.chordHint",
-            text,
-            alignment: "left",
-            priority: 50,
-        });
-    }
-
-    private showChordNotFound(combo: string): void {
-        this.setChordHint(`(${combo}) is not a command`);
-        this.notFoundTimer = setTimeout(() => {
-            this.notFoundTimer = null;
-            this.setChordHint(null);
-        }, CHORD_NOT_FOUND_MS);
-    }
-
-    private clearNotFoundTimer(): void {
-        if (this.notFoundTimer !== null) {
-            clearTimeout(this.notFoundTimer);
-            this.notFoundTimer = null;
-        }
-    }
-
-    private startChordTimeout(): void {
-        this.chordTimer = setTimeout(() => {
-            this.chordTimer = null;
-            this.keybindings.resetPending();
-            this.swallowNextKeyPress = false;
-            this.setChordHint(null);
-        }, CHORD_TIMEOUT_MS);
-    }
-
-    private clearChordTimeout(): void {
-        if (this.chordTimer !== null) {
-            clearTimeout(this.chordTimer);
-            this.chordTimer = null;
-        }
-    }
-
-    private cancelPendingChord(): void {
-        if (this.keybindings.pendingLength > 0) {
-            this.logger.debug("chord cancelled (focus change / timeout)");
-        }
-        this.clearChordTimeout();
-        this.clearNotFoundTimer();
-        this.keybindings.resetPending();
-        this.swallowNextKeyPress = false;
-        this.setChordHint(null);
-    }
-
-    // Отпускание модификатора завершает «hold-сессии» команд (MRU-переключение
-    // вкладок и т.п.) через ModifierReleaseArmory. Какой именно модификатор ждать,
-    // решает сама команда по своему аккорду — здесь только маршрутизация keyup.
-    // Требует Kitty keyboard protocol с event types: только он присылает keyup для
-    // одиночного модификатора.
-    private handleKeyUp = (event: TUIKeyboardEvent): void => {
-        this.armory.fireRelease(event.key);
-    };
-
     private handleFocusChange = (_event: TUIFocusEvent): void => {
-        this.cancelPendingChord();
+        this.dispatcher.cancelPendingChord();
         this.updateContextKeys();
         // Фокус ушёл с редактора (клавиатурный путь: Ctrl+Tab, Quick Open) —
         // закрываем suggest-попап (клик-фокус уже покрыт close-on-outside).
         const active = this.view.focusManager?.activeElement ?? null;
         this.completionController.onFocusChanged(active instanceof EditorElement);
     };
-
-    /**
-     * Applies user `keybindings.json` rules. A `-command` rule unbinds (the exact key, or all
-     * bindings for the command if no key); other rules add a binding that wins over defaults.
-     * `when` may reference tier / cap_* / mode_* / os.
-     */
-    private applyUserKeybindings(rules: readonly IUserKeybindingRule[]): void {
-        for (const rule of rules) {
-            if (rule.command.startsWith("-")) {
-                const commandId = rule.command.slice(1);
-                this.keybindings.removeBindings(commandId, rule.key ? parseChord(rule.key) : undefined);
-            } else {
-                this.register(this.keybindings.register(parseChord(rule.key), rule.command, rule.when));
-            }
-        }
-    }
 
     /** Shows/hides the bottom Panel and keeps the `panelVisible` context key in sync. */
     private setPanelVisible(visible: boolean): void {

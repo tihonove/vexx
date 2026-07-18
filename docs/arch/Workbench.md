@@ -99,7 +99,13 @@ class ButtonElement {
 - `IActivatable.ts` — контракт async-инициализации сервисов.
 - `Styles/` — мост тема → стили контролов (`defaultStyles.ts`).
 - `Services/` — переехавшие из Controllers сервисы: система команд (`CommandRegistry`,
-  `KeybindingRegistry`, `ContextKeyService`, `ContextKeys`), `StateKeys`,
+  `KeybindingRegistry`, `ContextKeyService`, `ContextKeys`), `KeybindingDispatcher`
+  (клавиатурный диспатч: резолв keydown против `KeybindingRegistry` + `ContextKeyService`,
+  chord-режим с таймаутами и swallow продолжения, chord-хинт/«is not a command» через
+  `StatusBarService`, hold-сессии через `ModifierReleaseArmory`, runtime-детект CSI-u,
+  применение user keybindings.json; view не знает — владелец корневого дерева (сейчас
+  `AppController`) вешает его capture/bubble-листенеры и подключает два хука-шва:
+  `updateContextKeys` и `hasKeyboardCapturingOverlay`), `StateKeys`,
   `ModifierReleaseArmory`, `ChokidarFileWatcher` + `IFileWatcherDIToken`,
   `FileSearchService`, `QuickOpenParsing`, `collectWordCompletions`, `CoreTokens`,
   каталоги `Workspace/` (undo/redo; `TrashService`/`WorkspaceEditService` пока в
@@ -123,7 +129,7 @@ class ButtonElement {
     `onActiveEditorChanged`, курсор/encoding/EOL/язык), `EditorGroupController`
     соответствует ему структурно; связывание — биндинг
     `ActiveEditorStatusSourceDIToken` в `Controllers/Modules/WorkbenchModule.ts`.
-    Chord-хинт публикует `AppController` как обычную запись сервиса.
+    Chord-хинт публикует `KeybindingDispatcher` как обычную запись сервиса.
 - `Components/` — UI-компоненты; первый обитатель — `StatusBar/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
