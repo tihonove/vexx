@@ -1,5 +1,4 @@
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import type { TUIFocusEvent } from "../Events/TUIFocusEvent.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
@@ -10,6 +9,7 @@ import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "./HFlexElement.ts
 import { MenuBarFillerElement, MenuBarItemElement } from "./MenuBarItemElement.tsx";
 import type { OverlayLayer } from "./OverlayLayer.ts";
 import type { OverlaySessionHandle } from "./OverlayLayer.ts";
+import type { MenuColors } from "./PopupMenuItemElement.tsx";
 import type { MenuEntry } from "./PopupMenuElement.ts";
 import { PopupMenuElement } from "./PopupMenuElement.ts";
 
@@ -29,15 +29,16 @@ export class MenuBarElement extends TUIElement {
     private hflex: HFlexElement;
     private previousFocusedElement: TUIElement | null = null;
     private parentMnemonicHandler: ((event: TUIKeyboardEvent) => void) | null = null;
-    private currentTheme: WorkbenchTheme | null = null;
+    private currentMenuColors: MenuColors | null = null;
 
     /**
-     * Кэширует активную тему, чтобы прокинуть её цвета `menu.*` в дропдаун,
-     * который меню-бар создаёт при открытии (сам виджет полосы не тематизируется).
+     * Кэширует палитру дропдауна, который меню-бар создаёт при открытии (сам
+     * виджет полосы не тематизируется). Палитру строит владелец — контрол про
+     * темы приложения не знает.
      */
-    public applyTheme(theme: WorkbenchTheme): void {
-        this.currentTheme = theme;
-        this.activeMenu?.applyTheme(theme);
+    public setMenuColors(colors: MenuColors): void {
+        this.currentMenuColors = colors;
+        this.activeMenu?.setColors(colors);
     }
 
     private updateItemActiveStates(): void {
@@ -244,8 +245,8 @@ export class MenuBarElement extends TUIElement {
         this.activeIndex = index;
         this.updateItemActiveStates();
         const menu = new PopupMenuElement(wrappedEntries);
-        if (this.currentTheme) {
-            menu.applyTheme(this.currentTheme);
+        if (this.currentMenuColors) {
+            menu.setColors(this.currentMenuColors);
         }
         this.activeMenu = menu;
 

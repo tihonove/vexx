@@ -33,6 +33,7 @@ import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
 import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
+import { menuColorsFromTheme } from "./menuColorsFromTheme.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import type { IController } from "./IController.ts";
@@ -418,7 +419,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
-        this.editor.menuTheme = this.currentTheme;
+        this.editor.menuColors = this.currentTheme ? menuColorsFromTheme(this.currentTheme) : null;
         this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
@@ -857,7 +858,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.warningForeground = theme.getColor("editorWarning.foreground");
         this.editor.infoForeground = theme.getColor("editorInfo.foreground");
         this.editor.hintForeground = theme.getColor("editorHint.foreground");
-        this.editor.menuTheme = theme;
+        this.editor.menuColors = menuColorsFromTheme(theme);
         this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
         this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");
         this.editor.indentGuideActiveForeground = theme.getColor("editorIndentGuide.activeBackground1");

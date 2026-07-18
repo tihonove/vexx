@@ -1,5 +1,4 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
@@ -69,21 +68,13 @@ export class PopupMenuElement extends TUIElement {
     }
 
     /**
-     * Применяет цвета из активной темы (ключи VS Code `menu.*`). `menu.*` цвета
-     * гарантированы реестром дефолтов (см. {@link defaultWorkbenchColors}), а
-     * `shortcutFg` не имеет темизируемого ключа VS Code и берётся из
-     * {@link DEFAULT_MENU_COLORS} (baseline для меню без темы).
+     * Задаёт палитру меню. Контрол ничего не знает про темы приложения —
+     * владелец (компонент/контроллер) строит {@link MenuColors} сам
+     * (например, из ключей темы `menu.*`). Без вызова действует
+     * {@link DEFAULT_MENU_COLORS}.
      */
-    public applyTheme(theme: WorkbenchTheme): void {
-        this.colors = {
-            fg: theme.getRequiredColor("menu.foreground"),
-            bg: theme.getRequiredColor("menu.background"),
-            highlightFg: theme.getRequiredColor("menu.selectionForeground"),
-            highlightBg: theme.getRequiredColor("menu.selectionBackground"),
-            shortcutFg: DEFAULT_MENU_COLORS.shortcutFg,
-            borderFg: theme.getRequiredColor("menu.border"),
-            separatorFg: theme.getRequiredColor("menu.separatorBackground"),
-        };
+    public setColors(colors: MenuColors): void {
+        this.colors = colors;
         for (const item of this.itemElements) {
             item.colors = this.colors;
         }
