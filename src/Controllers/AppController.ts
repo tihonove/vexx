@@ -1256,7 +1256,7 @@ export class AppController extends Disposable implements IController {
 
     /**
      * Save As flow: prompt for a target path (InputBox), confirm overwrite if a
-     * different file already exists, then write via {@link EditorController.saveAs}.
+     * different file already exists, then write via {@link TextFileModel.saveAs}.
      */
     private async runSaveAs(): Promise<void> {
         const editor = this.editorGroupController.getActiveEditor();

@@ -47,7 +47,7 @@ function createGroup(): EditorGroupController {
  * смену пути. Проверяем через публичный контракт (текст буферов), а не через
  * ключ бакета — ключ намеренно непрозрачен.
  */
-describe("EditorController — идентичность истории отмены", () => {
+describe("EditorGroupController — идентичность истории отмены", () => {
     it("два untitled-буфера не делят историю: undo в одном не трогает другой", () => {
         const group = createGroup();
         group.newUntitled();

@@ -15,7 +15,7 @@
 
 Все DI-токены именуются по конвенции `{ServiceName}DIToken`:
 
-- `EditorControllerDIToken` — токен для `EditorController`
+- `EditorGroupControllerDIToken` — токен для `EditorGroupController`
 - `TuiApplicationDIToken` — токен для `TuiApplication`
 - `AppControllerDIToken` — токен для `AppController`
 
@@ -36,7 +36,7 @@ DI-токены и зависимости (`static dependencies`) объявля
 ```typescript
 import { token } from "../Common/DiContainer.ts";
 
-export const EditorControllerDIToken = token<EditorController>("EditorController");
+export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
 ```
 
 ## Объявление зависимостей в классе
@@ -46,12 +46,12 @@ export const EditorControllerDIToken = token<EditorController>("EditorController
 
 ```typescript
 import { TuiApplicationDIToken } from "./CoreTokens.ts";
-import { EditorControllerDIToken } from "./EditorController.ts";
+import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 
 export class AppController extends Disposable {
-    static dependencies = [TuiApplicationDIToken, EditorControllerDIToken] as const;
+    static dependencies = [TuiApplicationDIToken, EditorGroupControllerDIToken] as const;
 
-    constructor(app: TuiApplication, editorCtrl: EditorController) {
+    constructor(app: TuiApplication, editorGroup: EditorGroupController) {
         super();
         // ...
     }
@@ -61,7 +61,7 @@ export class AppController extends Disposable {
 Если зависимостей нет:
 
 ```typescript
-export class EditorController extends Disposable {
+export class StatusBarService extends Disposable {
     static dependencies = [] as const;
 
     constructor() {
@@ -79,7 +79,7 @@ import { Container } from "./Common/DiContainer.ts";
 
 const container = new Container()
     .bind(TuiApplicationDIToken, () => application)          // фабрика для leaf-сервисов
-    .bind(EditorControllerDIToken, EditorController)         // класс — deps из static dependencies
+    .bind(EditorGroupControllerDIToken, EditorGroupController) // класс — deps из static dependencies
     .bind(AppControllerDIToken, AppController);
 
 const appCtrl = container.get(AppControllerDIToken);

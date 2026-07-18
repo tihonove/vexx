@@ -2,53 +2,34 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../../Common/Uri.ts";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
-import { createLineTokens, createToken } from "../Editor/ILineTokens.ts";
-import { createCursorSelection } from "../Editor/ISelection.ts";
-import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
-import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { packRgb } from "../Rendering/ColorUtils.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { createLineTokens, createToken } from "../../../Editor/ILineTokens.ts";
+import { createCursorSelection } from "../../../Editor/ISelection.ts";
+import { PlainTextTokenizer } from "../../../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
+import type { ILanguageService } from "../../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_STATE } from "../../../Editor/Tokenization/IState.ts";
+import type { ITokenizationSupport } from "../../../Editor/Tokenization/ITokenizationSupport.ts";
+import { TokenizationRegistry } from "../../../Editor/Tokenization/TokenizationRegistry.ts";
+import { packRgb } from "../../../Rendering/ColorUtils.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import { TestApp } from "../../../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
 
-import { EditorController } from "./EditorController.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
-
-function createEditorController(
-    overrides: {
-        registry?: TokenizationRegistry;
-        languageService?: ILanguageService;
-        themeService?: ThemeService;
-    } = {},
-): EditorController {
-    const themeService = overrides.themeService ?? new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    return new EditorController(
-        themeService,
-        overrides.registry ?? new TokenizationRegistry(),
-        NULL_TOKEN_STYLE_RESOLVER,
-        overrides.languageService ?? NULL_LANGUAGE_SERVICE,
-        new UndoRedoService(),
-    );
-}
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
 /** Скоуп первого токена первой строки — чем токенизирован документ прямо сейчас. */
-function firstScope(ctrl: EditorController): string | undefined {
+function firstScope(ctrl: EditorPane): string | undefined {
     const tokenStore = ctrl.viewState.tokenStore;
     tokenStore?.tokenizeUpTo(0);
     return tokenStore?.getLineTokens(0)?.tokens[0]?.scopes[0];
 }
 
-describe("EditorController", () => {
+describe("EditorComponent + TextFileModel (пара)", () => {
     let ws: ITempWorkspace;
 
     beforeEach(() => {
@@ -65,14 +46,14 @@ describe("EditorController", () => {
 
     describe("fileName / save without a file", () => {
         it("has a null fileName before any file is opened", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
 
             expect(ctrl.fileName).toBeNull();
             expect(ctrl.absoluteFilePath).toBeNull();
         });
 
         it("getCaretAnchor: anchor у видимой каретки, null когда каретка вне вьюпорта", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             expect(ctrl.getCaretAnchor()).toMatchObject({ preferBelow: true });
 
             // Уводим каретку за пределы вьюпорта скроллом.
@@ -81,7 +62,7 @@ describe("EditorController", () => {
         });
 
         it("save() is a no-op when no file is open (no file written, no onDidSave)", async () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             let saved = false;
             ctrl.onDidSave = () => {
                 saved = true;
@@ -94,7 +75,7 @@ describe("EditorController", () => {
         });
 
         it("exposes the basename once a file is opened", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             const fp = writeFile("hello.ts", "x");
 
             ctrl.openFile(Uri.file(fp));
@@ -106,7 +87,7 @@ describe("EditorController", () => {
 
     describe("saveAs", () => {
         it("writes content to the new path and re-points the editor", async () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.txt", "content")));
             let saved = 0;
             ctrl.onDidSave = () => {
@@ -124,7 +105,7 @@ describe("EditorController", () => {
         });
 
         it("persists in-memory edits and clears the dirty flag", async () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.txt", "")));
             ctrl.viewState.insertText("edited");
             expect(ctrl.isModified).toBe(true);
@@ -146,7 +127,7 @@ describe("EditorController", () => {
                 },
                 getLanguageDisplayName: () => undefined,
             };
-            const ctrl = createEditorController({ languageService });
+            const ctrl = createEditorPane({ languageService });
             ctrl.openFile(Uri.file(writeFile("a.txt", "x")));
 
             const newPath = ws.path("b.ts");
@@ -156,7 +137,7 @@ describe("EditorController", () => {
         });
 
         it("works for an editor that never had a file (untitled)", async () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.viewState.insertText("hi");
 
             const newPath = ws.path("new.txt");
@@ -170,7 +151,7 @@ describe("EditorController", () => {
 
     describe("pushUndo", () => {
         it("ignores an undefined element", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.ts", "abc")));
 
             // Should be a no-op: undo afterwards has nothing to revert.
@@ -181,7 +162,7 @@ describe("EditorController", () => {
         });
 
         it("registers a real undo element so undo reverts the edit", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.ts", "")));
 
             const undoElement = ctrl.viewState.insertText("foo");
@@ -199,7 +180,7 @@ describe("EditorController", () => {
 
     describe("setIndentOptions", () => {
         it("applies a new tab size and disables auto-detection", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setIndentOptions({ tabSize: 2, insertSpaces: true });
@@ -210,7 +191,7 @@ describe("EditorController", () => {
         });
 
         it("leaves state untouched when the patch matches current values", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
             const before = ctrl.viewState.detectIndentation;
 
@@ -224,7 +205,7 @@ describe("EditorController", () => {
         });
 
         it("ignores a non-positive tab size", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setIndentOptions({ tabSize: 0 });
@@ -235,7 +216,7 @@ describe("EditorController", () => {
 
     describe("setCursorSurroundingLines", () => {
         it("normalizes fractional/negative values to a non-negative integer", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setCursorSurroundingLines(3.9);
@@ -246,7 +227,7 @@ describe("EditorController", () => {
         });
 
         it("is a no-op when the normalized value matches the current one", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             ctrl.setCursorSurroundingLines(2);
@@ -261,7 +242,7 @@ describe("EditorController", () => {
     describe("theme with missing editor gutter colors", () => {
         it("falls back to the editor background when gutter colors are absent", () => {
             const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-            const ctrl = createEditorController({ themeService });
+            const ctrl = createEditorPane({ themeService });
             ctrl.openFile(Uri.file(writeFile("a.ts", "x")));
 
             // A theme that overrides the background but defines no gutter color.
@@ -283,14 +264,14 @@ describe("EditorController", () => {
         // Occurrence-highlight background from darkPlus (#474747).
         const OCCURRENCE_BG = packRgb(71, 71, 71);
 
-        function renderRow0Bg(ctrl: EditorController, col: number): number {
+        function renderRow0Bg(ctrl: EditorPane, col: number): number {
             const app = TestApp.createWithContent(ctrl.view, new Size(20, 3));
             app.render();
             return app.backend.getBgAt(new Point(col, 0));
         }
 
         it("highlights the word under the cursor using the theme's wordHighlight color", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.txt", "foo foo")));
             ctrl.viewState.selections = [createCursorSelection(0, 0)];
 
@@ -299,7 +280,7 @@ describe("EditorController", () => {
         });
 
         it("stops highlighting once disabled via setOccurrenceHighlightEnabled", () => {
-            const ctrl = createEditorController();
+            const ctrl = createEditorPane();
             ctrl.openFile(Uri.file(writeFile("a.txt", "foo foo")));
             ctrl.viewState.selections = [createCursorSelection(0, 0)];
 
@@ -320,7 +301,7 @@ describe("EditorController", () => {
                 getLanguageIdForResource: () => "typescript",
                 getLanguageDisplayName: () => undefined,
             };
-            const ctrl = createEditorController({ registry, languageService });
+            const ctrl = createEditorPane({ registry, languageService });
 
             ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
 
@@ -336,7 +317,7 @@ describe("EditorController", () => {
                 getLanguageIdForResource: () => "typescript",
                 getLanguageDisplayName: () => undefined,
             };
-            const ctrl = createEditorController({ registry, languageService });
+            const ctrl = createEditorPane({ registry, languageService });
 
             ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
 
@@ -364,7 +345,7 @@ describe("EditorController", () => {
                 getLanguageIdForResource: () => "typescript",
                 getLanguageDisplayName: () => undefined,
             };
-            const ctrl = createEditorController({ registry, languageService });
+            const ctrl = createEditorPane({ registry, languageService });
 
             ctrl.openFile(Uri.file(writeFile("a.ts", "const x = 1;")));
 

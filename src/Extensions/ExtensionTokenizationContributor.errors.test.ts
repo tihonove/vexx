@@ -88,7 +88,7 @@ describe("ExtensionTokenizationContributor — error handling", () => {
 
         contributor.apply();
         // load() глотает бросок фабрики и резолвится в undefined — иначе
-        // `void load(...)` в EditorController дал бы unhandled rejection.
+        // `void load(...)` в EditorComponent дал бы unhandled rejection.
         await expect(registry.load("typescript")).resolves.toBeUndefined();
 
         expect(registry.get("typescript")).toBeUndefined();

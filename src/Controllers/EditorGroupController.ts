@@ -18,8 +18,10 @@ import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
 import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import { getTabStripStyles } from "../Workbench/Styles/defaultStyles.ts";
 
+import { EditorComponent } from "../Workbench/Components/Editor/EditorComponent.ts";
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../Workbench/Services/CoreTokens.ts";
-import { EditorController } from "./EditorController.ts";
+import { TextFileModel } from "../Workbench/Services/TextFile/TextFileModel.ts";
+import { EditorPane } from "./EditorPane.ts";
 import type { IController } from "./IController.ts";
 import type { IFileWatcher } from "../Common/IFileWatcher.ts";
 
@@ -49,7 +51,7 @@ export class EditorGroupController extends Disposable implements IController, IS
 
     public readonly view: EditorGroupElement;
 
-    private editors: EditorController[] = [];
+    private editors: EditorPane[] = [];
     private activeIndexValue = -1;
 
     /**
@@ -57,7 +59,7 @@ export class EditorGroupController extends Disposable implements IController, IS
      * (mru[0] — активный/последний). Отдельно от `editors`, который хранит
      * позиционный порядок вкладок в strip'е. Питает MRU-переключение Ctrl+Tab.
      */
-    private mruOrder: EditorController[] = [];
+    private mruOrder: EditorPane[] = [];
     /**
      * Идёт ли сейчас серия Ctrl+Tab. Пока серия активна, список MRU заморожен
      * (`mruCycleList`), а выбор не коммитится в начало `mruOrder` — иначе нельзя
@@ -65,7 +67,7 @@ export class EditorGroupController extends Disposable implements IController, IS
      * структурное изменение завершает серию.
      */
     private cyclingActive = false;
-    private mruCycleList: EditorController[] = [];
+    private mruCycleList: EditorPane[] = [];
     private mruCyclePointer = 0;
     private themeService: ThemeService;
     private tokenizationRegistry: TokenizationRegistry;
@@ -74,7 +76,7 @@ export class EditorGroupController extends Disposable implements IController, IS
     private configurationService: IConfigurationService;
     private undoRedoService: UndoRedoService;
     private fileWatcher: IFileWatcher;
-    private activeEditorListeners: ((editor: EditorController | null) => void)[] = [];
+    private activeEditorListeners: ((editor: EditorPane | null) => void)[] = [];
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
     private saveParticipantValue?: SaveParticipant;
     /**
@@ -85,7 +87,7 @@ export class EditorGroupController extends Disposable implements IController, IS
     private untitledCounter = 0;
 
     public onRequestConfirmClose?: (index: number) => void;
-    public onEditorCreate?: (controller: EditorController) => void;
+    public onEditorCreate?: (pane: EditorPane) => void;
 
     /**
      * Источник автодополнений (host/харнесс подключает сюда провайдеры
@@ -110,7 +112,7 @@ export class EditorGroupController extends Disposable implements IController, IS
         }
     }
 
-    public onActiveEditorChanged(cb: (editor: EditorController | null) => void): IDisposable {
+    public onActiveEditorChanged(cb: (editor: EditorPane | null) => void): IDisposable {
         this.activeEditorListeners.push(cb);
         return {
             dispose: () => {
@@ -168,12 +170,12 @@ export class EditorGroupController extends Disposable implements IController, IS
         return this.editors.length;
     }
 
-    public getActiveEditor(): EditorController | null {
+    public getActiveEditor(): EditorPane | null {
         if (this.activeIndexValue < 0 || this.activeIndexValue >= this.editors.length) return null;
         return this.editors[this.activeIndexValue];
     }
 
-    public getEditor(index: number): EditorController | null {
+    public getEditor(index: number): EditorPane | null {
         if (index < 0 || index >= this.editors.length) return null;
         return this.editors[index];
     }
@@ -241,22 +243,22 @@ export class EditorGroupController extends Disposable implements IController, IS
     }
 
     /**
-     * Создаёт `EditorController` и навешивает общую обвязку группы (watcher,
+     * Создаёт пару {@link TextFileModel} + {@link EditorComponent} (обёрнутую в
+     * транзитный {@link EditorPane}) и навешивает общую обвязку группы (watcher,
      * save-участник, подписки на изменения → `syncTabs`, `onDidSave`,
      * `onEditorCreate`) — всё, кроме загрузки файла и применения конфига (их
      * порядок относительно openFile важен, поэтому они на стороне вызывающего).
      * Общая часть {@link openFile} и {@link newUntitled}.
      */
-    private createAndWireEditor(): EditorController {
-        const editor = this.register(
-            new EditorController(
-                this.themeService,
-                this.tokenizationRegistry,
-                this.tokenStyleResolver,
-                this.languageService,
-                this.undoRedoService,
-            ),
+    private createAndWireEditor(): EditorPane {
+        const model = new TextFileModel(this.languageService, this.undoRedoService);
+        const component = new EditorComponent(
+            this.themeService,
+            this.tokenizationRegistry,
+            this.tokenStyleResolver,
+            model,
         );
+        const editor = this.register(new EditorPane(model, component));
         // Наблюдатель ставим до возможного openFile, чтобы слежение началось с
         // первой загрузки.
         editor.fileWatcher = this.fileWatcher;
@@ -362,11 +364,11 @@ export class EditorGroupController extends Disposable implements IController, IS
     }
 
     /** Снимок MRU-порядка (mru[0] — самый недавний). Для тестов и диагностики. */
-    public getMruOrder(): EditorController[] {
+    public getMruOrder(): EditorPane[] {
         return [...this.mruOrder];
     }
 
-    private moveToMruFront(editor: EditorController): void {
+    private moveToMruFront(editor: EditorPane): void {
         const index = this.mruOrder.indexOf(editor);
         if (index >= 0) this.mruOrder.splice(index, 1);
         this.mruOrder.unshift(editor);
@@ -435,9 +437,8 @@ export class EditorGroupController extends Disposable implements IController, IS
     }
 
     public async activate(): Promise<void> {
-        for (const editor of this.editors) {
-            await editor.activate();
-        }
+        // Пока нечего активировать: async-инициализация редакторов (LSP и т.п.) —
+        // будущий шов сервисного слоя (этап 9b).
     }
 
     /**
@@ -446,7 +447,7 @@ export class EditorGroupController extends Disposable implements IController, IS
      * Если ключ не задан, соответствующая настройка редактора не трогается
      * (`setIndentOptions` оставит существующее значение — auto-detect и т.п.).
      */
-    private applyConfigurationToEditor(editor: EditorController): void {
+    private applyConfigurationToEditor(editor: EditorPane): void {
         // `editor.occurrencesHighlight`: "off" disables; "singleFile"/"multiFile"
         // (and unset → VS Code default) enable. We only support single-file scope.
         const occurrencesHighlight = this.configurationService.get<string>("editor.occurrencesHighlight");
@@ -502,7 +503,7 @@ export class EditorGroupController extends Disposable implements IController, IS
     /**
      * Имя буфера для вкладки/иконки: имя файла, либо `Untitled-N` для безымянного.
      */
-    public displayName(editor: EditorController): string {
+    public displayName(editor: EditorPane): string {
         // `untitled:Untitled-3`.path === "Untitled-3" — метка безымянного буфера уже
         // лежит в самом ресурсе, отдельный счётчик-поле для неё не нужен.
         const uri = editor.uri;
@@ -515,10 +516,10 @@ export class EditorGroupController extends Disposable implements IController, IS
      *
      * Расширение выводим из языка, а не зашиваем: у свежего буфера язык `plaintext`,
      * так что дефолт остаётся `.txt`, но стоит сменить язык буфера
-     * ({@link EditorController.setLanguage}) — и предложение поедет следом само.
+     * ({@link TextFileModel.setLanguage}) — и предложение поедет следом само.
      * Язык без расширений (или незарегистрированный) → имя без расширения.
      */
-    public suggestedSaveName(editor: EditorController): string {
+    public suggestedSaveName(editor: EditorPane): string {
         const name = this.displayName(editor);
         const extension = this.languageService.getExtensionForLanguage(editor.languageId);
         return extension === undefined ? name : `${name}${extension}`;
@@ -588,13 +589,13 @@ export class EditorGroupController extends Disposable implements IController, IS
         return labels;
     }
 
-    private fireActiveEditorChanged(editor: EditorController | null): void {
+    private fireActiveEditorChanged(editor: EditorPane | null): void {
         for (const cb of this.activeEditorListeners) {
             cb(editor);
         }
     }
 
-    private fireEditorSaved(editor: EditorController): void {
+    private fireEditorSaved(editor: EditorPane): void {
         // Ресурс есть у любого редактора — гейт на "путь не задан" больше не нужен.
         const meta: IEditorSavedMeta = { uri: editor.uri.toString(), languageId: editor.languageId };
         for (const cb of [...this.editorSavedListeners]) {

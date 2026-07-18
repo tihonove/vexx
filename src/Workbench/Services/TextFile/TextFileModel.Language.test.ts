@@ -1,22 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../../Common/Uri.ts";
 
-import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
-import { createLineTokens, createToken } from "../Editor/ILineTokens.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_STATE } from "../Editor/Tokenization/IState.ts";
-import type { ITokenizationResult, ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import type { IDocumentLanguageChange } from "../../../Editor/IDocumentLanguageChange.ts";
+import { createLineTokens, createToken } from "../../../Editor/ILineTokens.ts";
+import type { ILanguageService } from "../../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_STATE } from "../../../Editor/Tokenization/IState.ts";
+import type { ITokenizationResult, ITokenizationSupport } from "../../../Editor/Tokenization/ITokenizationSupport.ts";
+import { TokenizationRegistry } from "../../../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
-import { EditorController } from "./EditorController.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
 /** Токенизатор-маркер: помечает всю строку одним заданным scope. */
 function markerTokenizer(scope: string): ITokenizationSupport {
@@ -34,27 +29,21 @@ const TS_ONLY_LANGUAGE_SERVICE: ILanguageService = {
     getLanguageDisplayName: () => undefined,
 };
 
-function firstScope(ctrl: EditorController): string | undefined {
+function firstScope(ctrl: EditorPane): string | undefined {
     const tokenStore = ctrl.viewState.tokenStore;
     tokenStore?.tokenizeUpTo(0);
     return tokenStore?.getLineTokens(0)?.tokens[0]?.scopes[0];
 }
 
-describe("EditorController — language", () => {
+describe("TextFileModel — language", () => {
     let ws: ITempWorkspace;
     let registry: TokenizationRegistry;
-    let ctrl: EditorController;
+    let ctrl: EditorPane;
 
     beforeEach(() => {
         ws = createTempWorkspace({ prefix: "vexx-editorctrl-lang-" });
         registry = new TokenizationRegistry();
-        ctrl = new EditorController(
-            new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
-            registry,
-            NULL_TOKEN_STYLE_RESOLVER,
-            TS_ONLY_LANGUAGE_SERVICE,
-            new UndoRedoService(),
-        );
+        ctrl = createEditorPane({ registry, languageService: TS_ONLY_LANGUAGE_SERVICE });
     });
 
     afterEach(() => {

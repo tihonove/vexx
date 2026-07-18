@@ -2,32 +2,15 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../../Common/Uri.ts";
 
-import { EndOfLine } from "../Editor/EndOfLine.ts";
-import type { ISaveEdit } from "../Editor/ISaveParticipant.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { EndOfLine } from "../../../Editor/EndOfLine.ts";
+import type { ISaveEdit } from "../../../Editor/ISaveParticipant.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
-import { EditorController } from "./EditorController.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
-function createEditorController(): EditorController {
-    return new EditorController(
-        new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
-        new TokenizationRegistry(),
-        NULL_TOKEN_STYLE_RESOLVER,
-        NULL_LANGUAGE_SERVICE,
-        new UndoRedoService(),
-    );
-}
-
-describe("EditorController — save participant", () => {
+describe("TextFileModel — save participant", () => {
     let ws: ITempWorkspace;
 
     beforeEach(() => {
@@ -43,7 +26,7 @@ describe("EditorController — save participant", () => {
     }
 
     it("применяет текстовые правки участника перед записью", async () => {
-        const controller = createEditorController();
+        const controller = createEditorPane();
         const fp = writeFile("a.txt", "abc   \n");
         controller.openFile(Uri.file(fp));
         // Удаляем хвостовые пробелы: правка стирает диапазон 3..6 строки 0.
@@ -59,7 +42,7 @@ describe("EditorController — save participant", () => {
     });
 
     it("клампит диапазоны правок к границам документа", async () => {
-        const controller = createEditorController();
+        const controller = createEditorPane();
         const fp = writeFile("clamp.txt", "ab\ncd");
         controller.openFile(Uri.file(fp));
         controller.saveParticipant = () =>
@@ -91,7 +74,7 @@ describe("EditorController — save participant", () => {
     });
 
     it("смена EOL из участника (kind: eol) пишет CRLF", async () => {
-        const controller = createEditorController();
+        const controller = createEditorPane();
         const fp = writeFile("eol.txt", "a\nb\n");
         controller.openFile(Uri.file(fp));
         controller.saveParticipant = () => Promise.resolve<ISaveEdit[]>([{ kind: "eol", eol: EndOfLine.CRLF }]);
@@ -103,7 +86,7 @@ describe("EditorController — save participant", () => {
     });
 
     it("saveAs тоже прогоняет участника", async () => {
-        const controller = createEditorController();
+        const controller = createEditorPane();
         const fp = writeFile("src.txt", "hi   \n");
         controller.openFile(Uri.file(fp));
         controller.saveParticipant = () =>
@@ -119,7 +102,7 @@ describe("EditorController — save participant", () => {
     });
 
     it("без участника save остаётся синхронной записью", async () => {
-        const controller = createEditorController();
+        const controller = createEditorPane();
         const fp = writeFile("plain.txt", "keep   \n");
         controller.openFile(Uri.file(fp));
 

@@ -6,13 +6,13 @@ import type { AppController } from "./AppController.ts";
 import type { CompletionController } from "./CompletionController.ts";
 import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
-import type { EditorController } from "./EditorController.ts";
+import type { EditorPane } from "./EditorPane.ts";
 
 export interface SuggestContext {
     testApp: TestApp;
     controller: AppController;
     contextKeys: ContextKeyService;
-    activeEditor: () => EditorController;
+    activeEditor: () => EditorPane;
     completion: CompletionController;
     harness: IAppHarness;
     workspace: ITempWorkspace;

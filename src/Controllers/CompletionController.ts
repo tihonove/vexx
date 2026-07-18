@@ -12,7 +12,7 @@ import { CompletionListElement } from "../TUIDom/Widgets/CompletionListElement.t
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 
 import { collectWordCompletions } from "../Workbench/Services/collectWordCompletions.ts";
-import type { EditorController } from "./EditorController.ts";
+import type { EditorPane } from "./EditorPane.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
 /** Символы, образующие «слово» под курсором (префикс автодополнения). */
@@ -43,7 +43,7 @@ export class CompletionController extends Disposable {
 
     private readonly group: EditorGroupController;
     private session: OverlaySessionHandle | null = null;
-    private activeEditor: EditorController | null = null;
+    private activeEditor: EditorPane | null = null;
     private prefixRange: IRange | null = null;
     // Каретка на момент запроса провайдеров. Провайдерский `range` — снапшот той же
     // позиции, поэтому по нему мы отслеживаем, сколько символов добрали с триггера.
@@ -204,7 +204,7 @@ export class CompletionController extends Disposable {
     // ─── Private ─────────────────────────────────────────────────────────────
 
     /** Пере-навешивает подписки на нового активного редактора. */
-    private bindEditor(editor: EditorController | null): void {
+    private bindEditor(editor: EditorPane | null): void {
         this.unbindEditor();
         if (this.isOpen()) this.close();
         this.resetCaretCache(editor);
@@ -265,7 +265,7 @@ export class CompletionController extends Disposable {
     }
 
     /** Re-filter при открытом попапе (закрывает при уходе каретки из слова). */
-    private refilterOpen(editor: EditorController, active: IPosition | null, line: string): void {
+    private refilterOpen(editor: EditorPane, active: IPosition | null, line: string): void {
         const prefixRange = this.prefixRange;
         if (active === null || prefixRange === null) {
             this.close();
@@ -308,7 +308,7 @@ export class CompletionController extends Disposable {
         this.lastLine = line;
     }
 
-    private resetCaretCache(editor: EditorController | null): void {
+    private resetCaretCache(editor: EditorPane | null): void {
         if (editor === null) {
             this.updateCaretCache(null, "");
             return;

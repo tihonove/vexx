@@ -17,7 +17,7 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
-import type { EditorController } from "./EditorController.ts";
+import type { EditorPane } from "./EditorPane.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
 import { FindController } from "./FindController.ts";
 import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
@@ -58,7 +58,7 @@ describe("FindController", () => {
     function setup(text: string): {
         find: FindController;
         group: EditorGroupController;
-        editor: EditorController;
+        editor: EditorPane;
         testApp: TestApp;
     } {
         const filePath = path.join(tmpDir, "file.txt");

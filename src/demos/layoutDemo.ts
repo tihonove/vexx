@@ -261,7 +261,7 @@ const fileTreeLines = [
     { text: "  Disposable.ts", indent: 3, isBold: false },
     { text: "▼ Controllers", indent: 2, isBold: false },
     { text: "  AppController.ts", indent: 3, isBold: false },
-    { text: "  EditorController.ts", indent: 3, isBold: false },
+    { text: "  EditorComponent.ts", indent: 3, isBold: false },
     { text: "  CommandRegistry.ts", indent: 3, isBold: false },
     { text: "▼ Editor", indent: 2, isBold: false },
     { text: "  EditorElement.ts", indent: 3, isBold: false },

@@ -21,7 +21,7 @@ export type QuickOpenMode = "files" | "commands" | "line";
 
 /**
  * The active editor as seen by Go-to-Line. Structurally satisfied by
- * `EditorController`; kept as a narrow interface so the service does not depend
+ * editor pane; kept as a narrow interface so the service does not depend
  * on the whole editor. All values are 0-based (document coordinates).
  */
 export interface IGotoLineEditor {

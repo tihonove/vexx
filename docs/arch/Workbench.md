@@ -277,9 +277,38 @@ class ButtonElement {
     поверх `MarkerService`: поставщик — валидатор активного settings.json,
     потребитель — editor squiggles (Problems — второй потребитель того же
     реестра). Редакторы приходят через шов `IDiagnosticsEditorSource` /
-    `IDiagnosticsEditor` (`EditorGroupController`/`EditorController`
+    `IDiagnosticsEditor` (`EditorGroupController`/`EditorPane`
     структурно; биндинг `DiagnosticsEditorSourceDIToken` — в WorkbenchModule).
-- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/` и `QuickInput/`.
+- **Editor-кластер (этап 9a)** — растворённый per-file `EditorController` разложен на пару:
+  - `Services/TextFile/TextFileModel.ts` — per-file модель без view (аналог
+    `ITextFileEditorModel`): владеет `TextDocument`, dirty-статусом
+    (`isModified` = versionId + EOL-ось), осями encoding/EOL/language, записью
+    на диск (`save`/`saveAs`/`saveWithEncoding` + save-участник с клампом правок),
+    перечиткой (`revertToDisk`/`reopenWithEncoding` → событие
+    `onDidReloadDocument`) и слежением за файлом на диске через `IFileWatcher`
+    (авто-перечитка чистого буфера / `hasDiskConflict` у «грязного»); undo-роутинг
+    в `UndoRedoService` (`undoContext` + `attachUndoRouting`; движок
+    `UndoManager` остаётся в `src/Editor`). **Не** singleton-сервис: экземпляр на
+    файл, создаёт владелец. Правки, которые модель применяет сама (участник,
+    `setEol`, `applyExternalEdits`), идут через шов `ITextFileEditTarget` —
+    его прикрепляет парный компонент.
+  - `Components/Editor/EditorComponent.ts` — `ThemedComponent`; владеет
+    `EditorElement` + view-state + токен-кешем (`view` = `ScrollBarDecorator`),
+    принимает модель в конструктор: по `onDidReloadDocument` пересобирает
+    view-state/`EditorElement` (перенося стили/контекст-меню/undo-роутинг), по
+    `onDidChangeLanguage` и `TokenizationRegistry.onDidChange` пересаживает
+    токенизатор, по контенту пересчитывает folding-регионы (микротаск-коалесинг).
+    Здесь же view-API: курсор/reveal/goToPosition, декорации (search/markers/
+    gutter change-bars), folding-команды, контекст-меню редактора,
+    `updateStyles()` → `getEditorStyles` + `editor.style={fg,bg}` +
+    `getScrollBarStyles`.
+  - Пару создаёт `EditorGroupController` (Controllers, до этапа 9b) и держит в
+    транзитном контейнере `EditorPane` (`Controllers/EditorPane.ts`) —
+    делегирует прежнюю поверхность потребителям (AppController, экшены,
+    Find/Completion, host-адаптеры, швы `IActiveEditorStatus`/
+    `IDiagnosticsEditor`/`IMarkerRevealEditor`/`IGotoLineEditor` — те
+    выполняются структурно делегатами в модель/компонент).
+- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/`, `QuickInput/` и `Editor/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
 интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench

@@ -6,13 +6,13 @@ import type { TestApp } from "../TestUtils/TestApp.ts";
 import type { AppController } from "./AppController.ts";
 import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
-import type { EditorController } from "./EditorController.ts";
+import type { EditorPane } from "./EditorPane.ts";
 
 export interface FindContext {
     testApp: TestApp;
     controller: AppController;
     contextKeys: ContextKeyService;
-    activeEditor: () => EditorController;
+    activeEditor: () => EditorPane;
     tmpDir: string;
     harness: IAppHarness;
     workspace: ITempWorkspace;

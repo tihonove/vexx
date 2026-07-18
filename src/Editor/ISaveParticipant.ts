@@ -46,7 +46,7 @@ export type ISaveEdit =
 /**
  * Save-участник: по снапшоту документа возвращает набор правок, которые
  * редактор применяет к буферу (undoable) непосредственно перед записью на диск.
- * Инъектируется в {@link EditorController} извне (host/харнесс) — ядро не знает
+ * Инъектируется в модель файла (`TextFileModel`) извне (host/харнесс) — ядро не знает
  * про extension-слой. Пустой результат = сохранить как есть.
  */
 export type SaveParticipant = (snapshot: ISaveSnapshot) => Promise<readonly ISaveEdit[]>;

@@ -1,45 +1,23 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { token } from "../Common/DiContainer.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import { Uri } from "../Common/Uri.ts";
-import type { IEditorStyles } from "../Editor/EditorElement.ts";
-import { EditorElement, unthemedEditorStyles } from "../Editor/EditorElement.ts";
-import { EditorViewState } from "../Editor/EditorViewState.ts";
-import { decodeBuffer, DEFAULT_ENCODING, encodeText, getEncodingInfo } from "../Editor/Encoding.ts";
-import { EndOfLine } from "../Editor/EndOfLine.ts";
-import type { IGutterChangeDecoration } from "../Editor/Decorations/IGutterChangeDecoration.ts";
-import { computeIndentationFolds } from "../Editor/FoldingRangeProvider.ts";
-import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
-import type { IRange } from "../Editor/IRange.ts";
-import { createRange } from "../Editor/IRange.ts";
-import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "../Editor/ISaveParticipant.ts";
-import type { ITextEdit } from "../Editor/ITextEdit.ts";
-import { createTextEdit } from "../Editor/ITextEdit.ts";
-import type { IUndoElement } from "../Editor/IUndoElement.ts";
-import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
-import { TextDocument } from "../Editor/TextDocument.ts";
-import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
-import { DocumentTokenStore } from "../Editor/Tokenization/DocumentTokenStore.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import type { ITokenizationSupport } from "../Editor/Tokenization/ITokenizationSupport.ts";
-import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import type { ThemeService } from "../Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
-import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { OverlayAnchorPosition } from "../TUIDom/Widgets/OverlayLayer.ts";
-import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
-import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
-import { getEditorStyles, getScrollBarStyles } from "../Workbench/Styles/defaultStyles.ts";
-
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../Workbench/Services/CoreTokens.ts";
-import type { IController } from "./IController.ts";
-import type { IFileWatcher } from "../Common/IFileWatcher.ts";
-import { UndoRedoService, UndoRedoServiceDIToken } from "../Workbench/Services/Workspace/UndoRedoService.ts";
-
-export const EditorControllerDIToken = token<EditorController>("EditorController");
+import { Disposable, type IDisposable } from "../../../Common/Disposable.ts";
+import type { IFileWatcher } from "../../../Common/IFileWatcher.ts";
+import { Uri } from "../../../Common/Uri.ts";
+import { decodeBuffer, DEFAULT_ENCODING, encodeText, getEncodingInfo } from "../../../Editor/Encoding.ts";
+import type { EndOfLine } from "../../../Editor/EndOfLine.ts";
+import type { IDocumentLanguageChange } from "../../../Editor/IDocumentLanguageChange.ts";
+import type { IRange } from "../../../Editor/IRange.ts";
+import { createRange } from "../../../Editor/IRange.ts";
+import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "../../../Editor/ISaveParticipant.ts";
+import type { ISelection } from "../../../Editor/ISelection.ts";
+import type { ITextEdit } from "../../../Editor/ITextEdit.ts";
+import { createTextEdit } from "../../../Editor/ITextEdit.ts";
+import type { IUndoElement } from "../../../Editor/IUndoElement.ts";
+import { TextDocument } from "../../../Editor/TextDocument.ts";
+import type { ILanguageService } from "../../../Editor/Tokenization/ILanguageService.ts";
+import type { UndoManager } from "../../../Editor/UndoManager.ts";
+import type { UndoRedoService } from "../Workspace/UndoRedoService.ts";
 
 /**
  * Итог сохранения. `conflict` — файл на диске изменился внешним процессом с
@@ -54,42 +32,47 @@ interface IDiskStat {
     size: number;
 }
 
-/** Источник непрозрачных ключей истории отмены (см. {@link EditorController.undoContext}). */
+/** Источник непрозрачных ключей истории отмены (см. {@link TextFileModel.undoContext}). */
 let nextUndoContextId = 1;
 
 /**
- * Ресурс свежесозданного редактора: безымянный буфер без номера. Номер назначает группа
- * ({@link EditorController.setUntitled}) — она владеет счётчиком; до этого редактора ещё
+ * Ресурс свежесозданной модели: безымянный буфер без номера. Номер назначает группа
+ * ({@link TextFileModel.setUntitled}) — она владеет счётчиком; до этого модель ещё
  * никто не видит.
  */
 const UNTITLED_PLACEHOLDER_URI = Uri.from({ scheme: "untitled", path: "Untitled" });
 
-export class EditorController extends Disposable implements IController {
-    public static dependencies = [
-        ThemeServiceDIToken,
-        TokenizationRegistryDIToken,
-        TokenStyleResolverDIToken,
-        LanguageServiceDIToken,
-        UndoRedoServiceDIToken,
-    ] as const;
+/**
+ * Швы модели к редактирующей поверхности (view). Правки, которые модель применяет
+ * сама (save-участник, смена EOL, программные батчи), обязаны идти через view-state
+ * редактора — там живут выделения и inverse-edits для undo. Устанавливает владелец
+ * view (`EditorComponent.attachEditTarget` в своём конструкторе); модель без
+ * прикреплённой цели не используется — пара создаётся атомарно.
+ */
+export interface ITextFileEditTarget {
+    cloneSelections(): ISelection[];
+    applyEdits(edits: readonly ITextEdit[], label: string): IUndoElement | undefined;
+    pushUndo(element: IUndoElement | undefined): void;
+    markDirty(): void;
+}
 
-    public readonly view: ScrollBarDecorator;
-
-    public get viewState(): EditorViewState {
-        return this.editorViewState;
-    }
-
+/**
+ * Per-file модель текстового файла без view (аналог `ITextFileEditorModel` VS Code):
+ * владеет {@link TextDocument}, dirty-статусом, осями encoding/EOL/language, записью
+ * на диск (save/saveAs + save-участник) и слежением за файлом на диске (авто-перечитка
+ * чистого буфера / флаг конфликта у «грязного»). Не singleton-сервис: экземпляр на
+ * файл, создаёт владелец (сейчас — `EditorGroupController`) вместе с парным
+ * `EditorComponent`.
+ */
+export class TextFileModel extends Disposable {
     private doc: TextDocument;
-    private editorViewState: EditorViewState;
-    private editor: EditorElement;
-    private tokenStore: DocumentTokenStore;
     private languageSubscription: IDisposable | null = null;
     private languageChangeListeners: ((change: IDocumentLanguageChange) => void)[] = [];
     private eolSubscription: IDisposable | null = null;
     private eolChangeListeners: (() => void)[] = [];
     /**
      * Кодировка байтового представления на диске (id из SUPPORTED_ENCODINGS).
-     * В отличие от EOL это состояние контроллера, а не документа: модель видит
+     * В отличие от EOL это состояние модели, а не документа: документ видит
      * только строки, а кодировка применяется на дисковой границе (read/write).
      * Не undoable и не входит в isModified — Reopen заменяет документ целиком,
      * Save with Encoding сохраняет сразу (как в VS Code).
@@ -98,13 +81,11 @@ export class EditorController extends Disposable implements IController {
     private encodingChangeListeners: (() => void)[] = [];
     private contentSubscription: IDisposable | null = null;
     private contentChangeListeners: (() => void)[] = [];
-    private foldingSubscription: IDisposable | null = null;
-    private foldingRecomputeScheduled = false;
-    private controllerDisposed = false;
+    private reloadListeners: (() => void)[] = [];
     /**
-     * Идентичность ресурса этого редактора — первичное состояние, из которого выводится
-     * всё остальное (путь, имя, признак безымянности). Не `null`: у свежего редактора
-     * это `untitled:`-буфер, а не «редактор без ресурса», поэтому ветку «пути нет»
+     * Идентичность ресурса этой модели — первичное состояние, из которого выводится
+     * всё остальное (путь, имя, признак безымянности). Не `null`: у свежей модели
+     * это `untitled:`-буфер, а не «модель без ресурса», поэтому ветку «пути нет»
      * задаёт схема, а не отсутствие значения.
      */
     private uriValue: Uri = UNTITLED_PLACEHOLDER_URI;
@@ -119,17 +100,13 @@ export class EditorController extends Disposable implements IController {
     private diskConflictValue = false;
     private diskStateListeners: (() => void)[] = [];
     private fileWatch: IDisposable | null = null;
-    private readonly tokenizationRegistry: TokenizationRegistry;
-    private readonly tokenStyleResolver: ITokenStyleResolver;
     private readonly languageService: ILanguageService;
     private readonly undoRedoService: UndoRedoService;
-    private contextMenuEntriesValue: MenuEntry[] = [];
     /**
-     * Кэш стилей редактора из последнего applyTheme: EditorElement пересоздаётся
-     * в {@link loadDocumentFromDisk}, и свежий экземпляр должен получить те же
-     * стили без повторного визита темы.
+     * Шов к редактирующей поверхности; прикрепляет парный `EditorComponent` в своём
+     * конструкторе — модель никогда не живёт без него (см. {@link ITextFileEditTarget}).
      */
-    private currentEditorStyles: IEditorStyles = unthemedEditorStyles;
+    private editTarget!: ITextFileEditTarget;
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId || this.doc.eol !== this.savedEol;
@@ -142,6 +119,11 @@ export class EditorController extends Disposable implements IController {
     /** Кодировка, в которой документ читается с диска и пишется на диск. */
     public get encoding(): string {
         return this.encodingValue;
+    }
+
+    /** Открытый документ. Пересоздаётся при перечитке с диска (см. {@link onDidReloadDocument}). */
+    public get document(): TextDocument {
+        return this.doc;
     }
 
     /**
@@ -161,16 +143,11 @@ export class EditorController extends Disposable implements IController {
         for (const listener of [...this.encodingChangeListeners]) listener();
     }
 
-    public set contextMenuEntries(entries: MenuEntry[]) {
-        this.contextMenuEntriesValue = entries;
-        this.editor.contextMenuEntries = entries;
-    }
-
     public onDidSave?: () => void;
 
     /**
      * Наблюдатель за файлами (инъектируется группой перед openFile). Когда задан,
-     * контроллер следит за открытым файлом и реагирует на внешние изменения
+     * модель следит за открытым файлом и реагирует на внешние изменения
      * (авто-перечитка чистого буфера, флаг конфликта для «грязного»). По
      * умолчанию `null` — без live-watch (юнит-тесты, если фейк не подставлен).
      */
@@ -186,9 +163,9 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Событие смены «дискового» состояния редактора: файл перечитан с диска
+     * Событие смены «дискового» состояния модели: файл перечитан с диска
      * (чистый буфер) либо взведён/снят флаг конфликта. Подписка живёт на
-     * контроллере и переживает пересоздание документа в openFile.
+     * модели и переживает пересоздание документа в openFile.
      */
     public onDidChangeDiskState(listener: () => void): IDisposable {
         this.diskStateListeners.push(listener);
@@ -218,8 +195,20 @@ export class EditorController extends Disposable implements IController {
         };
     }
 
-    public onDidChangeCursorPosition(listener: () => void): IDisposable {
-        return this.editorViewState.onDidChangeCursorPosition(listener);
+    /**
+     * Событие «документ пересоздан после чтения с диска» (openFile / revertToDisk /
+     * reopenWithEncoding). Парный `EditorComponent` пересобирает по нему view-state,
+     * токен-кеш и `EditorElement` — undo, курсор и скролл сбрасываются, как при
+     * открытии файла заново.
+     */
+    public onDidReloadDocument(listener: () => void): IDisposable {
+        this.reloadListeners.push(listener);
+        return {
+            dispose: () => {
+                const i = this.reloadListeners.indexOf(listener);
+                if (i >= 0) this.reloadListeners.splice(i, 1);
+            },
+        };
     }
 
     /** Language id открытого документа (`plaintext`, если язык не определён). */
@@ -228,34 +217,16 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Экранный якорь каретки для completion-попапа, или `null`, если каретка вне
-     * видимой области. Делегирует в {@link EditorElement.getCaretScreenCell}.
-     */
-    public getCaretAnchor(): OverlayAnchorPosition | null {
-        const cell = this.editor.getCaretScreenCell();
-        if (cell === null) return null;
-        return { screenX: cell.x, screenY: cell.y, preferBelow: true };
-    }
-
-    /**
-     * Открывает контекстное меню редактора с клавиатуры (Shift+F10), заякорив его на
-     * каретке. Делегирует в {@link EditorElement.openContextMenuAtCaret}.
-     */
-    public showContextMenu(): void {
-        this.editor.openContextMenuAtCaret();
-    }
-
-    /**
      * Меняет язык документа вручную (закладка под будущий language picker,
      * аналог `editor.action.changeLanguage` из VS Code). Токенизатор
-     * пересаживается автоматически через подписку на doc.onDidChangeLanguage.
+     * пересаживает парный компонент через подписку на onDidChangeLanguage.
      */
     public setLanguage(languageId: string): void {
         this.doc.setLanguage(languageId);
     }
 
     /**
-     * Событие смены языка документа. Подписка живёт на контроллере, а не на
+     * Событие смены языка документа. Подписка живёт на модели, а не на
      * конкретном документе — переживает пересоздание документа в openFile.
      */
     public onDidChangeLanguage(listener: (change: IDocumentLanguageChange) => void): IDisposable {
@@ -270,7 +241,7 @@ export class EditorController extends Disposable implements IController {
 
     /**
      * Событие смены EOL документа (командой, undo/redo — любым путём через
-     * doc.setEol). Подписка живёт на контроллере, а не на конкретном
+     * doc.setEol). Подписка живёт на модели, а не на конкретном
      * документе — переживает пересоздание документа в openFile.
      */
     public onDidChangeEol(listener: () => void): IDisposable {
@@ -285,7 +256,7 @@ export class EditorController extends Disposable implements IController {
 
     /**
      * Событие смены кодировки (setEncoding, reopenWithEncoding или детект при
-     * открытии другого файла). Подписка живёт на контроллере.
+     * открытии другого файла). Подписка живёт на модели.
      */
     public onDidChangeEncoding(listener: () => void): IDisposable {
         this.encodingChangeListeners.push(listener);
@@ -322,54 +293,22 @@ export class EditorController extends Disposable implements IController {
         return this.filePath;
     }
 
-    public constructor(
-        themeService: ThemeService,
-        tokenizationRegistry: TokenizationRegistry,
-        tokenStyleResolver: ITokenStyleResolver,
-        languageService: ILanguageService,
-        undoRedoService: UndoRedoService,
-    ) {
+    public constructor(languageService: ILanguageService, undoRedoService: UndoRedoService) {
         super();
 
-        this.tokenizationRegistry = tokenizationRegistry;
-        this.tokenStyleResolver = tokenStyleResolver;
         this.languageService = languageService;
         this.undoRedoService = undoRedoService;
 
         this.doc = new TextDocument("");
         this.savedEol = this.doc.eol;
-        this.editorViewState = new EditorViewState(this.doc);
-        this.tokenStore = new DocumentTokenStore(this.doc, this.ensureTokenizerForLanguage(this.doc.languageId));
-        this.editorViewState.tokenStore = this.tokenStore;
-        this.editor = new EditorElement(this.editorViewState);
-        this.editor.tokenStyleResolver = tokenStyleResolver;
-        this.editor.tabIndex = 0;
-        this.attachUndoRouting();
-        this.view = new ScrollBarDecorator(this.editor);
         this.bindDocumentListeners();
-        this.recomputeFoldingRegions();
 
-        this.register(
-            themeService.onThemeChange((theme) => {
-                this.applyTheme(theme);
-            }),
-        );
-        // Грамматики регистрируются асинхронно (ExtensionTokenizationContributor)
-        // и могут появиться уже после открытия файла — тогда пересаживаем
-        // документ с fallback-токенизатора на настоящий.
-        this.register(
-            tokenizationRegistry.onDidChange((languageId) => {
-                if (languageId === this.doc.languageId) this.applyTokenizer();
-            }),
-        );
         this.register({
             dispose: () => {
-                this.controllerDisposed = true;
                 this.languageSubscription?.dispose();
                 this.eolSubscription?.dispose();
                 this.contentSubscription?.dispose();
                 this.fileWatch?.dispose();
-                this.foldingSubscription?.dispose();
             },
         });
         // Очищаем историю отмены этого редактора при закрытии вкладки.
@@ -381,11 +320,13 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Открывает файл с диска. Принимает уже поднятый `file:`-uri: подъём (и `path.resolve`
-     * относительных путей из CLI/дерева) делает группа — единственная точка, где строка
-     * становится ресурсом. `Uri.file` относительный путь НЕ резолвит, поэтому резолвить
-     * после подъёма было бы поздно.
+     * Прикрепляет редактирующую поверхность (см. {@link ITextFileEditTarget}).
+     * Вызывает парный `EditorComponent` в своём конструкторе.
      */
+    public attachEditTarget(target: ITextFileEditTarget): void {
+        this.editTarget = target;
+    }
+
     /**
      * Присваивает буферу номер безымянного (`untitled:Untitled-N`). Номерами владеет
      * группа: счётчик общий на группу, а вызывать это надо до того, как редактор
@@ -395,6 +336,12 @@ export class EditorController extends Disposable implements IController {
         this.uriValue = Uri.from({ scheme: "untitled", path: `Untitled-${untitledNumber}` });
     }
 
+    /**
+     * Открывает файл с диска. Принимает уже поднятый `file:`-uri: подъём (и `path.resolve`
+     * относительных путей из CLI/дерева) делает группа — единственная точка, где строка
+     * становится ресурсом. `Uri.file` относительный путь НЕ резолвит, поэтому резолвить
+     * после подъёма было бы поздно.
+     */
     public openFile(uri: Uri): void {
         this.uriValue = uri;
         const filePath = uri.fsPath;
@@ -403,11 +350,12 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Читает файл с диска в свежий документ/view-state (сбрасывает undo, курсор,
-     * токен-кеш). Общий путь для {@link openFile}, {@link revertToDisk} и
-     * {@link reopenWithEncoding}. Обновляет снимок `diskStat` и снимает флаг
-     * конфликта. Кодировка: `explicitEncoding` побеждает BOM-сниф; без него —
-     * сниф BOM, иначе utf-8 (revert пере-детектит, как reload в VS Code).
+     * Читает файл с диска в свежий документ (сбрасывает undo, курсор, токен-кеш —
+     * view пересобирается по {@link onDidReloadDocument}). Общий путь для
+     * {@link openFile}, {@link revertToDisk} и {@link reopenWithEncoding}. Обновляет
+     * снимок `diskStat` и снимает флаг конфликта. Кодировка: `explicitEncoding`
+     * побеждает BOM-сниф; без него — сниф BOM, иначе utf-8 (revert пере-детектит,
+     * как reload в VS Code).
      */
     private loadDocumentFromDisk(filePath: string, explicitEncoding?: string): void {
         const buffer = fs.existsSync(filePath) ? fs.readFileSync(filePath) : Buffer.alloc(0);
@@ -415,22 +363,11 @@ export class EditorController extends Disposable implements IController {
         this.applyEncoding(encoding);
         this.diskStat = this.readDiskStat(filePath);
         this.doc = new TextDocument(content, this.resolveLanguageId(filePath));
-        this.editorViewState = new EditorViewState(this.doc);
-        this.tokenStore.dispose();
-        this.tokenStore = new DocumentTokenStore(this.doc, this.ensureTokenizerForLanguage(this.doc.languageId));
-        this.editorViewState.tokenStore = this.tokenStore;
-        this.editor = new EditorElement(this.editorViewState);
-        this.editor.tokenStyleResolver = this.tokenStyleResolver;
-        this.editor.tabIndex = 0;
-        this.editor.contextMenuEntries = this.contextMenuEntriesValue;
-        this.editor.setStyles(this.currentEditorStyles);
-        this.attachUndoRouting();
-        this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
         this.savedEol = this.doc.eol;
         this.diskConflictValue = false;
         this.bindDocumentListeners();
-        this.recomputeFoldingRegions();
+        for (const listener of [...this.reloadListeners]) listener();
     }
 
     public async save(options?: { overwrite?: boolean }): Promise<SaveOutcome> {
@@ -544,17 +481,17 @@ export class EditorController extends Disposable implements IController {
 
     /**
      * Changes the document's end-of-line sequence. The change is undoable and
-     * marks the editor dirty (EOL is tracked as a separate axis from content —
+     * marks the buffer dirty (EOL is tracked as a separate axis from content —
      * see {@link isModified}).
      */
     public setEol(eol: EndOfLine): void {
         const previous = this.doc.eol;
         if (previous === eol) return;
 
-        const selections = this.editorViewState.cloneSelections();
+        const selections = this.editTarget.cloneSelections();
         const version = this.doc.versionId;
         this.doc.setEol(eol);
-        this.pushUndo({
+        this.editTarget.pushUndo({
             label: "Change End of Line Sequence",
             versionBefore: version,
             versionAfter: version,
@@ -565,11 +502,11 @@ export class EditorController extends Disposable implements IController {
             eolBefore: previous,
             eolAfter: eol,
         });
-        this.editor.markDirty();
+        this.editTarget.markDirty();
     }
 
     /**
-     * Writes the document to a new path and re-points the editor to it.
+     * Writes the document to a new path and re-points the model to it.
      *
      * Unlike {@link openFile}, the document/view-state/undo-history/cursor are
      * preserved — the undo bucket is keyed by {@link undoContext}, which is tied to
@@ -659,23 +596,17 @@ export class EditorController extends Disposable implements IController {
         return this.doc.getText();
     }
 
-    public pushUndo(element: IUndoElement | undefined): void {
-        if (element) {
-            this.editor.undoManager.pushUndoElement(element);
-        }
-    }
-
     /**
      * Applies a programmatic batch of edits as a single undoable operation.
      *
      * A seam for edits that don't originate from user input — editor commands
-     * (trim-trailing-whitespace, insert-final-newline) and, later, save
-     * participants. Pushes an undo element (if anything changed) and repaints.
-     * Document dirtiness follows automatically from the version bump.
+     * (trim-trailing-whitespace, insert-final-newline) and save participants.
+     * Pushes an undo element (if anything changed) and repaints. Document
+     * dirtiness follows automatically from the version bump.
      */
     public applyExternalEdits(edits: readonly ITextEdit[], label: string): void {
-        this.pushUndo(this.editorViewState.applyEdits(edits, label));
-        this.editor.markDirty();
+        this.editTarget.pushUndo(this.editTarget.applyEdits(edits, label));
+        this.editTarget.markDirty();
     }
 
     public undo(): void {
@@ -702,160 +633,35 @@ export class EditorController extends Disposable implements IController {
     public readonly undoContext = `editor-${nextUndoContextId++}`;
 
     /**
-     * Подключает текущий редактор к общей истории: каждый шаг `UndoManager` регистрирует
-     * обёртку в `UndoRedoService` под контекстом этого редактора. Обёртка — токен порядка:
+     * Подключает редактор к общей истории: каждый шаг `UndoManager` регистрирует
+     * обёртку в `UndoRedoService` под контекстом этой модели. Обёртка — токен порядка:
      * её undo/redo делегируют в `UndoManager` (LIFO 1:1, поэтому стеки идут в ногу).
+     * Движок undo (`UndoManager`) остаётся во view-слое (`EditorElement`); парный
+     * `EditorComponent` перепривязывает роутинг при каждом пересоздании редактора.
      *
      * Ключ бакета ({@link undoContext}) и `resources` — разные вещи: первый адресует
      * историю и привязан к редактору, второй перечисляет затронутые пути и у безымянного
      * буфера пуст.
      */
-    private attachUndoRouting(): void {
-        const editor = this.editor;
-        editor.undoManager.onDidPush = (element) => {
+    public attachUndoRouting(undoManager: UndoManager, markDirty: () => void): void {
+        undoManager.onDidPush = (element) => {
             const filePath = this.filePath;
             this.undoRedoService.pushElement(
                 {
                     label: element.label,
                     resources: filePath === null ? [] : [filePath],
                     undo: () => {
-                        editor.undoManager.undo();
-                        editor.markDirty();
+                        undoManager.undo();
+                        markDirty();
                     },
                     redo: () => {
-                        editor.undoManager.redo();
-                        editor.markDirty();
+                        undoManager.redo();
+                        markDirty();
                     },
                 },
                 this.undoContext,
             );
         };
-    }
-
-    /**
-     * Применяет к view-state'у редактора частичный набор настроек indent.
-     * После изменений принудительно отключает auto-detect (если расширение
-     * выставило размер таба, оно знает, что делает) и помечает редактор
-     * dirty, чтобы изменения отрисовались в следующем кадре.
-     */
-    public setIndentOptions(patch: { tabSize?: number; insertSpaces?: boolean }): void {
-        let changed = false;
-        if (patch.tabSize !== undefined && patch.tabSize > 0 && this.editorViewState.tabSize !== patch.tabSize) {
-            this.editorViewState.tabSize = patch.tabSize;
-            changed = true;
-        }
-        if (patch.insertSpaces !== undefined && this.editorViewState.insertSpaces !== patch.insertSpaces) {
-            this.editorViewState.insertSpaces = patch.insertSpaces;
-            changed = true;
-        }
-        if (changed) {
-            this.editorViewState.detectIndentation = false;
-            this.editor.markDirty();
-        }
-    }
-
-    /**
-     * Enables/disables highlighting occurrences of the word under the cursor
-     * (VS Code `editor.occurrencesHighlight`). Repaints so the change is visible.
-     */
-    public setOccurrenceHighlightEnabled(enabled: boolean): void {
-        if (this.editor.occurrenceHighlightEnabled === enabled) return;
-        this.editor.occurrenceHighlightEnabled = enabled;
-        this.editor.markDirty();
-    }
-
-    /**
-     * Sets how many lines to keep between the cursor and the viewport edge when
-     * scrolling it into view (VS Code's `editor.cursorSurroundingLines`). Negative
-     * or fractional values are normalized to a non-negative integer.
-     */
-    public setCursorSurroundingLines(lines: number): void {
-        const normalized = Math.max(0, Math.floor(lines));
-        if (this.editorViewState.cursorSurroundingLines === normalized) return;
-        this.editorViewState.cursorSurroundingLines = normalized;
-        this.editor.markDirty();
-    }
-
-    /**
-     * Sets the search-match decorations rendered by the editor and repaints.
-     * `currentIndex` is the active match (highlighted distinctly), or -1.
-     */
-    public setSearchDecorations(matches: IRange[], currentIndex: number): void {
-        this.editorViewState.searchMatches = matches;
-        this.editorViewState.currentSearchMatchIndex = currentIndex;
-        this.editor.markDirty();
-    }
-
-    /**
-     * Sets the diagnostic squiggle decorations rendered by the editor and
-     * repaints. Pushed by the diagnostics controller from the marker service.
-     */
-    public setMarkerDecorations(decorations: readonly IMarkerDecoration[]): void {
-        this.editor.markerDecorations = decorations;
-        this.editor.markDirty();
-    }
-
-    /**
-     * Sets the gutter change-bar decorations (SCM/git dirty-diff) rendered by
-     * the editor and repaints. Colours arrive already resolved — this does not
-     * touch the theme. Pushed by the source-control/git controller.
-     */
-    public setGutterChangeDecorations(decorations: readonly IGutterChangeDecoration[]): void {
-        this.editor.gutterChangeDecorations = decorations;
-        this.editor.markDirty();
-    }
-
-    /** Scrolls a range into view (expanding folds if needed) and repaints. */
-    public revealRange(range: IRange): void {
-        this.editorViewState.revealRange(range);
-        this.editor.markDirty();
-    }
-
-    /** Logical line count of the open document. */
-    public get lineCount(): number {
-        return this.editorViewState.lineCount;
-    }
-
-    /** 0-based line of the primary cursor. */
-    public get primaryCursorLine(): number {
-        return this.editorViewState.primaryCursorLine;
-    }
-
-    /** 0-based character offset of the primary cursor. */
-    public get primaryCursorColumn(): number {
-        return this.editorViewState.primaryCursorColumn;
-    }
-
-    /**
-     * Moves the primary cursor to (`line`, `column`) — both 0-based — clamping to
-     * document bounds and revealing the target. Backs Go-to-Line navigation.
-     */
-    public goToPosition(line: number, column = 0): void {
-        this.editorViewState.goToPosition(line, column);
-        this.editor.markDirty();
-    }
-
-    /* v8 ignore start -- placeholder lifecycle hook; editor-specific subscriptions are added later */
-    public mount(): void {
-        // Future: subscribe to editor-specific events
-    }
-    /* v8 ignore stop */
-
-    public async activate(): Promise<void> {
-        // Future: LSP connection, syntax highlighting, etc.
-    }
-
-    public focusEditor(): void {
-        this.editor.focus();
-    }
-
-    private applyTheme(theme: WorkbenchTheme): void {
-        this.currentEditorStyles = getEditorStyles(theme);
-        const fg = theme.getRequiredColor("editor.foreground");
-        const bg = theme.getRequiredColor("editor.background");
-        this.editor.style = { fg, bg };
-        this.editor.setStyles(this.currentEditorStyles);
-        this.view.setStyles(getScrollBarStyles(theme, "editor.background"));
     }
 
     /**
@@ -867,150 +673,23 @@ export class EditorController extends Disposable implements IController {
     }
 
     /**
-     * Отдаёт токенайзер языка, попутно запуская его ленивую загрузку. Это наш
-     * аналог `onLanguage`-активации: грамматика читается только когда язык
-     * реально понадобился документу. Пока она едет — работаем на fallback'е;
-     * подписка на `tokenizationRegistry.onDidChange` пересадит нас, когда
-     * support доедет.
-     */
-    private ensureTokenizerForLanguage(languageId: string): ITokenizationSupport {
-        void this.tokenizationRegistry.load(languageId); // fire-and-forget: load() не реджектится
-        return this.tokenizationRegistry.get(languageId) ?? new PlainTextTokenizer();
-    }
-
-    /** Пересаживает токен-кеш текущего документа на актуальный токенизатор. */
-    private applyTokenizer(): void {
-        this.tokenStore.setTokenizationSupport(this.ensureTokenizerForLanguage(this.doc.languageId));
-        this.editor.markDirty();
-    }
-
-    /**
      * Переподписывается на события текущего документа (документ пересоздаётся
-     * в openFile): на смену языка — пересаживает токенизатор, на смену EOL —
-     * просто ретранслирует; оба события ретранслируются подписчикам контроллера.
+     * в openFile): смена языка, смена EOL и правки контента ретранслируются
+     * подписчикам модели — прямые подписки на старый doc иначе бы протухли
+     * (revertToDisk перечитывает диск в новый TextDocument).
      */
     private bindDocumentListeners(): void {
         this.languageSubscription?.dispose();
         this.languageSubscription = this.doc.onDidChangeLanguage((change) => {
-            this.applyTokenizer();
             for (const listener of [...this.languageChangeListeners]) listener(change);
         });
         this.eolSubscription?.dispose();
         this.eolSubscription = this.doc.onDidChangeEol(() => {
             for (const listener of [...this.eolChangeListeners]) listener();
         });
-        // Контент-подписка тоже ретранслируется через уровень контроллера, чтобы
-        // пережить пересоздание документа (revertToDisk перечитывает диск в новый
-        // TextDocument — прямые подписки на старый doc иначе бы протухли).
         this.contentSubscription?.dispose();
         this.contentSubscription = this.doc.onDidChangeContent(() => {
             for (const listener of [...this.contentChangeListeners]) listener();
         });
-        this.foldingSubscription?.dispose();
-        this.foldingSubscription = this.doc.onDidChangeContent(() => {
-            this.scheduleFoldingRecompute();
-        });
-    }
-
-    /**
-     * Schedules a folding recompute for after the current edit finishes. The
-     * document fires `onDidChangeContent` mid-edit, *before* the view-state has
-     * shifted existing regions for the change ({@link EditorViewState.adjustFoldingRegionsForEdits}).
-     * Recomputing on a microtask lets that shift land first, so the merge below
-     * reads collapsed regions at their post-edit line numbers. Coalesced so a
-     * burst of edits triggers a single recompute.
-     */
-    private scheduleFoldingRecompute(): void {
-        if (this.foldingRecomputeScheduled) return;
-        this.foldingRecomputeScheduled = true;
-        queueMicrotask(() => {
-            this.foldingRecomputeScheduled = false;
-            if (this.controllerDisposed) return;
-            this.recomputeFoldingRegions();
-        });
-    }
-
-    /**
-     * Recomputes indentation-based folding regions for the current document,
-     * preserving the collapsed state of regions that still start on the same
-     * line. This is the built-in default provider (VS Code recomputes ranges on
-     * every content change the same way); a language/extension-contributed
-     * provider is a future seam.
-     */
-    private recomputeFoldingRegions(): void {
-        const collapsedStarts = new Set<number>();
-        for (const region of this.editorViewState.foldedRegions) {
-            if (region.isCollapsed) collapsedStarts.add(region.startLine);
-        }
-        const computed = computeIndentationFolds(this.doc, this.editorViewState.tabSize);
-        for (const region of computed) {
-            if (collapsedStarts.has(region.startLine)) region.isCollapsed = true;
-        }
-        this.editorViewState.setFoldingRegions(computed);
-        // If the recompute re-collapsed a region around the just-edited line (e.g.
-        // Tab indented the line below a collapsed block into it), keep the caret —
-        // and the text under it — visible, matching VS Code.
-        this.editorViewState.ensurePrimaryCursorVisible();
-        this.editor.markDirty();
-    }
-
-    /** Collapses the innermost region at the primary cursor. */
-    public foldAtCursor(): void {
-        this.editorViewState.foldRegionContaining(this.editorViewState.selections[0].active.line);
-        this.editor.markDirty();
-    }
-
-    /** Expands the innermost collapsed region at the primary cursor. */
-    public unfoldAtCursor(): void {
-        this.editorViewState.unfoldRegionContaining(this.editorViewState.selections[0].active.line);
-        this.editor.markDirty();
-    }
-
-    /** Toggles the innermost region at the primary cursor. */
-    public toggleFoldAtCursor(): void {
-        this.editorViewState.toggleFoldContaining(this.editorViewState.selections[0].active.line);
-        this.editor.markDirty();
-    }
-
-    /** Collapses every folding region in the document. */
-    public foldAll(): void {
-        this.editorViewState.foldAll();
-        this.editor.markDirty();
-    }
-
-    /** Expands every folding region in the document. */
-    public unfoldAll(): void {
-        this.editorViewState.unfoldAll();
-        this.editor.markDirty();
-    }
-
-    /** Collapses the innermost region at the cursor and every region nested inside it. */
-    public foldRecursivelyAtCursor(): void {
-        this.editorViewState.foldRecursively(this.editorViewState.selections[0].active.line);
-        this.editor.markDirty();
-    }
-
-    /** Expands the innermost region at the cursor and every region nested inside it. */
-    public unfoldRecursivelyAtCursor(): void {
-        this.editorViewState.unfoldRecursively(this.editorViewState.selections[0].active.line);
-        this.editor.markDirty();
-    }
-
-    /** Folds the document down to the given nesting level. */
-    public foldLevel(level: number): void {
-        this.editorViewState.foldLevel(level);
-        this.editor.markDirty();
-    }
-
-    /** Moves the caret to the header of the next foldable region. */
-    public gotoNextFold(): void {
-        this.editorViewState.gotoNextFold(this.editorViewState.selections[0].active.line);
-        this.editor.markDirty();
-    }
-
-    /** Moves the caret to the header of the previous foldable region. */
-    public gotoPreviousFold(): void {
-        this.editorViewState.gotoPreviousFold(this.editorViewState.selections[0].active.line);
-        this.editor.markDirty();
     }
 }

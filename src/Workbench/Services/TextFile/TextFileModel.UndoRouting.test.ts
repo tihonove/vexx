@@ -3,18 +3,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../../Common/Uri.ts";
 
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
-import { EditorController } from "./EditorController.ts";
-import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
+import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "../../../Workbench/Services/Workspace/UndoRedoService.ts";
 
 let tmpDir: string;
 let ws: ITempWorkspace;
@@ -28,23 +22,16 @@ afterEach(() => {
     ws.dispose();
 });
 
-function make(): { controller: EditorController; undoRedo: UndoRedoService; file: string } {
+function make(): { controller: EditorPane; undoRedo: UndoRedoService; file: string } {
     const undoRedo = new UndoRedoService();
-    const theme = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    const controller = new EditorController(
-        theme,
-        new TokenizationRegistry(),
-        NULL_TOKEN_STYLE_RESOLVER,
-        NULL_LANGUAGE_SERVICE,
-        undoRedo,
-    );
+    const controller = createEditorPane({ undoRedoService: undoRedo });
     const file = path.join(tmpDir, "a.txt");
     fs.writeFileSync(file, "");
     controller.openFile(Uri.file(file));
     return { controller, undoRedo, file };
 }
 
-describe("EditorController — text undo routes through the unified UndoRedoService", () => {
+describe("TextFileModel — text undo routes through the unified UndoRedoService", () => {
     it("registers a step under the editor's own context and undo reverts via the service", () => {
         const { controller, undoRedo } = make();
 
@@ -71,14 +58,7 @@ describe("EditorController — text undo routes through the unified UndoRedoServ
 
     it("routes undo under the editor's own context when no file is open", () => {
         const undoRedo = new UndoRedoService();
-        const theme = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-        const controller = new EditorController(
-            theme,
-            new TokenizationRegistry(),
-            NULL_TOKEN_STYLE_RESOLVER,
-            NULL_LANGUAGE_SERVICE,
-            undoRedo,
-        );
+        const controller = createEditorPane({ undoRedoService: undoRedo });
 
         controller.pushUndo(controller.viewState.type("hi"));
         expect(undoRedo.canUndo(controller.undoContext)).toBe(true);

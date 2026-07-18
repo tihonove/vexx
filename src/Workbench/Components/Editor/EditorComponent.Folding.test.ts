@@ -1,39 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../../Common/Uri.ts";
 
-import { createCursorSelection } from "../Editor/ISelection.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { createCursorSelection } from "../../../Editor/ISelection.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
-import { EditorController } from "./EditorController.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
 /** The folding recompute runs on a microtask; a macrotask tick flushes it. */
 function flush(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function createEditorController(): EditorController {
-    return new EditorController(
-        new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
-        new TokenizationRegistry(),
-        NULL_TOKEN_STYLE_RESOLVER,
-        NULL_LANGUAGE_SERVICE,
-        new UndoRedoService(),
-    );
-}
-
-function regionAt(ctrl: EditorController, startLine: number) {
+function regionAt(ctrl: EditorPane, startLine: number) {
     return ctrl.viewState.foldedRegions.find((r) => r.startLine === startLine);
 }
 
-describe("EditorController – folding recompute keeps the caret visible", () => {
+describe("EditorComponent – folding recompute keeps the caret visible", () => {
     let ws: ITempWorkspace;
 
     beforeEach(() => {
@@ -43,9 +26,9 @@ describe("EditorController – folding recompute keeps the caret visible", () =>
         ws.dispose();
     });
 
-    function open(content: string): EditorController {
+    function open(content: string): EditorPane {
         const filePath = ws.writeFile("doc.txt", content);
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(filePath));
         return ctrl;
     }

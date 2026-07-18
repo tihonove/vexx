@@ -8,7 +8,7 @@ import { AppControllerDIToken } from "../Controllers/AppController.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
-import type { EditorController } from "../Controllers/EditorController.ts";
+import type { EditorPane } from "../Controllers/EditorPane.ts";
 import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
 import { StateServiceDIToken } from "../Controllers/Modules/StateModule.ts";
@@ -46,7 +46,7 @@ export interface IAppHarness {
     /** Полный контейнер — для suite-specific сервисов: `h.container.get(ThemeServiceDIToken)`. */
     readonly container: Container;
     /** Активный редактор группы; бросает, если его нет. */
-    activeEditor(): EditorController;
+    activeEditor(): EditorPane;
     /** `controller.dispose()`. Воркспейсом НЕ владеет — композиция с {@link createTempWorkspace}. */
     dispose(): void;
 }

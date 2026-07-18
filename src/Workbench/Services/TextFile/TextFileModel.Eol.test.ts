@@ -2,31 +2,14 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../../Common/Uri.ts";
 
-import { EndOfLine } from "../Editor/EndOfLine.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { EndOfLine } from "../../../Editor/EndOfLine.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
-import { EditorController } from "./EditorController.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
-function createEditorController(): EditorController {
-    return new EditorController(
-        new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
-        new TokenizationRegistry(),
-        NULL_TOKEN_STYLE_RESOLVER,
-        NULL_LANGUAGE_SERVICE,
-        new UndoRedoService(),
-    );
-}
-
-describe("EditorController EOL", () => {
+describe("TextFileModel EOL", () => {
     let ws: ITempWorkspace;
 
     beforeEach(() => {
@@ -43,7 +26,7 @@ describe("EditorController EOL", () => {
 
     it("opens a CRLF file without marking it modified", () => {
         const filePath = writeFile("crlf.txt", "a\r\nb\r\nc");
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
 
         ctrl.openFile(Uri.file(filePath));
 
@@ -54,7 +37,7 @@ describe("EditorController EOL", () => {
     it("round-trips a CRLF file byte-for-byte on save", async () => {
         const original = "line1\r\nline2\r\nline3\r\n";
         const filePath = writeFile("crlf.txt", original);
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
 
         ctrl.openFile(Uri.file(filePath));
         await ctrl.save();
@@ -65,7 +48,7 @@ describe("EditorController EOL", () => {
     it("round-trips an LF file byte-for-byte on save", async () => {
         const original = "line1\nline2\nline3\n";
         const filePath = writeFile("lf.txt", original);
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
 
         ctrl.openFile(Uri.file(filePath));
         await ctrl.save();
@@ -75,7 +58,7 @@ describe("EditorController EOL", () => {
 
     it("setEol marks the document modified and writes the new sequence on save", async () => {
         const filePath = writeFile("lf.txt", "a\nb\nc");
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(filePath));
         expect(ctrl.isModified).toBe(false);
 
@@ -90,7 +73,7 @@ describe("EditorController EOL", () => {
 
     it("setEol to the same sequence is a no-op (not modified)", () => {
         const filePath = writeFile("lf.txt", "a\nb");
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(filePath));
 
         ctrl.setEol(EndOfLine.LF);
@@ -99,7 +82,7 @@ describe("EditorController EOL", () => {
     });
 
     it("onDidChangeEol fires on setEol and on undo, surviving openFile re-creation", () => {
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
         let fired = 0;
         ctrl.onDidChangeEol(() => fired++);
 
@@ -115,7 +98,7 @@ describe("EditorController EOL", () => {
     });
 
     it("dispose подписки onDidChangeEol останавливает доставку, повторный dispose — no-op", () => {
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(writeFile("lf.txt", "a\nb")));
         let fired = 0;
         const subscription = ctrl.onDidChangeEol(() => fired++);
@@ -131,7 +114,7 @@ describe("EditorController EOL", () => {
 
     it("undo of an eol change restores the eol and clears the modified flag", () => {
         const filePath = writeFile("lf.txt", "a\nb");
-        const ctrl = createEditorController();
+        const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(filePath));
 
         ctrl.setEol(EndOfLine.CRLF);

@@ -1,28 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../../Common/Uri.ts";
 
-import { createCursorSelection } from "../Editor/ISelection.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { createCursorSelection } from "../../../Editor/ISelection.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
-import { EditorController } from "./EditorController.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
 function flush(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function regionAt(ctrl: EditorController, startLine: number) {
+function regionAt(ctrl: EditorPane, startLine: number) {
     return ctrl.viewState.foldedRegions.find((r) => r.startLine === startLine);
 }
 
-describe("EditorController – undo/redo × folding", () => {
+describe("EditorComponent – undo/redo × folding", () => {
     let ws: ITempWorkspace;
 
     beforeEach(() => {
@@ -32,15 +25,9 @@ describe("EditorController – undo/redo × folding", () => {
         ws.dispose();
     });
 
-    function open(content: string): EditorController {
+    function open(content: string): EditorPane {
         const filePath = ws.writeFile("doc.txt", content);
-        const ctrl = new EditorController(
-            new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
-            new TokenizationRegistry(),
-            NULL_TOKEN_STYLE_RESOLVER,
-            NULL_LANGUAGE_SERVICE,
-            new UndoRedoService(),
-        );
+        const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(filePath));
         return ctrl;
     }

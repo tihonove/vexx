@@ -10,11 +10,11 @@ import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 import { CompletionController } from "./CompletionController.ts";
-import type { EditorController } from "./EditorController.ts";
+import type { EditorPane } from "./EditorPane.ts";
 import type { EditorGroupController } from "./EditorGroupController.ts";
 
 interface FakeEditor {
-    editor: EditorController;
+    editor: EditorPane;
     applyExternalEdits: ReturnType<typeof vi.fn<(edits: ITextEdit[], label: string) => void>>;
     /** Печать: обновляет строку/каретку и шлёт content+cursor (как typing/удаление). */
     type: (line: string, character: number, lineNo?: number) => void;
@@ -57,7 +57,7 @@ function makeEditor(lineContent: string, character: number, docText = lineConten
             cursorListeners.push(l);
             return { dispose: () => cursorListeners.splice(cursorListeners.indexOf(l), 1) };
         },
-    } as unknown as EditorController;
+    } as unknown as EditorPane;
 
     const fireContent = (): void => {
         for (const l of [...contentListeners]) l();
@@ -95,9 +95,9 @@ function makeEditor(lineContent: string, character: number, docText = lineConten
 }
 
 function makeGroup(
-    editor: EditorController,
+    editor: EditorPane,
     source: EditorGroupController["completionSource"],
-    extraEditors: EditorController[] = [],
+    extraEditors: EditorPane[] = [],
 ): EditorGroupController {
     const all = [editor, ...extraEditors];
     return {
@@ -513,10 +513,10 @@ describe("CompletionController", () => {
 
     it("смена активного редактора закрывает открытый попап", async () => {
         const fake = makeEditor("ind", 3, "ind");
-        let activeCb: (e: EditorController | null) => void = () => {};
+        let activeCb: (e: EditorPane | null) => void = () => {};
         const group = {
             getActiveEditor: () => fake.editor,
-            onActiveEditorChanged: (cb: (e: EditorController | null) => void) => {
+            onActiveEditorChanged: (cb: (e: EditorPane | null) => void) => {
                 activeCb = cb;
                 return { dispose: () => {} };
             },
@@ -536,7 +536,7 @@ describe("CompletionController", () => {
 
     it("изменение каретки при отсутствии активного редактора — no-op", () => {
         const fake = makeEditor("ind", 3, "ind");
-        let ref: EditorController | null = fake.editor;
+        let ref: EditorPane | null = fake.editor;
         const group = {
             getActiveEditor: () => ref,
             onActiveEditorChanged: () => ({ dispose: () => {} }),
@@ -587,7 +587,7 @@ describe("CompletionController", () => {
 
     it("активный редактор пропал при открытом попапе — закрывает", async () => {
         const fake = makeEditor("ind", 3, "ind");
-        let ref: EditorController | null = fake.editor;
+        let ref: EditorPane | null = fake.editor;
         const group = {
             getActiveEditor: () => ref,
             onActiveEditorChanged: () => ({ dispose: () => {} }),

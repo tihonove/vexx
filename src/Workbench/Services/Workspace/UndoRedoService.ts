@@ -7,7 +7,7 @@ export const WORKSPACE_UNDO_CONTEXT = "workspace";
 
 /**
  * Единый сервис отмены/повтора уровня workspace. История разнесена по контекстным
- * бакетам: непрозрачный ключ редактора (`EditorController.undoContext`) либо
+ * бакетам: непрозрачный ключ редактора (`TextFileModel.undoContext`) либо
  * {@link WORKSPACE_UNDO_CONTEXT} (файловые операции в проводнике). Так Ctrl+Z в
  * редакторе и в дереве не мешают друг другу, но проходят через один сервис и одну
  * модель элементов.
