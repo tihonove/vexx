@@ -1,10 +1,15 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
+import { QuitHandlerDIToken } from "../Actions/AppActions.ts";
 import { WorkspaceFolderOpenerDIToken } from "../Actions/FileActions.ts";
 import { AutoRevealContribution, AutoRevealContributionDIToken } from "../Contributions/AutoRevealContribution.ts";
 import {
     EditorContextMenuContribution,
     EditorContextMenuContributionDIToken,
 } from "../Contributions/EditorContextMenuContribution.ts";
+import {
+    OpenFileCommandContribution,
+    OpenFileCommandContributionDIToken,
+} from "../Contributions/OpenFileCommandContribution.ts";
 import { ThemeConfigContribution, ThemeConfigContributionDIToken } from "../Contributions/ThemeConfigContribution.ts";
 import { WORKBENCH_CONTRIBUTIONS } from "../Contributions/workbenchContributions.ts";
 import {
@@ -106,6 +111,9 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(GotoLineEditorSourceDIToken, () => container.get(EditorServiceDIToken));
     container.bind(QuickOpenServiceDIToken, QuickOpenService);
     container.bind(WorkspaceFolderOpenerDIToken, () => container.get(WorkbenchComponentDIToken));
+    // Выход из приложения (Ctrl+Q / меню / палитра → quitAction) — структурно
+    // выполняет WorkbenchComponent (confirm-save + teardown + exit).
+    container.bind(QuitHandlerDIToken, () => container.get(WorkbenchComponentDIToken));
     // Editor-кластер (этап 9b): логика группы редакторов (открытые EditorPane-пары,
     // активная вкладка, MRU) + компонент группового контрола (tab strip + контент).
     container.bind(EditorServiceDIToken, EditorService);
@@ -131,6 +139,7 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(AutoRevealContributionDIToken, AutoRevealContribution);
     container.bind(ThemeConfigContributionDIToken, ThemeConfigContribution);
     container.bind(EditorContextMenuContributionDIToken, EditorContextMenuContribution);
+    container.bind(OpenFileCommandContributionDIToken, OpenFileCommandContribution);
     // Panel-кластер (этап 6): реестр вкладок нижней панели + компонент-контрол,
     // Problems-дерево и встроенный терминал (сервис инстансов + view-владелец).
     container.bind(PanelServiceDIToken, PanelService);

@@ -5,7 +5,6 @@ import type { ThemeService } from "../../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import { BodyElement } from "../../../TUIDom/Widgets/BodyElement.ts";
 import { WorkbenchLayoutElement } from "../../../TUIDom/Widgets/WorkbenchLayoutElement.ts";
-import { quitAction } from "../../Actions/AppActions.ts";
 import { builtinActions } from "../../Actions/builtinActions.ts";
 import { registerAction } from "../../Actions/CommandAction.ts";
 import { ThemedComponent } from "../../Component.ts";
@@ -200,23 +199,9 @@ export class WorkbenchComponent extends ThemedComponent {
         // редактора сервисы делают сами (подписки на onActiveEditorChanged).
         suggestComponent.attachHost(this.view);
         findComponent.attachHost(this.editorGroupComponent.view);
-        this.register(
-            commands.register("workbench.openFile", (absolutePath: unknown) => {
-                this.editorService.openFile(absolutePath as string);
-                this.workbenchContextKeys.update();
-            }),
-        );
         for (const action of builtinActions) {
             this.register(registerAction(commands, keybindings, accessor, action));
         }
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...quitAction,
-                run: (a) => {
-                    this.requestQuit(a);
-                },
-            }),
-        );
         // Apply user keybindings AFTER all defaults so they take precedence (the registry
         // resolves the last-registered matching binding) and so `-command` unbinds can remove defaults.
         this.dispatcher.applyUserKeybindings(userKeybindings);

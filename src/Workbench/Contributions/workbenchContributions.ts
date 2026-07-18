@@ -4,6 +4,7 @@ import { TerminalEnvStatusContributionDIToken } from "../Services/TerminalEnviro
 import { AutoRevealContributionDIToken } from "./AutoRevealContribution.ts";
 import { EditorContextMenuContributionDIToken } from "./EditorContextMenuContribution.ts";
 import type { IWorkbenchContributionRegistration } from "./IWorkbenchContribution.ts";
+import { OpenFileCommandContributionDIToken } from "./OpenFileCommandContribution.ts";
 import { ThemeConfigContributionDIToken } from "./ThemeConfigContribution.ts";
 
 /**
@@ -18,4 +19,5 @@ export const WORKBENCH_CONTRIBUTIONS: readonly IWorkbenchContributionRegistratio
     { token: AutoRevealContributionDIToken, phase: "restored" },
     { token: ThemeConfigContributionDIToken, phase: "restored" },
     { token: EditorContextMenuContributionDIToken, phase: "restored" },
+    { token: OpenFileCommandContributionDIToken, phase: "restored" },
 ];
