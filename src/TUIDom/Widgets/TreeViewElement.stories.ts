@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import { FileTreeController } from "../../Controllers/FileTreeController.ts";
+import { FileTreeDataProvider, type FileTreeNode } from "../../Workbench/Services/FileTreeDataProvider.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { StoryContext, StoryMeta } from "../../StoryRunner/StoryTypes.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
@@ -16,18 +16,26 @@ export const meta: StoryMeta = {
 export function fileTree(ctx: StoryContext): void {
     const rootPath = ctx.args[0] ?? path.resolve(".");
 
-    const controller = new FileTreeController();
-    controller.setRootPath(rootPath);
-    controller.onFileActivate = (filePath) => {
-        console.log("Activate file:", filePath);
+    const provider = new FileTreeDataProvider(rootPath);
+    const tree = new TreeViewElement<FileTreeNode>(provider);
+    tree.onExpandedChanged = (node, expanded) => {
+        if (expanded) {
+            provider.watchDirectory(node.path);
+        } else {
+            provider.unwatchDirectory(node.path);
+        }
     };
-    controller.mount();
+    tree.onActivate = (node) => {
+        if (!node.isDirectory) {
+            console.log("Activate file:", node.path);
+        }
+    };
 
-    ctx.body.setContent(controller.view);
+    ctx.body.setContent(tree);
 
     ctx.afterRun(() => {
-        controller.focus();
-        void controller.activate();
+        tree.focus();
+        void tree.refresh();
     });
 }
 

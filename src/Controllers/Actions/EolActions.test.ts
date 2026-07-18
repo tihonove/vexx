@@ -12,8 +12,8 @@ import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWo
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { CommandAction } from "../CommandAction.ts";
-import { registerAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
+import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";

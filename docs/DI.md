@@ -165,9 +165,9 @@ const container = new Container()
 | `stateModuleDefault` | — | `IStateService` с `NULL_STATE_SERVICE` (тесты и demo) |
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
-| `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorGroupController`, `FileDecorationsServiceAdapter` поверх `FileTreeController`, `ThemeColorResolverAdapter` поверх `ThemeService`) |
-| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`. Швы → `EditorGroupController`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget` |
-| `controllersModule` | — | `EditorGroupController`, `InputWidgetController`, `AppController`, `FileTreeController` (шов: отдаётся из `AppController.fileTree`) |
+| `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorGroupController`, `FileDecorationsServiceAdapter` поверх `ExplorerService` (Workbench), `ThemeColorResolverAdapter` поверх `ThemeService`) |
+| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`; Explorer-кластер — `ExplorerService`+`ExplorerComponent`, `FileOperationsService`, `InputWidgetService`. Швы → `EditorGroupController`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget` |
+| `controllersModule` | — | `EditorGroupController`, `AppController` |
 
 ### Профили
 

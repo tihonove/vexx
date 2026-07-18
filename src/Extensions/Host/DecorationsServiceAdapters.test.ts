@@ -5,7 +5,6 @@ import * as path from "node:path";
 import { Uri } from "../../Common/Uri.ts";
 
 import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
-import type { FileTreeController } from "../../Controllers/FileTreeController.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import { createRange } from "../../Editor/IRange.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
@@ -78,10 +77,10 @@ describe("EditorDecorationsServiceAdapter", () => {
 });
 
 describe("FileDecorationsServiceAdapter", () => {
-    it("делегирует setFileDecorations в FileTreeController", () => {
+    it("делегирует setFileDecorations в цель (ExplorerService)", () => {
         const calls: unknown[] = [];
-        const fileTree = { setFileDecorations: (e: unknown) => calls.push(e) } as unknown as FileTreeController;
-        const adapter = new FileDecorationsServiceAdapter(fileTree);
+        const explorer = { setFileDecorations: (e: unknown) => calls.push(e) };
+        const adapter = new FileDecorationsServiceAdapter(explorer);
         const entries = [{ path: "/proj/notes.md", color: 0xe2c08d, badge: "M" }];
         adapter.setFileDecorations(entries);
         expect(calls).toEqual([entries]);

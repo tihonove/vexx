@@ -1,7 +1,7 @@
 /**
- * Тонкий «port» поверх {@link FileTreeController}, нужный {@link ExtensionHost}
- * для проекции файловых декораций расширения (цвет имени + бейдж) на дерево без
- * прямого знания о слое Controllers внутри host-моста.
+ * Тонкий «port» поверх Explorer'а (`ExplorerService` в Workbench), нужный
+ * {@link ExtensionHost} для проекции файловых декораций расширения (цвет имени +
+ * бейдж) на дерево без прямого знания о слое Workbench внутри host-моста.
  *
  * Цвета приходят уже резолвнутыми (packed-RGB) — тема резолвится на стороне
  * host'а через {@link IThemeColorResolver}. Паттерн повторяет

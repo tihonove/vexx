@@ -57,7 +57,7 @@ Controller + тонкий Element + опц. State-класс — паттерн 
 [../arch/Controllers.md](../arch/Controllers.md) (раздел «Разделение Controller /
 Element / State»). Эталоны: `StatusBarComponent` ↔ `StatusBarElement` (уже в
 Workbench-модели Service ↔ Component), `EditorGroupController` ↔
-`EditorGroupElement`, `InputWidgetController` ↔ `InputElement` + `InputState`.
+`EditorGroupElement`, `InputWidgetService` ↔ `InputElement` + `InputState`.
 
 ## Основа приложения (bootstrap)
 - `TuiApplication` (`src/TUIDom/TuiApplication.ts`) уже generic ядро рантайма

@@ -1,4 +1,4 @@
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";

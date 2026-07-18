@@ -3,9 +3,9 @@ import * as path from "node:path";
 
 import chokidar, { type FSWatcher } from "chokidar";
 
-import { Disposable } from "../Common/Disposable.ts";
-import { getFileIcon } from "../Common/FileIcons.ts";
-import type { ITreeDataProvider, ITreeItem } from "../TUIDom/Widgets/ITreeDataProvider.ts";
+import { Disposable } from "../../Common/Disposable.ts";
+import { getFileIcon } from "../../Common/FileIcons.ts";
+import type { ITreeDataProvider, ITreeItem } from "../../TUIDom/Widgets/ITreeDataProvider.ts";
 
 const EXCLUDED_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);
 
@@ -21,7 +21,7 @@ export class FileTreeDataProvider extends Disposable implements ITreeDataProvide
     private watchers = new Map<string, FSWatcher>();
     private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
     // Статус-декорации по абсолютному пути (цвет имени + буква-бейдж). Ставит их
-    // FileTreeController.setFileDecorations; git/RPC-логика живёт выше и цвета уже
+    // ExplorerService.setFileDecorations; git/RPC-логика живёт выше и цвета уже
     // приходят резолвнутыми.
     private gitStatus = new Map<string, { color?: number; badge?: string }>();
 

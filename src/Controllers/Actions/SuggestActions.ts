@@ -1,4 +1,4 @@
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // All run() bodies are placeholders — AppController installs the real handlers

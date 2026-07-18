@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { FileClipboardEntry } from "../../Common/IFileClipboard.ts";
 
-import { buildPasteEdits } from "./FileTreeClipboardActions.ts";
+import { buildPasteEdits } from "../Services/FileOperationsService.ts";
 
 describe("buildPasteEdits", () => {
     it("maps a copy entry to copy edits into the target dir", () => {

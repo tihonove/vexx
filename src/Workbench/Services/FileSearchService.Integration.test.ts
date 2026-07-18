@@ -86,9 +86,9 @@ describe("FileSearchService — integration against real project", () => {
             expect(paths.some((p) => p.includes("AppController.ts"))).toBe(true);
         });
 
-        it('"ftc" finds FileTreeController.ts', () => {
-            const paths = relativePaths(service.search("ftc"));
-            expect(paths.some((p) => p.includes("FileTreeController.ts"))).toBe(true);
+        it('"ftdp" finds FileTreeDataProvider.ts', () => {
+            const paths = relativePaths(service.search("ftdp"));
+            expect(paths.some((p) => p.includes("FileTreeDataProvider.ts"))).toBe(true);
         });
 
         it('"dic" finds DiContainer.ts', () => {

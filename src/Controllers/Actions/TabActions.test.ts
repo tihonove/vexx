@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
-import { registerAction } from "../CommandAction.ts";
+import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";

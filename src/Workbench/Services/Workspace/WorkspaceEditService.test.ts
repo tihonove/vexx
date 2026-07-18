@@ -3,12 +3,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+import type { IConfigurationService } from "../../../Configuration/IConfigurationService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../Configuration/NullConfigurationService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 import { TrashService } from "./TrashService.ts";
-import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
+import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "./UndoRedoService.ts";
 import { WorkspaceEditService } from "./WorkspaceEditService.ts";
 
 let tmpDir: string;

@@ -1,14 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
-import type { MouseToken } from "../Input/RawTerminalToken.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { InMemoryFileClipboard } from "../../../Common/InMemoryFileClipboard.ts";
+import { NULL_LOG_SERVICE } from "../../../Common/Logging/NullLogService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../Configuration/NullConfigurationService.ts";
+import type { MouseToken } from "../../../Input/RawTerminalToken.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import { TestApp } from "../../../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
 
-import { FileTreeController } from "./FileTreeController.ts";
+import { CommandRegistry } from "../../Services/CommandRegistry.ts";
+import { ExplorerService } from "../../Services/ExplorerService.ts";
+
+import { ExplorerComponent } from "./ExplorerComponent.ts";
 
 function makeMove(x: number, y: number): MouseToken {
     return {
@@ -29,25 +35,28 @@ function makeMove(x: number, y: number): MouseToken {
 // at y=2, and so on. Mouse tokens are 1-based, hence token.y = screenY + 1.
 const SECOND_ROW_SCREEN_Y = 2;
 
-describe("FileTreeController hover", () => {
+describe("ExplorerComponent hover", () => {
     let ws: ITempWorkspace;
-    let controller: FileTreeController;
+    let service: ExplorerService;
+    let component: ExplorerComponent;
     let app: TestApp;
     let theme: WorkbenchTheme;
 
     beforeEach(async () => {
         ws = createTempWorkspace({ prefix: "vexx-hover-", files: { "aaa.ts": "", "bbb.ts": "", "ccc.ts": "" } });
         theme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
-        controller = new FileTreeController(new ThemeService(theme));
-        controller.setRootPath(ws.dir);
-        controller.mount();
-        app = TestApp.createWithContent(controller.view, new Size(30, 10));
-        await controller.activate();
+        const clipboard = new InMemoryFileClipboard();
+        service = new ExplorerService(clipboard, NULL_CONFIGURATION_SERVICE, NULL_LOG_SERVICE);
+        component = new ExplorerComponent(service, new CommandRegistry(), clipboard, new ThemeService(theme));
+        service.setRootPath(ws.dir);
+        app = TestApp.createWithContent(component.view, new Size(30, 10));
+        await service.refresh();
         app.render();
     });
 
     afterEach(() => {
-        controller.dispose();
+        component.dispose();
+        service.dispose();
         ws.dispose();
     });
 

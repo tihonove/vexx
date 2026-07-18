@@ -18,8 +18,8 @@ import {
 import { FileDecorationsServiceAdapter } from "../../Extensions/Host/FileDecorationsServiceAdapter.ts";
 import { ThemeColorResolverAdapter } from "../../Extensions/Host/ThemeColorResolverAdapter.ts";
 import { CommandRegistryDIToken } from "../../Workbench/Services/CommandRegistry.ts";
+import { ExplorerServiceDIToken } from "../../Workbench/Services/ExplorerService.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { FileTreeControllerDIToken } from "../FileTreeController.ts";
 
 /**
  * DI-модуль extension host'а. Связывает `EditorGroupController` →
@@ -46,18 +46,18 @@ export const extensionHostModule: ContainerModule = (container) => {
             lg.isEnabled(LogLevel.Info) ? lg : undefined;
 
         // Провайдер конфигурации: снапшот настроек + единственная папка воркспейса
-        // (пока нет multi-root). Папку читаем ЛЕНИВО из FileTreeController (источник
+        // (пока нет multi-root). Папку читаем ЛЕНИВО из ExplorerService (источник
         // правды, выставляется `AppController.setWorkspaceFolder`): getWorkspaceFolders
         // зовётся при инициализации subprocess'а — уже ПОСЛЕ setWorkspaceFolder, так
         // что расширения (напр. git) видят реально открытую папку, а не process.cwd().
         // Fallback на cwd, когда папка не открыта. Слой Configuration не тянется в
         // рантайм host'а — доступ идёт через этот тонкий адаптер.
         const configService = container.get(IConfigurationServiceDIToken);
-        const fileTree = container.get(FileTreeControllerDIToken);
+        const explorer = container.get(ExplorerServiceDIToken);
         const configuration: IExtensionHostConfigProvider = {
             getSnapshot: () => configService.getValue(),
             getWorkspaceFolders: () => {
-                const root = fileTree.getRootPath() ?? process.cwd();
+                const root = explorer.getRootPath() ?? process.cwd();
                 return [{ uri: Uri.file(root).toString(), name: path.basename(root), index: 0 }];
             },
             onDidChange: (cb) =>
@@ -69,7 +69,7 @@ export const extensionHostModule: ContainerModule = (container) => {
         // Мосты декораций (Chunk 4): gutter change-bar'ы → редакторы группы,
         // файловые декорации → дерево, ThemeColor id → цвет активной темы.
         const editorDecorations = new EditorDecorationsServiceAdapter(group);
-        const fileDecorations = new FileDecorationsServiceAdapter(fileTree);
+        const fileDecorations = new FileDecorationsServiceAdapter(explorer);
         const themeColorResolver = new ThemeColorResolverAdapter(container.get(ThemeServiceDIToken));
 
         const host = new ExtensionHost(adapter, commandAdapter, {

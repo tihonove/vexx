@@ -22,7 +22,7 @@ import {
     nextEditorInGroupAction,
     previousEditorInGroupAction,
 } from "../Controllers/Actions/TabActions.ts";
-import type { CommandAction } from "../Controllers/CommandAction.ts";
+import type { CommandAction } from "../Workbench/Actions/CommandAction.ts";
 import { formatKeybinding, type Keybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import {
     detectBaseModes,

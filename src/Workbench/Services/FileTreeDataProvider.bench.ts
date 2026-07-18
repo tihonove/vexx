@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { afterAll, bench, describe } from "vitest";
 
-import { cleanupDir, createTempDir } from "../TestUtils/perfFixtures.ts";
+import { cleanupDir, createTempDir } from "../../TestUtils/perfFixtures.ts";
 
 import { FileTreeDataProvider } from "./FileTreeDataProvider.ts";
 

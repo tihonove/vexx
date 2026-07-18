@@ -2,8 +2,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { token } from "../../Common/DiContainer.ts";
-import { moveToPath, resolveNonConflictingDest } from "../Actions/fileClipboardFs.ts";
+import { token } from "../../../Common/DiContainer.ts";
+import { moveToPath, resolveNonConflictingDest } from "./fileClipboardFs.ts";
 
 export interface TrashEntry {
     /** Абсолютный путь, откуда файл удалён (куда восстанавливать). */

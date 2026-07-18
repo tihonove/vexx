@@ -1,4 +1,5 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
+import { ExplorerComponent, ExplorerComponentDIToken } from "../../Workbench/Components/Explorer/ExplorerComponent.ts";
 import { PanelComponent, PanelComponentDIToken } from "../../Workbench/Components/Panel/PanelComponent.ts";
 import {
     MarkerRevealTargetDIToken,
@@ -21,6 +22,9 @@ import {
     DiagnosticsServiceDIToken,
 } from "../../Workbench/Services/Diagnostics/DiagnosticsService.ts";
 import { DialogService, DialogServiceDIToken } from "../../Workbench/Services/DialogService.ts";
+import { ExplorerService, ExplorerServiceDIToken } from "../../Workbench/Services/ExplorerService.ts";
+import { FileOperationsService, FileOperationsServiceDIToken } from "../../Workbench/Services/FileOperationsService.ts";
+import { InputWidgetService, InputWidgetServiceDIToken } from "../../Workbench/Services/InputWidgetService.ts";
 import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../../Workbench/Services/KeybindingDispatcher.ts";
 import { LifecycleService, LifecycleServiceDIToken } from "../../Workbench/Services/LifecycleService.ts";
 import { PanelService, PanelServiceDIToken } from "../../Workbench/Services/PanelService.ts";
@@ -54,6 +58,13 @@ export const workbenchModule: ContainerModule = (container) => {
     // Shutdown-протокол: участников регистрирует владелец приложения (AppController
     // записывает EditorGroupController), выход передаётся колбэком в requestQuit().
     container.bind(LifecycleServiceDIToken, LifecycleService);
+    // Explorer-кластер (этап 7): сервис (корень/провайдер/reveal/декорации),
+    // компонент (дерево + контекст-меню), файловые операции и целевой сервис
+    // input-команд (активный InputElement; читают экшены Actions/InputActions).
+    container.bind(ExplorerServiceDIToken, ExplorerService);
+    container.bind(ExplorerComponentDIToken, ExplorerComponent);
+    container.bind(FileOperationsServiceDIToken, FileOperationsService);
+    container.bind(InputWidgetServiceDIToken, InputWidgetService);
     container.bind(ActiveEditorStatusSourceDIToken, () => container.get(EditorGroupControllerDIToken));
     container.bind(EditorStatusContributionDIToken, EditorStatusContribution);
     container.bind(TerminalEnvStatusContributionDIToken, TerminalEnvStatusContribution);

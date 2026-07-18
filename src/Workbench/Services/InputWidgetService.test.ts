@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { IClipboard } from "../Common/IClipboard.ts";
-import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
+import type { IClipboard } from "../../Common/IClipboard.ts";
+import { InputElement } from "../../TUIDom/Widgets/InputElement.ts";
 
-import { InputWidgetController } from "./InputWidgetController.ts";
+import { InputWidgetService } from "./InputWidgetService.ts";
 
 /** A real (in-memory) clipboard — not a spy. */
 function memoryClipboard(initial = ""): IClipboard {
@@ -23,7 +23,7 @@ function memoryClipboard(initial = ""): IClipboard {
  * payload so tests can assert the change notification fires.
  */
 function setup(text = ""): {
-    controller: InputWidgetController;
+    controller: InputWidgetService;
     input: InputElement;
     changes: string[];
 } {
@@ -33,12 +33,12 @@ function setup(text = ""): {
     input.onChange = (v) => {
         changes.push(v);
     };
-    const controller = new InputWidgetController();
+    const controller = new InputWidgetService();
     controller.setActive(input);
     return { controller, input, changes };
 }
 
-describe("InputWidgetController — editing (delete)", () => {
+describe("InputWidgetService — editing (delete)", () => {
     it("deleteRight removes the grapheme to the right of the cursor and notifies", () => {
         const { controller, input, changes } = setup("hello");
         input.inputState.moveCursorToStart();
@@ -80,7 +80,7 @@ describe("InputWidgetController — editing (delete)", () => {
     });
 
     it("delete methods are safe no-ops when no input is active", () => {
-        const controller = new InputWidgetController();
+        const controller = new InputWidgetService();
         controller.setActive(null);
         expect(() => {
             controller.deleteRight();
@@ -90,7 +90,7 @@ describe("InputWidgetController — editing (delete)", () => {
     });
 });
 
-describe("InputWidgetController — selection", () => {
+describe("InputWidgetService — selection", () => {
     it("selectLeft extends a selection one grapheme to the left", () => {
         const { controller, input } = setup("abc");
         controller.selectLeft();
@@ -139,7 +139,7 @@ describe("InputWidgetController — selection", () => {
     });
 
     it("selection methods are safe no-ops when no input is active", () => {
-        const controller = new InputWidgetController();
+        const controller = new InputWidgetService();
         controller.setActive(null);
         expect(() => {
             controller.selectLeft();
@@ -153,7 +153,7 @@ describe("InputWidgetController — selection", () => {
     });
 });
 
-describe("InputWidgetController — clipboard", () => {
+describe("InputWidgetService — clipboard", () => {
     it("copy writes the selected text to the clipboard without mutating value", async () => {
         const { controller, input } = setup("hello");
         const clipboard = memoryClipboard();
@@ -231,7 +231,7 @@ describe("InputWidgetController — clipboard", () => {
     });
 
     it("clipboard methods are safe no-ops when no input is active", async () => {
-        const controller = new InputWidgetController();
+        const controller = new InputWidgetService();
         controller.setActive(null);
         const clipboard = memoryClipboard("data");
         await expect(controller.copy(clipboard)).resolves.toBeUndefined();
@@ -267,7 +267,7 @@ function deferredClipboard(text = ""): { clipboard: IClipboard; resolveRead(): v
     };
 }
 
-describe("InputWidgetController — undo/redo", () => {
+describe("InputWidgetService — undo/redo", () => {
     it("undo reverts the last edit group and notifies via onChange", () => {
         const { controller, input, changes } = setup();
         input.inputState.insert("a");
@@ -291,7 +291,7 @@ describe("InputWidgetController — undo/redo", () => {
     it("undo/redo work on an input without an onChange handler", () => {
         const input = new InputElement(); // no onChange wired
         input.inputState.insert("x");
-        const controller = new InputWidgetController();
+        const controller = new InputWidgetService();
         controller.setActive(input);
 
         expect(() => {
@@ -302,7 +302,7 @@ describe("InputWidgetController — undo/redo", () => {
     });
 
     it("undo/redo are safe no-ops when no input is active", () => {
-        const controller = new InputWidgetController();
+        const controller = new InputWidgetService();
         controller.setActive(null);
         expect(() => {
             controller.undo();
@@ -311,7 +311,7 @@ describe("InputWidgetController — undo/redo", () => {
     });
 });
 
-describe("InputWidgetController — focus changes during async clipboard ops", () => {
+describe("InputWidgetService — focus changes during async clipboard ops", () => {
     it("paste does not crash or insert when the input is unfocused during the read", async () => {
         const { controller, input, changes } = setup("ab");
         const cb = deferredClipboard("X");

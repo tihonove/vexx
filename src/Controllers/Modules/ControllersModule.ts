@@ -1,8 +1,6 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { AppController, AppControllerDIToken } from "../AppController.ts";
 import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
-import { FileTreeControllerDIToken } from "../FileTreeController.ts";
-import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWidgetController.ts";
 
 /**
  * Контроллеры верхнего уровня. Зависят от `commandsModule`,
@@ -12,9 +10,5 @@ import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWid
  */
 export const controllersModule: ContainerModule = (container) => {
     container.bind(EditorGroupControllerDIToken, EditorGroupController);
-    container.bind(InputWidgetControllerDIToken, InputWidgetController);
     container.bind(AppControllerDIToken, AppController);
-    // Минимальный шов: FileTreeController создаётся внутри AppController — отдаём
-    // его по токену (нужен мосту файловых декораций extension-host'а).
-    container.bind(FileTreeControllerDIToken, () => container.get(AppControllerDIToken).fileTree);
 };

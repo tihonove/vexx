@@ -1,5 +1,5 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 import { ModifierReleaseArmoryDIToken } from "../../Workbench/Services/ModifierReleaseArmory.ts";

@@ -108,10 +108,54 @@ class ButtonElement {
   `updateContextKeys` и `hasKeyboardCapturingOverlay`), `StateKeys`,
   `ModifierReleaseArmory`, `ChokidarFileWatcher` + `IFileWatcherDIToken`,
   `FileSearchService`, `QuickOpenParsing`, `collectWordCompletions`, `CoreTokens`,
-  каталоги `Workspace/` (undo/redo; `TrashService`/`WorkspaceEditService` пока в
-  Controllers), `TerminalEnvironment/`, `Terminal/` (EmbeddedTerminalSession, фабрика,
-  загрузчик node-pty, `TerminalService`), `Diagnostics/` (валидатор settings.json,
+  каталоги `Workspace/` (undo/redo + `TrashService`/`WorkspaceEditService`/
+  `fileClipboardFs.ts` — чистые ФС-операции copy/cut/paste), `TerminalEnvironment/`,
+  `Terminal/` (EmbeddedTerminalSession, фабрика, загрузчик node-pty,
+  `TerminalService`), `Diagnostics/` (валидатор settings.json,
   `ProblemsTreeDataProvider`, `DiagnosticsService`).
+- **Explorer-кластер (этап 7)** — дерево файлов сайдбара и файловые операции:
+  - `Services/FileTreeDataProvider.ts` — данные дерева (ленивая загрузка по
+    уровням, chokidar-watch раскрытых каталогов, статус-декорации/иконки).
+  - `Services/ExplorerService.ts` — логика Explorer'а (аналог `IExplorerService`):
+    корень воркспейса + владение провайдером (`setRootPath` пересоздаёт провайдер и
+    файрит `onDidChangeRoot`), `revealPath` (построение цепочки предков),
+    `autoRevealActiveFile` (настройка `explorer.autoReveal`; активный файл передаёт
+    AppController), выбор (`getSelectedPaths`/`getPasteTargetDir`),
+    `setFileDecorations` (мост декораций extension-host'а: адаптер
+    `FileDecorationsServiceAdapter` типизирован минимальным интерфейсом
+    `IFileDecorationsTarget`, сервис соответствует структурно), подсветка
+    «вырезанных» по `IFileClipboard.onDidChange` и лог ошибок file-watcher'а
+    (`filetree.watcher`, подсказка про inotify-лимит). Дерево приходит через шов
+    `IExplorerView` (refresh/reveal/focus/selection/cut-keys):
+    `TreeViewElement<FileTreeNode>` соответствует структурно, регистрирует его
+    компонент через `attachView`.
+  - `Components/Explorer/ExplorerComponent.ts` — `ThemedComponent`; по
+    `onDidChangeRoot` строит `TreeViewElement` поверх провайдера сервиса
+    (обёрнут `ScrollBarDecorator` + `TitledPanelElement` «EXPLORER»,
+    `view.id = "explorer"`; стили — `getFileTreeStyles`/`getScrollBarStyles`),
+    вяжет события дерева (expand → watch каталога, активация файла → команда
+    `workbench.openFile`) и владеет контекст-меню дерева (PopupMenu, пункты
+    исполняют команды `explorer.*`/`fileOperations.*`; правый клик и Shift+F10 —
+    `openContextMenuAtSelection` — один путь). Overlay-хост приходит через
+    late-init шов `attachHost(BodyElement)` (как у DialogService).
+  - `Services/FileOperationsService.ts` — файловые операции поверх
+    `WorkspaceEditService`/`DialogService`/`UndoRedoService`/`IFileClipboard`:
+    `runCreate`/`runRename` (промпт имени через минимальный шов
+    `IExplorerInputPrompt` — `QuickInputController` соответствует структурно,
+    прикрепляет AppController до этапа 8), `requestDeleteFile` (корзина/
+    безвозвратно + подтверждения), `copySelected`/`cutSelected`/`paste`
+    (+ `buildPasteEdits`), workspace-undo/redo, `resolveInputPath` (`~`, корень
+    воркспейса).
+  - `Services/InputWidgetService.ts` — целевой сервис input-команд: держит
+    активный `InputElement` (ставит AppController из `updateContextKeys`) и
+    исполняет курсор/правки/выделение/клипборд для него (читают экшены
+    `Controllers/Actions/InputActions.ts` под `when: inputWidgetFocus`).
+- **`Actions/`** — экшены Workbench (`CommandAction`/`registerAction` — описание
+  команды + кейбинды; переехали из Controllers): `FileTreeActions.ts`
+  (delete/rename/refresh/undo/redo + Shift+F10-меню Explorer'а),
+  `FileTreeClipboardActions.ts` (copy/cut/paste, copyPath/copyRelativePath),
+  `FileTreeCreateActions.ts` (`explorer.newFile`/`explorer.newFolder`).
+  Регистрирует их (пока) AppController в общем цикле `builtinActions`.
 - **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
   (наследник `ThemedComponent`; владеет `FitContentElement`-view и строит в нём
   JSX-дерево примитивов через reconcile — компонент **компонует** контролы, не
@@ -193,7 +237,7 @@ class ButtonElement {
     реестра). Редакторы приходят через шов `IDiagnosticsEditorSource` /
     `IDiagnosticsEditor` (`EditorGroupController`/`EditorController`
     структурно; биндинг `DiagnosticsEditorSourceDIToken` — в WorkbenchModule).
-- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/` и `Panel/`.
+- `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/` и `Explorer/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
 интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench

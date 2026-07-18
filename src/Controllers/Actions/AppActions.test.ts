@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
-import { registerAction } from "../CommandAction.ts";
+import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { TuiApplicationDIToken } from "../../Workbench/Services/CoreTokens.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";

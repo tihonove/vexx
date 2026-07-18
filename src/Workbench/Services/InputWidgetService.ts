@@ -1,10 +1,10 @@
-import { token } from "../Common/DiContainer.ts";
-import type { IClipboard } from "../Common/IClipboard.ts";
-import type { InputElement } from "../TUIDom/Widgets/InputElement.ts";
+import { token } from "../../Common/DiContainer.ts";
+import type { IClipboard } from "../../Common/IClipboard.ts";
+import type { InputElement } from "../../TUIDom/Widgets/InputElement.ts";
 
-export const InputWidgetControllerDIToken = token<InputWidgetController>("InputWidgetController");
+export const InputWidgetServiceDIToken = token<InputWidgetService>("InputWidgetService");
 
-export class InputWidgetController {
+export class InputWidgetService {
     public static dependencies = [] as const;
 
     private activeInput: InputElement | null = null;

@@ -1,7 +1,7 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
-import { TrashService, TrashServiceDIToken } from "../Workspace/TrashService.ts";
+import { TrashService, TrashServiceDIToken } from "../../Workbench/Services/Workspace/TrashService.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
-import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "../Workspace/WorkspaceEditService.ts";
+import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "../../Workbench/Services/Workspace/WorkspaceEditService.ts";
 
 /**
  * Сервисы единой системы отмены уровня workspace: история (`UndoRedoService`),

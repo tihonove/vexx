@@ -1,13 +1,10 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { token } from "../Common/DiContainer.ts";
 import { Uri } from "../Common/Uri.ts";
 import { Disposable } from "../Common/Disposable.ts";
-import { Point } from "../Common/GeometryPromitives.ts";
-import type { IFileClipboard } from "../Common/IFileClipboard.ts";
 import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { ILogService } from "../Common/Logging/ILogService.ts";
 import { ILogServiceDIToken } from "../Common/Logging/ILogServiceDIToken.ts";
@@ -27,9 +24,7 @@ import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry, MenuItemEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
-import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
@@ -42,7 +37,23 @@ import { getMenuStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./Actions/ClipboardActions.ts";
-import { showEditorContextMenuAction, showExplorerContextMenuAction } from "./Actions/ContextMenuActions.ts";
+import { showEditorContextMenuAction } from "./Actions/ContextMenuActions.ts";
+import {
+    fileDeleteAction,
+    fileRedoAction,
+    fileRenameAction,
+    fileUndoAction,
+    refreshExplorerAction,
+    showExplorerContextMenuAction,
+} from "../Workbench/Actions/FileTreeActions.ts";
+import {
+    fileCopyAction,
+    fileCopyPathAction,
+    fileCopyRelativePathAction,
+    fileCutAction,
+    filePasteAction,
+} from "../Workbench/Actions/FileTreeClipboardActions.ts";
+import { explorerNewFileAction, explorerNewFolderAction } from "../Workbench/Actions/FileTreeCreateActions.ts";
 import {
     cursorBottomAction,
     cursorBottomSelectAction,
@@ -91,16 +102,6 @@ import {
     fileSaveAsAction,
     newUntitledFileAction,
 } from "./Actions/FileActions.ts";
-import { fileDeleteAction, fileRenameAction } from "./Actions/FileTreeActions.ts";
-import {
-    buildPasteEdits,
-    fileCopyAction,
-    fileCopyPathAction,
-    fileCopyRelativePathAction,
-    fileCutAction,
-    filePasteAction,
-} from "./Actions/FileTreeClipboardActions.ts";
-import { explorerNewFileAction, explorerNewFolderAction } from "./Actions/FileTreeCreateActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
 import {
     acceptSelectedSuggestionAction,
@@ -161,7 +162,7 @@ import {
     triggerSuggestAction,
     trimTrailingWhitespaceAction,
 } from "./Actions/WhitespaceActions.ts";
-import { registerAction } from "./CommandAction.ts";
+import { registerAction } from "../Workbench/Actions/CommandAction.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import { CompletionController } from "./CompletionController.ts";
@@ -169,8 +170,6 @@ import { registerContextKeys } from "../Workbench/Services/ContextKeys.ts";
 import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
 import {
-    ClipboardDIToken,
-    FileClipboardDIToken,
     KeybindingsResourceDIToken,
     ServiceAccessorDIToken,
     SettingsResourceDIToken,
@@ -178,11 +177,13 @@ import {
 } from "../Workbench/Services/CoreTokens.ts";
 import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
 import { EditorGroupController } from "./EditorGroupController.ts";
+import { ExplorerComponent, ExplorerComponentDIToken } from "../Workbench/Components/Explorer/ExplorerComponent.ts";
+import { ExplorerService, ExplorerServiceDIToken } from "../Workbench/Services/ExplorerService.ts";
+import { FileOperationsService, FileOperationsServiceDIToken } from "../Workbench/Services/FileOperationsService.ts";
 import { FileSearchService } from "../Workbench/Services/FileSearchService.ts";
-import { FileTreeController } from "./FileTreeController.ts";
 import { FindController } from "./FindController.ts";
 import type { IController } from "./IController.ts";
-import { InputWidgetController, InputWidgetControllerDIToken } from "./InputWidgetController.ts";
+import { InputWidgetService, InputWidgetServiceDIToken } from "../Workbench/Services/InputWidgetService.ts";
 import type { KeybindingDispatcher } from "../Workbench/Services/KeybindingDispatcher.ts";
 import { KeybindingDispatcherDIToken } from "../Workbench/Services/KeybindingDispatcher.ts";
 import type { KeybindingRegistry } from "../Workbench/Services/KeybindingRegistry.ts";
@@ -210,8 +211,6 @@ import { EditorStatusContributionDIToken } from "../Workbench/Services/EditorSta
 import { TerminalEnvStatusContributionDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
 import type { TerminalEnvironmentService } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentService.ts";
-import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "../Workbench/Services/Workspace/UndoRedoService.ts";
-import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
 import { WorkbenchStateController } from "./WorkbenchStateController.ts";
 
 export const AppControllerDIToken = token<AppController>("AppController");
@@ -291,6 +290,20 @@ const builtinActions = [
     showEditorContextMenuAction,
     showExplorerContextMenuAction,
 
+    // Explorer file operations (Workbench/Actions поверх Explorer/FileOperations-сервисов)
+    fileDeleteAction,
+    fileRenameAction,
+    refreshExplorerAction,
+    fileUndoAction,
+    fileRedoAction,
+    fileCopyAction,
+    fileCutAction,
+    filePasteAction,
+    fileCopyPathAction,
+    fileCopyRelativePathAction,
+    explorerNewFileAction,
+    explorerNewFolderAction,
+
     // List
     listFocusPageDownAction,
     listFocusPageUpAction,
@@ -353,7 +366,7 @@ export class AppController extends Disposable implements IController {
         StatusBarComponentDIToken,
         ThemeServiceDIToken,
         ContextKeyServiceDIToken,
-        InputWidgetControllerDIToken,
+        InputWidgetServiceDIToken,
         ILogServiceDIToken,
         TerminalEnvironmentServiceDIToken,
         UserKeybindingsDIToken,
@@ -367,11 +380,9 @@ export class AppController extends Disposable implements IController {
     private editorGroupController: EditorGroupController;
     private dialogService: DialogService;
     private lifecycleService: LifecycleService;
-    private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
-    private fileTreeController: FileTreeController;
-    private fileClipboard: IFileClipboard;
-    private workspaceEditService: WorkspaceEditService;
-    private undoRedoService: UndoRedoService;
+    private explorerService: ExplorerService;
+    private explorerComponent: ExplorerComponent;
+    private fileOperations: FileOperationsService;
     private configurationService: IConfigurationService;
     private fileSearchService: FileSearchService;
     private quickOpenController: QuickOpenController;
@@ -385,7 +396,7 @@ export class AppController extends Disposable implements IController {
     private commands: CommandRegistry;
     private keybindings: KeybindingRegistry;
     private contextKeys: ContextKeyService;
-    private inputWidgetController: InputWidgetController;
+    private inputWidgetService: InputWidgetService;
     private themeService: ThemeService;
     private themeRegistry: ThemeRegistry;
     private menuBar: MenuBarElement | null = null;
@@ -405,7 +416,7 @@ export class AppController extends Disposable implements IController {
         statusBarComponent: StatusBarComponent,
         themeService: ThemeService,
         contextKeys: ContextKeyService,
-        inputWidgetController: InputWidgetController,
+        inputWidgetService: InputWidgetService,
         logService: ILogService,
         terminalEnv: TerminalEnvironmentService,
         userKeybindings: readonly IUserKeybindingRule[],
@@ -422,19 +433,10 @@ export class AppController extends Disposable implements IController {
         this.themeService = themeService;
         this.themeRegistry = accessor.get(ThemeRegistryDIToken);
         this.editorGroupController = this.register(editorGroupController);
-        this.fileTreeController = this.register(new FileTreeController(themeService));
-        // Ошибка файлового watcher'а больше не роняет процесс (см. FileTreeDataProvider):
-        // ловим её здесь и пишем в лог. ENOSPC/EMFILE — исчерпан лимит inotify; даём
-        // самодокументирующуюся подсказку, как в уведомлении VS Code.
-        const watcherLogger = logService.createLogger("filetree.watcher");
-        this.fileTreeController.onWatchError = (dirPath, error) => {
-            const code = (error as NodeJS.ErrnoException).code;
-            const hint =
-                code === "ENOSPC" || code === "EMFILE"
-                    ? " — inotify watch limit reached; increase fs.inotify.max_user_watches"
-                    : "";
-            watcherLogger.warn(`file watcher error${hint}`, { dirPath, code, error: String(error) });
-        };
+        // Explorer-кластер (Workbench): сервис (корень/провайдер/reveal) и компонент
+        // (дерево + контекст-меню). AppController владеет их жизнью.
+        this.explorerService = this.register(accessor.get(ExplorerServiceDIToken));
+        this.explorerComponent = this.register(accessor.get(ExplorerComponentDIToken));
         // Клавиатурный диспатчер (Workbench-сервис): AppController владеет его жизнью
         // и подключает view-хуки (контекстные ключи + модальные оверлеи) — сам сервис
         // про view ничего не знает.
@@ -443,23 +445,19 @@ export class AppController extends Disposable implements IController {
             this.updateContextKeys();
         };
         this.dispatcher.hasKeyboardCapturingOverlay = () => this.view.overlayLayer.hasKeyboardCapturingOverlay();
-        this.fileClipboard = accessor.get(FileClipboardDIToken);
-        this.workspaceEditService = accessor.get(WorkspaceEditServiceDIToken);
-        this.undoRedoService = accessor.get(UndoRedoServiceDIToken);
         this.configurationService = accessor.get(IConfigurationServiceDIToken);
         this.settingsResource = accessor.get(SettingsResourceDIToken);
         this.keybindingsResource = accessor.get(KeybindingsResourceDIToken);
-        // Подсветка «вырезанных» файлов в дереве следует за состоянием буфера.
-        this.register(
-            this.fileClipboard.onDidChange((entry) => {
-                this.fileTreeController.setCutPaths(entry?.mode === "cut" ? entry.paths : []);
-            }),
-        );
         this.fileSearchService = this.register(new FileSearchService());
         this.quickOpenController = this.register(
             new QuickOpenController(this.fileSearchService, commands, keybindings, contextKeys),
         );
         this.quickInputController = this.register(new QuickInputController());
+        // Файловые операции (Workbench-сервис): промпт имени/пути приходит от
+        // QuickInputController через минимальный шов IExplorerInputPrompt — сам
+        // QuickInput мигрирует на этапе 8.
+        this.fileOperations = accessor.get(FileOperationsServiceDIToken);
+        this.fileOperations.inputPrompt = this.quickInputController;
         this.completionController = this.register(new CompletionController(this.editorGroupController));
         this.findController = this.register(new FindController(this.editorGroupController));
         this.findController.applyTheme(themeService.theme);
@@ -479,7 +477,7 @@ export class AppController extends Disposable implements IController {
         this.commands = commands;
         this.keybindings = keybindings;
         this.contextKeys = contextKeys;
-        this.inputWidgetController = inputWidgetController;
+        this.inputWidgetService = inputWidgetService;
 
         // Make custom-mode names (mode_<name>) valid `when` identifiers, then keep context
         // keys in sync when the environment changes (detection finalize / mode toggle);
@@ -521,6 +519,8 @@ export class AppController extends Disposable implements IController {
 
         this.view = new BodyElement();
         this.dialogService.attachHost(this.view);
+        // Контекст-меню дерева Explorer'а открывается в overlay-слое корневой view.
+        this.explorerComponent.attachHost(this.view);
         this.view.setContent(this.workbenchLayout);
         this.view.setStatusBar(this.statusBarComponent.view);
 
@@ -536,7 +536,11 @@ export class AppController extends Disposable implements IController {
             this.editorGroupController.onActiveEditorChanged(() => {
                 this.findController.close();
                 this.completionController.close();
-                this.autoRevealActiveFile();
+                // Автоподсветка активного файла в дереве (`explorer.autoReveal`) —
+                // сам флоу живёт в ExplorerService.
+                this.explorerService.autoRevealActiveFile(
+                    this.editorGroupController.getActiveEditor()?.absoluteFilePath ?? null,
+                );
             }),
         );
         this.register(
@@ -706,15 +710,6 @@ export class AppController extends Disposable implements IController {
             ),
         );
         this.register(
-            commands.register(
-                "workbench.files.action.refreshFilesExplorer",
-                () => {
-                    void this.fileTreeController.refresh();
-                },
-                "File: Refresh Explorer",
-            ),
-        );
-        this.register(
             registerAction(commands, keybindings, accessor, {
                 ...nextMatchAction,
                 run: () => {
@@ -809,7 +804,7 @@ export class AppController extends Disposable implements IController {
                 run: () => {
                     this.workbenchLayout.setLeftPanelVisible(true);
                     this.workbenchLayout.markDirty();
-                    this.fileTreeController.focus();
+                    this.explorerService.focus();
                 },
             }),
         );
@@ -822,8 +817,8 @@ export class AppController extends Disposable implements IController {
                     if (!filePath) return;
                     this.workbenchLayout.setLeftPanelVisible(true);
                     this.workbenchLayout.markDirty();
-                    this.fileTreeController.focus();
-                    void this.fileTreeController.revealPath(filePath);
+                    this.explorerService.focus();
+                    void this.explorerService.revealPath(filePath);
                 },
             }),
         );
@@ -930,120 +925,6 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileDeleteAction,
-                run: (_a, ...args) => {
-                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
-                    if (filePath) this.requestDeleteFile(filePath);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCopyAction,
-                run: () => {
-                    const paths = this.fileTreeController.getSelectedPaths();
-                    if (paths.length > 0) this.fileClipboard.write(paths, "copy");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCutAction,
-                run: () => {
-                    const paths = this.fileTreeController.getSelectedPaths();
-                    if (paths.length > 0) this.fileClipboard.write(paths, "cut");
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileRenameAction,
-                run: (_a, ...args) => {
-                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
-                    if (filePath) void this.runRename(filePath);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...explorerNewFileAction,
-                run: (_a, ...args) => {
-                    void this.runCreate("file", args[0] as string | undefined);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...explorerNewFolderAction,
-                run: (_a, ...args) => {
-                    void this.runCreate("folder", args[0] as string | undefined);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...filePasteAction,
-                run: () => {
-                    const targetDir = this.fileTreeController.getPasteTargetDir();
-                    if (!targetDir) return;
-                    const entry = this.fileClipboard.read();
-                    if (!entry) return;
-                    this.workspaceEditService.applyFileEdits(
-                        buildPasteEdits(entry, targetDir),
-                        entry.mode === "cut" ? "Move" : "Paste",
-                    );
-                    if (entry.mode === "cut") this.fileClipboard.clear();
-                    void this.fileTreeController.refresh();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCopyPathAction,
-                run: (runAccessor, ...args) => {
-                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
-                    if (filePath) void runAccessor.get(ClipboardDIToken).writeText(filePath);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...fileCopyRelativePathAction,
-                run: (runAccessor, ...args) => {
-                    const filePath = (args[0] as string | undefined) ?? this.fileTreeController.getSelectedPaths()[0];
-                    if (!filePath) return;
-                    const root = this.fileTreeController.getRootPath();
-                    const relative = root ? path.relative(root, filePath) : filePath;
-                    void runAccessor.get(ClipboardDIToken).writeText(relative);
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "fileOperations.undo",
-                title: "File: Undo",
-                keybinding: parseKeybinding("ctrl+z"),
-                when: "listFocus",
-                run: () => {
-                    this.undoWorkspace();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                id: "fileOperations.redo",
-                title: "File: Redo",
-                keybindings: [parseKeybinding("ctrl+shift+z"), parseKeybinding("ctrl+y")],
-                when: "listFocus",
-                run: () => {
-                    void this.undoRedoService.redo(WORKSPACE_UNDO_CONTEXT).then((ok) => {
-                        if (ok) void this.fileTreeController.refresh();
-                    });
-                },
-            }),
-        );
 
         // Apply user keybindings AFTER all defaults so they take precedence (the registry
         // resolves the last-registered matching binding) and so `-command` unbinds can remove defaults.
@@ -1138,14 +1019,6 @@ export class AppController extends Disposable implements IController {
                 /* v8 ignore stop */
             });
         };
-        this.fileTreeController.mount();
-        this.fileTreeController.onFileActivate = (filePath) => {
-            this.editorGroupController.openFile(filePath);
-            this.updateContextKeys();
-        };
-        this.fileTreeController.onFileContextMenu = (node, screenX, screenY) => {
-            this.showFileTreeContextMenu(node.path, screenX, screenY);
-        };
         // Применяем сохранённый layout до первого кадра (run() идёт после mount()).
         // Workspace-стор уже открыт: setWorkspaceFolder вызывается до mount().
         this.workbenchState.restoreLayout();
@@ -1162,7 +1035,7 @@ export class AppController extends Disposable implements IController {
         this.updateContextKeys();
         this.terminalEnv.detect();
         await this.editorGroupController.activate();
-        await this.fileTreeController.activate();
+        await this.explorerService.refresh();
     }
 
     public openFile(filePath: string): void {
@@ -1203,10 +1076,10 @@ export class AppController extends Disposable implements IController {
     }
 
     public setWorkspaceFolder(dirPath: string): void {
-        this.fileTreeController.setRootPath(dirPath);
+        this.explorerService.setRootPath(dirPath);
         // Новые терминалы спавнятся в папке воркспейса.
         this.terminalService.setWorkingDirectory(dirPath);
-        this.workbenchLayout.setLeftPanel(this.fileTreeController.view);
+        this.workbenchLayout.setLeftPanel(this.explorerComponent.view);
         // Открыть per-project стор состояния для этой папки (переключение флашит
         // предыдущий). Дальше layout/открытые файлы читаются/пишутся в него.
         this.workbenchState.openWorkspace(dirPath);
@@ -1219,15 +1092,6 @@ export class AppController extends Disposable implements IController {
     /** Resolves when the background file index has finished its initial build. */
     public get fileIndexReady(): Promise<void> {
         return this.fileSearchService.ready;
-    }
-
-    /**
-     * Дерево файлов. Минимальный DI-шов: `FileTreeController` создаётся внутри
-     * AppController, а мосту файловых декораций extension-host'а нужна ссылка на
-     * него (см. `FileTreeControllerDIToken` / `ExtensionHostModule`).
-     */
-    public get fileTree(): FileTreeController {
-        return this.fileTreeController;
     }
 
     public focusEditor(): void {
@@ -1283,7 +1147,7 @@ export class AppController extends Disposable implements IController {
         this.contextKeys.set("textInputFocus", active instanceof EditorElement);
         this.contextKeys.set("inputWidgetFocus", active instanceof InputElement);
         this.contextKeys.set("listFocus", active instanceof TreeViewElement);
-        this.inputWidgetController.setActive(active instanceof InputElement ? active : null);
+        this.inputWidgetService.setActive(active instanceof InputElement ? active : null);
         this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
         this.contextKeys.set("panelVisible", this.workbenchLayout.getBottomPanelVisible());
@@ -1424,87 +1288,6 @@ export class AppController extends Disposable implements IController {
         this.dialogService.showConfirmSaveDialog(filename, callbacks);
     }
 
-    /**
-     * Автоматически подсвечивает активный файл в дереве при смене активного редактора,
-     * если включена настройка `explorer.autoReveal`. Фокус не отбирается у редактора —
-     * меняется только выделение/скролл дерева (в отличие от явной команды reveal).
-     */
-    private autoRevealActiveFile(): void {
-        const autoReveal = this.configurationService.get<boolean>("explorer.autoReveal", true) ?? true;
-        if (!autoReveal) return;
-        const filePath = this.editorGroupController.getActiveEditor()?.absoluteFilePath;
-        if (!filePath) return;
-        void this.fileTreeController.revealPath(filePath);
-    }
-
-    /** Удаление файла: подтверждение (всегда — если безвозвратно) + запись в историю отмены. */
-    private requestDeleteFile(filePath: string): void {
-        const willTrash = this.workspaceEditService.willMoveToTrash();
-        const confirmDelete = this.configurationService.get<boolean>("explorer.confirmDelete", true) ?? true;
-        const name = path.basename(filePath);
-
-        const doDelete = (): void => {
-            this.workspaceEditService.applyFileEdits([{ kind: "delete", from: filePath }], "Delete");
-            void this.fileTreeController.refresh();
-        };
-
-        // Безвозвратное удаление подтверждаем всегда (необратимо); удаление в корзину — по настройке.
-        if (willTrash && !confirmDelete) {
-            doDelete();
-            return;
-        }
-        this.showConfirmDialog(
-            willTrash
-                ? {
-                      title: "Delete",
-                      message: [`«${name}» будет перемещён в корзину.`, "Можно восстановить (Ctrl+Z или из корзины)."],
-                      confirmLabel: "Move to Trash",
-                      defaultButton: "confirm",
-                  }
-                : {
-                      title: "Delete",
-                      message: [
-                          "⚠ Системная корзина не найдена.",
-                          `«${name}» будет удалён безвозвратно — отменить нельзя.`,
-                      ],
-                      confirmLabel: "Delete Permanently",
-                      warning: true,
-                      defaultButton: "cancel",
-                  },
-            { onConfirm: doDelete },
-        );
-    }
-
-    /** Отмена последней файловой операции; для деструктивной — переспрашивает (confirmUndo). */
-    private undoWorkspace(): void {
-        const element = this.undoRedoService.peekUndo(WORKSPACE_UNDO_CONTEXT);
-        if (!element) return;
-        const confirmUndo = this.configurationService.get<boolean>("explorer.confirmUndo", true) ?? true;
-
-        const doUndo = (): void => {
-            void this.undoRedoService.undo(WORKSPACE_UNDO_CONTEXT).then((ok) => {
-                /* v8 ignore start -- defensive: peekUndo above gates on a non-empty stack, and undo() pops synchronously, so it cannot come back empty */
-                if (ok) void this.fileTreeController.refresh();
-                /* v8 ignore stop */
-            });
-        };
-
-        if (element.confirmBeforeUndo && confirmUndo) {
-            this.showConfirmDialog(
-                {
-                    title: "Undo",
-                    message: element.confirmBeforeUndo,
-                    confirmLabel: "Yes",
-                    cancelLabel: "No",
-                    defaultButton: "cancel",
-                },
-                { onConfirm: doUndo },
-            );
-        } else {
-            doUndo();
-        }
-    }
-
     private showConfirmDialog(
         options: ConfirmDialogOptions,
         callbacks: { onConfirm: () => void; onCancel?: () => void },
@@ -1612,106 +1395,6 @@ export class AppController extends Disposable implements IController {
     }
 
     /**
-     * New File / New Folder in the explorer (VS Code `explorer.newFile` /
-     * `explorer.newFolder`). Prompts for a name relative to the target directory
-     * (nested paths like `foo/bar.txt` are allowed and create intermediate dirs),
-     * creates it via the undoable {@link WorkspaceEditService}, refreshes and
-     * reveals it in the tree, and — for files — opens it in the editor.
-     */
-    private async runCreate(kind: "file" | "folder", explorerPath?: string): Promise<void> {
-        const targetDir = explorerPath
-            ? fs.statSync(explorerPath).isDirectory()
-                ? explorerPath
-                : path.dirname(explorerPath)
-            : this.fileTreeController.getPasteTargetDir();
-        if (!targetDir) return;
-
-        const name = await this.quickInputController.input({
-            title: kind === "file" ? "New File" : "New Folder",
-            placeholder: kind === "file" ? "Enter file name" : "Enter folder name",
-            value: "",
-            validateInput: (value) => {
-                const trimmed = value.trim();
-                if (trimmed === "") return "Please enter a name";
-                if (path.isAbsolute(trimmed)) return "Please enter a relative name";
-                const segments = trimmed.split(/[\\/]/);
-                if (segments.some((s) => s === "" || s === "." || s === "..")) return "Invalid name";
-                // Сегменты без `.`/`..`/пустых и не абсолютный путь → результат всегда
-                // строго внутри targetDir, отдельная проверка на выход не нужна.
-                const resolved = path.resolve(targetDir, trimmed);
-                if (fs.existsSync(resolved)) return "A file or folder with that name already exists";
-                return null;
-            },
-        });
-        if (name === undefined) return;
-
-        const resolved = path.resolve(targetDir, name.trim());
-        this.workspaceEditService.applyFileEdits(
-            [{ kind: "create", to: resolved, directory: kind === "folder" }],
-            kind === "file" ? "New File" : "New Folder",
-        );
-        await this.fileTreeController.refresh();
-        await this.fileTreeController.revealPath(resolved);
-        if (kind === "file") {
-            this.editorGroupController.openFile(resolved);
-            this.updateContextKeys();
-        }
-    }
-
-    /**
-     * Rename a file or folder in the explorer (VS Code `renameFile`, F2). Prompts
-     * for the new name pre-filled with the current basename, renames it in place via
-     * the undoable {@link WorkspaceEditService}, then refreshes and reveals it.
-     */
-    private async runRename(filePath: string): Promise<void> {
-        const parentDir = path.dirname(filePath);
-        const oldName = path.basename(filePath);
-
-        const name = await this.quickInputController.input({
-            title: "Rename",
-            placeholder: "Enter new name",
-            value: oldName,
-            validateInput: (value) => {
-                const trimmed = value.trim();
-                if (trimmed === "") return "Please enter a name";
-                if (path.isAbsolute(trimmed)) return "Please enter a relative name";
-                const segments = trimmed.split(/[\\/]/);
-                if (segments.some((s) => s === "" || s === "." || s === "..")) return "Invalid name";
-                if (trimmed === oldName) return null; // без изменений — валидно, но ниже это no-op
-                const resolved = path.resolve(parentDir, trimmed);
-                if (fs.existsSync(resolved)) return "A file or folder with that name already exists";
-                return null;
-            },
-        });
-        if (name === undefined) return;
-
-        const trimmed = name.trim();
-        if (trimmed === oldName) return; // имя не изменилось — ничего не делаем
-        const resolved = path.resolve(parentDir, trimmed);
-        this.workspaceEditService.applyFileEdits([{ kind: "rename", from: filePath, to: resolved }], "Rename");
-        await this.fileTreeController.refresh();
-        await this.fileTreeController.revealPath(resolved);
-    }
-
-    /**
-     * Expand a leading `~` to the home directory, then resolve the path against
-     * the current workspace root (falling back to the process cwd). Returns null
-     * for an empty input.
-     */
-    private resolveInputPath(value: string): string | null {
-        const trimmed = value.trim();
-        if (trimmed === "") return null;
-        const expanded =
-            trimmed === "~" || trimmed.startsWith("~/") ? path.join(os.homedir(), trimmed.slice(1)) : trimmed;
-        return path.resolve(this.workspaceRoot(), expanded);
-    }
-
-    /** Current workspace root, or the process cwd when no folder is open. */
-    private workspaceRoot(): string {
-        return this.fileTreeController.getRootPath() ?? process.cwd();
-    }
-
-    /**
      * Open File flow: prompt for a path (InputBox), validate it points at an
      * existing file, then open it in the active editor group. The prompt opens
      * empty; a relative path is resolved against the workspace root.
@@ -1721,7 +1404,7 @@ export class AppController extends Disposable implements IController {
             title: "Open File",
             placeholder: "Enter a file path",
             validateInput: (value) => {
-                const resolved = this.resolveInputPath(value);
+                const resolved = this.fileOperations.resolveInputPath(value);
                 // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
                 if (!resolved) return null;
                 if (!fs.existsSync(resolved)) return `File does not exist: ${resolved}`;
@@ -1731,7 +1414,7 @@ export class AppController extends Disposable implements IController {
         });
         if (target === undefined) return;
         // An accepted-but-empty value resolves to null → nothing to open.
-        const resolved = this.resolveInputPath(target);
+        const resolved = this.fileOperations.resolveInputPath(target);
         if (resolved) this.openFile(resolved);
     }
 
@@ -1745,7 +1428,7 @@ export class AppController extends Disposable implements IController {
             title: "Open Folder",
             placeholder: "Enter a folder path",
             validateInput: (value) => {
-                const resolved = this.resolveInputPath(value);
+                const resolved = this.fileOperations.resolveInputPath(value);
                 // Empty is not flagged (fresh prompt shows no error); Enter is a no-op.
                 if (!resolved) return null;
                 if (!fs.existsSync(resolved)) return `Folder does not exist: ${resolved}`;
@@ -1755,7 +1438,7 @@ export class AppController extends Disposable implements IController {
         });
         if (target === undefined) return;
         // An accepted-but-empty value resolves to null → nothing to swap to.
-        const resolved = this.resolveInputPath(target);
+        const resolved = this.fileOperations.resolveInputPath(target);
         if (resolved) this.setWorkspaceFolder(resolved);
     }
 
@@ -1925,139 +1608,6 @@ export class AppController extends Disposable implements IController {
 
     public showAboutDialog(): void {
         this.dialogService.showAboutDialog();
-    }
-
-    private showFileTreeContextMenu(filePath: string, screenX: number, screenY: number): void {
-        this.hideFileTreeContextMenu();
-
-        const entries: MenuEntry[] = [
-            {
-                label: "New File...",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("explorer.newFile", filePath);
-                },
-            },
-            {
-                label: "New Folder...",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("explorer.newFolder", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                label: "Copy",
-                shortcut: "Ctrl+C",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.copy");
-                },
-            },
-            {
-                label: "Cut",
-                shortcut: "Ctrl+X",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.cut");
-                },
-            },
-        ];
-        if (this.fileClipboard.read() !== null) {
-            entries.push({
-                label: "Paste",
-                shortcut: "Ctrl+V",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.paste");
-                },
-            });
-        }
-        entries.push(
-            { type: "separator" },
-            {
-                label: "Copy Path",
-                shortcut: "Shift+Alt+C",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.copyPath", filePath);
-                },
-            },
-            {
-                label: "Copy Relative Path",
-                shortcut: "Ctrl+K Ctrl+Shift+C",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.copyRelativePath", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                label: "Rename...",
-                shortcut: "F2",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.rename", filePath);
-                },
-            },
-            {
-                label: "Delete",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("fileOperations.deleteFile", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                // Re-read the directory contents from disk (external changes the
-                // live watcher might have missed — network shares, ignored paths).
-                label: "Refresh Explorer",
-                onSelect: () => {
-                    this.hideFileTreeContextMenu();
-                    this.commands.execute("workbench.files.action.refreshFilesExplorer");
-                },
-            },
-        );
-
-        const menu = new PopupMenuElement(entries);
-        menu.setStyles(getMenuStyles(this.themeService.theme));
-        menu.tabIndex = 0;
-
-        let session: OverlaySessionHandle | null = null;
-        session = this.view.overlayLayer.openPopupSession(
-            menu,
-            { screenX, screenY },
-            {
-                visible: true,
-                restoreFocus: true,
-                focusOnOpen: true,
-                closeOnEscape: true,
-                pointerPolicy: "close-on-outside",
-                disposeOnClose: true,
-                onClose: () => {
-                    // Через hideFileTreeContextMenu поле уже занулено до close() — не трогаем
-                    // (там может быть уже открыта следующая сессия).
-                    if (this.fileTreeContextMenuSession === session) {
-                        this.fileTreeContextMenuSession = null;
-                    }
-                },
-            },
-        );
-
-        menu.onClose = () => {
-            session.close();
-        };
-
-        this.fileTreeContextMenuSession = session;
-    }
-
-    private hideFileTreeContextMenu(): void {
-        if (!this.fileTreeContextMenuSession) return;
-        const session = this.fileTreeContextMenuSession;
-        this.fileTreeContextMenuSession = null;
-        // Именно close(), не dispose(): close восстанавливает сохранённый фокус (restoreFocus),
-        // а disposeOnClose доведёт teardown до конца.
-        session.close();
     }
 
     private doQuit(accessor: ServiceAccessor): void {

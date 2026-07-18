@@ -1,6 +1,6 @@
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
-import { InputWidgetControllerDIToken } from "../InputWidgetController.ts";
+import { InputWidgetServiceDIToken } from "../../Workbench/Services/InputWidgetService.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // ─── Cursor Movement ─────────────────────────────────────────
@@ -11,7 +11,7 @@ export const inputCursorLeftAction: CommandAction = {
     keybinding: parseKeybinding("left"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).cursorLeft();
+        accessor.get(InputWidgetServiceDIToken).cursorLeft();
     },
 };
 
@@ -21,7 +21,7 @@ export const inputCursorRightAction: CommandAction = {
     keybinding: parseKeybinding("right"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).cursorRight();
+        accessor.get(InputWidgetServiceDIToken).cursorRight();
     },
 };
 
@@ -31,7 +31,7 @@ export const inputCursorHomeAction: CommandAction = {
     keybinding: parseKeybinding("home"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).cursorHome();
+        accessor.get(InputWidgetServiceDIToken).cursorHome();
     },
 };
 
@@ -41,7 +41,7 @@ export const inputCursorEndAction: CommandAction = {
     keybinding: parseKeybinding("end"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).cursorEnd();
+        accessor.get(InputWidgetServiceDIToken).cursorEnd();
     },
 };
 
@@ -51,7 +51,7 @@ export const inputCursorWordLeftAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+left"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).cursorWordLeft();
+        accessor.get(InputWidgetServiceDIToken).cursorWordLeft();
     },
 };
 
@@ -61,7 +61,7 @@ export const inputCursorWordRightAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+right"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).cursorWordRight();
+        accessor.get(InputWidgetServiceDIToken).cursorWordRight();
     },
 };
 
@@ -73,7 +73,7 @@ export const inputDeleteLeftAction: CommandAction = {
     keybinding: parseKeybinding("backspace"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).deleteLeft();
+        accessor.get(InputWidgetServiceDIToken).deleteLeft();
     },
 };
 
@@ -83,7 +83,7 @@ export const inputDeleteRightAction: CommandAction = {
     keybinding: parseKeybinding("delete"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).deleteRight();
+        accessor.get(InputWidgetServiceDIToken).deleteRight();
     },
 };
 
@@ -93,7 +93,7 @@ export const inputDeleteWordLeftAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+backspace"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).deleteWordLeft();
+        accessor.get(InputWidgetServiceDIToken).deleteWordLeft();
     },
 };
 
@@ -103,7 +103,7 @@ export const inputDeleteWordRightAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+delete"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).deleteWordRight();
+        accessor.get(InputWidgetServiceDIToken).deleteWordRight();
     },
 };
 
@@ -115,7 +115,7 @@ export const inputSelectLeftAction: CommandAction = {
     keybinding: parseKeybinding("shift+left"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).selectLeft();
+        accessor.get(InputWidgetServiceDIToken).selectLeft();
     },
 };
 
@@ -125,7 +125,7 @@ export const inputSelectRightAction: CommandAction = {
     keybinding: parseKeybinding("shift+right"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).selectRight();
+        accessor.get(InputWidgetServiceDIToken).selectRight();
     },
 };
 
@@ -135,7 +135,7 @@ export const inputSelectToHomeAction: CommandAction = {
     keybinding: parseKeybinding("shift+home"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).selectToHome();
+        accessor.get(InputWidgetServiceDIToken).selectToHome();
     },
 };
 
@@ -145,7 +145,7 @@ export const inputSelectToEndAction: CommandAction = {
     keybinding: parseKeybinding("shift+end"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).selectToEnd();
+        accessor.get(InputWidgetServiceDIToken).selectToEnd();
     },
 };
 
@@ -155,7 +155,7 @@ export const inputSelectWordLeftAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+shift+left"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).selectWordLeft();
+        accessor.get(InputWidgetServiceDIToken).selectWordLeft();
     },
 };
 
@@ -165,7 +165,7 @@ export const inputSelectWordRightAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+shift+right"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).selectWordRight();
+        accessor.get(InputWidgetServiceDIToken).selectWordRight();
     },
 };
 
@@ -175,7 +175,7 @@ export const inputSelectAllAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+a"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).selectAll();
+        accessor.get(InputWidgetServiceDIToken).selectAll();
     },
 };
 
@@ -187,7 +187,7 @@ export const inputCopyAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+c"),
     when: "inputWidgetFocus",
     async run(accessor) {
-        await accessor.get(InputWidgetControllerDIToken).copy(accessor.get(ClipboardDIToken));
+        await accessor.get(InputWidgetServiceDIToken).copy(accessor.get(ClipboardDIToken));
     },
 };
 
@@ -197,7 +197,7 @@ export const inputCutAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+x"),
     when: "inputWidgetFocus",
     async run(accessor) {
-        await accessor.get(InputWidgetControllerDIToken).cut(accessor.get(ClipboardDIToken));
+        await accessor.get(InputWidgetServiceDIToken).cut(accessor.get(ClipboardDIToken));
     },
 };
 
@@ -207,7 +207,7 @@ export const inputPasteAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+v"),
     when: "inputWidgetFocus",
     async run(accessor) {
-        await accessor.get(InputWidgetControllerDIToken).paste(accessor.get(ClipboardDIToken));
+        await accessor.get(InputWidgetServiceDIToken).paste(accessor.get(ClipboardDIToken));
     },
 };
 
@@ -219,7 +219,7 @@ export const inputUndoAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+z"),
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).undo();
+        accessor.get(InputWidgetServiceDIToken).undo();
     },
 };
 
@@ -229,6 +229,6 @@ export const inputRedoAction: CommandAction = {
     keybindings: [parseKeybinding("ctrl+y"), parseKeybinding("ctrl+shift+z")],
     when: "inputWidgetFocus",
     run(accessor) {
-        accessor.get(InputWidgetControllerDIToken).redo();
+        accessor.get(InputWidgetServiceDIToken).redo();
     },
 };

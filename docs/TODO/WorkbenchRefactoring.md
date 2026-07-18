@@ -40,8 +40,8 @@ Workbench и может его импортировать; обратно — н
        `Workbench/Styles/defaultStyles.ts`; основные fg/bg остаются на `editor.style = { fg, bg }`
 - [x] 3. Каркас Workbench (`Component`/`ThemedComponent`) + переезд готовых сервисов
        (CommandRegistry, KeybindingRegistry, ContextKeyService, Workspace/, TerminalEnvironment/, …;
-       в Controllers остались `TrashService`/`WorkspaceEditService` — тянут `Actions/fileClipboardFs.ts` —
-       и `TerminalEnvironmentIntegration.test.ts` — тянет `AppController`)
+       в Controllers остались `TrashService`/`WorkspaceEditService` — тянули `Actions/fileClipboardFs.ts`,
+       доехали на этапе 7 — и `TerminalEnvironmentIntegration.test.ts` — тянет `AppController`)
 - [x] 4. Пилот: `StatusBarService` + `StatusBarComponent` (эталонная пара; `StatusBarController`
        растворён: сегменты публикуют `EditorStatusContribution` (шов
        `IActiveEditorStatusSource` → `EditorGroupController`) и `TerminalEnvStatusContribution`,
@@ -65,8 +65,22 @@ Workbench и может его импортировать; обратно — н
        обязан dispose'ить виджеты: у TUIElement нет unmount-хуков); toggle-команды
        панели — `AppController` поверх `PanelService` (layout/`panelVisible` следуют
        за `onDidChangeVisibility`); биндинги — `Modules/WorkbenchModule.ts`
-- [ ] 7. Explorer: `ExplorerService`+`ExplorerComponent`+`InputWidgetComponent`,
-       `FileOperationsService`
+- [x] 7. Explorer-кластер: `ExplorerService` (корень/`FileTreeDataProvider`/reveal/
+       autoReveal/декорации/cut-подсветка; дерево через шов `IExplorerView`,
+       мост декораций host'а через `IFileDecorationsTarget`) + `ExplorerComponent`
+       (TreeView + скроллбар + рамка EXPLORER, контекст-меню в overlay-хосте
+       через `attachHost`), `FileOperationsService` (create/rename/delete/
+       clipboard-paste/workspace-undo-redo/`resolveInputPath`; промпт — шов
+       `IExplorerInputPrompt` → `QuickInputController` до этапа 8);
+       `InputWidgetController` → `Services/InputWidgetService.ts` (это не
+       inline-инпут Explorer'а, а headless-цель input-команд без view —
+       по инварианту слоя это Service, не Component); `Workspace/`-хвост этапа 3
+       (`TrashService`/`WorkspaceEditService`/`fileClipboardFs`) и
+       `FileTreeDataProvider` доехали в `Workbench/Services/`; новый каталог
+       `Workbench/Actions/` (`CommandAction`+`registerAction`, FileTree*-экшены
+       перевязаны на сервисы; `showEditorContextMenuAction` остался в
+       Controllers/Actions — тянет `EditorGroupController`, этап 9); биндинги —
+       `Modules/WorkbenchModule.ts`, шов `FileTreeControllerDIToken` удалён
 - [ ] 8. `QuickInputService`+`QuickInputComponent`, `QuickOpenService`, пикеры → Actions
 - [ ] 9. Editor: `TextFileModel`+`EditorComponent`; `EditorService`+`EditorGroupComponent`
 - [ ] 10. `CompletionService`+`SuggestComponent`, `FindService`+`FindComponent`

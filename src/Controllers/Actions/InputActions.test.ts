@@ -3,12 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
 import { InputElement } from "../../TUIDom/Widgets/InputElement.ts";
-import type { CommandAction } from "../CommandAction.ts";
-import { registerAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
+import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
-import { InputWidgetController } from "../InputWidgetController.ts";
-import { InputWidgetControllerDIToken } from "../InputWidgetController.ts";
+import { InputWidgetService } from "../../Workbench/Services/InputWidgetService.ts";
+import { InputWidgetServiceDIToken } from "../../Workbench/Services/InputWidgetService.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 import {
@@ -47,7 +47,7 @@ function memoryClipboard(initial = ""): IClipboard {
     };
 }
 
-/** Build a real InputElement + InputWidgetController wired through a DI accessor. */
+/** Build a real InputElement + InputWidgetService wired through a DI accessor. */
 function makeCtx(text: string, opts: { cursor?: "start" | "end"; select?: "all"; clipboard?: string } = {}) {
     const input = new InputElement();
     input.inputState.value = text; // cursor lands at the end
@@ -56,12 +56,12 @@ function makeCtx(text: string, opts: { cursor?: "start" | "end"; select?: "all";
     const onChange = vi.fn();
     input.onChange = onChange;
 
-    const controller = new InputWidgetController();
+    const controller = new InputWidgetService();
     controller.setActive(input);
 
     const clipboard = memoryClipboard(opts.clipboard ?? "");
     const accessor = new Container();
-    accessor.bind(InputWidgetControllerDIToken, () => controller);
+    accessor.bind(InputWidgetServiceDIToken, () => controller);
     accessor.bind(ClipboardDIToken, () => clipboard);
 
     const commands = new CommandRegistry();
@@ -185,10 +185,10 @@ describe("InputActions — undo/redo on a real InputState", () => {
 
 describe("InputActions — no active input", () => {
     it("are safe no-ops when nothing is focused", async () => {
-        const controller = new InputWidgetController();
+        const controller = new InputWidgetService();
         controller.setActive(null);
         const accessor = new Container();
-        accessor.bind(InputWidgetControllerDIToken, () => controller);
+        accessor.bind(InputWidgetServiceDIToken, () => controller);
         accessor.bind(ClipboardDIToken, () => memoryClipboard("x"));
         const commands = new CommandRegistry();
 

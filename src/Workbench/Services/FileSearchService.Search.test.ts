@@ -63,7 +63,7 @@ describe("FileSearchService — search()", () => {
     describe("basic matching", () => {
         const FILES = [
             "src/Controllers/AppController.ts",
-            "src/Controllers/FileTreeController.ts",
+            "src/Workbench/Services/FileTreeDataProvider.ts",
             "src/Common/DiContainer.ts",
             "package.json",
         ];
@@ -205,7 +205,7 @@ describe("FileSearchService — search()", () => {
     describe("bitmask prefilter does not change results", () => {
         const FILES = [
             "src/Controllers/AppController.ts",
-            "src/Controllers/FileTreeController.ts",
+            "src/Workbench/Services/FileTreeDataProvider.ts",
             "src/Controllers/FileSearchService.ts",
             "src/Common/DiContainer.ts",
             "src/Common/FuzzySearch.ts",

@@ -1,5 +1,5 @@
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 
 function setActiveEditorEol(accessor: Parameters<CommandAction["run"]>[0], eol: EndOfLine): void {

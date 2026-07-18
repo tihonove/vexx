@@ -1,4 +1,4 @@
-import type { CommandAction } from "../CommandAction.ts";
+import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 
 /**
  * Open the encoding picker (VS Code `workbench.action.editor.changeEncoding`):
