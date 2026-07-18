@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -10,14 +11,13 @@ import { settle } from "../../TestUtils/timing.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { CommandAction } from "./CommandAction.ts";
-import { registerAction } from "./CommandAction.ts";
 import { CommandRegistry } from "../Services/CommandRegistry.ts";
 import { EditorService, EditorServiceDIToken } from "../Services/EditorService.ts";
-import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { KeybindingRegistry } from "../Services/KeybindingRegistry.ts";
 import { UndoRedoService } from "../Services/Workspace/UndoRedoService.ts";
 
+import type { CommandAction } from "./CommandAction.ts";
+import { registerAction } from "./CommandAction.ts";
 import {
     foldAction,
     foldAllAction,

@@ -4,8 +4,8 @@ import * as path from "node:path";
 import { token } from "../../../Common/DiContainer.ts";
 import type { IConfigurationService } from "../../../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../../Configuration/IConfigurationServiceDIToken.ts";
-import { copyInto, moveInto, moveToPath, resolveNonConflictingDest } from "./fileClipboardFs.ts";
 
+import { copyInto, moveInto, moveToPath, resolveNonConflictingDest } from "./fileClipboardFs.ts";
 import type { IUndoRedoElement } from "./IUndoRedoElement.ts";
 import { TrashService, TrashServiceDIToken } from "./TrashService.ts";
 import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./UndoRedoService.ts";

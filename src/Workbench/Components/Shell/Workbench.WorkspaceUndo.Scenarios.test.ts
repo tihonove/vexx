@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import type { EditorService } from "../../Services/EditorService.ts";
 
 import type { WorkbenchComponent } from "./WorkbenchComponent.ts";
-import type { EditorService } from "../../Services/EditorService.ts";
 
 let savedXdg: string | undefined;
 

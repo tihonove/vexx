@@ -1,5 +1,6 @@
 import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
 import { QuickOpenServiceDIToken } from "../Services/QuickOpenService.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 export const quickOpenAction: CommandAction = {

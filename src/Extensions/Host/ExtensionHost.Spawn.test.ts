@@ -4,7 +4,6 @@ import type * as nodeModule from "node:module";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
-
 import { registerAndActivate } from "../../TestUtils/ExtensionTestHarness.ts";
 
 import { ExtensionHost } from "./ExtensionHost.ts";

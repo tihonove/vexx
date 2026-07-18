@@ -1,5 +1,6 @@
 import { CompletionServiceDIToken } from "../Services/CompletionService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 // Тонкие экшены suggest-попапа поверх CompletionService (этап 10:

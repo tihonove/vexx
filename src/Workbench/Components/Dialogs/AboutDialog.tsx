@@ -57,7 +57,12 @@ export class AboutDialog extends DialogComponent {
                             bg={bg}
                             layout={{ width: "stretch", height: 1 }}
                         />
-                        <TextLabel text={REPO_URL} fg={styles.linkFg} bg={bg} layout={{ width: "stretch", height: 1 }} />
+                        <TextLabel
+                            text={REPO_URL}
+                            fg={styles.linkFg}
+                            bg={bg}
+                            layout={{ width: "stretch", height: 1 }}
+                        />
                         <TextLabel text="" fg={fg} bg={bg} layout={{ width: "stretch", height: 1 }} />
                         <HFlex layout={{ width: "stretch", height: 1 }}>
                             <TextLabel text="" fg={fg} bg={bg} layout={{ width: hflexFill(), height: 1 }} />

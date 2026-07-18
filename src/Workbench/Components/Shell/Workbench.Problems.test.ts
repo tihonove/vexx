@@ -1,18 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../../../Common/GeometryPromitives.ts";
+import type { EditorElement } from "../../../Editor/EditorElement.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { settle } from "../../../TestUtils/timing.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import { TreeViewElement } from "../../../TUIDom/Widgets/TreeViewElement.ts";
-
-import type { EditorElement } from "../../../Editor/EditorElement.ts";
 import { ProblemsComponent, ProblemsComponentDIToken } from "../../Components/Panel/ProblemsComponent.ts";
-import { WorkbenchComponent, WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
+import { createTestContainer } from "../../Modules/TestProfile.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
 import { SettingsResourceDIToken } from "../../Services/CoreTokens.ts";
-import { createTestContainer } from "../../Modules/TestProfile.ts";
+
+import { WorkbenchComponent, WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
 
 const UNKNOWN_SETTINGS = ["{", '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
 

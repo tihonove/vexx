@@ -128,7 +128,15 @@ describe("EmbeddedTerminalSession — sendMouse", () => {
         });
 
         expect(() => {
-            session.sendMouse({ col: 1, row: 1, button: "left", action: "down", ctrl: false, alt: false, shift: false });
+            session.sendMouse({
+                col: 1,
+                row: 1,
+                button: "left",
+                action: "down",
+                ctrl: false,
+                alt: false,
+                shift: false,
+            });
         }).not.toThrow();
         session.dispose();
     }, 15000);

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../../Common/GeometryPromitives.ts";
-import type { CellPatch } from "../../../Rendering/Grid.ts";
 import { DEFAULT_COLOR, packRgb } from "../../../Rendering/ColorUtils.ts";
+import type { CellPatch } from "../../../Rendering/Grid.ts";
 import { StyleFlags } from "../../../Rendering/StyleFlags.ts";
 import { TerminalScreen } from "../../../Rendering/TerminalScreen.ts";
 import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";

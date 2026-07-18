@@ -8,12 +8,7 @@ import { WorkbenchLayoutElement } from "../../TUIDom/Widgets/WorkbenchLayoutElem
 import { ContextKeyService } from "./ContextKeyService.ts";
 import { LayoutService } from "./LayoutService.ts";
 import { PanelService } from "./PanelService.ts";
-import {
-    PANEL_HEIGHT_STATE,
-    PANEL_VISIBLE_STATE,
-    SIDEBAR_VISIBLE_STATE,
-    SIDEBAR_WIDTH_STATE,
-} from "./StateKeys.ts";
+import { PANEL_HEIGHT_STATE, PANEL_VISIBLE_STATE, SIDEBAR_VISIBLE_STATE, SIDEBAR_WIDTH_STATE } from "./StateKeys.ts";
 
 describe("LayoutService", () => {
     let ws: ITempWorkspace;
@@ -164,13 +159,17 @@ describe("LayoutService", () => {
 
         it("visibility changes before attachLayout still update the context key", () => {
             const service = new LayoutService(state, panelService, contextKeys);
-            expect(() => service.setPanelVisible(true)).not.toThrow();
+            expect(() => {
+                service.setPanelVisible(true);
+            }).not.toThrow();
             expect(contextKeys.get("panelVisible")).toBe(true);
         });
     });
 
     it("throws when used before attachLayout", () => {
         const service = new LayoutService(state, panelService, contextKeys);
-        expect(() => service.toggleSidebar()).toThrow("attachLayout");
+        expect(() => {
+            service.toggleSidebar();
+        }).toThrow("attachLayout");
     });
 });

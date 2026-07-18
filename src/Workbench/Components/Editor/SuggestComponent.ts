@@ -3,7 +3,6 @@ import { Point } from "../../../Common/GeometryPromitives.ts";
 import type { BodyElement } from "../../../TUIDom/Widgets/BodyElement.ts";
 import { CompletionListElement } from "../../../TUIDom/Widgets/CompletionListElement.ts";
 import type { OverlayAnchorPosition, OverlaySessionHandle } from "../../../TUIDom/Widgets/OverlayLayer.ts";
-
 import { Component } from "../../Component.ts";
 
 export const SuggestComponentDIToken = token<SuggestComponent>("SuggestComponent");

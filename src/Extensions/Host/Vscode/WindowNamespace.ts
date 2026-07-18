@@ -249,8 +249,12 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
             };
             return {
                 name,
-                append: (value: string) => log(value),
-                appendLine: (value: string) => log(value),
+                append: (value: string) => {
+                    log(value);
+                },
+                appendLine: (value: string) => {
+                    log(value);
+                },
                 replace: () => {
                     /* no-op */
                 },

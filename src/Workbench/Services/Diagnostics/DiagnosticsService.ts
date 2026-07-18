@@ -6,8 +6,8 @@ import { Uri } from "../../../Common/Uri.ts";
 import { getDefaultConfiguration } from "../../../Configuration/defaults.ts";
 import type { IMarkerDecoration } from "../../../Editor/Markers/IMarker.ts";
 import type { MarkerService } from "../../../Editor/Markers/MarkerService.ts";
-
 import { MarkerServiceDIToken, SettingsResourceDIToken } from "../CoreTokens.ts";
+
 import { collectKnownSettingKeys, validateSettingsJson } from "./SettingsDiagnostics.ts";
 
 /** Marker owner used by the built-in settings.json validator. */
@@ -50,7 +50,11 @@ export const DiagnosticsServiceDIToken = token<DiagnosticsService>("DiagnosticsS
  * статус-бара).
  */
 export class DiagnosticsService extends Disposable {
-    public static dependencies = [DiagnosticsEditorSourceDIToken, MarkerServiceDIToken, SettingsResourceDIToken] as const;
+    public static dependencies = [
+        DiagnosticsEditorSourceDIToken,
+        MarkerServiceDIToken,
+        SettingsResourceDIToken,
+    ] as const;
 
     private editorSource: IDiagnosticsEditorSource;
     private markerService: MarkerService;

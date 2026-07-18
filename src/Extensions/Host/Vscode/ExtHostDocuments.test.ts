@@ -146,7 +146,10 @@ describe("ExtHostDocuments — ExtHostTextDocument", () => {
     });
 
     it("getText(range) через несколько строк включает промежуточные целиком", () => {
-        const doc = new DocumentRegistry().upsertFull({ uri: Uri.file("/a.ts").toString(), text: "one\ntwo\nthree\nfour" });
+        const doc = new DocumentRegistry().upsertFull({
+            uri: Uri.file("/a.ts").toString(),
+            text: "one\ntwo\nthree\nfour",
+        });
         expect(doc.getText(new Range(0, 1, 3, 2))).toBe("ne\ntwo\nthree\nfo");
     });
 });

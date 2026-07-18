@@ -5,9 +5,9 @@ import type { IPosition } from "../../Editor/IPosition.ts";
 import { comparePositions } from "../../Editor/IPosition.ts";
 import type { IRange } from "../../Editor/IRange.ts";
 import { createSelection } from "../../Editor/ISelection.ts";
-
 import type { FindComponent } from "../Components/Editor/FindComponent.ts";
 import { FindComponentDIToken } from "../Components/Editor/FindComponent.ts";
+
 import type { EditorService } from "./EditorService.ts";
 import { EditorServiceDIToken } from "./EditorService.ts";
 

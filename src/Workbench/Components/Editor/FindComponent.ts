@@ -5,7 +5,6 @@ import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import type { EditorGroupElement } from "../../../TUIDom/Widgets/EditorGroupElement.ts";
 import { FindWidgetElement } from "../../../TUIDom/Widgets/FindWidgetElement.ts";
 import type { OverlaySessionHandle } from "../../../TUIDom/Widgets/OverlayLayer.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 import { getFindWidgetStyles } from "../../Styles/defaultStyles.ts";
 

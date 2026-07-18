@@ -3,7 +3,6 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { Uri } from "../../Common/Uri.ts";
-
 import { createExtensionTestHarness } from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 
@@ -72,7 +71,10 @@ describe("vexx-settings — автодополнение ключей в setting
         try {
             await harness.host.activateByEvent("onLanguage:json");
             await settle();
-            const items = await harness.host.provideCompletionItems({ ...SETTINGS_REQ, uri: Uri.file("/proj/other.json").toString() });
+            const items = await harness.host.provideCompletionItems({
+                ...SETTINGS_REQ,
+                uri: Uri.file("/proj/other.json").toString(),
+            });
             expect(items).toEqual([]);
         } finally {
             await harness.dispose();

@@ -4,7 +4,6 @@ import { resolveUserDataPaths } from "../../../Common/UserDataPaths.ts";
 import { loadState, StateService } from "../../../Configuration/StateService.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
 import { EditorServiceDIToken } from "../../Services/EditorService.ts";
 
 /**
@@ -79,10 +78,7 @@ describe("Workbench — session state persistence", () => {
 
         // И он совпадает с тем, что реально откроется.
         h2.workbench.restoreOpenEditors();
-        expect(h2.container.get(EditorServiceDIToken).getOpenFilePaths()).toEqual([
-            ws.path("a.ts"),
-            ws.path("b.ts"),
-        ]);
+        expect(h2.container.get(EditorServiceDIToken).getOpenFilePaths()).toEqual([ws.path("a.ts"), ws.path("b.ts")]);
         h2.dispose();
     });
 

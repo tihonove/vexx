@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
-
 import * as path from "node:path";
+
+import { describe, expect, it } from "vitest";
 
 import { InMemoryFileClipboard } from "../../Common/InMemoryFileClipboard.ts";
 import type { LogEntry } from "../../Common/Logging/ILogService.ts";

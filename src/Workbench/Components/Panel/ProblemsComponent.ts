@@ -6,7 +6,6 @@ import type { ThemeService } from "../../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import { ScrollBarDecorator } from "../../../TUIDom/Widgets/ScrollContainerElement.ts";
 import { TreeViewElement } from "../../../TUIDom/Widgets/TreeViewElement.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 import { MarkerServiceDIToken } from "../../Services/CoreTokens.ts";
 import { type ProblemNode, ProblemsTreeDataProvider } from "../../Services/Diagnostics/ProblemsTreeDataProvider.ts";

@@ -1,4 +1,3 @@
-import { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -7,6 +6,7 @@ import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { EditorComponent } from "../Workbench/Components/Editor/EditorComponent.ts";
+import { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
 import { TextFileModel } from "../Workbench/Services/TextFile/TextFileModel.ts";
 import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 

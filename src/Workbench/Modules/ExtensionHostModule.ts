@@ -1,12 +1,10 @@
 import * as path from "node:path";
 
-import { Uri } from "../../Common/Uri.ts";
-
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { LogLevel } from "../../Common/Logging/LogLevel.ts";
+import { Uri } from "../../Common/Uri.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
-import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 import { CommandServiceAdapter } from "../../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorDecorationsServiceAdapter } from "../../Extensions/Host/EditorDecorationsServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../../Extensions/Host/EditorOptionsServiceAdapter.ts";
@@ -17,9 +15,10 @@ import {
 } from "../../Extensions/Host/ExtensionHost.ts";
 import { FileDecorationsServiceAdapter } from "../../Extensions/Host/FileDecorationsServiceAdapter.ts";
 import { ThemeColorResolverAdapter } from "../../Extensions/Host/ThemeColorResolverAdapter.ts";
+import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 import { CommandRegistryDIToken } from "../Services/CommandRegistry.ts";
-import { ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
+import { ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 
 /**
  * DI-модуль extension host'а. Связывает `EditorService` →

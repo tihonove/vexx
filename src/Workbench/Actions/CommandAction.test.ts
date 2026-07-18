@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Container, token } from "../../Common/DiContainer.ts";
-
-import type { CommandAction } from "./CommandAction.ts";
-import { combineWhen, registerAction } from "./CommandAction.ts";
 import { CommandRegistry } from "../Services/CommandRegistry.ts";
 import { ContextKeyService } from "../Services/ContextKeyService.ts";
 import type { KeyboardEventLike } from "../Services/KeybindingRegistry.ts";
 import { KeybindingRegistry, parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
+import { combineWhen, registerAction } from "./CommandAction.ts";
 
 // Maps the structured resolveKey result to a command id (or undefined).
 function resolve(

@@ -5,7 +5,6 @@ import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import type { BodyElement } from "../../../TUIDom/Widgets/BodyElement.ts";
 import type { OverlaySessionHandle } from "../../../TUIDom/Widgets/OverlayLayer.ts";
 import { QuickPickElement, unthemedQuickPickStyles } from "../../../TUIDom/Widgets/QuickPickElement.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 
 export const QuickInputComponentDIToken = token<QuickInputComponent>("QuickInputComponent");

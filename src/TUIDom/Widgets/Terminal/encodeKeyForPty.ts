@@ -10,7 +10,7 @@
 
 import type { TUIKeyboardEvent } from "../../Events/TUIKeyboardEvent.ts";
 
-const SPECIAL: Record<string, string> = {
+const SPECIAL: Record<string, string | undefined> = {
     Enter: "\r",
     Backspace: "\x7f",
     Tab: "\t",

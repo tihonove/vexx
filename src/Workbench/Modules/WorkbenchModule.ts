@@ -1,4 +1,8 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
+import { WorkspaceFolderOpenerDIToken } from "../Actions/FileActions.ts";
+import { EditorGroupComponent, EditorGroupComponentDIToken } from "../Components/Editor/EditorGroupComponent.ts";
+import { FindComponent, FindComponentDIToken } from "../Components/Editor/FindComponent.ts";
+import { SuggestComponent, SuggestComponentDIToken } from "../Components/Editor/SuggestComponent.ts";
 import { ExplorerComponent, ExplorerComponentDIToken } from "../Components/Explorer/ExplorerComponent.ts";
 import { PanelComponent, PanelComponentDIToken } from "../Components/Panel/PanelComponent.ts";
 import {
@@ -6,39 +10,33 @@ import {
     ProblemsComponent,
     ProblemsComponentDIToken,
 } from "../Components/Panel/ProblemsComponent.ts";
-import {
-    TerminalPanelComponent,
-    TerminalPanelComponentDIToken,
-} from "../Components/Panel/TerminalPanelComponent.ts";
-import {
-    QuickInputComponent,
-    QuickInputComponentDIToken,
-} from "../Components/QuickInput/QuickInputComponent.ts";
+import { TerminalPanelComponent, TerminalPanelComponentDIToken } from "../Components/Panel/TerminalPanelComponent.ts";
+import { QuickInputComponent, QuickInputComponentDIToken } from "../Components/QuickInput/QuickInputComponent.ts";
+import { MenuBarComponent, MenuBarComponentDIToken } from "../Components/Shell/MenuBarComponent.ts";
+import { WorkbenchComponent, WorkbenchComponentDIToken } from "../Components/Shell/WorkbenchComponent.ts";
 import { StatusBarComponent, StatusBarComponentDIToken } from "../Components/StatusBar/StatusBarComponent.ts";
-import { WorkspaceFolderOpenerDIToken } from "../Actions/FileActions.ts";
-import {
-    ActiveEditorStatusSourceDIToken,
-    EditorStatusContribution,
-    EditorStatusContributionDIToken,
-} from "../Services/EditorStatusContribution.ts";
+import { CompletionService, CompletionServiceDIToken } from "../Services/CompletionService.ts";
 import {
     DiagnosticsEditorSourceDIToken,
     DiagnosticsService,
     DiagnosticsServiceDIToken,
 } from "../Services/Diagnostics/DiagnosticsService.ts";
 import { DialogService, DialogServiceDIToken } from "../Services/DialogService.ts";
+import { EditorService, EditorServiceDIToken } from "../Services/EditorService.ts";
+import {
+    ActiveEditorStatusSourceDIToken,
+    EditorStatusContribution,
+    EditorStatusContributionDIToken,
+} from "../Services/EditorStatusContribution.ts";
 import { ExplorerService, ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 import { FileOperationsService, FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
 import { FileSearchService, FileSearchServiceDIToken } from "../Services/FileSearchService.ts";
+import { FindService, FindServiceDIToken } from "../Services/FindService.ts";
 import { InputWidgetService, InputWidgetServiceDIToken } from "../Services/InputWidgetService.ts";
 import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../Services/KeybindingDispatcher.ts";
-import { LifecycleService, LifecycleServiceDIToken } from "../Services/LifecycleService.ts";
 import { LayoutService, LayoutServiceDIToken } from "../Services/LayoutService.ts";
+import { LifecycleService, LifecycleServiceDIToken } from "../Services/LifecycleService.ts";
 import { MenuService, MenuServiceDIToken } from "../Services/MenuService.ts";
-import {
-    MenuBarComponent,
-    MenuBarComponentDIToken,
-} from "../Components/Shell/MenuBarComponent.ts";
 import { PanelService, PanelServiceDIToken } from "../Services/PanelService.ts";
 import { QuickInputService, QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
 import {
@@ -54,27 +52,8 @@ import {
     TerminalEnvStatusContribution,
     TerminalEnvStatusContributionDIToken,
 } from "../Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
-import {
-    EditorGroupComponent,
-    EditorGroupComponentDIToken,
-} from "../Components/Editor/EditorGroupComponent.ts";
-import { FindComponent, FindComponentDIToken } from "../Components/Editor/FindComponent.ts";
-import { SuggestComponent, SuggestComponentDIToken } from "../Components/Editor/SuggestComponent.ts";
-import { CompletionService, CompletionServiceDIToken } from "../Services/CompletionService.ts";
-import { EditorService, EditorServiceDIToken } from "../Services/EditorService.ts";
-import { FindService, FindServiceDIToken } from "../Services/FindService.ts";
-import {
-    WorkbenchContextKeys,
-    WorkbenchContextKeysDIToken,
-} from "../Services/WorkbenchContextKeys.ts";
-import {
-    WorkbenchStateService,
-    WorkbenchStateServiceDIToken,
-} from "../Services/WorkbenchStateService.ts";
-import {
-    WorkbenchComponent,
-    WorkbenchComponentDIToken,
-} from "../Components/Shell/WorkbenchComponent.ts";
+import { WorkbenchContextKeys, WorkbenchContextKeysDIToken } from "../Services/WorkbenchContextKeys.ts";
+import { WorkbenchStateService, WorkbenchStateServiceDIToken } from "../Services/WorkbenchStateService.ts";
 
 /**
  * Пары Service ↔ Component слоя Workbench (пилот — статус-бар, этап 4

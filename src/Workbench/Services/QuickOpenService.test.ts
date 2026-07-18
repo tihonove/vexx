@@ -10,8 +10,8 @@ import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
 import { InputElement } from "../../TUIDom/Widgets/InputElement.ts";
 import type { QuickPickElement, QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
-
 import { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
+
 import { CommandRegistry } from "./CommandRegistry.ts";
 import { ContextKeyService } from "./ContextKeyService.ts";
 import type { FileSearchEntry, FileSearchResult, FileSearchService } from "./FileSearchService.ts";
@@ -98,7 +98,18 @@ function createService(fileResults: FileSearchResult[] = []): {
     const testApp = TestApp.create(body, new Size(80, 24));
     component.attachHost(body);
 
-    return { service, commands, keybindings, contextKeys, body, testApp, fileSearch, component, view: component.view, gotoSource };
+    return {
+        service,
+        commands,
+        keybindings,
+        contextKeys,
+        body,
+        testApp,
+        fileSearch,
+        component,
+        view: component.view,
+        gotoSource,
+    };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────

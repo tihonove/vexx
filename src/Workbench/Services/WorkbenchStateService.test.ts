@@ -110,7 +110,7 @@ describe("WorkbenchStateService", () => {
             make().restoreOpenEditors();
 
             expect(group.opened.map((o) => o.path)).toEqual([a, b]); // missing filtered out
-            expect(group.opened.every((o) => o.focus === false)).toBe(true);
+            expect(group.opened.every((o) => !o.focus)).toBe(true);
             expect(group.activated).toEqual([{ index: 1, focus: false }]); // b survives at index 1
         });
 
@@ -159,7 +159,7 @@ describe("WorkbenchStateService", () => {
         state.flushSync();
 
         const stateFile = resolveWorkspaceStatePath(paths.workspaceStorageDir, "/projects/gamma");
-        const onDisk = JSON.parse(fs.readFileSync(stateFile, "utf-8"));
+        const onDisk = JSON.parse(fs.readFileSync(stateFile, "utf-8")) as Record<string, unknown>;
         expect(onDisk["workbench.editors.openEditors"]).toEqual({ files: ["/projects/gamma/x.ts"], activeIndex: 0 });
     });
 });

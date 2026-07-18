@@ -2,10 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { MockTerminalBackend } from "../../../Backend/MockTerminalBackend.ts";
 import { createAppTestHarness } from "../../../TestUtils/AppTestHarness.ts";
+import { StatusBarComponentDIToken } from "../../Components/StatusBar/StatusBarComponent.ts";
 import { registerContextKeys } from "../ContextKeys.ts";
 import { ContextKeyServiceDIToken } from "../ContextKeyService.ts";
 import { TerminalBackendDIToken } from "../CoreTokens.ts";
-import { StatusBarComponentDIToken } from "../../Components/StatusBar/StatusBarComponent.ts";
 
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironmentService.ts";
 

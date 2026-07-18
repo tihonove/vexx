@@ -88,9 +88,7 @@ describe("ExtensionHost — decorations bridge (subprocess)", () => {
             expect(call).toBeDefined();
             // gutter-тип дал два диапазона (строки 1 и 3); «плоский» тип без
             // overviewRulerColor не проецируется вовсе.
-            expect(
-                call!.decorations.map((d) => ({ line: d.range.start.line, color: d.color })),
-            ).toEqual([
+            expect(call!.decorations.map((d) => ({ line: d.range.start.line, color: d.color }))).toEqual([
                 { line: 1, color: MODIFIED_GUTTER },
                 { line: 3, color: MODIFIED_GUTTER },
             ]);

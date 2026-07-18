@@ -49,7 +49,18 @@ function createHarness() {
         }
     };
     const statusTexts = (): string[] => statusBar.entries().map((e) => e.text);
-    return { keybindings, contextKeys, commands, statusBar, armory, dispatcher, executed, extendedKeysCalls, bind, statusTexts };
+    return {
+        keybindings,
+        contextKeys,
+        commands,
+        statusBar,
+        armory,
+        dispatcher,
+        executed,
+        extendedKeysCalls,
+        bind,
+        statusTexts,
+    };
 }
 
 afterEach(() => {

@@ -4,10 +4,8 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Uri } from "../../../Common/Uri.ts";
-
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
 import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "../../../Workbench/Services/Workspace/UndoRedoService.ts";
 
 let tmpDir: string;

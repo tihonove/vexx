@@ -11,12 +11,12 @@
 
 import { chmodSync, existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
 import { tmpdir } from "node:os";
-
-import { isSeaBinary } from "../../../Common/IsSea.ts";
+import { dirname, join } from "node:path";
 
 import type { IPty, IPtyForkOptions, IWindowsPtyForkOptions } from "node-pty";
+
+import { isSeaBinary } from "../../../Common/IsSea.ts";
 
 export type PtySpawn = (
     file: string,

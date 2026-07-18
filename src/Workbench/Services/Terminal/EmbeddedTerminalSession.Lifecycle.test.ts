@@ -164,13 +164,17 @@ describe("EmbeddedTerminalSession — resize", () => {
         [40, 0],
         [-1, 6],
         [40, -1],
-    ])("игнорирует неположительный размер %ix%i", async (cols, rows) => {
-        const session = liveSession();
-        // Курсор остаётся читаемым — значит эмулятор не пересобрали под мусорный размер.
-        session.resize(cols, rows);
-        expect(session.getCursor()).not.toBeNull();
-        session.dispose();
-    }, 20000);
+    ])(
+        "игнорирует неположительный размер %ix%i",
+        async (cols, rows) => {
+            const session = liveSession();
+            // Курсор остаётся читаемым — значит эмулятор не пересобрали под мусорный размер.
+            session.resize(cols, rows);
+            expect(session.getCursor()).not.toBeNull();
+            session.dispose();
+        },
+        20000,
+    );
 
     it("no-op при совпадении размера с текущим", async () => {
         const session = liveSession();

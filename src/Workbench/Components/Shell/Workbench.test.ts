@@ -7,10 +7,10 @@ import { TUIKeyboardEvent } from "../../../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { EditorTabStripElement } from "../../../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { QuickPickElement } from "../../../TUIDom/Widgets/QuickPickElement.ts";
 import type { StatusBarElement } from "../../../TUIDom/Widgets/StatusBarElement.ts";
-
-import { WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
 import { createTestContainer } from "../../Modules/TestProfile.ts";
 import { TerminalEnvironmentServiceDIToken } from "../../Services/TerminalEnvironment/TerminalEnvironmentService.ts";
+
+import { WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
 
 describe("Workbench integration", () => {
     it("creates UI tree with menubar and editor", () => {
@@ -484,6 +484,4 @@ describe("Workbench — completion wiring", () => {
         h.workbench.focusEditor();
         expect(() => h.commands.execute("editor.action.triggerSuggest")).not.toThrow();
     });
-
 });
-

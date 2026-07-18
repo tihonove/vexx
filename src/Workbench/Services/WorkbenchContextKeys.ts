@@ -10,9 +10,9 @@ import { TreeViewElement } from "../../TUIDom/Widgets/TreeViewElement.ts";
 
 import type { CompletionService } from "./CompletionService.ts";
 import { CompletionServiceDIToken } from "./CompletionService.ts";
+import { registerContextKeys } from "./ContextKeys.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
-import { registerContextKeys } from "./ContextKeys.ts";
 import type { EditorService } from "./EditorService.ts";
 import { EditorServiceDIToken } from "./EditorService.ts";
 import type { FindService } from "./FindService.ts";

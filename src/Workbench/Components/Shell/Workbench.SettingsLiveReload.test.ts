@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { resolveUserDataPaths } from "../../../Common/UserDataPaths.ts";
 import {
+    type ConfigurationService,
     createConfigurationChangeEvent,
     loadConfiguration,
-    type ConfigurationService,
 } from "../../../Configuration/ConfigurationService.ts";
 import type { IConfigurationChangeEvent, IConfigurationService } from "../../../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../../Configuration/NullConfigurationService.ts";

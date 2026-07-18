@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Uri } from "../../Common/Uri.ts";
-
 import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
@@ -120,7 +119,13 @@ describe("EditorOptionsServiceAdapter", () => {
         expect(registered).toBeDefined();
 
         // Active editor present → its meta is forwarded.
-        registered!({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false, encoding: "utf8", eol: 1 });
+        registered!({
+            uri: Uri.file("/a/b.ts"),
+            languageId: "typescript",
+            isModified: false,
+            encoding: "utf8",
+            eol: 1,
+        });
         // No active editor → nulls are forwarded.
         registered!(null);
 

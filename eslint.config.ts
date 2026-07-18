@@ -12,6 +12,7 @@ export default tseslint.config(
             "*.config.*",
             "src/Extensions/Api/vscode.d.ts",
             "src/Extensions/Host/__fixtures__/*.cjs",
+            "src/Extensions/builtin/*/out/",
         ],
     },
 

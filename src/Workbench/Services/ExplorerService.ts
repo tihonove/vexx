@@ -49,7 +49,11 @@ export class ExplorerService extends Disposable {
     private readonly configurationService: IConfigurationService;
     private readonly watcherLogger: ILogger;
 
-    public constructor(fileClipboard: IFileClipboard, configurationService: IConfigurationService, logService: ILogService) {
+    public constructor(
+        fileClipboard: IFileClipboard,
+        configurationService: IConfigurationService,
+        logService: ILogService,
+    ) {
         super();
         this.configurationService = configurationService;
         this.watcherLogger = logService.createLogger("filetree.watcher");

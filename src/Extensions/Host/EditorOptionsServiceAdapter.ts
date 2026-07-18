@@ -38,7 +38,7 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     public getActiveEditorFilePath(): string | null {
         const uri = this.group.getActiveEditor()?.uri;
         // Потребитель (editorconfig) ждёт путь на диске; у безымянного буфера его нет.
-        return uri !== undefined && uri.scheme === "file" ? uri.fsPath : null;
+        return uri?.scheme === "file" ? uri.fsPath : null;
     }
 
     public getActiveEditorMeta(): IActiveEditorMeta {

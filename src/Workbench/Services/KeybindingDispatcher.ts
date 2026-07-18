@@ -99,7 +99,9 @@ export class KeybindingDispatcher extends Disposable {
      * Хук владельца view: обновить контекстные ключи (фокус/панели/окружение) перед
      * резолвом биндинга. WorkbenchComponent подставляет свой updateContextKeys().
      */
-    public updateContextKeys: () => void = () => {};
+    public updateContextKeys: () => void = () => {
+        /* по умолчанию no-op; владелец view подставляет свою реализацию */
+    };
 
     /**
      * Хук владельца view: владеет ли клавиатурой модальный оверлей (quickpick / диалог /
@@ -236,9 +238,7 @@ export class KeybindingDispatcher extends Disposable {
             }
             // Prefix key of a chord — swallow its keypress and wait for the next.
             this.swallowNextKeyPress = true;
-            this.setChordHint(
-                `(${formatKeybinding(res.chord)}) was pressed. Waiting for next key…`,
-            );
+            this.setChordHint(`(${formatKeybinding(res.chord)}) was pressed. Waiting for next key…`);
             this.startChordTimeout();
             return true;
         }
@@ -274,8 +274,7 @@ export class KeybindingDispatcher extends Disposable {
             // not also insert a newline/character behind the command. Gated on
             // textInputFocus to keep inputs/lists/find untouched.
             const wouldType =
-                event.key === "Enter" ||
-                (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey);
+                event.key === "Enter" || (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey);
             if (wouldType && this.contextKeys.get("textInputFocus") === true) {
                 this.swallowNextKeyPress = true;
             }

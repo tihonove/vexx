@@ -1,6 +1,6 @@
 import { Uri } from "../../Common/Uri.ts";
-import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
+import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 
 import type { IEditorDecorationsService } from "./IEditorDecorationsService.ts";
 

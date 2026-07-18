@@ -11,7 +11,6 @@ import { PopupMenuElement } from "../../../TUIDom/Widgets/PopupMenuElement.ts";
 import { ScrollBarDecorator } from "../../../TUIDom/Widgets/ScrollContainerElement.ts";
 import { TitledPanelElement } from "../../../TUIDom/Widgets/TitledPanelElement.ts";
 import { TreeViewElement } from "../../../TUIDom/Widgets/TreeViewElement.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";

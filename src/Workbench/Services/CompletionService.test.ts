@@ -1,16 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Uri } from "../../Common/Uri.ts";
-
 import { Size } from "../../Common/GeometryPromitives.ts";
+import { Uri } from "../../Common/Uri.ts";
 import type { ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
 import type { ITextEdit } from "../../Editor/ITextEdit.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
-
 import type { EditorPane } from "../Components/Editor/EditorPane.ts";
 import { SuggestComponent } from "../Components/Editor/SuggestComponent.ts";
+
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CompletionService } from "./CompletionService.ts";
 import type { EditorService } from "./EditorService.ts";
@@ -575,7 +574,7 @@ describe("CompletionService", () => {
 
     it("авто-suggest не срабатывает при не-одиночной/небуквенной вставке", async () => {
         // Каждая ветка эвристики isSingleWordCharInsert, из закрытого состояния.
-        const cases: Array<[string, number, number]> = [
+        const cases: [string, number, number][] = [
             ["x", 1, 1], // другая строка
             ["indee", 5, 0], // каретка не +1
             ["inXde", 4, 0], // длина не +1 (вставка не у каретки)

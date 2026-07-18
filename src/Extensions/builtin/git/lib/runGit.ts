@@ -41,10 +41,7 @@ const inFlight = new Map<string, Promise<IRunGitResult | IRunGitError>>();
  *
  * Concurrent identical calls are de-duplicated by `(cwd, args)`.
  */
-export function runGit(
-    args: string[],
-    opts: IRunGitOptions = {},
-): Promise<IRunGitResult | IRunGitError> {
+export function runGit(args: string[], opts: IRunGitOptions = {}): Promise<IRunGitResult | IRunGitError> {
     const key = JSON.stringify([opts.cwd ?? "", args]);
     const existing = inFlight.get(key);
     if (existing) return existing;
@@ -56,10 +53,7 @@ export function runGit(
     return promise;
 }
 
-function spawnGit(
-    args: string[],
-    opts: IRunGitOptions,
-): Promise<IRunGitResult | IRunGitError> {
+function spawnGit(args: string[], opts: IRunGitOptions): Promise<IRunGitResult | IRunGitError> {
     return new Promise((resolve) => {
         const child = spawn("git", args, { cwd: opts.cwd, env: opts.env });
 
@@ -78,16 +72,18 @@ function spawnGit(
             resolve(value);
         };
 
-        child.stdout!.on("data", (chunk: Buffer) => stdout.push(chunk));
-        child.stderr!.on("data", (chunk: Buffer) => stderr.push(chunk));
+        child.stdout.on("data", (chunk: Buffer) => stdout.push(chunk));
+        child.stderr.on("data", (chunk: Buffer) => stderr.push(chunk));
 
-        child.on("error", (error) => finish({ error }));
-        child.on("close", (code) =>
+        child.on("error", (error) => {
+            finish({ error });
+        });
+        child.on("close", (code) => {
             finish({
                 code: code ?? -1,
                 stdout: Buffer.concat(stdout).toString("utf8"),
                 stderr: Buffer.concat(stderr).toString("utf8"),
-            }),
-        );
+            });
+        });
     });
 }

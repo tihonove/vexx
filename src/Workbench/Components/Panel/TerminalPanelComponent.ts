@@ -3,7 +3,6 @@ import { Disposable } from "../../../Common/Disposable.ts";
 import type { ThemeService } from "../../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import { TerminalViewElement } from "../../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
-
 import type { PanelService } from "../../Services/PanelService.ts";
 import { PanelServiceDIToken } from "../../Services/PanelService.ts";
 import type { ITerminalInstance, TerminalService } from "../../Services/Terminal/TerminalService.ts";

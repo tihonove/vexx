@@ -1,7 +1,8 @@
-import type { CommandAction } from "./CommandAction.ts";
 import { ClipboardDIToken } from "../Services/CoreTokens.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 export const clipboardCopyAction: CommandAction = {
     id: "editor.action.clipboardCopyAction",

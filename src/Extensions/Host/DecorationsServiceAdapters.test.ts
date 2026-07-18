@@ -1,16 +1,15 @@
-import { describe, expect, it } from "vitest";
-
 import * as path from "node:path";
 
-import { Uri } from "../../Common/Uri.ts";
+import { describe, expect, it } from "vitest";
 
-import type { EditorService } from "../../Workbench/Services/EditorService.ts";
+import { Uri } from "../../Common/Uri.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import { createRange } from "../../Editor/IRange.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { lightPlusTheme } from "../../Theme/themes/lightPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
+import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 
 import { EditorDecorationsServiceAdapter } from "./EditorDecorationsServiceAdapter.ts";
 import { FileDecorationsServiceAdapter } from "./FileDecorationsServiceAdapter.ts";
@@ -72,7 +71,9 @@ describe("EditorDecorationsServiceAdapter", () => {
             getEditor: (i: number) => (i === 0 ? fakeEditor(Uri.file("/proj/a.ts")) : null),
         };
         const adapter = new EditorDecorationsServiceAdapter(group as unknown as EditorService);
-        expect(() => adapter.setGutterChangeDecorations(Uri.file("/proj/a.ts").toString(), [])).not.toThrow();
+        expect(() => {
+            adapter.setGutterChangeDecorations(Uri.file("/proj/a.ts").toString(), []);
+        }).not.toThrow();
     });
 });
 

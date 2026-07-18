@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { OscClipboard } from "../../Common/OscClipboard.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { createCursorSelection, createSelection } from "../../Editor/ISelection.ts";
@@ -12,16 +13,15 @@ import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWo
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { CommandAction } from "./CommandAction.ts";
-import { registerAction } from "./CommandAction.ts";
 import { CommandRegistry } from "../Services/CommandRegistry.ts";
 import { ClipboardDIToken } from "../Services/CoreTokens.ts";
 import { EditorService, EditorServiceDIToken } from "../Services/EditorService.ts";
-import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { KeybindingRegistry } from "../Services/KeybindingRegistry.ts";
 import { UndoRedoService } from "../Services/Workspace/UndoRedoService.ts";
 
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./ClipboardActions.ts";
+import type { CommandAction } from "./CommandAction.ts";
+import { registerAction } from "./CommandAction.ts";
 
 /** A real (in-memory) clipboard — not a spy. */
 function memoryClipboard(initial = ""): IClipboard {

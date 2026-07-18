@@ -2,6 +2,7 @@ import * as path from "node:path";
 
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
+import type { IFileWatcher } from "../../Common/IFileWatcher.ts";
 import { Uri } from "../../Common/Uri.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
@@ -12,16 +13,14 @@ import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleR
 import type { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
 import type { ThemeService } from "../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
-
 import { EditorComponent } from "../Components/Editor/EditorComponent.ts";
 import { EditorPane } from "../Components/Editor/EditorPane.ts";
 import type { IActivatable } from "../IActivatable.ts";
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
-import { TextFileModel } from "./TextFile/TextFileModel.ts";
-import type { IFileWatcher } from "../../Common/IFileWatcher.ts";
 
+import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { IFileWatcherDIToken } from "./IFileWatcherDIToken.ts";
 import type { IShutdownDirtyItem, IShutdownParticipant } from "./LifecycleService.ts";
+import { TextFileModel } from "./TextFile/TextFileModel.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
 export const EditorServiceDIToken = token<EditorService>("EditorService");

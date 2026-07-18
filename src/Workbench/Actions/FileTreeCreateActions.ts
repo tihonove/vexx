@@ -1,5 +1,6 @@
-import type { CommandAction } from "./CommandAction.ts";
 import { FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 /**
  * Команды создания в explorer поверх `FileOperationsService.runCreate` (промпт

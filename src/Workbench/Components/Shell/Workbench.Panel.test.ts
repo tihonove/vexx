@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { PanelContainerElement } from "../../../TUIDom/Widgets/PanelContainerElement.ts";
-
 import { PROBLEMS_VIEW_ID } from "../../Components/Panel/ProblemsComponent.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "../../Services/ContextKeyService.ts";
 

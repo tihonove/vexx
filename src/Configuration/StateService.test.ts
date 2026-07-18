@@ -4,7 +4,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ILogger } from "../Common/Logging/ILogger.ts";
-import { resolveUserDataPaths, resolveWorkspaceStatePath, type IUserDataPaths } from "../Common/UserDataPaths.ts";
+import { type IUserDataPaths, resolveUserDataPaths, resolveWorkspaceStatePath } from "../Common/UserDataPaths.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import type { IStateDescriptor } from "./IStateService.ts";
@@ -128,7 +128,7 @@ describe("StateService", () => {
         svc.store(width, 33);
         svc.flushSync();
 
-        const onDisk = JSON.parse(fs.readFileSync(p.globalStateFile, "utf-8"));
+        const onDisk = JSON.parse(fs.readFileSync(p.globalStateFile, "utf-8")) as Record<string, unknown>;
         expect(onDisk["future.unknown.key"]).toEqual({ a: 1 });
         expect(onDisk["workbench.sideBar.width"]).toBe(33);
     });
@@ -164,7 +164,10 @@ describe("StateService", () => {
                 logger,
             });
             expect(svc.get(width)).toBe(30);
-            expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to read state file"), expect.anything());
+            expect(logger.error).toHaveBeenCalledWith(
+                expect.stringContaining("Failed to read state file"),
+                expect.anything(),
+            );
         });
     });
 
@@ -180,7 +183,10 @@ describe("StateService", () => {
         });
         svc.store(width, 99);
         svc.flushSync();
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to write state file"), expect.anything());
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to write state file"),
+            expect.anything(),
+        );
     });
 
     describe("versioning / migration", () => {
@@ -253,7 +259,10 @@ describe("StateService", () => {
         fs.writeFileSync(subAsFile, "x");
         svc.store(width, 5);
         await waitFor(() => (logger.error as ReturnType<typeof vi.fn>).mock.calls.length > 0);
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Failed to write state file"), expect.anything());
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining("Failed to write state file"),
+            expect.anything(),
+        );
     });
 
     it("writes dirty stores on the debounced timer (without an explicit flush)", async () => {

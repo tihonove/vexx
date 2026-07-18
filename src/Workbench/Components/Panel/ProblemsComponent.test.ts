@@ -8,12 +8,12 @@ import { MarkerSeverity } from "../../../Editor/Markers/IMarker.ts";
 import { MarkerService } from "../../../Editor/Markers/MarkerService.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { settle } from "../../../TestUtils/timing.ts";
-import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
-
 import type { ProblemNode } from "../../Services/Diagnostics/ProblemsTreeDataProvider.ts";
 import { PanelService } from "../../Services/PanelService.ts";
+
 import { PanelComponent } from "./PanelComponent.ts";
 import { type IMarkerRevealEditor, ProblemsComponent } from "./ProblemsComponent.ts";
 

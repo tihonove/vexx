@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { EndOfLine } from "../../../Editor/EndOfLine.ts";
 
-import type { StatusBarComponent } from "./StatusBarComponent.ts";
 import { createStatusBarHarness } from "./StatusBarComponent.TestUtils.ts";
+import type { StatusBarComponent } from "./StatusBarComponent.ts";
 
 function itemTexts(component: StatusBarComponent): string[] {
     return component.view.getItems().map((item) => item.text);

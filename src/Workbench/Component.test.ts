@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { ThemeService } from "../Theme/ThemeService.ts";
 import { dark2026Theme } from "../Theme/themes/dark2026.ts";
 import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TUIElement } from "../TUIDom/TUIElement.ts";
 

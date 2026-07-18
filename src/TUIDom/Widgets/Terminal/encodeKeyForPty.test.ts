@@ -85,7 +85,7 @@ describe("encodeKeyForPty", () => {
         ["F5", {}],
         ["Unknown", {}],
         ["1", { ctrlKey: true }], // Ctrl+цифра — не транслируем
-    ])("returns \"\" for unhandled combo %s", (key, mods: Mods) => {
+    ])('returns "" for unhandled combo %s', (key, mods: Mods) => {
         expect(encode(key, mods)).toBe("");
     });
 });

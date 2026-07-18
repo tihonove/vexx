@@ -4,12 +4,10 @@ import iconv from "iconv-lite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Uri } from "../../../Common/Uri.ts";
-
 import { createRange } from "../../../Editor/IRange.ts";
 import { createTextEdit } from "../../../Editor/ITextEdit.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
 import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 describe("TextFileModel — encoding axis", () => {
     let ws: ITempWorkspace;
@@ -35,7 +33,7 @@ describe("TextFileModel — encoding axis", () => {
     });
 
     it("детектит utf8bom / utf16le / utf16be по BOM при открытии", () => {
-        const cases: Array<[string, Buffer]> = [
+        const cases: [string, Buffer][] = [
             ["utf8bom", Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("hi", "utf8")])],
             ["utf16le", Buffer.concat([Buffer.from([0xff, 0xfe]), iconv.encode("hi", "utf16le")])],
             ["utf16be", Buffer.concat([Buffer.from([0xfe, 0xff]), iconv.encode("hi", "utf16-be")])],

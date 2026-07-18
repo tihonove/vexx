@@ -40,7 +40,7 @@ describe("Uri — не-file схемы", () => {
     });
 
     it("parse() разбирает git: и достаёт состояние из query", () => {
-        const u = Uri.parse('git:/foo.ts?%7B%22ref%22%3A%22HEAD%22%7D');
+        const u = Uri.parse("git:/foo.ts?%7B%22ref%22%3A%22HEAD%22%7D");
         expect(u.scheme).toBe("git");
         expect(u.path).toBe("/foo.ts");
         expect(u.query).toBe('{"ref":"HEAD"}');
@@ -73,7 +73,7 @@ describe("Uri — round-trip", () => {
         "untitled:Untitled-1",
         "output:extension-output-vexx",
         "vscode-vfs://github/owner/repo/f.ts",
-        'git:/foo.ts?%7B%22ref%22%3A%22HEAD%22%7D',
+        "git:/foo.ts?%7B%22ref%22%3A%22HEAD%22%7D",
     ])("parse(toString(%s)) даёт исходный uri", (raw) => {
         expect(Uri.parse(raw).toString()).toBe(raw);
     });

@@ -215,7 +215,11 @@ export class ExtensionHost extends Disposable {
         this.fileDecorations = options.fileDecorations ?? NULL_FILE_DECORATIONS_SERVICE;
         this.themeColorResolver = options.themeColorResolver ?? NULL_THEME_COLOR_RESOLVER;
         // Смена темы → пере-резолв держимых декораций в обе поверхности.
-        this.register(this.themeColorResolver.onDidChange(() => this.repushAllDecorations()));
+        this.register(
+            this.themeColorResolver.onDidChange(() => {
+                this.repushAllDecorations();
+            }),
+        );
     }
 
     /**

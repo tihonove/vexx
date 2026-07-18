@@ -99,6 +99,14 @@ export const SUPPORTED_ENCODINGS: readonly IEncodingInfo[] = [
 
 const encodingsById = new Map(SUPPORTED_ENCODINGS.map((info) => [info.id, info]));
 
+function requireEncodingInfo(id: string): IEncodingInfo {
+    const info = encodingsById.get(id);
+    /* v8 ignore start -- вызывается только с табличными id (explicit проверен has(), сниф/DEFAULT — элементы таблицы); throw — недостижимый инвариант-гард */
+    if (info === undefined) throw new Error(`No encoding info for id: ${id}`);
+    /* v8 ignore stop */
+    return info;
+}
+
 /** Resolves an encoding id to its table entry, or undefined for unknown ids. */
 export function getEncodingInfo(id: string): IEncodingInfo | undefined {
     return encodingsById.get(id);
@@ -145,8 +153,9 @@ export function decodeBuffer(buffer: Buffer, explicitEncoding?: string): { text:
 
     // По построению encoding здесь всегда табличный id: explicit проверен через
     // has(), значения снифа и DEFAULT_ENCODING — элементы таблицы.
-    const info = encodingsById.get(encoding)!;
-    const body = info.bom !== undefined && startsWithBytes(buffer, info.bom) ? buffer.subarray(info.bom.length) : buffer;
+    const info = requireEncodingInfo(encoding);
+    const body =
+        info.bom !== undefined && startsWithBytes(buffer, info.bom) ? buffer.subarray(info.bom.length) : buffer;
     return { text: iconv.decode(body, info.iconvName, { stripBOM: false }), encoding: info.id };
 }
 
@@ -158,7 +167,7 @@ export function decodeBuffer(buffer: Buffer, explicitEncoding?: string): { text:
  * replacement ("?").
  */
 export function encodeText(text: string, encoding: string): Buffer {
-    const info = encodingsById.get(encoding) ?? encodingsById.get(DEFAULT_ENCODING)!;
+    const info = encodingsById.get(encoding) ?? requireEncodingInfo(DEFAULT_ENCODING);
     const body = iconv.encode(text, info.iconvName, { addBOM: false });
     if (info.bom === undefined) return body;
     return Buffer.concat([Buffer.from(info.bom), body]);

@@ -13,8 +13,9 @@ import type { IMarkerDecoration } from "../../../Editor/Markers/IMarker.ts";
 import type { OverlayAnchorPosition } from "../../../TUIDom/Widgets/OverlayLayer.ts";
 import type { MenuEntry } from "../../../TUIDom/Widgets/PopupMenuElement.ts";
 import type { ScrollBarDecorator } from "../../../TUIDom/Widgets/ScrollContainerElement.ts";
-import type { EditorComponent } from "./EditorComponent.ts";
 import type { SaveOutcome, TextFileModel } from "../../Services/TextFile/TextFileModel.ts";
+
+import type { EditorComponent } from "./EditorComponent.ts";
 
 /**
  * Пара «модель + view-компонент» одного открытого редактора (аналог editor

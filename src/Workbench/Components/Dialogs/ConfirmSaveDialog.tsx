@@ -84,7 +84,14 @@ export class ConfirmSaveDialog extends DialogComponent {
         const filenameText = "   " + filenameDisplay + "?";
 
         return (
-            <BoxContainer bg={bg} fg={fg} borderFg={styles.borderFg} title="Visual Studio Code" titleFg={fg} hasSeparator>
+            <BoxContainer
+                bg={bg}
+                fg={fg}
+                borderFg={styles.borderFg}
+                title="Visual Studio Code"
+                titleFg={fg}
+                hasSeparator
+            >
                 <PaddingContainer left={2} right={2} bg={bg}>
                     <VStack>
                         <TextLabel

@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Uri } from "../../../Common/Uri.ts";
-
 import type { IDocumentLanguageChange } from "../../../Editor/IDocumentLanguageChange.ts";
 import { createLineTokens, createToken } from "../../../Editor/ILineTokens.ts";
 import type { ILanguageService } from "../../../Editor/Tokenization/ILanguageService.ts";
@@ -9,9 +8,8 @@ import { NULL_LANGUAGE_SERVICE } from "../../../Editor/Tokenization/ILanguageSer
 import { NULL_STATE } from "../../../Editor/Tokenization/IState.ts";
 import type { ITokenizationResult, ITokenizationSupport } from "../../../Editor/Tokenization/ITokenizationSupport.ts";
 import { TokenizationRegistry } from "../../../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
 import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 /** Токенизатор-маркер: помечает всю строку одним заданным scope. */
 function markerTokenizer(scope: string): ITokenizationSupport {

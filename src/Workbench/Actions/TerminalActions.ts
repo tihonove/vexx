@@ -3,6 +3,7 @@ import { LayoutServiceDIToken } from "../Services/LayoutService.ts";
 import { PanelServiceDIToken } from "../Services/PanelService.ts";
 import { TERMINAL_VIEW_ID, TerminalServiceDIToken } from "../Services/Terminal/TerminalService.ts";
 import { WorkbenchContextKeysDIToken } from "../Services/WorkbenchContextKeys.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 // Integrated Terminal. Только tier csi-u/kitty умеет однозначно кодировать

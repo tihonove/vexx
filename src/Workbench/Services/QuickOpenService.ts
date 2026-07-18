@@ -3,9 +3,9 @@ import * as nodePath from "node:path";
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable } from "../../Common/Disposable.ts";
 import type { QuickPickElement, QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
-
 import type { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
 import { QuickInputComponentDIToken } from "../Components/QuickInput/QuickInputComponent.ts";
+
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
 import type { ContextKeyService } from "./ContextKeyService.ts";

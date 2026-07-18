@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { Uri } from "../../../Common/Uri.ts";
-
 import type { WireCompletionItem } from "../WireTypes.ts";
 
 import { DocumentRegistry } from "./ExtHostDocuments.ts";

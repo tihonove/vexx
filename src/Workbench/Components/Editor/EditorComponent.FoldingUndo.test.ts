@@ -1,11 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Uri } from "../../../Common/Uri.ts";
-
 import { createCursorSelection } from "../../../Editor/ISelection.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
 import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 function flush(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 0));

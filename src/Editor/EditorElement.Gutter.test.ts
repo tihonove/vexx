@@ -303,7 +303,11 @@ describe("scrolling", () => {
             const lnFg = packRgb(100, 100, 100);
             const lnActiveFg = packRgb(200, 200, 200);
             const { app, editor } = createEditor(tenLines, 20, 4);
-            editor.setStyles({ ...unthemedEditorStyles, lineNumberForeground: lnFg, lineNumberActiveForeground: lnActiveFg });
+            editor.setStyles({
+                ...unthemedEditorStyles,
+                lineNumberForeground: lnFg,
+                lineNumberActiveForeground: lnActiveFg,
+            });
             // Cursor on line 5, scroll to show it
             editor.viewState.selections = [{ anchor: { line: 5, character: 0 }, active: { line: 5, character: 0 } }];
             editor.viewState.scrollTop = 3;

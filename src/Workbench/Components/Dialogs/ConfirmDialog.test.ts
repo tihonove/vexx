@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Point, Size } from "../../../Common/GeometryPromitives.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
 import { TUIKeyboardEvent } from "../../../TUIDom/Events/TUIKeyboardEvent.ts";
 import type { ButtonElement } from "../../../TUIDom/Widgets/ButtonElement.ts";

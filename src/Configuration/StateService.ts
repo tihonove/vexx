@@ -2,7 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { ILogger } from "../Common/Logging/ILogger.ts";
-import { resolveWorkspaceStatePath, type IUserDataPaths } from "../Common/UserDataPaths.ts";
+import { type IUserDataPaths, resolveWorkspaceStatePath } from "../Common/UserDataPaths.ts";
 
 import type { IStateDescriptor, IStateService, StateScope } from "./IStateService.ts";
 
@@ -120,7 +120,7 @@ export class StateService implements IStateService {
             void this.writeStoreAsync(this.workspace);
         }, this.writeDebounceMs);
         // Запись состояния не должна держать event loop живым.
-        this.writeTimer.unref?.();
+        this.writeTimer.unref();
     }
 
     private async writeStoreAsync(store: ScopeStore): Promise<void> {

@@ -2,9 +2,8 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../../../Common/Uri.ts";
-
 import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { Uri } from "../../../Common/Uri.ts";
 import { createLineTokens, createToken } from "../../../Editor/ILineTokens.ts";
 import { createCursorSelection } from "../../../Editor/ISelection.ts";
 import { PlainTextTokenizer } from "../../../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
@@ -14,13 +13,12 @@ import { NULL_STATE } from "../../../Editor/Tokenization/IState.ts";
 import type { ITokenizationSupport } from "../../../Editor/Tokenization/ITokenizationSupport.ts";
 import { TokenizationRegistry } from "../../../Editor/Tokenization/TokenizationRegistry.ts";
 import { packRgb } from "../../../Rendering/ColorUtils.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
-
-import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
 /** Скоуп первого токена первой строки — чем токенизирован документ прямо сейчас. */
 function firstScope(ctrl: EditorPane): string | undefined {

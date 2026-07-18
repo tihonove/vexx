@@ -3,7 +3,6 @@ import type { ThemeService } from "../../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import type { TUIElement } from "../../../TUIDom/TUIElement.ts";
 import { PanelContainerElement } from "../../../TUIDom/Widgets/PanelContainerElement.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 import type { PanelService } from "../../Services/PanelService.ts";
 import { PanelServiceDIToken } from "../../Services/PanelService.ts";
@@ -38,7 +37,11 @@ export class PanelComponent extends ThemedComponent {
         this.view.onActivateView = (id) => {
             this.panelService.activateView(id);
         };
-        this.register(this.panelService.onDidChangeViews(() => this.syncViews()));
+        this.register(
+            this.panelService.onDidChangeViews(() => {
+                this.syncViews();
+            }),
+        );
         this.register(
             this.panelService.onDidChangeActiveView((id) => {
                 this.view.setActiveView(id);

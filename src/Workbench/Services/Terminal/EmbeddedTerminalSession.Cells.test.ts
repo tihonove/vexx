@@ -108,14 +108,18 @@ describe("EmbeddedTerminalSession — стили ячеек", () => {
         ["\\033[2m", StyleFlags.Dim],
         ["\\033[7m", StyleFlags.Inverse],
         ["\\033[9m", StyleFlags.Strikethrough],
-    ])("разворачивает одиночный атрибут %s в свой флаг", async (sgr, flag) => {
-        const session = await printed(`${sgr}A\\033[0m`, "A");
-        const out = emptyCell();
+    ])(
+        "разворачивает одиночный атрибут %s в свой флаг",
+        async (sgr, flag) => {
+            const session = await printed(`${sgr}A\\033[0m`, "A");
+            const out = emptyCell();
 
-        expect(session.readCell(0, 0, out)).toBe(true);
-        expect(out.style).toBe(flag);
-        session.dispose();
-    }, 15000);
+            expect(session.readCell(0, 0, out)).toBe(true);
+            expect(out.style).toBe(flag);
+            session.dispose();
+        },
+        15000,
+    );
 });
 
 describe("EmbeddedTerminalSession — форма сетки", () => {
@@ -136,7 +140,7 @@ describe("EmbeddedTerminalSession — форма сетки", () => {
         session.dispose();
     }, 15000);
 
-    it("отдаёт пробел для пустой ячейки внутри диапазона (getChars() === \"\")", async () => {
+    it('отдаёт пробел для пустой ячейки внутри диапазона (getChars() === "")', async () => {
         const session = await printed("ab", "ab");
         const out = emptyCell();
 

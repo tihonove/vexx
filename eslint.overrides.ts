@@ -27,6 +27,8 @@ const overrides: TSESLint.FlatConfig.ConfigArray = [
             "@typescript-eslint/no-non-null-assertion": "off",
             "@typescript-eslint/no-empty-function": "off",
             "@typescript-eslint/unbound-method": "off",
+            // Мок-реализации async-интерфейсов часто не содержат await — это норма для тестов.
+            "@typescript-eslint/require-await": "off",
         },
     },
     {
@@ -41,8 +43,6 @@ const overrides: TSESLint.FlatConfig.ConfigArray = [
         },
         rules: {
             "@typescript-eslint/no-unused-vars": "off",
-            // Запрещаем parameter properties — они не поддерживаются в strip-only режиме Node.js
-            "@typescript-eslint/parameter-properties": "error",
             // Форсируем явный спецификатор видимости на всех членах класса
             "@typescript-eslint/explicit-member-accessibility": ["error", { accessibility: "explicit" }],
             // Разрешаем числа в template literals

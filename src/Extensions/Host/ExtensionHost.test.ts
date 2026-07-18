@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { extensionFixture, registerAndActivate, subprocessSpawnArgsForTests } from "../../TestUtils/ExtensionTestHarness.ts";
+import {
+    extensionFixture,
+    registerAndActivate,
+    subprocessSpawnArgsForTests,
+} from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";

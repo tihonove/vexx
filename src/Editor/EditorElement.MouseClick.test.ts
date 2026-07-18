@@ -31,7 +31,12 @@ function fireMouseDown(editor: EditorElement, localX: number, localY: number, sh
     );
 }
 
-function fireDoubleClick(editor: EditorElement, localX: number, localY: number, button: "left" | "right" = "left"): void {
+function fireDoubleClick(
+    editor: EditorElement,
+    localX: number,
+    localY: number,
+    button: "left" | "right" = "left",
+): void {
     editor.dispatchEvent(
         new TUIMouseEvent("dblclick", {
             button,

@@ -2,10 +2,10 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
-
 import { CommandRegistryDIToken } from "../Services/CommandRegistry.ts";
 import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Services/CoreTokens.ts";
 import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 /**

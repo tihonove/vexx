@@ -137,7 +137,10 @@ export class EditorComponent extends ThemedComponent {
     private rebuildForReloadedDocument(): void {
         this.editorViewState = new EditorViewState(this.model.document);
         this.tokenStore.dispose();
-        this.tokenStore = new DocumentTokenStore(this.model.document, this.ensureTokenizerForLanguage(this.model.languageId));
+        this.tokenStore = new DocumentTokenStore(
+            this.model.document,
+            this.ensureTokenizerForLanguage(this.model.languageId),
+        );
         this.editorViewState.tokenStore = this.tokenStore;
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = this.tokenStyleResolver;

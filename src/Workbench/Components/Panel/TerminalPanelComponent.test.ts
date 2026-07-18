@@ -3,14 +3,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Size } from "../../../Common/GeometryPromitives.ts";
 import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
 import { TerminalViewElement } from "../../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
-
 import { PanelService } from "../../Services/PanelService.ts";
 import { TERMINAL_VIEW_ID, TerminalService } from "../../Services/Terminal/TerminalService.ts";
 import type { TerminalSessionFactory } from "../../Services/Terminal/TerminalSessionFactory.ts";
+
 import { PanelComponent } from "./PanelComponent.ts";
 import { TerminalPanelComponent } from "./TerminalPanelComponent.ts";
 

@@ -5,10 +5,6 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { IEditorDecorationsService } from "../../Host/IEditorDecorationsService.ts";
-import type { IExtensionRegistration } from "../../Host/IExtensionEntry.ts";
-import type { IFileDecorationsService } from "../../Host/IFileDecorationsService.ts";
-import type { IThemeColorResolver } from "../../Host/IThemeColorResolver.ts";
 import type { IGutterChangeDecoration } from "../../../Editor/Decorations/IGutterChangeDecoration.ts";
 import {
     createExtensionTestHarness,
@@ -16,6 +12,10 @@ import {
     registerAndActivate,
 } from "../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../TestUtils/timing.ts";
+import type { IEditorDecorationsService } from "../../Host/IEditorDecorationsService.ts";
+import type { IExtensionRegistration } from "../../Host/IExtensionEntry.ts";
+import type { IFileDecorationsService } from "../../Host/IFileDecorationsService.ts";
+import type { IThemeColorResolver } from "../../Host/IThemeColorResolver.ts";
 
 const GIT_MAIN = fileURLToPath(new URL("./main.ts", import.meta.url));
 
@@ -45,7 +45,10 @@ function makeEditorSpy(): {
     };
 }
 
-function makeFileSpy(): { service: IFileDecorationsService; latest(): { path: string; color?: number; badge?: string }[] | undefined } {
+function makeFileSpy(): {
+    service: IFileDecorationsService;
+    latest(): { path: string; color?: number; badge?: string }[] | undefined;
+} {
     const calls: { path: string; color?: number; badge?: string }[][] = [];
     return {
         service: { setFileDecorations: (entries) => calls.push([...entries]) },
@@ -117,7 +120,7 @@ describe("builtin git plugin (integration)", () => {
         // Tree: both changed files decorated (M for modified, U for untracked).
         const gotFiles = await waitFor(() => {
             const entries = fileSpy.latest();
-            return entries !== undefined && entries.some((e) => e.path.endsWith("tracked.txt") && e.badge === "M");
+            return entries?.some((e) => e.path.endsWith("tracked.txt") && e.badge === "M") ?? false;
         });
         expect(gotFiles).toBe(true);
         const entries = fileSpy.latest()!;
