@@ -5,7 +5,7 @@ import { TestApp } from "../../TestUtils/TestApp.ts";
 import { TUIMouseEvent, type TUIMouseEventType, type WheelDirection } from "../Events/TUIMouseEvent.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
-import { TreeViewElement } from "./TreeViewElement.ts";
+import { TreeViewElement, unthemedTreeViewStyles } from "./TreeViewElement.ts";
 
 // ─── Test data ───
 
@@ -222,7 +222,7 @@ describe("TreeViewElement edge cases", () => {
                 { id: "c", label: "Gamma" },
             ];
             const { tree, app } = createTree(roots, new Size(20, 5));
-            tree.hoverBg = HOVER_BG;
+            tree.setStyles({ ...unthemedTreeViewStyles, hoverBg: HOVER_BG });
             await tree.refresh();
             app.render();
 
@@ -241,7 +241,7 @@ describe("TreeViewElement edge cases", () => {
             const HOVER_BG = 0x654321;
             const roots: TestNode[] = [{ id: "a", label: "Alpha" }];
             const { tree, app } = createTree(roots, new Size(20, 3));
-            tree.hoverBg = HOVER_BG;
+            tree.setStyles({ ...unthemedTreeViewStyles, hoverBg: HOVER_BG });
             await tree.refresh();
             app.render();
 

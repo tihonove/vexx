@@ -3,12 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import type { IThemeFile } from "../Theme/IThemeFile.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
+import { unthemedMenuStyles } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
 
-import { EditorElement } from "./EditorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { createCursorSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
@@ -124,12 +123,9 @@ describe("EditorElement — right-click context menu", () => {
         expect(app.root.overlayLayer.getItems().length).toBe(1);
     });
 
-    it("applies menuTheme colors to the context menu popup", () => {
+    it("applies styles.menu colors to the context menu popup", () => {
         const { app, editor } = createEditor("hello world");
-        const theme = WorkbenchTheme.fromThemeFile({
-            colors: { "menu.background": "#123456" },
-        } as unknown as IThemeFile);
-        editor.menuTheme = theme;
+        editor.setStyles({ ...unthemedEditorStyles, menu: { ...unthemedMenuStyles, bg: packRgb(0x12, 0x34, 0x56) } });
         editor.contextMenuEntries = [{ label: "Copy" }];
 
         fireMouseDown(editor, 5, 0, "right");

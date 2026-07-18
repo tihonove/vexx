@@ -6,7 +6,7 @@ import type { RawKeyToken } from "./RawTerminalToken.ts";
  *
  * Browser-aligned semantics: a held key fires repeated `keydown` events
  * (with `repeat: true`), not `keypress`. We follow the same model so
- * keydown listeners (e.g. AppController for arrows/Backspace) auto-repeat.
+ * keydown listeners (e.g. the workbench for arrows/Backspace) auto-repeat.
  *
  * - 0 (not specified) → "keydown" (default is press per spec)
  * - 1 (press) → "keydown"

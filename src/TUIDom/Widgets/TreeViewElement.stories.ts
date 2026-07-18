@@ -1,13 +1,13 @@
 import * as path from "node:path";
 
-import { FileTreeController } from "../../Controllers/FileTreeController.ts";
+import { FileTreeDataProvider, type FileTreeNode } from "../../Workbench/Services/FileTreeDataProvider.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
 import type { StoryContext, StoryMeta } from "../../StoryRunner/StoryTypes.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { HFlexElement, hflexFill, hflexFixed } from "./HFlexElement.ts";
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
-import { TreeViewElement } from "./TreeViewElement.ts";
+import { TreeViewElement, unthemedTreeViewStyles } from "./TreeViewElement.ts";
 
 export const meta: StoryMeta = {
     title: "TreeViewElement",
@@ -16,18 +16,26 @@ export const meta: StoryMeta = {
 export function fileTree(ctx: StoryContext): void {
     const rootPath = ctx.args[0] ?? path.resolve(".");
 
-    const controller = new FileTreeController();
-    controller.setRootPath(rootPath);
-    controller.onFileActivate = (filePath) => {
-        console.log("Activate file:", filePath);
+    const provider = new FileTreeDataProvider(rootPath);
+    const tree = new TreeViewElement<FileTreeNode>(provider);
+    tree.onExpandedChanged = (node, expanded) => {
+        if (expanded) {
+            provider.watchDirectory(node.path);
+        } else {
+            provider.unwatchDirectory(node.path);
+        }
     };
-    controller.mount();
+    tree.onActivate = (node) => {
+        if (!node.isDirectory) {
+            console.log("Activate file:", node.path);
+        }
+    };
 
-    ctx.body.setContent(controller.view);
+    ctx.body.setContent(tree);
 
     ctx.afterRun(() => {
-        controller.focus();
-        void controller.activate();
+        tree.focus();
+        void tree.refresh();
     });
 }
 
@@ -124,11 +132,14 @@ export function focusSwitch(ctx: StoryContext): void {
     ctx.body.title = "TreeView Focus Demo — Tab to switch focus";
 
     const tree = new TreeViewElement(createDemoProvider());
-    tree.activeSelectionBg = packRgb(4, 57, 94);
-    tree.activeSelectionFg = packRgb(255, 255, 255);
-    tree.inactiveSelectionBg = packRgb(55, 55, 61);
-    tree.inactiveSelectionFg = packRgb(204, 204, 204);
-    tree.hoverBg = packRgb(42, 45, 46);
+    tree.setStyles({
+        ...unthemedTreeViewStyles,
+        activeSelectionBg: packRgb(4, 57, 94),
+        activeSelectionFg: packRgb(255, 255, 255),
+        inactiveSelectionBg: packRgb(55, 55, 61),
+        inactiveSelectionFg: packRgb(204, 204, 204),
+        hoverBg: packRgb(42, 45, 46),
+    });
 
     const rightPanel = new FocusPanel("Right Panel");
 

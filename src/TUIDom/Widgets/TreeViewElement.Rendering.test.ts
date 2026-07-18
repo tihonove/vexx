@@ -8,7 +8,7 @@ import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
-import { TreeViewElement } from "./TreeViewElement.ts";
+import { TreeViewElement, unthemedTreeViewStyles } from "./TreeViewElement.ts";
 
 interface TestNode {
     id: string;
@@ -174,7 +174,7 @@ describe("TreeViewElement rendering", () => {
             getKey: (el) => el.id,
         };
         const tree = new TreeViewElement(provider);
-        tree.symlinkFg = packRgb(120, 120, 120);
+        tree.setStyles({ ...unthemedTreeViewStyles, symlinkFg: packRgb(120, 120, 120) });
         await tree.refresh();
 
         const width = 14;

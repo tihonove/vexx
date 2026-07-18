@@ -9,7 +9,7 @@
  * через `createRequire`.
  *
  * Виртуальные пути внутри бандла обязаны совпадать с ожиданиями
- * `src/Controllers/Terminal/loadNodePty.ts`: он распаковывает ассет в
+ * `src/Workbench/Services/Terminal/loadNodePty.ts`: он распаковывает ассет в
  * `tmpdir()/vexx-embedded-pty-<size>/` и делает `require` из
  * `<targetDir>/node-pty` — значит каждая запись пакуется с префиксом
  * `node-pty/` (`node-pty/package.json`, `node-pty/lib/…`, `node-pty/build/Release/…`).

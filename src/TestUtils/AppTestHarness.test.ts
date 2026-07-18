@@ -41,6 +41,6 @@ describe("createAppTestHarness", () => {
         h = createAppTestHarness();
 
         expect(h.container.get).toBeDefined();
-        expect(h.controller.view).toBe(h.testApp.root);
+        expect(h.workbench.view).toBe(h.testApp.root);
     });
 });

@@ -9,8 +9,8 @@
 
 Готовое (реестр `MarkerService`, squiggle в редакторе, валидатор `settings.json`, нижняя
 Panel + дерево Problems) — см. [arch/Editor.md](../arch/Editor.md) (Editor/Markers) и
-[arch/Controllers.md](../arch/Controllers.md) (Диагностики / Problems). Ниже — модель и
-открытые этапы.
+[arch/Workbench.md](../arch/Workbench.md) (Panel-кластер: `DiagnosticsService`,
+`PanelService`+`PanelComponent`, `ProblemsComponent`). Ниже — модель и открытые этапы.
 
 ## Модель маркера (как в VS Code)
 
@@ -26,13 +26,14 @@ API реестра: `changeOne(owner, resource, markers[])`, `read({ resource?, 
 ## Слои
 
 - **Реестр** — `src/Editor/Markers/` (чистый, без DI — зеркало `Editor/Tokenization`,
-  `TokenizationRegistry`). DI-токен `IMarkerServiceDIToken` + модуль — в Controllers.
-- **Поставщик** — Controllers. Пишет через `changeOne`.
-- **Потребитель (editor squiggly)** — `EditorController` подписан на `onMarkerChanged`
-  для пути открытого файла, фильтрует маркеры документа, пушит диапазоны+severity в
-  `EditorElement.setMarkerDecorations(...)`. Editor не знает про DI/Controllers/resource —
+  `TokenizationRegistry`). DI-токен `MarkerServiceDIToken` — в `Workbench/Services/CoreTokens.ts`,
+  модуль — `Workbench/Modules/MarkersModule.ts`.
+- **Поставщик** — `DiagnosticsService` (`Workbench/Services/Diagnostics/`). Пишет через `changeOne`.
+- **Потребитель (editor squiggly)** — тот же `DiagnosticsService` подписан на `onDidChangeMarkers`,
+  фильтрует маркеры открытых редакторов (шов `IDiagnosticsEditorSource`), пушит диапазоны+severity в
+  `EditorElement.setMarkerDecorations(...)`. Editor не знает про DI/Workbench/resource —
   рисует только диапазоны.
-- **Потребитель (панель)** — `ProblemsController`, подписан на весь реестр.
+- **Потребитель (панель)** — `ProblemsComponent` (`Workbench/Components/Panel/`), подписан на весь реестр.
 
 Точка пересчёта — `ITextDocument.onDidChangeContent` (см. [arch/Editor.md](../arch/Editor.md)).
 
@@ -47,5 +48,5 @@ API реестра: `changeOne(owner, resource, markers[])`, `read({ resource?, 
 
 ### [ ] 4. Прочие потребители
 Метки в gutter/overview ruler, навигация по маркерам (F8/Shift+F8), hover с сообщением.
-Счётчик ошибок/варнингов в `StatusBarController` (нужен минорный апгрейд `StatusBarItem` —
+Счётчик ошибок/варнингов — contribution к `StatusBarService` (нужен минорный апгрейд `StatusBarItem` —
 клик/цвет per-item); отдельный контекст-ключ `problemsFocus` (сейчас дерево Problems под `listFocus`).

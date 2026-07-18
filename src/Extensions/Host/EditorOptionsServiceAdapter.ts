@@ -1,6 +1,6 @@
 import type { IDisposable } from "../../Common/Disposable.ts";
 import { Uri } from "../../Common/Uri.ts";
-import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
+import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 
 import type {
     IActiveEditorMeta,
@@ -10,13 +10,13 @@ import type {
 } from "./IEditorOptionsService.ts";
 
 /**
- * Реализация {@link IEditorOptionsService} поверх {@link EditorGroupController}.
- * Живёт в слое Extensions (Controllers ничего не должен знать про host).
+ * Реализация {@link IEditorOptionsService} поверх {@link EditorService}.
+ * Живёт в слое Extensions (Workbench ничего не должен знать про host).
  */
 export class EditorOptionsServiceAdapter implements IEditorOptionsService {
-    private readonly group: EditorGroupController;
+    private readonly group: EditorService;
 
-    public constructor(group: EditorGroupController) {
+    public constructor(group: EditorService) {
         this.group = group;
     }
 

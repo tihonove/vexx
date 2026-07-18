@@ -4,7 +4,7 @@ import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
-import { EditorElement } from "./EditorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { createCursorSelection, createSelection } from "./ISelection.ts";
 import { TextDocument } from "./TextDocument.ts";
@@ -51,7 +51,7 @@ describe("EditorElement — occurrence highlight (word under cursor)", () => {
     it("uses the configured wordHighlight background when set", () => {
         const custom = packRgb(90, 10, 10);
         const { app, editor, viewState, gw } = createEditor("foo foo");
-        editor.occurrenceHighlightBackground = custom;
+        editor.setStyles({ ...unthemedEditorStyles, occurrenceHighlightBackground: custom });
         viewState.selections = [createCursorSelection(0, 0)];
         app.render();
 

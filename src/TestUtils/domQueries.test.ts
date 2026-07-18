@@ -36,7 +36,7 @@ describe("domQueries", () => {
             files: { "alpha.txt": "Alpha", "beta.txt": "Beta" },
         });
         h = createAppTestHarness({ workspaceFolder: ws.dir, openFile: ws.path("alpha.txt") });
-        h.controller.openFile(ws.path("beta.txt"));
+        h.workbench.openFile(ws.path("beta.txt"));
         h.testApp.render();
 
         expect(tabLabels(h.testApp)).toEqual(["alpha.txt", "beta.txt"]);

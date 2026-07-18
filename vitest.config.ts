@@ -41,7 +41,6 @@ export default defineConfig({
         "src/Common/Logging/ILogService.ts",
         "src/Common/Logging/ILogger.ts",
         "src/Configuration/IConfigurationService.ts",
-        "src/Controllers/IController.ts",
         "src/Editor/Decorations/IGutterChangeDecoration.ts",
         "src/Editor/IDocumentContentChange.ts",
         "src/Editor/ITextDocument.ts",
@@ -68,17 +67,17 @@ export default defineConfig({
 
         // --- Непокрываемо юнит-тестами (есть e2e) ---
         "src/Backend/NodeTerminalBackend.ts", // реальный tty/stdin/stdout
-        "src/Controllers/ChokidarFileWatcher.ts", // реальный fs-watcher (chokidar), e2e
+        "src/Workbench/Services/ChokidarFileWatcher.ts", // реальный fs-watcher (chokidar), e2e
         "src/Common/IsSea.ts", // node:sea, только в SEA-бинаре
         "src/Common/Assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
         "src/Common/Assets/PackagedRuntime.ts", // node:sea + резолв import.meta.url; I/O-часть — в BundleFile.ts (юниты)
-        "src/Controllers/Terminal/loadNodePty.ts", // SEA-путь загрузки нативного node-pty: node:sea + распаковка .node в tmp + dlopen; e2e — terminal.scenario.ts на реальном SEA-бинаре
+        "src/Workbench/Services/Terminal/loadNodePty.ts", // SEA-путь загрузки нативного node-pty: node:sea + распаковка .node в tmp + dlopen; e2e — terminal.scenario.ts на реальном SEA-бинаре
         "src/Extensions/Host/ExtensionHostSubprocess.ts", // точка входа subprocess + IPC
         "src/Extensions/builtin/git/main.ts", // extension entry (subprocess IO/glue); логика — в git/lib/* (юниты), e2e — интеграция
         "src/Extensions/builtin/vexx-settings/main.ts", // extension entry (грузится в subprocess); поведение — в ExtensionHost.SettingsCompletion.test.ts + e2e
         "src/**/*.generated.ts", // сгенерированные data-файлы (напр. settings-schema.generated.ts), исполняются в subprocess
         "src/Extensions/Host/VscodeNamespace.ts", // RPC-проводка в subprocess
-        "src/Controllers/Modules/**", // DI-проводка (integration/e2e)
+        "src/Workbench/Modules/**", // DI-проводка (integration/e2e)
         "src/Configuration/NullConfigurationService.ts", // null-object заглушка
         "src/Configuration/NullStateService.ts", // null-object заглушка
         "src/Inspector/InspectorDriver.ts", // только интерфейс write/capture-порта

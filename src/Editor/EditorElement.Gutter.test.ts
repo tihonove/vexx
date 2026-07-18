@@ -4,7 +4,7 @@ import { Point, Size } from "../Common/GeometryPromitives.ts";
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
-import { EditorElement } from "./EditorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { TextDocument } from "./TextDocument.ts";
 
@@ -120,7 +120,7 @@ describe("gutter colors", () => {
     it("uses lineNumberForeground for non-active lines", () => {
         const lnFg = packRgb(100, 100, 100);
         const { app, editor } = createEditor("AAA\nBBB\nCCC", 15, 5);
-        editor.lineNumberForeground = lnFg;
+        editor.setStyles({ ...unthemedEditorStyles, lineNumberForeground: lnFg });
         app.render();
 
         const backend = app.backend;
@@ -132,7 +132,7 @@ describe("gutter colors", () => {
     it("uses lineNumberActiveForeground for the cursor line", () => {
         const lnActiveFg = packRgb(200, 200, 200);
         const { app, editor } = createEditor("AAA\nBBB\nCCC", 15, 5);
-        editor.lineNumberActiveForeground = lnActiveFg;
+        editor.setStyles({ ...unthemedEditorStyles, lineNumberActiveForeground: lnActiveFg });
         app.render();
 
         const backend = app.backend;
@@ -143,7 +143,7 @@ describe("gutter colors", () => {
     it("uses gutterBackground for gutter area", () => {
         const gutBg = packRgb(20, 20, 20);
         const { app, editor } = createEditor("AAA\nBBB", 15, 4);
-        editor.gutterBackground = gutBg;
+        editor.setStyles({ ...unthemedEditorStyles, gutterBackground: gutBg });
         app.render();
 
         const backend = app.backend;
@@ -303,8 +303,7 @@ describe("scrolling", () => {
             const lnFg = packRgb(100, 100, 100);
             const lnActiveFg = packRgb(200, 200, 200);
             const { app, editor } = createEditor(tenLines, 20, 4);
-            editor.lineNumberForeground = lnFg;
-            editor.lineNumberActiveForeground = lnActiveFg;
+            editor.setStyles({ ...unthemedEditorStyles, lineNumberForeground: lnFg, lineNumberActiveForeground: lnActiveFg });
             // Cursor on line 5, scroll to show it
             editor.viewState.selections = [{ anchor: { line: 5, character: 0 }, active: { line: 5, character: 0 } }];
             editor.viewState.scrollTop = 3;

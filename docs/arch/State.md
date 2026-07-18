@@ -55,17 +55,17 @@
 Значения копируются на входе и выходе (`structuredClone`) — стор изолирован от
 мутаций вызывающего.
 
-**Правило co-location.** Дескриптор объявляется рядом с **контроллером**-владельцем,
+**Правило co-location.** Дескриптор объявляется рядом с **сервисом**-владельцем,
 а НЕ с TUIDom-элементом: элементы (напр. `WorkbenchLayoutElement`) в слое TUIDom и
-не могут импортировать Configuration. Реестр дескрипторов — `Controllers/StateKeys.ts`
+не могут импортировать Configuration. Реестр дескрипторов — `Workbench/Services/StateKeys.ts`
 (параллель `ContextKeys.ts`).
 
 ## Движок (`Configuration/StateService.ts`)
 
 - **Слои:** движок key/value поверх plain-JSON файлов, зависит только от Common +
-  fs. Живёт в `Configuration/` (сосед `ConfigurationService`), но
-  `StateServiceDIToken` объявлен в Controllers (`Modules/StateModule.ts`) — по
-  правилу «токены только на Controllers/App».
+  fs. Живёт в `Configuration/` (сосед `ConfigurationService`);
+  `StateServiceDIToken` объявлен в `Workbench/Services/CoreTokens.ts` (потребители-
+  сервисы — в Workbench), биндинг — модуль `Workbench/Modules/StateModule.ts`.
 - **Write-through + debounce + flushSync:** `store` обновляет in-memory стор
   синхронно, запись на диск — debounced (async). Durability гарантирует
   `flushSync()` на выходе процесса. Так `get` всегда видит последнее значение.
@@ -83,9 +83,9 @@
 ```
 main.ts: build container ─► process.on("exit", stateService.flushSync)
    │
-   ├─ первый CLI-arg — папка? ─► AppController.setWorkspaceFolder(dir)
-   │                              └─► WorkbenchStateController.openWorkspace(dir)  (load per-project стор)
-   ├─ mount()  ─► WorkbenchStateController.restoreLayout()   (перед первым кадром)
+   ├─ первый CLI-arg — папка? ─► WorkbenchComponent.setWorkspaceFolder(dir)
+   │                              └─► WorkbenchStateService.openWorkspace(dir)  (load per-project стор)
+   ├─ mount()  ─► LayoutService.restoreLayout()   (перед первым кадром; + sync истины в PanelService)
    ├─ run()
    ├─ await activate()
    ├─ есть явные файлы в CLI?
@@ -94,14 +94,16 @@ main.ts: build container ─► process.on("exit", stateService.flushSync)
    └─ focusEditor()
 ```
 
-- Всю проводку «состояние ↔ UI» изолирует единый координатор
-  **`WorkbenchStateController`** (headless, без view) — вместо размазывания по
-  `AppController`. Он читает/пишет layout через публичные геттеры/сеттеры элемента
-  и открытые файлы через `EditorGroupController`.
+- Проводку «состояние ↔ UI» изолируют два Workbench-сервиса (этап 11, headless):
+  **`WorkbenchStateService`** (открытые файлы через `EditorService`) и
+  **`LayoutService`** (layout: читает/пишет `WorkbenchLayoutElement` через
+  публичные геттеры/сеттеры; сам элемент приходит от владельца view через шов
+  `attachLayout`).
 - **Write-through:** `WorkbenchLayoutElement.onDidChangeLayout` (плейн-колбэк, без
-  DI — TUIDom чист) фаерит на drag сэша и на команды (toggle/resize); `AppController`
-  подписывает его на `captureLayout()`. Открытые файлы — через
-  `EditorGroupController.onActiveEditorChanged` → `captureOpenEditors()`.
+  DI — TUIDom чист) фаерит на drag сэша и на команды (toggle/resize);
+  `LayoutService.attachLayout` подписывает его на `captureLayout()`. Открытые
+  файлы — собственная подписка `WorkbenchStateService` на
+  `EditorService.onActiveEditorChanged` → `captureOpenEditors()`.
 - **restoreLayout** во время restore глушит авто-capture (re-entrancy guard).
 - **restoreOpenEditors** пропускает отсутствующие на диске файлы (как VS Code) и
   переотображает индекс активной вкладки на выживших.
@@ -127,8 +129,10 @@ main.ts: build container ─► process.on("exit", stateService.flushSync)
 - `NULL_STATE_SERVICE` (`Configuration/NullStateService.ts`) + `stateModuleDefault`
   — no-op для тестов/demo, которым персистентность не нужна (`get` отдаёт дефолт).
 - Юниты: `StateService.test.ts` (round-trip, tolerant-load, unknown-key
-  preservation, workspace↔global fallback, версии), `WorkbenchStateController.test.ts`.
-- Integration: `AppController.StatePersistence.test.ts` — реальный `StateService`
+  preservation, workspace↔global fallback, версии),
+  `Workbench/Services/WorkbenchStateService.test.ts` (открытые редакторы),
+  `Workbench/Services/LayoutService.test.ts` (restore/capture layout, сайдбар/панель).
+- Integration: `Workbench.StatePersistence.test.ts` — реальный `StateService`
   через `createAppTestHarness({ stateService })`, round-trip restore на двух
   «запусках».
 - Демо: `e2e/scenarios/sessionLayout.scenario.ts` (видимая раскладка, которая

@@ -14,16 +14,16 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
-import { fileSaveAction } from "../Controllers/Actions/FileActions.ts";
-import { findAction } from "../Controllers/Actions/FindActions.ts";
-import { quickOpenAction, showCommandsAction } from "../Controllers/Actions/QuickOpenActions.ts";
+import { fileSaveAction } from "../Workbench/Actions/FileActions.ts";
+import { findAction } from "../Workbench/Actions/FindActions.ts";
+import { quickOpenAction, showCommandsAction } from "../Workbench/Actions/QuickOpenActions.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,
     previousEditorInGroupAction,
-} from "../Controllers/Actions/TabActions.ts";
-import type { CommandAction } from "../Controllers/CommandAction.ts";
-import { formatKeybinding, type Keybinding } from "../Controllers/KeybindingRegistry.ts";
+} from "../Workbench/Actions/TabActions.ts";
+import type { CommandAction } from "../Workbench/Actions/CommandAction.ts";
+import { formatKeybinding, type Keybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import {
     detectBaseModes,
     detectExtendedKeysHint,
@@ -31,7 +31,7 @@ import {
     detectTruecolor,
     emptyCapabilities,
     resolveTier,
-} from "../Controllers/TerminalEnvironment/TerminalEnvironmentModel.ts";
+} from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentModel.ts";
 import type { KeyPressEvent } from "../Input/KeyEvent.ts";
 import { KeyInputParser } from "../Input/KeyInputParser.ts";
 import { tokenize } from "../Input/tokenize.ts";

@@ -1,7 +1,7 @@
 import { packRgb } from "../Rendering/ColorUtils.ts";
 import type { StoryContext, StoryMeta } from "../StoryRunner/StoryTypes.ts";
 
-import { EditorElement } from "./EditorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "./EditorElement.ts";
 import { EditorViewState } from "./EditorViewState.ts";
 import { TextDocument } from "./TextDocument.ts";
 
@@ -22,8 +22,11 @@ Have fun!`;
     const viewState = new EditorViewState(doc);
     const editor = new EditorElement(viewState);
     editor.style = { fg: packRgb(212, 212, 212), bg: packRgb(30, 30, 30) };
-    editor.gutterBackground = packRgb(30, 30, 30);
-    editor.lineNumberForeground = packRgb(133, 133, 133);
-    editor.lineNumberActiveForeground = packRgb(198, 198, 198);
+    editor.setStyles({
+        ...unthemedEditorStyles,
+        gutterBackground: packRgb(30, 30, 30),
+        lineNumberForeground: packRgb(133, 133, 133),
+        lineNumberActiveForeground: packRgb(198, 198, 198),
+    });
     ctx.body.setContent(editor);
 }

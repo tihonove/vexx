@@ -22,11 +22,11 @@ import { VEXX_VERSION } from "./Common/Version.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
 import { loadState } from "./Configuration/StateService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
-import { AppControllerDIToken } from "./Controllers/AppController.ts";
-import { ChokidarFileWatcher } from "./Controllers/ChokidarFileWatcher.ts";
-import { TuiApplicationDIToken } from "./Controllers/CoreTokens.ts";
-import { EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
-import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
+import { WorkbenchComponentDIToken } from "./Workbench/Components/Shell/WorkbenchComponent.ts";
+import { ChokidarFileWatcher } from "./Workbench/Services/ChokidarFileWatcher.ts";
+import { TuiApplicationDIToken } from "./Workbench/Services/CoreTokens.ts";
+import { EditorServiceDIToken } from "./Workbench/Services/EditorService.ts";
+import { createProductionContainer } from "./Workbench/Modules/ProductionProfile.ts";
 import type { ILanguageService } from "./Editor/Tokenization/ILanguageService.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./Extensions/ExtensionInstaller.ts";
@@ -237,7 +237,7 @@ async function runEditor(): Promise<void> {
     });
 
     const app = container.get(TuiApplicationDIToken);
-    const appController = container.get(AppControllerDIToken);
+    const workbench = container.get(WorkbenchComponentDIToken);
     // Поднимаем extension host. Регистрация расширений с `manifest.main` (builtin +
     // user) — ниже, ПОСЛЕ setWorkspaceFolder + openFile (чтобы workspaceFolders и
     // activeTextEditor были доступны на момент `activate()`).
@@ -246,11 +246,11 @@ async function runEditor(): Promise<void> {
     // If the first argument is a directory, use it as the workspace folder
     const firstResolved = resolvedPaths[0];
     if (fs.statSync(firstResolved, { throwIfNoEntry: false })?.isDirectory()) {
-        appController.setWorkspaceFolder(firstResolved);
+        workbench.setWorkspaceFolder(firstResolved);
     }
 
-    app.root = appController.view;
-    appController.mount();
+    app.root = workbench.view;
+    workbench.mount();
     app.run();
 
     // TUIDom-инспектор: поднимаем WebSocket-сервер только по `--inspect-tui`.
@@ -299,10 +299,10 @@ async function runEditor(): Promise<void> {
         });
     }
 
-    await appController.activate();
+    await workbench.activate();
     const explicitFiles = resolvedPaths.filter((p) => !fs.statSync(p, { throwIfNoEntry: false })?.isDirectory());
     // Явные файлы в CLI перебивают сохранённую сессию (как `code file.ts`).
-    const startupFiles = explicitFiles.length > 0 ? explicitFiles : appController.getOpenEditorsToRestore();
+    const startupFiles = explicitFiles.length > 0 ? explicitFiles : workbench.getOpenEditorsToRestore();
     // Грамматики стартовых файлов ждём ДО открытия — иначе первый кадр вкладки
     // покажет неподсвеченный текст, а цвета доедут репейнтом. Ждём именно те
     // языки, что открываются (обычно один, ~2 мс), а не все 77 грамматик (~420 мс);
@@ -310,12 +310,12 @@ async function runEditor(): Promise<void> {
     // await отдаёт event loop, и отложенный рендер успевает нарисовать кадр.
     await preloadGrammarsForFiles(startupFiles, languageRegistry, tokenizationRegistry);
     if (explicitFiles.length > 0) {
-        for (const p of explicitFiles) appController.openFile(p);
+        for (const p of explicitFiles) workbench.openFile(p);
     } else {
         // Иначе восстанавливаем открытые файлы прошлой сессии этого воркспейса.
-        appController.restoreOpenEditors();
+        workbench.restoreOpenEditors();
     }
-    appController.focusEditor();
+    workbench.focusEditor();
 
     // Регистрируем пользовательские расширения с `manifest.main` в extension host.
     // `registerExtension` — только bookkeeping (subprocess не поднимается);
@@ -378,14 +378,14 @@ async function runEditor(): Promise<void> {
     // Фаерим стартовые события активации. Порядок: eager `*` → `onLanguage:*` для
     // языка уже открытого активного редактора → `onStartupFinished`. Последующие
     // `onLanguage:*` (переключение/открытие вкладок) фаерит ExtensionHostModule
-    // через `EditorGroupController.onActiveEditorChanged`. Расширения без
+    // через `EditorService.onActiveEditorChanged`. Расширения без
     // `activationEvents` трактуются как `["*"]` — активируются здесь же.
     // Per-extension сбои activate() изолирует сам ExtensionHost (log + continue);
     // здесь ловим host-level сбой (subprocess не поднялся) — редактор не должен
     // падать из-за нерабочего extension host'а, просто без расширений.
     try {
         await extensionHost.activateByEvent("*");
-        const activeLanguageId = container.get(EditorGroupControllerDIToken).getActiveEditor()?.languageId;
+        const activeLanguageId = container.get(EditorServiceDIToken).getActiveEditor()?.languageId;
         if (activeLanguageId !== undefined) {
             await extensionHost.activateByEvent(`onLanguage:${activeLanguageId}`);
         }

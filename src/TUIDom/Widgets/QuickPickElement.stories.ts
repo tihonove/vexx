@@ -13,26 +13,26 @@ export const meta: StoryMeta = {
 const FILE_ITEMS: QuickPickItem[] = [
     {
         icon: "\uf15b",
-        label: "AppController.ts",
-        description: "src/Controllers/",
+        label: "WorkbenchComponent.ts",
+        description: "src/Workbench/Components/Shell/",
         labelMatchRanges: [[0, 3]],
     },
     {
         icon: "\uf15b",
-        label: "AppController.test.ts",
-        description: "src/Controllers/",
+        label: "Workbench.test.ts",
+        description: "src/Workbench/Components/Shell/",
         labelMatchRanges: [[0, 3]],
     },
     {
         icon: "\uf15b",
-        label: "AppController.FileTree.test.ts",
-        description: "src/Controllers/",
+        label: "Workbench.FileTree.test.ts",
+        description: "src/Workbench/Components/Shell/",
         labelMatchRanges: [[0, 3]],
     },
     {
         icon: "\uf15b",
         label: "CommandAction.ts",
-        description: "src/Controllers/",
+        description: "src/Workbench/Actions/",
     },
     {
         icon: "\uf481",

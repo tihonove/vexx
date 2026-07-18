@@ -1,0 +1,143 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { Size } from "../../../Common/GeometryPromitives.ts";
+import { Uri } from "../../../Common/Uri.ts";
+import { createRange } from "../../../Editor/IRange.ts";
+import type { IMarkerData } from "../../../Editor/Markers/IMarker.ts";
+import { MarkerSeverity } from "../../../Editor/Markers/IMarker.ts";
+import { MarkerService } from "../../../Editor/Markers/MarkerService.ts";
+import { TestApp } from "../../../TestUtils/TestApp.ts";
+import { settle } from "../../../TestUtils/timing.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
+import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
+
+import type { ProblemNode } from "../../Services/Diagnostics/ProblemsTreeDataProvider.ts";
+import { PanelService } from "../../Services/PanelService.ts";
+import { PanelComponent } from "./PanelComponent.ts";
+import { type IMarkerRevealEditor, ProblemsComponent } from "./ProblemsComponent.ts";
+
+const RESOURCE = "/ws/settings.json";
+
+function warning(message: string, line = 0): IMarkerData {
+    return { severity: MarkerSeverity.Warning, range: createRange(line, 0, line, 3), message };
+}
+
+/** Reveal-цель-фейк: записывает открытия/переходы (структурная замена EditorService). */
+function makeRevealTarget() {
+    const editor = {
+        goToPosition: vi.fn(),
+        revealRange: vi.fn(),
+    };
+    return {
+        editor,
+        openUri: vi.fn<(uri: Uri) => void>(),
+        getActiveEditor: (): IMarkerRevealEditor | null => editor,
+    };
+}
+
+describe("ProblemsComponent", () => {
+    let markerService: MarkerService;
+    let panelService: PanelService;
+    let panelComponent: PanelComponent;
+    let component: ProblemsComponent;
+    let revealTarget: ReturnType<typeof makeRevealTarget>;
+    let testApp: TestApp;
+
+    beforeEach(() => {
+        const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+        markerService = new MarkerService();
+        panelService = new PanelService();
+        panelComponent = new PanelComponent(panelService, themeService);
+        revealTarget = makeRevealTarget();
+        component = new ProblemsComponent(markerService, panelService, revealTarget, themeService);
+        testApp = TestApp.createWithContent(panelComponent.view, new Size(70, 12));
+    });
+
+    it("registers the PROBLEMS view and makes it the active tab", () => {
+        expect(panelComponent.view.getViewIds()).toContain("workbench.panel.markers.view");
+        expect(panelService.getActiveViewId()).toBe("workbench.panel.markers.view");
+    });
+
+    it("shows the placeholder (no content) until markers appear, then the tree", async () => {
+        // No markers → Problems view content is null → panel renders its placeholder.
+        expect(panelComponent.view.getChildren()).toEqual([]);
+        testApp.render();
+        expect(testApp.backend.screenToString()).toContain("No problems have been detected in the workspace.");
+
+        markerService.changeOne("settings", RESOURCE, [warning("Unknown Setting: x", 1)]);
+        // Content is swapped synchronously on the marker change.
+        expect(panelComponent.view.getChildren()).toHaveLength(1);
+
+        await settle(0);
+        testApp.render();
+        const screen = testApp.backend.screenToString();
+        expect(screen).toContain("settings.json");
+        expect(screen).toContain("Unknown Setting: x");
+        expect(screen).toContain("[Ln 2, Col 1]");
+    });
+
+    it("falls back to the placeholder when the markers clear", () => {
+        markerService.changeOne("settings", RESOURCE, [warning("x")]);
+        expect(panelComponent.view.getChildren()).toHaveLength(1);
+
+        markerService.changeOne("settings", RESOURCE, []);
+        expect(panelComponent.view.getChildren()).toEqual([]);
+    });
+
+    it("reveals a marker's location through the reveal seam on activation", () => {
+        const markerNode: ProblemNode = {
+            kind: "marker",
+            resource: RESOURCE,
+            marker: {
+                owner: "settings",
+                resource: RESOURCE,
+                severity: MarkerSeverity.Warning,
+                range: createRange(2, 2, 2, 7),
+                message: "bad",
+            },
+            index: 0,
+        };
+        component.tree.onActivate?.(markerNode);
+
+        expect(revealTarget.openUri).toHaveBeenCalledTimes(1);
+        // Ресурс поднимается парсингом (не Uri.file) — см. комментарий в revealMarker.
+        expect(revealTarget.openUri.mock.calls[0][0].toString()).toBe(Uri.parse(RESOURCE).toString());
+        expect(revealTarget.editor.goToPosition).toHaveBeenCalledWith(2, 2);
+        expect(revealTarget.editor.revealRange).toHaveBeenCalledWith(createRange(2, 2, 2, 7));
+    });
+
+    it("does nothing when a file node is activated", () => {
+        const fileNode: ProblemNode = { kind: "file", resource: RESOURCE };
+        component.tree.onActivate?.(fileNode);
+
+        expect(revealTarget.openUri).not.toHaveBeenCalled();
+    });
+
+    it("focuses the Problems tree", async () => {
+        markerService.changeOne("settings", RESOURCE, [warning("x")]);
+        await settle(0);
+        testApp.render();
+        component.focus();
+        expect(component.tree.isFocused).toBe(true);
+    });
+
+    it("focus is a no-op when there are no problems (tree detached)", () => {
+        // With no markers the tree is not attached to the panel; focus must not throw.
+        expect(() => {
+            component.focus();
+        }).not.toThrow();
+    });
+
+    it("keeps file nodes expanded across successive marker updates", async () => {
+        markerService.changeOne("settings", RESOURCE, [warning("a", 1)]);
+        await settle(0);
+        // A second update to the same (already-expanded) file must stay expanded.
+        markerService.changeOne("settings", RESOURCE, [warning("a", 1), warning("b", 2)]);
+        await settle(0);
+        testApp.render();
+        const screen = testApp.backend.screenToString();
+        expect(screen).toContain("[Ln 2, Col 1]");
+        expect(screen).toContain("[Ln 3, Col 1]");
+    });
+});

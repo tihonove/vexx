@@ -14,7 +14,7 @@ export default defineConfig({
   // которого рядом с main.js нет — бинарь упадёт с ERR_MODULE_NOT_FOUND на старте.
   // Новая рантайм-зависимость → сюда же.
   // node-pty здесь не нужен: в коде только type-import, в рантайме он грузится
-  // через createRequire (см. src/Controllers/Terminal/loadNodePty.ts).
+  // через createRequire (см. src/Workbench/Services/Terminal/loadNodePty.ts).
   noExternal: [
     "@xterm/headless",
     "chokidar",

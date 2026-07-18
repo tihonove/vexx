@@ -8,7 +8,7 @@ import { TUIElement } from "../TUIElement.ts";
 import { BodyElement } from "./BodyElement.ts";
 import type { MenuBarItem } from "./MenuBarElement.ts";
 import { MenuBarElement } from "./MenuBarElement.ts";
-import { DEFAULT_MENU_COLORS } from "./PopupMenuItemElement.tsx";
+import { unthemedMenuStyles } from "./PopupMenuItemElement.tsx";
 import { VStackElement } from "./VStackElement.ts";
 
 class FocusableChild extends TUIElement {
@@ -61,14 +61,14 @@ describe("PopupMenuElement selection colors", () => {
         backend.sendKey("Tab");
         backend.sendKey("ArrowDown");
         // Popup border at x=2 (top-left ╭), first item "New" at y=2, content column at x=3.
-        expect(backend.getBgAt(new Point(3, 2))).toBe(DEFAULT_MENU_COLORS.highlightBg);
+        expect(backend.getBgAt(new Point(3, 2))).toBe(unthemedMenuStyles.highlightBg);
     });
 
     it("first item has highlight foreground when popup opens", () => {
         const { backend } = setup(simpleItems());
         backend.sendKey("Tab");
         backend.sendKey("ArrowDown");
-        expect(backend.getFgAt(new Point(3, 2))).toBe(DEFAULT_MENU_COLORS.highlightFg);
+        expect(backend.getFgAt(new Point(3, 2))).toBe(unthemedMenuStyles.highlightFg);
     });
 
     it("ArrowDown moves highlight to second item", () => {
@@ -76,7 +76,7 @@ describe("PopupMenuElement selection colors", () => {
         backend.sendKey("Tab");
         backend.sendKey("ArrowDown");
         backend.sendKey("ArrowDown");
-        expect(backend.getBgAt(new Point(3, 2))).not.toBe(DEFAULT_MENU_COLORS.highlightBg);
-        expect(backend.getBgAt(new Point(3, 3))).toBe(DEFAULT_MENU_COLORS.highlightBg);
+        expect(backend.getBgAt(new Point(3, 2))).not.toBe(unthemedMenuStyles.highlightBg);
+        expect(backend.getBgAt(new Point(3, 3))).toBe(unthemedMenuStyles.highlightBg);
     });
 });

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../../Common/GeometryPromitives.ts";
 import type { CellPatch } from "../../../Rendering/Grid.ts";
@@ -9,7 +9,7 @@ import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { RenderContext, TUIElement } from "../../TUIElement.ts";
 
-import { TerminalViewElement } from "./TerminalViewElement.ts";
+import { TerminalViewElement, unthemedTerminalViewStyles } from "./TerminalViewElement.ts";
 
 // Записывающий контекст — ловим точные CellPatch'и, чтобы проверить width/style/цвета,
 // которые MockTerminalBackend наружу не отдаёт.
@@ -62,8 +62,7 @@ describe("TerminalViewElement — render", () => {
         const surface = new FakeTerminalSurface();
         surface.setGrid(["x"]); // ячейка с DEFAULT_COLOR fg/bg
         const el = new TerminalViewElement(surface);
-        el.defaultFg = FG;
-        el.defaultBg = BG;
+        el.setStyles({ defaultFg: FG, defaultBg: BG });
         const patch = render(el, 1, 1).patchAt(0, 0);
 
         expect(patch?.fg).toBe(FG);
@@ -75,7 +74,7 @@ describe("TerminalViewElement — render", () => {
         const surface = new FakeTerminalSurface();
         surface.setCell(0, 0, "x", { fg: explicitFg });
         const el = new TerminalViewElement(surface);
-        el.defaultFg = FG;
+        el.setStyles({ defaultFg: FG, defaultBg: unthemedTerminalViewStyles.defaultBg });
         const patch = render(el, 1, 1).patchAt(0, 0);
 
         expect(patch?.fg).toBe(explicitFg);
@@ -171,6 +170,19 @@ describe("TerminalViewElement — updates", () => {
         const context2 = new RecordingContext(new TerminalScreen(new Size(1, 1)));
         el.render(context2);
         expect(context2.patchAt(0, 0)?.char).toBe("b");
+    });
+
+    it("re-renders on shell exit (to hide the cursor)", () => {
+        const surface = new FakeTerminalSurface();
+        const el = new TerminalViewElement(surface);
+        const markDirty = vi.spyOn(el, "markDirty");
+
+        surface.emitExit(0);
+
+        // markDirty подписан на onExit — курсор прячется в ближайшем кадре (isExited в render).
+        expect(markDirty).toHaveBeenCalled();
+        markDirty.mockRestore();
+        el.dispose();
     });
 
     it("stops reacting to the surface after dispose", () => {

@@ -1,0 +1,95 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+
+import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import type { PanelContainerElement } from "../../../TUIDom/Widgets/PanelContainerElement.ts";
+
+import { ContextKeyService, ContextKeyServiceDIToken } from "../../Services/ContextKeyService.ts";
+import {
+    TERMINAL_VIEW_ID,
+    TerminalService,
+    TerminalServiceDIToken,
+} from "../../Services/Terminal/TerminalService.ts";
+
+const TOGGLE_TERMINAL = "workbench.action.terminal.toggleTerminal";
+const NEW_TERMINAL = "workbench.action.terminal.new";
+
+describe("Workbench — integrated terminal", () => {
+    let ws: ITempWorkspace;
+    let h: IAppHarness;
+    let contextKeys: ContextKeyService;
+    let terminal: TerminalService;
+
+    beforeEach(() => {
+        ws = createTempWorkspace({ prefix: "vexx-terminal-" });
+        h = createAppTestHarness({ workspaceFolder: ws.dir });
+        contextKeys = h.container.get(ContextKeyServiceDIToken);
+        terminal = h.container.get(TerminalServiceDIToken);
+    });
+
+    afterEach(() => {
+        h.dispose();
+        ws.dispose();
+    });
+
+    function panel(): PanelContainerElement {
+        return h.workbench.workbenchLayout.getBottomPanel() as PanelContainerElement;
+    }
+
+    it("Toggle Terminal shows the panel with TERMINAL active and spawns/focuses a terminal", () => {
+        h.commands.execute(TOGGLE_TERMINAL);
+
+        expect(h.workbench.workbenchLayout.getBottomPanelVisible()).toBe(true);
+        expect(panel().getActiveViewId()).toBe(TERMINAL_VIEW_ID);
+        expect(terminal.hasOpenTerminals).toBe(true);
+
+        h.testApp.render();
+        const screen = h.testApp.backend.screenToString();
+        expect(screen).toContain("TERMINAL");
+
+        // Focus landed on the terminal widget → the context keys reflect it.
+        expect(contextKeys.get("terminalFocus")).toBe(true);
+        expect(contextKeys.get("terminalIsOpen")).toBe(true);
+    });
+
+    it("Toggle Terminal again hides the panel", () => {
+        h.commands.execute(TOGGLE_TERMINAL); // show
+        h.commands.execute(TOGGLE_TERMINAL); // hide (Terminal already visible+active)
+
+        expect(h.workbench.workbenchLayout.getBottomPanelVisible()).toBe(false);
+        h.testApp.render();
+        expect(h.testApp.backend.screenToString()).not.toContain("TERMINAL");
+        // The shell keeps running while the panel is only hidden.
+        expect(contextKeys.get("terminalIsOpen")).toBe(true);
+    });
+
+    it("terminalIsOpen tracks whether a terminal is open", () => {
+        expect(terminal.hasOpenTerminals).toBe(false);
+        h.commands.execute(TOGGLE_TERMINAL);
+        expect(contextKeys.get("terminalIsOpen")).toBe(true);
+    });
+
+    it("Create New Terminal opens a second instance", () => {
+        h.commands.execute(TOGGLE_TERMINAL); // first terminal
+        const firstWidget = panel().getChildren()[0];
+
+        h.commands.execute(NEW_TERMINAL); // second terminal becomes active
+        expect(panel().getActiveViewId()).toBe(TERMINAL_VIEW_ID);
+        expect(terminal.hasOpenTerminals).toBe(true);
+        const secondWidget = panel().getChildren()[0];
+        expect(secondWidget).not.toBe(firstWidget);
+    });
+
+    it("activating the TERMINAL tab lazily spawns a shell", () => {
+        expect(terminal.hasOpenTerminals).toBe(false);
+
+        // Simulate a click on the TERMINAL tab: the panel switches the active view,
+        // then fires onActivateView (wired by PanelComponent → PanelService.activateView,
+        // на котором висит ленивый спавн TerminalService).
+        panel().setActiveView(TERMINAL_VIEW_ID);
+        panel().onActivateView?.(TERMINAL_VIEW_ID);
+
+        expect(terminal.hasOpenTerminals).toBe(true);
+        expect(panel().getChildren()).toHaveLength(1);
+    });
+});

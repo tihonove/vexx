@@ -1,11 +1,10 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import type { MenuColors, PopupMenuItemConfig } from "./PopupMenuItemElement.tsx";
-import { DEFAULT_MENU_COLORS, PopupMenuItemElement, PopupMenuSeparatorElement } from "./PopupMenuItemElement.tsx";
+import type { IMenuStyles, PopupMenuItemConfig } from "./PopupMenuItemElement.tsx";
+import { PopupMenuItemElement, PopupMenuSeparatorElement, unthemedMenuStyles } from "./PopupMenuItemElement.tsx";
 import { VStackElement } from "./VStackElement.ts";
 
 export interface MenuItemEntry {
@@ -35,7 +34,7 @@ export class PopupMenuElement extends TUIElement {
     private vstack: VStackElement;
     private itemElements: PopupMenuItemElement[] = [];
     private separatorElements: PopupMenuSeparatorElement[] = [];
-    private colors: MenuColors = DEFAULT_MENU_COLORS;
+    private styles: IMenuStyles = unthemedMenuStyles;
 
     public constructor(entries: MenuEntry[]) {
         super();
@@ -49,11 +48,11 @@ export class PopupMenuElement extends TUIElement {
         for (let i = 0; i < entries.length; i++) {
             const entry = entries[i];
             if (isSeparator(entry)) {
-                const separator = new PopupMenuSeparatorElement(this.colors);
+                const separator = new PopupMenuSeparatorElement(this.styles);
                 this.separatorElements.push(separator);
                 this.vstack.addChild(separator, { width: "stretch", height: 1 });
             } else {
-                const item = new PopupMenuItemElement(entry.label, config, entry.shortcut, entry.icon, this.colors);
+                const item = new PopupMenuItemElement(entry.label, config, entry.shortcut, entry.icon, this.styles);
                 item.onSelect = entry.onSelect;
                 const entryIndex = i;
                 item.onHover = () => {
@@ -68,27 +67,14 @@ export class PopupMenuElement extends TUIElement {
         this.updateItemSelectedStates();
     }
 
-    /**
-     * Применяет цвета из активной темы (ключи VS Code `menu.*`). `menu.*` цвета
-     * гарантированы реестром дефолтов (см. {@link defaultWorkbenchColors}), а
-     * `shortcutFg` не имеет темизируемого ключа VS Code и берётся из
-     * {@link DEFAULT_MENU_COLORS} (baseline для меню без темы).
-     */
-    public applyTheme(theme: WorkbenchTheme): void {
-        this.colors = {
-            fg: theme.getRequiredColor("menu.foreground"),
-            bg: theme.getRequiredColor("menu.background"),
-            highlightFg: theme.getRequiredColor("menu.selectionForeground"),
-            highlightBg: theme.getRequiredColor("menu.selectionBackground"),
-            shortcutFg: DEFAULT_MENU_COLORS.shortcutFg,
-            borderFg: theme.getRequiredColor("menu.border"),
-            separatorFg: theme.getRequiredColor("menu.separatorBackground"),
-        };
+    /** Раздаёт стили меню (свои + всем пунктам и сепараторам). */
+    public setStyles(styles: IMenuStyles): void {
+        this.styles = styles;
         for (const item of this.itemElements) {
-            item.colors = this.colors;
+            item.setStyles(styles);
         }
         for (const separator of this.separatorElements) {
-            separator.colors = this.colors;
+            separator.setStyles(styles);
         }
         this.markDirty();
     }
@@ -136,8 +122,8 @@ export class PopupMenuElement extends TUIElement {
     public render(context: RenderContext): void {
         const w = this.layoutSize.width;
         const h = this.layoutSize.height;
-        const borderFg = this.colors.borderFg;
-        const bg = this.colors.bg;
+        const borderFg = this.styles.borderFg;
+        const bg = this.styles.bg;
 
         // Frame with T-connectors on separator rows (├───┤).
         const children = this.vstack.getChildren();

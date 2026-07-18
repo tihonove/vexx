@@ -4,32 +4,39 @@ import type { TUIEventBase } from "../Events/TUIEventBase.ts";
 import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-// Defaults preserve the historical look; owners (e.g. a dialog) override them from the theme.
-const BUTTON_FG = packRgb(204, 204, 204);
-const BUTTON_BG = packRgb(60, 60, 60);
-const BUTTON_HOVER_BG = packRgb(69, 73, 78);
-const BUTTON_SEL_FG = packRgb(255, 255, 255);
-const BUTTON_SEL_BG = packRgb(0, 120, 215);
-const BUTTON_SEL_HOVER_BG = packRgb(26, 134, 224);
+export interface IButtonStyles {
+    readonly fg: number;
+    readonly bg: number;
+    readonly hoverBg: number;
+    readonly focusedFg: number;
+    readonly focusedBg: number;
+    readonly focusedHoverBg: number;
+}
+
+// Defaults preserve the historical look; owners (e.g. a dialog) override them via setStyles.
+export const unthemedButtonStyles: IButtonStyles = {
+    fg: packRgb(204, 204, 204),
+    bg: packRgb(60, 60, 60),
+    hoverBg: packRgb(69, 73, 78),
+    focusedFg: packRgb(255, 255, 255),
+    focusedBg: packRgb(0, 120, 215),
+    focusedHoverBg: packRgb(26, 134, 224),
+};
 
 export class ButtonElement extends TUIElement {
     public onActivate?: () => void;
 
-    // ─── Theme colors (overridable from outside) ───
-    public normalFg = BUTTON_FG;
-    public normalBg = BUTTON_BG;
-    public normalHoverBg = BUTTON_HOVER_BG;
-    public focusedFg = BUTTON_SEL_FG;
-    public focusedBg = BUTTON_SEL_BG;
-    public focusedHoverBg = BUTTON_SEL_HOVER_BG;
-
+    private styles: IButtonStyles = unthemedButtonStyles;
     private readonly label: string;
     private hovered = false;
 
-    public constructor(label: string) {
+    public constructor(label: string, options?: { styles?: IButtonStyles }) {
         super();
         this.label = label;
         this.tabIndex = 0;
+        if (options?.styles) {
+            this.styles = options.styles;
+        }
 
         this.addEventListener("focus", () => {
             this.markDirty();
@@ -55,6 +62,11 @@ export class ButtonElement extends TUIElement {
 
     public getLabel(): string {
         return this.label;
+    }
+
+    public setStyles(styles: IButtonStyles): void {
+        this.styles = styles;
+        this.markDirty();
     }
 
     public override getMinIntrinsicWidth(_height: number): number {
@@ -88,14 +100,14 @@ export class ButtonElement extends TUIElement {
 
     public override render(context: RenderContext): void {
         const focused = this.isFocused;
-        const fg = focused ? this.focusedFg : this.normalFg;
+        const fg = focused ? this.styles.focusedFg : this.styles.fg;
         const bg = focused
             ? this.hovered
-                ? this.focusedHoverBg
-                : this.focusedBg
+                ? this.styles.focusedHoverBg
+                : this.styles.focusedBg
             : this.hovered
-              ? this.normalHoverBg
-              : this.normalBg;
+              ? this.styles.hoverBg
+              : this.styles.bg;
         context.drawText(0, 0, `[ ${this.label} ]`, { fg, bg });
     }
 }

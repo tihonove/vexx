@@ -11,11 +11,11 @@
 
 Правила адресации:
 - **Ресурс = `Uri`, путь = производное.** Строкой путь остаётся только там, где он честный путь на диске: `UserDataPaths`, `StateService`, `KeybindingsService`, `ConfigurationService`, файловое дерево, персистентность сессии.
-- **Подъём строки в `Uri` — в одной точке**, и `path.resolve` стоит вплотную перед `Uri.file`: `Uri.file` относительные пути НЕ резолвит (только префиксует `/`), поэтому резолвить после подъёма поздно. Для ядра эта точка — `EditorGroupController.openFile`.
+- **Подъём строки в `Uri` — в одной точке**, и `path.resolve` стоит вплотную перед `Uri.file`: `Uri.file` относительные пути НЕ резолвит (только префиксует `/`), поэтому резолвить после подъёма поздно. Для ядра эта точка — `EditorService.openFile`.
 - **Сравнение — по `uri.toString()`**, а не `path.resolve(a) === path.resolve(b)`. Реестры ключуются строкой `uri.toString()`: `Map` не сравнивает `Uri` по значению, поэтому вопрос не «Uri или строка», а «какая строка» — каноничную даёт сам `Uri`.
 - **Гейт дисковых операций — по `uri.scheme === "file"`**, а не по «путь непустой»: `fsPath` у не-file схемы не бросает, а возвращает путь как есть (`untitled:Untitled-1` → `"Untitled-1"`), и такой «путь» уйдёт в `node:fs` как относительный.
 
-IO-абстракции (интерфейс + no-op/in-memory заглушка), которыми пользуются разные слои: `IClipboard`/`InMemoryClipboard`, `IFileClipboard`/`InMemoryFileClipboard`, `IFileWatcher`/`NULL_FILE_WATCHER` (слежение за отдельным файлом; реальная `ChokidarFileWatcher` и DI-токен `IFileWatcherDIToken` — в Controllers, но интерфейс живёт здесь, чтобы им мог пользоваться и слой Configuration для live-reload настроек).
+IO-абстракции (интерфейс + no-op/in-memory заглушка), которыми пользуются разные слои: `IClipboard`/`InMemoryClipboard`, `IFileClipboard`/`InMemoryFileClipboard`, `IFileWatcher`/`NULL_FILE_WATCHER` (слежение за отдельным файлом; реальная `ChokidarFileWatcher` и DI-токен `IFileWatcherDIToken` — в `Workbench/Services/`, но интерфейс живёт здесь, чтобы им мог пользоваться и слой Configuration для live-reload настроек).
 
 ## Common/Assets/
 Унифицированный доступ к статическим ассетам (грамматики, `onig.wasm`, манифесты builtin-расширений) через один интерфейс `IAssetAccess` над виртуальными POSIX-путями — потребители не знают, откуда физически читаются файлы. Две реализации: `BundleAssetAccess` (in-memory mini-archive) и `FsAssetAccess` (dev, mapping `virtualPrefix → fsRoot`). `CompositeAssetAccess` — longest-prefix роутер, склеивающий builtin- и user-ассеты в одно адресное пространство. Сборка bundle — `scripts/pack-assets.mjs`.

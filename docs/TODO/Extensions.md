@@ -43,7 +43,7 @@
 
 ## Phase 7 — Активация и lifecycle
 
-- [~] `activationEvents`: `*`, `onStartupFinished`, `onLanguage:*` — сделаны (`ExtensionHost.registerExtension` = bookkeeping, `activateByEvent` активирует по событию; фаеринг — `main.ts` + `EditorGroupController.onActiveEditorChanged` seam). Пример: builtin `vexx-settings` (автодополнение settings.json, `onLanguage:json`). Остаётся `onCommand:*` (нужен await активации во время dispatch команды).
+- [~] `activationEvents`: `*`, `onStartupFinished`, `onLanguage:*` — сделаны (`ExtensionHost.registerExtension` = bookkeeping, `activateByEvent` активирует по событию; фаеринг — `main.ts` + `EditorService.onActiveEditorChanged` seam). Пример: builtin `vexx-settings` (автодополнение settings.json, `onLanguage:json`). Остаётся `onCommand:*` (нужен await активации во время dispatch команды).
 - [x] Lazy activation — расширение не грузится до триггера (subprocess поднимается только на `activateByEvent`).
 - [ ] `IDisposable`-цепочка: при unload корректно убираются все contributions (TokenizationRegistry, CommandRegistry, …).
 - [ ] Reload расширения (dispose → re-register).

@@ -1,10 +1,10 @@
 import { DisplayLine } from "../../Common/DisplayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { packRgb } from "../../Rendering/ColorUtils.ts";
-import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import { ButtonElement } from "./ButtonElement.ts";
+import type { IButtonStyles } from "./ButtonElement.ts";
+import { ButtonElement, unthemedButtonStyles } from "./ButtonElement.ts";
 import { InputElement } from "./InputElement.ts";
 
 // ─── Colors ─────────────────────────────────────────────────────────────────
@@ -23,6 +23,12 @@ const CLOSE_GLYPH = "✕";
 const BUTTON_W = 5;
 const BUTTON_GAP = 1;
 const NAV_W = 3 * BUTTON_W + 2 * BUTTON_GAP; // 17 cells
+
+export interface IFindWidgetStyles {
+    readonly button: IButtonStyles;
+}
+
+export const unthemedFindWidgetStyles: IFindWidgetStyles = { button: unthemedButtonStyles };
 
 /**
  * Find-in-file widget: a single-row bordered box with a query input, a
@@ -95,20 +101,12 @@ export class FindWidgetElement extends TUIElement {
     }
 
     /**
-     * Push button colors from the active theme. The buttons are never focused, so the
-     * "secondary" tokens drive their look. The `button.*` tokens are guaranteed by the
-     * default color registry, so no inline fallback is needed. Mirrors
-     * {@link ConfirmSaveDialogElement}.
+     * Push button styles into the nav/close buttons. The buttons are never focused, so
+     * the non-focused fields drive their look (same pattern as the Workbench dialogs).
      */
-    public applyTheme(theme: WorkbenchTheme): void {
+    public setStyles(styles: IFindWidgetStyles): void {
         for (const button of this.buttons()) {
-            button.focusedBg = theme.getRequiredColor("button.background");
-            button.focusedFg = theme.getRequiredColor("button.foreground");
-            button.focusedHoverBg = theme.getRequiredColor("button.hoverBackground");
-            button.normalBg = theme.getRequiredColor("button.secondaryBackground");
-            button.normalFg = theme.getRequiredColor("button.secondaryForeground");
-            button.normalHoverBg = theme.getRequiredColor("button.secondaryHoverBackground");
-            button.markDirty();
+            button.setStyles(styles.button);
         }
     }
 

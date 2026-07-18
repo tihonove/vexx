@@ -1,11 +1,11 @@
 import type { IDisposable } from "../../Common/Disposable.ts";
-import type { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
+import type { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 
 import type { ICommandService } from "./ICommandService.ts";
 
 /**
  * Реализация {@link ICommandService} поверх {@link CommandRegistry}. Живёт в
- * слое Extensions (Controllers ничего не должен знать про host).
+ * слое Extensions (Workbench ничего не должен знать про host).
  */
 export class CommandServiceAdapter implements ICommandService {
     private readonly registry: CommandRegistry;

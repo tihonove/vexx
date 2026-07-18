@@ -45,7 +45,7 @@ export interface IWorkspaceFolderInfo {
  * Провайдер конфигурации для push-модели: host рассылает снапшот настроек и
  * папки воркспейса в subprocess (`getConfiguration(...).get(...)` в расширениях
  * синхронный, RPC-per-get невозможен). Внедряется в {@link ExtensionHost} из
- * {@link ../../Controllers/Modules/ExtensionHostModule.ts} поверх
+ * {@link ../../Workbench/Modules/ExtensionHostModule.ts} поверх
  * `IConfigurationService`, чтобы не тянуть слой Configuration в рантайм host'а.
  */
 export interface IExtensionHostConfigProvider {
@@ -313,7 +313,7 @@ export class ExtensionHost extends Disposable {
      * Запрашивает у субпроцесса правки will-save (`onWillSaveTextDocument`).
      * Возвращает `[]`, если субпроцесса нет, никто не подписан, документ слишком
      * большой или расширение не ответило за `willSaveTimeoutMs`. Подключается в
-     * `EditorGroupController.saveParticipant` (wiring в module/харнессе).
+     * `EditorService.saveParticipant` (wiring в module/харнессе).
      */
     public async willSaveTextDocument(snapshot: ISaveSnapshot): Promise<readonly ISaveEdit[]> {
         const rpc = this.rpc;
@@ -359,7 +359,7 @@ export class ExtensionHost extends Disposable {
      * (`languages.provideCompletionItems`). Возвращает `[]`, если субпроцесса нет,
      * никто не зарегистрировал провайдеры, документ слишком большой или расширение
      * не ответило за `completionTimeoutMs`. Подключается в
-     * `EditorGroupController.completionSource` (wiring в module/харнессе).
+     * `EditorService.completionSource` (wiring в module/харнессе).
      */
     public async provideCompletionItems(req: ICompletionRequest): Promise<readonly ICoreCompletionItem[]> {
         const rpc = this.rpc;

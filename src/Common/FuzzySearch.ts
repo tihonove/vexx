@@ -2,7 +2,7 @@
  * VS Code-like fuzzy matching with word-boundary and consecutive bonuses.
  *
  * Scoring constants are tuned so that:
- *   - matches at word boundaries ("AC" → "AppController") beat sequential
+ *   - matches at word boundaries ("AC" → "AppContainer") beat sequential
  *     matches in the middle of a word ("AC" → "abstract")
  *   - consecutive matched characters beat scattered ones
  *   - a match on the basename beats a match only in the directory path

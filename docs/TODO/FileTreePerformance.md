@@ -44,7 +44,7 @@ coverage). Бенчи: `src/**/*.bench.ts`, общие фикстуры — `src
   `onIndexChanged`; допускается eventual freshness.
 - **`search` ускорен** без смены движка: предвычисление кейс-фолдинга и basename
   в `FileSearchEntry` (раньше считалось на каждое нажатие), дебаунс ввода в
-  `QuickOpenController` (leading-edge + коалесинг, `SEARCH_DEBOUNCE_MS = 16`),
+  `QuickOpenService` (leading-edge + коалесинг, `SEARCH_DEBOUNCE_MS = 16`),
   и дешёвый **отсев по char-presence bitmask** (`charMask` в `FuzzySearch.ts`,
   поля `basenameBits`/`relativePathBits`) до дорогого fuzzy-match. Отсев — это
   необходимое условие fuzzy-матча, состав/порядок выдачи не меняются (регресс-тест

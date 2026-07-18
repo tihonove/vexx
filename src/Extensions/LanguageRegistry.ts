@@ -42,7 +42,7 @@ interface MutableLanguageEntry {
  *
  * Язык, не пришедший ни от одного расширения, в реестре не появится —
  * тогда `getLanguageIdForResource` вернёт `undefined` и потребитель
- * (`EditorController.pickTokenizer`) откатится на `plaintext`.
+ * (`EditorComponent.ensureTokenizerForLanguage`) откатится на `plaintext`.
  */
 export class LanguageRegistry implements ILanguageService {
     private readonly languages = new Map<string, MutableLanguageEntry>();

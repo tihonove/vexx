@@ -2,7 +2,7 @@
 //
 // `TerminalViewElement` рендерится ТОЛЬКО через этот интерфейс и ничего не знает про
 // PTY и VT-эмулятор. Реальная связка (node-pty + @xterm/headless) реализует
-// `ITerminalSurface` на слой выше — в Controllers, — поэтому под `src/TUIDom/` не
+// `ITerminalSurface` на слой выше — в Workbench, — поэтому под `src/TUIDom/` не
 // протекают импорты `@xterm/headless`/`node-pty`, а виджет остаётся тестируемым
 // через скриптованный фейк (см. TestUtils/FakeTerminalSurface).
 

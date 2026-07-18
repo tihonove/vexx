@@ -14,4 +14,4 @@ Enforcement и разрешение цветов:
 
 Выбор темы: `main.ts` читает `workbench.colorTheme` → `ThemeRegistry.resolve` (неизвестное имя → `DEFAULT_COLOR_THEME`). Рантайм-смена — команда `workbench.action.selectTheme`: quick-pick с **live preview**, Enter применяет и persist'ит через `IConfigurationService.updateUserValue`, Escape откатывает.
 
-**Зависимости:** Theme → Rendering (ColorUtils/packRgb), Common. Находится на одном уровне с Controllers.
+**Зависимости:** Theme → Rendering (ColorUtils/packRgb), Common. Находится на одном уровне с Workbench.

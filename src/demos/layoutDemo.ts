@@ -259,9 +259,9 @@ const fileTreeLines = [
     { text: "▼ Common", indent: 2, isBold: false },
     { text: "  DiContainer.ts", indent: 3, isBold: false },
     { text: "  Disposable.ts", indent: 3, isBold: false },
-    { text: "▼ Controllers", indent: 2, isBold: false },
-    { text: "  AppController.ts", indent: 3, isBold: false },
-    { text: "  EditorController.ts", indent: 3, isBold: false },
+    { text: "▼ Workbench", indent: 2, isBold: false },
+    { text: "  WorkbenchComponent.ts", indent: 3, isBold: false },
+    { text: "  EditorComponent.ts", indent: 3, isBold: false },
     { text: "  CommandRegistry.ts", indent: 3, isBold: false },
     { text: "▼ Editor", indent: 2, isBold: false },
     { text: "  EditorElement.ts", indent: 3, isBold: false },
@@ -305,7 +305,7 @@ function renderTabs(grid: Grid, x: number, y: number, w: number): void {
     fillRect(grid, x, y, w, 1, theme.tabInactiveBg);
     const tabs = [
         { name: "main.ts", active: true },
-        { name: "AppController.ts", active: false },
+        { name: "WorkbenchComponent.ts", active: false },
         { name: "EditorViewState.ts", active: false },
     ];
     let cx = x;
@@ -718,7 +718,7 @@ function renderVariant5(grid: Grid, cols: number, rows: number, focus: string): 
     // Tab layout: active tab gets │ borders on sides (bump), all labels on same row
     const tabs = [
         { name: "main.ts", active: true },
-        { name: "AppController.ts", active: false },
+        { name: "WorkbenchComponent.ts", active: false },
         { name: "EditorViewState.ts", active: false },
     ];
     const tabLayouts: { label: string; x: number; w: number; active: boolean }[] = [];

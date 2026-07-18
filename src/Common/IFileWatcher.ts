@@ -8,9 +8,9 @@ import type { IDisposable } from "./Disposable.ts";
  *
  * Это чистый IO-примитив (без DI и внешних зависимостей) — он живёт в Common
  * рядом с {@link IClipboard}/{@link IFileClipboard}, чтобы им могли пользоваться
- * и слой Controllers (через `IFileWatcherDIToken`), и слой Configuration
+ * и слой Workbench (через `IFileWatcherDIToken`), и слой Configuration
  * (напрямую, для live-reload настроек). Единственная реализация с реальным IO —
- * `ChokidarFileWatcher` (слой Controllers); в тестах используется
+ * `ChokidarFileWatcher` (слой Workbench); в тестах используется
  * {@link NULL_FILE_WATCHER} или ручной фейк.
  */
 export interface IFileWatcher {

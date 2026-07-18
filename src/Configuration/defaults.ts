@@ -21,7 +21,7 @@ export function getDefaultConfiguration(): Readonly<Record<string, unknown>> {
             // видимую область (PgUp/PgDown, Ctrl+End и т.п.) — курсор «оттупает» от края.
             // В VS Code дефолт 0; здесь держим небольшой отступ (issue #89).
             cursorSurroundingLines: 3,
-            // detectIndentation: true — добавим, когда EditorController станет читать из конфига.
+            // detectIndentation: true — добавим, когда редактор станет читать её из конфига.
         },
         explorer: {
             // Спрашивать подтверждение перед удалением (безвозвратное удаление спрашивает всегда).

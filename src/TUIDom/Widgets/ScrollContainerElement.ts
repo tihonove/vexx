@@ -8,10 +8,20 @@ import { renderHorizontalScrollBar, renderScrollBar } from "./ScrollBarRenderer.
 
 export type ScrollBarPolicy = "auto" | "always" | "never";
 
-// Standalone defaults for theme-less use (stories, tests). Controllers overwrite
-// these from the active theme in their applyTheme — see FileTreeController.
-const DEFAULT_THUMB_COLOR = packRgb(100, 100, 100);
-const DEFAULT_TRACK_COLOR = packRgb(50, 50, 50);
+export interface IScrollBarStyles {
+    readonly thumb: number;
+    readonly track: number;
+    /** Fills the scrollbar row/column so the widget's own background shows, not the terminal's. */
+    readonly background: number;
+}
+
+// Standalone defaults for theme-less use (stories, tests). Workbench components overwrite
+// these from the active theme — see getScrollBarStyles (defaultStyles.ts).
+export const unthemedScrollBarStyles: IScrollBarStyles = {
+    thumb: packRgb(100, 100, 100),
+    track: packRgb(50, 50, 50),
+    background: DEFAULT_COLOR,
+};
 
 /**
  * Draws scrollbars alongside a scrollable child.
@@ -31,15 +41,17 @@ export class ScrollBarDecorator extends TUIElement {
     private child: TUIElement & IScrollable;
     public verticalScrollBar: ScrollBarPolicy = "auto";
     public horizontalScrollBar: ScrollBarPolicy = "auto";
-    public thumbColor = DEFAULT_THUMB_COLOR;
-    public trackColor = DEFAULT_TRACK_COLOR;
-    /** Fills the scrollbar row/column so the widget's own background shows, not the terminal's. */
-    public backgroundColor: number = DEFAULT_COLOR;
+    private styles: IScrollBarStyles = unthemedScrollBarStyles;
 
     public constructor(child: TUIElement & IScrollable) {
         super();
         this.child = child;
         this.child.setParent(this);
+    }
+
+    public setStyles(styles: IScrollBarStyles): void {
+        this.styles = styles;
+        this.markDirty();
     }
 
     public getChild(): TUIElement & IScrollable {
@@ -80,11 +92,7 @@ export class ScrollBarDecorator extends TUIElement {
 
         const childWidth = this.child.layoutSize.width;
         const childHeight = this.child.layoutSize.height;
-        const colors: ScrollBarColors = {
-            thumb: this.thumbColor,
-            track: this.trackColor,
-            background: this.backgroundColor,
-        };
+        const colors: ScrollBarColors = this.styles;
 
         if (showVertical) {
             renderScrollBar(

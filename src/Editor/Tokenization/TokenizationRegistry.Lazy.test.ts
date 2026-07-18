@@ -90,7 +90,7 @@ describe("TokenizationRegistry — lazy registration", () => {
         const reg = new TokenizationRegistry();
         const factory = vi.fn(async () => makeStubSupport());
         reg.registerLazy("css", factory);
-        // Ровно то, что делает EditorController: onDidChange → applyTokenizer →
+        // Ровно то, что делает EditorComponent: onDidChange → applyTokenizer →
         // ensureTokenizerForLanguage → load().
         reg.onDidChange((id) => void reg.load(id));
 
@@ -139,7 +139,7 @@ describe("TokenizationRegistry — lazy registration", () => {
         const reg = new TokenizationRegistry();
         reg.registerLazy("css", () => Promise.reject(new Error("boom")));
 
-        // Критично: EditorController зовёт `void load(...)`, реджект дал бы
+        // Критично: EditorComponent зовёт `void load(...)`, реджект дал бы
         // unhandled rejection и уронил процесс.
         await expect(reg.load("css")).resolves.toBeUndefined();
         expect(reg.get("css")).toBeUndefined();

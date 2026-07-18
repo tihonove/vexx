@@ -14,7 +14,7 @@ themes/*.ts ──▶ ThemeRegistry (label → IThemeFile) ──▶ resolve(lab
                                                                               │
    workbench.colorTheme (Configuration) ──▶ выбор активной ──▶ ThemeService ──┤ onThemeChange
                                                                               ▼
-                                        AppController / EditorController / … applyTheme()
+                              WorkbenchComponent / ThemedComponent-наследники … updateStyles()
 ```
 
 ## Осталось (подфичи)
@@ -32,7 +32,7 @@ themes/*.ts ──▶ ThemeRegistry (label → IThemeFile) ──▶ resolve(lab
 **Риск/вопрос владельцу:** темы расширений грузятся асинхронно (как грамматики). Если `workbench.colorTheme` называет тему из ещё не отсканированного расширения — на старте будет fallback на дефолт, а тема подхватится позже. Нужен ли hot-swap активной темы при поздней регистрации (по аналогии с hot-swap токенайзера)? Для MVP — нет; тема применится со следующего запуска.
 
 ### [ ] Live-reload при ручной правке `workbench.colorTheme`
-`onDidChangeConfiguration` — no-op (watcher настроек не реализован, общий пробел Configuration-слоя). Когда появится watcher — подписать `main.ts`/`AppController` на изменение `workbench.colorTheme` и звать `ThemeService.setTheme(registry.resolve(...))`. Пока смена руками в settings.json подхватывается перезапуском (пикер persist'ит без перезапуска).
+`onDidChangeConfiguration` — no-op (watcher настроек не реализован, общий пробел Configuration-слоя). Когда появится watcher — подписать `main.ts`/`WorkbenchComponent` на изменение `workbench.colorTheme` и звать `ThemeService.setTheme(registry.resolve(...))`. Пока смена руками в settings.json подхватывается перезапуском (пикер persist'ит без перезапуска).
 
 ### [ ] Раскомментировать недостающие ключи `IWorkbenchColors`
 Импортированные темы несут ~сотни цветовых ключей; `IWorkbenchColors` большинство держит закомментированными. Незаявленные ключи парсятся в модель, но типобезопасного `getColor` для них нет. Раскомментировать по мере того, как виджеты начинают их использовать (как и задумано в слое Theme).
@@ -40,8 +40,7 @@ themes/*.ts ──▶ ThemeRegistry (label → IThemeFile) ──▶ resolve(lab
 ## Связанные файлы
 - `src/Theme/ThemeRegistry.ts`, `src/Theme/themes/*` — реестр и встроенные темы
 - `scripts/import-vscode-themes.mjs` — импорт тем из microsoft/vscode
-- `src/Controllers/QuickInputController.ts` — `quickPick()` list-pick flavor
-- `src/Controllers/AppController.ts` — `selectColorTheme`, команда/меню
-- `src/Controllers/Actions/ThemeActions.ts` — дескриптор команды
+- `src/Workbench/Services/QuickInputService.ts` — `quickPick()` list-pick flavor
+- `src/Workbench/Actions/ThemeActions.ts` — `selectColorTheme` (экшен-пикер), меню — `MenuService`
 - `src/Configuration/ConfigurationService.ts` — `updateUserValue` (persist)
 - `src/main.ts` — выбор активной темы на старте

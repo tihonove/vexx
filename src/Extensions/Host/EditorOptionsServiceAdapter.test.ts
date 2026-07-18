@@ -2,19 +2,19 @@ import { describe, expect, it, vi } from "vitest";
 
 import { Uri } from "../../Common/Uri.ts";
 
-import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
+import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 
 import { EditorOptionsServiceAdapter } from "./EditorOptionsServiceAdapter.ts";
 
 /**
- * Минимальный стаб EditorGroupController — адаптер использует только
+ * Минимальный стаб EditorService — адаптер использует только
  * `getActiveEditor()` (и в других методах — больше). Здесь нам нужен случай
  * «нет активного редактора».
  */
-function groupWithNoActiveEditor(): EditorGroupController {
+function groupWithNoActiveEditor(): EditorService {
     return {
         getActiveEditor: () => null,
-    } as unknown as EditorGroupController;
+    } as unknown as EditorService;
 }
 
 describe("EditorOptionsServiceAdapter", () => {
@@ -28,7 +28,7 @@ describe("EditorOptionsServiceAdapter", () => {
             getActiveEditor: () => ({
                 viewState: { tabSize: 4, insertSpaces: true },
             }),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const adapter = new EditorOptionsServiceAdapter(group);
         expect(adapter.getActiveEditorOptions()).toEqual({ tabSize: 4, insertSpaces: true });
     });
@@ -44,7 +44,7 @@ describe("EditorOptionsServiceAdapter", () => {
         const setIndentOptions = vi.fn();
         const group = {
             getActiveEditor: () => ({ setIndentOptions }),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const adapter = new EditorOptionsServiceAdapter(group);
         adapter.setActiveEditorOptions({ tabSize: 8 });
         expect(setIndentOptions).toHaveBeenCalledWith({ tabSize: 8 });
@@ -58,7 +58,7 @@ describe("EditorOptionsServiceAdapter", () => {
     it("getActiveEditorFilePath() отдаёт путь для file:-ресурса", () => {
         const group = {
             getActiveEditor: () => ({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false }),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         expect(new EditorOptionsServiceAdapter(group).getActiveEditorFilePath()).toBe("/a/b.ts");
     });
 
@@ -71,7 +71,7 @@ describe("EditorOptionsServiceAdapter", () => {
                 languageId: "plaintext",
                 isModified: false,
             }),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         expect(new EditorOptionsServiceAdapter(group).getActiveEditorFilePath()).toBeNull();
     });
 
@@ -84,7 +84,7 @@ describe("EditorOptionsServiceAdapter", () => {
                 encoding: "windows1251",
                 eol: 2,
             }),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         expect(new EditorOptionsServiceAdapter(withEditor).getActiveEditorMeta()).toEqual({
             uri: Uri.file("/a/b.ts").toString(),
             languageId: "typescript",
@@ -109,7 +109,7 @@ describe("EditorOptionsServiceAdapter", () => {
                 registered = cb;
                 return groupDisposable;
             },
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const adapter = new EditorOptionsServiceAdapter(group);
 
         const received: unknown[] = [];

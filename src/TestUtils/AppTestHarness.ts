@@ -3,24 +3,27 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { IStateService } from "../Configuration/IStateService.ts";
-import type { AppController } from "../Controllers/AppController.ts";
-import { AppControllerDIToken } from "../Controllers/AppController.ts";
-import type { CommandRegistry } from "../Controllers/CommandRegistry.ts";
-import { CommandRegistryDIToken } from "../Controllers/CommandRegistry.ts";
-import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Controllers/CoreTokens.ts";
-import type { EditorController } from "../Controllers/EditorController.ts";
-import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
-import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
-import { StateServiceDIToken } from "../Controllers/Modules/StateModule.ts";
+import type { WorkbenchComponent } from "../Workbench/Components/Shell/WorkbenchComponent.ts";
+import { WorkbenchComponentDIToken } from "../Workbench/Components/Shell/WorkbenchComponent.ts";
+import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
+import {
+    KeybindingsResourceDIToken,
+    SettingsResourceDIToken,
+    StateServiceDIToken,
+} from "../Workbench/Services/CoreTokens.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
+import { EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
+import { createTestContainer } from "../Workbench/Modules/TestProfile.ts";
 
 import { TestApp } from "./TestApp.ts";
 
 export interface IAppHarnessOptions {
-    /** Передаётся в `controller.setWorkspaceFolder()` перед mount. Omit — путь «без воркспейса». */
+    /** Передаётся в `workbench.setWorkspaceFolder()` перед mount. Omit — путь «без воркспейса». */
     readonly workspaceFolder?: string;
     /** Размер терминала; по умолчанию 80×24. */
     readonly size?: Size;
-    /** Абсолютный путь файла, который открыть после mount (`controller.openFile`). */
+    /** Абсолютный путь файла, который открыть после mount (`workbench.openFile`). */
     readonly openFile?: string;
     /** Сфокусировать редактор и отрендерить кадр после boot'а. */
     readonly focusEditor?: boolean;
@@ -29,8 +32,8 @@ export interface IAppHarnessOptions {
     /**
      * Реальный {@link IConfigurationService} — для тестов live-apply настроек;
      * по умолчанию `NULL_CONFIGURATION_SERVICE` (событий не шлёт). Перебивает
-     * биндинг ДО резолва AppController, так что и AppController, и
-     * EditorGroupController получают один и тот же экземпляр.
+     * биндинг ДО резолва WorkbenchComponent, так что и WorkbenchComponent, и
+     * EditorService получают один и тот же экземпляр.
      */
     readonly configurationService?: IConfigurationService;
     /** Переопределить путь settings.json (по умолчанию `null` из TestProfile). */
@@ -41,19 +44,19 @@ export interface IAppHarnessOptions {
 
 export interface IAppHarness {
     readonly testApp: TestApp;
-    readonly controller: AppController;
+    readonly workbench: WorkbenchComponent;
     readonly commands: CommandRegistry;
     /** Полный контейнер — для suite-specific сервисов: `h.container.get(ThemeServiceDIToken)`. */
     readonly container: Container;
     /** Активный редактор группы; бросает, если его нет. */
-    activeEditor(): EditorController;
-    /** `controller.dispose()`. Воркспейсом НЕ владеет — композиция с {@link createTempWorkspace}. */
+    activeEditor(): EditorPane;
+    /** `workbench.dispose()`. Воркспейсом НЕ владеет — композиция с {@link createTempWorkspace}. */
     dispose(): void;
 }
 
 /**
- * Boot-харнесс интеграционных тестов над {@link AppController}: тестовый
- * DI-контейнер → controller → mount → {@link TestApp} → bindApp. Канонический вид:
+ * Boot-харнесс интеграционных тестов над {@link WorkbenchComponent}: тестовый
+ * DI-контейнер → workbench → mount → {@link TestApp} → bindApp. Канонический вид:
  *
  *     beforeEach(() => {
  *         ws = createTempWorkspace({ files: { "alpha.txt": "Alpha" } });
@@ -61,14 +64,14 @@ export interface IAppHarness {
  *     });
  *     afterEach(() => { h.dispose(); ws.dispose(); });
  *
- * Харнесс синхронный: async-активация (`await controller.activate()` +
+ * Харнесс синхронный: async-активация (`await workbench.activate()` +
  * `fileIndexReady`) остаётся в тесте поверх харнесса.
  */
 export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarness {
     const { container, bindApp } = createTestContainer();
-    // Rebind before the AppController is resolved (it reads these at construction).
+    // Rebind before the WorkbenchComponent is resolved (it reads these at construction).
     // По умолчанию состояние не персистится (NULL_STATE_SERVICE из stateModuleDefault);
-    // тест может подсунуть реальный StateService, перебив биндинг ДО резолва AppController.
+    // тест может подсунуть реальный StateService, перебив биндинг ДО резолва WorkbenchComponent.
     if (options.stateService !== undefined) {
         const stateService = options.stateService;
         container.bind(StateServiceDIToken, () => stateService);
@@ -85,26 +88,26 @@ export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarn
         const resource = options.keybindingsResource;
         container.bind(KeybindingsResourceDIToken, () => resource);
     }
-    const controller = container.get(AppControllerDIToken);
+    const workbench = container.get(WorkbenchComponentDIToken);
     if (options.workspaceFolder !== undefined) {
-        controller.setWorkspaceFolder(options.workspaceFolder);
+        workbench.setWorkspaceFolder(options.workspaceFolder);
     }
-    controller.mount();
-    const testApp = TestApp.create(controller.view, options.size ?? new Size(80, 24));
+    workbench.mount();
+    const testApp = TestApp.create(workbench.view, options.size ?? new Size(80, 24));
     bindApp(testApp.app);
 
     if (options.openFile !== undefined) {
-        controller.openFile(options.openFile);
+        workbench.openFile(options.openFile);
     }
     if (options.focusEditor === true) {
-        controller.focusEditor();
+        workbench.focusEditor();
         testApp.render();
     }
 
-    const group = container.get(EditorGroupControllerDIToken);
+    const group = container.get(EditorServiceDIToken);
     return {
         testApp,
-        controller,
+        workbench,
         commands: container.get(CommandRegistryDIToken),
         container,
         activeEditor: () => {
@@ -115,7 +118,7 @@ export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarn
             return editor;
         },
         dispose: () => {
-            controller.dispose();
+            workbench.dispose();
         },
     };
 }
