@@ -1,15 +1,14 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../Common/GeometryPromitives.ts";
 import { RenderContext, TUIElement } from "../TUIElement.ts";
 
-import type { MenuBarElement } from "./MenuBarElement.ts";
 import { OverlayLayer } from "./OverlayLayer.ts";
-import type { StatusBarElement } from "./StatusBarElement.ts";
 
 export class BodyElement extends TUIElement {
     public title = "";
     public content: TUIElement | null = null;
-    public menuBar: MenuBarElement | null = null;
-    public statusBar: StatusBarElement | null = null;
+    // Слоты — произвольные однострочные элементы: Body не знает конкретных виджетов.
+    public menuBar: TUIElement | null = null;
+    public statusBar: TUIElement | null = null;
     public readonly overlayLayer: OverlayLayer;
 
     public constructor() {
@@ -26,12 +25,12 @@ export class BodyElement extends TUIElement {
         this.content.setParent(this);
     }
 
-    public setMenuBar(menuBar: MenuBarElement): void {
+    public setMenuBar(menuBar: TUIElement): void {
         this.menuBar = menuBar;
         this.menuBar.setParent(this);
     }
 
-    public setStatusBar(statusBar: StatusBarElement): void {
+    public setStatusBar(statusBar: TUIElement): void {
         this.statusBar = statusBar;
         this.statusBar.setParent(this);
     }
