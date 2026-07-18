@@ -125,11 +125,10 @@ export class DialogService extends Disposable {
             pointerPolicy: "modal",
             disposeOnClose: true,
             onClose: () => {
-                // Закрытие мимо колбэков (Escape гасит сессию) — освобождаем компонент.
-                if (this.confirmDialog === dialog) {
-                    this.confirmDialog = null;
-                    this.confirmSession = null;
-                }
+                // Любой путь закрытия (колбэк, Escape, замена новым диалогом)
+                // проходит через сессию — освобождаем компонент здесь.
+                this.confirmDialog = null;
+                this.confirmSession = null;
                 dialog.dispose();
             },
         });

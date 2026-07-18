@@ -50,6 +50,28 @@ describe("FitContentElement", () => {
         expect(size.height).toBe(0);
         expect(fit.getChildren().length).toBe(0);
         expect(fit.getChild()).toBeNull();
+        expect(fit.getMinIntrinsicWidth(1)).toBe(0);
+        expect(fit.getMaxIntrinsicWidth(1)).toBe(0);
+        expect(fit.getMinIntrinsicHeight(1)).toBe(0);
+        expect(fit.getMaxIntrinsicHeight(1)).toBe(0);
+    });
+
+    it("renders nothing without a child", () => {
+        const fit = new FitContentElement();
+
+        const backend = renderElement(fit, 4, 2, { constraints: BoxConstraints.loose(new Size(4, 2)) });
+
+        expect(backend.getTextAt(new Point(0, 0), 4).trim()).toBe("");
+    });
+
+    it("setChild(null) clears the current child", () => {
+        const fit = new FitContentElement();
+        fit.setChild(label("hello"));
+
+        fit.setChild(null);
+
+        expect(fit.getChild()).toBeNull();
+        expect(fit.getChildren().length).toBe(0);
     });
 
     it("renders the child's content", () => {

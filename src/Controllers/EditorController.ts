@@ -33,6 +33,7 @@ import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
 
 import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
+import type { MenuColors } from "../TUIDom/Widgets/PopupMenuItemElement.tsx";
 import { menuColorsFromTheme } from "./menuColorsFromTheme.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
@@ -125,7 +126,7 @@ export class EditorController extends Disposable implements IController {
     private readonly languageService: ILanguageService;
     private readonly undoRedoService: UndoRedoService;
     private contextMenuEntriesValue: MenuEntry[] = [];
-    private currentTheme: WorkbenchTheme | null = null;
+    private currentMenuColors: MenuColors | null = null;
 
     public get isModified(): boolean {
         return this.doc.versionId !== this.savedVersionId || this.doc.eol !== this.savedEol;
@@ -419,7 +420,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.editor.contextMenuEntries = this.contextMenuEntriesValue;
-        this.editor.menuColors = this.currentTheme ? menuColorsFromTheme(this.currentTheme) : null;
+        this.editor.menuColors = this.currentMenuColors;
         this.attachUndoRouting();
         this.view.setChild(this.editor);
         this.savedVersionId = this.doc.versionId;
@@ -846,7 +847,7 @@ export class EditorController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        this.currentTheme = theme;
+        this.currentMenuColors = menuColorsFromTheme(theme);
         const fg = theme.getRequiredColor("editor.foreground");
         const bg = theme.getRequiredColor("editor.background");
         this.editor.style = { fg, bg };
@@ -858,7 +859,7 @@ export class EditorController extends Disposable implements IController {
         this.editor.warningForeground = theme.getColor("editorWarning.foreground");
         this.editor.infoForeground = theme.getColor("editorInfo.foreground");
         this.editor.hintForeground = theme.getColor("editorHint.foreground");
-        this.editor.menuColors = menuColorsFromTheme(theme);
+        this.editor.menuColors = this.currentMenuColors;
         this.editor.foldingControlForeground = theme.getColor("editorGutter.foldingControlForeground");
         this.editor.indentGuideForeground = theme.getColor("editorIndentGuide.background1");
         this.editor.indentGuideActiveForeground = theme.getColor("editorIndentGuide.activeBackground1");
