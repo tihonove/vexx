@@ -1,18 +1,18 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { token } from "../../Common/DiContainer.ts";
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
+import { token } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { Uri } from "../../Common/Uri.ts";
-
-import { FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
 import { CommandRegistryDIToken } from "../Services/CommandRegistry.ts";
 import { DialogServiceDIToken } from "../Services/DialogService.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
+import { FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
 import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
 import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
 import { WorkbenchContextKeysDIToken } from "../Services/WorkbenchContextKeys.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 /**

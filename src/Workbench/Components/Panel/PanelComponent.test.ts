@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
 import { TUIElement } from "../../../TUIDom/TUIElement.ts";
 import { PanelContainerElement } from "../../../TUIDom/Widgets/PanelContainerElement.ts";
-
 import { PanelService } from "../../Services/PanelService.ts";
+
 import { PanelComponent } from "./PanelComponent.ts";
 
 function makeHarness() {

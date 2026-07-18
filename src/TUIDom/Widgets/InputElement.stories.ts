@@ -1,6 +1,8 @@
 import type { Token } from "../../Common/DiContainer.ts";
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { InMemoryClipboard } from "../../Common/InMemoryClipboard.ts";
+import type { StoryContext, StoryMeta } from "../../StoryRunner/StoryTypes.ts";
+import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import {
     inputCopyAction,
     inputCursorEndAction,
@@ -23,13 +25,11 @@ import {
     inputSelectWordLeftAction,
     inputSelectWordRightAction,
 } from "../../Workbench/Actions/InputActions.ts";
-import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { ContextKeyService } from "../../Workbench/Services/ContextKeyService.ts";
 import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
 import { InputWidgetService, InputWidgetServiceDIToken } from "../../Workbench/Services/InputWidgetService.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
-import type { StoryContext, StoryMeta } from "../../StoryRunner/StoryTypes.ts";
 import type { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
 
 import { InputElement } from "./InputElement.ts";

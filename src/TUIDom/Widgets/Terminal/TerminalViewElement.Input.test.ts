@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 import { BoxConstraints, Size } from "../../../Common/GeometryPromitives.ts";
 import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";
 import { TUIKeyboardEvent } from "../../Events/TUIKeyboardEvent.ts";
-import { TUIMouseEvent } from "../../Events/TUIMouseEvent.ts";
 import type { TUIMouseEventType } from "../../Events/TUIMouseEvent.ts";
+import { TUIMouseEvent } from "../../Events/TUIMouseEvent.ts";
 import { TUIPasteEvent } from "../../Events/TUIPasteEvent.ts";
 
 import { TerminalViewElement } from "./TerminalViewElement.ts";
@@ -104,7 +104,7 @@ describe("TerminalViewElement — mouse", () => {
         ["down", "wheelDown"],
         ["left", "wheelLeft"],
         ["right", "wheelRight"],
-    ] as const)("forwards wheel %s as button \"wheel\"", (direction, action) => {
+    ] as const)('forwards wheel %s as button "wheel"', (direction, action) => {
         const { el, surface } = makeElement();
         el.dispatchEvent(mouse("wheel", { localX: 2, localY: 5, wheelDirection: direction }));
         expect(surface.mouseEvents).toEqual([
@@ -124,7 +124,14 @@ describe("TerminalViewElement — mouse", () => {
     it("keeps modifier flags on wheel events", () => {
         const { el, surface } = makeElement();
         el.dispatchEvent(
-            mouse("wheel", { localX: 1, localY: 1, wheelDirection: "down", ctrlKey: true, altKey: true, shiftKey: true }),
+            mouse("wheel", {
+                localX: 1,
+                localY: 1,
+                wheelDirection: "down",
+                ctrlKey: true,
+                altKey: true,
+                shiftKey: true,
+            }),
         );
         expect(surface.mouseEvents).toEqual([
             { col: 1, row: 1, button: "wheel", action: "wheelDown", ctrl: true, alt: true, shift: true },

@@ -4,12 +4,12 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 
 import { parseUnifiedDiffHunks } from "./lib/diff.ts";
-import { hunksToGutter } from "./lib/map.ts";
 import type { IStatusDecoration } from "./lib/map.ts";
+import { hunksToGutter } from "./lib/map.ts";
 import { statusToDecoration } from "./lib/map.ts";
 import { parsePorcelainStatus } from "./lib/porcelain.ts";
-import { runGit } from "./lib/runGit.ts";
 import type { IRunGitOptions, IRunGitResult } from "./lib/runGit.ts";
+import { runGit } from "./lib/runGit.ts";
 
 /**
  * Built-in Git plugin (subprocess extension, plugin-API only).
@@ -59,7 +59,12 @@ class GitDecorations {
 
     private refreshTimer: ReturnType<typeof setTimeout> | undefined;
     private gitDirWatcher: fs.FSWatcher | undefined;
-    private disposed = false;
+    #disposed = false;
+    // Метод, а не поле/геттер: результат вызова TS не сужает, поэтому повторные проверки
+    // после await не «залипают» (флаг может стать true во время асинхронной паузы).
+    private isDisposed(): boolean {
+        return this.#disposed;
+    }
 
     // Whether we already logged a degraded git invocation this session (avoid spam).
     private loggedGitFailure = false;
@@ -91,12 +96,16 @@ class GitDecorations {
 
         this.disposables.push(
             vscode.window.onDidChangeActiveTextEditor(() => {
-                this.guard("onDidChangeActiveTextEditor", () => this.scheduleRefresh());
+                this.guard("onDidChangeActiveTextEditor", () => {
+                    this.scheduleRefresh();
+                });
             }),
         );
         this.disposables.push(
             vscode.workspace.onDidSaveTextDocument(() => {
-                this.guard("onDidSaveTextDocument", () => this.scheduleRefresh());
+                this.guard("onDidSaveTextDocument", () => {
+                    this.scheduleRefresh();
+                });
             }),
         );
         this.disposables.push(
@@ -110,7 +119,11 @@ class GitDecorations {
         this.watchGitDir();
 
         // The plugin owns its disposables; register a single umbrella disposable.
-        context.subscriptions.push({ dispose: () => this.dispose() });
+        context.subscriptions.push({
+            dispose: () => {
+                this.dispose();
+            },
+        });
 
         // Initial paint (async, never throws).
         void this.refreshAll();
@@ -139,7 +152,7 @@ class GitDecorations {
     }
 
     private scheduleRefresh(): void {
-        if (this.disposed) return;
+        if (this.isDisposed()) return;
         if (this.refreshTimer !== undefined) clearTimeout(this.refreshTimer);
         this.refreshTimer = setTimeout(() => {
             this.refreshTimer = undefined;
@@ -154,7 +167,7 @@ class GitDecorations {
 
     /** Recompute `git status` → tree decorations. Clears everything when disabled/degraded. */
     private async refreshStatus(): Promise<void> {
-        if (this.disposed) return;
+        if (this.isDisposed()) return;
         const previous = new Set(this.status.keys());
 
         let next = new Map<string, IStatusEntry>();
@@ -172,14 +185,14 @@ class GitDecorations {
         this.status = next;
         // Fire for the union of old ∪ new so removed files get cleared too.
         const affected = new Set<string>([...previous, ...next.keys()]);
-        if (affected.size > 0 && !this.disposed) {
+        if (affected.size > 0 && !this.isDisposed()) {
             this.fileDecoEmitter.fire([...affected].map((p) => vscode.Uri.file(p)));
         }
     }
 
     /** Recompute the active file's diff → gutter bars. Clears when disabled/degraded. */
     private async refreshActiveGutter(): Promise<void> {
-        if (this.disposed) return;
+        if (this.isDisposed()) return;
         const editor = vscode.window.activeTextEditor;
         if (editor === undefined) return;
 
@@ -199,7 +212,7 @@ class GitDecorations {
             }
         }
 
-        if (this.disposed) return;
+        if (this.isDisposed()) return;
         for (const [colorId, ranges] of rangesByColor) {
             const type = this.gutterTypes.get(colorId);
             if (type !== undefined) editor.setDecorations(type, ranges);
@@ -209,7 +222,7 @@ class GitDecorations {
     /** Hunks for one file: untracked → whole file added; otherwise `git diff -U0 HEAD`. */
     private async computeHunks(absPath: string): Promise<ReturnType<typeof parseUnifiedDiffHunks>> {
         const entry = this.status.get(absPath);
-        if (entry !== undefined && entry.xy.startsWith("?")) {
+        if (entry?.xy.startsWith("?")) {
             const lineCount = countLines(absPath);
             return lineCount > 0 ? [{ start: 1, count: lineCount, kind: "added" as const }] : [];
         }
@@ -253,7 +266,9 @@ class GitDecorations {
             if (!fs.statSync(gitDir, { throwIfNoEntry: false })?.isDirectory()) return;
             this.gitDirWatcher = fs.watch(gitDir, (_event, filename) => {
                 if (filename === "HEAD" || filename === "index" || filename === null) {
-                    this.guard("gitDirWatcher", () => this.scheduleRefresh());
+                    this.guard("gitDirWatcher", () => {
+                        this.scheduleRefresh();
+                    });
                 }
             });
             // A watcher error (e.g. inotify exhaustion) must not crash the plugin.
@@ -273,8 +288,8 @@ class GitDecorations {
     }
 
     public dispose(): void {
-        if (this.disposed) return;
-        this.disposed = true;
+        if (this.isDisposed()) return;
+        this.#disposed = true;
         if (this.refreshTimer !== undefined) clearTimeout(this.refreshTimer);
         this.gitDirWatcher?.close();
         for (const d of this.disposables.splice(0).reverse()) {

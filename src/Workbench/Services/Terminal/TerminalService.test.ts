@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";
-
 import { PanelService } from "../PanelService.ts";
+
 import { TERMINAL_VIEW_ID, TerminalService } from "./TerminalService.ts";
 import type { ITerminalSessionOptions, TerminalSessionFactory } from "./TerminalSessionFactory.ts";
 

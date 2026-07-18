@@ -139,7 +139,7 @@ describe("encodeText", () => {
 });
 
 describe("roundtrips (byte-exact)", () => {
-    const samples: Array<[string, string]> = [
+    const samples: [string, string][] = [
         ["utf8", "line one\nстрока два\n"],
         ["utf8bom", "with bom\nкириллица\n"],
         ["utf16le", "utf16 le\nтекст\n"],

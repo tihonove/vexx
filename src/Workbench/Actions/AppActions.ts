@@ -1,7 +1,8 @@
-import type { CommandAction } from "./CommandAction.ts";
 import { TuiApplicationDIToken } from "../Services/CoreTokens.ts";
 import { DialogServiceDIToken } from "../Services/DialogService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 /**
  * Немедленный выход (teardown TUI + exit). WorkbenchComponent перекрывает `run`

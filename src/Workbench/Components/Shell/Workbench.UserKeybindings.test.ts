@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { IUserKeybindingRule } from "../../../Configuration/KeybindingsService.ts";
-
-import { WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
-import type { KeyboardEventLike } from "../../Services/KeybindingRegistry.ts";
-import { KeybindingRegistryDIToken } from "../../Services/KeybindingRegistry.ts";
 import { UserKeybindingsDIToken } from "../../Modules/KeybindingsModule.ts";
 import { createTestContainer } from "../../Modules/TestProfile.ts";
+import type { KeyboardEventLike } from "../../Services/KeybindingRegistry.ts";
+import { KeybindingRegistryDIToken } from "../../Services/KeybindingRegistry.ts";
+
+import { WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
 
 const KEY = (key: string, mods: Partial<KeyboardEventLike> = {}): KeyboardEventLike => ({
     key,

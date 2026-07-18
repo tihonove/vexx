@@ -10,7 +10,6 @@ import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
-
 import { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { ExplorerService } from "../../Services/ExplorerService.ts";
 

@@ -1,7 +1,8 @@
-import type { CommandAction } from "./CommandAction.ts";
 import { ClipboardDIToken } from "../Services/CoreTokens.ts";
 import { InputWidgetServiceDIToken } from "../Services/InputWidgetService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 // ─── Cursor Movement ─────────────────────────────────────────
 

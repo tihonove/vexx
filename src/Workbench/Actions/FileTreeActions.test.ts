@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { Container } from "../../Common/DiContainer.ts";
-
-import { ExplorerComponentDIToken, type ExplorerComponent } from "../Components/Explorer/ExplorerComponent.ts";
-import { ExplorerServiceDIToken, type ExplorerService } from "../Services/ExplorerService.ts";
-import { FileOperationsServiceDIToken, type FileOperationsService } from "../Services/FileOperationsService.ts";
+import { type ExplorerComponent, ExplorerComponentDIToken } from "../Components/Explorer/ExplorerComponent.ts";
+import { type ExplorerService, ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
+import { type FileOperationsService, FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 
 import {

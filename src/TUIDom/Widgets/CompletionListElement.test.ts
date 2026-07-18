@@ -21,9 +21,7 @@ const ITEMS: CompletionListItem[] = [
 ];
 
 function mouse(w: CompletionListElement, type: "mousemove" | "click", localY: number): void {
-    w.dispatchEvent(
-        new TUIMouseEvent(type, { button: "left", screenX: 0, screenY: localY, localX: 5, localY }),
-    );
+    w.dispatchEvent(new TUIMouseEvent(type, { button: "left", screenX: 0, screenY: localY, localX: 5, localY }));
 }
 
 function renderToString(w: CompletionListElement): string {
@@ -216,7 +214,9 @@ describe("CompletionListElement", () => {
 
     it("клик без назначенного onAccept не падает", () => {
         const w = makeWidget(ITEMS); // onAccept === null
-        expect(() => mouse(w, "click", 1)).not.toThrow();
+        expect(() => {
+            mouse(w, "click", 1);
+        }).not.toThrow();
         expect(w.selectedIndex).toBe(0);
     });
 });

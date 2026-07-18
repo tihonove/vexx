@@ -4,8 +4,8 @@ import * as path from "node:path";
 
 import { HeadlessCaptureBackend } from "./Backend/HeadlessCaptureBackend.ts";
 import { NodeTerminalBackend } from "./Backend/NodeTerminalBackend.ts";
-import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
 import { joinVirtualPath } from "./Common/Assets/AssetBundleFormat.ts";
+import { CompositeAssetAccess } from "./Common/Assets/CompositeAssetAccess.ts";
 import { createDefaultAssetAccess } from "./Common/Assets/createDefaultAssetAccess.ts";
 import { FsAssetAccess } from "./Common/Assets/FsAssetAccess.ts";
 import type { IAssetAccess } from "./Common/Assets/IAssetAccess.ts";
@@ -20,13 +20,8 @@ import { OscClipboard } from "./Common/OscClipboard.ts";
 import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
 import { VEXX_VERSION } from "./Common/Version.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
-import { loadState } from "./Configuration/StateService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
-import { WorkbenchComponentDIToken } from "./Workbench/Components/Shell/WorkbenchComponent.ts";
-import { ChokidarFileWatcher } from "./Workbench/Services/ChokidarFileWatcher.ts";
-import { TuiApplicationDIToken } from "./Workbench/Services/CoreTokens.ts";
-import { EditorServiceDIToken } from "./Workbench/Services/EditorService.ts";
-import { createProductionContainer } from "./Workbench/Modules/ProductionProfile.ts";
+import { loadState } from "./Configuration/StateService.ts";
 import type { ILanguageService } from "./Editor/Tokenization/ILanguageService.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./Extensions/ExtensionInstaller.ts";
@@ -45,6 +40,11 @@ import { DEFAULT_COLOR_THEME } from "./Theme/themes/builtinThemes.ts";
 import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
+import { WorkbenchComponentDIToken } from "./Workbench/Components/Shell/WorkbenchComponent.ts";
+import { createProductionContainer } from "./Workbench/Modules/ProductionProfile.ts";
+import { ChokidarFileWatcher } from "./Workbench/Services/ChokidarFileWatcher.ts";
+import { TuiApplicationDIToken } from "./Workbench/Services/CoreTokens.ts";
+import { EditorServiceDIToken } from "./Workbench/Services/EditorService.ts";
 
 // ── Subprocess branch ─────────────────────────────────────
 // Если форкнул себя ExtensionHost'ом — уходим в subprocess entry до любых

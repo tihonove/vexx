@@ -1,14 +1,14 @@
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
-
-import type { WorkbenchComponent } from "./WorkbenchComponent.ts";
 import type { CompletionListElement } from "../../../TUIDom/Widgets/CompletionListElement.ts";
+import type { EditorPane } from "../../Components/Editor/EditorPane.ts";
 import { SuggestComponentDIToken } from "../../Components/Editor/SuggestComponent.ts";
 import { CompletionServiceDIToken } from "../../Services/CompletionService.ts";
 import type { ContextKeyService } from "../../Services/ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../Services/ContextKeyService.ts";
-import type { EditorPane } from "../../Components/Editor/EditorPane.ts";
+
+import type { WorkbenchComponent } from "./WorkbenchComponent.ts";
 
 /** Срез пары CompletionService+SuggestComponent для интеграционных тестов. */
 export interface SuggestHandle {

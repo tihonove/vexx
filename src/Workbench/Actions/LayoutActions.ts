@@ -1,9 +1,10 @@
-import { ProblemsComponentDIToken, PROBLEMS_VIEW_ID } from "../Components/Panel/ProblemsComponent.ts";
+import { PROBLEMS_VIEW_ID, ProblemsComponentDIToken } from "../Components/Panel/ProblemsComponent.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
 import { ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 import { LayoutServiceDIToken } from "../Services/LayoutService.ts";
 import { PanelServiceDIToken } from "../Services/PanelService.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 // Columns added/removed per increase/decrease Side Bar Width command.

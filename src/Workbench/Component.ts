@@ -39,7 +39,11 @@ export abstract class ThemedComponent extends Component {
      * здесь не нужен — иначе покраска случилась бы дважды.
      */
     protected initStyles(): void {
-        this.register(this.themeService.onThemeChange(() => this.updateStyles()));
+        this.register(
+            this.themeService.onThemeChange(() => {
+                this.updateStyles();
+            }),
+        );
     }
 
     /** Пуш стилей во владеемые контролы: `control.setStyles(getXxxStyles(this.theme))`. */

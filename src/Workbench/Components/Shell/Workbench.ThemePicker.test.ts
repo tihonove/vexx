@@ -6,11 +6,11 @@ import { NULL_CONFIGURATION_SERVICE } from "../../../Configuration/NullConfigura
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
+import { themeTypeLabel } from "../../Actions/ThemeActions.ts";
+import { createTestContainer } from "../../Modules/TestProfile.ts";
+import { CommandRegistry, CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
 
 import { WorkbenchComponent, WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
-import { themeTypeLabel } from "../../Actions/ThemeActions.ts";
-import { CommandRegistry, CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
-import { createTestContainer } from "../../Modules/TestProfile.ts";
 
 interface ThemeContext {
     testApp: TestApp;

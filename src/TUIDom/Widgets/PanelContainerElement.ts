@@ -177,7 +177,12 @@ export class PanelContainerElement extends TUIElement {
                 const isGlyph = textIndex >= 0 && textIndex < view.title.length;
                 const char = isGlyph ? view.title[textIndex] : " ";
                 const style = isActive && isGlyph ? StyleFlags.Underline : StyleFlags.None;
-                context.setCell(x, TAB_ROW, { char, fg: this.styles.titleForeground, bg: this.styles.background, style });
+                context.setCell(x, TAB_ROW, {
+                    char,
+                    fg: this.styles.titleForeground,
+                    bg: this.styles.background,
+                    style,
+                });
             }
         }
 

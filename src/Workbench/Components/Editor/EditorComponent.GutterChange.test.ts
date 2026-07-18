@@ -1,14 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../../../Common/Uri.ts";
-
 import { Point, Size } from "../../../Common/GeometryPromitives.ts";
+import { Uri } from "../../../Common/Uri.ts";
 import { createRange } from "../../../Editor/IRange.ts";
 import { packRgb } from "../../../Rendering/ColorUtils.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-
-import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 
 const BAR = "┃"; // solid change bar (no dashed flag on this decoration)
 const CHANGE_COLOR = packRgb(0x1b, 0x81, 0xa8);

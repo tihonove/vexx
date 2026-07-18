@@ -1,5 +1,6 @@
 import { FindServiceDIToken } from "../Services/FindService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 // Тонкие экшены find-виджета поверх FindService (этап 10: run-обработчики живут

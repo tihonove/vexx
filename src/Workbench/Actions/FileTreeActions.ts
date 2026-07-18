@@ -1,8 +1,9 @@
-import type { CommandAction } from "./CommandAction.ts";
 import { ExplorerComponentDIToken } from "../Components/Explorer/ExplorerComponent.ts";
 import { ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 import { FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 /**
  * Удаление файла/каталога из explorer'а: подтверждение + запись в историю отмены

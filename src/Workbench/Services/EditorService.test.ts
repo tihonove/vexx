@@ -3,11 +3,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
+import { Uri } from "../../Common/Uri.ts";
+import { resolveUserDataPaths } from "../../Common/UserDataPaths.ts";
 import { loadConfiguration } from "../../Configuration/ConfigurationService.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
-import { Uri } from "../../Common/Uri.ts";
-import { resolveUserDataPaths } from "../../Common/UserDataPaths.ts";
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
 import { PlainTextTokenizer } from "../../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
 import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
@@ -20,7 +21,6 @@ import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 
 import { EditorService } from "./EditorService.ts";
-import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 function createEditorService(
@@ -497,13 +497,17 @@ describe("EditorService", () => {
             };
             write(initial);
             const cfg = await loadConfiguration(p);
-            return { cfg, write, dispose: () => cfgWs.dispose() };
+            return {
+                cfg,
+                write,
+                dispose: () => {
+                    cfgWs.dispose();
+                },
+            };
         }
 
         it("re-applies editor.tabSize / insertSpaces to an open editor", async () => {
-            const { cfg, write, dispose } = await realConfig(
-                `{ "editor.tabSize": 2, "editor.insertSpaces": true }`,
-            );
+            const { cfg, write, dispose } = await realConfig(`{ "editor.tabSize": 2, "editor.insertSpaces": true }`);
             const ctrl = createEditorService({ configurationService: cfg });
             ctrl.openFile(writeFile("a.ts", "const x = 1;"));
             const editor = ctrl.getActiveEditor()!;

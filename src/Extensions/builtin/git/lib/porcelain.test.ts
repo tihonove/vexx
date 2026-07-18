@@ -13,27 +13,19 @@ describe("parsePorcelainStatus", () => {
     });
 
     it("parses a modified working-tree file (` M`)", () => {
-        expect(parsePorcelainStatus(nul(" M src/app.ts"))).toEqual([
-            { path: "src/app.ts", xy: " M" },
-        ]);
+        expect(parsePorcelainStatus(nul(" M src/app.ts"))).toEqual([{ path: "src/app.ts", xy: " M" }]);
     });
 
     it("parses a staged-and-modified file (`MM`)", () => {
-        expect(parsePorcelainStatus(nul("MM lib/x.ts"))).toEqual([
-            { path: "lib/x.ts", xy: "MM" },
-        ]);
+        expect(parsePorcelainStatus(nul("MM lib/x.ts"))).toEqual([{ path: "lib/x.ts", xy: "MM" }]);
     });
 
     it("parses an untracked file (`??`)", () => {
-        expect(parsePorcelainStatus(nul("?? new file.txt"))).toEqual([
-            { path: "new file.txt", xy: "??" },
-        ]);
+        expect(parsePorcelainStatus(nul("?? new file.txt"))).toEqual([{ path: "new file.txt", xy: "??" }]);
     });
 
     it("parses an ignored file (`!!`)", () => {
-        expect(parsePorcelainStatus(nul("!! build/out.js"))).toEqual([
-            { path: "build/out.js", xy: "!!" },
-        ]);
+        expect(parsePorcelainStatus(nul("!! build/out.js"))).toEqual([{ path: "build/out.js", xy: "!!" }]);
     });
 
     it("parses a rename, consuming the original path as a separate field", () => {
@@ -48,13 +40,7 @@ describe("parsePorcelainStatus", () => {
     });
 
     it("parses several mixed records including a rename in the middle", () => {
-        const buf = nul(
-            "M  a.ts",
-            "R  renamed.ts",
-            "from.ts",
-            "?? untracked.ts",
-            " D deleted.ts",
-        );
+        const buf = nul("M  a.ts", "R  renamed.ts", "from.ts", "?? untracked.ts", " D deleted.ts");
         expect(parsePorcelainStatus(buf)).toEqual([
             { path: "a.ts", xy: "M " },
             { path: "renamed.ts", xy: "R " },
@@ -72,8 +58,6 @@ describe("parsePorcelainStatus", () => {
     });
 
     it("preserves multibyte UTF-8 paths", () => {
-        expect(parsePorcelainStatus(nul(" M пример.txt"))).toEqual([
-            { path: "пример.txt", xy: " M" },
-        ]);
+        expect(parsePorcelainStatus(nul(" M пример.txt"))).toEqual([{ path: "пример.txt", xy: " M" }]);
     });
 });

@@ -3,12 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
-import { registerAction } from "./CommandAction.ts";
 import { CommandRegistry } from "../Services/CommandRegistry.ts";
 import { TuiApplicationDIToken } from "../Services/CoreTokens.ts";
 import { KeybindingRegistry } from "../Services/KeybindingRegistry.ts";
 
 import { quitAction } from "./AppActions.ts";
+import { registerAction } from "./CommandAction.ts";
 
 describe("AppActions — quit", () => {
     afterEach(() => {

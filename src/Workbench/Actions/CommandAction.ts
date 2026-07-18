@@ -1,6 +1,5 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import type { IDisposable } from "../../Common/Disposable.ts";
-
 import type { CommandRegistry } from "../Services/CommandRegistry.ts";
 import type { Keybinding, KeybindingChord, KeybindingRegistry } from "../Services/KeybindingRegistry.ts";
 

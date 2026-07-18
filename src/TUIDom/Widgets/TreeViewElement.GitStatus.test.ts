@@ -172,9 +172,7 @@ describe("TreeViewElement git-status decorations", () => {
 
     describe("badge + symlink coexistence", () => {
         it("keeps the git badge at the edge and shifts the symlink arrow left of it", async () => {
-            const tree = new TreeViewElement(
-                createProvider([{ id: "a", label: "Alpha", badge: "M", symlink: true }]),
-            );
+            const tree = new TreeViewElement(createProvider([{ id: "a", label: "Alpha", badge: "M", symlink: true }]));
             tree.setStyles({ ...unthemedTreeViewStyles, symlinkFg: packRgb(120, 120, 120) });
             await tree.refresh();
 

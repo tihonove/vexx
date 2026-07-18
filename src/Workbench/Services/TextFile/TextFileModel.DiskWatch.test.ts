@@ -2,13 +2,11 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../../../Common/Uri.ts";
-
 import type { IDisposable } from "../../../Common/Disposable.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
-import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
 import type { IFileWatcher } from "../../../Common/IFileWatcher.ts";
+import { Uri } from "../../../Common/Uri.ts";
+import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 /** Fake watcher: records the onChange callback per path so tests fire it by hand. */
 class FakeFileWatcher implements IFileWatcher {

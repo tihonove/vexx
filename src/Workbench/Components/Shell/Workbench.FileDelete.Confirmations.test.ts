@@ -9,11 +9,11 @@ import { IConfigurationServiceDIToken } from "../../../Configuration/IConfigurat
 import { NULL_CONFIGURATION_SERVICE } from "../../../Configuration/NullConfigurationService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-
-import { WorkbenchComponent, WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
+import { createTestContainer } from "../../Modules/TestProfile.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
-import { createTestContainer } from "../../Modules/TestProfile.ts";
+
+import { WorkbenchComponent, WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
 
 let savedXdg: string | undefined;
 let ws: ITempWorkspace;

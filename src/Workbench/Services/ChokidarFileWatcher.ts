@@ -1,7 +1,6 @@
 import chokidar from "chokidar";
 
 import type { IDisposable } from "../../Common/Disposable.ts";
-
 import type { IFileWatcher } from "../../Common/IFileWatcher.ts";
 
 /**

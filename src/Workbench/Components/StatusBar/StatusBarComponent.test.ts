@@ -51,8 +51,8 @@ describe("StatusBarComponent", () => {
         expect(items).toEqual([
             { text: "legacy" },
             { text: "Ln 1, Col 1", align: "right" },
-            { text: "UTF-8", align: "right", onClick: expect.any(Function) },
-            { text: "LF", align: "right", onClick: expect.any(Function) },
+            { text: "UTF-8", align: "right", onClick: expect.any(Function) as () => void },
+            { text: "LF", align: "right", onClick: expect.any(Function) as () => void },
             // NULL_LANGUAGE_SERVICE не знает display name — беджик показывает
             // сырой language id.
             { text: "plaintext", align: "right" },
@@ -79,8 +79,8 @@ describe("StatusBarComponent", () => {
         // Язык остаётся: активный редактор есть, пропадает только Ln/Col.
         expect(component.view.getItems()).toEqual([
             { text: "legacy" },
-            { text: "UTF-8", align: "right", onClick: expect.any(Function) },
-            { text: "LF", align: "right", onClick: expect.any(Function) },
+            { text: "UTF-8", align: "right", onClick: expect.any(Function) as () => void },
+            { text: "LF", align: "right", onClick: expect.any(Function) as () => void },
             { text: "plaintext", align: "right" },
         ]);
     });

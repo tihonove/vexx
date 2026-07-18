@@ -18,12 +18,7 @@ import type { TUIPasteEvent } from "../../Events/TUIPasteEvent.ts";
 import { RenderContext, TUIElement } from "../../TUIElement.ts";
 
 import { encodeKeyForPty } from "./encodeKeyForPty.ts";
-import type {
-    ITerminalSurface,
-    TerminalCell,
-    TerminalMouseAction,
-    TerminalMouseButton,
-} from "./ITerminalSurface.ts";
+import type { ITerminalSurface, TerminalCell, TerminalMouseAction, TerminalMouseButton } from "./ITerminalSurface.ts";
 
 // wheelDirection ("up"|"down"|"left"|"right") → семантический action поверхности.
 // Ключи типизированы точно (WheelDirection, а не string) — индексация тотальна,
@@ -72,22 +67,30 @@ export class TerminalViewElement extends TUIElement {
         this.capturesPointer = true; // drag: move/up приходят сюда даже вне границ
 
         // Новые данные из шелла → перерисовать контрол (TuiApplication батчит кадр).
-        this.subscriptions.push(this.surface.onUpdate(() => this.markDirty()));
+        this.subscriptions.push(
+            this.surface.onUpdate(() => {
+                this.markDirty();
+            }),
+        );
         // Выход шелла тоже перерисовывает — чтобы спрятать курсор (isExited в render).
-        this.subscriptions.push(this.surface.onExit(() => this.markDirty()));
+        this.subscriptions.push(
+            this.surface.onExit(() => {
+                this.markDirty();
+            }),
+        );
 
         // Мышь → surface (эмулятор сам решает по активному mouse-режиму, слать ли отчёт).
         this.addEventListener("mousedown", (event) => {
-            this.forwardMouse(event as TUIMouseEvent, "down");
+            this.forwardMouse(event, "down");
         });
         this.addEventListener("mouseup", (event) => {
-            this.forwardMouse(event as TUIMouseEvent, "up");
+            this.forwardMouse(event, "up");
         });
         this.addEventListener("mousemove", (event) => {
-            this.forwardMouse(event as TUIMouseEvent, "move");
+            this.forwardMouse(event, "move");
         });
         this.addEventListener("wheel", (event) => {
-            const mouse = event as TUIMouseEvent;
+            const mouse = event;
             // Колесо без направления (бэкенд его не распознал) трактуем как прокрутку вверх.
             const action = WHEEL_ACTION[mouse.wheelDirection ?? "up"];
             this.sendMouse(mouse, "wheel", action);

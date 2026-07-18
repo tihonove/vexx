@@ -13,9 +13,9 @@ import { basename } from "node:path";
 import { token } from "../../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../../Common/Disposable.ts";
 import type { ITerminalSurface } from "../../../TUIDom/Widgets/Terminal/ITerminalSurface.ts";
-
 import type { PanelService } from "../PanelService.ts";
 import { PanelServiceDIToken } from "../PanelService.ts";
+
 import { type TerminalSessionFactory, TerminalSessionFactoryDIToken } from "./TerminalSessionFactory.ts";
 
 /** VS Code view id of the integrated Terminal view living in the bottom Panel. */
@@ -127,7 +127,11 @@ export class TerminalService extends Disposable {
             id,
             title: `${basename(shell)} (${id})`,
             session,
-            subscriptions: [session.onExit(() => this.handleExit(instance))],
+            subscriptions: [
+                session.onExit(() => {
+                    this.handleExit(instance);
+                }),
+            ],
         };
         this.instances.push(instance);
         this.activeId = id;
@@ -187,7 +191,7 @@ export class TerminalService extends Disposable {
         for (const listener of [...this.closeListeners]) listener(instance);
 
         if (!wasActive) return;
-        const next = this.instances[this.instances.length - 1] ?? null;
+        const next = this.instances.at(-1) ?? null;
         this.activeId = next === null ? null : next.id;
         for (const listener of [...this.activeListeners]) listener(next);
     }

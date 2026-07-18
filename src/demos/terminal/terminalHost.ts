@@ -13,15 +13,15 @@
 //
 // См. docs/TODO/IntegratedTerminal.md.
 
-import { EmbeddedTerminalSession } from "../../Workbench/Services/Terminal/EmbeddedTerminalSession.ts";
 import { NodeTerminalBackend } from "../../Backend/NodeTerminalBackend.ts";
 import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
+import { TUIElement } from "../../TUIDom/TUIElement.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
 import { ButtonElement } from "../../TUIDom/Widgets/ButtonElement.ts";
 import { HFlexElement, hflexFit, hflexFixed } from "../../TUIDom/Widgets/HFlexElement.ts";
 import { TerminalViewElement } from "../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import { TitledPanelElement } from "../../TUIDom/Widgets/TitledPanelElement.ts";
-import { TUIElement } from "../../TUIDom/TUIElement.ts";
+import { EmbeddedTerminalSession } from "../../Workbench/Services/Terminal/EmbeddedTerminalSession.ts";
 
 import { HeaderBodyLayout } from "./HeaderBodyLayout.ts";
 
@@ -59,8 +59,12 @@ const quit = (): void => {
     process.exit(0);
 };
 
-addButton("Send ls", () => session.write("ls\r"));
-addButton("Clear", () => session.write("clear\r"));
+addButton("Send ls", () => {
+    session.write("ls\r");
+});
+addButton("Clear", () => {
+    session.write("clear\r");
+});
 addButton("Narrower", () => {
     layout.bodyPadX += 4;
     layout.markDirty();
@@ -79,7 +83,9 @@ backend.onInput((event) => {
     if (event.ctrlKey && event.key === "q") quit();
 });
 // Если шелл сам завершился (`exit`) — закрываем демо.
-session.onExit(() => quit());
+session.onExit(() => {
+    quit();
+});
 
 app.root = body;
 app.run();

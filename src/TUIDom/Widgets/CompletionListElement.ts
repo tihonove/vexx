@@ -78,10 +78,10 @@ export class CompletionListElement extends TUIElement {
         // Не фокусируемся: редактор сохраняет фокус и каретку (см. класс-док).
         this.tabIndex = -1;
         this.addEventListener("mousemove", (event) => {
-            this.handleMouseMove(event as TUIMouseEvent);
+            this.handleMouseMove(event);
         });
         this.addEventListener("click", (event) => {
-            this.handleClick(event as TUIMouseEvent);
+            this.handleClick(event);
         });
     }
 

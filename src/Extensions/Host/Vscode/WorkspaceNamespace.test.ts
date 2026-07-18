@@ -230,9 +230,12 @@ describe("WorkspaceNamespace — openTextDocument от диска (WP7)", () => 
         const { stub, workspace } = makeCtx();
         const file = path.join(tmpDir, "b.txt");
         fs.writeFileSync(file, "x\n", "utf8");
-        const doc = (await workspace.openTextDocument(Uri.file(file) as never, {
-            encoding: "martian",
-        } as never)) as unknown as { getText(): string; encoding: string };
+        const doc = (await workspace.openTextDocument(
+            Uri.file(file) as never,
+            {
+                encoding: "martian",
+            } as never,
+        )) as unknown as { getText(): string; encoding: string };
         expect(doc.getText()).toBe("x\n");
         expect(doc.encoding).toBe("utf8");
         expect(stub.notifies.some((n) => n.method === "window.showMessage")).toBe(false);

@@ -28,9 +28,11 @@ export function parseUnifiedDiffHunks(text: string): IDiffHunk[] {
         const match = HUNK_HEADER.exec(line);
         if (!match) continue;
 
-        const oldCount = match[2] !== undefined ? Number(match[2]) : 1;
+        const oldCountRaw = match.at(2);
+        const oldCount = oldCountRaw !== undefined ? Number(oldCountRaw) : 1;
         const newStart = Number(match[3]);
-        const newCount = match[4] !== undefined ? Number(match[4]) : 1;
+        const newCountRaw = match.at(4);
+        const newCount = newCountRaw !== undefined ? Number(newCountRaw) : 1;
 
         if (oldCount === 0) {
             hunks.push({ start: newStart, count: newCount, kind: "added" });

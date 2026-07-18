@@ -3,12 +3,10 @@ import * as fs from "node:fs";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Uri } from "../../../Common/Uri.ts";
-
 import { EndOfLine } from "../../../Editor/EndOfLine.ts";
 import type { ISaveEdit } from "../../../Editor/ISaveParticipant.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
 import { createEditorPane, type EditorPane } from "../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 describe("TextFileModel — save participant", () => {
     let ws: ITempWorkspace;

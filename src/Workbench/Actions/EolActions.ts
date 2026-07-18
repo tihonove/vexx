@@ -1,8 +1,9 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
-import type { CommandAction } from "./CommandAction.ts";
-import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
+import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 function setActiveEditorEol(accessor: Parameters<CommandAction["run"]>[0], eol: EndOfLine): void {
     // Сегмент статус-бара обновится сам: EditorStatusContribution подписан на onDidChangeEol.

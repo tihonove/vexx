@@ -1,5 +1,5 @@
-import type * as vscode from "vscode";
 import { describe, expect, it } from "vitest";
+import type * as vscode from "vscode";
 
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
 
@@ -337,6 +337,8 @@ describe("WindowNamespace", () => {
         const disposable = window.registerFileDecorationProvider({
             provideFileDecoration: () => undefined,
         });
-        expect(() => disposable.dispose()).not.toThrow();
+        expect(() => {
+            disposable.dispose();
+        }).not.toThrow();
     });
 });

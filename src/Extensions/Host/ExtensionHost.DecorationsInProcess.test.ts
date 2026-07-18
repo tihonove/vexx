@@ -10,8 +10,8 @@ import type { ICommandService } from "./ICommandService.ts";
 import type { IEditorDecorationsService } from "./IEditorDecorationsService.ts";
 import type { IEditorOptionsService } from "./IEditorOptionsService.ts";
 import type { IFileDecorationsService } from "./IFileDecorationsService.ts";
-import type { IThemeColorResolver } from "./IThemeColorResolver.ts";
 import { createInProcessChannelPair } from "./InProcessChannelPair.ts";
+import type { IThemeColorResolver } from "./IThemeColorResolver.ts";
 import { RpcEndpoint } from "./RpcEndpoint.ts";
 
 // Детерминированный in-process тест decoration-хендлеров host'а: вместо форка
@@ -96,8 +96,16 @@ function makeHost(colors: Record<string, number>) {
         fileCalls,
         logLines: lines,
         configChanges,
-        fireTheme: () => themeListeners.forEach((cb) => cb()),
-        fireConfig: (keys: string[]) => configListeners.forEach((cb) => cb(keys)),
+        fireTheme: () => {
+            themeListeners.forEach((cb) => {
+                cb();
+            });
+        },
+        fireConfig: (keys: string[]) => {
+            configListeners.forEach((cb) => {
+                cb(keys);
+            });
+        },
         latestEditor: (file: string) => editorCalls.filter((c) => c.uri === Uri.file(file).toString()).at(-1),
     };
 }

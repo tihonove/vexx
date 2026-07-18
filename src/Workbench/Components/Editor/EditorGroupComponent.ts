@@ -6,11 +6,11 @@ import type { ThemeService } from "../../../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import { EditorGroupElement } from "../../../TUIDom/Widgets/EditorGroupElement.ts";
 import type { TabInfo } from "../../../TUIDom/Widgets/EditorTabStripElement.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 import type { EditorService } from "../../Services/EditorService.ts";
 import { EditorServiceDIToken } from "../../Services/EditorService.ts";
 import { getTabStripStyles } from "../../Styles/defaultStyles.ts";
+
 import type { EditorPane } from "./EditorPane.ts";
 
 export const EditorGroupComponentDIToken = token<EditorGroupComponent>("EditorGroupComponent");
@@ -41,7 +41,10 @@ export class EditorGroupComponent extends ThemedComponent {
         };
         this.view.tabStrip.onTabClose = (index) => {
             // Индекс приходит из tab strip и всегда указывает на существующую вкладку.
-            const editor = this.editorService.getEditor(index) as EditorPane;
+            const editor = this.editorService.getEditor(index);
+            /* v8 ignore start -- индекс из tab strip всегда указывает на существующую вкладку; null — недостижимый инвариант-гард */
+            if (editor === null) return;
+            /* v8 ignore stop */
             if (editor.isModified && this.editorService.onRequestConfirmClose) {
                 this.editorService.onRequestConfirmClose(index);
             } else {

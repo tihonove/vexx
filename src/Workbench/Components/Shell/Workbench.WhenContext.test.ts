@@ -6,7 +6,6 @@ import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTe
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { EditorTabStripElement } from "../../../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { TreeViewElement } from "../../../TUIDom/Widgets/TreeViewElement.ts";
-
 import { ContextKeyServiceDIToken } from "../../Services/ContextKeyService.ts";
 
 describe("Workbench when-context integration", () => {

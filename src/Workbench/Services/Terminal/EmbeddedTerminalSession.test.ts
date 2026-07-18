@@ -49,7 +49,9 @@ describe("EmbeddedTerminalSession", () => {
             args: ["-c", "exit 0"],
         });
         await awaitExit(session);
-        expect(() => session.resize(40, 6)).not.toThrow();
+        expect(() => {
+            session.resize(40, 6);
+        }).not.toThrow();
         session.dispose();
     }, 15000);
 
@@ -64,7 +66,9 @@ describe("EmbeddedTerminalSession", () => {
         await awaitExit(session);
         expect(session.readCell(1000, 1000, out)).toBe(false);
         expect(session.readCell(0, -1, out)).toBe(false);
-        expect(() => session.write("ignored")).not.toThrow();
+        expect(() => {
+            session.write("ignored");
+        }).not.toThrow();
         session.dispose();
     }, 15000);
 

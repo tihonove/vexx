@@ -8,12 +8,7 @@ import { ContextKeyServiceDIToken } from "./ContextKeyService.ts";
 import { StateServiceDIToken } from "./CoreTokens.ts";
 import type { PanelService } from "./PanelService.ts";
 import { PanelServiceDIToken } from "./PanelService.ts";
-import {
-    PANEL_HEIGHT_STATE,
-    PANEL_VISIBLE_STATE,
-    SIDEBAR_VISIBLE_STATE,
-    SIDEBAR_WIDTH_STATE,
-} from "./StateKeys.ts";
+import { PANEL_HEIGHT_STATE, PANEL_VISIBLE_STATE, SIDEBAR_VISIBLE_STATE, SIDEBAR_WIDTH_STATE } from "./StateKeys.ts";
 
 export const LayoutServiceDIToken = token<LayoutService>("LayoutService");
 

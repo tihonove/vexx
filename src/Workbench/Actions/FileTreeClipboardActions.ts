@@ -1,10 +1,11 @@
 import * as path from "node:path";
 
 import { ClipboardDIToken } from "../Services/CoreTokens.ts";
-import type { CommandAction } from "./CommandAction.ts";
 import { ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 import { FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
 import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 /**
  * Команды copy/cut/paste для explorer поверх `FileOperationsService` (файловый

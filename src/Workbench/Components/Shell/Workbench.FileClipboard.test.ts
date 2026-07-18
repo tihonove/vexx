@@ -9,7 +9,6 @@ import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTe
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TUIMouseEvent } from "../../../TUIDom/Events/TUIMouseEvent.ts";
 import type { TreeViewElement } from "../../../TUIDom/Widgets/TreeViewElement.ts";
-
 import { ClipboardDIToken } from "../../Services/CoreTokens.ts";
 
 // Workspace layout (dirs sort first): row 0 = "target/", row 1 = "a.txt".

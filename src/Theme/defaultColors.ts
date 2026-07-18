@@ -55,7 +55,7 @@ const darkDefaults: Record<string, string> = {
     "editorWidget.foreground": "#CCCCCC",
     "editorWidget.border": "#454545",
     // Opaque approximation of VS Code's #CCCCCCB3 over the widget bg.
-    "descriptionForeground": "#ABABAB",
+    descriptionForeground: "#ABABAB",
     "textLink.foreground": "#3794FF",
 
     // ── Panel (Problems/Output/…) ───────────────────────────
@@ -156,7 +156,7 @@ const lightDefaults: Record<string, string> = {
     "editorWidget.background": "#F3F3F3",
     "editorWidget.foreground": "#616161",
     "editorWidget.border": "#C8C8C8",
-    "descriptionForeground": "#717171",
+    descriptionForeground: "#717171",
     "textLink.foreground": "#006AB1",
 
     // ── Panel (Problems/Output/…) ───────────────────────────

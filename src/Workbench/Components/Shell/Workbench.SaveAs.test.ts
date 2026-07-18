@@ -6,9 +6,9 @@ import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTe
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
-import { DialogServiceDIToken } from "../../Services/DialogService.ts";
 import type { EditorTabStripElement } from "../../../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { QuickPickElement } from "../../../TUIDom/Widgets/QuickPickElement.ts";
+import { DialogServiceDIToken } from "../../Services/DialogService.ts";
 
 /** The visible Save As InputBox is the QuickPickElement carrying a seeded query. */
 function openInputBox(testApp: TestApp): QuickPickElement {

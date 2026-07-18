@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
 import { createSelection } from "../../Editor/ISelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
@@ -16,11 +17,10 @@ import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
-import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
-
-import type { EditorPane } from "../Components/Editor/EditorPane.ts";
 import { EditorGroupComponent } from "../Components/Editor/EditorGroupComponent.ts";
+import type { EditorPane } from "../Components/Editor/EditorPane.ts";
 import { FindComponent } from "../Components/Editor/FindComponent.ts";
+
 import { EditorService } from "./EditorService.ts";
 import { FindService } from "./FindService.ts";
 import { UndoRedoService } from "./Workspace/UndoRedoService.ts";

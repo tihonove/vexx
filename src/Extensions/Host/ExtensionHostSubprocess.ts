@@ -150,7 +150,10 @@ function loadExtensionModule(spec: {
 }): ExtensionModule {
     if (spec.source !== undefined && spec.filename !== undefined) {
         const ModuleCtor = Module as unknown as {
-            new (id: string, parent: unknown): {
+            new (
+                id: string,
+                parent: unknown,
+            ): {
                 filename: string;
                 paths: string[];
                 exports: unknown;
@@ -164,8 +167,9 @@ function loadExtensionModule(spec: {
         m._compile(spec.source, spec.filename);
         return m.exports as ExtensionModule;
     }
-    const extRequire = createRequire(spec.mainPath!);
-    return extRequire(spec.mainPath!) as ExtensionModule;
+    if (spec.mainPath === undefined) throw new Error("Extension spec has neither inline source nor mainPath");
+    const extRequire = createRequire(spec.mainPath);
+    return extRequire(spec.mainPath) as ExtensionModule;
 }
 
 function parseActivateParams(raw: unknown): {
@@ -178,7 +182,13 @@ function parseActivateParams(raw: unknown): {
     if (typeof raw !== "object" || raw === null) {
         throw new Error("activateExtension: params must be an object");
     }
-    const obj = raw as { id?: unknown; mainPath?: unknown; source?: unknown; filename?: unknown; configDefaults?: unknown };
+    const obj = raw as {
+        id?: unknown;
+        mainPath?: unknown;
+        source?: unknown;
+        filename?: unknown;
+        configDefaults?: unknown;
+    };
     if (typeof obj.id !== "string" || obj.id === "") {
         throw new Error("activateExtension: id must be a non-empty string");
     }

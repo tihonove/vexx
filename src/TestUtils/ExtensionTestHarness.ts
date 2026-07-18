@@ -3,12 +3,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
-import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
-import { EditorGroupComponent } from "../Workbench/Components/Editor/EditorGroupComponent.ts";
-import { EditorService } from "../Workbench/Services/EditorService.ts";
+import type { IDisposable } from "../Common/Disposable.ts";
 import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
@@ -16,11 +13,14 @@ import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistr
 import { CommandServiceAdapter } from "../Extensions/Host/CommandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsServiceAdapter.ts";
 import { ExtensionHost, type IExtensionHostConfigProvider } from "../Extensions/Host/ExtensionHost.ts";
-import type { IDisposable } from "../Common/Disposable.ts";
 import type { IEditorDecorationsService } from "../Extensions/Host/IEditorDecorationsService.ts";
 import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
 import type { IFileDecorationsService } from "../Extensions/Host/IFileDecorationsService.ts";
 import type { IThemeColorResolver } from "../Extensions/Host/IThemeColorResolver.ts";
+import { EditorGroupComponent } from "../Workbench/Components/Editor/EditorGroupComponent.ts";
+import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
+import { EditorService } from "../Workbench/Services/EditorService.ts";
+import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 const SUBPROCESS_ENTRY = fileURLToPath(new URL("../Extensions/Host/__fixtures__/subprocessEntry.ts", import.meta.url));
 
@@ -62,10 +62,7 @@ export function extensionFixture(id: string, file: string): IExtensionRegistrati
  * Заменяет прежний eager `await host.registerExtension(reg)` в тестах, которым
  * важно, что расширение активно сразу. Возвращает disposable от регистрации.
  */
-export async function registerAndActivate(
-    host: ExtensionHost,
-    reg: IExtensionRegistration,
-): Promise<IDisposable> {
+export async function registerAndActivate(host: ExtensionHost, reg: IExtensionRegistration): Promise<IDisposable> {
     const disposable = host.registerExtension(reg);
     await host.activateByEvent("*");
     return disposable;

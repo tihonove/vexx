@@ -56,7 +56,7 @@ describe("ExtensionHost — lazy activation (activationEvents)", () => {
         }
     });
 
-    it("пустой activationEvents тоже нормализуется в [\"*\"]", async () => {
+    it('пустой activationEvents тоже нормализуется в ["*"]', async () => {
         const harness = await createExtensionTestHarness({
             activateEvents: [],
             extensions: [{ ...extensionFixture("test.empty", "noopExtension.cjs"), activationEvents: [] }],
@@ -73,9 +73,7 @@ describe("ExtensionHost — lazy activation (activationEvents)", () => {
     it("dispose до активации убирает расширение из pending", async () => {
         const harness = await createExtensionTestHarness({ activateEvents: [] });
         try {
-            const disposable = harness.host.registerExtension(
-                extensionFixture("test.disposed", "noopExtension.cjs"),
-            );
+            const disposable = harness.host.registerExtension(extensionFixture("test.disposed", "noopExtension.cjs"));
             disposable.dispose(); // ещё не активировано → просто выпадает из pending
             await harness.host.activateByEvent("*");
             await settle();

@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import type { EditorService } from "../../Services/EditorService.ts";
 
 import type { WorkbenchComponent } from "./WorkbenchComponent.ts";
-import type { EditorService } from "../../Services/EditorService.ts";
 
 function createIntegrationWorkspace(): ITempWorkspace {
     return createTempWorkspace({
@@ -48,8 +48,7 @@ describe("FileTree opens file in editor", () => {
         testApp.render();
 
         // File should now be open in the editor group
-        const editorGroupCtrl = (workbench as unknown as { editorService: EditorService })
-            .editorService;
+        const editorGroupCtrl = (workbench as unknown as { editorService: EditorService }).editorService;
         expect(editorGroupCtrl.editorCount).toBe(1);
         expect(editorGroupCtrl.getActiveEditor()?.fileName).toBe("hello.txt");
     });
@@ -69,8 +68,7 @@ describe("FileTree opens file in editor", () => {
         testApp.sendKey("Enter");
         testApp.render();
 
-        const editorGroupCtrl = (workbench as unknown as { editorService: EditorService })
-            .editorService;
+        const editorGroupCtrl = (workbench as unknown as { editorService: EditorService }).editorService;
         expect(editorGroupCtrl.editorCount).toBe(2);
     });
 
@@ -108,8 +106,7 @@ describe("FileTree opens file in editor", () => {
         testApp.sendKey("Enter");
         testApp.render();
 
-        const editorGroupCtrl = (workbench as unknown as { editorService: EditorService })
-            .editorService;
+        const editorGroupCtrl = (workbench as unknown as { editorService: EditorService }).editorService;
         expect(editorGroupCtrl.getActiveEditor()?.getText()).toBe("hello world");
     });
 });

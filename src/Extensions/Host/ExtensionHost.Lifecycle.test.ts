@@ -2,9 +2,8 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Uri } from "../../Common/Uri.ts";
-
 import type { IDisposable } from "../../Common/Disposable.ts";
+import { Uri } from "../../Common/Uri.ts";
 import { registerAndActivate } from "../../TestUtils/ExtensionTestHarness.ts";
 
 import { ExtensionHost, type IExtensionHostConfigProvider } from "./ExtensionHost.ts";
@@ -119,7 +118,13 @@ class FakeEditorOptions implements IEditorOptionsService {
         };
     }
     public fireActiveEditorChanged(p: string | null): void {
-        this.cb?.({ uri: p === null ? null : Uri.file(p).toString(), languageId: null, isDirty: false, encoding: null, eol: null });
+        this.cb?.({
+            uri: p === null ? null : Uri.file(p).toString(),
+            languageId: null,
+            isDirty: false,
+            encoding: null,
+            eol: null,
+        });
     }
 }
 

@@ -1,6 +1,7 @@
 import { createDeleteEdit, createInsertEdit, type ITextEdit } from "../../Editor/ITextEdit.ts";
-import type { CommandAction } from "./CommandAction.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 // ─── Whitespace ─────────────────────────────────────────────
 //

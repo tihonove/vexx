@@ -28,7 +28,7 @@ export interface IWorkbenchColors {
     // /** Background color of text selections in the workbench (for input fields or text areas, does not apply to selections within the editor and the terminal). */
     // "selection.background"?: number;
     /** Foreground color for description text providing additional information, for example for a label. */
-    "descriptionForeground"?: number;
+    descriptionForeground?: number;
     // /** Overall foreground color for error messages (this color is only used if not overridden by a component). */
     // "errorForeground"?: number;
     // /** The default color for icons in the workbench. */

@@ -11,11 +11,11 @@
 // TUIDom и ниже остаются чистыми, а виджет `TerminalViewElement` видит только
 // `ITerminalSurface`. См. docs/TODO/IntegratedTerminal.md.
 
-import type { IPty } from "node-pty";
+import type { IBufferCell, Terminal } from "@xterm/headless";
 // @xterm/headless — CJS-пакет: под нативным ESM-загрузчиком (tsx/esm) named-import
 // не работает в рантайме, поэтому берём значение default-импортом, а тип — отдельно.
 import xtermHeadless from "@xterm/headless";
-import type { IBufferCell, Terminal } from "@xterm/headless";
+import type { IPty } from "node-pty";
 
 import type { IDisposable } from "../../../Common/Disposable.ts";
 import { DEFAULT_COLOR } from "../../../Rendering/ColorUtils.ts";
@@ -127,7 +127,9 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
         // emitUpdate дёргаем в write-колбэке — ПОСЛЕ обновления buffer.active. Иначе рендер
         // читает устаревшее состояние, и картинка отстаёт на одно событие («залипание»).
         this.pty.onData((data) => {
-            this.term.write(data, () => this.emitUpdate());
+            this.term.write(data, () => {
+                this.emitUpdate();
+            });
         });
         // Ответы эмулятора (DSR/DA, отчёты мыши) → обратно в шелл: тот же путь, что и
         // пользовательский ввод, включая защиту от записи в уже мёртвый PTY.

@@ -1,11 +1,11 @@
 import { token } from "../../../Common/DiContainer.ts";
 import { Disposable } from "../../../Common/Disposable.ts";
-
 import type { IStatusBarEntryHandle } from "../StatusBarService.ts";
-import { StatusBarServiceDIToken } from "../StatusBarService.ts";
 import type { StatusBarService } from "../StatusBarService.ts";
-import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironmentService.ts";
+import { StatusBarServiceDIToken } from "../StatusBarService.ts";
+
 import type { TerminalEnvironmentService } from "./TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironmentService.ts";
 
 export const TerminalEnvStatusContributionDIToken = token<TerminalEnvStatusContribution>(
     "TerminalEnvStatusContribution",

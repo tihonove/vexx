@@ -1,9 +1,8 @@
 import { token } from "../../../Common/DiContainer.ts";
-import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import type { ThemeService } from "../../../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import type { StatusBarItem } from "../../../TUIDom/Widgets/StatusBarElement.ts";
 import { StatusBarElement } from "../../../TUIDom/Widgets/StatusBarElement.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 import type { StatusBarService } from "../../Services/StatusBarService.ts";
 import { StatusBarServiceDIToken } from "../../Services/StatusBarService.ts";
@@ -28,7 +27,11 @@ export class StatusBarComponent extends ThemedComponent {
         super(themeService);
         this.view = new StatusBarElement();
         this.view.id = "statusBar";
-        this.register(this.statusBarService.onDidChangeEntries(() => this.renderEntries()));
+        this.register(
+            this.statusBarService.onDidChangeEntries(() => {
+                this.renderEntries();
+            }),
+        );
         this.renderEntries();
         this.initStyles();
     }

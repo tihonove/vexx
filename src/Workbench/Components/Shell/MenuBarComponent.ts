@@ -4,13 +4,12 @@ import { ThemeServiceDIToken } from "../../../Theme/ThemeTokens.ts";
 import type { MenuBarItem } from "../../../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../../../TUIDom/Widgets/MenuBarElement.ts";
 import type { MenuEntry } from "../../../TUIDom/Widgets/PopupMenuElement.ts";
-
 import { ThemedComponent } from "../../Component.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
 import type { IMenuModel, MenuEntryModel } from "../../Services/MenuService.ts";
-import { MenuServiceDIToken } from "../../Services/MenuService.ts";
 import type { MenuService } from "../../Services/MenuService.ts";
+import { MenuServiceDIToken } from "../../Services/MenuService.ts";
 import { getMenuStyles } from "../../Styles/defaultStyles.ts";
 
 export const MenuBarComponentDIToken = token<MenuBarComponent>("MenuBarComponent");

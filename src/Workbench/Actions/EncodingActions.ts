@@ -2,11 +2,12 @@ import * as fs from "node:fs";
 
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { SUPPORTED_ENCODINGS } from "../../Editor/Encoding.ts";
-import type { CommandAction } from "./CommandAction.ts";
 import { CommandRegistryDIToken } from "../Services/CommandRegistry.ts";
 import { DialogServiceDIToken } from "../Services/DialogService.ts";
-import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
+import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
+
+import type { CommandAction } from "./CommandAction.ts";
 
 /**
  * Encoding picker (VS Code `workbench.action.editor.changeEncoding`):
@@ -49,7 +50,7 @@ async function changeFileEncoding(accessor: ServiceAccessor): Promise<void> {
             SUPPORTED_ENCODINGS.findIndex((info) => info.id === current),
         ),
     });
-    if (picked === undefined || picked.description === undefined) return;
+    if (picked?.description === undefined) return;
     const encoding = picked.description;
 
     if (mode.label === "Reopen with Encoding") {

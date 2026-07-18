@@ -70,7 +70,11 @@ export class EditorStatusContribution extends Disposable {
                 this.update();
             }),
         );
-        this.register({ dispose: () => this.unbindEditorListeners() });
+        this.register({
+            dispose: () => {
+                this.unbindEditorListeners();
+            },
+        });
         this.register({
             dispose: () => {
                 this.cursorHandle?.dispose();
@@ -92,10 +96,18 @@ export class EditorStatusContribution extends Disposable {
         this.unbindEditorListeners();
         if (editor === null) return;
         this.editorSubscriptions = [
-            editor.onDidChangeCursorPosition(() => this.update()),
-            editor.onDidChangeLanguage(() => this.update()),
-            editor.onDidChangeEol(() => this.update()),
-            editor.onDidChangeEncoding(() => this.update()),
+            editor.onDidChangeCursorPosition(() => {
+                this.update();
+            }),
+            editor.onDidChangeLanguage(() => {
+                this.update();
+            }),
+            editor.onDidChangeEol(() => {
+                this.update();
+            }),
+            editor.onDidChangeEncoding(() => {
+                this.update();
+            }),
         ];
     }
 

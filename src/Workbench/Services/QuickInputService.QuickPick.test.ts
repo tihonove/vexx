@@ -8,8 +8,8 @@ import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
 import type { QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
-
 import { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
+
 import { QuickInputService } from "./QuickInputService.ts";
 
 function createService(): {

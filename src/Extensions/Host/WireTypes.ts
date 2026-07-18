@@ -361,7 +361,7 @@ export function serializeColor(value: unknown): SerializedColor | undefined {
 
 /** Извлекает id темы из сериализованного цвета; `undefined` для CSS-строк/пусто. */
 export function themeColorIdOf(value: SerializedColor | undefined): string | undefined {
-    if (typeof value === "object" && value !== null && typeof value.$themeColor === "string") {
+    if (typeof value === "object" && typeof value.$themeColor === "string") {
         return value.$themeColor;
     }
     return undefined;

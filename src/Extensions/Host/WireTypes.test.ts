@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { Uri } from "../../Common/Uri.ts";
-
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
 
 import { createInProcessChannelPair } from "./InProcessChannelPair.ts";

@@ -9,13 +9,13 @@ import { NULL_LANGUAGE_SERVICE } from "../../../Editor/Tokenization/ILanguageSer
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
-
 import { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import type { IActiveEditorStatus, IActiveEditorStatusSource } from "../../Services/EditorStatusContribution.ts";
 import { EditorStatusContribution } from "../../Services/EditorStatusContribution.ts";
 import { StatusBarService } from "../../Services/StatusBarService.ts";
 import { TerminalEnvironmentService } from "../../Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvStatusContribution } from "../../Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
+
 import { StatusBarComponent } from "./StatusBarComponent.ts";
 
 /**

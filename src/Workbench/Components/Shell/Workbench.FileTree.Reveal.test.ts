@@ -8,12 +8,12 @@ import { IConfigurationServiceDIToken } from "../../../Configuration/IConfigurat
 import { NULL_CONFIGURATION_SERVICE } from "../../../Configuration/NullConfigurationService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-
-import { WorkbenchComponent, WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
+import { createTestContainer } from "../../Modules/TestProfile.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
 import type { EditorService } from "../../Services/EditorService.ts";
-import { createTestContainer } from "../../Modules/TestProfile.ts";
+
+import { WorkbenchComponent, WorkbenchComponentDIToken } from "./WorkbenchComponent.ts";
 
 function createNestedWorkspace(): ITempWorkspace {
     return createTempWorkspace({
@@ -150,8 +150,7 @@ describe("reveal active file in explorer", () => {
         await ctx.workbench.activate();
         ctx.testApp.render();
 
-        const editorGroup = (ctx.workbench as unknown as { editorService: EditorService })
-            .editorService;
+        const editorGroup = (ctx.workbench as unknown as { editorService: EditorService }).editorService;
         expect(editorGroup.getActiveEditor()).toBeNull();
         expect(() => ctx.commands.execute("workbench.files.action.showActiveFileInExplorer")).not.toThrow();
         // Sidebar stays as-is (visible by default), nothing is revealed.

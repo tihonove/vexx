@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import { Uri } from "../../Common/Uri.ts";
-
 import { createExtensionTestHarness, extensionFixture } from "../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../TestUtils/timing.ts";
 

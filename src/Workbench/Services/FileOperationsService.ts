@@ -15,8 +15,8 @@ import { DialogServiceDIToken } from "./DialogService.ts";
 import type { ExplorerService } from "./ExplorerService.ts";
 import { ExplorerServiceDIToken } from "./ExplorerService.ts";
 import { QuickInputServiceDIToken } from "./QuickInputService.ts";
-import type { ResourceFileEdit } from "./Workspace/WorkspaceEdit.ts";
 import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
+import type { ResourceFileEdit } from "./Workspace/WorkspaceEdit.ts";
 import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "./Workspace/WorkspaceEditService.ts";
 
 export const FileOperationsServiceDIToken = token<FileOperationsService>("FileOperationsService");

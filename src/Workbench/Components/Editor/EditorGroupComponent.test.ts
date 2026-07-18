@@ -3,6 +3,7 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { NULL_FILE_WATCHER } from "../../../Common/IFileWatcher.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../../Configuration/NullConfigurationService.ts";
 import { EndOfLine } from "../../../Editor/EndOfLine.ts";
 import type { ILanguageService } from "../../../Editor/Tokenization/ILanguageService.ts";
@@ -13,10 +14,9 @@ import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/Tem
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
-
-import { NULL_FILE_WATCHER } from "../../../Common/IFileWatcher.ts";
 import { EditorService } from "../../Services/EditorService.ts";
 import { UndoRedoService } from "../../Services/Workspace/UndoRedoService.ts";
+
 import { EditorGroupComponent } from "./EditorGroupComponent.ts";
 
 interface IEditorGroup {

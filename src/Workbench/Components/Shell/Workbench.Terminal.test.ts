@@ -3,13 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { PanelContainerElement } from "../../../TUIDom/Widgets/PanelContainerElement.ts";
-
 import { ContextKeyService, ContextKeyServiceDIToken } from "../../Services/ContextKeyService.ts";
-import {
-    TERMINAL_VIEW_ID,
-    TerminalService,
-    TerminalServiceDIToken,
-} from "../../Services/Terminal/TerminalService.ts";
+import { TERMINAL_VIEW_ID, TerminalService, TerminalServiceDIToken } from "../../Services/Terminal/TerminalService.ts";
 
 const TOGGLE_TERMINAL = "workbench.action.terminal.toggleTerminal";
 const NEW_TERMINAL = "workbench.action.terminal.new";

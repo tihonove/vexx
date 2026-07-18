@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TUIKeyboardEvent } from "../../../TUIDom/Events/TUIKeyboardEvent.ts";
-
 import { EditorService, EditorServiceDIToken } from "../../Services/EditorService.ts";
 import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../../Services/ModifierReleaseArmory.ts";
 

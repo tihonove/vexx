@@ -3,13 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ServiceAccessor } from "../../../Common/DiContainer.ts";
 import { createAppTestHarness } from "../../../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
-import { DialogServiceDIToken } from "../../Services/DialogService.ts";
 import type { TextLabelElement } from "../../../TUIDom/Widgets/TextLabelElement.ts";
-
-import type { WorkbenchComponent } from "./WorkbenchComponent.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { ServiceAccessorDIToken } from "../../Services/CoreTokens.ts";
+import { DialogServiceDIToken } from "../../Services/DialogService.ts";
 import type { EditorService } from "../../Services/EditorService.ts";
+
+import type { WorkbenchComponent } from "./WorkbenchComponent.ts";
 
 interface TestQuitContext {
     testApp: TestApp;
@@ -216,8 +216,7 @@ describe("Workbench quit with save dialog", () => {
         expect(exitSpy).not.toHaveBeenCalled();
 
         // Tabs 1 and 2 disappear before we answer, so their snapshotted items are now stale.
-        const editorGroup = (workbench as unknown as { editorService: EditorService })
-            .editorService;
+        const editorGroup = (workbench as unknown as { editorService: EditorService }).editorService;
         editorGroup.closeTab(2);
         editorGroup.closeTab(1);
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import type { FileClipboardEntry } from "../../Common/IFileClipboard.ts";
-
 import { buildPasteEdits } from "../Services/FileOperationsService.ts";
 
 describe("buildPasteEdits", () => {

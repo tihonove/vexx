@@ -3,8 +3,10 @@ import { Size } from "../Common/GeometryPromitives.ts";
 import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
 import type { IStateService } from "../Configuration/IStateService.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
 import type { WorkbenchComponent } from "../Workbench/Components/Shell/WorkbenchComponent.ts";
 import { WorkbenchComponentDIToken } from "../Workbench/Components/Shell/WorkbenchComponent.ts";
+import { createTestContainer } from "../Workbench/Modules/TestProfile.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import {
@@ -12,9 +14,7 @@ import {
     SettingsResourceDIToken,
     StateServiceDIToken,
 } from "../Workbench/Services/CoreTokens.ts";
-import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
 import { EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
-import { createTestContainer } from "../Workbench/Modules/TestProfile.ts";
 
 import { TestApp } from "./TestApp.ts";
 

@@ -7,10 +7,10 @@ import { createRange } from "../../Editor/IRange.ts";
 import { isSelectionCollapsed } from "../../Editor/ISelection.ts";
 import { createTextEdit } from "../../Editor/ITextEdit.ts";
 import type { CompletionListItem } from "../../TUIDom/Widgets/CompletionListElement.ts";
-
 import type { EditorPane } from "../Components/Editor/EditorPane.ts";
 import type { SuggestComponent } from "../Components/Editor/SuggestComponent.ts";
 import { SuggestComponentDIToken } from "../Components/Editor/SuggestComponent.ts";
+
 import { collectWordCompletions } from "./collectWordCompletions.ts";
 import type { CommandRegistry } from "./CommandRegistry.ts";
 import { CommandRegistryDIToken } from "./CommandRegistry.ts";
@@ -241,13 +241,7 @@ export class CompletionService extends Disposable {
 
         if (this.isOpen()) {
             this.refilterOpen(editor, active, line);
-        } else if (
-            !suppressed &&
-            single &&
-            active !== null &&
-            wasEdit &&
-            this.isSingleWordCharInsert(line, active)
-        ) {
+        } else if (!suppressed && single && active !== null && wasEdit && this.isSingleWordCharInsert(line, active)) {
             this.scheduleAutoSuggest();
         }
 
@@ -288,7 +282,7 @@ export class CompletionService extends Disposable {
         if (active.line !== this.lastCaretLine) return false;
         if (active.character !== this.lastCaretChar + 1) return false;
         if (line.length !== this.lastLine.length + 1) return false;
-        const inserted = line[active.character - 1];
+        const inserted = line.at(active.character - 1);
         return inserted !== undefined && WORD_CHAR.test(inserted);
     }
 
@@ -361,7 +355,7 @@ export class CompletionService extends Disposable {
         /* v8 ignore start -- defensive: пока попап открыт, triggerCaret выставлен
            (его ставит trigger(), снимает close()), а уход каретки на другую строку
            закрывает попап через refilterOpen — то есть до accept дело не доходит */
-        if (trigger === null || caret.line !== trigger.line) return providerRange;
+        if (caret.line !== trigger?.line) return providerRange;
         /* v8 ignore stop */
         // Многострочный range провайдера: посимвольный сдвиг к нему неприменим.
         if (providerRange.end.line !== trigger.line) return providerRange;

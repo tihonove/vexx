@@ -4,14 +4,12 @@ import iconv from "iconv-lite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { EndOfLine } from "../../../Editor/EndOfLine.ts";
-
-import { StatusBarComponentDIToken } from "../../Components/StatusBar/StatusBarComponent.ts";
-
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
-import { DialogServiceDIToken } from "../../Services/DialogService.ts";
 import type { QuickPickElement } from "../../../TUIDom/Widgets/QuickPickElement.ts";
+import { StatusBarComponentDIToken } from "../../Components/StatusBar/StatusBarComponent.ts";
+import { DialogServiceDIToken } from "../../Services/DialogService.ts";
 
 function visiblePicker(h: IAppHarness): QuickPickElement {
     // В дереве может быть несколько QuickPickElement (quick open держит свой);
@@ -90,7 +88,10 @@ describe("Workbench — Change File Encoding", () => {
 
         expect(editor.encoding).toBe("windows1251");
         expect(editor.getText()).toBe("Привет, мир!\n");
-        const items = h.container.get(StatusBarComponentDIToken).view.getItems().map((item) => item.text);
+        const items = h.container
+            .get(StatusBarComponentDIToken)
+            .view.getItems()
+            .map((item) => item.text);
         expect(items).toContain("Windows 1251");
     });
 
@@ -228,7 +229,10 @@ describe("Workbench — Change End of Line Sequence", () => {
 
         const editor = h.activeEditor();
         expect(editor.eol).toBe(2); // EndOfLine.CRLF
-        const items = h.container.get(StatusBarComponentDIToken).view.getItems().map((item) => item.text);
+        const items = h.container
+            .get(StatusBarComponentDIToken)
+            .view.getItems()
+            .map((item) => item.text);
         expect(items).toContain("CRLF");
     });
 

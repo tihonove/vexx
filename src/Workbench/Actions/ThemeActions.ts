@@ -1,9 +1,9 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
-
-import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
 import { parseChord } from "../Services/KeybindingRegistry.ts";
+import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
+
 import type { CommandAction } from "./CommandAction.ts";
 
 /** Human-readable base-type label shown next to a theme in the picker. */

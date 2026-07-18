@@ -14,6 +14,10 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
+import type { KeyPressEvent } from "../Input/KeyEvent.ts";
+import { KeyInputParser } from "../Input/KeyInputParser.ts";
+import { tokenize } from "../Input/tokenize.ts";
+import type { CommandAction } from "../Workbench/Actions/CommandAction.ts";
 import { fileSaveAction } from "../Workbench/Actions/FileActions.ts";
 import { findAction } from "../Workbench/Actions/FindActions.ts";
 import { quickOpenAction, showCommandsAction } from "../Workbench/Actions/QuickOpenActions.ts";
@@ -22,7 +26,6 @@ import {
     nextEditorInGroupAction,
     previousEditorInGroupAction,
 } from "../Workbench/Actions/TabActions.ts";
-import type { CommandAction } from "../Workbench/Actions/CommandAction.ts";
 import { formatKeybinding, type Keybinding } from "../Workbench/Services/KeybindingRegistry.ts";
 import {
     detectBaseModes,
@@ -32,9 +35,6 @@ import {
     emptyCapabilities,
     resolveTier,
 } from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentModel.ts";
-import type { KeyPressEvent } from "../Input/KeyEvent.ts";
-import { KeyInputParser } from "../Input/KeyInputParser.ts";
-import { tokenize } from "../Input/tokenize.ts";
 
 import { addCleanup, isCtrlC, stdin, stdout, writeDirect } from "./demoSetup.ts";
 

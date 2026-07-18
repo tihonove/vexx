@@ -5,7 +5,6 @@ import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/Tem
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
 import type { EditorTabStripElement } from "../../../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { QuickPickElement } from "../../../TUIDom/Widgets/QuickPickElement.ts";
-
 import type { EditorService } from "../../Services/EditorService.ts";
 
 describe("Workbench — Quick Open accept callbacks", () => {

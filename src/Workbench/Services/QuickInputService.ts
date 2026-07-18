@@ -1,6 +1,5 @@
 import { token } from "../../Common/DiContainer.ts";
 import type { QuickPickItem } from "../../TUIDom/Widgets/QuickPickElement.ts";
-
 import type { QuickInputComponent } from "../Components/QuickInput/QuickInputComponent.ts";
 import { QuickInputComponentDIToken } from "../Components/QuickInput/QuickInputComponent.ts";
 
