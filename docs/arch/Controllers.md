@@ -17,7 +17,10 @@
 > selectTheme/openFile/openFolder/quickOpen — экшены `Workbench/Actions/`);
 > Editor-кластер (этап 9): `TextFileModel`+`EditorComponent` (9a) и
 > `EditorService`+`EditorGroupComponent`+`EditorPane` (9b, `EditorGroupController`
-> растворён; экшены ContextMenu/Encoding/Eol — в `Workbench/Actions/`).
+> растворён; экшены ContextMenu/Encoding/Eol — в `Workbench/Actions/`);
+> Find/Suggest-кластер (этап 10): `FindService`+`FindComponent` и
+> `CompletionService`+`SuggestComponent` (контроллеры Find/Completion растворены;
+> экшены Find*/Suggest* с реальными `run(accessor)` — в `Workbench/Actions/`).
 > На время миграции Controllers временно **над** Workbench
 > (импортирует его; обратно — никогда).
 
@@ -27,7 +30,7 @@
 - **activate()** (async) — загрузка данных, внешние сервисы
 - **dispose()** — cleanup (LIFO через `Disposable.register()`)
 
-Родитель создаёт дочерние контроллеры, вставляет их `view`, вызывает `mount()`/`activate()`. Осталось четверо: корневой `AppController` (меню, шорткаты, layout, save-флоу), `FindController` и `CompletionController` (поверх `EditorService`; этап 10) и headless-координатор `WorkbenchStateController` (персистентность сессии). Группа редакторов с этапа 9b — пара `EditorService` + `EditorGroupComponent` в Workbench (per-file пары `TextFileModel` + `EditorComponent` в контейнере `EditorPane` создаёт сервис). Зависимости объявляются через `static dependencies` и резолвятся DI-контейнером (см. [../DI.md](../DI.md)). Подкаталог `Controllers/Modules/` — модули и профили DI (production vs test через `Ctx`-параметры), см. [../DI.md](../DI.md#модули-и-профили).
+Родитель создаёт дочерние контроллеры, вставляет их `view`, вызывает `mount()`/`activate()`. Осталось двое: корневой `AppController` (меню, шорткаты, layout, save-флоу) и headless-координатор `WorkbenchStateController` (персистентность сессии). Find и Completion с этапа 10 — пары `FindService`+`FindComponent` и `CompletionService`+`SuggestComponent` в Workbench. Группа редакторов с этапа 9b — пара `EditorService` + `EditorGroupComponent` в Workbench (per-file пары `TextFileModel` + `EditorComponent` в контейнере `EditorPane` создаёт сервис). Зависимости объявляются через `static dependencies` и резолвятся DI-контейнером (см. [../DI.md](../DI.md)). Подкаталог `Controllers/Modules/` — модули и профили DI (production vs test через `Ctx`-параметры), см. [../DI.md](../DI.md#модули-и-профили).
 
 ## Разделение Controller / Element / State (целевой паттерн)
 Виджет со сколько-нибудь сложным поведением строится из трёх частей, а не из «толстого» элемента:

@@ -95,7 +95,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     /**
      * Источник автодополнений (host/харнесс подключает сюда провайдеры
      * расширений через `languages.provideCompletionItems`). Читается
-     * `CompletionController` при триггере; в редакторы не раздаётся (group-level).
+     * `CompletionService` при триггере; в редакторы не раздаётся (group-level).
      */
     public completionSource?: CompletionSource;
 

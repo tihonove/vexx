@@ -92,7 +92,7 @@ export const extensionHostModule: ContainerModule = (container) => {
         });
 
         // Completion: провайдеры расширений (languages.provideCompletionItems)
-        // подключаются как источник автодополнений группы (читает CompletionController).
+        // подключаются как источник автодополнений группы (читает CompletionService).
         group.completionSource = (req) => host.provideCompletionItems(req);
 
         // Ленивая активация по `onLanguage:*`: при смене активного редактора

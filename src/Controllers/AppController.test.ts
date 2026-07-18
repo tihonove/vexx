@@ -485,21 +485,5 @@ describe("AppController — completion wiring", () => {
         expect(() => h.commands.execute("editor.action.triggerSuggest")).not.toThrow();
     });
 
-    it("onExecuteCommand completion-контроллера маршрутизирует в CommandRegistry", () => {
-        const h = createAppTestHarness();
-        let ran: unknown[] | null = null;
-        h.commands.register("test.fromCompletion", (...args: unknown[]) => {
-            ran = args;
-        });
-        // AppController присвоил completionController.onExecuteCommand в конструкторе —
-        // вызов этого колбэка должен уйти в commands.execute.
-        const cc = (
-            h.controller as unknown as {
-                completionController: { onExecuteCommand: (id: string, ...args: unknown[]) => void };
-            }
-        ).completionController;
-        cc.onExecuteCommand("test.fromCompletion", 42);
-        expect(ran).toEqual([42]);
-    });
 });
 

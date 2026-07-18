@@ -198,7 +198,12 @@ class ButtonElement {
   С этапа 9b здесь же экшены активного редактора поверх `EditorService`:
   `EncodingActions.ts` (двухуровневый пикер Reopen/Save with Encoding),
   `EolActions.ts` (convert/toggle/пикер EOL), `ContextMenuActions.ts`
-  (Shift+F10-меню редактора).
+  (Shift+F10-меню редактора). С этапа 10 — `FindActions.ts` (Ctrl+F/Enter/F3/
+  Escape → `FindService`) и `SuggestActions.ts` (Ctrl+Space triggerSuggest +
+  навигация/accept/hide попапа → `CompletionService`); экшены под
+  `findWidgetVisible`/`suggestWidgetVisible` идут ХВОСТОМ `builtinActions`,
+  чтобы победить editor-команды (резолвер берёт последний зарегистрированный
+  с проходящим `when`).
 - **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
   (наследник `ThemedComponent`; владеет `FitContentElement`-view и строит в нём
   JSX-дерево примитивов через reconcile — компонент **компонует** контролы, не
@@ -328,6 +333,42 @@ class ButtonElement {
     изменённости — `getTabStripStyles`); клики по табам возвращает в сервис
     (`activateTab`/`closeTab`, закрытие «грязной» вкладки — через
     `EditorService.onRequestConfirmClose`).
+- **Find/Suggest-кластер (этап 10)** — поиск по файлу и автодополнение поверх
+  активного редактора (`EditorService`):
+  - `Components/Editor/FindComponent.ts` — `ThemedComponent`; владеет
+    `FindWidgetElement` (`view.id = "findWidget"`; стили —
+    `getFindWidgetStyles`: кнопки из `getDialogButtonStyles`) и его
+    overlay-сессией в ЛОКАЛЬНОМ слое группы редакторов (`pointerPolicy:
+    "passthrough"` — док-виджет, клики мимо уходят в редактор). Хост
+    (`EditorGroupElement`) приходит через late-init шов `attachHost` — его зовёт
+    AppController после постройки дерева. `show()` позиционирует виджет (правый
+    край группы с 1-колоночным отступом, под tab strip) и фокусирует input.
+  - `Services/FindService.ts` — состояние поиска query → matches → current
+    index: `open` (сеет запрос из однострочного выделения), `close` (курсор
+    остаётся на текущем совпадении, подсветка снимается), `next`/`prev`
+    (циклично), recompute по `onQueryChange` (стартовый индекс — первое
+    совпадение от курсора); подсветка/reveal — `setSearchDecorations`/
+    `revealRange` активного `EditorPane`. Смена активного редактора закрывает
+    виджет (подписка на `onActiveEditorChanged` — find оперирует только
+    активным редактором).
+  - `Components/Editor/SuggestComponent.ts` — компонент suggest-попапа; владеет
+    `CompletionListElement` (`view.id = "suggestWidget"`; НЕ `ThemedComponent` —
+    контрол живёт на unthemed-палитре `unthemedCompletionListStyles`, маппинг
+    на тему — отдельная задача) и overlay-сессией в глобальном body-слое
+    (`attachHost(BodyElement)`; `capturesKeyboard: false` — редактор сохраняет
+    фокус, команды идут по `suggestWidgetVisible`; `close-on-outside`).
+    `openAt(anchor)`/`setAnchor` — позиционирование у каретки
+    (`EditorPane.getCaretAnchor`).
+  - `Services/CompletionService.ts` — логика автодополнения (WP8): `trigger()`
+    (провайдеры расширений через `EditorService.completionSource` + word-based
+    fallback `collectWordCompletions` из всех открытых редакторов), сессия
+    попапа (живой `prefixRange`, re-filter по мере набора, авто-suggest по
+    эвристике «вставлен 1 word-символ» с задержкой `autoSuggestDelayMs`),
+    accept (замена префикса/провайдерского range с догоном каретки;
+    `item.command` исполняется напрямую через `CommandRegistry.execute` в
+    микротаске), делегаторы select*/accept/hide для команд, `onFocusChanged`
+    (зовёт AppController при смене фокуса — клавиатурный уход с редактора
+    закрывает попап).
 - `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/`, `QuickInput/` и `Editor/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,

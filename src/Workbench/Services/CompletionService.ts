@@ -1,19 +1,23 @@
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import { Point } from "../Common/GeometryPromitives.ts";
-import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
-import type { IPosition } from "../Editor/IPosition.ts";
-import type { IRange } from "../Editor/IRange.ts";
-import { createRange } from "../Editor/IRange.ts";
-import { isSelectionCollapsed } from "../Editor/ISelection.ts";
-import { createTextEdit } from "../Editor/ITextEdit.ts";
-import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { CompletionListItem } from "../TUIDom/Widgets/CompletionListElement.ts";
-import { CompletionListElement } from "../TUIDom/Widgets/CompletionListElement.ts";
-import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
+import { token } from "../../Common/DiContainer.ts";
+import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
+import type { ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
+import type { IPosition } from "../../Editor/IPosition.ts";
+import type { IRange } from "../../Editor/IRange.ts";
+import { createRange } from "../../Editor/IRange.ts";
+import { isSelectionCollapsed } from "../../Editor/ISelection.ts";
+import { createTextEdit } from "../../Editor/ITextEdit.ts";
+import type { CompletionListItem } from "../../TUIDom/Widgets/CompletionListElement.ts";
 
-import { collectWordCompletions } from "../Workbench/Services/collectWordCompletions.ts";
-import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
-import type { EditorService } from "../Workbench/Services/EditorService.ts";
+import type { EditorPane } from "../Components/Editor/EditorPane.ts";
+import type { SuggestComponent } from "../Components/Editor/SuggestComponent.ts";
+import { SuggestComponentDIToken } from "../Components/Editor/SuggestComponent.ts";
+import { collectWordCompletions } from "./collectWordCompletions.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CommandRegistryDIToken } from "./CommandRegistry.ts";
+import type { EditorService } from "./EditorService.ts";
+import { EditorServiceDIToken } from "./EditorService.ts";
+
+export const CompletionServiceDIToken = token<CompletionService>("CompletionService");
 
 /** Символы, образующие «слово» под курсором (префикс автодополнения). */
 const WORD_CHAR = /[\w.-]/;
@@ -22,18 +26,15 @@ const WORD_CHAR = /[\w.-]/;
 const KIND_TEXT = 0;
 
 /**
- * Минимальный UI автодополнения ядра (WP8). По триггеру
+ * Логика автодополнения ядра (WP8). По триггеру
  * (`editor.action.triggerSuggest` / Ctrl+Space) запрашивает элементы у
  * `EditorService.completionSource` (провайдеры расширений через host),
- * показывает {@link CompletionListElement} у каретки и вставляет выбранный
- * элемент. `item.command` исполняется через {@link onExecuteCommand}
- * (commands bridge). Построен по образцу quick-open-оверлея (ныне `QuickOpenService`).
+ * показывает попап {@link SuggestComponent} у каретки и вставляет выбранный
+ * элемент. `item.command` исполняется напрямую через {@link CommandRegistry}
+ * (как у QuickOpenService). Построен по образцу quick-open-оверлея.
  */
-export class CompletionController extends Disposable {
-    public readonly view: CompletionListElement;
-
-    /** Исполнитель команд (AppController → CommandRegistry.execute). */
-    public onExecuteCommand: ((id: string, ...args: unknown[]) => void) | null = null;
+export class CompletionService extends Disposable {
+    public static dependencies = [SuggestComponentDIToken, EditorServiceDIToken, CommandRegistryDIToken] as const;
 
     /**
      * Задержка авто-suggest (мс) перед запросом провайдеров после набора буквы.
@@ -41,8 +42,9 @@ export class CompletionController extends Disposable {
      */
     public autoSuggestDelayMs = 120;
 
+    private readonly component: SuggestComponent;
     private readonly group: EditorService;
-    private session: OverlaySessionHandle | null = null;
+    private readonly commands: CommandRegistry;
     private activeEditor: EditorPane | null = null;
     private prefixRange: IRange | null = null;
     // Каретка на момент запроса провайдеров. Провайдерский `range` — снапшот той же
@@ -64,11 +66,12 @@ export class CompletionController extends Disposable {
     // сама переоткрыть попап — переоткрытие только через провайдерский _retrigger).
     private suppressAutoSuggestOnce = false;
 
-    public constructor(group: EditorService) {
+    public constructor(component: SuggestComponent, group: EditorService, commands: CommandRegistry) {
         super();
+        this.component = component;
         this.group = group;
-        this.view = new CompletionListElement();
-        this.view.onAccept = (item) => {
+        this.commands = commands;
+        this.component.view.onAccept = (item) => {
             this.accept(item);
         };
 
@@ -83,24 +86,6 @@ export class CompletionController extends Disposable {
                 activeEditorSub.dispose();
                 this.unbindEditor();
                 this.cancelAutoSuggest();
-            },
-        });
-    }
-
-    public setHostView(body: BodyElement): void {
-        this.session = body.overlayLayer.createSession(this.view, new Point(0, 0), {
-            visible: false,
-            restoreFocus: true,
-            // Редактор сохраняет фокус и обрабатывает набор/движение каретки; наши
-            // команды (`when: suggestWidgetVisible`) НЕ focus-scoped, поэтому
-            // capturesKeyboard должен быть false — иначе AppController заглушил бы их.
-            capturesKeyboard: false,
-            pointerPolicy: "close-on-outside",
-        });
-        this.register({
-            dispose: () => {
-                this.session?.dispose();
-                this.session = null;
             },
         });
     }
@@ -142,19 +127,19 @@ export class CompletionController extends Disposable {
         this.prefixRange = createRange(active.line, prefixStart, active.line, active.character);
         this.triggerCaret = { line: active.line, character: active.character };
 
-        this.view.setItems(items.map(toListItem));
-        this.view.setFilter(prefix);
+        const view = this.component.view;
+        view.setItems(items.map(toListItem));
+        view.setFilter(prefix);
         // Если префикс отфильтровал всё — показываем полный список (можно добрать).
-        if (this.view.items.length === 0) this.view.setFilter("");
+        if (view.items.length === 0) view.setFilter("");
 
-        this.session?.setAnchor(anchor);
-        this.session?.open();
-        // Фокус НЕ забираем — редактор остаётся активным (VS Code-like).
+        // Фокус попап не забирает — редактор остаётся активным (VS Code-like).
+        this.component.openAt(anchor);
     }
 
     public close(): void {
         this.cancelAutoSuggest();
-        if (this.session?.isOpen() === true) this.session.close();
+        this.component.close();
         this.activeEditor = null;
         this.prefixRange = null;
         this.triggerCaret = null;
@@ -162,29 +147,29 @@ export class CompletionController extends Disposable {
 
     /** Открыт ли попап (для `suggestWidgetVisible` и делегаторов команд). */
     public isOpen(): boolean {
-        return this.session?.isOpen() === true;
+        return this.component.isOpen();
     }
 
     // ─── Delegators for keybinding commands (suggestWidgetVisible) ─────────────
 
     public selectNext(): void {
-        this.view.selectNext();
+        this.component.view.selectNext();
     }
 
     public selectPrevious(): void {
-        this.view.selectPrevious();
+        this.component.view.selectPrevious();
     }
 
     public selectNextPage(): void {
-        this.view.selectNextPage();
+        this.component.view.selectNextPage();
     }
 
     public selectPreviousPage(): void {
-        this.view.selectPreviousPage();
+        this.component.view.selectPreviousPage();
     }
 
     public acceptSelected(): void {
-        const item = this.view.getSelectedItem();
+        const item = this.component.view.getSelectedItem();
         if (item !== null) this.accept(item);
     }
 
@@ -203,10 +188,15 @@ export class CompletionController extends Disposable {
 
     // ─── Private ─────────────────────────────────────────────────────────────
 
-    /** Пере-навешивает подписки на нового активного редактора. */
+    /**
+     * Пере-навешивает подписки на нового активного редактора. Безусловный
+     * {@link close} (а не «закрыть, если открыт»): смена активного редактора
+     * должна гасить и отложенный авто-suggest — раньше это делал отдельный
+     * обработчик AppController, теперь сложено сюда.
+     */
     private bindEditor(editor: EditorPane | null): void {
         this.unbindEditor();
-        if (this.isOpen()) this.close();
+        this.close();
         this.resetCaretCache(editor);
         if (editor === null) return;
         this.contentSub = editor.onDidChangeContent(() => {
@@ -288,9 +278,9 @@ export class CompletionController extends Disposable {
             return;
         }
         const prefix = line.slice(prefixStart, active.character);
-        this.view.refineFilter(prefix);
+        this.component.view.refineFilter(prefix);
         this.prefixRange = createRange(prefixRange.start.line, prefixStart, active.line, active.character);
-        this.session?.setAnchor(anchor);
+        this.component.setAnchor(anchor);
     }
 
     /** Эвристика «вставлен ровно один word-символ у каретки» (набор буквы). */
@@ -407,7 +397,7 @@ export class CompletionController extends Disposable {
             // Исполняем после вставки, вне текущего стека (editorconfig
             // _triggerSuggestAfterDelay повторно откроет попап).
             queueMicrotask(() => {
-                this.onExecuteCommand?.(command.command, ...(command.arguments ?? []));
+                this.commands.execute(command.command, ...(command.arguments ?? []));
             });
         }
     }

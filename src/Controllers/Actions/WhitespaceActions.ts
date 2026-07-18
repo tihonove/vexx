@@ -1,7 +1,6 @@
 import { createDeleteEdit, createInsertEdit, type ITextEdit } from "../../Editor/ITextEdit.ts";
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
-import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // ─── Whitespace ─────────────────────────────────────────────
 //
@@ -52,24 +51,4 @@ export const insertFinalNewLineAction: CommandAction = {
         const lastLine = lines.length - 1;
         editor.applyExternalEdits([createInsertEdit(lastLine, lines[lastLine].length, "\n")], "Insert Final Newline");
     },
-};
-
-/**
- * Открывает completion-попап у каретки (`editor.action.triggerSuggest`).
- *
- * Реальный обработчик устанавливает `AppController` (делегирует в
- * `CompletionController.trigger()`) — как у quick-open/find. Здесь только
- * плейсхолдер `run` и дефолтный кейбинд Ctrl+Space (при фокусе редактора).
- * Команда также вызывается расширениями (editorconfig после вставки свойства).
- */
-export const triggerSuggestAction: CommandAction = {
-    id: "editor.action.triggerSuggest",
-    title: "Trigger Suggest",
-    keybinding: parseKeybinding("ctrl+space"),
-    when: "textInputFocus",
-    /* v8 ignore start -- placeholder; AppController installs the real handler at runtime */
-    run() {
-        // Overridden in AppController.
-    },
-    /* v8 ignore stop */
 };

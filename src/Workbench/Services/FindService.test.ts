@@ -3,28 +3,33 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../Common/GeometryPromitives.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
-import { createSelection } from "../Editor/ISelection.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
+import { createSelection } from "../../Editor/ISelection.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
+import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+import { TestApp } from "../../TestUtils/TestApp.ts";
+import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
+import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
+import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 
-import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
-import { EditorGroupComponent } from "../Workbench/Components/Editor/EditorGroupComponent.ts";
-import { EditorService } from "../Workbench/Services/EditorService.ts";
-import { FindController } from "./FindController.ts";
-import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import type { EditorPane } from "../Components/Editor/EditorPane.ts";
+import { EditorGroupComponent } from "../Components/Editor/EditorGroupComponent.ts";
+import { FindComponent } from "../Components/Editor/FindComponent.ts";
+import { EditorService } from "./EditorService.ts";
+import { FindService } from "./FindService.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
-function makeGroup(): { group: EditorService; groupComponent: EditorGroupComponent } {
+function makeGroup(): {
+    group: EditorService;
+    groupComponent: EditorGroupComponent;
+    themeService: ThemeService;
+} {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
     const group = new EditorService(
         themeService,
@@ -36,16 +41,16 @@ function makeGroup(): { group: EditorService; groupComponent: EditorGroupCompone
         NULL_FILE_WATCHER,
     );
     const groupComponent = new EditorGroupComponent(group, themeService);
-    return { group, groupComponent };
+    return { group, groupComponent, themeService };
 }
 
 /** Simulates typing into the find input (drives the onChange → recompute chain). */
-function typeQuery(find: FindController, query: string): void {
-    find.view.inputElement.inputState.value = query;
-    find.view.inputElement.onChange?.(query);
+function typeQuery(component: FindComponent, query: string): void {
+    component.view.inputElement.inputState.value = query;
+    component.view.inputElement.onChange?.(query);
 }
 
-describe("FindController", () => {
+describe("FindService", () => {
     let tmpDir: string;
     let ws: ITempWorkspace;
 
@@ -59,7 +64,8 @@ describe("FindController", () => {
     });
 
     function setup(text: string): {
-        find: FindController;
+        find: FindService;
+        component: FindComponent;
         group: EditorService;
         groupComponent: EditorGroupComponent;
         editor: EditorPane;
@@ -67,7 +73,7 @@ describe("FindController", () => {
     } {
         const filePath = path.join(tmpDir, "file.txt");
         fs.writeFileSync(filePath, text);
-        const { group, groupComponent } = makeGroup();
+        const { group, groupComponent, themeService } = makeGroup();
         group.openFile(filePath);
 
         const body = new BodyElement();
@@ -75,12 +81,13 @@ describe("FindController", () => {
         const testApp = TestApp.create(body, new Size(80, 24));
         testApp.render();
 
-        const find = new FindController(group, groupComponent.view);
-        find.setHostView();
+        const component = new FindComponent(themeService);
+        const find = new FindService(component, group);
+        component.attachHost(groupComponent.view);
 
         // getActiveEditor() is non-null right after openFile.
         const editor = group.getActiveEditor()!;
-        return { find, group, groupComponent, editor, testApp };
+        return { find, component, group, groupComponent, editor, testApp };
     }
 
     it("open() shows the widget and close() hides it", () => {
@@ -113,17 +120,17 @@ describe("FindController", () => {
     });
 
     it("typing seeds match highlights on the editor", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "foo");
+        typeQuery(component, "foo");
         expect(editor.viewState.searchMatches).toHaveLength(2);
         expect(editor.viewState.currentSearchMatchIndex).toBe(0);
     });
 
     it("next() and prev() cycle through matches with wrap-around", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "foo");
+        typeQuery(component, "foo");
         expect(editor.viewState.currentSearchMatchIndex).toBe(0);
         find.next();
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
@@ -152,17 +159,17 @@ describe("FindController", () => {
     });
 
     it("seeds the query from a single-line selection on open", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         editor.viewState.selections = [createSelection(0, 0, 0, 3)]; // selects "foo"
         find.open();
-        expect(find.view.getQuery()).toBe("foo");
+        expect(component.view.getQuery()).toBe("foo");
         expect(editor.viewState.searchMatches).toHaveLength(2);
     });
 
     it("close() clears highlights and moves the cursor to the current match", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "foo");
+        typeQuery(component, "foo");
         find.next(); // current = match at char 8
         find.close();
 
@@ -174,9 +181,9 @@ describe("FindController", () => {
     });
 
     it("next() is a no-op when there are no matches", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "zzz");
+        typeQuery(component, "zzz");
         expect(editor.viewState.searchMatches).toEqual([]);
         expect(() => {
             find.next();
@@ -185,31 +192,31 @@ describe("FindController", () => {
     });
 
     it("open() on an already-open widget just refocuses without re-seeding", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "foo");
+        typeQuery(component, "foo");
         find.next(); // current = second match
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
 
         find.open(); // already open — must not reset the query or the current match
         expect(find.isVisible()).toBe(true);
-        expect(find.view.getQuery()).toBe("foo");
+        expect(component.view.getQuery()).toBe("foo");
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
     });
 
     it("wraps the current match to the first when the cursor sits past every match", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, editor, component } = setup("foo bar foo");
         // Collapsed cursor at end of line — after both matches.
         editor.viewState.selections = [createSelection(0, 11, 0, 11)];
         find.open();
-        typeQuery(find, "foo");
+        typeQuery(component, "foo");
         expect(editor.viewState.currentSearchMatchIndex).toBe(0);
     });
 
     it("prev() is a no-op when there are no matches", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "zzz");
+        typeQuery(component, "zzz");
         expect(() => {
             find.prev();
         }).not.toThrow();
@@ -217,36 +224,64 @@ describe("FindController", () => {
     });
 
     it("wires the widget callbacks to next / prev / close", () => {
-        const { find, editor } = setup("foo bar foo");
+        const { find, component, editor } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "foo");
+        typeQuery(component, "foo");
 
-        find.view.onNext?.();
+        component.view.onNext?.();
         expect(editor.viewState.currentSearchMatchIndex).toBe(1);
-        find.view.onPrev?.();
+        component.view.onPrev?.();
         expect(editor.viewState.currentSearchMatchIndex).toBe(0);
-        find.view.onClose?.();
+        component.view.onClose?.();
         expect(find.isVisible()).toBe(false);
     });
 
-    it("dispose() tears down the overlay session", () => {
-        const { find } = setup("foo bar foo");
+    it("disposing the component tears down the overlay session", () => {
+        const { find, component } = setup("foo bar foo");
         find.open();
         expect(find.isVisible()).toBe(true);
-        find.dispose();
+        component.dispose();
+        expect(find.isVisible()).toBe(false);
+    });
+
+    it("switching the active editor closes the widget", () => {
+        const { find, group, testApp } = setup("foo bar foo");
+        find.open();
+        expect(find.isVisible()).toBe(true);
+
+        const otherPath = path.join(tmpDir, "other.txt");
+        fs.writeFileSync(otherPath, "bar");
+        group.openFile(otherPath);
+        testApp.render();
+
         expect(find.isVisible()).toBe(false);
     });
 
     it("isVisible() is false before the host view is attached", () => {
-        const { group, groupComponent } = makeGroup();
-        const find = new FindController(group, groupComponent.view);
+        const { group, themeService } = makeGroup();
+        const component = new FindComponent(themeService);
+        const find = new FindService(component, group);
+        expect(find.isVisible()).toBe(false);
+    });
+
+    it("open() / hide() before the host view is attached are no-ops and do not throw", () => {
+        const { group, themeService } = makeGroup();
+        const component = new FindComponent(themeService);
+        const find = new FindService(component, group);
+        expect(() => {
+            find.open();
+        }).not.toThrow();
+        expect(find.isVisible()).toBe(false);
+        expect(() => {
+            component.hide();
+        }).not.toThrow();
         expect(find.isVisible()).toBe(false);
     });
 
     it("next() tolerates the active editor disappearing after matches were found", () => {
-        const { find, group } = setup("foo bar foo");
+        const { find, component, group } = setup("foo bar foo");
         find.open();
-        typeQuery(find, "foo");
+        typeQuery(component, "foo");
 
         // Editor closes (or detaches) while the widget is still open with stale matches.
         vi.spyOn(group, "getActiveEditor").mockReturnValue(null);
@@ -256,19 +291,20 @@ describe("FindController", () => {
     });
 
     it("opens without an active editor (empty group)", () => {
-        const { group, groupComponent } = makeGroup();
+        const { group, groupComponent, themeService } = makeGroup();
         const body = new BodyElement();
         body.setContent(groupComponent.view);
         TestApp.create(body, new Size(80, 24)).render();
-        const find = new FindController(group, groupComponent.view);
-        find.setHostView();
+        const component = new FindComponent(themeService);
+        const find = new FindService(component, group);
+        component.attachHost(groupComponent.view);
 
         expect(() => {
             find.open();
         }).not.toThrow();
         expect(find.isVisible()).toBe(true);
         expect(() => {
-            typeQuery(find, "foo");
+            typeQuery(component, "foo");
         }).not.toThrow();
         // close() with no active editor must still hide the widget (skips cursor restore).
         expect(() => {

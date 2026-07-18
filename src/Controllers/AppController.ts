@@ -95,7 +95,12 @@ import { changeEncodingAction } from "../Workbench/Actions/EncodingActions.ts";
 import { changeEolAction, convertToCrlfAction, convertToLfAction, toggleEolAction } from "../Workbench/Actions/EolActions.ts";
 import { fileSaveAction, fileSaveAsAction, newUntitledFileAction } from "./Actions/FileActions.ts";
 import { fileOpenAction, fileOpenFolderAction } from "../Workbench/Actions/FileActions.ts";
-import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
+import {
+    closeFindWidgetAction,
+    findAction,
+    nextMatchAction,
+    previousMatchAction,
+} from "../Workbench/Actions/FindActions.ts";
 import {
     acceptSelectedSuggestionAction,
     hideSuggestWidgetAction,
@@ -103,7 +108,8 @@ import {
     selectNextSuggestionAction,
     selectPrevPageSuggestionAction,
     selectPrevSuggestionAction,
-} from "./Actions/SuggestActions.ts";
+    triggerSuggestAction,
+} from "../Workbench/Actions/SuggestActions.ts";
 import {
     foldAction,
     foldAllAction,
@@ -150,15 +156,13 @@ import { openKeybindingsAction, openSettingsAction } from "./Actions/Preferences
 import { gotoLineAction, quickOpenAction, showCommandsAction } from "../Workbench/Actions/QuickOpenActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./Actions/TabActions.ts";
 import { selectThemeAction } from "../Workbench/Actions/ThemeActions.ts";
-import {
-    insertFinalNewLineAction,
-    triggerSuggestAction,
-    trimTrailingWhitespaceAction,
-} from "./Actions/WhitespaceActions.ts";
+import { insertFinalNewLineAction, trimTrailingWhitespaceAction } from "./Actions/WhitespaceActions.ts";
 import { registerAction } from "../Workbench/Actions/CommandAction.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
-import { CompletionController } from "./CompletionController.ts";
+import type { CompletionService } from "../Workbench/Services/CompletionService.ts";
+import { CompletionServiceDIToken } from "../Workbench/Services/CompletionService.ts";
+import { SuggestComponentDIToken } from "../Workbench/Components/Editor/SuggestComponent.ts";
 import { registerContextKeys } from "../Workbench/Services/ContextKeys.ts";
 import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
@@ -178,7 +182,9 @@ import { ExplorerService, ExplorerServiceDIToken } from "../Workbench/Services/E
 import { FileOperationsService, FileOperationsServiceDIToken } from "../Workbench/Services/FileOperationsService.ts";
 import type { FileSearchService } from "../Workbench/Services/FileSearchService.ts";
 import { FileSearchServiceDIToken } from "../Workbench/Services/FileSearchService.ts";
-import { FindController } from "./FindController.ts";
+import { FindComponentDIToken } from "../Workbench/Components/Editor/FindComponent.ts";
+import type { FindService } from "../Workbench/Services/FindService.ts";
+import { FindServiceDIToken } from "../Workbench/Services/FindService.ts";
 import type { IController } from "./IController.ts";
 import { InputWidgetService, InputWidgetServiceDIToken } from "../Workbench/Services/InputWidgetService.ts";
 import type { KeybindingDispatcher } from "../Workbench/Services/KeybindingDispatcher.ts";
@@ -347,6 +353,22 @@ const builtinActions = [
     inputPasteAction,
     inputUndoAction,
     inputRedoAction,
+
+    // Find / Suggest (этап 10: run-обработчики живут в самих экшенах поверх
+    // FindService/CompletionService). Регистрируются ПОСЛЕДНИМИ, чтобы биндинги
+    // `findWidgetVisible`/`suggestWidgetVisible` победили editor-команды
+    // (cursorDown/indentLines и т.п.) — KeybindingRegistry.resolveKey берёт
+    // последний зарегистрированный с проходящим `when`.
+    findAction,
+    nextMatchAction,
+    previousMatchAction,
+    closeFindWidgetAction,
+    selectNextSuggestionAction,
+    selectPrevSuggestionAction,
+    selectNextPageSuggestionAction,
+    selectPrevPageSuggestionAction,
+    acceptSelectedSuggestionAction,
+    hideSuggestWidgetAction,
 ];
 
 // Columns added/removed per increase/decrease Side Bar Width command.
@@ -382,8 +404,8 @@ export class AppController extends Disposable implements IController {
     private configurationService: IConfigurationService;
     private fileSearchService: FileSearchService;
     private quickInput: QuickInputService;
-    private completionController: CompletionController;
-    private findController: FindController;
+    private completionService: CompletionService;
+    private findService: FindService;
     private statusBarComponent: StatusBarComponent;
     private panelService: PanelService;
     private problemsComponent: ProblemsComponent;
@@ -457,9 +479,13 @@ export class AppController extends Disposable implements IController {
         // Файловые операции (Workbench-сервис): промпт имени/пути — QuickInputService
         // (шов IExplorerInputPrompt замкнут в DI).
         this.fileOperations = accessor.get(FileOperationsServiceDIToken);
-        this.completionController = this.register(new CompletionController(this.editorService));
-        this.findController = this.register(new FindController(this.editorService, this.editorGroupComponent.view));
-        this.findController.applyTheme(themeService.theme);
+        // Find/Suggest-кластер (Workbench, этап 10): компоненты владеют виджетами
+        // и overlay-сессиями (host'ы прикрепляются ниже, после постройки view),
+        // сервисы — логикой поиска/автодополнения. AppController владеет их жизнью.
+        const suggestComponent = this.register(accessor.get(SuggestComponentDIToken));
+        this.completionService = this.register(accessor.get(CompletionServiceDIToken));
+        const findComponent = this.register(accessor.get(FindComponentDIToken));
+        this.findService = this.register(accessor.get(FindServiceDIToken));
         this.statusBarComponent = this.register(statusBarComponent);
         // Contribution-сервисы статус-бара: инстанцируем через DI и владеем их жизнью.
         this.register(accessor.get(EditorStatusContributionDIToken));
@@ -525,16 +551,13 @@ export class AppController extends Disposable implements IController {
 
         // Общий виджет QuickInput/QuickOpen живёт в overlay-слое корневой view.
         quickInputComponent.attachHost(this.view);
-        this.completionController.setHostView(this.view);
-        this.completionController.onExecuteCommand = (id, ...args) => {
-            this.commands.execute(id, ...args);
-        };
-        this.findController.setHostView();
-        // Find and completion operate on the active editor only — close them when it changes.
+        // Suggest-попап — в глобальном overlay-слое (у каретки), find-виджет —
+        // в локальном слое группы редакторов. Закрытие при смене активного
+        // редактора сервисы делают сами (подписки на onActiveEditorChanged).
+        suggestComponent.attachHost(this.view);
+        findComponent.attachHost(this.editorGroupComponent.view);
         this.register(
             this.editorService.onActiveEditorChanged(() => {
-                this.findController.close();
-                this.completionController.close();
                 // Автоподсветка активного файла в дереве (`explorer.autoReveal`) —
                 // сам флоу живёт в ExplorerService.
                 this.explorerService.autoRevealActiveFile(
@@ -592,26 +615,6 @@ export class AppController extends Disposable implements IController {
                 },
             }),
         );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...findAction,
-                run: () => {
-                    this.findController.open();
-                },
-            }),
-        );
-        // triggerSuggestAction registers the ctrl+space keybinding + placeholder in
-        // the builtinActions loop; override just the command handler here (Map.set
-        // replaces it) so the keybinding is not registered twice.
-        this.register(
-            commands.register(
-                "editor.action.triggerSuggest",
-                () => {
-                    void this.completionController.trigger();
-                },
-                "Trigger Suggest",
-            ),
-        );
         // fileSaveAction registers the ctrl+s keybinding + placeholder in the
         // builtinActions loop; override just the command handler here (Map.set
         // replaces it) so the keybinding is not registered twice. The override
@@ -636,81 +639,6 @@ export class AppController extends Disposable implements IController {
                 },
                 "File: New Untitled File",
             ),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...nextMatchAction,
-                run: () => {
-                    this.findController.next();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...previousMatchAction,
-                run: () => {
-                    this.findController.prev();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...closeFindWidgetAction,
-                run: () => {
-                    this.findController.close();
-                },
-            }),
-        );
-        // Suggest widget navigation/accept/dismiss. Registered here (after the
-        // builtinActions loop) so the suggestWidgetVisible bindings win over the
-        // editor's cursorDown/indentLines while the popup is open.
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectNextSuggestionAction,
-                run: () => {
-                    this.completionController.selectNext();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectPrevSuggestionAction,
-                run: () => {
-                    this.completionController.selectPrevious();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectNextPageSuggestionAction,
-                run: () => {
-                    this.completionController.selectNextPage();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...selectPrevPageSuggestionAction,
-                run: () => {
-                    this.completionController.selectPreviousPage();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...acceptSelectedSuggestionAction,
-                run: () => {
-                    this.completionController.acceptSelected();
-                },
-            }),
-        );
-        this.register(
-            registerAction(commands, keybindings, accessor, {
-                ...hideSuggestWidgetAction,
-                run: () => {
-                    this.completionController.hide();
-                },
-            }),
         );
         this.register(
             registerAction(commands, keybindings, accessor, {
@@ -1030,7 +958,6 @@ export class AppController extends Disposable implements IController {
             fg: theme.getRequiredColor("foreground"),
             bg: theme.getRequiredColor("editor.background"),
         };
-        this.findController.applyTheme(theme);
         this.menuBar?.setStyles(getMenuStyles(theme));
         this.workbenchLayout.setSashHoverColor(theme.getRequiredColor("sash.hoverBorder"));
     }
@@ -1055,7 +982,7 @@ export class AppController extends Disposable implements IController {
         // Фокус ушёл с редактора (клавиатурный путь: Ctrl+Tab, Quick Open) —
         // закрываем suggest-попап (клик-фокус уже покрыт close-on-outside).
         const active = this.view.focusManager?.activeElement ?? null;
-        this.completionController.onFocusChanged(active instanceof EditorElement);
+        this.completionService.onFocusChanged(active instanceof EditorElement);
     };
 
     /**
@@ -1078,8 +1005,8 @@ export class AppController extends Disposable implements IController {
         this.contextKeys.set("editorGroupHasEditors", editorCount > 0);
         this.contextKeys.set("editorTabsMultiple", editorCount > 1);
         this.contextKeys.set("panelVisible", this.workbenchLayout.getBottomPanelVisible());
-        this.contextKeys.set("findWidgetVisible", this.findController.isVisible());
-        this.contextKeys.set("suggestWidgetVisible", this.completionController.isOpen());
+        this.contextKeys.set("findWidgetVisible", this.findService.isVisible());
+        this.contextKeys.set("suggestWidgetVisible", this.completionService.isOpen());
         this.contextKeys.set("terminalFocus", active instanceof TerminalViewElement);
         this.contextKeys.set("terminalIsOpen", this.terminalService.hasOpenTerminals);
 

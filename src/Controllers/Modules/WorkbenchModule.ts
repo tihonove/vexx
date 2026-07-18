@@ -52,7 +52,11 @@ import {
     EditorGroupComponent,
     EditorGroupComponentDIToken,
 } from "../../Workbench/Components/Editor/EditorGroupComponent.ts";
+import { FindComponent, FindComponentDIToken } from "../../Workbench/Components/Editor/FindComponent.ts";
+import { SuggestComponent, SuggestComponentDIToken } from "../../Workbench/Components/Editor/SuggestComponent.ts";
+import { CompletionService, CompletionServiceDIToken } from "../../Workbench/Services/CompletionService.ts";
 import { EditorService, EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
+import { FindService, FindServiceDIToken } from "../../Workbench/Services/FindService.ts";
 import { AppControllerDIToken } from "../AppController.ts";
 
 /**
@@ -97,6 +101,15 @@ export const workbenchModule: ContainerModule = (container) => {
     // активная вкладка, MRU) + компонент группового контрола (tab strip + контент).
     container.bind(EditorServiceDIToken, EditorService);
     container.bind(EditorGroupComponentDIToken, EditorGroupComponent);
+    // Find/Suggest-кластер (этап 10): компоненты владеют виджетами и
+    // overlay-сессиями (suggest — глобальный body-слой у каретки, find —
+    // локальный слой группы; host'ы прикрепляет AppController через attachHost),
+    // сервисы — логикой (FindService: query→matches→index; CompletionService:
+    // источники/триггеры/accept, item.command → CommandRegistry напрямую).
+    container.bind(SuggestComponentDIToken, SuggestComponent);
+    container.bind(CompletionServiceDIToken, CompletionService);
+    container.bind(FindComponentDIToken, FindComponent);
+    container.bind(FindServiceDIToken, FindService);
     container.bind(ActiveEditorStatusSourceDIToken, () => container.get(EditorServiceDIToken));
     container.bind(EditorStatusContributionDIToken, EditorStatusContribution);
     container.bind(TerminalEnvStatusContributionDIToken, TerminalEnvStatusContribution);

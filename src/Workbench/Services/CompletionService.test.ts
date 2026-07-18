@@ -1,17 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Uri } from "../Common/Uri.ts";
+import { Uri } from "../../Common/Uri.ts";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import type { ICoreCompletionItem } from "../Editor/ICompletionSource.ts";
-import type { ITextEdit } from "../Editor/ITextEdit.ts";
-import { TestApp } from "../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { Size } from "../../Common/GeometryPromitives.ts";
+import type { ICoreCompletionItem } from "../../Editor/ICompletionSource.ts";
+import type { ITextEdit } from "../../Editor/ITextEdit.ts";
+import { TestApp } from "../../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../../TUIDom/Events/TUIMouseEvent.ts";
+import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
 
-import { CompletionController } from "./CompletionController.ts";
-import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
-import type { EditorService } from "../Workbench/Services/EditorService.ts";
+import type { EditorPane } from "../Components/Editor/EditorPane.ts";
+import { SuggestComponent } from "../Components/Editor/SuggestComponent.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { CompletionService } from "./CompletionService.ts";
+import type { EditorService } from "./EditorService.ts";
 
 interface FakeEditor {
     editor: EditorPane;
@@ -109,19 +111,30 @@ function makeGroup(
     } as unknown as EditorService;
 }
 
+/** Пара component+service с фейковым CommandRegistry (шпион `execute`). */
+function createService(group: EditorService): {
+    service: CompletionService;
+    component: SuggestComponent;
+    execute: ReturnType<typeof vi.fn>;
+} {
+    const execute = vi.fn();
+    const commands = { execute } as unknown as CommandRegistry;
+    const component = new SuggestComponent();
+    const service = new CompletionService(component, group, commands);
+    return { service, component, execute };
+}
+
 function setup(items: readonly ICoreCompletionItem[], lineContent = "ind", character = 3, docText = lineContent) {
     const fake = makeEditor(lineContent, character, docText);
     const source = vi.fn(() => Promise.resolve(items));
     const group = makeGroup(fake.editor, source);
 
-    const controller = new CompletionController(group);
-    controller.autoSuggestDelayMs = 0; // детерминированный авто-suggest в тестах
+    const { service, component, execute } = createService(group);
+    service.autoSuggestDelayMs = 0; // детерминированный авто-suggest в тестах
     const body = new BodyElement();
     const testApp = TestApp.create(body, new Size(80, 24));
-    controller.setHostView(body);
-    const onExecuteCommand = vi.fn();
-    controller.onExecuteCommand = onExecuteCommand;
-    return { controller, body, testApp, fake, source, onExecuteCommand, editor: fake.editor };
+    component.attachHost(body);
+    return { service, component, body, testApp, fake, source, execute, editor: fake.editor };
 }
 
 /** Даёт setTimeout(…, 0) авто-suggest'а отработать. */
@@ -141,36 +154,36 @@ const ITEMS: ICoreCompletionItem[] = [
     { label: "root", insertText: "root" },
 ];
 
-describe("CompletionController", () => {
+describe("CompletionService", () => {
     it("нет источника и пустой документ → trigger no-op (попап скрыт)", async () => {
         const fake = makeEditor("", 0);
-        const controller = new CompletionController(makeGroup(fake.editor, undefined));
+        const { service, component } = createService(makeGroup(fake.editor, undefined));
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
+        component.attachHost(body);
+        await service.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("пустой ответ провайдеров → попап не открывается", async () => {
-        const { controller, body } = setup([]);
-        await controller.trigger();
+        const { service, body } = setup([]);
+        await service.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("открывает попап и фильтрует по префиксу под курсором, не забирая фокус", async () => {
-        const { controller, body } = setup(ITEMS);
-        await controller.trigger();
+        const { service, component, body } = setup(ITEMS);
+        await service.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
-        expect(controller.isOpen()).toBe(true);
-        expect(controller.view.isFocused).toBe(false); // редактор сохраняет фокус
+        expect(service.isOpen()).toBe(true);
+        expect(component.view.isFocused).toBe(false); // редактор сохраняет фокус
         // Префикс "ind" отфильтровал "root".
-        expect(controller.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
+        expect(component.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
     });
 
     it("передаёт корректный запрос источнику", async () => {
-        const { controller, source } = setup(ITEMS);
-        await controller.trigger();
+        const { service, source } = setup(ITEMS);
+        await service.trigger();
         expect(source).toHaveBeenCalledWith({
             uri: Uri.file("/proj/.editorconfig").toString(),
             languageId: "editorconfig",
@@ -180,10 +193,10 @@ describe("CompletionController", () => {
         });
     });
 
-    it("accept вставляет элемент, заменяя префикс, и исполняет item.command", async () => {
-        const { controller, fake, onExecuteCommand } = setup(ITEMS);
-        await controller.trigger();
-        controller.acceptSelected(); // принимает выбранный (indent_style)
+    it("accept вставляет элемент, заменяя префикс, и исполняет item.command через CommandRegistry", async () => {
+        const { service, fake, execute } = setup(ITEMS);
+        await service.trigger();
+        service.acceptSelected(); // принимает выбранный (indent_style)
 
         expect(fake.applyExternalEdits).toHaveBeenCalledTimes(1);
         const [edits, label] = fake.applyExternalEdits.mock.calls[0];
@@ -193,13 +206,13 @@ describe("CompletionController", () => {
         expect(edits[0].range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 3 } });
 
         await Promise.resolve();
-        expect(onExecuteCommand).toHaveBeenCalledWith("ec._retrigger");
+        expect(execute).toHaveBeenCalledWith("ec._retrigger");
     });
 
     it("если префикс отфильтровал всё — показываем полный список", async () => {
-        const { controller } = setup(ITEMS, "zzz", 3);
-        await controller.trigger();
-        expect(controller.view.items).toHaveLength(3);
+        const { service, component } = setup(ITEMS, "zzz", 3);
+        await service.trigger();
+        expect(component.view.items).toHaveLength(3);
     });
 
     // Провайдер вправе прислать собственный range (vexx-settings накрывает им кавычки,
@@ -218,9 +231,9 @@ describe("CompletionController", () => {
         ];
 
         it("уважает range провайдера, когда с триггера ничего не добрали", async () => {
-            const { controller, fake } = setup(QUOTED, '{ "e', 4);
-            await controller.trigger();
-            controller.acceptSelected();
+            const { service, fake } = setup(QUOTED, '{ "e', 4);
+            await service.trigger();
+            service.acceptSelected();
 
             const [edits] = fake.applyExternalEdits.mock.calls[0];
             expect(edits[0].text).toBe('"editor.tabSize"');
@@ -228,16 +241,16 @@ describe("CompletionController", () => {
         });
 
         it("догоняет кареткой конец range, когда добрали символы после триггера", async () => {
-            const { controller, fake } = setup(QUOTED, '{ "e', 4);
-            await controller.trigger();
-            expect(controller.isOpen()).toBe(true);
+            const { service, fake } = setup(QUOTED, '{ "e', 4);
+            await service.trigger();
+            expect(service.isOpen()).toBe(true);
 
             // Добираем `di` → `{ "edi`. Попап только ре-фильтруется, провайдера не
             // перезапрашиваем, поэтому его range всё ещё указывает на `"e`.
             fake.type('{ "edi', 6);
-            expect(controller.isOpen()).toBe(true);
+            expect(service.isOpen()).toBe(true);
 
-            controller.acceptSelected();
+            service.acceptSelected();
 
             const [edits] = fake.applyExternalEdits.mock.calls[0];
             expect(edits[0].text).toBe('"editor.tabSize"');
@@ -246,14 +259,14 @@ describe("CompletionController", () => {
         });
 
         it("сдвигает конец range назад при удалении символа после триггера", async () => {
-            const { controller, fake } = setup(QUOTED, '{ "e', 4);
-            await controller.trigger();
+            const { service, fake } = setup(QUOTED, '{ "e', 4);
+            await service.trigger();
 
             // Backspace → `{ "`. Каретка на границе префикса, попап остаётся открыт.
             fake.type('{ "', 3);
-            expect(controller.isOpen()).toBe(true);
+            expect(service.isOpen()).toBe(true);
 
-            controller.acceptSelected();
+            service.acceptSelected();
 
             const [edits] = fake.applyExternalEdits.mock.calls[0];
             // Range сжался вслед за кареткой: заменяем `"`, а не `"e`.
@@ -268,20 +281,20 @@ describe("CompletionController", () => {
                     range: { start: { line: 0, character: 2 }, end: { line: 1, character: 4 } },
                 },
             ];
-            const { controller, fake } = setup(multiline, '{ "e', 4);
-            await controller.trigger();
+            const { service, fake } = setup(multiline, '{ "e', 4);
+            await service.trigger();
             fake.type('{ "edi', 6);
-            controller.acceptSelected();
+            service.acceptSelected();
 
             const [edits] = fake.applyExternalEdits.mock.calls[0];
             expect(edits[0].range).toEqual({ start: { line: 0, character: 2 }, end: { line: 1, character: 4 } });
         });
 
         it("без range провайдера заменяет живой префикс", async () => {
-            const { controller, fake } = setup(ITEMS, "ind", 3);
-            await controller.trigger();
+            const { service, fake } = setup(ITEMS, "ind", 3);
+            await service.trigger();
             fake.type("inde", 4);
-            controller.acceptSelected();
+            service.acceptSelected();
 
             const [edits] = fake.applyExternalEdits.mock.calls[0];
             expect(edits[0].range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 4 } });
@@ -290,27 +303,27 @@ describe("CompletionController", () => {
 
     it("word-based: без источника предлагает слова из документа", async () => {
         const fake = makeEditor("ind", 3, "indent_style indent_size root ab");
-        const controller = new CompletionController(makeGroup(fake.editor, undefined));
+        const { service, component } = createService(makeGroup(fake.editor, undefined));
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
+        component.attachHost(body);
+        await service.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
-        expect(controller.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
-        expect(controller.view.items[0].kind).toBe(0);
+        expect(component.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
+        expect(component.view.items[0].kind).toBe(0);
     });
 
     it("word-based: собирает слова из всех открытых редакторов и дедупит с провайдерами", async () => {
         const fake = makeEditor("", 0, "alpha beta");
         const other = makeEditor("", 0, "beta gamma indent_style");
         const source = vi.fn(() => Promise.resolve(ITEMS));
-        const controller = new CompletionController(makeGroup(fake.editor, source, [other.editor]));
+        const { service, component } = createService(makeGroup(fake.editor, source, [other.editor]));
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
+        component.attachHost(body);
+        await service.trigger();
 
-        const labels = controller.view.items.map((i) => i.label);
+        const labels = component.view.items.map((i) => i.label);
         expect(labels).toEqual(["indent_style", "indent_size", "root", "alpha", "beta", "gamma"]);
     });
 
@@ -319,27 +332,27 @@ describe("CompletionController", () => {
             getActiveEditor: () => null,
             onActiveEditorChanged: () => ({ dispose: () => {} }),
         } as unknown as EditorService;
-        const controller = new CompletionController(group);
+        const { service, component } = createService(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
+        component.attachHost(body);
+        await service.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("hide() закрывает попап", async () => {
-        const { controller, body } = setup(ITEMS);
-        await controller.trigger();
+        const { service, body } = setup(ITEMS);
+        await service.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
-        controller.hide();
+        service.hide();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("каретка вне вьюпорта (anchor null) → попап не открывается", async () => {
         const fake = makeEditor("ind", 3, "ind");
         fake.setAnchorNull(true);
-        const controller = new CompletionController(
+        const { service, component } = createService(
             makeGroup(
                 fake.editor,
                 vi.fn(() => Promise.resolve(ITEMS)),
@@ -347,8 +360,8 @@ describe("CompletionController", () => {
         );
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
+        component.attachHost(body);
+        await service.trigger();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
@@ -356,11 +369,11 @@ describe("CompletionController", () => {
         const fake = makeEditor("ind", 3, "ind");
         (fake.editor as unknown as { uri: Uri }).uri = Uri.parse("untitled:Untitled-1");
         const source = vi.fn(() => Promise.resolve(ITEMS));
-        const controller = new CompletionController(makeGroup(fake.editor, source));
+        const { service, component } = createService(makeGroup(fake.editor, source));
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
+        component.attachHost(body);
+        await service.trigger();
         expect(source).toHaveBeenCalledWith(expect.objectContaining({ uri: "untitled:Untitled-1" }));
     });
 
@@ -373,125 +386,125 @@ describe("CompletionController", () => {
             editorCount: 2, // но getEditor(1) === null
             getEditor: (i: number) => (i === 0 ? fake.editor : null),
         } as unknown as EditorService;
-        const controller = new CompletionController(group);
+        const { service, component } = createService(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
-        expect(controller.view.items.map((i) => i.label)).toEqual(["alpha", "beta"]);
+        component.attachHost(body);
+        await service.trigger();
+        expect(component.view.items.map((i) => i.label)).toEqual(["alpha", "beta"]);
     });
 
     it("accept без активного редактора (после close) — no-op", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
-        controller.close(); // activeEditor = null, но список у view остаётся
-        controller.acceptSelected();
+        const { service, fake } = setup(ITEMS);
+        await service.trigger();
+        service.close(); // activeEditor = null, но список у view остаётся
+        service.acceptSelected();
         expect(fake.applyExternalEdits).not.toHaveBeenCalled();
     });
 
-    it("accept элемента без command не дёргает onExecuteCommand", async () => {
-        const { controller, fake, onExecuteCommand } = setup(ITEMS, "", 0, "");
-        await controller.trigger();
-        controller.selectNext();
-        controller.selectNext(); // к "root" (без command)
-        controller.acceptSelected();
+    it("accept элемента без command не дёргает CommandRegistry", async () => {
+        const { service, fake, execute } = setup(ITEMS, "", 0, "");
+        await service.trigger();
+        service.selectNext();
+        service.selectNext(); // к "root" (без command)
+        service.acceptSelected();
         expect(fake.applyExternalEdits).toHaveBeenCalledTimes(1);
         await Promise.resolve();
-        expect(onExecuteCommand).not.toHaveBeenCalled();
+        expect(execute).not.toHaveBeenCalled();
     });
 
     it("item.command без arguments исполняется c пустым списком аргументов", async () => {
         const items: ICoreCompletionItem[] = [{ label: "only", insertText: "only", command: { command: "c.noargs" } }];
-        const { controller, onExecuteCommand } = setup(items, "", 0, "");
-        await controller.trigger();
-        controller.acceptSelected();
+        const { service, execute } = setup(items, "", 0, "");
+        await service.trigger();
+        service.acceptSelected();
         await Promise.resolve();
-        expect(onExecuteCommand).toHaveBeenCalledWith("c.noargs");
+        expect(execute).toHaveBeenCalledWith("c.noargs");
     });
 
     // ─── Re-filter по мере набора (попап открыт) ───────────────────────────────
 
     it("набор сужает список и попап следует за кареткой", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
-        expect(controller.view.items).toHaveLength(2);
+        const { service, component, fake } = setup(ITEMS);
+        await service.trigger();
+        expect(component.view.items).toHaveLength(2);
         fake.type("indent_st", 9); // префикс расширился — сужаем до одного
-        expect(controller.view.items.map((i) => i.label)).toEqual(["indent_style"]);
-        expect(controller.isOpen()).toBe(true);
+        expect(component.view.items.map((i) => i.label)).toEqual(["indent_style"]);
+        expect(service.isOpen()).toBe(true);
     });
 
     it("набор без совпадений оставляет последний непустой список (не закрывает)", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
+        const { service, component, fake } = setup(ITEMS);
+        await service.trigger();
         fake.type("indz", 4); // ничего не матчит
-        expect(controller.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
-        expect(controller.isOpen()).toBe(true);
+        expect(component.view.items.map((i) => i.label)).toEqual(["indent_style", "indent_size"]);
+        expect(service.isOpen()).toBe(true);
     });
 
     it("смена строки закрывает попап", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
+        const { service, fake } = setup(ITEMS);
+        await service.trigger();
         fake.move(1, 0); // ушли на другую строку
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("непустое выделение закрывает попап", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
+        const { service, fake } = setup(ITEMS);
+        await service.trigger();
         fake.setSelection(1, 3); // anchor != active
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("каретка ушла из вьюпорта при наборе закрывает попап", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
+        const { service, fake } = setup(ITEMS);
+        await service.trigger();
         fake.setAnchorNull(true);
         fake.type("indent", 6);
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     // ─── Авто-suggest (попап закрыт) ───────────────────────────────────────────
 
     it("набор word-символа авто-открывает попап", async () => {
-        const { controller, fake, source } = setup(ITEMS); // старт: "ind", каретка 3
-        expect(controller.isOpen()).toBe(false);
+        const { service, fake, source } = setup(ITEMS); // старт: "ind", каретка 3
+        expect(service.isOpen()).toBe(false);
         fake.type("inde", 4); // вставлен один word-символ
         await flushTimers();
         expect(source).toHaveBeenCalled();
-        expect(controller.isOpen()).toBe(true);
+        expect(service.isOpen()).toBe(true);
     });
 
     it("чистое движение каретки НЕ открывает попап", async () => {
-        const { controller, fake, source } = setup(ITEMS);
+        const { service, fake, source } = setup(ITEMS);
         fake.move(0, 2); // без content-изменения
         await flushTimers();
         expect(source).not.toHaveBeenCalled();
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("принятие пункта не приводит к авто-переоткрытию", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
-        controller.acceptSelected(); // close() + suppress + applyExternalEdits (mock, без эмита)
+        const { service, fake } = setup(ITEMS);
+        await service.trigger();
+        service.acceptSelected(); // close() + suppress + applyExternalEdits (mock, без эмита)
         // Эмулируем правку accept как одиночную вставку у каретки — авто-suggest подавлен.
         fake.type("indent_style2", 13);
         await flushTimers();
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("onFocusChanged(false) закрывает открытый попап", async () => {
-        const { controller } = setup(ITEMS);
-        await controller.trigger();
-        expect(controller.isOpen()).toBe(true);
-        controller.onFocusChanged(false); // фокус ушёл с редактора
-        expect(controller.isOpen()).toBe(false);
+        const { service } = setup(ITEMS);
+        await service.trigger();
+        expect(service.isOpen()).toBe(true);
+        service.onFocusChanged(false); // фокус ушёл с редактора
+        expect(service.isOpen()).toBe(false);
     });
 
-    it("клик по пункту (view.onAccept) принимает через контроллер", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
-        // Клик по первому ряду (localY=1) → view.onAccept → controller.accept.
-        controller.view.dispatchEvent(
+    it("клик по пункту (view.onAccept) принимает через сервис", async () => {
+        const { service, component, fake } = setup(ITEMS);
+        await service.trigger();
+        // Клик по первому ряду (localY=1) → view.onAccept → service.accept.
+        component.view.dispatchEvent(
             new TUIMouseEvent("click", { button: "left", screenX: 0, screenY: 1, localX: 5, localY: 1 }),
         );
         expect(fake.applyExternalEdits).toHaveBeenCalledTimes(1);
@@ -499,16 +512,16 @@ describe("CompletionController", () => {
 
     it("selectPrevious / page-навигация делегируются в view", async () => {
         const items = Array.from({ length: 15 }, (_, i) => ({ label: `w${i}`, insertText: `w${i}` }));
-        const { controller } = setup(items, "", 0, "");
-        await controller.trigger();
-        controller.view.maxVisibleItems = 5;
-        controller.selectNextPage();
-        expect(controller.view.selectedIndex).toBe(5);
-        controller.selectPreviousPage();
-        expect(controller.view.selectedIndex).toBe(0);
-        controller.selectNext();
-        controller.selectPrevious();
-        expect(controller.view.selectedIndex).toBe(0);
+        const { service, component } = setup(items, "", 0, "");
+        await service.trigger();
+        component.view.maxVisibleItems = 5;
+        service.selectNextPage();
+        expect(component.view.selectedIndex).toBe(5);
+        service.selectPreviousPage();
+        expect(component.view.selectedIndex).toBe(0);
+        service.selectNext();
+        service.selectPrevious();
+        expect(component.view.selectedIndex).toBe(0);
     });
 
     it("смена активного редактора закрывает открытый попап", async () => {
@@ -524,14 +537,14 @@ describe("CompletionController", () => {
             editorCount: 1,
             getEditor: (i: number) => (i === 0 ? fake.editor : null),
         } as unknown as EditorService;
-        const controller = new CompletionController(group);
+        const { service, component } = createService(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
-        expect(controller.isOpen()).toBe(true);
+        component.attachHost(body);
+        await service.trigger();
+        expect(service.isOpen()).toBe(true);
         activeCb(fake.editor); // onActiveEditorChanged → bindEditor закрывает попап
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("изменение каретки при отсутствии активного редактора — no-op", () => {
@@ -544,20 +557,20 @@ describe("CompletionController", () => {
             editorCount: 1,
             getEditor: () => fake.editor,
         } as unknown as EditorService;
-        const controller = new CompletionController(group);
+        const { service, component } = createService(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
+        component.attachHost(body);
         ref = null; // активный редактор пропал
         fake.type("inde", 4); // fires cursor listener → onCaretChanged, getActiveEditor()===null
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("набор небуквенного символа (граница слова) закрывает открытый попап", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
+        const { service, fake } = setup(ITEMS);
+        await service.trigger();
         fake.type("ind ", 4); // пробел сдвинул начало слова → wordStart != prefixStart
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("авто-suggest не срабатывает при не-одиночной/небуквенной вставке", async () => {
@@ -569,19 +582,19 @@ describe("CompletionController", () => {
             ["ind ", 4, 0], // небуквенный символ
         ];
         for (const [line, ch, lineNo] of cases) {
-            const { controller, fake, source } = setup(ITEMS); // кэш: "ind", каретка 3
+            const { service, fake, source } = setup(ITEMS); // кэш: "ind", каретка 3
             fake.type(line, ch, lineNo);
             await flushTimers();
             expect(source).not.toHaveBeenCalled();
-            expect(controller.isOpen()).toBe(false);
+            expect(service.isOpen()).toBe(false);
         }
     });
 
     it("acceptSelected без выбранного пункта — no-op", async () => {
-        const { controller, fake } = setup(ITEMS);
-        await controller.trigger();
-        controller.view.setFilter("zzzz"); // список пуст → getSelectedItem null
-        controller.acceptSelected();
+        const { service, component, fake } = setup(ITEMS);
+        await service.trigger();
+        component.view.setFilter("zzzz"); // список пуст → getSelectedItem null
+        service.acceptSelected();
         expect(fake.applyExternalEdits).not.toHaveBeenCalled();
     });
 
@@ -595,20 +608,20 @@ describe("CompletionController", () => {
             editorCount: 1,
             getEditor: () => fake.editor,
         } as unknown as EditorService;
-        const controller = new CompletionController(group);
+        const { service, component } = createService(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
-        controller.setHostView(body);
-        await controller.trigger();
-        expect(controller.isOpen()).toBe(true);
+        component.attachHost(body);
+        await service.trigger();
+        expect(service.isOpen()).toBe(true);
         ref = null; // активный редактор пропал
         fake.type("inde", 4); // onCaretChanged: editor null && isOpen → close
-        expect(controller.isOpen()).toBe(false);
+        expect(service.isOpen()).toBe(false);
     });
 
     it("конструктор с непустым начальным выделением безопасен", () => {
         const fake = makeEditor("ind", 3, "ind", 1); // anchor=1, active=3 (не collapsed)
-        const controller = new CompletionController(makeGroup(fake.editor, undefined));
-        expect(controller.isOpen()).toBe(false);
+        const { service } = createService(makeGroup(fake.editor, undefined));
+        expect(service.isOpen()).toBe(false);
     });
 });

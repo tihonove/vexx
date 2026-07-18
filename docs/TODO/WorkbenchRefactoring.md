@@ -118,7 +118,22 @@ Workbench и может его импортировать; обратно — н
        `runSave`/`runSaveAs` остались в AppController (тянут его приватный
        `updateContextKeys`). Тесты EditorGroupController.* → `EditorService.*` /
        `EditorGroupComponent.test.ts`
-- [ ] 10. `CompletionService`+`SuggestComponent`, `FindService`+`FindComponent`
+- [x] 10. Find/Suggest-кластер: `CompletionService` (`Workbench/Services/`;
+       триггер/префикс/re-filter/авто-suggest/accept; `item.command` →
+       `CommandRegistry.execute` напрямую, хук `onExecuteCommand` умер) +
+       `SuggestComponent` (`Components/Editor/`; НЕ ThemedComponent —
+       CompletionListElement на unthemed-палитре; overlay-сессия у каретки в
+       body-слое, `attachHost(BodyElement)`); `FindService` (query→matches→index,
+       next/prev, seed из выделения; закрытие при смене активного редактора —
+       собственная подписка на `EditorService.onActiveEditorChanged`, у
+       Completion — в `bindEditor`) + `FindComponent` (ThemedComponent,
+       `getFindWidgetStyles`; сессия в ЛОКАЛЬНОМ слое группы,
+       `attachHost(EditorGroupElement)` — зовёт AppController). Экшены
+       Find*/Suggest* (+`triggerSuggest` из WhitespaceActions) — в
+       `Workbench/Actions/` с реальными `run(accessor)`; регистрируются хвостом
+       `builtinActions` (биндинги `*WidgetVisible` должны победить
+       editor-команды). Тесты → `Services/CompletionService.test.ts` /
+       `Services/FindService.test.ts`; биндинги — `Modules/WorkbenchModule.ts`
 - [ ] 11. `MenuService`+`MenuBarComponent`, `LayoutService`, `WorkbenchStateService`, ContextKeys
 - [ ] 12. Финал: `WorkbenchComponent`, Modules → Workbench, смерть `src/Controllers/`
 - [ ] 13. Зачистка + документация (arch/Workbench.md, ARCHITECTURE.md, DI.md)

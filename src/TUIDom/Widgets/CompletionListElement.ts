@@ -55,7 +55,7 @@ export interface CompletionListItem {
  * список, не трогая буфер редактора).
  *
  * Как в VS Code suggest widget попап **не забирает фокус** (`tabIndex = -1`):
- * навигацией/принятием/скрытием управляет {@link CompletionController} через
+ * навигацией/принятием/скрытием управляет {@link import("../../Workbench/Services/CompletionService.ts").CompletionService} через
  * публичные методы (клавиши приходят командами по `suggestWidgetVisible`), а
  * фильтрация идёт от префикса под кареткой редактора. Мышью: наведение
  * подсвечивает ряд, клик принимает пункт.
@@ -244,7 +244,7 @@ export class CompletionListElement extends TUIElement {
         context.drawText(LABEL_X, rowY, labelText, { fg: rowFg, bg: rowBg }, { maxWidth: labelAvail });
     }
 
-    // ─── Navigation (driven by CompletionController via commands) ─────────────
+    // ─── Navigation (driven by CompletionService via commands) ─────────────
 
     public selectNext(): void {
         this.moveSelection(1);

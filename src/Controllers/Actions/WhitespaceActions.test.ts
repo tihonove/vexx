@@ -18,7 +18,7 @@ import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.
 import { UndoRedoService } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
 
 import { redoAction, undoAction } from "./EditorEditActions.ts";
-import { insertFinalNewLineAction, triggerSuggestAction, trimTrailingWhitespaceAction } from "./WhitespaceActions.ts";
+import { insertFinalNewLineAction, trimTrailingWhitespaceAction } from "./WhitespaceActions.ts";
 
 let ws: ITempWorkspace;
 
@@ -124,23 +124,14 @@ describe("WhitespaceActions — undo / redo round-trip", () => {
 });
 
 describe("WhitespaceActions — safety without an active editor", () => {
-    it("trim / insertFinalNewLine / triggerSuggest do not throw with no active editor", () => {
+    it("trim / insertFinalNewLine do not throw with no active editor", () => {
         const ctrl = createGroup();
         const commands = new CommandRegistry();
         const accessor = new Container();
         accessor.bind(EditorServiceDIToken, () => ctrl);
-        for (const action of [trimTrailingWhitespaceAction, insertFinalNewLineAction, triggerSuggestAction]) {
+        for (const action of [trimTrailingWhitespaceAction, insertFinalNewLineAction]) {
             registerAction(commands, new KeybindingRegistry(), accessor, action);
             expect(() => commands.execute(action.id)).not.toThrow();
         }
-    });
-});
-
-describe("WhitespaceActions — triggerSuggest", () => {
-    it("is a no-op that leaves the document unchanged", () => {
-        const { editor, exec } = openEditor("content");
-        exec(triggerSuggestAction);
-        expect(editor.getText()).toBe("content");
-        expect(editor.isModified).toBe(false);
     });
 });
