@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { EditorElement } from "../Editor/EditorElement.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
+import { DialogServiceDIToken } from "../Workbench/Dialogs/DialogService.ts";
 import type { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
 import type { MenuEntry, MenuItemEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
@@ -380,29 +381,31 @@ describe("AppController — menu bar wiring", () => {
 
     it("show-about-dialog command opens the About dialog", () => {
         const { testApp, commands } = createAppTestHarness();
-        expect(testApp.querySelector("AboutDialogElement")).toBeNull();
+        expect(testApp.querySelector("#aboutDialog")).toBeNull();
 
         commands.execute("workbench.action.showAboutDialog");
         testApp.render();
 
-        expect(testApp.querySelector("AboutDialogElement")).not.toBeNull();
+        expect(testApp.querySelector("#aboutDialog")).not.toBeNull();
     });
 
     it("reuses the About dialog on reopen and closes it via its callback", () => {
-        const { testApp, commands } = createAppTestHarness();
+        const h = createAppTestHarness();
+        const { testApp, commands } = h;
+        const dialogService = h.container.get(DialogServiceDIToken);
 
         commands.execute("workbench.action.showAboutDialog");
         testApp.render();
-        const dialog = testApp.querySelector("AboutDialogElement");
+        const dialog = dialogService.getOpenAboutDialog();
         expect(dialog).not.toBeNull();
 
         // Reopening reuses the same dialog instance (covers the not-null branch).
         commands.execute("workbench.action.showAboutDialog");
         testApp.render();
-        expect(testApp.querySelector("AboutDialogElement")).toBe(dialog);
+        expect(dialogService.getOpenAboutDialog()).toBe(dialog);
 
         // Closing through the dialog's onClose callback hides it without error.
-        expect(() => (dialog as unknown as { onClose?: () => void }).onClose?.()).not.toThrow();
+        expect(() => dialog!.onClose?.()).not.toThrow();
     });
 
     it("menu bar element is present in the DOM", () => {

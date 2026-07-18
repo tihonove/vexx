@@ -89,7 +89,7 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
 
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).toBeNull();
         expect(fs.existsSync(alpha)).toBe(false);
         ctx.controller.dispose();
     });
@@ -103,7 +103,7 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
 
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).not.toBeNull();
         expect(fs.existsSync(alpha)).toBe(true);
         ctx.controller.dispose();
     });
@@ -115,12 +115,12 @@ describe.skipIf(process.platform !== "linux")("Delete confirmations — explorer
 
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).not.toBeNull();
 
         ctx.testApp.sendKey("Escape");
         ctx.testApp.render();
 
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).toBeNull();
         expect(fs.existsSync(alpha)).toBe(true);
         ctx.controller.dispose();
     });
@@ -153,13 +153,13 @@ describe("Delete confirmations — permanent delete (no trash)", () => {
         ctx.commands.execute("fileOperations.deleteFile", alpha);
         ctx.testApp.render();
 
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).not.toBeNull();
         expect(ctx.testApp.backend.screenToString()).toContain("Delete Permanently");
 
         // Дефолтная кнопка — Cancel: Enter закрывает диалог, файл остаётся.
         ctx.testApp.sendKey("Enter");
         ctx.testApp.render();
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).toBeNull();
         expect(fs.existsSync(alpha)).toBe(true);
         ctx.controller.dispose();
     });
@@ -192,7 +192,7 @@ describe.skipIf(process.platform !== "linux")("Workspace undo — confirmation e
 
         expect(() => ctx.commands.execute("fileOperations.undo")).not.toThrow();
         ctx.testApp.render();
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).toBeNull();
         ctx.controller.dispose();
     });
 
@@ -210,7 +210,7 @@ describe.skipIf(process.platform !== "linux")("Workspace undo — confirmation e
         ctx.commands.execute("fileOperations.undo");
         ctx.testApp.render();
 
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).not.toBeNull();
         ctx.controller.dispose();
     });
 });
@@ -238,7 +238,7 @@ describe("File operations without a workspace root (empty selection)", () => {
         ctx.commands.execute("fileOperations.deleteFile");
         ctx.testApp.render();
 
-        expect(ctx.testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(ctx.testApp.querySelector("#confirmDialog")).toBeNull();
         ctx.controller.dispose();
     });
 });

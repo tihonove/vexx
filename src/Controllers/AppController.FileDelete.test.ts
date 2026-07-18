@@ -45,7 +45,7 @@ describe("fileOperations.deleteFile command", () => {
     // Удаление теперь спрашивает подтверждение; корзина доступна → дефолтная кнопка
     // ("Move to Trash") в фокусе, подтверждаем её Enter.
     function confirmDelete(): void {
-        expect(h.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).not.toBeNull();
         h.testApp.sendKey("Enter");
         h.testApp.render();
     }
@@ -68,7 +68,7 @@ describe("fileOperations.deleteFile command", () => {
         h.testApp.render();
 
         // Dialog is up, file still on disk.
-        expect(h.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).not.toBeNull();
         expect(fs.existsSync(filePath)).toBe(true);
     });
 
@@ -139,7 +139,7 @@ describe("Delete key in the file tree", () => {
     }
 
     function confirmDelete(): void {
-        expect(h.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).not.toBeNull();
         h.testApp.sendKey("Enter");
         h.testApp.render();
     }
@@ -189,7 +189,7 @@ describe("Delete key in the file tree", () => {
         h.testApp.sendKey("Delete");
         h.testApp.render();
 
-        expect(h.testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).toBeNull();
         expect(fs.existsSync(alpha)).toBe(true);
     });
 });
@@ -267,7 +267,7 @@ describe("File tree context menu — right-click opens context menu", () => {
 
         // Menu closed; confirmation dialog is up; file not yet deleted.
         expect(h.testApp.querySelector("PopupMenuElement")).toBeNull();
-        expect(h.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).not.toBeNull();
         expect(fs.existsSync(alpha)).toBe(true);
 
         h.testApp.sendKey("Enter"); // confirm "Move to Trash"

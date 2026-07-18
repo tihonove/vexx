@@ -3,19 +3,24 @@ import { describe, expect, it, vi } from "vitest";
 import { Size } from "../../Common/GeometryPromitives.ts";
 import { VEXX_VERSION } from "../../Common/Version.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { ThemeService } from "../../Theme/ThemeService.ts";
+import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
+import { TUIKeyboardEvent } from "../../TUIDom/Events/TUIKeyboardEvent.ts";
+import type { ButtonElement } from "../../TUIDom/Widgets/ButtonElement.ts";
 
-import { AboutDialogElement } from "./AboutDialogElement.tsx";
-import type { ButtonElement } from "./ButtonElement.ts";
+import { AboutDialog } from "./AboutDialog.tsx";
 
 function mount() {
-    const dialog = new AboutDialogElement();
-    const testApp = TestApp.createWithContent(dialog, new Size(80, 24));
+    const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+    const dialog = new AboutDialog(themeService);
+    dialog.mount();
+    const testApp = TestApp.createWithContent(dialog.view, new Size(80, 24));
     const okButton = testApp.querySelector("ButtonElement") as ButtonElement;
     return { dialog, testApp, okButton };
 }
 
-describe("AboutDialogElement", () => {
+describe("AboutDialog", () => {
     it("renders the app name, version, Node version and repo url", () => {
         const { testApp } = mount();
         testApp.render();
@@ -34,12 +39,12 @@ describe("AboutDialogElement", () => {
     });
 
     it("Escape triggers onClose", () => {
-        const { dialog, testApp } = mount();
+        const { dialog } = mount();
         const onClose = vi.fn();
         dialog.onClose = onClose;
         dialog.focusDefault();
 
-        dialog.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
+        dialog.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
 
         expect(onClose).toHaveBeenCalledOnce();
     });
@@ -49,7 +54,7 @@ describe("AboutDialogElement", () => {
         const onClose = vi.fn();
         dialog.onClose = onClose;
 
-        dialog.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
+        dialog.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowDown" }));
 
         expect(onClose).not.toHaveBeenCalled();
     });

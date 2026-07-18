@@ -50,6 +50,14 @@ const darkDefaults: Record<string, string> = {
     "editorInfo.foreground": "#3794FF",
     "editorHint.foreground": "#EEEEEE",
 
+    // ── Editor widgets / dialogs ────────────────────────────
+    "editorWidget.background": "#252526",
+    "editorWidget.foreground": "#CCCCCC",
+    "editorWidget.border": "#454545",
+    // Opaque approximation of VS Code's #CCCCCCB3 over the widget bg.
+    "descriptionForeground": "#ABABAB",
+    "textLink.foreground": "#3794FF",
+
     // ── Panel (Problems/Output/…) ───────────────────────────
     "panel.background": "#181818",
     "panel.border": "#2B2B2B",
@@ -143,6 +151,13 @@ const lightDefaults: Record<string, string> = {
     "editorWarning.foreground": "#BF8803",
     "editorInfo.foreground": "#1A85FF",
     "editorHint.foreground": "#6C6C6C",
+
+    // ── Editor widgets / dialogs ────────────────────────────
+    "editorWidget.background": "#F3F3F3",
+    "editorWidget.foreground": "#616161",
+    "editorWidget.border": "#C8C8C8",
+    "descriptionForeground": "#717171",
+    "textLink.foreground": "#006AB1",
 
     // ── Panel (Problems/Output/…) ───────────────────────────
     "panel.background": "#F8F8F8",

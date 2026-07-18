@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../TestUtils/timing.ts";
-import type { ConfirmDialogElement } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
+import { DialogServiceDIToken } from "../Workbench/Dialogs/DialogService.ts";
 
 describe("AppController — save conflict (dirty-write protection)", () => {
     let ws: ITempWorkspace;
@@ -32,8 +32,8 @@ describe("AppController — save conflict (dirty-write protection)", () => {
         ws.dispose();
     });
 
-    function dialog(): ConfirmDialogElement | null {
-        return h.testApp.querySelector("ConfirmDialogElement") as ConfirmDialogElement | null;
+    function dialog() {
+        return h.container.get(DialogServiceDIToken).getOpenConfirmDialog();
     }
 
     it("prompts to overwrite when the file changed on disk, leaving it untouched", async () => {

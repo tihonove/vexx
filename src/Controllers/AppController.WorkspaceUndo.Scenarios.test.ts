@@ -56,7 +56,7 @@ describe("Explorer undo/redo scenarios", () => {
     // Удаление в корзину доступно → дефолтная кнопка ("Move to Trash") в фокусе, подтверждаем Enter.
     function confirmDelete(): void {
         h.testApp.render();
-        expect(h.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).not.toBeNull();
         h.testApp.sendKey("Enter");
         h.testApp.render();
     }

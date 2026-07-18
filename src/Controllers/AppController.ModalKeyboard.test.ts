@@ -145,7 +145,7 @@ describe("AppController — global keybindings are suppressed while an overlay o
         });
         h.testApp.render();
 
-        const dialog = h.testApp.querySelector("ConfirmSaveDialogElement");
+        const dialog = h.testApp.querySelector("#confirmSaveDialog");
         expect(dialog).toBeTruthy();
         expect(isDescendantOf(h.testApp.focusedElement, dialog!)).toBe(true);
 

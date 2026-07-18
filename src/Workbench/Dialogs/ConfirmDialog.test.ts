@@ -1,21 +1,26 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Point, Size } from "../../Common/GeometryPromitives.ts";
-import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { ThemeService } from "../../Theme/ThemeService.ts";
+import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
+import { TUIKeyboardEvent } from "../../TUIDom/Events/TUIKeyboardEvent.ts";
+import type { ButtonElement } from "../../TUIDom/Widgets/ButtonElement.ts";
 
-import { ButtonElement } from "./ButtonElement.ts";
-import { ConfirmDialogElement, type ConfirmDialogOptions } from "./ConfirmDialogElement.tsx";
+import { ConfirmDialog, type ConfirmDialogOptions } from "./ConfirmDialog.tsx";
+
+const theme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
 
 function mount(options: Partial<ConfirmDialogOptions> = {}) {
-    const dialog = new ConfirmDialogElement({
+    const dialog = new ConfirmDialog(new ThemeService(theme), {
         title: "Delete",
         message: "Delete «x.txt»?",
         confirmLabel: "Move to Trash",
         ...options,
     });
-    const testApp = TestApp.createWithContent(dialog, new Size(80, 24));
+    dialog.mount();
+    const testApp = TestApp.createWithContent(dialog.view, new Size(80, 24));
     const buttons = testApp.querySelectorAll("ButtonElement") as ButtonElement[];
     return { dialog, testApp, buttons };
 }
@@ -24,7 +29,7 @@ function sendToFocused(testApp: TestApp, key: string): void {
     testApp.focusedElement?.dispatchEvent(new TUIKeyboardEvent("keydown", { key }));
 }
 
-describe("ConfirmDialogElement", () => {
+describe("ConfirmDialog", () => {
     it("renders the title, message and button labels", () => {
         const { testApp } = mount({ message: ["line one", "line two"] });
         testApp.render();
@@ -103,7 +108,7 @@ describe("ConfirmDialogElement", () => {
         expect(testApp.focusedElement).toBe(buttons[1]);
     });
 
-    it("highlights the message in the warning color when warning is set", () => {
+    it("highlights the message in the theme's warning color when warning is set", () => {
         const { testApp } = mount({ message: "Danger zone", warning: true });
         testApp.render();
 
@@ -112,6 +117,6 @@ describe("ConfirmDialogElement", () => {
         expect(y).toBeGreaterThanOrEqual(0);
         const x = rows[y].indexOf("Danger zone");
 
-        expect(testApp.backend.getFgAt(new Point(x, y))).toBe(packRgb(255, 200, 0));
+        expect(testApp.backend.getFgAt(new Point(x, y))).toBe(theme.getRequiredColor("editorWarning.foreground"));
     });
 });
