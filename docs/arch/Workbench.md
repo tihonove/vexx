@@ -99,6 +99,51 @@ Controllers растворён); остаётся конвенцией для н
    `Workbench/Modules/`.
 5. `view.id` — на корневой контрол компонента; тесты живут рядом с кодом.
 
+## Workbench-contributions (`src/Workbench/Contributions/`)
+
+Фич-проводка (подписки на события сервисов, публикация UI, регистрация
+программных команд) НЕ живёт в конструкторе корневого `WorkbenchComponent` —
+она вынесена в самодостаточные **contribution'ы** (аналог `IWorkbenchContribution`
+в VS Code). Так корень остаётся тонким: сборка view + слоты + lifecycle, а не
+перечисление фич.
+
+**Контракт `IWorkbenchContribution`** — маркер (`extends IDisposable`, пустой):
+вся работа делается в конструкторе (подписка/публикация/регистрация), `dispose()`
+её сматывает. Отдельного метода активации нет — инстанцирование класса И ЕСТЬ
+активация. Прообраз — `EditorStatusContribution`.
+
+**Реестр + фазы.** `WorkbenchContributionsRegistry.instantiateByPhase(phase)`
+инстанцирует по фазе через DI (`accessor.get(token)` — авто-инжект
+`static dependencies` + кэш-синглтон) и забирает владение (`register`), поэтому
+dispose реестра сматывает все contribution'ы. Две фазы:
+- **`restored`** — синхронно в `WorkbenchComponent.mount()` (view построена,
+  лёгкие сервисы готовы; между конструктором и mount ни один редактор не
+  открывается → перенос проводки из конструктора эквивалентен);
+- **`eventually`** — idle после первого кадра (из `main.ts`,
+  `setImmediate(() => workbench.runEventuallyPhase())`; из mount фаза сработала бы
+  до кадра, т.к. `app.run()` красит отложенно) — для тяжёлой/отложенной работы.
+
+**Регистрация — явный массив** `WORKBENCH_CONTRIBUTIONS` (`workbenchContributions.ts`,
+зеркало `builtinActions`, без import-side-effect самрегистрации): пара
+`{ token, phase }`. Новую фич-проводку добавляем сюда + биндим класс в
+`Modules/WorkbenchModule.ts`, а не строкой в конструктор корня.
+
+**Правило под наш DI** (ленив по токену, без Delayed-прокси): тяжёлые сервисы НЕ
+класть в `static dependencies` — иначе они сконструируются в момент прогона фазы.
+Тяжёлое резолвить лениво через `ServiceAccessor` внутри колбэков.
+
+**Contribution vs Action.** Порция кейбиндов и команды с ленивым `run(accessor)` —
+это декларативные `CommandAction` в `Actions/` (данные в реестры, сервис
+резолвится при вызове), а не contribution'ы. Contribution нужен для eager-проводки
+на событиях. Пограничный случай — программная команда без title (`workbench.openFile`):
+не Action (тот форсит title → палитра), а contribution, регистрирующая команду.
+
+Текущие: `EditorStatusContribution`, `TerminalEnvStatusContribution` (сегменты
+статус-бара), `AutoRevealContribution` (`explorer.autoReveal`),
+`ThemeConfigContribution` (live-reload `workbench.colorTheme`),
+`EditorContextMenuContribution` (Copy/Cut/Paste/Undo), `OpenFileCommandContribution`
+(команда `workbench.openFile`). Все — `restored`.
+
 ## Текущие обитатели
 
 - `Component.ts` — база `Component`/`ThemedComponent`.
@@ -251,7 +296,8 @@ Controllers растворён); остаётся конвенцией для н
   - `Components/StatusBar/StatusBarComponent.ts` — `ThemedComponent`; владеет
     `StatusBarElement` (`view.id = "statusBar"`), перерисовывает айтемы по
     `onDidChangeEntries`, красит бар из темы в `updateStyles()`.
-  - Сегменты публикуют contribution-сервисы: `Services/EditorStatusContribution.ts`
+  - Сегменты публикуют workbench-contribution'ы (инстанцируются реестром в фазе
+    `restored`, см. «Workbench-contributions»): `Services/EditorStatusContribution.ts`
     (правые, порядок VS Code: `Ln X, Col Y` · Encoding · EOL · Language; Encoding/EOL
     кликабельны — команды `changeEncoding`/`changeEOL` через `CommandRegistry`) и
     `Services/TerminalEnvironment/TerminalEnvStatusContribution.ts` (tier + моды).
@@ -397,16 +443,21 @@ Controllers растворён); остаётся конвенцией для н
     (`DialogService`/`ExplorerComponent`/`QuickInputComponent`/`SuggestComponent`
     `attachHost(BodyElement)`, `FindComponent.attachHost(EditorGroupElement)`,
     `LayoutService.attachLayout`, `WorkbenchContextKeys.attachView`), вешает
-    листенеры `KeybindingDispatcher` и фокус-хуки, регистрирует команду
-    `workbench.openFile` и весь список `builtinActions` одним циклом (+
-    перекрывает `run` у quit: confirm-save через `LifecycleService`, выход —
-    teardown TUI + `process.exit`). Наследник `ThemedComponent`:
-    `updateStyles()` красит корень (fg/bg body) и hover-цвет сэшей.
-    Единственный компонент с lifecycle за пределами конструктора — bootstrap
-    ведёт `main.ts`: `setWorkspaceFolder` → `mount()` (листенеры + restore
-    layout до первого кадра) → `run()` → `activate()` (контекст-ключи, probe
-    терминала, активация редакторов/Explorer'а) → `openFile`/
-    `restoreOpenEditors` → `focusEditor`.
+    листенеры `KeybindingDispatcher` и фокус-хуки, регистрирует список
+    `builtinActions` одним циклом. Фич-проводка (autoReveal, live-reload темы,
+    контекст-меню редактора, команда `workbench.openFile`, статус-бар) вынесена в
+    workbench-contribution'ы — корень лишь прогоняет их по фазам через реестр
+    (`restored` — в `mount()`, `eventually` — из `main.ts` через
+    `runEventuallyPhase()`; см. «Workbench-contributions»). Выход (`quitAction`)
+    делегируется корню через шов `QuitHandlerDIToken` → `requestQuit`: confirm-save
+    через `LifecycleService`, затем teardown TUI + `process.exit`. Наследник
+    `ThemedComponent`: `updateStyles()` красит корень (fg/bg body) и hover-цвет
+    сэшей. Единственный компонент с lifecycle за пределами конструктора — bootstrap
+    ведёт `main.ts`: `setWorkspaceFolder` → `mount()` (contribution'ы фазы
+    `restored` + листенеры + restore layout до первого кадра) → `run()` →
+    `activate()` (контекст-ключи, probe терминала, активация редакторов/
+    Explorer'а) → `openFile`/`restoreOpenEditors` → `focusEditor` →
+    `runEventuallyPhase()`.
   - `Services/MenuService.ts` — декларативная модель главного меню
     (`IMenuModel`/`MenuEntryModel`): пункты собираются из command-id, лейблов и
     мнемоник; отображаемый шорткат резолвится из

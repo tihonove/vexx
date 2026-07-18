@@ -66,11 +66,16 @@ export const WorkbenchComponentDIToken = token<WorkbenchComponent>("WorkbenchCom
  * собственные контролы (BodyElement/сэши) в {@link updateStyles}. Логика живёт
  * в сервисах Workbench.
  *
+ * Фич-проводка (подписки на события, live-reload темы, контекст-меню и т.п.) —
+ * НЕ здесь, а в самодостаточных workbench-contribution'ах: корень лишь прогоняет
+ * их по фазам через реестр (`Restored` — в {@link mount}, `Eventually` — из
+ * `main.ts` через {@link runEventuallyPhase}). См. `Contributions/`.
+ *
  * Единственный компонент с жизненным циклом за пределами конструктора: у корня
  * есть реальная bootstrap-последовательность, которую ведёт `main.ts`
  * (mount → activate → open/restore файлов) — см. {@link mount}/{@link activate}.
  * Здесь же остаётся квит-флоу ({@link requestQuit} + doQuit: teardown TUI и
- * `process.exit`).
+ * `process.exit`; вызывается через шов `QuitHandlerDIToken` из `quitAction`).
  */
 export class WorkbenchComponent extends ThemedComponent {
     public static dependencies = [
