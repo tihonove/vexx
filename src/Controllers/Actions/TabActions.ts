@@ -1,6 +1,6 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 import { ModifierReleaseArmoryDIToken } from "../../Workbench/Services/ModifierReleaseArmory.ts";
 
@@ -13,7 +13,7 @@ import { ModifierReleaseArmoryDIToken } from "../../Workbench/Services/ModifierR
  * «hold-сессии».
  */
 function cycleMruStep(accessor: ServiceAccessor, direction: 1 | -1): void {
-    const group = accessor.get(EditorGroupControllerDIToken);
+    const group = accessor.get(EditorServiceDIToken);
     group.cycleMru(direction);
     accessor.get(ModifierReleaseArmoryDIToken).armOnHoldRelease(() => {
         group.endMruCycle();
@@ -48,7 +48,7 @@ export const closeActiveEditorAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+w"),
     when: "textInputFocus && editorGroupHasEditors",
     run(accessor) {
-        const group = accessor.get(EditorGroupControllerDIToken);
+        const group = accessor.get(EditorServiceDIToken);
         if (group.editorCount === 0 || group.activeIndex < 0) return;
 
         const editor = group.getActiveEditor();

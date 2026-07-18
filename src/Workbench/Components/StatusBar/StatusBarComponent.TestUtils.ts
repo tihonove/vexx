@@ -77,7 +77,7 @@ export class FakeStatusEditor implements IActiveEditorStatus {
     }
 }
 
-/** Источник активного редактора: аналог EditorGroupController в один экран кода. */
+/** Источник активного редактора: аналог EditorService в один экран кода. */
 export class FakeActiveEditorSource implements IActiveEditorStatusSource {
     private active: FakeStatusEditor | null = null;
     private readonly listeners = new Set<(editor: IActiveEditorStatus | null) => void>();

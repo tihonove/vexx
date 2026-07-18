@@ -6,7 +6,7 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import type { AppController } from "./AppController.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 
 let savedXdg: string | undefined;
 
@@ -28,7 +28,7 @@ function createWorkspace(): ITempWorkspace {
 const flush = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
 
 function activeEditorText(controller: AppController): string {
-    const group = (controller as unknown as { editorGroupController: EditorGroupController }).editorGroupController;
+    const group = (controller as unknown as { editorService: EditorService }).editorService;
     return group.getActiveEditor()?.getText() ?? "";
 }
 

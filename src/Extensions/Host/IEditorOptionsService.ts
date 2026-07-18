@@ -32,7 +32,7 @@ export interface IActiveEditorMeta {
 import type { IDisposable } from "../../Common/Disposable.ts";
 
 /**
- * Тонкий «port» поверх {@link EditorGroupController}, нужный
+ * Тонкий «port» поверх {@link EditorService}, нужный
  * {@link ExtensionHost} для применения изменений `TextEditor.options`
  * к активному редактору без прямого знания о слое Controllers/Editor
  * внутри runtime'а расширения.

@@ -96,23 +96,28 @@ Workbench и может его импортировать; обратно — н
        активный редактор/displayName/Save As; уедут со швом редактора на
        этапе 9); контроллеры QuickInput/QuickOpen растворены, биндинги —
        `Modules/WorkbenchModule.ts`
-- [~] 9. Editor: 9a ✓ — `EditorController` растворён: `TextFileModel`
+- [x] 9. Editor: 9a — `EditorController` растворён: `TextFileModel`
        (`Workbench/Services/TextFile/`; per-file модель: TextDocument, dirty,
        encoding/EOL/language-оси, save/saveAs + участник, disk-watch
        reload/conflict, undo-роутинг `undoContext`+`attachUndoRouting`; правки
        модели — через шов `ITextFileEditTarget`) + `EditorComponent`
        (`Workbench/Components/Editor/`; `ThemedComponent`: EditorElement/view-state/
        токен-кеш, пересборка по `onDidReloadDocument`, folding, декорации,
-       курсор/reveal, контекст-меню, `updateStyles`). Пару создаёт
-       `EditorGroupController` и держит в транзитном `EditorPane`
-       (`Controllers/EditorPane.ts`) — прежняя поверхность для потребителей и
-       швов (`IActiveEditorStatus`/`IDiagnosticsEditor`/`IMarkerRevealEditor`/
-       `IGotoLineEditor` выполняются структурно). Тесты EditorController.* →
-       `TextFileModel.*`/`EditorComponent.*` (обвязка —
-       `TestUtils/EditorPaneFactory.ts`), UndoIdentity →
-       `EditorGroupController.UndoIdentity`. Осталось 9b:
-       `EditorService`+`EditorGroupComponent` (растворение EditorGroupController
-       и EditorPane)
+       курсор/reveal, контекст-меню, `updateStyles`); 9b — `EditorGroupController`
+       растворён: `EditorService` (`Workbench/Services/`; пары `EditorPane`
+       (переехал в `Workbench/Components/Editor/`), активная вкладка + MRU
+       Ctrl+Tab, open/close/newUntitled, `displayName`/`suggestedSaveName`,
+       `editor.*`-конфиг + live-reload, `saveParticipant`/`completionSource`,
+       `IShutdownParticipant`; события `onActiveEditorChanged`/`onEditorSaved`/
+       `onDidChangeEditors`) + `EditorGroupComponent` (`ThemedComponent` поверх
+       `EditorGroupElement`: контент активного редактора, табы с разводкой
+       тёзок, tab-колбэки; `view.id="editorGroup"`). Швы Active/Diagnostics/
+       MarkerReveal/GotoLine и host-адаптеры (`EditorOptionsServiceAdapter`/
+       `EditorDecorationsServiceAdapter`, `ExtensionHostModule`) перевязаны на
+       `EditorService`; экшены Encoding/Eol/ContextMenu — в `Workbench/Actions/`;
+       `runSave`/`runSaveAs` остались в AppController (тянут его приватный
+       `updateContextKeys`). Тесты EditorGroupController.* → `EditorService.*` /
+       `EditorGroupComponent.test.ts`
 - [ ] 10. `CompletionService`+`SuggestComponent`, `FindService`+`FindComponent`
 - [ ] 11. `MenuService`+`MenuBarComponent`, `LayoutService`, `WorkbenchStateService`, ContextKeys
 - [ ] 12. Финал: `WorkbenchComponent`, Modules → Workbench, смерть `src/Controllers/`

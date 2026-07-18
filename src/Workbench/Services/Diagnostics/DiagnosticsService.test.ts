@@ -46,7 +46,7 @@ class FakeEditor implements IDiagnosticsEditor {
     }
 }
 
-/** Источник редакторов-фейк: структурная замена EditorGroupController в шве. */
+/** Источник редакторов-фейк: структурная замена EditorService в шве. */
 class FakeEditorSource implements IDiagnosticsEditorSource {
     private editors: FakeEditor[] = [];
     private active: FakeEditor | null = null;

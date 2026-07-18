@@ -1,5 +1,5 @@
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { parseChord, parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // ─── Basic Cursor Movement ──────────────────────────────────
@@ -10,7 +10,7 @@ export const cursorLeftAction: CommandAction = {
     keybinding: parseKeybinding("left"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorLeft();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorLeft();
     },
 };
 
@@ -20,7 +20,7 @@ export const cursorLeftSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+left"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorLeft(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorLeft(true);
     },
 };
 
@@ -30,7 +30,7 @@ export const cursorRightAction: CommandAction = {
     keybinding: parseKeybinding("right"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorRight();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorRight();
     },
 };
 
@@ -40,7 +40,7 @@ export const cursorRightSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+right"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorRight(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorRight(true);
     },
 };
 
@@ -50,7 +50,7 @@ export const cursorUpAction: CommandAction = {
     keybinding: parseKeybinding("up"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorUp();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorUp();
     },
 };
 
@@ -60,7 +60,7 @@ export const cursorUpSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+up"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorUp(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorUp(true);
     },
 };
 
@@ -70,7 +70,7 @@ export const cursorDownAction: CommandAction = {
     keybinding: parseKeybinding("down"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorDown();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorDown();
     },
 };
 
@@ -80,7 +80,7 @@ export const cursorDownSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+down"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorDown(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorDown(true);
     },
 };
 
@@ -92,7 +92,7 @@ export const cursorHomeAction: CommandAction = {
     keybinding: parseKeybinding("home"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorHome();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorHome();
     },
 };
 
@@ -102,7 +102,7 @@ export const cursorHomeSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+home"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorHome(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorHome(true);
     },
 };
 
@@ -112,7 +112,7 @@ export const cursorEndAction: CommandAction = {
     keybinding: parseKeybinding("end"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorEnd();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorEnd();
     },
 };
 
@@ -122,7 +122,7 @@ export const cursorEndSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+end"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorEnd(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorEnd(true);
     },
 };
 
@@ -134,7 +134,7 @@ export const cursorTopAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+home"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorTop();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorTop();
     },
 };
 
@@ -144,7 +144,7 @@ export const cursorTopSelectAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+shift+home"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorTop(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorTop(true);
     },
 };
 
@@ -154,7 +154,7 @@ export const cursorBottomAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+end"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorBottom();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorBottom();
     },
 };
 
@@ -164,7 +164,7 @@ export const cursorBottomSelectAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+shift+end"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorBottom(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorBottom(true);
     },
 };
 
@@ -183,7 +183,7 @@ export const cursorWordLeftAction: CommandAction = {
     ],
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordLeft();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorWordLeft();
     },
 };
 
@@ -194,7 +194,7 @@ export const cursorWordLeftSelectAction: CommandAction = {
     keybindings: [{ keys: parseChord("ctrl+k shift+left"), when: "tier == 'legacy'" }],
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordLeft(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorWordLeft(true);
     },
 };
 
@@ -208,7 +208,7 @@ export const cursorWordRightAction: CommandAction = {
     ],
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordRight();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorWordRight();
     },
 };
 
@@ -219,7 +219,7 @@ export const cursorWordRightSelectAction: CommandAction = {
     keybindings: [{ keys: parseChord("ctrl+k shift+right"), when: "tier == 'legacy'" }],
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorWordRight(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorWordRight(true);
     },
 };
 
@@ -231,7 +231,7 @@ export const cursorPageDownAction: CommandAction = {
     keybinding: parseKeybinding("pagedown"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorPageDown();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorPageDown();
     },
 };
 
@@ -241,7 +241,7 @@ export const cursorPageDownSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+pagedown"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorPageDown(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorPageDown(true);
     },
 };
 
@@ -251,7 +251,7 @@ export const cursorPageUpAction: CommandAction = {
     keybinding: parseKeybinding("pageup"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorPageUp();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorPageUp();
     },
 };
 
@@ -261,7 +261,7 @@ export const cursorPageUpSelectAction: CommandAction = {
     keybinding: parseKeybinding("shift+pageup"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.cursorPageUp(true);
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.cursorPageUp(true);
     },
 };
 
@@ -273,7 +273,7 @@ export const scrollLineUpAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+up"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.scrollLineUp();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.scrollLineUp();
     },
 };
 
@@ -283,6 +283,6 @@ export const scrollLineDownAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+down"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.scrollLineDown();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.scrollLineDown();
     },
 };

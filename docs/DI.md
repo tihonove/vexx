@@ -15,7 +15,7 @@
 
 Все DI-токены именуются по конвенции `{ServiceName}DIToken`:
 
-- `EditorGroupControllerDIToken` — токен для `EditorGroupController`
+- `EditorServiceDIToken` — токен для `EditorService`
 - `TuiApplicationDIToken` — токен для `TuiApplication`
 - `AppControllerDIToken` — токен для `AppController`
 
@@ -36,7 +36,7 @@ DI-токены и зависимости (`static dependencies`) объявля
 ```typescript
 import { token } from "../Common/DiContainer.ts";
 
-export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
+export const EditorServiceDIToken = token<EditorService>("EditorService");
 ```
 
 ## Объявление зависимостей в классе
@@ -46,12 +46,12 @@ export const EditorGroupControllerDIToken = token<EditorGroupController>("Editor
 
 ```typescript
 import { TuiApplicationDIToken } from "./CoreTokens.ts";
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
+import { EditorServiceDIToken } from "./EditorService.ts";
 
 export class AppController extends Disposable {
-    static dependencies = [TuiApplicationDIToken, EditorGroupControllerDIToken] as const;
+    static dependencies = [TuiApplicationDIToken, EditorServiceDIToken] as const;
 
-    constructor(app: TuiApplication, editorGroup: EditorGroupController) {
+    constructor(app: TuiApplication, editorService: EditorService) {
         super();
         // ...
     }
@@ -78,8 +78,8 @@ export class StatusBarService extends Disposable {
 import { Container } from "./Common/DiContainer.ts";
 
 const container = new Container()
-    .bind(TuiApplicationDIToken, () => application)          // фабрика для leaf-сервисов
-    .bind(EditorGroupControllerDIToken, EditorGroupController) // класс — deps из static dependencies
+    .bind(TuiApplicationDIToken, () => application) // фабрика для leaf-сервисов
+    .bind(EditorServiceDIToken, EditorService)      // класс — deps из static dependencies
     .bind(AppControllerDIToken, AppController);
 
 const appCtrl = container.get(AppControllerDIToken);
@@ -165,9 +165,9 @@ const container = new Container()
 | `stateModuleDefault` | — | `IStateService` с `NULL_STATE_SERVICE` (тесты и demo) |
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
-| `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorGroupController`, `FileDecorationsServiceAdapter` поверх `ExplorerService` (Workbench), `ThemeColorResolverAdapter` поверх `ThemeService`) |
-| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`; Explorer-кластер — `ExplorerService`+`ExplorerComponent`, `FileOperationsService`, `InputWidgetService`; QuickInput-кластер — `QuickInputComponent` (общий виджет), `QuickInputService`, `FileSearchService`, `QuickOpenService`. Швы → `EditorGroupController`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget`, `GotoLineEditorSource`; шов → `AppController`: `WorkspaceFolderOpener` (Open Folder) |
-| `controllersModule` | — | `EditorGroupController`, `AppController` |
+| `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorService` (Workbench), `FileDecorationsServiceAdapter` поверх `ExplorerService` (Workbench), `ThemeColorResolverAdapter` поверх `ThemeService`) |
+| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`; Explorer-кластер — `ExplorerService`+`ExplorerComponent`, `FileOperationsService`, `InputWidgetService`; QuickInput-кластер — `QuickInputComponent` (общий виджет), `QuickInputService`, `FileSearchService`, `QuickOpenService`; Editor-кластер — `EditorService`+`EditorGroupComponent`. Швы → `EditorService`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget`, `GotoLineEditorSource`; шов → `AppController`: `WorkspaceFolderOpener` (Open Folder) |
+| `controllersModule` | — | `AppController` |
 
 ### Профили
 

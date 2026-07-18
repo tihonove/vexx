@@ -84,7 +84,7 @@ App → Extensions → Controllers → Workbench → Editor → TUIDom → { Inp
 - **TUIDom/Events** используют тип TUIElement — это внутренняя зависимость TUIDom
 - **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme и Extensions — связь через интерфейсы (`ITokenStyleResolver`, `ILanguageService`)
 - **Theme/Tokenization** реализует `ITokenStyleResolver` из `Editor/Tokenization`
-- **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик. Подмодуль **`Extensions/Host`** дополнительно зависит от `Controllers` (адаптеры над `EditorGroupController`; мост файловых декораций типизирован минимальным портом `IFileDecorationsTarget` и в DI связывается с `ExplorerService` из Workbench) и `Theme` (адаптер над `ThemeService` — резолв `ThemeColor` для декораций) — единственное место, где Extensions поднимается выше Controllers. Ядро про источник декораций (git/SCM) не знает: адаптеры отдают уже резолвнутые цвета.
+- **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик. Подмодуль **`Extensions/Host`** дополнительно зависит от `Workbench` (адаптеры над `EditorService`; мост файловых декораций типизирован минимальным портом `IFileDecorationsTarget` и в DI связывается с `ExplorerService`) и `Theme` (адаптер над `ThemeService` — резолв `ThemeColor` для декораций) — единственное место, где Extensions поднимается выше Editor. Ядро про источник декораций (git/SCM) не знает: адаптеры отдают уже резолвнутые цвета.
 - **Workbench** зависит от Editor, TUIDom, Theme, Configuration, Common и от интерфейса `Backend` (`ITerminalBackend` через `TerminalBackendDIToken`; Backend ниже по стеку). Workbench **никогда** не импортирует Controllers
 - **Controllers** зависит от Workbench (переходное правило — см. выше), Editor, TUIDom, Theme, Configuration, Common и интерфейса `Backend`
 - **App** (main.ts) зависит от всех слоёв и оркеструет загрузку builtin-расширений до bootstrap DI
@@ -94,4 +94,4 @@ App → Extensions → Controllers → Workbench → Editor → TUIDom → { Inp
 
 Примитивы DI (`Token`, `Container`, `token()`) реализованы в `Common/DiContainer.ts`, но **объявлять конкретные DI-токены и импортировать `Container`** можно **только на уровнях Controllers, Workbench и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны зависеть от DI-контейнера. Сквозные токены ядра живут в `Workbench/Services/CoreTokens.ts`; биндинги собираются в модулях `Controllers/Modules/` (до этапа 12 рефакторинга).
 
-Все DI-токены именуются по конвенции `*DIToken` (например `EditorGroupControllerDIToken`, `TuiApplicationDIToken`). Подробности — [DI.md](DI.md).
+Все DI-токены именуются по конвенции `*DIToken` (например `EditorServiceDIToken`, `TuiApplicationDIToken`). Подробности — [DI.md](DI.md).

@@ -5,7 +5,7 @@ import { loadState, StateService } from "../Configuration/StateService.ts";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
+import { EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
 
 /**
  * End-to-end персистентность сессии: открыть файлы + поменять layout в одном
@@ -39,7 +39,7 @@ describe("AppController — session state persistence", () => {
         h1.controller.openFile(ws.path("b.ts"));
         h1.controller.openFile(ws.path("c.ts"));
         // Активной делаем среднюю вкладку.
-        h1.container.get(EditorGroupControllerDIToken).activateTab(1);
+        h1.container.get(EditorServiceDIToken).activateTab(1);
         h1.controller.workbenchLayout.setLeftPanelWidth(45);
         h1.controller.workbenchLayout.setBottomPanelVisible(true);
         h1.controller.workbenchLayout.setBottomPanelHeight(8);
@@ -51,7 +51,7 @@ describe("AppController — session state persistence", () => {
         const h2: IAppHarness = createAppTestHarness({ workspaceFolder: ws.dir, stateService: state2 });
         h2.controller.restoreOpenEditors(); // main.ts вызывает это, когда в CLI нет файлов
 
-        const group = h2.container.get(EditorGroupControllerDIToken);
+        const group = h2.container.get(EditorServiceDIToken);
         expect(group.getOpenFilePaths()).toEqual([ws.path("a.ts"), ws.path("b.ts"), ws.path("c.ts")]);
         expect(group.activeIndex).toBe(1);
         expect(h2.controller.workbenchLayout.getLeftPanelWidth()).toBe(45);
@@ -74,12 +74,12 @@ describe("AppController — session state persistence", () => {
         const h2: IAppHarness = createAppTestHarness({ workspaceFolder: ws.dir, stateService: state2 });
 
         // Ещё ничего не открыто, но список уже известен.
-        expect(h2.container.get(EditorGroupControllerDIToken).getOpenFilePaths()).toEqual([]);
+        expect(h2.container.get(EditorServiceDIToken).getOpenFilePaths()).toEqual([]);
         expect(h2.controller.getOpenEditorsToRestore()).toEqual([ws.path("a.ts"), ws.path("b.ts")]);
 
         // И он совпадает с тем, что реально откроется.
         h2.controller.restoreOpenEditors();
-        expect(h2.container.get(EditorGroupControllerDIToken).getOpenFilePaths()).toEqual([
+        expect(h2.container.get(EditorServiceDIToken).getOpenFilePaths()).toEqual([
             ws.path("a.ts"),
             ws.path("b.ts"),
         ]);
@@ -100,7 +100,7 @@ describe("AppController — session state persistence", () => {
             const state2 = newState();
             const b = createAppTestHarness({ workspaceFolder: ws2.dir, stateService: state2 });
             b.controller.restoreOpenEditors();
-            expect(b.container.get(EditorGroupControllerDIToken).getOpenFilePaths()).toEqual([]);
+            expect(b.container.get(EditorServiceDIToken).getOpenFilePaths()).toEqual([]);
             expect(b.controller.workbenchLayout.getLeftPanelWidth()).toBe(30); // default
             b.dispose();
         } finally {

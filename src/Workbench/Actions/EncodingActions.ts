@@ -2,11 +2,11 @@ import * as fs from "node:fs";
 
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { SUPPORTED_ENCODINGS } from "../../Editor/Encoding.ts";
-import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { CommandRegistryDIToken } from "../../Workbench/Services/CommandRegistry.ts";
-import { DialogServiceDIToken } from "../../Workbench/Services/DialogService.ts";
-import { QuickInputServiceDIToken } from "../../Workbench/Services/QuickInputService.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import type { CommandAction } from "./CommandAction.ts";
+import { CommandRegistryDIToken } from "../Services/CommandRegistry.ts";
+import { DialogServiceDIToken } from "../Services/DialogService.ts";
+import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
+import { EditorServiceDIToken } from "../Services/EditorService.ts";
 
 /**
  * Encoding picker (VS Code `workbench.action.editor.changeEncoding`):
@@ -17,12 +17,9 @@ import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
  * несохранённые правки). «Save» у безымянного буфера выставляет кодировку
  * и уводит в Save As (команда `workbench.action.files.saveAs`); конфликт с
  * внешней записью идёт через тот же Overwrite-диалог, что и обычный Save.
- *
- * Остаётся в Controllers/Actions: тянет активный редактор и displayName через
- * `EditorGroupController` (уедет со швом редактора на этапе 9).
  */
 async function changeFileEncoding(accessor: ServiceAccessor): Promise<void> {
-    const editorGroup = accessor.get(EditorGroupControllerDIToken);
+    const editorGroup = accessor.get(EditorServiceDIToken);
     const quickInput = accessor.get(QuickInputServiceDIToken);
     const dialogService = accessor.get(DialogServiceDIToken);
 

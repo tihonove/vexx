@@ -1,29 +1,28 @@
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import type { IFileWatcher } from "../Common/IFileWatcher.ts";
-import type { Uri } from "../Common/Uri.ts";
-import type { IGutterChangeDecoration } from "../Editor/Decorations/IGutterChangeDecoration.ts";
-import type { EditorViewState } from "../Editor/EditorViewState.ts";
-import type { EndOfLine } from "../Editor/EndOfLine.ts";
-import type { IDocumentLanguageChange } from "../Editor/IDocumentLanguageChange.ts";
-import type { IRange } from "../Editor/IRange.ts";
-import type { SaveParticipant } from "../Editor/ISaveParticipant.ts";
-import type { ITextEdit } from "../Editor/ITextEdit.ts";
-import type { IUndoElement } from "../Editor/IUndoElement.ts";
-import type { IMarkerDecoration } from "../Editor/Markers/IMarker.ts";
-import type { OverlayAnchorPosition } from "../TUIDom/Widgets/OverlayLayer.ts";
-import type { MenuEntry } from "../TUIDom/Widgets/PopupMenuElement.ts";
-import type { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
-import type { EditorComponent } from "../Workbench/Components/Editor/EditorComponent.ts";
-import type { SaveOutcome, TextFileModel } from "../Workbench/Services/TextFile/TextFileModel.ts";
+import { Disposable, type IDisposable } from "../../../Common/Disposable.ts";
+import type { IFileWatcher } from "../../../Common/IFileWatcher.ts";
+import type { Uri } from "../../../Common/Uri.ts";
+import type { IGutterChangeDecoration } from "../../../Editor/Decorations/IGutterChangeDecoration.ts";
+import type { EditorViewState } from "../../../Editor/EditorViewState.ts";
+import type { EndOfLine } from "../../../Editor/EndOfLine.ts";
+import type { IDocumentLanguageChange } from "../../../Editor/IDocumentLanguageChange.ts";
+import type { IRange } from "../../../Editor/IRange.ts";
+import type { SaveParticipant } from "../../../Editor/ISaveParticipant.ts";
+import type { ITextEdit } from "../../../Editor/ITextEdit.ts";
+import type { IUndoElement } from "../../../Editor/IUndoElement.ts";
+import type { IMarkerDecoration } from "../../../Editor/Markers/IMarker.ts";
+import type { OverlayAnchorPosition } from "../../../TUIDom/Widgets/OverlayLayer.ts";
+import type { MenuEntry } from "../../../TUIDom/Widgets/PopupMenuElement.ts";
+import type { ScrollBarDecorator } from "../../../TUIDom/Widgets/ScrollContainerElement.ts";
+import type { EditorComponent } from "./EditorComponent.ts";
+import type { SaveOutcome, TextFileModel } from "../../Services/TextFile/TextFileModel.ts";
 
 /**
- * Транзитная пара «модель + view-компонент» одного открытого редактора (этап 9a
- * Workbench-рефакторинга). Владеет временем жизни обоих и делегирует прежний
- * публичный API растворённого редактора-контроллера по принадлежности: файлово-модельное — в
- * {@link TextFileModel}, view-обвязочное — в {@link EditorComponent}. Держит
- * поверхность потребителей (AppController, экшены, Find/Completion, швы
- * Workbench, host-адаптеры) неизменной до этапа 9b (`EditorService` +
- * `EditorGroupComponent`), где пара растворится.
+ * Пара «модель + view-компонент» одного открытого редактора (аналог editor
+ * input + pane). Владеет временем жизни обоих и делегирует единый публичный
+ * API по принадлежности: файлово-модельное — в {@link TextFileModel},
+ * view-обвязочное — в {@link EditorComponent}. Это поверхность, которую видят
+ * потребители «активного редактора» (экшены, Find/Completion, швы Workbench,
+ * host-адаптеры); создаёт и хранит пары `EditorService`.
  */
 export class EditorPane extends Disposable {
     public constructor(

@@ -12,13 +12,13 @@ import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWo
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
-import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import type { CommandAction } from "./CommandAction.ts";
+import { registerAction } from "./CommandAction.ts";
+import { CommandRegistry } from "../Services/CommandRegistry.ts";
+import { EditorService, EditorServiceDIToken } from "../Services/EditorService.ts";
 import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
-import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
-import { UndoRedoService } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
+import { KeybindingRegistry } from "../Services/KeybindingRegistry.ts";
+import { UndoRedoService } from "../Services/Workspace/UndoRedoService.ts";
 
 import { convertToCrlfAction, convertToLfAction, toggleEolAction } from "./EolActions.ts";
 
@@ -26,7 +26,7 @@ let ws: ITempWorkspace;
 
 function openEditor(content: string) {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    const ctrl = new EditorGroupController(
+    const ctrl = new EditorService(
         themeService,
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
@@ -35,7 +35,6 @@ function openEditor(content: string) {
         new UndoRedoService(),
         NULL_FILE_WATCHER,
     );
-    ctrl.mount();
     const filePath = ws.writeFile("doc.txt", content);
     ctrl.openFile(filePath);
     const editor = ctrl.getActiveEditor();
@@ -44,7 +43,7 @@ function openEditor(content: string) {
     const commands = new CommandRegistry();
     const keybindings = new KeybindingRegistry();
     const accessor = new Container();
-    accessor.bind(EditorGroupControllerDIToken, () => ctrl);
+    accessor.bind(EditorServiceDIToken, () => ctrl);
 
     function exec(action: CommandAction): void {
         registerAction(commands, keybindings, accessor, action);
@@ -101,7 +100,7 @@ describe("EolActions", () => {
         const commands = new CommandRegistry();
         const keybindings = new KeybindingRegistry();
         const accessor = new Container();
-        accessor.bind(EditorGroupControllerDIToken, () => ({ getActiveEditor: () => null }) as never);
+        accessor.bind(EditorServiceDIToken, () => ({ getActiveEditor: () => null }) as never);
 
         for (const action of [convertToLfAction, convertToCrlfAction, toggleEolAction]) {
             registerAction(commands, keybindings, accessor, action);

@@ -26,7 +26,7 @@ export interface IShutdownDirtyItem {
 /**
  * Участник shutdown-протокола (аналог vscode `onBeforeShutdown`-вето):
  * отдаёт снапшот своих «грязных» элементов. Workbench объявляет интерфейс,
- * владельцы состояния (сейчас `EditorGroupController`) реализуют его
+ * владельцы состояния (сейчас `EditorService`) реализуют его
  * структурно и регистрируются через {@link LifecycleService.registerShutdownParticipant}.
  */
 export interface IShutdownParticipant {

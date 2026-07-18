@@ -3,36 +3,36 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { loadConfiguration } from "../Configuration/ConfigurationService.ts";
-import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
-import { Uri } from "../Common/Uri.ts";
-import { resolveUserDataPaths } from "../Common/UserDataPaths.ts";
-import { EndOfLine } from "../Editor/EndOfLine.ts";
-import { PlainTextTokenizer } from "../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { loadConfiguration } from "../../Configuration/ConfigurationService.ts";
+import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
+import { Uri } from "../../Common/Uri.ts";
+import { resolveUserDataPaths } from "../../Common/UserDataPaths.ts";
+import { EndOfLine } from "../../Editor/EndOfLine.ts";
+import { PlainTextTokenizer } from "../../Editor/Tokenization/builtin/PlainTextTokenizer.ts";
+import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
+import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 
-import { EditorGroupController } from "./EditorGroupController.ts";
-import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { EditorService } from "./EditorService.ts";
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
-function createEditorGroupController(
+function createEditorService(
     overrides: {
         registry?: TokenizationRegistry;
         languageService?: ILanguageService;
         configurationService?: IConfigurationService;
         themeService?: ThemeService;
     } = {},
-): EditorGroupController {
+): EditorService {
     const themeService = overrides.themeService ?? new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    return new EditorGroupController(
+    return new EditorService(
         themeService,
         overrides.registry ?? new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
@@ -53,7 +53,7 @@ function stubConfigurationService(values: Record<string, unknown>): IConfigurati
     };
 }
 
-describe("EditorGroupController", () => {
+describe("EditorService", () => {
     let tmpDir: string;
     let ws: ITempWorkspace;
 
@@ -73,14 +73,9 @@ describe("EditorGroupController", () => {
         return filePath;
     }
 
-    function tabLabels(ctrl: EditorGroupController): string[] {
-        return ctrl.view.tabStrip.getItemElements().map((item) => item.getLabel());
-    }
-
     describe("openFile", () => {
         it("opens a file and creates a tab", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             const fp = writeFile("hello.ts", "const x = 1;");
 
             ctrl.openFile(fp);
@@ -91,8 +86,7 @@ describe("EditorGroupController", () => {
         });
 
         it("opens multiple files", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             const fp1 = writeFile("a.ts", "a");
             const fp2 = writeFile("b.ts", "b");
 
@@ -104,8 +98,7 @@ describe("EditorGroupController", () => {
         });
 
         it("switches to existing tab if file already open", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             const fp = writeFile("a.ts", "a");
 
             ctrl.openFile(fp);
@@ -117,8 +110,7 @@ describe("EditorGroupController", () => {
         });
 
         it("opens two files with the same name from different directories as separate tabs", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             const fp1 = writeFile(path.join("a", "index.ts"), "a");
             const fp2 = writeFile(path.join("b", "index.ts"), "b");
 
@@ -128,93 +120,51 @@ describe("EditorGroupController", () => {
             expect(ctrl.editorCount).toBe(2);
             expect(ctrl.activeIndex).toBe(1);
         });
-
-        it("disambiguates tabs by parent directory when names collide", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-
-            ctrl.openFile(writeFile("standalone.ts", "s"));
-            expect(tabLabels(ctrl)).toEqual(["standalone.ts"]);
-
-            ctrl.openFile(writeFile(path.join("a", "index.ts"), "a"));
-            ctrl.openFile(writeFile(path.join("b", "index.ts"), "b"));
-
-            expect(tabLabels(ctrl)).toEqual(["standalone.ts", "index.ts — a", "index.ts — b"]);
-        });
-
-        it("disambiguates same-named files while untitled buffers keep their own labels", () => {
-            // Смешанный случай: безымянные буферы не участвуют в разводке тёзок (их метки
-            // уникальны по построению), а их uri не file — путь у них брать нельзя.
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-
-            ctrl.newUntitled();
-            ctrl.openFile(writeFile(path.join("a", "index.ts"), "a"));
-            ctrl.newUntitled();
-            ctrl.openFile(writeFile(path.join("b", "index.ts"), "b"));
-
-            expect(tabLabels(ctrl)).toEqual(["Untitled-1", "index.ts — a", "Untitled-2", "index.ts — b"]);
-        });
-
-        it("extends the disambiguating suffix when parent directories also collide", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-
-            ctrl.openFile(writeFile(path.join("x", "common", "index.ts"), "x"));
-            ctrl.openFile(writeFile(path.join("y", "common", "index.ts"), "y"));
-
-            const sep = path.sep;
-            expect(tabLabels(ctrl)).toEqual([`index.ts — x${sep}common`, `index.ts — y${sep}common`]);
-        });
     });
 
     describe("newUntitled", () => {
-        it("opens a path-less buffer labeled Untitled-1, incrementing per buffer", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+        it("opens a path-less buffer named Untitled-1, incrementing per buffer", () => {
+            const ctrl = createEditorService();
 
             ctrl.newUntitled();
             expect(ctrl.editorCount).toBe(1);
             expect(ctrl.getActiveEditor()?.absoluteFilePath).toBeNull();
-            expect(tabLabels(ctrl)).toEqual(["Untitled-1"]);
+            expect(ctrl.displayName(ctrl.getActiveEditor()!)).toBe("Untitled-1");
 
             ctrl.newUntitled();
-            expect(tabLabels(ctrl)).toEqual(["Untitled-1", "Untitled-2"]);
+            expect(ctrl.getEditors().map((e) => ctrl.displayName(e))).toEqual(["Untitled-1", "Untitled-2"]);
         });
 
         it("does not reuse a number after an untitled buffer is closed", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
 
             ctrl.newUntitled();
             ctrl.newUntitled();
             ctrl.closeTab(0);
             ctrl.newUntitled();
 
-            expect(tabLabels(ctrl)).toEqual(["Untitled-2", "Untitled-3"]);
+            expect(ctrl.getEditors().map((e) => ctrl.displayName(e))).toEqual(["Untitled-2", "Untitled-3"]);
         });
 
         it("suggestedSaveName: метка + расширение языка буфера (plaintext → .txt)", () => {
-            const ctrl = createEditorGroupController({
+            const ctrl = createEditorService({
                 languageService: {
                     ...NULL_LANGUAGE_SERVICE,
                     getExtensionForLanguage: (id) => (id === "plaintext" ? ".txt" : undefined),
                 },
             });
-            ctrl.mount();
             ctrl.newUntitled();
 
             expect(ctrl.suggestedSaveName(ctrl.getActiveEditor()!)).toBe("Untitled-1.txt");
         });
 
         it("suggestedSaveName следует за сменой языка буфера, а не за зашитым дефолтом", () => {
-            const ctrl = createEditorGroupController({
+            const ctrl = createEditorService({
                 languageService: {
                     ...NULL_LANGUAGE_SERVICE,
                     getExtensionForLanguage: (id) => (id === "typescript" ? ".ts" : ".txt"),
                 },
             });
-            ctrl.mount();
             ctrl.newUntitled();
             const editor = ctrl.getActiveEditor()!;
             expect(ctrl.suggestedSaveName(editor)).toBe("Untitled-1.txt");
@@ -224,28 +174,25 @@ describe("EditorGroupController", () => {
         });
 
         it("suggestedSaveName: язык без расширения → имя без расширения", () => {
-            const ctrl = createEditorGroupController(); // NULL_LANGUAGE_SERVICE → undefined
-            ctrl.mount();
+            const ctrl = createEditorService(); // NULL_LANGUAGE_SERVICE → undefined
             ctrl.newUntitled();
 
             expect(ctrl.suggestedSaveName(ctrl.getActiveEditor()!)).toBe("Untitled-1");
         });
 
-        it("relabels to the basename after the buffer is saved to a path", async () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+        it("displayName becomes the basename after the buffer is saved to a path", async () => {
+            const ctrl = createEditorService();
 
             ctrl.newUntitled();
             await ctrl.getActiveEditor()!.saveAs(path.join(tmpDir, "note.txt"));
 
-            expect(tabLabels(ctrl)).toEqual(["note.txt"]);
+            expect(ctrl.displayName(ctrl.getActiveEditor()!)).toBe("note.txt");
         });
     });
 
     describe("activateTab", () => {
         it("switches to the specified tab", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
 
@@ -256,44 +203,29 @@ describe("EditorGroupController", () => {
         });
 
         it("ignores out-of-range index", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
 
             ctrl.activateTab(5);
 
             expect(ctrl.activeIndex).toBe(0);
         });
-
-        it("updates view content to the active editor", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a"));
-            ctrl.openFile(writeFile("b.ts", "b"));
-
-            const editorA = ctrl.getActiveEditor();
-            ctrl.activateTab(0);
-            const content = ctrl.view.getContent();
-            expect(content).toBeDefined();
-        });
     });
 
     describe("closeTab", () => {
         it("closes the only tab", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
 
             ctrl.closeTab(0);
 
             expect(ctrl.editorCount).toBe(0);
             expect(ctrl.activeIndex).toBe(-1);
-            expect(ctrl.view.getContent()).toBeNull();
+            expect(ctrl.getActiveEditor()).toBeNull();
         });
 
         it("closes middle tab and adjusts activeIndex", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
             ctrl.openFile(writeFile("c.ts", "c"));
@@ -307,8 +239,7 @@ describe("EditorGroupController", () => {
         });
 
         it("closes last tab and activates previous", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
 
@@ -320,8 +251,7 @@ describe("EditorGroupController", () => {
         });
 
         it("closes first tab when second is active", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
             ctrl.activateTab(1);
@@ -335,19 +265,18 @@ describe("EditorGroupController", () => {
     });
 
     describe("MRU cycling (cycleMru)", () => {
-        function openThree(ctrl: EditorGroupController): void {
+        function openThree(ctrl: EditorService): void {
             ctrl.openFile(writeFile("a.ts", "a")); // index 0
             ctrl.openFile(writeFile("b.ts", "b")); // index 1
             ctrl.openFile(writeFile("c.ts", "c")); // index 2, active; MRU: c, b, a
         }
 
-        function mruNames(ctrl: EditorGroupController): (string | null)[] {
+        function mruNames(ctrl: EditorService): (string | null)[] {
             return ctrl.getMruOrder().map((e) => e.fileName);
         }
 
         it("Ctrl+Tab activates the previously used editor, not the next tab by position", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl);
 
             // Active is c (last). MRU order is c, b, a → Ctrl+Tab picks b, not (wrap to) a.
@@ -358,8 +287,7 @@ describe("EditorGroupController", () => {
         });
 
         it("stepping deeper walks the frozen MRU stack instead of toggling two editors", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a
 
             ctrl.cycleMru(1); // → b
@@ -371,8 +299,7 @@ describe("EditorGroupController", () => {
         });
 
         it("Ctrl+Shift+Tab steps toward more recent editors", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a, active c
 
             // From the top of the stack, going up wraps to the least-recent editor.
@@ -382,8 +309,7 @@ describe("EditorGroupController", () => {
         });
 
         it("MRU order reflects the actual usage history, not tab position", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a
 
             ctrl.activateTab(0); // click a → MRU: a, c, b
@@ -395,8 +321,7 @@ describe("EditorGroupController", () => {
         });
 
         it("a fresh cycle re-snapshots the MRU order after an edit commits the selection", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a
 
             ctrl.cycleMru(1); // → b (not yet committed to MRU front)
@@ -408,8 +333,7 @@ describe("EditorGroupController", () => {
         });
 
         it("releasing Ctrl commits the selection so quick presses toggle the two newest", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a
 
             // Press-release Ctrl+Tab: one step, then commit on release.
@@ -429,8 +353,7 @@ describe("EditorGroupController", () => {
         });
 
         it("keeps stepping deeper while Ctrl is held (no endMruCycle between steps)", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a
 
             // Ctrl held: repeated Tab without a release walks the frozen stack.
@@ -442,8 +365,7 @@ describe("EditorGroupController", () => {
         });
 
         it("endMruCycle is a no-op when no series is in progress", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a
 
             ctrl.endMruCycle(); // nothing to commit
@@ -452,8 +374,7 @@ describe("EditorGroupController", () => {
         });
 
         it("is a no-op with fewer than two editors", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
 
             ctrl.cycleMru(1);
@@ -463,8 +384,7 @@ describe("EditorGroupController", () => {
         });
 
         it("keeps the MRU stack consistent after closing a tab", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             openThree(ctrl); // MRU: c, b, a
 
             ctrl.closeTab(2); // close active c → b becomes active
@@ -477,8 +397,7 @@ describe("EditorGroupController", () => {
         });
 
         it("reopening an already-open file promotes it to the MRU front", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             const fpA = writeFile("a.ts", "a");
             ctrl.openFile(fpA);
             ctrl.openFile(writeFile("b.ts", "b")); // MRU: b, a
@@ -488,89 +407,9 @@ describe("EditorGroupController", () => {
         });
     });
 
-    describe("syncTabs", () => {
-        it("updates tab strip with current file names", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a"));
-            ctrl.openFile(writeFile("b.ts", "b"));
-
-            const items = ctrl.view.tabStrip.getItemElements();
-            expect(items).toHaveLength(2);
-            expect(items[0].getLabel()).toBe("a.ts");
-            expect(items[1].getLabel()).toBe("b.ts");
-        });
-
-        it("sets active index on tab strip", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a"));
-            ctrl.openFile(writeFile("b.ts", "b"));
-
-            expect(ctrl.view.tabStrip.activeIndex).toBe(1);
-
-            ctrl.activateTab(0);
-            expect(ctrl.view.tabStrip.activeIndex).toBe(0);
-        });
-    });
-
-    describe("modified state", () => {
-        it("tab becomes modified after document edit", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            const fp = writeFile("a.ts", "const x = 1;");
-
-            ctrl.openFile(fp);
-            const editor = ctrl.getActiveEditor()!;
-            editor.viewState.insertText("y");
-
-            const items = ctrl.view.tabStrip.getItemElements();
-            expect(items[0].getModified()).toBe(true);
-        });
-
-        it("tab becomes not-modified after save", async () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            const fp = writeFile("a.ts", "const x = 1;");
-
-            ctrl.openFile(fp);
-            const editor = ctrl.getActiveEditor()!;
-            editor.viewState.insertText("y");
-            await editor.save();
-
-            const items = ctrl.view.tabStrip.getItemElements();
-            expect(items[0].getModified()).toBe(false);
-        });
-
-        it("tab becomes modified immediately after an EOL conversion", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a\nb"));
-
-            ctrl.getActiveEditor()!.setEol(EndOfLine.CRLF);
-
-            const items = ctrl.view.tabStrip.getItemElements();
-            expect(items[0].getModified()).toBe(true);
-        });
-
-        it("tab clears the modified marker after undoing an EOL conversion", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a\nb"));
-            const editor = ctrl.getActiveEditor()!;
-
-            editor.setEol(EndOfLine.CRLF);
-            editor.undo();
-
-            const items = ctrl.view.tabStrip.getItemElements();
-            expect(items[0].getModified()).toBe(false);
-        });
-    });
-
     describe("collectDirty (участник shutdown)", () => {
         it("возвращает только несохранённые редакторы, чистые пропускает", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("clean.ts", "a"));
             ctrl.openFile(writeFile("dirty.ts", "b"));
             ctrl.getActiveEditor()!.setEol(EndOfLine.CRLF);
@@ -581,8 +420,7 @@ describe("EditorGroupController", () => {
         });
 
         it("isStillDirty гаснет после закрытия вкладки; save снимает isModified", async () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a\nb"));
             const editor = ctrl.getActiveEditor()!;
             editor.setEol(EndOfLine.CRLF);
@@ -600,8 +438,7 @@ describe("EditorGroupController", () => {
 
     describe("getEditor", () => {
         it("returns null for out-of-range indices", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
 
             expect(ctrl.getEditor(-1)).toBeNull();
@@ -610,53 +447,9 @@ describe("EditorGroupController", () => {
         });
     });
 
-    describe("tab callbacks", () => {
-        it("onTabActivate switches to the clicked tab", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a"));
-            ctrl.openFile(writeFile("b.ts", "b"));
-
-            ctrl.view.tabStrip.onTabActivate?.(0);
-
-            expect(ctrl.activeIndex).toBe(0);
-        });
-
-        it("onTabClose closes the clicked tab", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a"));
-            ctrl.openFile(writeFile("b.ts", "b"));
-
-            ctrl.view.tabStrip.onTabClose?.(0);
-
-            expect(ctrl.editorCount).toBe(1);
-            expect(ctrl.getActiveEditor()?.fileName).toBe("b.ts");
-        });
-
-        it("onTabClose on a modified editor defers to onRequestConfirmClose instead of closing", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "const x = 1;"));
-            const editor = ctrl.getActiveEditor()!;
-            editor.viewState.insertText("y"); // mark modified
-
-            let confirmedIndex = -1;
-            ctrl.onRequestConfirmClose = (index) => {
-                confirmedIndex = index;
-            };
-
-            ctrl.view.tabStrip.onTabClose?.(0);
-
-            expect(confirmedIndex).toBe(0);
-            expect(ctrl.editorCount).toBe(1); // not closed — waiting on confirmation
-        });
-    });
-
     describe("activate", () => {
         it("activates every open editor without throwing", async () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
 
@@ -666,13 +459,12 @@ describe("EditorGroupController", () => {
 
     describe("applies configuration to new editors", () => {
         it("seeds indent options from the configuration service", () => {
-            const ctrl = createEditorGroupController({
+            const ctrl = createEditorService({
                 configurationService: stubConfigurationService({
                     "editor.tabSize": 2,
                     "editor.insertSpaces": true,
                 }),
             });
-            ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "const x = 1;"));
 
             const editor = ctrl.getActiveEditor()!;
@@ -681,12 +473,11 @@ describe("EditorGroupController", () => {
         });
 
         it("seeds cursorSurroundingLines from the configuration service", () => {
-            const ctrl = createEditorGroupController({
+            const ctrl = createEditorService({
                 configurationService: stubConfigurationService({
                     "editor.cursorSurroundingLines": 5,
                 }),
             });
-            ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "const x = 1;"));
 
             expect(ctrl.getActiveEditor()!.viewState.cursorSurroundingLines).toBe(5);
@@ -695,10 +486,10 @@ describe("EditorGroupController", () => {
 
     describe("live-reloads editor settings into already-open editors", () => {
         // Real ConfigurationService over a temp settings.json — editing the file and
-        // calling reload() emits onDidChangeConfiguration, which the group must apply
+        // calling reload() emits onDidChangeConfiguration, which the service must apply
         // to editors that are ALREADY open (not just newly created ones).
         async function realConfig(initial: string) {
-            const cfgWs = createTempWorkspace({ prefix: "vexx-egc-cfg-" });
+            const cfgWs = createTempWorkspace({ prefix: "vexx-es-cfg-" });
             const p = resolveUserDataPaths({ homedir: "/never", userDataDir: cfgWs.dir });
             const write = (content: string): void => {
                 fs.mkdirSync(path.dirname(p.settingsFile), { recursive: true });
@@ -713,8 +504,7 @@ describe("EditorGroupController", () => {
             const { cfg, write, dispose } = await realConfig(
                 `{ "editor.tabSize": 2, "editor.insertSpaces": true }`,
             );
-            const ctrl = createEditorGroupController({ configurationService: cfg });
-            ctrl.mount();
+            const ctrl = createEditorService({ configurationService: cfg });
             ctrl.openFile(writeFile("a.ts", "const x = 1;"));
             const editor = ctrl.getActiveEditor()!;
             expect(editor.viewState.tabSize).toBe(2);
@@ -731,14 +521,13 @@ describe("EditorGroupController", () => {
 
         it("does not touch editors when only non-editor settings change", async () => {
             const { cfg, write, dispose } = await realConfig(`{ "editor.tabSize": 2 }`);
-            const ctrl = createEditorGroupController({ configurationService: cfg });
-            ctrl.mount();
+            const ctrl = createEditorService({ configurationService: cfg });
             ctrl.openFile(writeFile("a.ts", "const x = 1;"));
             const editor = ctrl.getActiveEditor()!;
             expect(editor.viewState.tabSize).toBe(2);
 
             // Only a workbench key changes → affectsConfiguration("editor") is false,
-            // the group's handler early-returns and the editor is left as-is.
+            // the service's handler early-returns and the editor is left as-is.
             write(`{ "editor.tabSize": 2, "workbench.colorTheme": "Monokai" }`);
             await cfg.reload();
 
@@ -758,8 +547,7 @@ describe("EditorGroupController", () => {
                 getLanguageIdForResource: () => "typescript",
                 getLanguageDisplayName: () => undefined,
             };
-            const ctrl = createEditorGroupController({ registry, languageService });
-            ctrl.mount();
+            const ctrl = createEditorService({ registry, languageService });
 
             ctrl.openFile(writeFile("a.ts", "const x = 1;"));
 
@@ -771,8 +559,7 @@ describe("EditorGroupController", () => {
 
     describe("activateTab without focus", () => {
         it("switches tabs without moving focus when focus: false", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
 
@@ -785,8 +572,7 @@ describe("EditorGroupController", () => {
 
     describe("closeTab edge cases", () => {
         it("ignores an out-of-range index", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
 
             ctrl.closeTab(99);
@@ -796,8 +582,7 @@ describe("EditorGroupController", () => {
         });
 
         it("closing a tab after the active one keeps the active index", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.ts", "a"));
             ctrl.openFile(writeFile("b.ts", "b"));
             ctrl.openFile(writeFile("c.ts", "c"));
@@ -814,8 +599,7 @@ describe("EditorGroupController", () => {
 
     describe("onActiveEditorChanged subscription", () => {
         it("fires the listener and stops after dispose", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
 
             const seen: (string | null)[] = [];
             const subscription = ctrl.onActiveEditorChanged((editor) => {
@@ -834,51 +618,51 @@ describe("EditorGroupController", () => {
         });
     });
 
+    describe("onDidChangeEditors subscription", () => {
+        it("fires on tab-affecting changes and stops after dispose", () => {
+            const ctrl = createEditorService();
+
+            let fired = 0;
+            const subscription = ctrl.onDidChangeEditors(() => {
+                fired++;
+            });
+
+            ctrl.openFile(writeFile("a.ts", "a"));
+            expect(fired).toBeGreaterThan(0);
+
+            const seen = fired;
+            subscription.dispose();
+            // Disposing again is a no-op (listener already removed).
+            subscription.dispose();
+
+            ctrl.openFile(writeFile("b.ts", "b"));
+            expect(fired).toBe(seen);
+        });
+    });
+
     describe("applyConfigurationToEditor partial options", () => {
         it("applies only tabSize when insertSpaces is not configured", () => {
-            const ctrl = createEditorGroupController({
+            const ctrl = createEditorService({
                 configurationService: stubConfigurationService({ "editor.tabSize": 8 }),
             });
-            ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "x"));
 
             expect(ctrl.getActiveEditor()?.viewState.tabSize).toBe(8);
         });
 
         it("applies only insertSpaces when tabSize is not configured", () => {
-            const ctrl = createEditorGroupController({
+            const ctrl = createEditorService({
                 configurationService: stubConfigurationService({ "editor.insertSpaces": false }),
             });
-            ctrl.mount();
             ctrl.openFile(writeFile("a.ts", "x"));
 
             expect(ctrl.getActiveEditor()?.viewState.insertSpaces).toBe(false);
         });
     });
 
-    describe("applyTheme with missing colors", () => {
-        it("uses the default color registry when the theme omits editor foreground/background", () => {
-            // A theme with no colors at all: the dark default registry supplies
-            // editor.foreground / editor.background, so applyTheme never throws and
-            // the editor group is always colored.
-            const emptyTheme = WorkbenchTheme.fromThemeFile({ name: "empty", type: "dark", colors: {} });
-            const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-            const ctrl = createEditorGroupController({ themeService });
-            ctrl.mount();
-            ctrl.openFile(writeFile("a.ts", "a"));
-
-            expect(() => {
-                themeService.setTheme(emptyTheme);
-            }).not.toThrow();
-            expect(ctrl.view.style.fg).toBe(0xd4d4d4); // default dark "editor.foreground"
-            expect(ctrl.view.style.bg).toBe(0x1e1e1e); // default dark "editor.background"
-        });
-    });
-
     describe("save participant & onEditorSaved", () => {
         it("раздаёт saveParticipant существующим и будущим редакторам", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             ctrl.openFile(writeFile("a.txt", "x"));
 
             const participant = (): Promise<never[]> => Promise.resolve([]);
@@ -892,13 +676,12 @@ describe("EditorGroupController", () => {
         });
 
         it("onEditorSaved стреляет при сохранении и отписывается через dispose", async () => {
-            const ctrl = createEditorGroupController({
+            const ctrl = createEditorService({
                 languageService: {
                     ...NULL_LANGUAGE_SERVICE,
                     getLanguageIdForResource: (f) => (f.endsWith(".ts") ? "typescript" : undefined),
                 },
             });
-            ctrl.mount();
             const fp = writeFile("a.ts", "x");
             ctrl.openFile(fp);
 
@@ -916,8 +699,7 @@ describe("EditorGroupController", () => {
 
     describe("getOpenFilePaths", () => {
         it("returns file paths in tab order and skips untitled buffers", () => {
-            const ctrl = createEditorGroupController();
-            ctrl.mount();
+            const ctrl = createEditorService();
             const a = writeFile("a.ts", "A");
             const b = writeFile("b.ts", "B");
             ctrl.openFile(a);

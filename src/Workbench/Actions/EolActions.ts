@@ -1,12 +1,12 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { EndOfLine } from "../../Editor/EndOfLine.ts";
-import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { QuickInputServiceDIToken } from "../../Workbench/Services/QuickInputService.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import type { CommandAction } from "./CommandAction.ts";
+import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
+import { EditorServiceDIToken } from "../Services/EditorService.ts";
 
 function setActiveEditorEol(accessor: Parameters<CommandAction["run"]>[0], eol: EndOfLine): void {
     // Сегмент статус-бара обновится сам: EditorStatusContribution подписан на onDidChangeEol.
-    accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.setEol(eol);
+    accessor.get(EditorServiceDIToken).getActiveEditor()?.setEol(eol);
 }
 
 export const convertToLfAction: CommandAction = {
@@ -27,12 +27,10 @@ export const convertToCrlfAction: CommandAction = {
 
 /**
  * EOL picker (VS Code `workbench.action.editor.changeEOL`): quick pick с
- * LF / CRLF, активная позиция — текущий EOL документа. Остаётся в
- * Controllers/Actions: тянет активный редактор через `EditorGroupController`
- * (уедет со швом редактора на этапе 9).
+ * LF / CRLF, активная позиция — текущий EOL документа.
  */
 async function changeEol(accessor: ServiceAccessor): Promise<void> {
-    const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+    const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
     if (editor === null) return;
 
     const picked = await accessor.get(QuickInputServiceDIToken).quickPick({
@@ -61,7 +59,7 @@ export const toggleEolAction: CommandAction = {
     id: "workbench.action.editor.toggleEOL",
     title: "End of Line: Toggle LF / CRLF",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor === null) return;
         editor.setEol(editor.eol === EndOfLine.CRLF ? EndOfLine.LF : EndOfLine.CRLF);
     },

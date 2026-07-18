@@ -22,7 +22,7 @@ git-версии (`git:`), output-каналы (`output:`), diff, webview, remot
       То же в `openTextDocument`. `fileUriToPath` больше не протаскивает не-file строки в путь.
 - [x] **Идентичность ядра по `Uri`** — `EditorController.uri` первичен, `absoluteFilePath`/
       `fileName` — производные. Пять `path.resolve`-сравнений и одно сырое `!==` →
-      `uri.toString()`. Подъём строки — в одной точке (`EditorGroupController.openFile`).
+      `uri.toString()`. Подъём строки — в одной точке (`EditorService.openFile`).
 - [x] **`untitled:` — настоящая схема** вместо строкового литерала и поля `untitledNumber`.
       Пять сентинелов «нет файла» сведены к схеме.
 - [x] **Общий undo-бакет починен** — история ключуется стабильным per-editor id

@@ -61,7 +61,7 @@ export interface ITextFileEditTarget {
  * владеет {@link TextDocument}, dirty-статусом, осями encoding/EOL/language, записью
  * на диск (save/saveAs + save-участник) и слежением за файлом на диске (авто-перечитка
  * чистого буфера / флаг конфликта у «грязного»). Не singleton-сервис: экземпляр на
- * файл, создаёт владелец (сейчас — `EditorGroupController`) вместе с парным
+ * файл, создаёт владелец (`EditorService`) вместе с парным
  * `EditorComponent`.
  */
 export class TextFileModel extends Disposable {
@@ -180,7 +180,7 @@ export class TextFileModel extends Disposable {
     /**
      * Save-участник (`onWillSaveTextDocument`): вызывается перед записью на диск,
      * возвращает undoable-правки (trim/insert-final-newline/EOL из editorconfig).
-     * Инъектируется извне (EditorGroupController ← host/харнесс); ядро не знает
+     * Инъектируется извне (EditorService ← host/харнесс); ядро не знает
      * про extension-слой. Не задан ⇒ save остаётся синхронным.
      */
     public saveParticipant?: SaveParticipant;
@@ -626,7 +626,7 @@ export class TextFileModel extends Disposable {
      * уже накопленную историю.
      *
      * Ограничение: корректно, пока редактор и документ соотносятся 1:1 (дедуп вкладок
-     * в `EditorGroupController.openFile` это держит). Появятся сплиты — два редактора
+     * в `EditorService.openFile` это держит). Появятся сплиты — два редактора
      * на один документ по семантике VS Code обязаны делить историю, и ключ переедет
      * на документ.
      */

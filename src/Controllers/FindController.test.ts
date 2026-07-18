@@ -17,15 +17,16 @@ import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
-import type { EditorPane } from "./EditorPane.ts";
-import { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
+import { EditorGroupComponent } from "../Workbench/Components/Editor/EditorGroupComponent.ts";
+import { EditorService } from "../Workbench/Services/EditorService.ts";
 import { FindController } from "./FindController.ts";
 import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
 import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
-function makeGroup(): EditorGroupController {
+function makeGroup(): { group: EditorService; groupComponent: EditorGroupComponent } {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    return new EditorGroupController(
+    const group = new EditorService(
         themeService,
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
@@ -34,6 +35,8 @@ function makeGroup(): EditorGroupController {
         new UndoRedoService(),
         NULL_FILE_WATCHER,
     );
+    const groupComponent = new EditorGroupComponent(group, themeService);
+    return { group, groupComponent };
 }
 
 /** Simulates typing into the find input (drives the onChange → recompute chain). */
@@ -57,26 +60,27 @@ describe("FindController", () => {
 
     function setup(text: string): {
         find: FindController;
-        group: EditorGroupController;
+        group: EditorService;
+        groupComponent: EditorGroupComponent;
         editor: EditorPane;
         testApp: TestApp;
     } {
         const filePath = path.join(tmpDir, "file.txt");
         fs.writeFileSync(filePath, text);
-        const group = makeGroup();
+        const { group, groupComponent } = makeGroup();
         group.openFile(filePath);
 
         const body = new BodyElement();
-        body.setContent(group.view);
+        body.setContent(groupComponent.view);
         const testApp = TestApp.create(body, new Size(80, 24));
         testApp.render();
 
-        const find = new FindController(group);
+        const find = new FindController(group, groupComponent.view);
         find.setHostView();
 
         // getActiveEditor() is non-null right after openFile.
         const editor = group.getActiveEditor()!;
-        return { find, group, editor, testApp };
+        return { find, group, groupComponent, editor, testApp };
     }
 
     it("open() shows the widget and close() hides it", () => {
@@ -130,11 +134,11 @@ describe("FindController", () => {
     });
 
     it("right-aligns the widget one column shy of the group's edge", () => {
-        const { find, group, testApp } = setup("foo bar foo");
+        const { find, groupComponent, testApp } = setup("foo bar foo");
         find.open();
         testApp.render();
 
-        const groupWidth = group.view.layoutSize.width;
+        const groupWidth = groupComponent.view.layoutSize.width;
         const widgetW = Math.min(60, Math.max(28, groupWidth - 2));
         const borderRow = 1; // directly under the tab strip
 
@@ -234,8 +238,8 @@ describe("FindController", () => {
     });
 
     it("isVisible() is false before the host view is attached", () => {
-        const group = makeGroup();
-        const find = new FindController(group);
+        const { group, groupComponent } = makeGroup();
+        const find = new FindController(group, groupComponent.view);
         expect(find.isVisible()).toBe(false);
     });
 
@@ -252,11 +256,11 @@ describe("FindController", () => {
     });
 
     it("opens without an active editor (empty group)", () => {
-        const group = makeGroup();
+        const { group, groupComponent } = makeGroup();
         const body = new BodyElement();
-        body.setContent(group.view);
+        body.setContent(groupComponent.view);
         TestApp.create(body, new Size(80, 24)).render();
-        const find = new FindController(group);
+        const find = new FindController(group, groupComponent.view);
         find.setHostView();
 
         expect(() => {

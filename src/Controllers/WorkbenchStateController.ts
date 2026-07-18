@@ -4,7 +4,7 @@ import { Disposable } from "../Common/Disposable.ts";
 import type { IStateService } from "../Configuration/IStateService.ts";
 import type { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 import {
     OPEN_EDITORS_STATE,
     PANEL_HEIGHT_STATE,
@@ -30,7 +30,7 @@ export class WorkbenchStateController extends Disposable {
 
     public constructor(
         private readonly state: IStateService,
-        private readonly editorGroup: EditorGroupController,
+        private readonly editorGroup: EditorService,
         private readonly layout: WorkbenchLayoutElement,
     ) {
         super();

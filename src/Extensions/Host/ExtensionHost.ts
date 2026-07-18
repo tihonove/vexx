@@ -313,7 +313,7 @@ export class ExtensionHost extends Disposable {
      * Запрашивает у субпроцесса правки will-save (`onWillSaveTextDocument`).
      * Возвращает `[]`, если субпроцесса нет, никто не подписан, документ слишком
      * большой или расширение не ответило за `willSaveTimeoutMs`. Подключается в
-     * `EditorGroupController.saveParticipant` (wiring в module/харнессе).
+     * `EditorService.saveParticipant` (wiring в module/харнессе).
      */
     public async willSaveTextDocument(snapshot: ISaveSnapshot): Promise<readonly ISaveEdit[]> {
         const rpc = this.rpc;
@@ -359,7 +359,7 @@ export class ExtensionHost extends Disposable {
      * (`languages.provideCompletionItems`). Возвращает `[]`, если субпроцесса нет,
      * никто не зарегистрировал провайдеры, документ слишком большой или расширение
      * не ответило за `completionTimeoutMs`. Подключается в
-     * `EditorGroupController.completionSource` (wiring в module/харнессе).
+     * `EditorService.completionSource` (wiring в module/харнессе).
      */
     public async provideCompletionItems(req: ICompletionRequest): Promise<readonly ICoreCompletionItem[]> {
         const rpc = this.rpc;

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
+import { EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
 
 describe("AppController — Preferences commands", () => {
     let ws: ITempWorkspace;
@@ -62,7 +62,7 @@ describe("AppController — Preferences commands", () => {
 
         it("openSettings is a no-op when the settings path is unknown", () => {
             expect(() => h.commands.execute("workbench.action.openSettings")).not.toThrow();
-            expect(h.container.get(EditorGroupControllerDIToken).getActiveEditor()).toBeNull();
+            expect(h.container.get(EditorServiceDIToken).getActiveEditor()).toBeNull();
         });
     });
 });

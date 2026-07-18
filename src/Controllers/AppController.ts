@@ -35,7 +35,7 @@ import { getMenuStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./Actions/ClipboardActions.ts";
-import { showEditorContextMenuAction } from "./Actions/ContextMenuActions.ts";
+import { showEditorContextMenuAction } from "../Workbench/Actions/ContextMenuActions.ts";
 import {
     fileDeleteAction,
     fileRedoAction,
@@ -91,8 +91,8 @@ import {
     selectAllAction,
     undoAction,
 } from "./Actions/EditorEditActions.ts";
-import { changeEncodingAction } from "./Actions/EncodingActions.ts";
-import { changeEolAction, convertToCrlfAction, convertToLfAction, toggleEolAction } from "./Actions/EolActions.ts";
+import { changeEncodingAction } from "../Workbench/Actions/EncodingActions.ts";
+import { changeEolAction, convertToCrlfAction, convertToLfAction, toggleEolAction } from "../Workbench/Actions/EolActions.ts";
 import { fileSaveAction, fileSaveAsAction, newUntitledFileAction } from "./Actions/FileActions.ts";
 import { fileOpenAction, fileOpenFolderAction } from "../Workbench/Actions/FileActions.ts";
 import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "./Actions/FindActions.ts";
@@ -168,8 +168,11 @@ import {
     SettingsResourceDIToken,
     TuiApplicationDIToken,
 } from "../Workbench/Services/CoreTokens.ts";
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { EditorGroupController } from "./EditorGroupController.ts";
+import {
+    EditorGroupComponent,
+    EditorGroupComponentDIToken,
+} from "../Workbench/Components/Editor/EditorGroupComponent.ts";
+import { EditorService, EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
 import { ExplorerComponent, ExplorerComponentDIToken } from "../Workbench/Components/Explorer/ExplorerComponent.ts";
 import { ExplorerService, ExplorerServiceDIToken } from "../Workbench/Services/ExplorerService.ts";
 import { FileOperationsService, FileOperationsServiceDIToken } from "../Workbench/Services/FileOperationsService.ts";
@@ -351,7 +354,7 @@ const SIDEBAR_WIDTH_STEP = 3;
 
 export class AppController extends Disposable implements IController {
     public static dependencies = [
-        EditorGroupControllerDIToken,
+        EditorServiceDIToken,
         CommandRegistryDIToken,
         KeybindingRegistryDIToken,
         ServiceAccessorDIToken,
@@ -369,7 +372,8 @@ export class AppController extends Disposable implements IController {
     public readonly workbenchLayout: WorkbenchLayoutElement;
     private workbenchState: WorkbenchStateController;
 
-    private editorGroupController: EditorGroupController;
+    private editorService: EditorService;
+    private editorGroupComponent: EditorGroupComponent;
     private dialogService: DialogService;
     private lifecycleService: LifecycleService;
     private explorerService: ExplorerService;
@@ -400,7 +404,7 @@ export class AppController extends Disposable implements IController {
     private keybindingsResource: string | null;
 
     public constructor(
-        editorGroupController: EditorGroupController,
+        editorService: EditorService,
         commands: CommandRegistry,
         keybindings: KeybindingRegistry,
         accessor: ServiceAccessor,
@@ -420,10 +424,13 @@ export class AppController extends Disposable implements IController {
         this.dialogService = this.register(dialogService);
         this.lifecycleService = lifecycleService;
         // Несохранённые редакторы участвуют в confirm-save последовательности выхода.
-        this.lifecycleService.registerShutdownParticipant(editorGroupController);
+        this.lifecycleService.registerShutdownParticipant(editorService);
         this.themeService = themeService;
         this.themeRegistry = accessor.get(ThemeRegistryDIToken);
-        this.editorGroupController = this.register(editorGroupController);
+        this.editorService = this.register(editorService);
+        // Editor-кластер (Workbench, этап 9b): компонент группового контрола
+        // (tab strip + контент активного редактора) поверх EditorService.
+        this.editorGroupComponent = this.register(accessor.get(EditorGroupComponentDIToken));
         // Explorer-кластер (Workbench): сервис (корень/провайдер/reveal) и компонент
         // (дерево + контекст-меню). AppController владеет их жизнью.
         this.explorerService = this.register(accessor.get(ExplorerServiceDIToken));
@@ -450,8 +457,8 @@ export class AppController extends Disposable implements IController {
         // Файловые операции (Workbench-сервис): промпт имени/пути — QuickInputService
         // (шов IExplorerInputPrompt замкнут в DI).
         this.fileOperations = accessor.get(FileOperationsServiceDIToken);
-        this.completionController = this.register(new CompletionController(this.editorGroupController));
-        this.findController = this.register(new FindController(this.editorGroupController));
+        this.completionController = this.register(new CompletionController(this.editorService));
+        this.findController = this.register(new FindController(this.editorService, this.editorGroupComponent.view));
         this.findController.applyTheme(themeService.theme);
         this.statusBarComponent = this.register(statusBarComponent);
         // Contribution-сервисы статус-бара: инстанцируем через DI и владеем их жизнью.
@@ -483,7 +490,7 @@ export class AppController extends Disposable implements IController {
 
         this.workbenchLayout = new WorkbenchLayoutElement();
         this.workbenchLayout.setSashHoverColor(themeService.theme.getRequiredColor("sash.hoverBorder"));
-        this.workbenchLayout.setCenterContent(this.editorGroupController.view);
+        this.workbenchLayout.setCenterContent(this.editorGroupComponent.view);
         this.workbenchLayout.setBottomPanel(panelComponent.view);
         // Видимость панели живёт в PanelService; layout и контекст-ключ следуют за ней.
         this.register(
@@ -498,13 +505,13 @@ export class AppController extends Disposable implements IController {
         // читает/пишет layout-элемент и группу редакторов; сам элемент про него не
         // знает — write-through идёт через onDidChangeLayout (drag сэша + команды).
         this.workbenchState = this.register(
-            new WorkbenchStateController(accessor.get(StateServiceDIToken), this.editorGroupController, this.workbenchLayout),
+            new WorkbenchStateController(accessor.get(StateServiceDIToken), this.editorService, this.workbenchLayout),
         );
         this.workbenchLayout.onDidChangeLayout = () => {
             this.workbenchState.captureLayout();
         };
         this.register(
-            this.editorGroupController.onActiveEditorChanged(() => {
+            this.editorService.onActiveEditorChanged(() => {
                 this.workbenchState.captureOpenEditors();
             }),
         );
@@ -525,19 +532,19 @@ export class AppController extends Disposable implements IController {
         this.findController.setHostView();
         // Find and completion operate on the active editor only — close them when it changes.
         this.register(
-            this.editorGroupController.onActiveEditorChanged(() => {
+            this.editorService.onActiveEditorChanged(() => {
                 this.findController.close();
                 this.completionController.close();
                 // Автоподсветка активного файла в дереве (`explorer.autoReveal`) —
                 // сам флоу живёт в ExplorerService.
                 this.explorerService.autoRevealActiveFile(
-                    this.editorGroupController.getActiveEditor()?.absoluteFilePath ?? null,
+                    this.editorService.getActiveEditor()?.absoluteFilePath ?? null,
                 );
             }),
         );
         this.register(
             commands.register("workbench.openFile", (absolutePath: unknown) => {
-                this.editorGroupController.openFile(absolutePath as string);
+                this.editorService.openFile(absolutePath as string);
                 this.updateContextKeys();
             }),
         );
@@ -624,7 +631,7 @@ export class AppController extends Disposable implements IController {
             commands.register(
                 "workbench.action.files.newUntitledFile",
                 () => {
-                    this.editorGroupController.newUntitled();
+                    this.editorService.newUntitled();
                     this.updateContextKeys();
                 },
                 "File: New Untitled File",
@@ -734,7 +741,7 @@ export class AppController extends Disposable implements IController {
                 id: "workbench.files.action.showActiveFileInExplorer",
                 title: "File: Reveal Active File in Explorer",
                 run: () => {
-                    const filePath = this.editorGroupController.getActiveEditor()?.absoluteFilePath;
+                    const filePath = this.editorService.getActiveEditor()?.absoluteFilePath;
                     if (!filePath) return;
                     this.workbenchLayout.setLeftPanelVisible(true);
                     this.workbenchLayout.markDirty();
@@ -860,7 +867,7 @@ export class AppController extends Disposable implements IController {
         // Live-reload: смена `workbench.colorTheme` в settings.json перекрашивает UI
         // без рестарта. Explorer-настройки (`explorer.*`) читаются on-demand, поэтому
         // отдельная подписка им не нужна — reload модели применяет их сам. Editor-
-        // настройки перепримeняет EditorGroupController.
+        // настройки перепримeняет EditorService.
         this.register(
             this.configurationService.onDidChangeConfiguration((event) => {
                 if (!event.affectsConfiguration("workbench.colorTheme")) return;
@@ -868,7 +875,7 @@ export class AppController extends Disposable implements IController {
             }),
         );
 
-        this.editorGroupController.onEditorCreate = (editor) => {
+        this.editorService.onEditorCreate = (editor) => {
             editor.contextMenuEntries = [
                 {
                     label: "Copy",
@@ -915,23 +922,22 @@ export class AppController extends Disposable implements IController {
         this.view.addEventListener("keyup", this.dispatcher.handleKeyUp);
         this.view.addEventListener("focus", this.handleFocusChange, { capture: true });
         this.view.addEventListener("blur", this.handleFocusChange, { capture: true });
-        this.editorGroupController.mount();
-        this.editorGroupController.onRequestConfirmClose = (index) => {
-            const editor = this.editorGroupController.getEditor(index);
+        this.editorService.onRequestConfirmClose = (index) => {
+            const editor = this.editorService.getEditor(index);
             /* v8 ignore start -- defensive: the callback is only invoked synchronously with a valid tab index, so the editor always exists */
             if (!editor) return;
             /* v8 ignore stop */
-            this.showConfirmSaveDialog(this.editorGroupController.displayName(editor), {
+            this.showConfirmSaveDialog(this.editorService.displayName(editor), {
                 onSave: () => {
                     // Explicit "Save" while closing a modified tab: honour the
                     // user's edits even against an external change (overwrite),
                     // so choosing Save never silently drops their work.
                     void editor.save({ overwrite: true }).then(() => {
-                        this.editorGroupController.closeTab(index);
+                        this.editorService.closeTab(index);
                     });
                 },
                 onDontSave: () => {
-                    this.editorGroupController.closeTab(index);
+                    this.editorService.closeTab(index);
                 },
                 /* v8 ignore start -- placeholder no-op: cancelling keeps the editor open, nothing to do */
                 onCancel: () => {
@@ -955,12 +961,12 @@ export class AppController extends Disposable implements IController {
         // confirms richer support it upgrades the tier via onDidChange. Nothing blocks here.
         this.updateContextKeys();
         this.terminalEnv.detect();
-        await this.editorGroupController.activate();
+        await this.editorService.activate();
         await this.explorerService.refresh();
     }
 
     public openFile(filePath: string): void {
-        this.editorGroupController.openFile(filePath);
+        this.editorService.openFile(filePath);
         this.updateContextKeys();
     }
 
@@ -1016,7 +1022,7 @@ export class AppController extends Disposable implements IController {
     }
 
     public focusEditor(): void {
-        this.editorGroupController.focusEditor();
+        this.editorService.focusEditor();
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
@@ -1063,7 +1069,7 @@ export class AppController extends Disposable implements IController {
 
     private updateContextKeys(): void {
         const active = this.view.focusManager?.activeElement ?? null;
-        const editorCount = this.editorGroupController.editorCount;
+        const editorCount = this.editorService.editorCount;
 
         this.contextKeys.set("textInputFocus", active instanceof EditorElement);
         this.contextKeys.set("inputWidgetFocus", active instanceof InputElement);
@@ -1223,7 +1229,7 @@ export class AppController extends Disposable implements IController {
      * dialog is shown instead — mirroring VS Code's dirty-write protection.
      */
     private async runSave(): Promise<void> {
-        const editor = this.editorGroupController.getActiveEditor();
+        const editor = this.editorService.getActiveEditor();
         if (editor === null) return;
         const outcome = await editor.save();
         if (outcome === "no-file") {
@@ -1232,7 +1238,7 @@ export class AppController extends Disposable implements IController {
             return;
         }
         if (outcome === "conflict") {
-            const name = this.editorGroupController.displayName(editor);
+            const name = this.editorService.displayName(editor);
             this.showConfirmDialog(
                 {
                     title: "Overwrite",
@@ -1259,7 +1265,7 @@ export class AppController extends Disposable implements IController {
      * different file already exists, then write via {@link TextFileModel.saveAs}.
      */
     private async runSaveAs(): Promise<void> {
-        const editor = this.editorGroupController.getActiveEditor();
+        const editor = this.editorService.getActiveEditor();
         if (!editor) return;
 
         // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd и предложенного
@@ -1267,7 +1273,7 @@ export class AppController extends Disposable implements IController {
         const seed =
             editor.uri.scheme === "file"
                 ? editor.uri.fsPath
-                : path.join(process.cwd(), this.editorGroupController.suggestedSaveName(editor));
+                : path.join(process.cwd(), this.editorService.suggestedSaveName(editor));
         const target = await this.quickInput.input({
             title: "Save As",
             placeholder: "Enter path to save",

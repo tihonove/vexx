@@ -1,18 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import type { TestApp } from "../TestUtils/TestApp.ts";
+import { createAppTestHarness, type IAppHarness } from "../../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+import type { TestApp } from "../../TestUtils/TestApp.ts";
 
-import type { AppController } from "./AppController.ts";
-import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
-import { type EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
+import type { CommandRegistry } from "./CommandRegistry.ts";
+import { type EditorService, EditorServiceDIToken } from "./EditorService.ts";
 
 interface TestContext {
     testApp: TestApp;
-    controller: AppController;
+    controller: IAppHarness["controller"];
     commandRegistry: CommandRegistry;
-    editorGroupController: EditorGroupController;
+    editorService: EditorService;
 }
 
 function createTestContext(): TestContext {
@@ -21,11 +20,11 @@ function createTestContext(): TestContext {
         testApp: h.testApp,
         controller: h.controller,
         commandRegistry: h.commands,
-        editorGroupController: h.container.get(EditorGroupControllerDIToken),
+        editorService: h.container.get(EditorServiceDIToken),
     };
 }
 
-describe("EditorGroupController focus management on tab close", () => {
+describe("EditorService focus management on tab close", () => {
     let ws: ITempWorkspace;
 
     beforeEach(() => {
@@ -37,19 +36,19 @@ describe("EditorGroupController focus management on tab close", () => {
     });
 
     it("focusManager.activeElement is null after closing the only tab", () => {
-        const { testApp, controller, editorGroupController } = createTestContext();
+        const { testApp, controller, editorService } = createTestContext();
         controller.openFile(ws.writeFile("a.ts", "a"));
         controller.focusEditor();
 
         expect(testApp.focusedElement).not.toBeNull();
 
-        editorGroupController.closeTab(0);
+        editorService.closeTab(0);
 
         expect(testApp.focusedElement).toBeNull();
     });
 
     it("focus moves to the new active editor after closing the last tab when two are open", () => {
-        const { testApp, controller, editorGroupController } = createTestContext();
+        const { testApp, controller, editorService } = createTestContext();
         controller.openFile(ws.writeFile("a.ts", "a"));
         controller.openFile(ws.writeFile("b.ts", "b"));
         controller.focusEditor();
@@ -57,7 +56,7 @@ describe("EditorGroupController focus management on tab close", () => {
         const initialFocused = testApp.focusedElement;
         expect(initialFocused).not.toBeNull();
 
-        editorGroupController.closeTab(1);
+        editorService.closeTab(1);
 
         expect(testApp.focusedElement).not.toBeNull();
         expect(testApp.focusedElement).not.toBe(initialFocused);
@@ -65,10 +64,10 @@ describe("EditorGroupController focus management on tab close", () => {
     });
 
     it("keyboard hotkeys work after closing the only tab", () => {
-        const { testApp, controller, commandRegistry, editorGroupController } = createTestContext();
+        const { testApp, controller, commandRegistry, editorService } = createTestContext();
         controller.openFile(ws.writeFile("a.ts", "a"));
         controller.focusEditor();
-        editorGroupController.closeTab(0);
+        editorService.closeTab(0);
 
         const executeSpy = vi.spyOn(commandRegistry, "execute");
 
@@ -83,14 +82,14 @@ describe("EditorGroupController focus management on tab close", () => {
     });
 
     it("activeElement points to living element in the tree after tab switch on close", () => {
-        const { testApp, controller, editorGroupController } = createTestContext();
+        const { testApp, controller, editorService } = createTestContext();
         controller.openFile(ws.writeFile("a.ts", "a"));
         controller.openFile(ws.writeFile("b.ts", "b"));
         controller.openFile(ws.writeFile("c.ts", "c"));
         controller.focusEditor();
 
         // close active (index 2)
-        editorGroupController.closeTab(2);
+        editorService.closeTab(2);
 
         const focused = testApp.focusedElement;
         expect(focused).not.toBeNull();
@@ -99,11 +98,11 @@ describe("EditorGroupController focus management on tab close", () => {
     });
 
     it("activeElement is null (not orphaned) after closing the only tab", () => {
-        const { testApp, controller, editorGroupController } = createTestContext();
+        const { testApp, controller, editorService } = createTestContext();
         controller.openFile(ws.writeFile("a.ts", "a"));
         controller.focusEditor();
 
-        editorGroupController.closeTab(0);
+        editorService.closeTab(0);
 
         const focused = testApp.focusedElement;
         // If focused is not null it must still be in the live tree
@@ -113,7 +112,7 @@ describe("EditorGroupController focus management on tab close", () => {
     });
 });
 
-describe("EditorGroupController auto-focus on file open", () => {
+describe("EditorService auto-focus on file open", () => {
     let ws: ITempWorkspace;
 
     beforeEach(() => {
@@ -145,10 +144,10 @@ describe("EditorGroupController auto-focus on file open", () => {
     });
 
     it("focusManager.activeElement is the exact EditorElement instance after openFile", () => {
-        const { testApp, editorGroupController, controller } = createTestContext();
+        const { testApp, editorService, controller } = createTestContext();
         controller.openFile(ws.writeFile("a.ts", "a"));
 
-        const editorElement = editorGroupController.getActiveEditor()!.view.getChild();
+        const editorElement = editorService.getActiveEditor()!.view.getChild();
         expect(testApp.app.focusManager?.activeElement).toBe(editorElement);
     });
 });

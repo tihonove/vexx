@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 
 import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
 import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
-import { EditorGroupController } from "../Controllers/EditorGroupController.ts";
+import { EditorGroupComponent } from "../Workbench/Components/Editor/EditorGroupComponent.ts";
+import { EditorService } from "../Workbench/Services/EditorService.ts";
 import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
 import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
@@ -110,7 +111,7 @@ export interface IExtensionHarnessOptions {
 export interface IExtensionHarness {
     readonly app: TestApp;
     readonly host: ExtensionHost;
-    readonly group: EditorGroupController;
+    readonly group: EditorService;
     /** ThemeService, за которым стоит харнесс (для тестов смены темы). */
     readonly themeService: ThemeService;
     /**
@@ -130,9 +131,10 @@ export interface IExtensionHarness {
 }
 
 /**
- * Test harness для расширений: поднимает реальный {@link EditorGroupController}
- * + {@link ExtensionHost}, оборачивает в {@link TestApp} (через body вокруг
- * `group.view`), опционально открывает файл и регистрирует расширения.
+ * Test harness для расширений: поднимает реальный {@link EditorService} (плюс
+ * {@link EditorGroupComponent} как view группы) + {@link ExtensionHost},
+ * оборачивает в {@link TestApp} (через body вокруг view группы), опционально
+ * открывает файл и регистрирует расширения.
  *
  * Расширения регистрируются (bookkeeping), затем харнесс фаерит события
  * активации (`activateEvents`, по умолчанию `["*"]`) — каждое `activateByEvent`
@@ -142,7 +144,7 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
     const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vexx-ext-"));
 
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    const group = new EditorGroupController(
+    const group = new EditorService(
         themeService,
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
@@ -151,7 +153,7 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         new UndoRedoService(),
         NULL_FILE_WATCHER,
     );
-    group.mount();
+    const groupComponent = new EditorGroupComponent(group, themeService);
 
     const adapter = new EditorOptionsServiceAdapter(group);
     const commandRegistry = new CommandRegistry();
@@ -193,7 +195,7 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         group.openFile(fp);
     }
 
-    const app = TestApp.createWithContent(group.view);
+    const app = TestApp.createWithContent(groupComponent.view);
 
     const flushRpc = async (turns = 2): Promise<void> => {
         for (let i = 0; i < turns; i++) {
@@ -219,6 +221,7 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
         // короткое окно, чтобы дать ему успеть отправить host.shutdown и
         // дочерний процесс корректно завершился.
         await new Promise((resolve) => setTimeout(resolve, 100));
+        groupComponent.dispose();
         group.dispose();
         try {
             fs.rmSync(tmpDir, { recursive: true, force: true });

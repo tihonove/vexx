@@ -97,11 +97,11 @@ main.ts: build container ─► process.on("exit", stateService.flushSync)
 - Всю проводку «состояние ↔ UI» изолирует единый координатор
   **`WorkbenchStateController`** (headless, без view) — вместо размазывания по
   `AppController`. Он читает/пишет layout через публичные геттеры/сеттеры элемента
-  и открытые файлы через `EditorGroupController`.
+  и открытые файлы через `EditorService`.
 - **Write-through:** `WorkbenchLayoutElement.onDidChangeLayout` (плейн-колбэк, без
   DI — TUIDom чист) фаерит на drag сэша и на команды (toggle/resize); `AppController`
   подписывает его на `captureLayout()`. Открытые файлы — через
-  `EditorGroupController.onActiveEditorChanged` → `captureOpenEditors()`.
+  `EditorService.onActiveEditorChanged` → `captureOpenEditors()`.
 - **restoreLayout** во время restore глушит авто-capture (re-entrancy guard).
 - **restoreOpenEditors** пропускает отсутствующие на диске файлы (как VS Code) и
   переотображает индекс активной вкладки на выживших.

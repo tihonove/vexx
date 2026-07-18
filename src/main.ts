@@ -25,7 +25,7 @@ import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { AppControllerDIToken } from "./Controllers/AppController.ts";
 import { ChokidarFileWatcher } from "./Workbench/Services/ChokidarFileWatcher.ts";
 import { TuiApplicationDIToken } from "./Workbench/Services/CoreTokens.ts";
-import { EditorGroupControllerDIToken } from "./Controllers/EditorGroupController.ts";
+import { EditorServiceDIToken } from "./Workbench/Services/EditorService.ts";
 import { createProductionContainer } from "./Controllers/Modules/ProductionProfile.ts";
 import type { ILanguageService } from "./Editor/Tokenization/ILanguageService.ts";
 import { TokenizationRegistry } from "./Editor/Tokenization/TokenizationRegistry.ts";
@@ -378,14 +378,14 @@ async function runEditor(): Promise<void> {
     // Фаерим стартовые события активации. Порядок: eager `*` → `onLanguage:*` для
     // языка уже открытого активного редактора → `onStartupFinished`. Последующие
     // `onLanguage:*` (переключение/открытие вкладок) фаерит ExtensionHostModule
-    // через `EditorGroupController.onActiveEditorChanged`. Расширения без
+    // через `EditorService.onActiveEditorChanged`. Расширения без
     // `activationEvents` трактуются как `["*"]` — активируются здесь же.
     // Per-extension сбои activate() изолирует сам ExtensionHost (log + continue);
     // здесь ловим host-level сбой (subprocess не поднялся) — редактор не должен
     // падать из-за нерабочего extension host'а, просто без расширений.
     try {
         await extensionHost.activateByEvent("*");
-        const activeLanguageId = container.get(EditorGroupControllerDIToken).getActiveEditor()?.languageId;
+        const activeLanguageId = container.get(EditorServiceDIToken).getActiveEditor()?.languageId;
         if (activeLanguageId !== undefined) {
             await extensionHost.activateByEvent(`onLanguage:${activeLanguageId}`);
         }

@@ -4,7 +4,7 @@ import * as path from "node:path";
 
 import { Uri } from "../../Common/Uri.ts";
 
-import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
+import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 import { createRange } from "../../Editor/IRange.ts";
 import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
@@ -26,11 +26,11 @@ function fakeEditor(uri: Uri) {
     };
 }
 
-function fakeGroup(editors: ReturnType<typeof fakeEditor>[]): EditorGroupController {
+function fakeGroup(editors: ReturnType<typeof fakeEditor>[]): EditorService {
     return {
         editorCount: editors.length,
         getEditor: (i: number) => editors[i] ?? null,
-    } as unknown as EditorGroupController;
+    } as unknown as EditorService;
 }
 
 describe("EditorDecorationsServiceAdapter", () => {
@@ -48,7 +48,7 @@ describe("EditorDecorationsServiceAdapter", () => {
 
     it("сверяет ресурсы, а не сырые строки: канонизацию даёт Uri", () => {
         // Ненормализованный путь не долетает сюда: `path.resolve` стоит в единственной
-        // точке подъёма (`EditorGroupController.openFile`), а сюда ресурс приходит уже
+        // точке подъёма (`EditorService.openFile`), а сюда ресурс приходит уже
         // каноничным — субпроцесс шлёт `document.uri.toString()`.
         const match = fakeEditor(Uri.file(path.resolve("/proj/./sub/../a.ts")));
         const adapter = new EditorDecorationsServiceAdapter(fakeGroup([match]));
@@ -71,7 +71,7 @@ describe("EditorDecorationsServiceAdapter", () => {
             editorCount: 2,
             getEditor: (i: number) => (i === 0 ? fakeEditor(Uri.file("/proj/a.ts")) : null),
         };
-        const adapter = new EditorDecorationsServiceAdapter(group as unknown as EditorGroupController);
+        const adapter = new EditorDecorationsServiceAdapter(group as unknown as EditorService);
         expect(() => adapter.setGutterChangeDecorations(Uri.file("/proj/a.ts").toString(), [])).not.toThrow();
     });
 });

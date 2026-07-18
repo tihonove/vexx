@@ -1,6 +1,6 @@
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 export const clipboardCopyAction: CommandAction = {
@@ -9,7 +9,7 @@ export const clipboardCopyAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+c"),
     when: "textInputFocus",
     async run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
         const text = editor.viewState.getSelectedText();
         if (text !== "") {
@@ -24,7 +24,7 @@ export const clipboardCutAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+x"),
     when: "textInputFocus",
     async run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
         const text = editor.viewState.getSelectedText();
         if (text === "") return;
@@ -42,7 +42,7 @@ export const clipboardPasteAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+v"),
     when: "textInputFocus",
     async run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
         const text = await accessor.get(ClipboardDIToken).readText();
         if (text !== "") {

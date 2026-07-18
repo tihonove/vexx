@@ -10,7 +10,8 @@ import { FindWidgetElement } from "../TUIDom/Widgets/FindWidgetElement.ts";
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 import { getFindWidgetStyles } from "../Workbench/Styles/defaultStyles.ts";
 
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 
 /**
  * Drives the find-in-file widget: owns the query → matches → current-index
@@ -21,15 +22,17 @@ import type { EditorGroupController } from "./EditorGroupController.ts";
 export class FindController extends Disposable {
     public readonly view: FindWidgetElement;
 
-    private readonly editorGroupController: EditorGroupController;
+    private readonly editorService: EditorService;
+    private readonly groupView: EditorGroupElement;
     private session: OverlaySessionHandle | null = null;
 
     private matches: IRange[] = [];
     private currentIndex = -1;
 
-    public constructor(editorGroupController: EditorGroupController) {
+    public constructor(editorService: EditorService, groupView: EditorGroupElement) {
         super();
-        this.editorGroupController = editorGroupController;
+        this.editorService = editorService;
+        this.groupView = groupView;
         this.view = new FindWidgetElement();
         this.view.onQueryChange = () => {
             this.recompute();
@@ -52,7 +55,7 @@ export class FindController extends Disposable {
 
     /** Attaches the widget to the editor group's overlay layer. */
     public setHostView(): void {
-        this.session = this.editorGroupController.view.overlayLayer.createSession(this.view, new Point(0, 0), {
+        this.session = this.groupView.overlayLayer.createSession(this.view, new Point(0, 0), {
             visible: false,
             restoreFocus: true,
             // Find — это док-виджет: клики мимо него намеренно уходят в редактор (как в VS Code).
@@ -77,7 +80,7 @@ export class FindController extends Disposable {
         }
 
         // Seed the query from a single-line, non-empty selection (VS Code behaviour).
-        const editor = this.editorGroupController.getActiveEditor();
+        const editor = this.editorService.getActiveEditor();
         if (editor) {
             const selected = editor.viewState.getSelectedText();
             if (selected.length > 0 && !selected.includes("\n")) {
@@ -94,7 +97,7 @@ export class FindController extends Disposable {
     public close(): void {
         if (!this.session?.isOpen()) return;
 
-        const editor = this.editorGroupController.getActiveEditor();
+        const editor = this.editorService.getActiveEditor();
         if (editor) {
             // Leave the cursor on the current match (VS Code behaviour), then clear highlights.
             if (this.currentIndex >= 0 && this.currentIndex < this.matches.length) {
@@ -128,7 +131,7 @@ export class FindController extends Disposable {
      * cursor, and refreshes the editor highlights + counter.
      */
     private recompute(): void {
-        const editor = this.editorGroupController.getActiveEditor();
+        const editor = this.editorService.getActiveEditor();
         if (!editor) {
             this.matches = [];
             this.currentIndex = -1;
@@ -153,7 +156,7 @@ export class FindController extends Disposable {
 
     private setCurrent(index: number): void {
         this.currentIndex = index;
-        const editor = this.editorGroupController.getActiveEditor();
+        const editor = this.editorService.getActiveEditor();
         if (editor) {
             editor.setSearchDecorations(this.matches, index);
             editor.revealRange(this.matches[index]);
@@ -170,7 +173,7 @@ export class FindController extends Disposable {
     }
 
     private updatePosition(): void {
-        const group = this.editorGroupController.view;
+        const group = this.groupView;
         const groupWidth = group.layoutSize.width;
         const widgetW = Math.min(60, Math.max(28, groupWidth - 2));
         this.view.preferredWidth = widgetW;

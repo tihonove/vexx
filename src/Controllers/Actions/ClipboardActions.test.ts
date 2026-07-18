@@ -16,8 +16,7 @@ import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
 import { ClipboardDIToken } from "../../Workbench/Services/CoreTokens.ts";
-import { EditorGroupController } from "../EditorGroupController.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorService, EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
 import { UndoRedoService } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
@@ -38,9 +37,9 @@ function memoryClipboard(initial = ""): IClipboard {
 
 let ws: ITempWorkspace;
 
-function createGroup(): EditorGroupController {
+function createGroup(): EditorService {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    return new EditorGroupController(
+    return new EditorService(
         themeService,
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
@@ -53,7 +52,6 @@ function createGroup(): EditorGroupController {
 
 function openEditor(content: string, clipboard: IClipboard) {
     const ctrl = createGroup();
-    ctrl.mount();
     const filePath = ws.writeFile("doc.txt", content);
     ctrl.openFile(filePath);
     const editor = ctrl.getActiveEditor();
@@ -61,7 +59,7 @@ function openEditor(content: string, clipboard: IClipboard) {
 
     const commands = new CommandRegistry();
     const accessor = new Container();
-    accessor.bind(EditorGroupControllerDIToken, () => ctrl);
+    accessor.bind(EditorServiceDIToken, () => ctrl);
     accessor.bind(ClipboardDIToken, () => clipboard);
 
     async function exec(action: CommandAction): Promise<void> {
@@ -172,7 +170,7 @@ describe("clipboardCutAction defensive delete handling", () => {
         };
         const commands = new CommandRegistry();
         const accessor = new Container();
-        accessor.bind(EditorGroupControllerDIToken, () => ({ getActiveEditor: () => editor }) as never);
+        accessor.bind(EditorServiceDIToken, () => ({ getActiveEditor: () => editor }) as never);
         accessor.bind(ClipboardDIToken, () => clipboard);
 
         registerAction(commands, new KeybindingRegistry(), accessor, clipboardCutAction);
@@ -208,11 +206,10 @@ describe("copy→paste round-trip via OscClipboard (internal register)", () => {
 describe("clipboard actions without an active editor", () => {
     it("are safe no-ops", async () => {
         const ctrl = createGroup();
-        ctrl.mount();
         const clipboard = memoryClipboard("data");
         const commands = new CommandRegistry();
         const accessor = new Container();
-        accessor.bind(EditorGroupControllerDIToken, () => ctrl);
+        accessor.bind(EditorServiceDIToken, () => ctrl);
         accessor.bind(ClipboardDIToken, () => clipboard);
         for (const action of [clipboardCopyAction, clipboardCutAction, clipboardPasteAction]) {
             registerAction(commands, new KeybindingRegistry(), accessor, action);

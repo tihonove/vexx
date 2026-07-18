@@ -33,7 +33,7 @@ export interface IGotoLineEditor {
 
 /**
  * Источник активного редактора для Go-to-Line (`:`-режим и `file:line`).
- * Интерфейсный шов: Workbench объявляет, `EditorGroupController` соответствует
+ * Интерфейсный шов: `EditorService` соответствует ему
  * структурно; биндинг — в `Controllers/Modules/WorkbenchModule.ts`. Читается
  * лениво — accept `file:line` берёт редактор *после* открытия файла, так что
  * прыжок происходит в свежеактивированном редакторе.

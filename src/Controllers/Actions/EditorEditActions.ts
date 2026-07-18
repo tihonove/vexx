@@ -1,5 +1,5 @@
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // ─── Delete ─────────────────────────────────────────────────
@@ -10,7 +10,7 @@ export const deleteLeftAction: CommandAction = {
     keybinding: parseKeybinding("backspace"),
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
             editor.pushUndo(editor.viewState.deleteLeft());
         }
@@ -23,7 +23,7 @@ export const deleteRightAction: CommandAction = {
     keybinding: parseKeybinding("delete"),
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
             editor.pushUndo(editor.viewState.deleteRight());
         }
@@ -36,7 +36,7 @@ export const deleteWordLeftAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+backspace"),
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
             editor.pushUndo(editor.viewState.deleteWordLeft());
         }
@@ -49,7 +49,7 @@ export const deleteWordRightAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+delete"),
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
             editor.pushUndo(editor.viewState.deleteWordRight());
         }
@@ -64,7 +64,7 @@ export const undoAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+z"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.undo();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.undo();
     },
 };
 
@@ -74,7 +74,7 @@ export const redoAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+shift+z"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.redo();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.redo();
     },
 };
 
@@ -86,7 +86,7 @@ export const indentLinesAction: CommandAction = {
     keybinding: parseKeybinding("tab"),
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
             editor.pushUndo(editor.viewState.indentLines());
         }
@@ -99,7 +99,7 @@ export const outdentLinesAction: CommandAction = {
     keybinding: parseKeybinding("shift+tab"),
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
             editor.pushUndo(editor.viewState.outdentLines());
         }
@@ -114,6 +114,6 @@ export const selectAllAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+a"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.viewState.selectAll();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.selectAll();
     },
 };

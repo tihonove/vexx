@@ -9,7 +9,7 @@ import type { TextLabelElement } from "../TUIDom/Widgets/TextLabelElement.ts";
 import type { AppController } from "./AppController.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { ServiceAccessorDIToken } from "../Workbench/Services/CoreTokens.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 
 interface TestQuitContext {
     testApp: TestApp;
@@ -216,8 +216,8 @@ describe("AppController quit with save dialog", () => {
         expect(exitSpy).not.toHaveBeenCalled();
 
         // Tabs 1 and 2 disappear before we answer, so their snapshotted items are now stale.
-        const editorGroup = (controller as unknown as { editorGroupController: EditorGroupController })
-            .editorGroupController;
+        const editorGroup = (controller as unknown as { editorService: EditorService })
+            .editorService;
         editorGroup.closeTab(2);
         editorGroup.closeTab(1);
 

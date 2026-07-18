@@ -16,7 +16,7 @@ const SETTINGS_OWNER = "settings";
 /**
  * Минимальный срез открытого редактора, нужный диагностикам: ресурс, текст,
  * событие изменения контента и канал squiggle-декораций. Пара `TextFileModel` +
- * `EditorComponent` (транзитный `EditorPane`) соответствует ему структурно — Workbench не импортирует Controllers,
+ * `EditorPane` (`TextFileModel` + `EditorComponent`) соответствует ему структурно,
  * связывание делает DI-модуль ({@link DiagnosticsEditorSourceDIToken}).
  */
 export interface IDiagnosticsEditor {

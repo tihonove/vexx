@@ -1,5 +1,5 @@
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { parseChord, parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 export const foldAction: CommandAction = {
@@ -8,7 +8,7 @@ export const foldAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+shift+["),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.foldAtCursor();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.foldAtCursor();
     },
 };
 
@@ -18,7 +18,7 @@ export const unfoldAction: CommandAction = {
     keybinding: parseKeybinding("ctrl+shift+]"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.unfoldAtCursor();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.unfoldAtCursor();
     },
 };
 
@@ -28,7 +28,7 @@ export const toggleFoldAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+l"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.toggleFoldAtCursor();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.toggleFoldAtCursor();
     },
 };
 
@@ -38,7 +38,7 @@ export const foldAllAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+0"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.foldAll();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.foldAll();
     },
 };
 
@@ -48,7 +48,7 @@ export const unfoldAllAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+j"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.unfoldAll();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.unfoldAll();
     },
 };
 
@@ -58,7 +58,7 @@ export const foldRecursivelyAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+["),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.foldRecursivelyAtCursor();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.foldRecursivelyAtCursor();
     },
 };
 
@@ -68,7 +68,7 @@ export const unfoldRecursivelyAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+]"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.unfoldRecursivelyAtCursor();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.unfoldRecursivelyAtCursor();
     },
 };
 
@@ -80,7 +80,7 @@ function makeFoldLevelAction(level: number): CommandAction {
         keybinding: parseChord(`ctrl+k ctrl+${String(level)}`),
         when: "textInputFocus",
         run(accessor) {
-            accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.foldLevel(level);
+            accessor.get(EditorServiceDIToken).getActiveEditor()?.foldLevel(level);
         },
     };
 }
@@ -95,7 +95,7 @@ export const gotoNextFoldAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+."),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.gotoNextFold();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.gotoNextFold();
     },
 };
 
@@ -105,6 +105,6 @@ export const gotoPreviousFoldAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+,"),
     when: "textInputFocus",
     run(accessor) {
-        accessor.get(EditorGroupControllerDIToken).getActiveEditor()?.gotoPreviousFold();
+        accessor.get(EditorServiceDIToken).getActiveEditor()?.gotoPreviousFold();
     },
 };

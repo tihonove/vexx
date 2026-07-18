@@ -1,6 +1,6 @@
 import { createDeleteEdit, createInsertEdit, type ITextEdit } from "../../Editor/ITextEdit.ts";
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { parseKeybinding } from "../../Workbench/Services/KeybindingRegistry.ts";
 
 // ─── Whitespace ─────────────────────────────────────────────
@@ -17,7 +17,7 @@ export const trimTrailingWhitespaceAction: CommandAction = {
     title: "Trim Trailing Whitespace",
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
 
         const lines = editor.getText().split("\n");
@@ -42,7 +42,7 @@ export const insertFinalNewLineAction: CommandAction = {
     title: "Insert Final Newline",
     when: "textInputFocus",
     run(accessor) {
-        const editor = accessor.get(EditorGroupControllerDIToken).getActiveEditor();
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
 
         const text = editor.getText();

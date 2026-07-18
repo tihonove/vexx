@@ -1,35 +1,30 @@
 import * as path from "node:path";
 
-import { token } from "../Common/DiContainer.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import { getFileIcon } from "../Common/FileIcons.ts";
-import { Uri } from "../Common/Uri.ts";
-import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
-import type { CompletionSource } from "../Editor/ICompletionSource.ts";
-import type { SaveParticipant } from "../Editor/ISaveParticipant.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import type { ITokenStyleResolver } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import type { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import type { ThemeService } from "../Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
-import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
-import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
-import { getTabStripStyles } from "../Workbench/Styles/defaultStyles.ts";
+import { token } from "../../Common/DiContainer.ts";
+import { Disposable, type IDisposable } from "../../Common/Disposable.ts";
+import { Uri } from "../../Common/Uri.ts";
+import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
+import type { CompletionSource } from "../../Editor/ICompletionSource.ts";
+import type { SaveParticipant } from "../../Editor/ISaveParticipant.ts";
+import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
+import type { ITokenStyleResolver } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
+import type { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import type { ThemeService } from "../../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 
-import { EditorComponent } from "../Workbench/Components/Editor/EditorComponent.ts";
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../Workbench/Services/CoreTokens.ts";
-import { TextFileModel } from "../Workbench/Services/TextFile/TextFileModel.ts";
-import { EditorPane } from "./EditorPane.ts";
-import type { IController } from "./IController.ts";
-import type { IFileWatcher } from "../Common/IFileWatcher.ts";
+import { EditorComponent } from "../Components/Editor/EditorComponent.ts";
+import { EditorPane } from "../Components/Editor/EditorPane.ts";
+import type { IActivatable } from "../IActivatable.ts";
+import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
+import { TextFileModel } from "./TextFile/TextFileModel.ts";
+import type { IFileWatcher } from "../../Common/IFileWatcher.ts";
 
-import { IFileWatcherDIToken } from "../Workbench/Services/IFileWatcherDIToken.ts";
-import type { IShutdownDirtyItem, IShutdownParticipant } from "../Workbench/Services/LifecycleService.ts";
-import { UndoRedoService, UndoRedoServiceDIToken } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { IFileWatcherDIToken } from "./IFileWatcherDIToken.ts";
+import type { IShutdownDirtyItem, IShutdownParticipant } from "./LifecycleService.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "./Workspace/UndoRedoService.ts";
 
-export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
+export const EditorServiceDIToken = token<EditorService>("EditorService");
 
 /** Метаданные сохранённого редактора для проекции в subprocess (did-save). */
 export interface IEditorSavedMeta {
@@ -38,7 +33,16 @@ export interface IEditorSavedMeta {
     readonly languageId: string;
 }
 
-export class EditorGroupController extends Disposable implements IController, IShutdownParticipant {
+/**
+ * Логика группы редакторов без view (этап 9b Workbench-рефакторинга, аналог
+ * `IEditorService`): владеет списком открытых пар {@link EditorPane}
+ * (`TextFileModel` + `EditorComponent`), активной вкладкой и MRU-порядком
+ * (Ctrl+Tab), открывает/закрывает ресурсы и применяет `editor.*`-настройки.
+ * Про групповой контрол (`EditorGroupComponent`) не знает — тот подписан
+ * на {@link onDidChangeEditors} и сам вставляет view активного редактора и
+ * перерисовывает табы.
+ */
+export class EditorService extends Disposable implements IShutdownParticipant, IActivatable {
     public static dependencies = [
         ThemeServiceDIToken,
         TokenizationRegistryDIToken,
@@ -48,8 +52,6 @@ export class EditorGroupController extends Disposable implements IController, IS
         UndoRedoServiceDIToken,
         IFileWatcherDIToken,
     ] as const;
-
-    public readonly view: EditorGroupElement;
 
     private editors: EditorPane[] = [];
     private activeIndexValue = -1;
@@ -78,6 +80,7 @@ export class EditorGroupController extends Disposable implements IController, IS
     private fileWatcher: IFileWatcher;
     private activeEditorListeners: ((editor: EditorPane | null) => void)[] = [];
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
+    private editorsChangedListeners: (() => void)[] = [];
     private saveParticipantValue?: SaveParticipant;
     /**
      * Монотонный счётчик номеров безымянных буферов (`Untitled-1`, `Untitled-2`, …).
@@ -137,6 +140,23 @@ export class EditorGroupController extends Disposable implements IController, IS
         };
     }
 
+    /**
+     * Любое изменение, требующее пересинхронизации группового view: список
+     * вкладок, их метки/маркеры изменённости, активная вкладка, view активного
+     * редактора. Подписчик — `EditorGroupComponent` (перерисовывает tab strip
+     * и вставляет контент). Файрится ДО {@link onActiveEditorChanged}, чтобы к
+     * моменту листенеров (и фокуса) view активного редактора уже стоял в дереве.
+     */
+    public onDidChangeEditors(cb: () => void): IDisposable {
+        this.editorsChangedListeners.push(cb);
+        return {
+            dispose: () => {
+                const idx = this.editorsChangedListeners.indexOf(cb);
+                if (idx >= 0) this.editorsChangedListeners.splice(idx, 1);
+            },
+        };
+    }
+
     public constructor(
         themeService: ThemeService,
         tokenizationRegistry: TokenizationRegistry,
@@ -154,10 +174,14 @@ export class EditorGroupController extends Disposable implements IController, IS
         this.configurationService = configurationService;
         this.undoRedoService = undoRedoService;
         this.fileWatcher = fileWatcher;
-        this.view = new EditorGroupElement();
+        // Live-reload: при изменении `editor.*` настроек перепримeняем их ко всем
+        // открытым редакторам группы (не только к вновь создаваемым).
         this.register(
-            themeService.onThemeChange((theme) => {
-                this.applyTheme(theme);
+            this.configurationService.onDidChangeConfiguration((event) => {
+                if (!event.affectsConfiguration("editor")) return;
+                for (const editor of this.editors) {
+                    this.applyConfigurationToEditor(editor);
+                }
             }),
         );
     }
@@ -178,6 +202,11 @@ export class EditorGroupController extends Disposable implements IController, IS
     public getEditor(index: number): EditorPane | null {
         if (index < 0 || index >= this.editors.length) return null;
         return this.editors[index];
+    }
+
+    /** Открытые редакторы в позиционном порядке вкладок (живой снимок для view-синхронизации). */
+    public getEditors(): readonly EditorPane[] {
+        return this.editors;
     }
 
     /**
@@ -245,10 +274,10 @@ export class EditorGroupController extends Disposable implements IController, IS
     /**
      * Создаёт пару {@link TextFileModel} + {@link EditorComponent} (обёрнутую в
      * транзитный {@link EditorPane}) и навешивает общую обвязку группы (watcher,
-     * save-участник, подписки на изменения → `syncTabs`, `onDidSave`,
-     * `onEditorCreate`) — всё, кроме загрузки файла и применения конфига (их
-     * порядок относительно openFile важен, поэтому они на стороне вызывающего).
-     * Общая часть {@link openFile} и {@link newUntitled}.
+     * save-участник, подписки на изменения → {@link onDidChangeEditors},
+     * `onDidSave`, `onEditorCreate`) — всё, кроме загрузки файла и применения
+     * конфига (их порядок относительно openFile важен, поэтому они на стороне
+     * вызывающего). Общая часть {@link openFile} и {@link newUntitled}.
      */
     private createAndWireEditor(): EditorPane {
         const model = new TextFileModel(this.languageService, this.undoRedoService);
@@ -268,13 +297,13 @@ export class EditorGroupController extends Disposable implements IController, IS
         // маркер модифицированности.
         this.register(
             editor.onDidChangeDiskState(() => {
-                this.syncTabs();
+                this.fireEditorsChanged();
             }),
         );
         this.onEditorCreate?.(editor);
         this.register(
             editor.onDidChangeContent(() => {
-                this.syncTabs();
+                this.fireEditorsChanged();
             }),
         );
         // Смена EOL не меняет контент, но меняет isModified — таб должен
@@ -282,11 +311,11 @@ export class EditorGroupController extends Disposable implements IController, IS
         // переключения вкладки.
         this.register(
             editor.onDidChangeEol(() => {
-                this.syncTabs();
+                this.fireEditorsChanged();
             }),
         );
         editor.onDidSave = () => {
-            this.syncTabs();
+            this.fireEditorsChanged();
             this.fireEditorSaved(editor);
         };
         return editor;
@@ -308,8 +337,9 @@ export class EditorGroupController extends Disposable implements IController, IS
         this.activeIndexValue = index;
 
         const editor = this.editors[index];
-        this.view.setContent(editor.view);
-        this.syncTabs();
+        // Компонент вставляет view активного редактора и перерисовывает табы —
+        // до фокуса: фокусировать можно только элемент, стоящий в дереве.
+        this.fireEditorsChanged();
         if (focus) this.focusEditor();
         this.fireActiveEditorChanged(editor);
     }
@@ -398,47 +428,26 @@ export class EditorGroupController extends Disposable implements IController, IS
 
         if (this.editors.length === 0) {
             this.activeIndexValue = -1;
-            this.view.setContent(null);
+            // Компонент снимает view закрытого редактора (фокус гаснет вместе с ним).
+            this.fireEditorsChanged();
             this.fireActiveEditorChanged(null);
         } else if (index <= this.activeIndexValue) {
             this.activeIndexValue = Math.max(0, this.activeIndexValue - 1);
             const activeEditor = this.editors[this.activeIndexValue];
             this.moveToMruFront(activeEditor);
-            this.view.setContent(activeEditor.view);
+            this.fireEditorsChanged();
             this.focusEditor();
             this.fireActiveEditorChanged(activeEditor);
+        } else {
+            // Закрыли вкладку после активной: активный редактор не меняется,
+            // компоненту достаточно перерисовать табы.
+            this.fireEditorsChanged();
         }
-
-        this.syncTabs();
-    }
-
-    public mount(): void {
-        this.view.tabStrip.onTabActivate = (index) => {
-            this.activateTab(index);
-        };
-        this.view.tabStrip.onTabClose = (index) => {
-            const editor = this.editors[index];
-            if (editor.isModified && this.onRequestConfirmClose) {
-                this.onRequestConfirmClose(index);
-            } else {
-                this.closeTab(index);
-            }
-        };
-        // Live-reload: при изменении `editor.*` настроек перепримeняем их ко всем
-        // открытым редакторам группы (не только к вновь создаваемым).
-        this.register(
-            this.configurationService.onDidChangeConfiguration((event) => {
-                if (!event.affectsConfiguration("editor")) return;
-                for (const editor of this.editors) {
-                    this.applyConfigurationToEditor(editor);
-                }
-            }),
-        );
     }
 
     public async activate(): Promise<void> {
         // Пока нечего активировать: async-инициализация редакторов (LSP и т.п.) —
-        // будущий шов сервисного слоя (этап 9b).
+        // будущий шов сервисного слоя.
     }
 
     /**
@@ -465,15 +474,6 @@ export class EditorGroupController extends Disposable implements IController, IS
             ...(tabSize !== undefined ? { tabSize } : {}),
             ...(insertSpaces !== undefined ? { insertSpaces } : {}),
         });
-    }
-
-    private applyTheme(theme: WorkbenchTheme): void {
-        this.view.tabStrip.setStyles(getTabStripStyles(theme));
-
-        this.view.style = {
-            fg: theme.getRequiredColor("editor.foreground"),
-            bg: theme.getRequiredColor("editor.background"),
-        };
     }
 
     public focusEditor(): void {
@@ -525,68 +525,10 @@ export class EditorGroupController extends Disposable implements IController, IS
         return extension === undefined ? name : `${name}${extension}`;
     }
 
-    public syncTabs(): void {
-        const labels = this.computeTabLabels();
-        const tabs: TabInfo[] = this.editors.map((editor, i) => {
-            const fi = getFileIcon(this.displayName(editor));
-            return {
-                label: labels[i],
-                icon: fi.icon,
-                iconColor: fi.color,
-                isModified: editor.isModified,
-            };
-        });
-
-        this.view.tabStrip.setTabs(tabs);
-        this.view.tabStrip.activeIndex = this.activeIndexValue;
-    }
-
-    /**
-     * Метки вкладок: обычно это имя файла, но если несколько открытых файлов
-     * делят один basename, к ним добавляется минимальный различающий суффикс
-     * родительского пути (как в VS Code), чтобы вкладки нельзя было спутать.
-     */
-    private computeTabLabels(): string[] {
-        const names = this.editors.map((editor) => this.displayName(editor));
-        const groups = new Map<string, number[]>();
-        names.forEach((name, i) => {
-            const arr = groups.get(name);
-            if (arr) arr.push(i);
-            else groups.set(name, [i]);
-        });
-
-        const labels = [...names];
-        for (const indices of groups.values()) {
-            if (indices.length < 2) continue;
-            const dirs = indices.map((i) => {
-                const uri = this.editors[i].uri;
-                // Гейт по схеме, а не по «путь непустой»: fsPath у не-file схемы вернёт
-                // мусор, а не бросит. В группу тёзок не-file и не попадёт — метки
-                // безымянных буферов уникальны по построению (Untitled-N).
-                /* v8 ignore start -- defensive: одинаковый displayName бывает только у файлов */
-                if (uri.scheme !== "file") return [];
-                /* v8 ignore stop */
-                // Путь уже абсолютный: подъём в Uri.file идёт через path.resolve.
-                return path.dirname(uri.fsPath).split(path.sep).filter(Boolean);
-            });
-            const maxK = Math.max(0, ...dirs.map((d) => d.length));
-            indices.forEach((editorIndex, a) => {
-                // Минимальный хвост родительского пути, отличающий этот файл от
-                // остальных в группе. Файлы-тёзки всегда различаются по пути
-                // (дедуп в openFile), поэтому уникальный хвост существует всегда.
-                let suffix = dirs[a].slice(-maxK).join(path.sep);
-                for (let k = 1; k <= maxK; k++) {
-                    const mine = dirs[a].slice(-k).join(path.sep);
-                    const collision = dirs.some((d, b) => b !== a && d.slice(-k).join(path.sep) === mine);
-                    if (!collision) {
-                        suffix = mine;
-                        break;
-                    }
-                }
-                labels[editorIndex] = `${names[editorIndex]} — ${suffix}`;
-            });
+    private fireEditorsChanged(): void {
+        for (const cb of this.editorsChangedListeners) {
+            cb();
         }
-        return labels;
     }
 
     private fireActiveEditorChanged(editor: EditorPane | null): void {

@@ -3,18 +3,18 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../Configuration/NullConfigurationService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../../Editor/Tokenization/ITokenStyleResolver.ts";
+import { TokenizationRegistry } from "../../Editor/Tokenization/TokenizationRegistry.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../TestUtils/TempWorkspace.ts";
+import { darkPlusTheme } from "../../Theme/themes/darkPlus.ts";
+import { ThemeService } from "../../Theme/ThemeService.ts";
+import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 
-import { EditorGroupController } from "./EditorGroupController.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import { EditorService } from "./EditorService.ts";
+import { UndoRedoService } from "./Workspace/UndoRedoService.ts";
 
 let ws: ITempWorkspace;
 let tmpDir: string;
@@ -28,8 +28,8 @@ afterEach(() => {
     ws.dispose();
 });
 
-function createGroup(): EditorGroupController {
-    const group = new EditorGroupController(
+function createGroup(): EditorService {
+    const group = new EditorService(
         new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
@@ -38,7 +38,6 @@ function createGroup(): EditorGroupController {
         new UndoRedoService(),
         NULL_FILE_WATCHER,
     );
-    group.mount();
     return group;
 }
 
@@ -47,7 +46,7 @@ function createGroup(): EditorGroupController {
  * смену пути. Проверяем через публичный контракт (текст буферов), а не через
  * ключ бакета — ключ намеренно непрозрачен.
  */
-describe("EditorGroupController — идентичность истории отмены", () => {
+describe("EditorService — идентичность истории отмены", () => {
     it("два untitled-буфера не делят историю: undo в одном не трогает другой", () => {
         const group = createGroup();
         group.newUntitled();

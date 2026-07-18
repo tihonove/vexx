@@ -10,8 +10,8 @@ import { TUIMouseEvent } from "../TUIDom/Events/TUIMouseEvent.ts";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
 
 import { CompletionController } from "./CompletionController.ts";
-import type { EditorPane } from "./EditorPane.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 
 interface FakeEditor {
     editor: EditorPane;
@@ -96,9 +96,9 @@ function makeEditor(lineContent: string, character: number, docText = lineConten
 
 function makeGroup(
     editor: EditorPane,
-    source: EditorGroupController["completionSource"],
+    source: EditorService["completionSource"],
     extraEditors: EditorPane[] = [],
-): EditorGroupController {
+): EditorService {
     const all = [editor, ...extraEditors];
     return {
         getActiveEditor: () => editor,
@@ -106,7 +106,7 @@ function makeGroup(
         completionSource: source,
         editorCount: all.length,
         getEditor: (i: number) => all[i] ?? null,
-    } as unknown as EditorGroupController;
+    } as unknown as EditorService;
 }
 
 function setup(items: readonly ICoreCompletionItem[], lineContent = "ind", character = 3, docText = lineContent) {
@@ -318,7 +318,7 @@ describe("CompletionController", () => {
         const group = {
             getActiveEditor: () => null,
             onActiveEditorChanged: () => ({ dispose: () => {} }),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const controller = new CompletionController(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
@@ -372,7 +372,7 @@ describe("CompletionController", () => {
             completionSource: undefined,
             editorCount: 2, // но getEditor(1) === null
             getEditor: (i: number) => (i === 0 ? fake.editor : null),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const controller = new CompletionController(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
@@ -523,7 +523,7 @@ describe("CompletionController", () => {
             completionSource: vi.fn(() => Promise.resolve(ITEMS)),
             editorCount: 1,
             getEditor: (i: number) => (i === 0 ? fake.editor : null),
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const controller = new CompletionController(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
@@ -543,7 +543,7 @@ describe("CompletionController", () => {
             completionSource: undefined,
             editorCount: 1,
             getEditor: () => fake.editor,
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const controller = new CompletionController(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));
@@ -594,7 +594,7 @@ describe("CompletionController", () => {
             completionSource: vi.fn(() => Promise.resolve(ITEMS)),
             editorCount: 1,
             getEditor: () => fake.editor,
-        } as unknown as EditorGroupController;
+        } as unknown as EditorService;
         const controller = new CompletionController(group);
         const body = new BodyElement();
         TestApp.create(body, new Size(80, 24));

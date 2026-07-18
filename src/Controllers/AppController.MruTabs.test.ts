@@ -4,19 +4,19 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
 
-import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
+import { EditorService, EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
 import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../Workbench/Services/ModifierReleaseArmory.ts";
 
 /**
  * Проверяет маршрутизацию keyup в AppController: любое отпускание клавиши идёт в
  * ModifierReleaseArmory.fireRelease. Сама механика MRU покрыта в
- * EditorGroupController.test.ts, взведение — в TabActions.test.ts и
+ * EditorService.test.ts, взведение — в TabActions.test.ts и
  * ModifierReleaseArmory.test.ts; здесь — только связка keyup → armory.
  */
 describe("AppController — modifier-release routing (Ctrl release commits MRU cycle)", () => {
     let ws: ITempWorkspace;
     let h: IAppHarness;
-    let group: EditorGroupController;
+    let group: EditorService;
     let armory: ModifierReleaseArmory;
 
     beforeEach(async () => {
@@ -30,7 +30,7 @@ describe("AppController — modifier-release routing (Ctrl release commits MRU c
         h = createAppTestHarness({ workspaceFolder: ws.dir });
         await h.controller.activate();
 
-        group = h.container.get(EditorGroupControllerDIToken);
+        group = h.container.get(EditorServiceDIToken);
         armory = h.container.get(ModifierReleaseArmoryDIToken);
         group.openFile(ws.path("a.ts"));
         group.openFile(ws.path("b.ts")); // MRU: b, a — active b

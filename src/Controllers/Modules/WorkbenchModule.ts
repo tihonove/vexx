@@ -48,15 +48,19 @@ import {
     TerminalEnvStatusContribution,
     TerminalEnvStatusContributionDIToken,
 } from "../../Workbench/Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
+import {
+    EditorGroupComponent,
+    EditorGroupComponentDIToken,
+} from "../../Workbench/Components/Editor/EditorGroupComponent.ts";
+import { EditorService, EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { AppControllerDIToken } from "../AppController.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
 
 /**
  * Пары Service ↔ Component слоя Workbench (пилот — статус-бар, этап 4
- * рефакторинга; Panel-кластер — этап 6). Здесь же — швы Controllers →
- * Workbench: интерфейсы, которые Workbench объявляет, а контроллеры реализуют
- * структурно (`ActiveEditorStatusSourceDIToken` / `DiagnosticsEditorSourceDIToken` /
- * `MarkerRevealTargetDIToken` → `EditorGroupController`).
+ * рефакторинга; Panel-кластер — этап 6; Editor-кластер — этап 9). Здесь же —
+ * интерфейсные швы Workbench: `EditorService` выполняет их структурно
+ * (`ActiveEditorStatusSourceDIToken` / `DiagnosticsEditorSourceDIToken` /
+ * `MarkerRevealTargetDIToken` / `GotoLineEditorSourceDIToken`).
  * До этапа 12 модуль живёт в `Controllers/Modules/`.
  */
 export const workbenchModule: ContainerModule = (container) => {
@@ -69,7 +73,7 @@ export const workbenchModule: ContainerModule = (container) => {
     // корневого дерева — AppController — через attachHost() после построения view.
     container.bind(DialogServiceDIToken, DialogService);
     // Shutdown-протокол: участников регистрирует владелец приложения (AppController
-    // записывает EditorGroupController), выход передаётся колбэком в requestQuit().
+    // записывает EditorService), выход передаётся колбэком в requestQuit().
     container.bind(LifecycleServiceDIToken, LifecycleService);
     // Explorer-кластер (этап 7): сервис (корень/провайдер/reveal/декорации),
     // компонент (дерево + контекст-меню), файловые операции и целевой сервис
@@ -81,15 +85,19 @@ export const workbenchModule: ContainerModule = (container) => {
     // QuickInput-кластер (этап 8): общий виджет-компонент (host прикрепляет
     // AppController через attachHost), InputBox/list-pick сервис и Quick Open
     // (файлы/команды/goto-line) поверх файлового индекса. Швы: активный редактор
-    // для goto-line и смена папки воркспейса (Open Folder) — реализуются
-    // контроллерами структурно.
+    // для goto-line — EditorService, смена папки воркспейса (Open Folder) —
+    // AppController структурно.
     container.bind(QuickInputComponentDIToken, QuickInputComponent);
     container.bind(QuickInputServiceDIToken, QuickInputService);
     container.bind(FileSearchServiceDIToken, FileSearchService);
-    container.bind(GotoLineEditorSourceDIToken, () => container.get(EditorGroupControllerDIToken));
+    container.bind(GotoLineEditorSourceDIToken, () => container.get(EditorServiceDIToken));
     container.bind(QuickOpenServiceDIToken, QuickOpenService);
     container.bind(WorkspaceFolderOpenerDIToken, () => container.get(AppControllerDIToken));
-    container.bind(ActiveEditorStatusSourceDIToken, () => container.get(EditorGroupControllerDIToken));
+    // Editor-кластер (этап 9b): логика группы редакторов (открытые EditorPane-пары,
+    // активная вкладка, MRU) + компонент группового контрола (tab strip + контент).
+    container.bind(EditorServiceDIToken, EditorService);
+    container.bind(EditorGroupComponentDIToken, EditorGroupComponent);
+    container.bind(ActiveEditorStatusSourceDIToken, () => container.get(EditorServiceDIToken));
     container.bind(EditorStatusContributionDIToken, EditorStatusContribution);
     container.bind(TerminalEnvStatusContributionDIToken, TerminalEnvStatusContribution);
     container.bind(StatusBarComponentDIToken, StatusBarComponent);
@@ -104,7 +112,7 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(TerminalServiceDIToken, TerminalService);
     container.bind(TerminalPanelComponentDIToken, TerminalPanelComponent);
     // Диагностики: поставщики → MarkerService → потребители (squiggles, Problems).
-    container.bind(DiagnosticsEditorSourceDIToken, () => container.get(EditorGroupControllerDIToken));
-    container.bind(MarkerRevealTargetDIToken, () => container.get(EditorGroupControllerDIToken));
+    container.bind(DiagnosticsEditorSourceDIToken, () => container.get(EditorServiceDIToken));
+    container.bind(MarkerRevealTargetDIToken, () => container.get(EditorServiceDIToken));
     container.bind(DiagnosticsServiceDIToken, DiagnosticsService);
 };

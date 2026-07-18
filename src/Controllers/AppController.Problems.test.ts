@@ -65,7 +65,7 @@ describe("AppController — Problems view end-to-end", () => {
         expect(screen).toContain("settings.json  (1)");
         expect(screen).toContain("Unknown Configuration Setting: editor.fontSize");
 
-        // E2E-шов DiagnosticsService → EditorGroupController: маркер того же
+        // E2E-шов DiagnosticsService → EditorService: маркер того же
         // валидатора дошёл и до squiggle-декораций открытого редактора.
         const editorElement = testApp.querySelector("EditorElement") as EditorElement;
         expect(editorElement.markerDecorations).toHaveLength(1);

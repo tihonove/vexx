@@ -34,7 +34,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 - `MenuBarElement` (`src/TUIDom/Widgets/MenuBarElement.ts`) — держит `activeMenu`,
   открытие/закрытие popup, навигацию, мнемоники, слушает родителя. **Чёткий
   кандидат**: вынести `MenuBarController`, элемент сделать тонким; связь
-  callback'ами (эталон — `StatusBarComponent`/`EditorGroupController`).
+  callback'ами (эталон — `StatusBarComponent`/`EditorGroupComponent`).
 - `ContextMenuLayer` — менеджер overlay-сессий (политики close/focus/anchor), не
   виджет. Разделить: `OverlayManager`-сервис (Controllers) + тонкий
   overlay-контейнер (TUIDom). **Инвазивно** (потребители: `AppController`,
@@ -56,7 +56,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 Controller + тонкий Element + опц. State-класс — паттерн вынесен в
 [../arch/Controllers.md](../arch/Controllers.md) (раздел «Разделение Controller /
 Element / State»). Эталоны: `StatusBarComponent` ↔ `StatusBarElement` (уже в
-Workbench-модели Service ↔ Component), `EditorGroupController` ↔
+Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
 `EditorGroupElement`, `InputWidgetService` ↔ `InputElement` + `InputState`.
 
 ## Основа приложения (bootstrap)

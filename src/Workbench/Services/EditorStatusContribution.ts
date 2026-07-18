@@ -14,8 +14,8 @@ import { StatusBarServiceDIToken } from "./StatusBarService.ts";
 
 /**
  * Минимальный срез активного редактора, нужный сегментам статус-бара.
- * `EditorPane` (`TextFileModel` + `EditorComponent`) соответствует ему структурно — Workbench не импортирует
- * Controllers, связывание делает DI-модуль (`ActiveEditorStatusSourceDIToken`).
+ * `EditorPane` (`TextFileModel` + `EditorComponent`) соответствует ему структурно;
+ * связывание делает DI-модуль (`ActiveEditorStatusSourceDIToken`).
  */
 export interface IActiveEditorStatus {
     readonly encoding: string;

@@ -23,7 +23,7 @@ function warning(message: string, line = 0): IMarkerData {
     return { severity: MarkerSeverity.Warning, range: createRange(line, 0, line, 3), message };
 }
 
-/** Reveal-цель-фейк: записывает открытия/переходы (структурная замена EditorGroupController). */
+/** Reveal-цель-фейк: записывает открытия/переходы (структурная замена EditorService). */
 function makeRevealTarget() {
     const editor = {
         goToPosition: vi.fn(),

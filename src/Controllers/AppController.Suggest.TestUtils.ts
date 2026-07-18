@@ -6,7 +6,7 @@ import type { AppController } from "./AppController.ts";
 import type { CompletionController } from "./CompletionController.ts";
 import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
-import type { EditorPane } from "./EditorPane.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
 
 export interface SuggestContext {
     testApp: TestApp;

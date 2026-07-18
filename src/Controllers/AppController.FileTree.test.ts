@@ -4,7 +4,7 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import type { AppController } from "./AppController.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 
 function createIntegrationWorkspace(): ITempWorkspace {
     return createTempWorkspace({
@@ -48,8 +48,8 @@ describe("FileTree opens file in editor", () => {
         testApp.render();
 
         // File should now be open in the editor group
-        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
-            .editorGroupController;
+        const editorGroupCtrl = (controller as unknown as { editorService: EditorService })
+            .editorService;
         expect(editorGroupCtrl.editorCount).toBe(1);
         expect(editorGroupCtrl.getActiveEditor()?.fileName).toBe("hello.txt");
     });
@@ -69,8 +69,8 @@ describe("FileTree opens file in editor", () => {
         testApp.sendKey("Enter");
         testApp.render();
 
-        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
-            .editorGroupController;
+        const editorGroupCtrl = (controller as unknown as { editorService: EditorService })
+            .editorService;
         expect(editorGroupCtrl.editorCount).toBe(2);
     });
 
@@ -108,8 +108,8 @@ describe("FileTree opens file in editor", () => {
         testApp.sendKey("Enter");
         testApp.render();
 
-        const editorGroupCtrl = (controller as unknown as { editorGroupController: EditorGroupController })
-            .editorGroupController;
+        const editorGroupCtrl = (controller as unknown as { editorService: EditorService })
+            .editorService;
         expect(editorGroupCtrl.getActiveEditor()?.getText()).toBe("hello world");
     });
 });

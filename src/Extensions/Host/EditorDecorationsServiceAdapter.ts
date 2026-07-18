@@ -1,20 +1,20 @@
 import { Uri } from "../../Common/Uri.ts";
-import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
+import type { EditorService } from "../../Workbench/Services/EditorService.ts";
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 
 import type { IEditorDecorationsService } from "./IEditorDecorationsService.ts";
 
 /**
- * Реализация {@link IEditorDecorationsService} поверх {@link EditorGroupController}.
- * Живёт в слое Extensions (Controllers ничего не знает про host).
+ * Реализация {@link IEditorDecorationsService} поверх {@link EditorService}.
+ * Живёт в слое Extensions (Workbench ничего не знает про host).
  *
  * Находит открытые редакторы по совпадению ресурса (образец —
  * `DiagnosticsService.editorsForResource`) и проталкивает набор в каждый.
  */
 export class EditorDecorationsServiceAdapter implements IEditorDecorationsService {
-    private readonly group: EditorGroupController;
+    private readonly group: EditorService;
 
-    public constructor(group: EditorGroupController) {
+    public constructor(group: EditorService) {
         this.group = group;
     }
 

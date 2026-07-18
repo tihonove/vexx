@@ -175,7 +175,7 @@ class ButtonElement {
     `onIndexChanged` c сохранением курсора, `file:line[:col]`-суффикс через
     `QuickOpenParsing`), command palette (`>`: `CommandRegistry.listCommands` +
     шорткаты из `KeybindingRegistry`/`ContextKeyService`) и goto-line (`:`;
-    активный редактор — шов `IGotoLineEditorSource` → `EditorGroupController`
+    активный редактор — шов `IGotoLineEditorSource` → `EditorService`
     структурно, биндинг в `Modules/WorkbenchModule.ts`). Принятие уходит в
     команды (`workbench.openFile` / id команды). UI — тот же
     `QuickInputComponent`; сервис-клиент, занявший виджет позже, закрывает
@@ -195,9 +195,10 @@ class ButtonElement {
   `workbench.openFile`, смена воркспейса — шов `IWorkspaceFolderOpener` →
   `AppController` структурно, биндинг в `Modules/WorkbenchModule.ts`).
   Регистрирует их (пока) AppController в общем цикле `builtinActions`.
-  Пикеры `changeEncoding`/`changeEOL` остались тонкими экшенами в
-  `Controllers/Actions/` — тянут активный редактор через
-  `EditorGroupController` (этап 9).
+  С этапа 9b здесь же экшены активного редактора поверх `EditorService`:
+  `EncodingActions.ts` (двухуровневый пикер Reopen/Save with Encoding),
+  `EolActions.ts` (convert/toggle/пикер EOL), `ContextMenuActions.ts`
+  (Shift+F10-меню редактора).
 - **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
   (наследник `ThemedComponent`; владеет `FitContentElement`-view и строит в нём
   JSX-дерево примитивов через reconcile — компонент **компонует** контролы, не
@@ -217,7 +218,7 @@ class ButtonElement {
   участников через `DialogService.confirmSave` (Cancel прерывает выход; чистый
   выход — синхронно, до первого await). Шов — интерфейс `IShutdownParticipant`
   (`collectDirty(): IShutdownDirtyItem[]` — имя + `isStillDirty()` + `save()`
-  с overwrite): Workbench объявляет, `EditorGroupController` реализует
+  с overwrite): Workbench объявляет, `EditorService` реализует
   структурно, регистрирует его AppController; сам выход (teardown TUI +
   `process.exit`) остаётся колбэком `onQuit` от владельца приложения.
 - **Статус-бар — эталонная пара Service ↔ Component** (пилот, этап 4):
@@ -235,7 +236,7 @@ class ButtonElement {
     `Services/TerminalEnvironment/TerminalEnvStatusContribution.ts` (tier + моды).
     Активный редактор приходит через **интерфейсный шов**: Workbench объявляет
     `IActiveEditorStatusSource`/`IActiveEditorStatus` (минимальный срез:
-    `onActiveEditorChanged`, курсор/encoding/EOL/язык), `EditorGroupController`
+    `onActiveEditorChanged`, курсор/encoding/EOL/язык), `EditorService`
     соответствует ему структурно; связывание — биндинг
     `ActiveEditorStatusSourceDIToken` в `Controllers/Modules/WorkbenchModule.ts`.
     Chord-хинт публикует `KeybindingDispatcher` как обычную запись сервиса.
@@ -258,7 +259,7 @@ class ButtonElement {
     PROBLEMS (`PROBLEMS_VIEW_ID`); пока маркеров нет — контент null (панель
     рендерит placeholder). Reveal маркера — через **интерфейсный шов**
     `IMarkerRevealTarget` (`openUri` + `getActiveEditor` с
-    `goToPosition`/`revealRange`); `EditorGroupController` соответствует
+    `goToPosition`/`revealRange`); `EditorService` соответствует
     структурно, биндинг `MarkerRevealTargetDIToken` — в `Modules/WorkbenchModule.ts`.
   - `Services/Terminal/TerminalService.ts` — headless-оркестратор терминала:
     инстансы (id/title/session), lazy spawn через `TerminalSessionFactory`,
@@ -277,9 +278,9 @@ class ButtonElement {
     поверх `MarkerService`: поставщик — валидатор активного settings.json,
     потребитель — editor squiggles (Problems — второй потребитель того же
     реестра). Редакторы приходят через шов `IDiagnosticsEditorSource` /
-    `IDiagnosticsEditor` (`EditorGroupController`/`EditorPane`
+    `IDiagnosticsEditor` (`EditorService`/`EditorPane`
     структурно; биндинг `DiagnosticsEditorSourceDIToken` — в WorkbenchModule).
-- **Editor-кластер (этап 9a)** — растворённый per-file `EditorController` разложен на пару:
+- **Editor-кластер (этапы 9a/9b)** — редактор целиком в Workbench:
   - `Services/TextFile/TextFileModel.ts` — per-file модель без view (аналог
     `ITextFileEditorModel`): владеет `TextDocument`, dirty-статусом
     (`isModified` = versionId + EOL-ось), осями encoding/EOL/language, записью
@@ -302,12 +303,31 @@ class ButtonElement {
     gutter change-bars), folding-команды, контекст-меню редактора,
     `updateStyles()` → `getEditorStyles` + `editor.style={fg,bg}` +
     `getScrollBarStyles`.
-  - Пару создаёт `EditorGroupController` (Controllers, до этапа 9b) и держит в
-    транзитном контейнере `EditorPane` (`Controllers/EditorPane.ts`) —
-    делегирует прежнюю поверхность потребителям (AppController, экшены,
-    Find/Completion, host-адаптеры, швы `IActiveEditorStatus`/
-    `IDiagnosticsEditor`/`IMarkerRevealEditor`/`IGotoLineEditor` — те
-    выполняются структурно делегатами в модель/компонент).
+  - `Components/Editor/EditorPane.ts` — пара «модель + view-компонент» одного
+    открытого редактора (аналог editor input + pane): владеет временем жизни
+    `TextFileModel` + `EditorComponent` и делегирует единый API по
+    принадлежности. Это поверхность «активного редактора» для потребителей
+    (экшены, Find/Completion, host-адаптеры, швы `IActiveEditorStatus`/
+    `IDiagnosticsEditor`/`IMarkerRevealEditor`/`IGotoLineEditor` — выполняются
+    структурно делегатами в модель/компонент).
+  - `Services/EditorService.ts` (этап 9b, растворённый `EditorGroupController`) —
+    логика группы редакторов без view: создаёт/хранит пары `EditorPane`,
+    активная вкладка + MRU-порядок (Ctrl+Tab: `cycleMru`/`endMruCycle`,
+    заморозка серии), `openFile`/`openUri`/`newUntitled`/`closeTab`/
+    `activateTab`, `displayName`/`suggestedSaveName`, применение
+    `editor.*`-настроек (включая live-reload), группа-уровневые швы host'а
+    (`saveParticipant`, `completionSource`), `IShutdownParticipant`
+    (`collectDirty`). События: `onActiveEditorChanged`, `onEditorSaved`,
+    `onDidChangeEditors` (канал синхронизации view; файрится до
+    `onActiveEditorChanged`, чтобы контент стоял в дереве к моменту фокуса).
+  - `Components/Editor/EditorGroupComponent.ts` — `ThemedComponent`; владеет
+    `EditorGroupElement` (tab strip + контент-хост + локальный OverlayLayer
+    для find-виджета; `view.id = "editorGroup"`): по `onDidChangeEditors`
+    вставляет view активного `EditorPane` и перерисовывает табы (метки с
+    минимальной разводкой тёзок по родительским каталогам, иконки, маркер
+    изменённости — `getTabStripStyles`); клики по табам возвращает в сервис
+    (`activateTab`/`closeTab`, закрытие «грязной» вкладки — через
+    `EditorService.onRequestConfirmClose`).
 - `Components/` — UI-компоненты: `StatusBar/` (пилот), `Dialogs/`, `Panel/`, `Explorer/`, `QuickInput/` и `Editor/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,

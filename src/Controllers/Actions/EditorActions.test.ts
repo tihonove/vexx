@@ -13,8 +13,7 @@ import { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { CommandAction } from "../../Workbench/Actions/CommandAction.ts";
 import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
-import { EditorGroupController } from "../EditorGroupController.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorService, EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { NULL_FILE_WATCHER } from "../../Common/IFileWatcher.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
 import { UndoRedoService } from "../../Workbench/Services/Workspace/UndoRedoService.ts";
@@ -55,9 +54,9 @@ const CONTENT = ["hello world", "second line", ...Array.from({ length: 28 }, (_,
 
 let ws: ITempWorkspace;
 
-function createGroup(): EditorGroupController {
+function createGroup(): EditorService {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
-    return new EditorGroupController(
+    return new EditorService(
         themeService,
         new TokenizationRegistry(),
         NULL_TOKEN_STYLE_RESOLVER,
@@ -70,7 +69,6 @@ function createGroup(): EditorGroupController {
 
 function openEditor(content: string = CONTENT) {
     const ctrl = createGroup();
-    ctrl.mount();
     const filePath = ws.writeFile("doc.txt", content);
     ctrl.openFile(filePath);
     const editor = ctrl.getActiveEditor();
@@ -79,7 +77,7 @@ function openEditor(content: string = CONTENT) {
     const commands = new CommandRegistry();
     const keybindings = new KeybindingRegistry();
     const accessor = new Container();
-    accessor.bind(EditorGroupControllerDIToken, () => ctrl);
+    accessor.bind(EditorServiceDIToken, () => ctrl);
 
     function exec(action: CommandAction): void {
         registerAction(commands, keybindings, accessor, action);
@@ -228,11 +226,10 @@ describe("EditorActions — scroll without moving the cursor", () => {
 describe("EditorActions — no active editor is a safe no-op", () => {
     it("does not throw when the group has no open editor", () => {
         const ctrl = createGroup();
-        ctrl.mount();
         const commands = new CommandRegistry();
         const keybindings = new KeybindingRegistry();
         const accessor = new Container();
-        accessor.bind(EditorGroupControllerDIToken, () => ctrl);
+        accessor.bind(EditorServiceDIToken, () => ctrl);
         registerAction(commands, keybindings, accessor, cursorRightAction);
         expect(() => commands.execute(cursorRightAction.id)).not.toThrow();
     });

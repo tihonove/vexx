@@ -6,7 +6,7 @@ import { flushMicrotasks } from "../TestUtils/timing.ts";
 import type { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 
 describe("AppController — Quick Open accept callbacks", () => {
     let ws: ITempWorkspace;
@@ -108,8 +108,8 @@ describe("AppController — Go to Line", () => {
     let ws: ITempWorkspace;
     let h: IAppHarness;
 
-    function activeEditor(): EditorGroupController {
-        return (h.controller as unknown as { editorGroupController: EditorGroupController }).editorGroupController;
+    function activeEditor(): EditorService {
+        return (h.controller as unknown as { editorService: EditorService }).editorService;
     }
 
     beforeEach(async () => {

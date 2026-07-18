@@ -7,7 +7,7 @@ import { loadState, StateService } from "../Configuration/StateService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
 
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 import {
     OPEN_EDITORS_STATE,
     PANEL_HEIGHT_STATE,
@@ -17,7 +17,7 @@ import {
 } from "../Workbench/Services/StateKeys.ts";
 import { WorkbenchStateController } from "./WorkbenchStateController.ts";
 
-/** Минимальный дублёр EditorGroupController — только методы, что дёргает координатор. */
+/** Минимальный дублёр EditorService — только методы, что дёргает координатор. */
 class FakeGroup {
     public opened: { path: string; focus: boolean }[] = [];
     public activated: { index: number; focus: boolean }[] = [];
@@ -65,7 +65,7 @@ describe("WorkbenchStateController", () => {
     });
 
     function make(layout: WorkbenchLayoutElement): WorkbenchStateController {
-        return new WorkbenchStateController(state, group as unknown as EditorGroupController, layout);
+        return new WorkbenchStateController(state, group as unknown as EditorService, layout);
     }
 
     describe("layout", () => {

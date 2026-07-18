@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Container } from "../../Common/DiContainer.ts";
 import { registerAction } from "../../Workbench/Actions/CommandAction.ts";
 import { CommandRegistry } from "../../Workbench/Services/CommandRegistry.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 import { KeybindingRegistry } from "../../Workbench/Services/KeybindingRegistry.ts";
 import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../../Workbench/Services/ModifierReleaseArmory.ts";
 
@@ -25,7 +25,7 @@ function setupActionTest(group: GroupStub) {
     const keybindings = new KeybindingRegistry();
     const accessor = new Container();
     const armory = new ModifierReleaseArmory();
-    accessor.bind(EditorGroupControllerDIToken, () => group as never);
+    accessor.bind(EditorServiceDIToken, () => group as never);
     accessor.bind(ModifierReleaseArmoryDIToken, () => armory);
     return { commands, keybindings, accessor, armory };
 }

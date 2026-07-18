@@ -12,7 +12,7 @@ import { TestApp } from "../TestUtils/TestApp.ts";
 import { AppController, AppControllerDIToken } from "./AppController.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 import { createTestContainer } from "./Modules/TestProfile.ts";
 
 function createNestedWorkspace(): ITempWorkspace {
@@ -150,8 +150,8 @@ describe("reveal active file in explorer", () => {
         await ctx.controller.activate();
         ctx.testApp.render();
 
-        const editorGroup = (ctx.controller as unknown as { editorGroupController: EditorGroupController })
-            .editorGroupController;
+        const editorGroup = (ctx.controller as unknown as { editorService: EditorService })
+            .editorService;
         expect(editorGroup.getActiveEditor()).toBeNull();
         expect(() => ctx.commands.execute("workbench.files.action.showActiveFileInExplorer")).not.toThrow();
         // Sidebar stays as-is (visible by default), nothing is revealed.

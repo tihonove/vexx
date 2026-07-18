@@ -19,10 +19,10 @@ import { FileDecorationsServiceAdapter } from "../../Extensions/Host/FileDecorat
 import { ThemeColorResolverAdapter } from "../../Extensions/Host/ThemeColorResolverAdapter.ts";
 import { CommandRegistryDIToken } from "../../Workbench/Services/CommandRegistry.ts";
 import { ExplorerServiceDIToken } from "../../Workbench/Services/ExplorerService.ts";
-import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
+import { EditorServiceDIToken } from "../../Workbench/Services/EditorService.ts";
 
 /**
- * DI-модуль extension host'а. Связывает `EditorGroupController` →
+ * DI-модуль extension host'а. Связывает `EditorService` →
  * `IEditorOptionsService` → `ExtensionHost`. В production хост создаётся
  * пустым (без зарегистрированных расширений) — `main` builtin-расширений
  * пока не исполняется; всё подключение идёт в тестах через харнесс.
@@ -33,7 +33,7 @@ import { EditorGroupControllerDIToken } from "../EditorGroupController.ts";
  */
 export const extensionHostModule: ContainerModule = (container) => {
     container.bind(ExtensionHostDIToken, () => {
-        const group = container.get(EditorGroupControllerDIToken);
+        const group = container.get(EditorServiceDIToken);
         const adapter = new EditorOptionsServiceAdapter(group);
         const commandAdapter = new CommandServiceAdapter(container.get(CommandRegistryDIToken));
         const logService = container.get(ILogServiceDIToken);

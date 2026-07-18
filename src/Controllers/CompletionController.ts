@@ -12,8 +12,8 @@ import { CompletionListElement } from "../TUIDom/Widgets/CompletionListElement.t
 import type { OverlaySessionHandle } from "../TUIDom/Widgets/OverlayLayer.ts";
 
 import { collectWordCompletions } from "../Workbench/Services/collectWordCompletions.ts";
-import type { EditorPane } from "./EditorPane.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
+import type { EditorService } from "../Workbench/Services/EditorService.ts";
 
 /** Символы, образующие «слово» под курсором (префикс автодополнения). */
 const WORD_CHAR = /[\w.-]/;
@@ -24,7 +24,7 @@ const KIND_TEXT = 0;
 /**
  * Минимальный UI автодополнения ядра (WP8). По триггеру
  * (`editor.action.triggerSuggest` / Ctrl+Space) запрашивает элементы у
- * `EditorGroupController.completionSource` (провайдеры расширений через host),
+ * `EditorService.completionSource` (провайдеры расширений через host),
  * показывает {@link CompletionListElement} у каретки и вставляет выбранный
  * элемент. `item.command` исполняется через {@link onExecuteCommand}
  * (commands bridge). Построен по образцу quick-open-оверлея (ныне `QuickOpenService`).
@@ -41,7 +41,7 @@ export class CompletionController extends Disposable {
      */
     public autoSuggestDelayMs = 120;
 
-    private readonly group: EditorGroupController;
+    private readonly group: EditorService;
     private session: OverlaySessionHandle | null = null;
     private activeEditor: EditorPane | null = null;
     private prefixRange: IRange | null = null;
@@ -64,7 +64,7 @@ export class CompletionController extends Disposable {
     // сама переоткрыть попап — переоткрытие только через провайдерский _retrigger).
     private suppressAutoSuggestOnce = false;
 
-    public constructor(group: EditorGroupController) {
+    public constructor(group: EditorService) {
         super();
         this.group = group;
         this.view = new CompletionListElement();

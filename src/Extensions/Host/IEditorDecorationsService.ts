@@ -1,7 +1,7 @@
 import type { IGutterChangeDecoration } from "../../Editor/Decorations/IGutterChangeDecoration.ts";
 
 /**
- * Тонкий «port» поверх {@link EditorGroupController}, нужный {@link ExtensionHost}
+ * Тонкий «port» поверх {@link EditorService}, нужный {@link ExtensionHost}
  * для проекции gutter change-bar декораций расширения на открытые редакторы без
  * прямого знания о слое Controllers/Editor внутри host-моста.
  *

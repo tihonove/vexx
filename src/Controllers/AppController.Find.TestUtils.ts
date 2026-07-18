@@ -6,7 +6,7 @@ import type { TestApp } from "../TestUtils/TestApp.ts";
 import type { AppController } from "./AppController.ts";
 import type { ContextKeyService } from "../Workbench/Services/ContextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../Workbench/Services/ContextKeyService.ts";
-import type { EditorPane } from "./EditorPane.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
 
 export interface FindContext {
     testApp: TestApp;

@@ -8,8 +8,8 @@ import { AppControllerDIToken } from "../Controllers/AppController.ts";
 import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
 import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Workbench/Services/CoreTokens.ts";
-import type { EditorPane } from "../Controllers/EditorPane.ts";
-import { EditorGroupControllerDIToken } from "../Controllers/EditorGroupController.ts";
+import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
+import { EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
 import { createTestContainer } from "../Controllers/Modules/TestProfile.ts";
 import { StateServiceDIToken } from "../Controllers/Modules/StateModule.ts";
 
@@ -30,7 +30,7 @@ export interface IAppHarnessOptions {
      * Реальный {@link IConfigurationService} — для тестов live-apply настроек;
      * по умолчанию `NULL_CONFIGURATION_SERVICE` (событий не шлёт). Перебивает
      * биндинг ДО резолва AppController, так что и AppController, и
-     * EditorGroupController получают один и тот же экземпляр.
+     * EditorService получают один и тот же экземпляр.
      */
     readonly configurationService?: IConfigurationService;
     /** Переопределить путь settings.json (по умолчанию `null` из TestProfile). */
@@ -101,7 +101,7 @@ export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarn
         testApp.render();
     }
 
-    const group = container.get(EditorGroupControllerDIToken);
+    const group = container.get(EditorServiceDIToken);
     return {
         testApp,
         controller,
