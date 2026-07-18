@@ -32,6 +32,9 @@ import {
     WorkbenchContributionsRegistry,
     WorkbenchContributionsRegistryDIToken,
 } from "../Contributions/WorkbenchContributionsRegistry.ts";
+import { MenuContributionsDIToken } from "../Menus/IMenuContribution.ts";
+import { MENU_CONTRIBUTIONS } from "../Menus/menuContributions.ts";
+import { MenuRegistry, MenuRegistryDIToken } from "../Menus/MenuRegistry.ts";
 import { CompletionService, CompletionServiceDIToken } from "../Services/CompletionService.ts";
 import {
     DiagnosticsEditorSourceDIToken,
@@ -136,6 +139,10 @@ export const workbenchModule: ContainerModule = (container) => {
     // (Restored — в mount()) и main.ts (Eventually — после первого кадра).
     container.bind(WorkbenchContributionsDIToken, () => WORKBENCH_CONTRIBUTIONS);
     container.bind(WorkbenchContributionsRegistryDIToken, WorkbenchContributionsRegistry);
+    // Реестр declarative menu-contributions: явный список MENU_CONTRIBUTIONS + сам
+    // реестр, из которого собираются контекст-меню (редактор, Explorer).
+    container.bind(MenuContributionsDIToken, () => MENU_CONTRIBUTIONS);
+    container.bind(MenuRegistryDIToken, MenuRegistry);
     container.bind(AutoRevealContributionDIToken, AutoRevealContribution);
     container.bind(ThemeConfigContributionDIToken, ThemeConfigContribution);
     container.bind(EditorContextMenuContributionDIToken, EditorContextMenuContribution);

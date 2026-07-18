@@ -175,8 +175,8 @@ export class EditorPane extends Disposable {
         return this.component.viewState;
     }
 
-    public set contextMenuEntries(entries: MenuEntry[]) {
-        this.component.contextMenuEntries = entries;
+    public set contextMenuProvider(provider: () => MenuEntry[]) {
+        this.component.contextMenuProvider = provider;
     }
 
     public onDidChangeCursorPosition(listener: () => void): IDisposable {
