@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ServiceAccessor } from "../Common/DiContainer.ts";
 import { createAppTestHarness } from "../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
-import type { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
+import { DialogServiceDIToken } from "../Workbench/Services/DialogService.ts";
 import type { TextLabelElement } from "../TUIDom/Widgets/TextLabelElement.ts";
 
 import type { AppController } from "./AppController.ts";
@@ -28,8 +28,9 @@ function createTestContext(): TestQuitContext {
     };
 }
 
-/** Save теперь async — сохранение и последующий quit/close откладываются на
- *  микротаск, поэтому Save-ветки диалога надо «прокрутить» перед проверкой. */
+/** Save и confirm-save последовательность выхода теперь async (LifecycleService
+ *  ждёт promise DialogService.confirmSave) — продолжение после ответа в диалоге
+ *  откладывается на микротаск, поэтому ветки надо «прокрутить» перед проверкой. */
 const tick = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("AppController quit with save dialog", () => {
@@ -59,7 +60,7 @@ describe("AppController quit with save dialog", () => {
 
         controller.requestQuit(accessor);
 
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement");
+        const dialog = testApp.querySelector("#confirmSaveDialog");
         expect(dialog).not.toBeNull();
         expect(exitSpy).not.toHaveBeenCalled();
     });
@@ -72,13 +73,13 @@ describe("AppController quit with save dialog", () => {
 
         controller.requestQuit(accessor);
 
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         dialog.onCancel?.();
 
         expect(exitSpy).not.toHaveBeenCalled();
     });
 
-    it("quits without saving when Don't Save is pressed", () => {
+    it("quits without saving when Don't Save is pressed", async () => {
         const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/quit-test-dontsave.txt");
         controller.focusEditor();
@@ -86,8 +87,9 @@ describe("AppController quit with save dialog", () => {
 
         controller.requestQuit(accessor);
 
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         dialog.onDontSave?.();
+        await tick();
 
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
@@ -100,14 +102,14 @@ describe("AppController quit with save dialog", () => {
 
         controller.requestQuit(accessor);
 
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         dialog.onSave?.();
         await tick();
 
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it("shows dialog for each unsaved file sequentially", () => {
+    it("shows dialog for each unsaved file sequentially", async () => {
         const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/quit-seq-a.txt");
         controller.focusEditor();
@@ -118,15 +120,17 @@ describe("AppController quit with save dialog", () => {
 
         controller.requestQuit(accessor);
 
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         expect(exitSpy).not.toHaveBeenCalled();
 
         // Don't Save on first file
         dialog.onDontSave?.();
+        await tick();
         expect(exitSpy).not.toHaveBeenCalled();
 
         // Don't Save on second file → quit
         dialog.onDontSave?.();
+        await tick();
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -141,7 +145,7 @@ describe("AppController quit with save dialog", () => {
 
         controller.requestQuit(accessor);
 
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         dialog.onCancel?.();
 
         expect(exitSpy).not.toHaveBeenCalled();
@@ -156,7 +160,7 @@ describe("AppController quit with save dialog", () => {
         testApp.sendKey("Ctrl+Q");
 
         expect(exitSpy).not.toHaveBeenCalled();
-        expect(testApp.querySelector("ConfirmSaveDialogElement")).not.toBeNull();
+        expect(testApp.querySelector("#confirmSaveDialog")).not.toBeNull();
     });
 
     it("Ctrl+Q quits immediately when no unsaved files", () => {
@@ -179,13 +183,13 @@ describe("AppController quit with save dialog", () => {
         controller.requestQuit(accessor);
 
         // First dialog: Save → saves file, advances to second dialog (no quit yet).
-        const firstDialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const firstDialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         firstDialog.onSave?.();
         await tick();
         expect(exitSpy).not.toHaveBeenCalled();
 
         // A second dialog is shown for the remaining unsaved file.
-        const secondDialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const secondDialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         expect(secondDialog).not.toBeNull();
 
         // Save on the last file → quit.
@@ -194,7 +198,7 @@ describe("AppController quit with save dialog", () => {
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
-    it("skips indices whose editor vanished mid-sequence and still quits", () => {
+    it("skips editors that vanished mid-sequence and still quits", async () => {
         const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/quit-seq-stale-a.txt");
         controller.focusEditor();
@@ -206,12 +210,12 @@ describe("AppController quit with save dialog", () => {
         controller.focusEditor();
         testApp.sendKey("z");
 
-        // requestQuit snapshots the modified indices [0, 1, 2] and shows the dialog for index 0.
+        // requestQuit snapshots the dirty editors [0, 1, 2] and shows the dialog for the first one.
         controller.requestQuit(accessor);
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         expect(exitSpy).not.toHaveBeenCalled();
 
-        // Tabs 1 and 2 disappear before we answer, so their snapshotted indices are now stale.
+        // Tabs 1 and 2 disappear before we answer, so their snapshotted items are now stale.
         const editorGroup = (controller as unknown as { editorGroupController: EditorGroupController })
             .editorGroupController;
         editorGroup.closeTab(2);
@@ -219,6 +223,7 @@ describe("AppController quit with save dialog", () => {
 
         // Advancing the sequence walks past the now-missing editors and quits at the end.
         dialog.onDontSave?.();
+        await tick();
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 
@@ -233,13 +238,14 @@ describe("AppController quit with save dialog", () => {
 
         controller.requestQuit(accessor);
 
-        const first = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const first = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         first.onSave?.();
         await tick();
         expect(exitSpy).not.toHaveBeenCalled();
 
-        const second = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const second = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         second.onDontSave?.();
+        await tick();
         expect(exitSpy).toHaveBeenCalledWith(0);
     });
 });
@@ -254,14 +260,14 @@ describe("AppController close-tab confirm flow", () => {
 
         testApp.sendKey("Ctrl+W");
 
-        expect(testApp.querySelector("ConfirmSaveDialogElement")).not.toBeNull();
+        expect(testApp.querySelector("#confirmSaveDialog")).not.toBeNull();
         // Both tabs still present — close was deferred to the dialog.
         const tabStrip = testApp.querySelector("EditorTabStripElement");
         expect(tabStrip).not.toBeNull();
     });
 
     it("Don't Save on the close-tab dialog closes the tab", () => {
-        const { testApp, controller } = createTestContext();
+        const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/close-confirm-c.txt");
         controller.openFile("/tmp/close-confirm-d.txt");
         controller.focusEditor();
@@ -273,7 +279,7 @@ describe("AppController close-tab confirm flow", () => {
         expect(tabStrip.getItemElements()).toHaveLength(2);
 
         testApp.sendKey("Ctrl+W");
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         dialog.onDontSave?.();
         testApp.render();
 
@@ -281,7 +287,7 @@ describe("AppController close-tab confirm flow", () => {
     });
 
     it("Save on the close-tab dialog saves and closes the tab", async () => {
-        const { testApp, controller } = createTestContext();
+        const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/close-confirm-e.txt");
         controller.openFile("/tmp/close-confirm-f.txt");
         controller.focusEditor();
@@ -292,7 +298,7 @@ describe("AppController close-tab confirm flow", () => {
         };
 
         testApp.sendKey("Ctrl+W");
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         dialog.onSave?.();
         await tick();
         testApp.render();
@@ -301,7 +307,7 @@ describe("AppController close-tab confirm flow", () => {
     });
 
     it("Cancel on the close-tab dialog keeps the tab open", () => {
-        const { testApp, controller } = createTestContext();
+        const { testApp, controller, accessor } = createTestContext();
         controller.openFile("/tmp/close-confirm-g.txt");
         controller.openFile("/tmp/close-confirm-h.txt");
         controller.focusEditor();
@@ -312,7 +318,7 @@ describe("AppController close-tab confirm flow", () => {
         };
 
         testApp.sendKey("Ctrl+W");
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
+        const dialog = accessor.get(DialogServiceDIToken).getOpenConfirmSaveDialog()!;
         dialog.onCancel?.();
         testApp.render();
 
@@ -327,9 +333,8 @@ describe("AppController close-tab confirm flow", () => {
  */
 describe("AppController — диалог сохранения для безымянного буфера", () => {
     function dialogText(testApp: TestApp): string {
-        const dialog = testApp.querySelector("ConfirmSaveDialogElement") as ConfirmSaveDialogElement;
-        return dialog
-            .querySelectorAll("TextLabelElement")
+        const dialog = testApp.querySelector("#confirmSaveDialog");
+        return (dialog?.querySelectorAll("TextLabelElement") ?? [])
             .map((l) => (l as TextLabelElement).getText())
             .join("\n");
     }

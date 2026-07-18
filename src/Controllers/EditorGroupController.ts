@@ -24,6 +24,7 @@ import type { IController } from "./IController.ts";
 import type { IFileWatcher } from "../Common/IFileWatcher.ts";
 
 import { IFileWatcherDIToken } from "../Workbench/Services/IFileWatcherDIToken.ts";
+import type { IShutdownDirtyItem, IShutdownParticipant } from "../Workbench/Services/LifecycleService.ts";
 import { UndoRedoService, UndoRedoServiceDIToken } from "../Workbench/Services/Workspace/UndoRedoService.ts";
 
 export const EditorGroupControllerDIToken = token<EditorGroupController>("EditorGroupController");
@@ -35,7 +36,7 @@ export interface IEditorSavedMeta {
     readonly languageId: string;
 }
 
-export class EditorGroupController extends Disposable implements IController {
+export class EditorGroupController extends Disposable implements IController, IShutdownParticipant {
     public static dependencies = [
         ThemeServiceDIToken,
         TokenizationRegistryDIToken,
@@ -476,6 +477,26 @@ export class EditorGroupController extends Disposable implements IController {
 
     public focusEditor(): void {
         this.getActiveEditor()?.focusEditor();
+    }
+
+    /**
+     * Участник shutdown-протокола ({@link IShutdownParticipant}, структурно):
+     * снапшот несохранённых редакторов для последовательных confirm-save при
+     * выходе. `isStillDirty` ловит вкладки, закрытые пока пользователь отвечал
+     * по предыдущим диалогам; Save при выходе перезаписывает файл даже при
+     * внешних изменениях — выбор пользователя не должен пропасть.
+     */
+    public collectDirty(): readonly IShutdownDirtyItem[] {
+        const items: IShutdownDirtyItem[] = [];
+        for (const editor of this.editors) {
+            if (!editor.isModified) continue;
+            items.push({
+                name: this.displayName(editor),
+                isStillDirty: () => this.editors.includes(editor),
+                save: () => editor.save({ overwrite: true }),
+            });
+        }
+        return items;
     }
 
     /**

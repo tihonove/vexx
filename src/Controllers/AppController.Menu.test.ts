@@ -380,12 +380,12 @@ describe("AppController — menu bar wiring", () => {
 
     it("show-about-dialog command opens the About dialog", () => {
         const { testApp, commands } = createAppTestHarness();
-        expect(testApp.querySelector("AboutDialogElement")).toBeNull();
+        expect(testApp.querySelector("#aboutDialog")).toBeNull();
 
         commands.execute("workbench.action.showAboutDialog");
         testApp.render();
 
-        expect(testApp.querySelector("AboutDialogElement")).not.toBeNull();
+        expect(testApp.querySelector("#aboutDialog")).not.toBeNull();
     });
 
     it("reuses the About dialog on reopen and closes it via its callback", () => {
@@ -393,13 +393,13 @@ describe("AppController — menu bar wiring", () => {
 
         commands.execute("workbench.action.showAboutDialog");
         testApp.render();
-        const dialog = testApp.querySelector("AboutDialogElement");
+        const dialog = testApp.querySelector("#aboutDialog");
         expect(dialog).not.toBeNull();
 
         // Reopening reuses the same dialog instance (covers the not-null branch).
         commands.execute("workbench.action.showAboutDialog");
         testApp.render();
-        expect(testApp.querySelector("AboutDialogElement")).toBe(dialog);
+        expect(testApp.querySelector("#aboutDialog")).toBe(dialog);
 
         // Closing through the dialog's onClose callback hides it without error.
         expect(() => (dialog as unknown as { onClose?: () => void }).onClose?.()).not.toThrow();

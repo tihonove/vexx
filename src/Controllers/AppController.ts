@@ -23,11 +23,7 @@ import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../Theme/ThemeTokens.
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIFocusEvent } from "../TUIDom/Events/TUIFocusEvent.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
-import { AboutDialogElement } from "../TUIDom/Widgets/AboutDialogElement.tsx";
 import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import type { ConfirmDialogOptions } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
-import { ConfirmDialogElement } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
-import { ConfirmSaveDialogElement } from "../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 import { InputElement } from "../TUIDom/Widgets/InputElement.ts";
 import type { MenuBarItem } from "../TUIDom/Widgets/MenuBarElement.ts";
 import { MenuBarElement } from "../TUIDom/Widgets/MenuBarElement.ts";
@@ -37,12 +33,12 @@ import { PopupMenuElement } from "../TUIDom/Widgets/PopupMenuElement.ts";
 import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
 import { WorkbenchLayoutElement } from "../TUIDom/Widgets/WorkbenchLayoutElement.ts";
-import {
-    getAboutDialogStyles,
-    getConfirmDialogStyles,
-    getConfirmSaveDialogStyles,
-    getMenuStyles,
-} from "../Workbench/Styles/defaultStyles.ts";
+import type { ConfirmDialogOptions } from "../Workbench/Components/Dialogs/ConfirmDialog.tsx";
+import type { DialogService } from "../Workbench/Services/DialogService.ts";
+import { DialogServiceDIToken } from "../Workbench/Services/DialogService.ts";
+import type { LifecycleService } from "../Workbench/Services/LifecycleService.ts";
+import { LifecycleServiceDIToken } from "../Workbench/Services/LifecycleService.ts";
+import { getMenuStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { quitAction } from "./Actions/AppActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./Actions/ClipboardActions.ts";
@@ -351,17 +347,16 @@ export class AppController extends Disposable implements IController {
         ILogServiceDIToken,
         TerminalEnvironmentServiceDIToken,
         UserKeybindingsDIToken,
+        DialogServiceDIToken,
+        LifecycleServiceDIToken,
     ] as const;
     public readonly view: BodyElement;
     public readonly workbenchLayout: WorkbenchLayoutElement;
     private workbenchState: WorkbenchStateController;
 
     private editorGroupController: EditorGroupController;
-    private confirmDialog: ConfirmSaveDialogElement | null = null;
-    private confirmDialogSession: OverlaySessionHandle | null = null;
-    private aboutDialog: AboutDialogElement | null = null;
-    private aboutDialogSession: OverlaySessionHandle | null = null;
-    private confirmActionSession: OverlaySessionHandle | null = null;
+    private dialogService: DialogService;
+    private lifecycleService: LifecycleService;
     private fileTreeContextMenuSession: OverlaySessionHandle | null = null;
     private fileTreeController: FileTreeController;
     private fileClipboard: IFileClipboard;
@@ -405,10 +400,16 @@ export class AppController extends Disposable implements IController {
         logService: ILogService,
         terminalEnv: TerminalEnvironmentService,
         userKeybindings: readonly IUserKeybindingRule[],
+        dialogService: DialogService,
+        lifecycleService: LifecycleService,
     ) {
         super();
         this.logger = logService.createLogger("input.keybindings");
         this.terminalEnv = terminalEnv;
+        this.dialogService = this.register(dialogService);
+        this.lifecycleService = lifecycleService;
+        // Несохранённые редакторы участвуют в confirm-save последовательности выхода.
+        this.lifecycleService.registerShutdownParticipant(editorGroupController);
         this.themeService = themeService;
         this.themeRegistry = accessor.get(ThemeRegistryDIToken);
         this.editorGroupController = this.register(editorGroupController);
@@ -497,6 +498,7 @@ export class AppController extends Disposable implements IController {
         );
 
         this.view = new BodyElement();
+        this.dialogService.attachHost(this.view);
         this.view.setContent(this.workbenchLayout);
         this.view.setStatusBar(this.statusBarComponent.view);
 
@@ -1215,8 +1217,6 @@ export class AppController extends Disposable implements IController {
             fg: theme.getRequiredColor("foreground"),
             bg: theme.getRequiredColor("editor.background"),
         };
-        this.confirmDialog?.setStyles(getConfirmSaveDialogStyles(theme));
-        this.aboutDialog?.setStyles(getAboutDialogStyles(theme));
         this.findController.applyTheme(theme);
         this.menuBar?.setStyles(getMenuStyles(theme));
         this.workbenchLayout.setSashHoverColor(theme.getRequiredColor("sash.hoverBorder"));
@@ -1397,48 +1397,7 @@ export class AppController extends Disposable implements IController {
         filename: string,
         callbacks: { onSave: () => void; onDontSave: () => void; onCancel: () => void },
     ): void {
-        if (!this.confirmDialog) {
-            this.confirmDialog = new ConfirmSaveDialogElement(filename);
-            this.confirmDialog.setStyles(getConfirmSaveDialogStyles(this.themeService.theme));
-            this.confirmDialogSession = this.view.overlayLayer.createSession(this.confirmDialog, new Point(0, 0), {
-                visible: false,
-                restoreFocus: true,
-                closeOnEscape: true,
-                pointerPolicy: "modal",
-            });
-        } else {
-            this.confirmDialog.setFilename(filename);
-        }
-
-        this.confirmDialog.onSave = () => {
-            this.hideConfirmSaveDialog();
-            callbacks.onSave();
-        };
-        this.confirmDialog.onDontSave = () => {
-            this.hideConfirmSaveDialog();
-            callbacks.onDontSave();
-        };
-        this.confirmDialog.onCancel = () => {
-            this.hideConfirmSaveDialog();
-        };
-
-        const screenW = this.view.layoutSize.width;
-        const screenH = this.view.layoutSize.height;
-        const dialogW = this.confirmDialog.getMaxIntrinsicWidth(0);
-        const dialogH = this.confirmDialog.getMaxIntrinsicHeight(dialogW);
-        const px = Math.max(0, Math.floor((screenW - dialogW) / 2));
-        const py = Math.max(0, Math.floor((screenH - dialogH) / 2));
-        this.confirmDialogSession?.setPosition(new Point(px, py));
-
-        this.confirmDialogSession?.open();
-        this.confirmDialog.focusDefault();
-    }
-
-    private hideConfirmSaveDialog(): void {
-        /* v8 ignore start -- defensive: only invoked from dialog callbacks after showConfirmSaveDialog() created the dialog (which is never reset to null) */
-        if (!this.confirmDialog) return;
-        /* v8 ignore stop */
-        this.confirmDialogSession?.close();
+        this.dialogService.showConfirmSaveDialog(filename, callbacks);
     }
 
     /**
@@ -1526,45 +1485,7 @@ export class AppController extends Disposable implements IController {
         options: ConfirmDialogOptions,
         callbacks: { onConfirm: () => void; onCancel?: () => void },
     ): void {
-        this.hideConfirmActionDialog();
-
-        const dialog = new ConfirmDialogElement(options);
-        dialog.setStyles(getConfirmDialogStyles(this.themeService.theme));
-        dialog.onConfirm = () => {
-            this.hideConfirmActionDialog();
-            callbacks.onConfirm();
-        };
-        dialog.onCancel = () => {
-            this.hideConfirmActionDialog();
-            callbacks.onCancel?.();
-        };
-
-        const session = this.view.overlayLayer.createSession(dialog, new Point(0, 0), {
-            visible: false,
-            restoreFocus: true,
-            closeOnEscape: true,
-            pointerPolicy: "modal",
-            disposeOnClose: true,
-        });
-        this.confirmActionSession = session;
-
-        const screenW = this.view.layoutSize.width;
-        const screenH = this.view.layoutSize.height;
-        const dialogW = dialog.getMaxIntrinsicWidth(0);
-        const dialogH = dialog.getMaxIntrinsicHeight(dialogW);
-        session.setPosition(
-            new Point(
-                Math.max(0, Math.floor((screenW - dialogW) / 2)),
-                Math.max(0, Math.floor((screenH - dialogH) / 2)),
-            ),
-        );
-        session.open();
-        dialog.focusDefault();
-    }
-
-    private hideConfirmActionDialog(): void {
-        this.confirmActionSession?.close();
-        this.confirmActionSession = null;
+        this.dialogService.showConfirmDialog(options, callbacks);
     }
 
     /**
@@ -1979,37 +1900,7 @@ export class AppController extends Disposable implements IController {
     }
 
     public showAboutDialog(): void {
-        if (!this.aboutDialog) {
-            this.aboutDialog = new AboutDialogElement();
-            this.aboutDialog.setStyles(getAboutDialogStyles(this.themeService.theme));
-            this.aboutDialog.onClose = () => {
-                this.hideAboutDialog();
-            };
-            this.aboutDialogSession = this.view.overlayLayer.createSession(this.aboutDialog, new Point(0, 0), {
-                visible: false,
-                restoreFocus: true,
-                closeOnEscape: true,
-                pointerPolicy: "modal",
-            });
-        }
-
-        const screenW = this.view.layoutSize.width;
-        const screenH = this.view.layoutSize.height;
-        const dialogW = this.aboutDialog.getMaxIntrinsicWidth(0);
-        const dialogH = this.aboutDialog.getMaxIntrinsicHeight(dialogW);
-        const px = Math.max(0, Math.floor((screenW - dialogW) / 2));
-        const py = Math.max(0, Math.floor((screenH - dialogH) / 2));
-        this.aboutDialogSession?.setPosition(new Point(px, py));
-
-        this.aboutDialogSession?.open();
-        this.aboutDialog.focusDefault();
-    }
-
-    private hideAboutDialog(): void {
-        /* v8 ignore start -- defensive: only invoked from the dialog callback after showAboutDialog() created the dialog */
-        if (!this.aboutDialog) return;
-        /* v8 ignore stop */
-        this.aboutDialogSession?.close();
+        this.dialogService.showAboutDialog();
     }
 
     private showFileTreeContextMenu(filePath: string, screenX: number, screenY: number): void {
@@ -2151,56 +2042,10 @@ export class AppController extends Disposable implements IController {
     }
 
     public requestQuit(accessor: ServiceAccessor): void {
-        const modifiedIndices: number[] = [];
-        for (let i = 0; i < this.editorGroupController.editorCount; i++) {
-            /* v8 ignore start -- defensive: i is always within [0, editorCount), so getEditor() never returns null here */
-            if (this.editorGroupController.getEditor(i)?.isModified) {
-                /* v8 ignore stop */
-                modifiedIndices.push(i);
-            }
-        }
-        if (modifiedIndices.length === 0) {
+        // Последовательность confirm-save живёт в LifecycleService; сам выход
+        // (teardown TUI + process.exit) остаётся колбэком владельца приложения.
+        void this.lifecycleService.requestQuit(() => {
             this.doQuit(accessor);
-        } else {
-            this.showQuitConfirmDialogSequential(modifiedIndices, accessor);
-        }
-    }
-
-    private showQuitConfirmDialogSequential(remainingIndices: number[], accessor: ServiceAccessor): void {
-        const [index, ...rest] = remainingIndices;
-        const editor = this.editorGroupController.getEditor(index);
-        if (!editor) {
-            if (rest.length === 0) {
-                this.doQuit(accessor);
-            } else {
-                this.showQuitConfirmDialogSequential(rest, accessor);
-            }
-            return;
-        }
-        this.showConfirmSaveDialog(this.editorGroupController.displayName(editor), {
-            onSave: () => {
-                // Explicit "Save" during quit: overwrite so the user's edits win
-                // over an external change (choosing Save must not drop their work).
-                void editor.save({ overwrite: true }).then(() => {
-                    if (rest.length === 0) {
-                        this.doQuit(accessor);
-                    } else {
-                        this.showQuitConfirmDialogSequential(rest, accessor);
-                    }
-                });
-            },
-            onDontSave: () => {
-                if (rest.length === 0) {
-                    this.doQuit(accessor);
-                } else {
-                    this.showQuitConfirmDialogSequential(rest, accessor);
-                }
-            },
-            /* v8 ignore start -- placeholder no-op: cancelling keeps the editor open, nothing to do */
-            onCancel: () => {
-                // noop
-            },
-            /* v8 ignore stop */
         });
     }
 }

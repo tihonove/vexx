@@ -10,7 +10,7 @@ import { StatusBarComponentDIToken } from "../Workbench/Components/StatusBar/Sta
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../TestUtils/timing.ts";
-import type { ConfirmDialogElement } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
+import { DialogServiceDIToken } from "../Workbench/Services/DialogService.ts";
 import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
 function visiblePicker(h: IAppHarness): QuickPickElement {
@@ -108,7 +108,7 @@ describe("AppController — Change File Encoding", () => {
 
         // Ещё не перечитан — ждёт подтверждения.
         expect(editor.encoding).toBe("utf8");
-        const dialog = h.testApp.querySelector("ConfirmDialogElement") as ConfirmDialogElement | null;
+        const dialog = h.container.get(DialogServiceDIToken).getOpenConfirmDialog();
         expect(dialog).not.toBeNull();
 
         dialog!.onConfirm?.();
@@ -179,7 +179,7 @@ describe("AppController — Change File Encoding", () => {
 
         // Файл не перезаписан — ждёт подтверждения.
         expect(fs.readFileSync(filePath, "utf-8")).toBe("external edit that changes size\n");
-        const dialog = h.testApp.querySelector("ConfirmDialogElement") as ConfirmDialogElement | null;
+        const dialog = h.container.get(DialogServiceDIToken).getOpenConfirmDialog();
         expect(dialog).not.toBeNull();
 
         dialog!.onConfirm?.();

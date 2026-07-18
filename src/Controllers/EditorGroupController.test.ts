@@ -567,6 +567,49 @@ describe("EditorGroupController", () => {
         });
     });
 
+    describe("collectDirty (участник shutdown)", () => {
+        it("возвращает только несохранённые редакторы, чистые пропускает", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("clean.ts", "a"));
+            ctrl.openFile(writeFile("dirty.ts", "b"));
+            ctrl.getActiveEditor()!.setEol(EndOfLine.CRLF);
+
+            const items = ctrl.collectDirty();
+
+            expect(items.map((i) => i.name)).toEqual(["dirty.ts"]);
+        });
+
+        it("isStillDirty гаснет после закрытия вкладки; save снимает isModified", async () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a\nb"));
+            const editor = ctrl.getActiveEditor()!;
+            editor.setEol(EndOfLine.CRLF);
+
+            const [item] = ctrl.collectDirty();
+            expect(item.isStillDirty()).toBe(true);
+
+            await item.save();
+            expect(editor.isModified).toBe(false);
+
+            ctrl.closeTab(0);
+            expect(item.isStillDirty()).toBe(false);
+        });
+    });
+
+    describe("getEditor", () => {
+        it("returns null for out-of-range indices", () => {
+            const ctrl = createEditorGroupController();
+            ctrl.mount();
+            ctrl.openFile(writeFile("a.ts", "a"));
+
+            expect(ctrl.getEditor(-1)).toBeNull();
+            expect(ctrl.getEditor(1)).toBeNull();
+            expect(ctrl.getEditor(0)).not.toBeNull();
+        });
+    });
+
     describe("tab callbacks", () => {
         it("onTabActivate switches to the clicked tab", () => {
             const ctrl = createEditorGroupController();

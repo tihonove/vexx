@@ -27,8 +27,8 @@ export interface IWorkbenchColors {
     // "widget.shadow"?: number;
     // /** Background color of text selections in the workbench (for input fields or text areas, does not apply to selections within the editor and the terminal). */
     // "selection.background"?: number;
-    // /** Foreground color for description text providing additional information, for example for a label. */
-    // "descriptionForeground"?: number;
+    /** Foreground color for description text providing additional information, for example for a label. */
+    "descriptionForeground"?: number;
     // /** Overall foreground color for error messages (this color is only used if not overridden by a component). */
     // "errorForeground"?: number;
     // /** The default color for icons in the workbench. */
@@ -51,8 +51,8 @@ export interface IWorkbenchColors {
     // "textCodeBlock.background"?: number;
     // /** Foreground color for links in text when clicked on and on mouse hover. */
     // "textLink.activeForeground"?: number;
-    // /** Foreground color for links in text. */
-    // "textLink.foreground"?: number;
+    /** Foreground color for links in text. */
+    "textLink.foreground"?: number;
     // /** Foreground color for preformatted text segments. */
     // "textPreformat.foreground"?: number;
     // /** Background color for preformatted text segments. */
@@ -457,12 +457,12 @@ export interface IWorkbenchColors {
     // "diffEditor.border"?: number;
 
     // ── Editor widget colors ────────────────────────────────
-    // /** Foreground color of editor widgets, such as find/replace. */
-    // "editorWidget.foreground"?: number;
-    // /** Background color of editor widgets, such as Find/Replace. */
-    // "editorWidget.background"?: number;
-    // /** Border color of the editor widget. */
-    // "editorWidget.border"?: number;
+    /** Foreground color of editor widgets, such as find/replace. */
+    "editorWidget.foreground"?: number;
+    /** Background color of editor widgets, such as Find/Replace. */
+    "editorWidget.background"?: number;
+    /** Border color of the editor widget. */
+    "editorWidget.border"?: number;
     // /** Background color of the suggestion widget. */
     // "editorSuggestWidget.background"?: number;
     // /** Border color of the suggestion widget. */

@@ -2,10 +2,7 @@ import type { IEditorStyles } from "../../Editor/EditorElement.ts";
 import { unthemedEditorStyles } from "../../Editor/EditorElement.ts";
 import type { IWorkbenchColors } from "../../Theme/IWorkbenchColors.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
-import type { IAboutDialogStyles } from "../../TUIDom/Widgets/AboutDialogElement.tsx";
 import type { IButtonStyles } from "../../TUIDom/Widgets/ButtonElement.ts";
-import type { IConfirmDialogStyles } from "../../TUIDom/Widgets/ConfirmDialogElement.tsx";
-import type { IConfirmSaveDialogStyles } from "../../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
 import type { ITabStripStyles } from "../../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { IFindWidgetStyles } from "../../TUIDom/Widgets/FindWidgetElement.ts";
 import type { IPanelContainerStyles } from "../../TUIDom/Widgets/PanelContainerElement.ts";
@@ -15,6 +12,7 @@ import type { IScrollBarStyles } from "../../TUIDom/Widgets/ScrollContainerEleme
 import type { ITerminalViewStyles } from "../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import type { ITreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
 import { unthemedTreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
+import type { IDialogStyles } from "../Components/Dialogs/DialogComponent.ts";
 
 /**
  * Мост тема → стили контролов TUIDom: единственное место, где ключи темы
@@ -39,16 +37,22 @@ export function getDialogButtonStyles(theme: WorkbenchTheme): IButtonStyles {
     };
 }
 
-export function getConfirmDialogStyles(theme: WorkbenchTheme): IConfirmDialogStyles {
-    return { button: getDialogButtonStyles(theme) };
-}
-
-export function getConfirmSaveDialogStyles(theme: WorkbenchTheme): IConfirmSaveDialogStyles {
-    return { button: getDialogButtonStyles(theme) };
-}
-
-export function getAboutDialogStyles(theme: WorkbenchTheme): IAboutDialogStyles {
-    return { button: getDialogButtonStyles(theme) };
+/**
+ * Окна модальных диалогов (`DialogComponent` и наследники): фон/текст/рамка —
+ * ключи VS Code `editorWidget.*` (диалоги рисуются как editor-widget), пояснения —
+ * `descriptionForeground`, ссылки — `textLink.foreground`, предупреждения —
+ * `editorWarning.foreground`. Все ключи гарантированы реестром дефолтов.
+ */
+export function getDialogStyles(theme: WorkbenchTheme): IDialogStyles {
+    return {
+        bg: theme.getRequiredColor("editorWidget.background"),
+        fg: theme.getRequiredColor("editorWidget.foreground"),
+        borderFg: theme.getRequiredColor("editorWidget.border"),
+        descriptionFg: theme.getRequiredColor("descriptionForeground"),
+        warningFg: theme.getRequiredColor("editorWarning.foreground"),
+        linkFg: theme.getRequiredColor("textLink.foreground"),
+        button: getDialogButtonStyles(theme),
+    };
 }
 
 export function getFindWidgetStyles(theme: WorkbenchTheme): IFindWidgetStyles {

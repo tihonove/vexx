@@ -46,10 +46,14 @@ Workbench и может его импортировать; обратно — н
        растворён: сегменты публикуют `EditorStatusContribution` (шов
        `IActiveEditorStatusSource` → `EditorGroupController`) и `TerminalEnvStatusContribution`,
        chord-хинт — `AppController` через `StatusBarService`; биндинги — `Modules/WorkbenchModule.ts`)
-- [~] 5. Вынос из AppController: `KeybindingDispatcher` (5a готов: чорды/armory/swallow/
+- [x] 5. Вынос из AppController: 5a — `KeybindingDispatcher` (чорды/armory/swallow/
        chord-хинт/user keybindings в `Workbench/Services/KeybindingDispatcher.ts`;
        AppController вешает листенеры и подключает хуки `updateContextKeys` /
-       `hasKeyboardCapturingOverlay`); осталось: `DialogService`, `LifecycleService`
+       `hasKeyboardCapturingOverlay`); 5b — `DialogService` (`Workbench/Services/`)
+       + диалоги-компоненты `Components/Dialogs/` (база `DialogComponent` поверх
+       нового примитива `FitContentElement`; цвета из `editorWidget.*` вместо
+       хардкодов); 5c — `LifecycleService` (`requestQuit` + `IShutdownParticipant`,
+       участник — `EditorGroupController`; выход — колбэк `onQuit` от AppController)
 - [ ] 6. Panel-кластер: `DiagnosticsService`, `PanelService`+`PanelComponent`,
        `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent`
 - [ ] 7. Explorer: `ExplorerService`+`ExplorerComponent`+`InputWidgetComponent`,

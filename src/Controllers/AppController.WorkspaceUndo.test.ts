@@ -44,7 +44,7 @@ describe("Explorer undo/redo of file operations", () => {
         await flush();
 
         // Move undo is not destructive → no dialog, file is back at its original place.
-        expect(h.testApp.querySelector("ConfirmDialogElement")).toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).toBeNull();
         expect(fs.existsSync(ws.path("a.txt"))).toBe(true);
         expect(fs.existsSync(ws.path("target/a.txt"))).toBe(false);
     });
@@ -61,7 +61,7 @@ describe("Explorer undo/redo of file operations", () => {
         h.testApp.render();
 
         // Destructive undo → confirmation dialog; copy still there until confirmed.
-        expect(h.testApp.querySelector("ConfirmDialogElement")).not.toBeNull();
+        expect(h.testApp.querySelector("#confirmDialog")).not.toBeNull();
         expect(fs.existsSync(copy)).toBe(true);
 
         h.testApp.sendKey("ArrowLeft"); // focus the confirm ("Yes") button

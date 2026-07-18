@@ -111,6 +111,28 @@ class ButtonElement {
   каталоги `Workspace/` (undo/redo; `TrashService`/`WorkspaceEditService` пока в
   Controllers), `TerminalEnvironment/`, `Terminal/` (EmbeddedTerminalSession, фабрика,
   загрузчик node-pty), `Diagnostics/`.
+- **Диалоги (этап 5b)** — `Components/Dialogs/`: база `DialogComponent`
+  (наследник `ThemedComponent`; владеет `FitContentElement`-view и строит в нём
+  JSX-дерево примитивов через reconcile — компонент **компонует** контролы, не
+  наследуя `TUIElement`; общее поведение: ряд кнопок, стрелки, Escape →
+  `onDismiss`; цвета — `getDialogStyles(theme)` из `Styles/defaultStyles.ts`:
+  ключи `editorWidget.*`, `descriptionForeground`, `textLink.foreground`,
+  `editorWarning.foreground`, `button.*`) и наследники `ConfirmDialog`,
+  `ConfirmSaveDialog`, `AboutDialog`. Оркестрация — `Services/DialogService.ts`
+  (аналог `IDialogService`): владеет компонентами и их overlay-сессиями
+  (`pointerPolicy: "modal"`, центрирование по экрану), API —
+  `showConfirmDialog`/`showConfirmSaveDialog` (+ promise-обёртка `confirmSave`)/
+  `showAboutDialog`, `getOpen*` для тестов/оркестрации. OverlayLayer приходит
+  через late-init шов `attachHost(BodyElement)` — его зовёт владелец корневой
+  view (сейчас AppController) после её постройки.
+- **Жизненный цикл (этап 5c)** — `Services/LifecycleService.ts`:
+  `requestQuit(onQuit)` последовательно спрашивает про «грязные» элементы
+  участников через `DialogService.confirmSave` (Cancel прерывает выход; чистый
+  выход — синхронно, до первого await). Шов — интерфейс `IShutdownParticipant`
+  (`collectDirty(): IShutdownDirtyItem[]` — имя + `isStillDirty()` + `save()`
+  с overwrite): Workbench объявляет, `EditorGroupController` реализует
+  структурно, регистрирует его AppController; сам выход (teardown TUI +
+  `process.exit`) остаётся колбэком `onQuit` от владельца приложения.
 - **Статус-бар — эталонная пара Service ↔ Component** (пилот, этап 4):
   - `Services/StatusBarService.ts` — реестр записей статус-бара (аналог
     `IStatusbarService` VS Code): `addEntry(IStatusBarEntry) → IStatusBarEntryHandle`
@@ -130,7 +152,7 @@ class ButtonElement {
     соответствует ему структурно; связывание — биндинг
     `ActiveEditorStatusSourceDIToken` в `Controllers/Modules/WorkbenchModule.ts`.
     Chord-хинт публикует `KeybindingDispatcher` как обычную запись сервиса.
-- `Components/` — UI-компоненты; первый обитатель — `StatusBar/`.
+- `Components/` — UI-компоненты: `StatusBar/` (пилот) и `Dialogs/`.
 
 Зависимости слоя: Workbench → { Editor, TUIDom, Theme, Configuration, Common,
 интерфейс Backend }. Переходное правило: Controllers временно **над** Workbench

@@ -1,15 +1,19 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../../Common/GeometryPromitives.ts";
-import { TestApp } from "../../TestUtils/TestApp.ts";
-import { TUIKeyboardEvent } from "../Events/TUIKeyboardEvent.ts";
+import { Size } from "../../../Common/GeometryPromitives.ts";
+import { TestApp } from "../../../TestUtils/TestApp.ts";
+import { ThemeService } from "../../../Theme/ThemeService.ts";
+import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
+import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
+import { TUIKeyboardEvent } from "../../../TUIDom/Events/TUIKeyboardEvent.ts";
+import type { ButtonElement } from "../../../TUIDom/Widgets/ButtonElement.ts";
 
-import { ButtonElement } from "./ButtonElement.ts";
-import { ConfirmSaveDialogElement } from "./ConfirmSaveDialogElement.tsx";
+import { ConfirmSaveDialog } from "./ConfirmSaveDialog.tsx";
 
 function mount(filename = "test.ts") {
-    const dialog = new ConfirmSaveDialogElement(filename);
-    const testApp = TestApp.createWithContent(dialog, new Size(80, 24));
+    const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+    const dialog = new ConfirmSaveDialog(themeService, filename);
+    const testApp = TestApp.createWithContent(dialog.view, new Size(80, 24));
     const buttons = testApp.querySelectorAll("ButtonElement") as ButtonElement[];
     return { dialog, testApp, buttons };
 }
@@ -18,7 +22,7 @@ function sendToFocused(testApp: TestApp, key: string): void {
     testApp.focusedElement?.dispatchEvent(new TUIKeyboardEvent("keydown", { key }));
 }
 
-describe("ConfirmSaveDialogElement — focus navigation", () => {
+describe("ConfirmSaveDialog — focus navigation", () => {
     it("focusDefault focuses the Save button", () => {
         const { dialog, testApp, buttons } = mount();
         dialog.focusDefault();
@@ -41,7 +45,7 @@ describe("ConfirmSaveDialogElement — focus navigation", () => {
     });
 
     it("ArrowRight moves focus toward the last button and stops at the edge", () => {
-        const { dialog, testApp, buttons } = mount();
+        const { testApp, buttons } = mount();
         buttons[0].focus(); // Don't Save (index 0)
 
         sendToFocused(testApp, "ArrowRight");
@@ -55,7 +59,7 @@ describe("ConfirmSaveDialogElement — focus navigation", () => {
     });
 });
 
-describe("ConfirmSaveDialogElement — actions", () => {
+describe("ConfirmSaveDialog — actions", () => {
     it("Escape triggers onCancel", () => {
         const { dialog, testApp } = mount();
         const onCancel = vi.fn();
@@ -90,30 +94,30 @@ describe("ConfirmSaveDialogElement — actions", () => {
     });
 });
 
-describe("ConfirmSaveDialogElement — keydown dispatched directly to the dialog", () => {
-    it("handles ArrowLeft when the dialog itself is the event target", () => {
+describe("ConfirmSaveDialog — keydown dispatched directly to the dialog view", () => {
+    it("handles ArrowLeft when the dialog view itself is the event target", () => {
         const { dialog, testApp, buttons } = mount();
         dialog.focusDefault(); // Save (index 2)
 
-        // Dispatch on the dialog directly (target phase) rather than via the focused button.
-        dialog.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowLeft" }));
+        // Dispatch on the dialog view directly (target phase) rather than via the focused button.
+        dialog.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "ArrowLeft" }));
 
         expect(testApp.focusedElement).toBe(buttons[1]); // Cancel
     });
 
-    it("triggers onCancel on Escape dispatched directly to the dialog", () => {
+    it("triggers onCancel on Escape dispatched directly to the dialog view", () => {
         const { dialog } = mount();
         const onCancel = vi.fn();
         dialog.onCancel = onCancel;
         dialog.focusDefault();
 
-        dialog.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
+        dialog.view.dispatchEvent(new TUIKeyboardEvent("keydown", { key: "Escape" }));
 
         expect(onCancel).toHaveBeenCalledOnce();
     });
 });
 
-describe("ConfirmSaveDialogElement — filename display", () => {
+describe("ConfirmSaveDialog — filename display", () => {
     it("setFilename updates the rendered filename", () => {
         const { dialog, testApp } = mount("a.ts");
         dialog.setFilename("renamed.ts");

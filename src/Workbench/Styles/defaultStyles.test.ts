@@ -8,10 +8,8 @@ import { unthemedMenuStyles } from "../../TUIDom/Widgets/PopupMenuItemElement.ts
 import { unthemedTreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
 
 import {
-    getAboutDialogStyles,
-    getConfirmDialogStyles,
-    getConfirmSaveDialogStyles,
     getDialogButtonStyles,
+    getDialogStyles,
     getEditorStyles,
     getFileTreeStyles,
     getFindWidgetStyles,
@@ -42,19 +40,18 @@ describe("getDialogButtonStyles", () => {
 });
 
 describe("dialog and find-widget styles", () => {
-    it("getConfirmDialogStyles reuses the dialog button mapping", () => {
+    it("getDialogStyles maps the dialog window to editorWidget.*/description/link/warning keys", () => {
         const theme = makeTheme();
-        expect(getConfirmDialogStyles(theme)).toEqual({ button: getDialogButtonStyles(theme) });
-    });
 
-    it("getConfirmSaveDialogStyles reuses the dialog button mapping", () => {
-        const theme = makeTheme();
-        expect(getConfirmSaveDialogStyles(theme)).toEqual({ button: getDialogButtonStyles(theme) });
-    });
+        const styles = getDialogStyles(theme);
 
-    it("getAboutDialogStyles reuses the dialog button mapping", () => {
-        const theme = makeTheme();
-        expect(getAboutDialogStyles(theme)).toEqual({ button: getDialogButtonStyles(theme) });
+        expect(styles.bg).toBe(theme.getRequiredColor("editorWidget.background"));
+        expect(styles.fg).toBe(theme.getRequiredColor("editorWidget.foreground"));
+        expect(styles.borderFg).toBe(theme.getRequiredColor("editorWidget.border"));
+        expect(styles.descriptionFg).toBe(theme.getRequiredColor("descriptionForeground"));
+        expect(styles.warningFg).toBe(theme.getRequiredColor("editorWarning.foreground"));
+        expect(styles.linkFg).toBe(theme.getRequiredColor("textLink.foreground"));
+        expect(styles.button).toEqual(getDialogButtonStyles(theme));
     });
 
     it("getFindWidgetStyles reuses the dialog button mapping", () => {

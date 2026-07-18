@@ -6,7 +6,7 @@ import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarn
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 import type { TestApp } from "../TestUtils/TestApp.ts";
 import { flushMicrotasks } from "../TestUtils/timing.ts";
-import type { ConfirmDialogElement } from "../TUIDom/Widgets/ConfirmDialogElement.tsx";
+import { DialogServiceDIToken } from "../Workbench/Services/DialogService.ts";
 import type { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
 
@@ -83,7 +83,7 @@ describe("AppController — Save As", () => {
         h.testApp.render();
 
         // A confirm dialog appears and beta.txt is NOT overwritten yet.
-        const dialog = h.testApp.querySelector("ConfirmDialogElement") as ConfirmDialogElement | null;
+        const dialog = h.container.get(DialogServiceDIToken).getOpenConfirmDialog();
         expect(dialog).not.toBeNull();
         expect(fs.readFileSync(betaPath, "utf-8")).toBe("Beta content");
 

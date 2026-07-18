@@ -102,7 +102,7 @@ export class FindWidgetElement extends TUIElement {
 
     /**
      * Push button styles into the nav/close buttons. The buttons are never focused, so
-     * the non-focused fields drive their look. Mirrors {@link ConfirmSaveDialogElement}.
+     * the non-focused fields drive their look (same pattern as the Workbench dialogs).
      */
     public setStyles(styles: IFindWidgetStyles): void {
         for (const button of this.buttons()) {

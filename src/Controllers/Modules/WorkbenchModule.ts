@@ -5,7 +5,9 @@ import {
     EditorStatusContribution,
     EditorStatusContributionDIToken,
 } from "../../Workbench/Services/EditorStatusContribution.ts";
+import { DialogService, DialogServiceDIToken } from "../../Workbench/Services/DialogService.ts";
 import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../../Workbench/Services/KeybindingDispatcher.ts";
+import { LifecycleService, LifecycleServiceDIToken } from "../../Workbench/Services/LifecycleService.ts";
 import { StatusBarService, StatusBarServiceDIToken } from "../../Workbench/Services/StatusBarService.ts";
 import {
     TerminalEnvStatusContribution,
@@ -26,6 +28,12 @@ export const workbenchModule: ContainerModule = (container) => {
     // View-хуки (updateContextKeys, hasKeyboardCapturingOverlay) подключает владелец
     // корневого дерева — AppController.
     container.bind(KeybindingDispatcherDIToken, KeybindingDispatcher);
+    // Модальные диалоги: хост (BodyElement с overlay-слоем) прикрепляет владелец
+    // корневого дерева — AppController — через attachHost() после построения view.
+    container.bind(DialogServiceDIToken, DialogService);
+    // Shutdown-протокол: участников регистрирует владелец приложения (AppController
+    // записывает EditorGroupController), выход передаётся колбэком в requestQuit().
+    container.bind(LifecycleServiceDIToken, LifecycleService);
     container.bind(ActiveEditorStatusSourceDIToken, () => container.get(EditorGroupControllerDIToken));
     container.bind(EditorStatusContributionDIToken, EditorStatusContribution);
     container.bind(TerminalEnvStatusContributionDIToken, TerminalEnvStatusContribution);
