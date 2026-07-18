@@ -5,7 +5,7 @@ import { createAppTestHarness } from "../../TestUtils/AppTestHarness.ts";
 import { registerContextKeys } from "../ContextKeys.ts";
 import { ContextKeyServiceDIToken } from "../ContextKeyService.ts";
 import { TerminalBackendDIToken } from "../CoreTokens.ts";
-import { StatusBarControllerDIToken } from "../StatusBarController.ts";
+import { StatusBarComponentDIToken } from "../../Workbench/StatusBar/StatusBarComponent.ts";
 
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironmentService.ts";
 
@@ -30,7 +30,7 @@ describe("Terminal environment integration (context keys + status bar)", () => {
         const h = createAppTestHarness(); // AppController subscribes to env changes
         await h.controller.activate();
         const contextKeys = h.container.get(ContextKeyServiceDIToken);
-        const statusBar = h.container.get(StatusBarControllerDIToken);
+        const statusBar = h.container.get(StatusBarComponentDIToken);
         const env = h.container.get(TerminalEnvironmentServiceDIToken);
         const backend = h.container.get(TerminalBackendDIToken) as MockTerminalBackend;
         return { controller: h.controller, contextKeys, statusBar, env, backend };

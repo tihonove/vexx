@@ -6,7 +6,7 @@ import { FileTreeControllerDIToken } from "../FileTreeController.ts";
 import { InputWidgetController, InputWidgetControllerDIToken } from "../InputWidgetController.ts";
 import { PanelController, PanelControllerDIToken } from "../PanelController.ts";
 import { ProblemsController, ProblemsControllerDIToken } from "../ProblemsController.ts";
-import { StatusBarController, StatusBarControllerDIToken } from "../StatusBarController.ts";
+import { StatusBarComponent, StatusBarComponentDIToken } from "../../Workbench/StatusBar/StatusBarComponent.ts";
 import { EmbeddedTerminalSession } from "../Terminal/EmbeddedTerminalSession.ts";
 import { TerminalSessionFactoryDIToken } from "../Terminal/TerminalSessionFactory.ts";
 import { TerminalController, TerminalControllerDIToken } from "../TerminalController.ts";
@@ -19,7 +19,7 @@ import { TerminalController, TerminalControllerDIToken } from "../TerminalContro
  */
 export const controllersModule: ContainerModule = (container) => {
     container.bind(EditorGroupControllerDIToken, EditorGroupController);
-    container.bind(StatusBarControllerDIToken, StatusBarController);
+    container.bind(StatusBarComponentDIToken, StatusBarComponent);
     container.bind(DiagnosticsControllerDIToken, DiagnosticsController);
     container.bind(PanelControllerDIToken, PanelController);
     container.bind(ProblemsControllerDIToken, ProblemsController);

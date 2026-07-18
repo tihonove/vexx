@@ -1,28 +1,27 @@
-import { token } from "../Common/DiContainer.ts";
-import { DisplayLine } from "../Common/DisplayLine.ts";
-import { Disposable, type IDisposable } from "../Common/Disposable.ts";
-import { getEncodingInfo } from "../Editor/Encoding.ts";
-import { EndOfLine } from "../Editor/EndOfLine.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import type { ThemeService } from "../Theme/ThemeService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
-import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import type { StatusBarItem } from "../TUIDom/Widgets/StatusBarElement.ts";
-import { StatusBarElement } from "../TUIDom/Widgets/StatusBarElement.ts";
+import { token } from "../../Common/DiContainer.ts";
+import { DisplayLine } from "../../Common/DisplayLine.ts";
+import type { IDisposable } from "../../Common/Disposable.ts";
+import { CommandRegistryDIToken } from "../../Controllers/CommandRegistry.ts";
+import type { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
+import { LanguageServiceDIToken } from "../../Controllers/CoreTokens.ts";
+import type { EditorController } from "../../Controllers/EditorController.ts";
+import type { EditorGroupController } from "../../Controllers/EditorGroupController.ts";
+import { EditorGroupControllerDIToken } from "../../Controllers/EditorGroupController.ts";
+import type { TerminalEnvironmentService } from "../../Controllers/TerminalEnvironment/TerminalEnvironmentService.ts";
+import { TerminalEnvironmentServiceDIToken } from "../../Controllers/TerminalEnvironment/TerminalEnvironmentService.ts";
+import { getEncodingInfo } from "../../Editor/Encoding.ts";
+import { EndOfLine } from "../../Editor/EndOfLine.ts";
+import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
+import type { ThemeService } from "../../Theme/ThemeService.ts";
+import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
+import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
+import type { StatusBarItem } from "../../TUIDom/Widgets/StatusBarElement.ts";
+import { StatusBarElement } from "../../TUIDom/Widgets/StatusBarElement.ts";
+import { Component } from "../Component.ts";
 
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { LanguageServiceDIToken } from "./CoreTokens.ts";
-import type { EditorController } from "./EditorController.ts";
-import type { EditorGroupController } from "./EditorGroupController.ts";
-import { EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import type { IController } from "./IController.ts";
-import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
-import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+export const StatusBarComponentDIToken = token<StatusBarComponent>("StatusBarComponent");
 
-export const StatusBarControllerDIToken = token<StatusBarController>("StatusBarController");
-
-export class StatusBarController extends Disposable implements IController {
+export class StatusBarComponent extends Component {
     public static dependencies = [
         EditorGroupControllerDIToken,
         ThemeServiceDIToken,
@@ -49,17 +48,12 @@ export class StatusBarController extends Disposable implements IController {
         languageService: ILanguageService,
         commands: CommandRegistry,
     ) {
-        super();
+        super(themeService);
         this.editorGroupController = editorGroupController;
         this.terminalEnv = terminalEnv;
         this.languageService = languageService;
         this.commands = commands;
         this.view = new StatusBarElement();
-        this.register(
-            themeService.onThemeChange((theme) => {
-                this.applyTheme(theme);
-            }),
-        );
         this.register(
             this.terminalEnv.onDidChange(() => {
                 this.update();
@@ -77,7 +71,8 @@ export class StatusBarController extends Disposable implements IController {
         this.register({ dispose: () => this.encodingSubscription?.dispose() });
     }
 
-    public mount(): void {
+    public override mount(): void {
+        super.mount();
         // Pick up an editor that became active before this subscription existed.
         this.bindEditorListeners(this.editorGroupController.getActiveEditor());
         this.update();
@@ -110,11 +105,7 @@ export class StatusBarController extends Disposable implements IController {
             }) ?? null;
     }
 
-    public async activate(): Promise<void> {
-        // Nothing needed
-    }
-
-    private applyTheme(theme: WorkbenchTheme): void {
+    protected override applyStyles(theme: WorkbenchTheme): void {
         const bg = theme.getRequiredColor("statusBar.background");
         const fg = theme.getRequiredColor("statusBar.foreground");
         this.view.style = { fg, bg };

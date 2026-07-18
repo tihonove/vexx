@@ -1,32 +1,32 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EndOfLine } from "../Editor/EndOfLine.ts";
+import { EndOfLine } from "../../Editor/EndOfLine.ts";
 
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
-import type { CommandRegistry } from "./CommandRegistry.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
-import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
+import { CommandRegistryDIToken } from "../../Controllers/CommandRegistry.ts";
+import type { CommandRegistry } from "../../Controllers/CommandRegistry.ts";
+import { EditorGroupController, EditorGroupControllerDIToken } from "../../Controllers/EditorGroupController.ts";
+import { createTestContainer } from "../../Controllers/Modules/TestProfile.ts";
+import { StatusBarComponent, StatusBarComponentDIToken } from "./StatusBarComponent.ts";
 
-function createStatusBarController(): {
-    statusBarController: StatusBarController;
+function createStatusBarComponent(): {
+    statusBarController: StatusBarComponent;
     editorGroupController: EditorGroupController;
     commands: CommandRegistry;
 } {
     const { container } = createTestContainer();
     const editorGroupController = container.get(EditorGroupControllerDIToken);
-    const statusBarController = container.get(StatusBarControllerDIToken);
+    const statusBarController = container.get(StatusBarComponentDIToken);
     const commands = container.get(CommandRegistryDIToken);
     editorGroupController.mount();
     statusBarController.mount();
     return { statusBarController, editorGroupController, commands };
 }
 
-function itemTexts(statusBarController: StatusBarController): string[] {
+function itemTexts(statusBarController: StatusBarComponent): string[] {
     return statusBarController.view.getItems().map((item) => item.text);
 }
 
-describe("StatusBarController — encoding & EOL segments", () => {
+describe("StatusBarComponent — encoding & EOL segments", () => {
     let savedEnv: NodeJS.ProcessEnv;
 
     beforeEach(() => {
@@ -51,12 +51,12 @@ describe("StatusBarController — encoding & EOL segments", () => {
     });
 
     it("без активного редактора сегментов Encoding/EOL нет", () => {
-        const { statusBarController } = createStatusBarController();
+        const { statusBarController } = createStatusBarComponent();
         expect(itemTexts(statusBarController)).toEqual(["legacy"]);
     });
 
     it("порядок правых сегментов как в VS Code: Ln/Col · Encoding · EOL · Language", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         editorGroupController.openFile("/tmp/test-statusbar-enc-order.txt");
         statusBarController.update();
 
@@ -64,7 +64,7 @@ describe("StatusBarController — encoding & EOL segments", () => {
     });
 
     it("сегмент кодировки показывает statusLabel и трекает setEncoding без ручного update()", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         editorGroupController.openFile("/tmp/test-statusbar-enc-live.txt");
 
         editorGroupController.getActiveEditor()!.setEncoding("windows1251");
@@ -73,7 +73,7 @@ describe("StatusBarController — encoding & EOL segments", () => {
     });
 
     it("сегмент EOL трекает setEol без ручного update()", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         editorGroupController.openFile("/tmp/test-statusbar-eol-live.txt");
 
         editorGroupController.getActiveEditor()!.setEol(EndOfLine.CRLF);
@@ -83,7 +83,7 @@ describe("StatusBarController — encoding & EOL segments", () => {
     });
 
     it("клик по сегментам исполняет команды changeEncoding / changeEOL", () => {
-        const { statusBarController, editorGroupController, commands } = createStatusBarController();
+        const { statusBarController, editorGroupController, commands } = createStatusBarComponent();
         editorGroupController.openFile("/tmp/test-statusbar-enc-click.txt");
         statusBarController.update();
 
@@ -99,7 +99,7 @@ describe("StatusBarController — encoding & EOL segments", () => {
     });
 
     it("переподписывается при смене активного редактора", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         editorGroupController.openFile("/tmp/test-statusbar-enc-tab1.txt");
         const firstEditor = editorGroupController.getActiveEditor()!;
         editorGroupController.openFile("/tmp/test-statusbar-enc-tab2.txt");

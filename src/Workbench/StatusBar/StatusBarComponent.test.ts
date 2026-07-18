@@ -1,26 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { EditorElement } from "../Editor/EditorElement.ts";
+import type { EditorElement } from "../../Editor/EditorElement.ts";
 
-import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
-import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
+import { EditorGroupController, EditorGroupControllerDIToken } from "../../Controllers/EditorGroupController.ts";
+import { createTestContainer } from "../../Controllers/Modules/TestProfile.ts";
+import { StatusBarComponent, StatusBarComponentDIToken } from "./StatusBarComponent.ts";
 
-function createStatusBarController(): {
-    statusBarController: StatusBarController;
+function createStatusBarComponent(): {
+    statusBarController: StatusBarComponent;
     editorGroupController: EditorGroupController;
 } {
     const { container } = createTestContainer();
 
     const editorGroupController = container.get(EditorGroupControllerDIToken);
-    const statusBarController = container.get(StatusBarControllerDIToken);
+    const statusBarController = container.get(StatusBarComponentDIToken);
 
     editorGroupController.mount();
 
     return { statusBarController, editorGroupController };
 }
 
-describe("StatusBarController", () => {
+describe("StatusBarComponent", () => {
     let savedEnv: NodeJS.ProcessEnv;
 
     beforeEach(() => {
@@ -47,13 +47,13 @@ describe("StatusBarController", () => {
     });
 
     it("view is a StatusBarElement", () => {
-        const { statusBarController } = createStatusBarController();
+        const { statusBarController } = createStatusBarComponent();
         expect(statusBarController.view).toBeDefined();
         expect(statusBarController.view.constructor.name).toBe("StatusBarElement");
     });
 
     it("shows only the terminal-environment segment when no file is open", () => {
-        const { statusBarController } = createStatusBarController();
+        const { statusBarController } = createStatusBarComponent();
         statusBarController.mount();
 
         // Test env has no probe → legacy tier, no non-local modes.
@@ -61,7 +61,7 @@ describe("StatusBarController", () => {
     });
 
     it("shows the cursor position (right-aligned) after a file is opened", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         statusBarController.mount();
 
         editorGroupController.openFile("/tmp/test-statusbar-file.txt");
@@ -80,7 +80,7 @@ describe("StatusBarController", () => {
     });
 
     it("does not show the file name or a modified badge", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         statusBarController.mount();
 
         editorGroupController.openFile("/tmp/test-statusbar-nofile.txt");
@@ -96,7 +96,7 @@ describe("StatusBarController", () => {
     });
 
     it("omits the cursor position when there is no selection", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         statusBarController.mount();
         editorGroupController.openFile("/tmp/test-statusbar-nosel.txt");
 
@@ -114,13 +114,13 @@ describe("StatusBarController", () => {
     });
 
     it("shows the terminal tier as the first segment", () => {
-        const { statusBarController } = createStatusBarController();
+        const { statusBarController } = createStatusBarComponent();
         statusBarController.mount();
         expect(statusBarController.view.getItems()[0]).toEqual({ text: "legacy" });
     });
 
     it("updates the cursor column as text is typed", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         statusBarController.mount();
 
         editorGroupController.openFile("/tmp/test-statusbar-mod.txt");
@@ -136,7 +136,7 @@ describe("StatusBarController", () => {
     });
 
     it("shows the chord hint and clears it with null", () => {
-        const { statusBarController } = createStatusBarController();
+        const { statusBarController } = createStatusBarComponent();
         statusBarController.mount();
 
         statusBarController.setChordHint("(Ctrl+K) was pressed. Waiting for next key…");
@@ -149,7 +149,7 @@ describe("StatusBarController", () => {
     });
 
     it("keeps the chord hint alongside the cursor position", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         statusBarController.mount();
         editorGroupController.openFile("/tmp/test-statusbar-chord.txt");
 
@@ -161,7 +161,7 @@ describe("StatusBarController", () => {
     });
 
     it("tracks the cursor live without an explicit update() call", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         statusBarController.mount();
 
         editorGroupController.openFile("/tmp/test-statusbar-live.txt");

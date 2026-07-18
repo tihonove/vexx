@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import type { ILanguageService } from "../../Editor/Tokenization/ILanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../Editor/Tokenization/ILanguageService.ts";
+import { ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
 
-import { CommandRegistryDIToken } from "./CommandRegistry.ts";
-import { EditorGroupController, EditorGroupControllerDIToken } from "./EditorGroupController.ts";
-import { createTestContainer } from "./Modules/TestProfile.ts";
-import { StatusBarController, StatusBarControllerDIToken } from "./StatusBarController.ts";
-import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
+import { CommandRegistryDIToken } from "../../Controllers/CommandRegistry.ts";
+import { EditorGroupController, EditorGroupControllerDIToken } from "../../Controllers/EditorGroupController.ts";
+import { createTestContainer } from "../../Controllers/Modules/TestProfile.ts";
+import { StatusBarComponent, StatusBarComponentDIToken } from "./StatusBarComponent.ts";
+import { TerminalEnvironmentServiceDIToken } from "../../Controllers/TerminalEnvironment/TerminalEnvironmentService.ts";
 
-function createStatusBarController(languageService?: ILanguageService): {
-    statusBarController: StatusBarController;
+function createStatusBarComponent(languageService?: ILanguageService): {
+    statusBarController: StatusBarComponent;
     editorGroupController: EditorGroupController;
 } {
     const { container } = createTestContainer();
@@ -21,8 +21,8 @@ function createStatusBarController(languageService?: ILanguageService): {
     // контейнерный (NULL_LANGUAGE_SERVICE из TestProfile).
     const statusBarController =
         languageService === undefined
-            ? container.get(StatusBarControllerDIToken)
-            : new StatusBarController(
+            ? container.get(StatusBarComponentDIToken)
+            : new StatusBarComponent(
                   editorGroupController,
                   container.get(ThemeServiceDIToken),
                   container.get(TerminalEnvironmentServiceDIToken),
@@ -36,7 +36,7 @@ function createStatusBarController(languageService?: ILanguageService): {
     return { statusBarController, editorGroupController };
 }
 
-describe("StatusBarController — language badge", () => {
+describe("StatusBarComponent — language badge", () => {
     let savedEnv: NodeJS.ProcessEnv;
 
     beforeEach(() => {
@@ -61,7 +61,7 @@ describe("StatusBarController — language badge", () => {
     });
 
     it("нет беджика без активного редактора", () => {
-        const { statusBarController } = createStatusBarController();
+        const { statusBarController } = createStatusBarComponent();
         expect(statusBarController.view.getItems()).toEqual([{ text: "legacy" }]);
     });
 
@@ -71,7 +71,7 @@ describe("StatusBarController — language badge", () => {
             getLanguageIdForResource: () => undefined,
             getLanguageDisplayName: (id) => (id === "typescript" ? "TypeScript" : undefined),
         };
-        const { statusBarController, editorGroupController } = createStatusBarController(languageService);
+        const { statusBarController, editorGroupController } = createStatusBarComponent(languageService);
 
         editorGroupController.openFile("/tmp/test-statusbar-lang.ts");
         // Язык детектит сам редактор (в TestProfile — NULL-сервис → plaintext),
@@ -88,7 +88,7 @@ describe("StatusBarController — language badge", () => {
     });
 
     it("откатывается на сырой language id без display name", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
 
         editorGroupController.openFile("/tmp/test-statusbar-rawid.txt");
         statusBarController.update();
@@ -97,7 +97,7 @@ describe("StatusBarController — language badge", () => {
     });
 
     it("обновляется на setLanguage без ручного update()", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         editorGroupController.openFile("/tmp/test-statusbar-setlang.txt");
 
         editorGroupController.getActiveEditor()!.setLanguage("markdown");
@@ -106,7 +106,7 @@ describe("StatusBarController — language badge", () => {
     });
 
     it("переподписывается при смене активного редактора", () => {
-        const { statusBarController, editorGroupController } = createStatusBarController();
+        const { statusBarController, editorGroupController } = createStatusBarComponent();
         editorGroupController.openFile("/tmp/test-statusbar-tab1.txt");
         const firstEditor = editorGroupController.getActiveEditor()!;
         editorGroupController.openFile("/tmp/test-statusbar-tab2.txt");

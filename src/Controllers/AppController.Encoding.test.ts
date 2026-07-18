@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { EndOfLine } from "../Editor/EndOfLine.ts";
 
-import { StatusBarControllerDIToken } from "./StatusBarController.ts";
+import { StatusBarComponentDIToken } from "../Workbench/StatusBar/StatusBarComponent.ts";
 
 import { createAppTestHarness, type IAppHarness } from "../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
@@ -90,7 +90,7 @@ describe("AppController — Change File Encoding", () => {
 
         expect(editor.encoding).toBe("windows1251");
         expect(editor.getText()).toBe("Привет, мир!\n");
-        const items = h.container.get(StatusBarControllerDIToken).view.getItems().map((item) => item.text);
+        const items = h.container.get(StatusBarComponentDIToken).view.getItems().map((item) => item.text);
         expect(items).toContain("Windows 1251");
     });
 
@@ -228,7 +228,7 @@ describe("AppController — Change End of Line Sequence", () => {
 
         const editor = h.activeEditor();
         expect(editor.eol).toBe(2); // EndOfLine.CRLF
-        const items = h.container.get(StatusBarControllerDIToken).view.getItems().map((item) => item.text);
+        const items = h.container.get(StatusBarComponentDIToken).view.getItems().map((item) => item.text);
         expect(items).toContain("CRLF");
     });
 

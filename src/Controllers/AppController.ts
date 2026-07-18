@@ -194,8 +194,8 @@ import { ProblemsController, ProblemsControllerDIToken } from "./ProblemsControl
 import { TerminalController, TerminalControllerDIToken } from "./TerminalController.ts";
 import { QuickInputController } from "./QuickInputController.ts";
 import { QuickOpenController } from "./QuickOpenController.ts";
-import { StatusBarControllerDIToken } from "./StatusBarController.ts";
-import { StatusBarController } from "./StatusBarController.ts";
+import { StatusBarComponentDIToken } from "../Workbench/StatusBar/StatusBarComponent.ts";
+import { StatusBarComponent } from "../Workbench/StatusBar/StatusBarComponent.ts";
 import type { TerminalEnvironmentService } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "./TerminalEnvironment/TerminalEnvironmentService.ts";
 import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "./Workspace/UndoRedoService.ts";
@@ -382,7 +382,7 @@ export class AppController extends Disposable implements IController {
         CommandRegistryDIToken,
         KeybindingRegistryDIToken,
         ServiceAccessorDIToken,
-        StatusBarControllerDIToken,
+        StatusBarComponentDIToken,
         ThemeServiceDIToken,
         ContextKeyServiceDIToken,
         InputWidgetControllerDIToken,
@@ -411,7 +411,7 @@ export class AppController extends Disposable implements IController {
     private quickInputController: QuickInputController;
     private completionController: CompletionController;
     private findController: FindController;
-    private statusBarController: StatusBarController;
+    private statusBarController: StatusBarComponent;
     private diagnosticsController: DiagnosticsController;
     private panelController: PanelController;
     private problemsController: ProblemsController;
@@ -439,7 +439,7 @@ export class AppController extends Disposable implements IController {
         commands: CommandRegistry,
         keybindings: KeybindingRegistry,
         accessor: ServiceAccessor,
-        statusBarController: StatusBarController,
+        statusBarController: StatusBarComponent,
         themeService: ThemeService,
         contextKeys: ContextKeyService,
         inputWidgetController: InputWidgetController,
