@@ -9,7 +9,7 @@ import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { RenderContext, TUIElement } from "../../TUIElement.ts";
 
-import { TerminalViewElement } from "./TerminalViewElement.ts";
+import { TerminalViewElement, unthemedTerminalViewStyles } from "./TerminalViewElement.ts";
 
 // Записывающий контекст — ловим точные CellPatch'и, чтобы проверить width/style/цвета,
 // которые MockTerminalBackend наружу не отдаёт.
@@ -62,8 +62,7 @@ describe("TerminalViewElement — render", () => {
         const surface = new FakeTerminalSurface();
         surface.setGrid(["x"]); // ячейка с DEFAULT_COLOR fg/bg
         const el = new TerminalViewElement(surface);
-        el.defaultFg = FG;
-        el.defaultBg = BG;
+        el.setStyles({ defaultFg: FG, defaultBg: BG });
         const patch = render(el, 1, 1).patchAt(0, 0);
 
         expect(patch?.fg).toBe(FG);
@@ -75,7 +74,7 @@ describe("TerminalViewElement — render", () => {
         const surface = new FakeTerminalSurface();
         surface.setCell(0, 0, "x", { fg: explicitFg });
         const el = new TerminalViewElement(surface);
-        el.defaultFg = FG;
+        el.setStyles({ defaultFg: FG, defaultBg: unthemedTerminalViewStyles.defaultBg });
         const patch = render(el, 1, 1).patchAt(0, 0);
 
         expect(patch?.fg).toBe(explicitFg);

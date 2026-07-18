@@ -8,7 +8,7 @@ import { TestApp } from "../../TestUtils/TestApp.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
-import { TreeViewElement } from "./TreeViewElement.ts";
+import { TreeViewElement, unthemedTreeViewStyles } from "./TreeViewElement.ts";
 
 interface TestNode {
     id: string;
@@ -109,8 +109,7 @@ describe("TreeViewElement git-status decorations", () => {
 
         it("yields to the selection foreground on the focused cursor row", async () => {
             const tree = new TreeViewElement(createProvider([{ id: "a", label: "Alpha", labelColor: GIT_MODIFIED }]));
-            tree.activeSelectionBg = ACTIVE_BG;
-            tree.activeSelectionFg = ACTIVE_FG;
+            tree.setStyles({ ...unthemedTreeViewStyles, activeSelectionBg: ACTIVE_BG, activeSelectionFg: ACTIVE_FG });
             await tree.refresh();
             const app = TestApp.createWithContent(tree, new Size(14, 1));
             tree.focus();
@@ -176,7 +175,7 @@ describe("TreeViewElement git-status decorations", () => {
             const tree = new TreeViewElement(
                 createProvider([{ id: "a", label: "Alpha", badge: "M", symlink: true }]),
             );
-            tree.symlinkFg = packRgb(120, 120, 120);
+            tree.setStyles({ ...unthemedTreeViewStyles, symlinkFg: packRgb(120, 120, 120) });
             await tree.refresh();
 
             const width = 14;

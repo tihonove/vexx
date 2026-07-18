@@ -6,7 +6,7 @@ import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
-import { TreeViewElement } from "./TreeViewElement.ts";
+import { TreeViewElement, unthemedTreeViewStyles } from "./TreeViewElement.ts";
 
 // ─── Test data ───
 
@@ -52,12 +52,15 @@ function createTree(
     viewportSize: Size = new Size(20, 5),
 ): { tree: TreeViewElement<TestNode>; app: TestApp } {
     const tree = new TreeViewElement(createProvider(roots));
-    tree.activeSelectionBg = ACTIVE_BG;
-    tree.activeSelectionFg = ACTIVE_FG;
-    tree.inactiveSelectionBg = INACTIVE_BG;
-    tree.inactiveSelectionFg = INACTIVE_FG;
-    tree.hoverBg = HOVER_BG;
-    tree.cutFg = CUT_FG;
+    tree.setStyles({
+        ...unthemedTreeViewStyles,
+        activeSelectionBg: ACTIVE_BG,
+        activeSelectionFg: ACTIVE_FG,
+        inactiveSelectionBg: INACTIVE_BG,
+        inactiveSelectionFg: INACTIVE_FG,
+        hoverBg: HOVER_BG,
+        cutFg: CUT_FG,
+    });
     const app = TestApp.createWithContent(tree, viewportSize);
     return { tree, app };
 }

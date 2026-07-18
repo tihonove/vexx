@@ -16,6 +16,7 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { EditorGroupElement } from "../TUIDom/Widgets/EditorGroupElement.ts";
 import type { TabInfo } from "../TUIDom/Widgets/EditorTabStripElement.ts";
+import { getTabStripStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "./CoreTokens.ts";
 import { EditorController } from "./EditorController.ts";
@@ -465,13 +466,7 @@ export class EditorGroupController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        const strip = this.view.tabStrip;
-        strip.activeFg = theme.getRequiredColor("tab.activeForeground");
-        strip.activeBg = theme.getRequiredColor("tab.activeBackground");
-        strip.inactiveFg = theme.getRequiredColor("tab.inactiveForeground");
-        strip.inactiveBg = theme.getRequiredColor("tab.inactiveBackground");
-        strip.stripBg = theme.getRequiredColor("editorGroupHeader.tabsBackground");
-        strip.updateItemStyles();
+        this.view.tabStrip.setStyles(getTabStripStyles(theme));
 
         this.view.style = {
             fg: theme.getRequiredColor("editor.foreground"),

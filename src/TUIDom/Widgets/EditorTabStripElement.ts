@@ -5,13 +5,24 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 import { EditorTabItemElement } from "./EditorTabItemElement.ts";
 import { HFlexElement, hflexFill, hflexFit } from "./HFlexElement.ts";
 
-// ─── Default Colors ───
+// ─── Styles ───
 
-const ACTIVE_TAB_FG = packRgb(255, 255, 255);
-const ACTIVE_TAB_BG = packRgb(30, 30, 30);
-const INACTIVE_TAB_FG = packRgb(150, 150, 150);
-const INACTIVE_TAB_BG = packRgb(45, 45, 45);
-const STRIP_BG = packRgb(37, 37, 38);
+export interface ITabStripStyles {
+    readonly activeFg: number;
+    readonly activeBg: number;
+    readonly inactiveFg: number;
+    readonly inactiveBg: number;
+    readonly stripBg: number;
+}
+
+// Defaults preserve the historical look; controllers override them via setStyles.
+export const unthemedTabStripStyles: ITabStripStyles = {
+    activeFg: packRgb(255, 255, 255),
+    activeBg: packRgb(30, 30, 30),
+    inactiveFg: packRgb(150, 150, 150),
+    inactiveBg: packRgb(45, 45, 45),
+    stripBg: packRgb(37, 37, 38),
+};
 
 // ─── Tab Info ───
 
@@ -60,11 +71,7 @@ export class EditorTabStripElement extends TUIElement {
     private filler: TabStripFillerElement;
     private activeIndexValue = -1;
 
-    public activeFg: number = ACTIVE_TAB_FG;
-    public activeBg: number = ACTIVE_TAB_BG;
-    public inactiveFg: number = INACTIVE_TAB_FG;
-    public inactiveBg: number = INACTIVE_TAB_BG;
-    public stripBg: number = STRIP_BG;
+    private styles: ITabStripStyles = unthemedTabStripStyles;
 
     public onTabActivate: ((index: number) => void) | null = null;
     public onTabClose: ((index: number) => void) | null = null;
@@ -73,9 +80,17 @@ export class EditorTabStripElement extends TUIElement {
         super();
         this.hflex = new HFlexElement();
         this.filler = new TabStripFillerElement();
-        this.filler.style = { fg: DEFAULT_COLOR, bg: this.stripBg };
+        this.filler.style = { fg: DEFAULT_COLOR, bg: this.styles.stripBg };
         this.hflex.addChild(this.filler, { width: hflexFill(), height: 1 });
         this.hflex.setParent(this);
+    }
+
+    /** Пробрасывает цвета в filler и уже созданные вкладки. */
+    public setStyles(styles: ITabStripStyles): void {
+        this.styles = styles;
+        this.filler.style = { fg: DEFAULT_COLOR, bg: styles.stripBg };
+        this.updateItemStyles();
+        this.markDirty();
     }
 
     public get activeIndex(): number {
@@ -133,7 +148,7 @@ export class EditorTabStripElement extends TUIElement {
             children.push(item);
         }
 
-        this.filler.style = { fg: DEFAULT_COLOR, bg: this.stripBg };
+        this.filler.style = { fg: DEFAULT_COLOR, bg: this.styles.stripBg };
         this.filler.layoutStyle = { width: hflexFill(), height: 1 };
         children.push(this.filler);
 
@@ -144,8 +159,8 @@ export class EditorTabStripElement extends TUIElement {
         for (let i = 0; i < this.itemElements.length; i++) {
             const isActive = i === this.activeIndexValue;
             this.itemElements[i].style = {
-                fg: isActive ? this.activeFg : this.inactiveFg,
-                bg: isActive ? this.activeBg : this.inactiveBg,
+                fg: isActive ? this.styles.activeFg : this.styles.inactiveFg,
+                bg: isActive ? this.styles.activeBg : this.styles.inactiveBg,
             };
         }
     }

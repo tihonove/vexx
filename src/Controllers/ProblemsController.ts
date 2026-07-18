@@ -7,9 +7,8 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
-
-import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
+import { getProblemsTreeStyles, getScrollBarStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { MarkerServiceDIToken } from "./CoreTokens.ts";
 import { type ProblemNode, ProblemsTreeDataProvider } from "./Diagnostics/ProblemsTreeDataProvider.ts";
@@ -125,17 +124,12 @@ export class ProblemsController extends Disposable {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        this.tree.activeSelectionBg = theme.getRequiredColor("list.activeSelectionBackground");
-        this.tree.activeSelectionFg = theme.getRequiredColor("list.activeSelectionForeground");
-        this.tree.inactiveSelectionBg = theme.getRequiredColor("list.inactiveSelectionBackground");
-        this.tree.inactiveSelectionFg = theme.getRequiredColor("list.inactiveSelectionForeground");
-        this.tree.hoverBg = theme.getRequiredColor("list.hoverBackground");
-        this.tree.hoverFg = theme.getColor("list.hoverForeground");
+        this.tree.setStyles(getProblemsTreeStyles(theme));
         this.tree.style = {
             fg: theme.getRequiredColor("editor.foreground"),
             bg: theme.getRequiredColor("panel.background"),
         };
-        applyScrollBarTheme(this.treeContent, theme, "panel.background");
+        this.treeContent.setStyles(getScrollBarStyles(theme, "panel.background"));
         this.provider.severityColors = {
             error: theme.getRequiredColor("editorError.foreground"),
             warning: theme.getRequiredColor("editorWarning.foreground"),

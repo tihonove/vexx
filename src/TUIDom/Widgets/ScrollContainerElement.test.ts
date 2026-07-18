@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../Backend/MockTerminalBackend.ts";
 import { BoxConstraints, Offset, Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { TerminalScreen } from "../../Rendering/TerminalScreen.ts";
 import { expectScreen, screen } from "../../TestUtils/expectScreen.ts";
 import { RenderContext } from "../TUIElement.ts";
 
 import { ScrollableElement, type ScrollViewportInfo } from "./ScrollableElement.ts";
-import { ScrollBarDecorator } from "./ScrollContainerElement.ts";
+import { ScrollBarDecorator, unthemedScrollBarStyles } from "./ScrollContainerElement.ts";
 import { ScrollViewport } from "./ScrollViewport.ts";
 import { TextBlockElement } from "./TextBlockElement.ts";
 
@@ -380,5 +381,29 @@ describe("ScrollBarDecorator horizontal scrollbar", () => {
         // width - 1 for vertical scrollbar, height - 1 for horizontal scrollbar
         expect(widget.layoutSize.width).toBe(9);
         expect(widget.layoutSize.height).toBe(4);
+    });
+});
+
+describe("ScrollBarDecorator setStyles", () => {
+    it("renders the bar with the injected thumb/track/background colours", () => {
+        const { container, termScreen, backend } = createScrollContainer(12, 5, 20);
+        const styles = { thumb: packRgb(1, 2, 3), track: packRgb(4, 5, 6), background: packRgb(7, 8, 9) };
+        container.setStyles(styles);
+
+        renderContainer(container, termScreen, backend);
+
+        // scrollTop = 0: thumb hugs the top of the track, the bottom row is track.
+        expect(backend.getFgAt(new Point(11, 0))).toBe(styles.thumb);
+        expect(backend.getFgAt(new Point(11, 4))).toBe(styles.track);
+        expect(backend.getBgAt(new Point(11, 4))).toBe(styles.background);
+    });
+
+    it("uses the unthemed defaults until styles are injected", () => {
+        const { container, termScreen, backend } = createScrollContainer(12, 5, 20);
+
+        renderContainer(container, termScreen, backend);
+
+        expect(backend.getFgAt(new Point(11, 0))).toBe(unthemedScrollBarStyles.thumb);
+        expect(backend.getFgAt(new Point(11, 4))).toBe(unthemedScrollBarStyles.track);
     });
 });

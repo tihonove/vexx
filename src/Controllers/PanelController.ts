@@ -4,6 +4,7 @@ import type { ThemeService } from "../Theme/ThemeService.ts";
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import { PanelContainerElement } from "../TUIDom/Widgets/PanelContainerElement.ts";
+import { getPanelContainerStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import type { IController } from "./IController.ts";
 
@@ -80,10 +81,6 @@ export class PanelController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
-        this.view.background = theme.getRequiredColor("panel.background");
-        // Tab labels are drawn dim; the active tab is shown by its underline.
-        this.view.titleForeground = theme.getRequiredColor("panelTitle.inactiveForeground");
-        this.view.borderColor = theme.getRequiredColor("panel.border");
-        this.view.markDirty();
+        this.view.setStyles(getPanelContainerStyles(theme));
     }
 }

@@ -7,7 +7,7 @@ import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
 
 import type { TabInfo } from "./EditorTabStripElement.ts";
-import { EditorTabStripElement } from "./EditorTabStripElement.ts";
+import { EditorTabStripElement, unthemedTabStripStyles } from "./EditorTabStripElement.ts";
 
 const tsIcon = getFileIcon("file.ts");
 const jsIcon = getFileIcon("app.js");
@@ -63,10 +63,13 @@ describe("EditorTabStripElement", () => {
     describe("active index", () => {
         it("applies active styles to the active tab", () => {
             const strip = new EditorTabStripElement();
-            strip.activeFg = packRgb(255, 255, 255);
-            strip.activeBg = packRgb(30, 30, 30);
-            strip.inactiveFg = packRgb(100, 100, 100);
-            strip.inactiveBg = packRgb(50, 50, 50);
+            strip.setStyles({
+                ...unthemedTabStripStyles,
+                activeFg: packRgb(255, 255, 255),
+                activeBg: packRgb(30, 30, 30),
+                inactiveFg: packRgb(100, 100, 100),
+                inactiveBg: packRgb(50, 50, 50),
+            });
 
             strip.setTabs(makeTabs("a.ts", "b.ts"));
             strip.activeIndex = 0;
@@ -86,8 +89,8 @@ describe("EditorTabStripElement", () => {
             strip.activeIndex = 1;
 
             const items = strip.getItemElements();
-            expect(items[0].style.fg).toBe(strip.inactiveFg);
-            expect(items[1].style.fg).toBe(strip.activeFg);
+            expect(items[0].style.fg).toBe(unthemedTabStripStyles.inactiveFg);
+            expect(items[1].style.fg).toBe(unthemedTabStripStyles.activeFg);
         });
     });
 

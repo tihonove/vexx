@@ -7,7 +7,7 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { HFlexElement, hflexFill, hflexFixed } from "./HFlexElement.ts";
 import type { ITreeDataProvider, ITreeItem } from "./ITreeDataProvider.ts";
-import { TreeViewElement } from "./TreeViewElement.ts";
+import { TreeViewElement, unthemedTreeViewStyles } from "./TreeViewElement.ts";
 
 export const meta: StoryMeta = {
     title: "TreeViewElement",
@@ -124,11 +124,14 @@ export function focusSwitch(ctx: StoryContext): void {
     ctx.body.title = "TreeView Focus Demo — Tab to switch focus";
 
     const tree = new TreeViewElement(createDemoProvider());
-    tree.activeSelectionBg = packRgb(4, 57, 94);
-    tree.activeSelectionFg = packRgb(255, 255, 255);
-    tree.inactiveSelectionBg = packRgb(55, 55, 61);
-    tree.inactiveSelectionFg = packRgb(204, 204, 204);
-    tree.hoverBg = packRgb(42, 45, 46);
+    tree.setStyles({
+        ...unthemedTreeViewStyles,
+        activeSelectionBg: packRgb(4, 57, 94),
+        activeSelectionFg: packRgb(255, 255, 255),
+        inactiveSelectionBg: packRgb(55, 55, 61),
+        inactiveSelectionFg: packRgb(204, 204, 204),
+        hoverBg: packRgb(42, 45, 46),
+    });
 
     const rightPanel = new FocusPanel("Right Panel");
 

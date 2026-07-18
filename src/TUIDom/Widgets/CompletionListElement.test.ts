@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import { Point, Size } from "../../Common/GeometryPromitives.ts";
+import { packRgb } from "../../Rendering/ColorUtils.ts";
 import { renderElement } from "../../TestUtils/renderElement.ts";
 import { TUIMouseEvent } from "../Events/TUIMouseEvent.ts";
 
 import type { CompletionListItem } from "./CompletionListElement.ts";
-import { CompletionListElement } from "./CompletionListElement.ts";
+import { CompletionListElement, unthemedCompletionListStyles } from "./CompletionListElement.ts";
 
 function makeWidget(items: CompletionListItem[]): CompletionListElement {
     const w = new CompletionListElement();
@@ -217,5 +218,22 @@ describe("CompletionListElement", () => {
         const w = makeWidget(ITEMS); // onAccept === null
         expect(() => mouse(w, "click", 1)).not.toThrow();
         expect(w.selectedIndex).toBe(0);
+    });
+});
+
+describe("CompletionListElement — setStyles", () => {
+    it("перекрашивает выбранный ряд и фон инжектированными цветами", () => {
+        const w = makeWidget(ITEMS);
+        w.setStyles({
+            ...unthemedCompletionListStyles,
+            activeSelectionBg: packRgb(9, 9, 9),
+            bg: packRgb(1, 2, 3),
+        });
+
+        const backend = renderElement(w, w.getMaxIntrinsicWidth(0), w.getMaxIntrinsicHeight(0));
+
+        // Ряд 1 — выбранный (index 0), ряд 2 — обычный.
+        expect(backend.getBgAt(new Point(5, 1))).toBe(packRgb(9, 9, 9));
+        expect(backend.getBgAt(new Point(5, 2))).toBe(packRgb(1, 2, 3));
     });
 });

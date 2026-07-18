@@ -1,11 +1,18 @@
+import type { IWorkbenchColors } from "../../Theme/IWorkbenchColors.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { IAboutDialogStyles } from "../../TUIDom/Widgets/AboutDialogElement.tsx";
 import type { IButtonStyles } from "../../TUIDom/Widgets/ButtonElement.ts";
 import type { IConfirmDialogStyles } from "../../TUIDom/Widgets/ConfirmDialogElement.tsx";
 import type { IConfirmSaveDialogStyles } from "../../TUIDom/Widgets/ConfirmSaveDialogElement.tsx";
+import type { ITabStripStyles } from "../../TUIDom/Widgets/EditorTabStripElement.ts";
 import type { IFindWidgetStyles } from "../../TUIDom/Widgets/FindWidgetElement.ts";
+import type { IPanelContainerStyles } from "../../TUIDom/Widgets/PanelContainerElement.ts";
 import type { IMenuStyles } from "../../TUIDom/Widgets/PopupMenuItemElement.tsx";
 import { unthemedMenuStyles } from "../../TUIDom/Widgets/PopupMenuItemElement.tsx";
+import type { IScrollBarStyles } from "../../TUIDom/Widgets/ScrollContainerElement.ts";
+import type { ITerminalViewStyles } from "../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
+import type { ITreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
+import { unthemedTreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
 
 /**
  * Мост тема → стили контролов TUIDom: единственное место, где ключи темы
@@ -60,5 +67,86 @@ export function getMenuStyles(theme: WorkbenchTheme): IMenuStyles {
         shortcutFg: unthemedMenuStyles.shortcutFg,
         borderFg: theme.getRequiredColor("menu.border"),
         separatorFg: theme.getRequiredColor("menu.separatorBackground"),
+    };
+}
+
+/** Общая для деревьев часть `list.*`: выделение/hover как в VS Code list. */
+function getListSelectionStyles(theme: WorkbenchTheme) {
+    return {
+        activeSelectionBg: theme.getRequiredColor("list.activeSelectionBackground"),
+        activeSelectionFg: theme.getRequiredColor("list.activeSelectionForeground"),
+        inactiveSelectionBg: theme.getRequiredColor("list.inactiveSelectionBackground"),
+        inactiveSelectionFg: theme.getRequiredColor("list.inactiveSelectionForeground"),
+        hoverBg: theme.getRequiredColor("list.hoverBackground"),
+        hoverFg: theme.getColor("list.hoverForeground"),
+    };
+}
+
+/**
+ * Дерево файлов (Explorer): помимо выделения темизирует приглушение
+ * «вырезанных» строк и стрелку симлинка (`list.deemphasizedForeground`).
+ */
+export function getFileTreeStyles(theme: WorkbenchTheme): ITreeViewStyles {
+    return {
+        ...getListSelectionStyles(theme),
+        cutFg: theme.getRequiredColor("list.deemphasizedForeground"),
+        symlinkFg: theme.getRequiredColor("list.deemphasizedForeground"),
+    };
+}
+
+/**
+ * Дерево Problems: cut/symlink-декораций у него нет, эти цвета остаются
+ * unthemed-дефолтами (исторически ProblemsController их не задавал).
+ */
+export function getProblemsTreeStyles(theme: WorkbenchTheme): ITreeViewStyles {
+    return {
+        ...getListSelectionStyles(theme),
+        cutFg: unthemedTreeViewStyles.cutFg,
+        symlinkFg: unthemedTreeViewStyles.symlinkFg,
+    };
+}
+
+/**
+ * Скроллбары поверх виджета-хозяина. `backgroundKey` — собственный фон хозяина
+ * (`editor.background`, `panel.background`, …): скроллбар живёт на выделенной
+ * строке/колонке, куда ребёнок не рисует, и обязан сам залить её фоном, иначе
+ * просвечивает фон терминала.
+ */
+export function getScrollBarStyles(theme: WorkbenchTheme, backgroundKey: keyof IWorkbenchColors): IScrollBarStyles {
+    return {
+        thumb: theme.getRequiredColor("scrollbarSlider.background"),
+        track: theme.getRequiredColor("scrollbar.background"),
+        background: theme.getRequiredColor(backgroundKey),
+    };
+}
+
+/** Полоса вкладок редакторной группы: `tab.*` + фон самой полосы. */
+export function getTabStripStyles(theme: WorkbenchTheme): ITabStripStyles {
+    return {
+        activeFg: theme.getRequiredColor("tab.activeForeground"),
+        activeBg: theme.getRequiredColor("tab.activeBackground"),
+        inactiveFg: theme.getRequiredColor("tab.inactiveForeground"),
+        inactiveBg: theme.getRequiredColor("tab.inactiveBackground"),
+        stripBg: theme.getRequiredColor("editorGroupHeader.tabsBackground"),
+    };
+}
+
+/**
+ * Встроенный терминал: `terminal.*`, с фоллбэком на панель/редактор для тем
+ * без терминальных цветов (маппинг 1:1 из бывшего TerminalController.applyThemeToWidget).
+ */
+export function getTerminalViewStyles(theme: WorkbenchTheme): ITerminalViewStyles {
+    return {
+        defaultBg: theme.getColor("terminal.background") ?? theme.getRequiredColor("panel.background"),
+        defaultFg: theme.getColor("terminal.foreground") ?? theme.getRequiredColor("editor.foreground"),
+    };
+}
+
+/** Нижняя панель (Problems/Terminal): фон, приглушённые заголовки вкладок, рамка. */
+export function getPanelContainerStyles(theme: WorkbenchTheme): IPanelContainerStyles {
+    return {
+        background: theme.getRequiredColor("panel.background"),
+        titleForeground: theme.getRequiredColor("panelTitle.inactiveForeground"),
+        borderColor: theme.getRequiredColor("panel.border"),
     };
 }

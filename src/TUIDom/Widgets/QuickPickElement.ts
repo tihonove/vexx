@@ -9,22 +9,44 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { InputElement } from "./InputElement.ts";
 
-// ─── Colors ─────────────────────────────────────────────────────────────────
-const BORDER_FG = packRgb(83, 83, 83);
-const BG = packRgb(37, 37, 38);
-const FG = packRgb(204, 204, 204);
-const ACTIVE_SELECTION_BG = packRgb(4, 57, 94);
-const ACTIVE_SELECTION_FG = packRgb(255, 255, 255);
-const MATCH_FG = packRgb(100, 200, 255);
-const DESCRIPTION_FG = packRgb(125, 125, 125);
-const BADGE_FG = packRgb(150, 190, 100);
-const SHORTCUT_FG = packRgb(128, 128, 128);
-const HINT_FG = packRgb(100, 150, 200);
-const TITLE_FG = packRgb(230, 230, 230);
-const PROMPT_FG = packRgb(140, 140, 140);
-const VALIDATION_ERROR_FG = packRgb(240, 100, 90);
-const VALIDATION_WARNING_FG = packRgb(255, 200, 0);
-const VALIDATION_INFO_FG = packRgb(100, 150, 200);
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
+export interface IQuickPickStyles {
+    readonly borderFg: number;
+    readonly bg: number;
+    readonly fg: number;
+    readonly activeSelectionBg: number;
+    readonly activeSelectionFg: number;
+    readonly matchFg: number;
+    readonly descriptionFg: number;
+    readonly badgeFg: number;
+    readonly shortcutFg: number;
+    readonly hintFg: number;
+    readonly titleFg: number;
+    readonly promptFg: number;
+    readonly validationErrorFg: number;
+    readonly validationWarningFg: number;
+    readonly validationInfoFg: number;
+}
+
+// Текущая (нетемизированная) палитра пикера; темизированных call-sites пока нет.
+export const unthemedQuickPickStyles: IQuickPickStyles = {
+    borderFg: packRgb(83, 83, 83),
+    bg: packRgb(37, 37, 38),
+    fg: packRgb(204, 204, 204),
+    activeSelectionBg: packRgb(4, 57, 94),
+    activeSelectionFg: packRgb(255, 255, 255),
+    matchFg: packRgb(100, 200, 255),
+    descriptionFg: packRgb(125, 125, 125),
+    badgeFg: packRgb(150, 190, 100),
+    shortcutFg: packRgb(128, 128, 128),
+    hintFg: packRgb(100, 150, 200),
+    titleFg: packRgb(230, 230, 230),
+    promptFg: packRgb(140, 140, 140),
+    validationErrorFg: packRgb(240, 100, 90),
+    validationWarningFg: packRgb(255, 200, 0),
+    validationInfoFg: packRgb(100, 150, 200),
+};
 
 // ─── Public types ────────────────────────────────────────────────────────────
 
@@ -104,10 +126,7 @@ export class QuickPickElement extends TUIElement {
      */
     public preferredWidth = 60;
 
-    /** Colours exposed for theming. */
-    public activeSelectionBg: number = ACTIVE_SELECTION_BG;
-    public activeSelectionFg: number = ACTIVE_SELECTION_FG;
-    public matchFg: number = MATCH_FG;
+    private styles: IQuickPickStyles = unthemedQuickPickStyles;
 
     public onQueryChange: ((query: string) => void) | null = null;
     public onAccept: ((item: QuickPickItem, index: number) => void) | null = null;
@@ -292,6 +311,11 @@ export class QuickPickElement extends TUIElement {
         this.inputElement.focus();
     }
 
+    public setStyles(styles: IQuickPickStyles): void {
+        this.styles = styles;
+        this.markDirty();
+    }
+
     // ─── Layout ─────────────────────────────────────────────────────────────
 
     private get visibleItemCount(): number {
@@ -306,14 +330,14 @@ export class QuickPickElement extends TUIElement {
         if (this.validationMessage !== null) {
             const fg =
                 this.validationSeverity === "warning"
-                    ? VALIDATION_WARNING_FG
+                    ? this.styles.validationWarningFg
                     : this.validationSeverity === "info"
-                      ? VALIDATION_INFO_FG
-                      : VALIDATION_ERROR_FG;
+                      ? this.styles.validationInfoFg
+                      : this.styles.validationErrorFg;
             return { text: this.validationMessage, fg };
         }
         if (this.prompt !== undefined) {
-            return { text: this.prompt, fg: PROMPT_FG };
+            return { text: this.prompt, fg: this.styles.promptFg };
         }
         return null;
     }
@@ -388,7 +412,7 @@ export class QuickPickElement extends TUIElement {
         // The separator between the input area and the list is a T-connector row
         // (├───┤); item rows re-draw their own side borders under the row bg.
         const separators = hasItems ? [bodyTop] : undefined;
-        context.drawBox(0, 0, w, h, { fg: BORDER_FG, bg: BG, fill: true, separators });
+        context.drawBox(0, 0, w, h, { fg: this.styles.borderFg, bg: this.styles.bg, fill: true, separators });
 
         // ── Top border title (optional, centered as ┤ title ├) ────────────────
         if (this.title !== undefined && this.title !== "") {
@@ -424,9 +448,9 @@ export class QuickPickElement extends TUIElement {
         // Need room for the two caps plus the border corners.
         if (labelWidth + 4 > w) return;
         const startX = Math.max(2, Math.floor((w - labelWidth) / 2));
-        context.setCell(startX - 1, 0, { char: "┤", fg: BORDER_FG, bg: BG });
-        context.drawText(startX, 0, label, { fg: TITLE_FG, bg: BG });
-        context.setCell(startX + labelWidth, 0, { char: "├", fg: BORDER_FG, bg: BG });
+        context.setCell(startX - 1, 0, { char: "┤", fg: this.styles.borderFg, bg: this.styles.bg });
+        context.drawText(startX, 0, label, { fg: this.styles.titleFg, bg: this.styles.bg });
+        context.setCell(startX + labelWidth, 0, { char: "├", fg: this.styles.borderFg, bg: this.styles.bg });
     }
 
     /** Draws the prompt / validation message row under the input. */
@@ -437,21 +461,21 @@ export class QuickPickElement extends TUIElement {
         message: { text: string; fg: number },
     ): void {
         for (let x = 0; x < w; x++) {
-            context.setCell(x, rowY, { char: " ", fg: message.fg, bg: BG });
+            context.setCell(x, rowY, { char: " ", fg: message.fg, bg: this.styles.bg });
         }
-        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: BG });
+        context.setCell(0, rowY, { char: "│", fg: this.styles.borderFg, bg: this.styles.bg });
+        context.setCell(w - 1, rowY, { char: "│", fg: this.styles.borderFg, bg: this.styles.bg });
         const avail = Math.max(0, w - 3);
         const text =
             new DisplayLine(message.text).displayWidth <= avail ? message.text : truncateEnd(message.text, avail);
-        context.drawText(2, rowY, text, { fg: message.fg, bg: BG }, { maxWidth: avail });
+        context.drawText(2, rowY, text, { fg: message.fg, bg: this.styles.bg }, { maxWidth: avail });
     }
 
     private renderItemRow(context: RenderContext, w: number, rowY: number, itemIndex: number, hasIcons: boolean): void {
         const item = this.itemsValue[itemIndex];
         const isSelected = itemIndex === this.selectedIndexValue;
-        const rowBg = isSelected ? this.activeSelectionBg : BG;
-        const rowFg = isSelected ? this.activeSelectionFg : FG;
+        const rowBg = isSelected ? this.styles.activeSelectionBg : this.styles.bg;
+        const rowFg = isSelected ? this.styles.activeSelectionFg : this.styles.fg;
 
         // ── Row background ────────────────────────────────────────────────────
         // Fill only the interior; the border columns keep the box background so
@@ -461,8 +485,8 @@ export class QuickPickElement extends TUIElement {
         }
 
         // ── Side borders ──────────────────────────────────────────────────────
-        context.setCell(0, rowY, { char: "│", fg: BORDER_FG, bg: BG });
-        context.setCell(w - 1, rowY, { char: "│", fg: BORDER_FG, bg: BG });
+        context.setCell(0, rowY, { char: "│", fg: this.styles.borderFg, bg: this.styles.bg });
+        context.setCell(w - 1, rowY, { char: "│", fg: this.styles.borderFg, bg: this.styles.bg });
 
         let x = 2;
 
@@ -489,13 +513,19 @@ export class QuickPickElement extends TUIElement {
         const metaAfter: RightPart[] = [];
 
         if (item.badge !== undefined) {
-            metaBefore.push({ text: " ★ " + item.badge, fg: BADGE_FG });
+            metaBefore.push({ text: " ★ " + item.badge, fg: this.styles.badgeFg });
         }
         if (item.shortcut !== undefined) {
-            metaAfter.push({ text: "  " + item.shortcut, fg: isSelected ? this.activeSelectionFg : SHORTCUT_FG });
+            metaAfter.push({
+                text: "  " + item.shortcut,
+                fg: isSelected ? this.styles.activeSelectionFg : this.styles.shortcutFg,
+            });
         }
         if (item.hint !== undefined) {
-            metaAfter.push({ text: "  " + item.hint, fg: isSelected ? this.activeSelectionFg : HINT_FG });
+            metaAfter.push({
+                text: "  " + item.hint,
+                fg: isSelected ? this.styles.activeSelectionFg : this.styles.hintFg,
+            });
         }
 
         const metaWidth = [...metaBefore, ...metaAfter].reduce(
@@ -522,7 +552,7 @@ export class QuickPickElement extends TUIElement {
             const shown = new DisplayLine(dir).displayWidth <= dirBudget ? dir : abbreviatePath(dir, dirBudget);
             descParts.push({
                 text: DESC_SEPARATOR + shown,
-                fg: isSelected ? this.activeSelectionFg : DESCRIPTION_FG,
+                fg: isSelected ? this.styles.activeSelectionFg : this.styles.descriptionFg,
             });
         }
 
@@ -536,7 +566,7 @@ export class QuickPickElement extends TUIElement {
                 maxWidth: labelDraw,
                 getStyle: (offset) => {
                     if (matchSet.has(offset)) {
-                        return { fg: isSelected ? this.activeSelectionFg : this.matchFg };
+                        return { fg: isSelected ? this.styles.activeSelectionFg : this.styles.matchFg };
                     }
                     return undefined;
                 },

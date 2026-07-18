@@ -17,6 +17,7 @@ import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
 import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { ITerminalSurface } from "../TUIDom/Widgets/Terminal/ITerminalSurface.ts";
 import { TerminalViewElement } from "../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
+import { getTerminalViewStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { PanelController, PanelControllerDIToken, TERMINAL_VIEW_ID } from "./PanelController.ts";
 import { type TerminalSessionFactory, TerminalSessionFactoryDIToken } from "./Terminal/TerminalSessionFactory.ts";
@@ -185,8 +186,6 @@ export class TerminalController extends Disposable {
     }
 
     private applyThemeToWidget(widget: TerminalViewElement, theme: WorkbenchTheme): void {
-        widget.defaultBg = theme.getColor("terminal.background") ?? theme.getRequiredColor("panel.background");
-        widget.defaultFg = theme.getColor("terminal.foreground") ?? theme.getRequiredColor("editor.foreground");
-        widget.markDirty();
+        widget.setStyles(getTerminalViewStyles(theme));
     }
 }

@@ -130,11 +130,11 @@ describe("TerminalController", () => {
     });
 
     it("pushes terminal theme colors into each widget", () => {
+        const setStyles = vi.spyOn(TerminalViewElement.prototype, "setStyles");
         controller.openTerminal();
-        const widget = panel.view.getChildren()[0] as TerminalViewElement;
         // dark+ default: terminal.foreground #CCCCCC, terminal.background #181818.
-        expect(widget.defaultFg).toBe(0xcccccc);
-        expect(widget.defaultBg).toBe(0x181818);
+        expect(setStyles).toHaveBeenCalledWith({ defaultFg: 0xcccccc, defaultBg: 0x181818 });
+        setStyles.mockRestore();
     });
 
     it("ignores activation of a view that is not the terminal", () => {
@@ -265,23 +265,23 @@ describe("TerminalController — theme", () => {
     it("re-applies colors to open widgets when the theme changes", () => {
         const h = buildHarness();
         h.controller.openTerminal();
-        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
+        const setStyles = vi.spyOn(TerminalViewElement.prototype, "setStyles");
 
         h.themeService.setTheme(themeWithoutTerminalColors());
 
-        expect(widget.defaultBg).toBe(0x111111);
-        expect(widget.defaultFg).toBe(0x222222);
+        expect(setStyles).toHaveBeenCalledWith({ defaultBg: 0x111111, defaultFg: 0x222222 });
+        setStyles.mockRestore();
         h.controller.dispose();
     });
 
     it("falls back to panel/editor colors for terminals created under such a theme", () => {
         const h = buildHarness();
         h.themeService.setTheme(themeWithoutTerminalColors());
+        const setStyles = vi.spyOn(TerminalViewElement.prototype, "setStyles");
         h.controller.openTerminal();
-        const widget = h.panel.view.getChildren()[0] as TerminalViewElement;
 
-        expect(widget.defaultBg).toBe(0x111111);
-        expect(widget.defaultFg).toBe(0x222222);
+        expect(setStyles).toHaveBeenCalledWith({ defaultBg: 0x111111, defaultFg: 0x222222 });
+        setStyles.mockRestore();
         h.controller.dispose();
     });
 });

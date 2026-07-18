@@ -7,14 +7,28 @@ import { RenderContext, TUIElement } from "../TUIElement.ts";
 
 import { kindIcon } from "./CompletionItemKindIcon.ts";
 
-// ─── Colors (NvChad-подобная палитра) ────────────────────────────────────────
-const BORDER_FG = packRgb(83, 83, 83);
-const BG = packRgb(34, 34, 40);
-const FG = packRgb(204, 204, 204);
-const ACTIVE_SELECTION_BG = packRgb(56, 62, 90);
-const ACTIVE_SELECTION_FG = packRgb(255, 255, 255);
-const ICON_FG = packRgb(130, 170, 255);
-const DETAIL_FG = packRgb(120, 120, 130);
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+export interface ICompletionListStyles {
+    readonly borderFg: number;
+    readonly bg: number;
+    readonly fg: number;
+    readonly activeSelectionBg: number;
+    readonly activeSelectionFg: number;
+    readonly iconFg: number;
+    readonly detailFg: number;
+}
+
+// Текущая (NvChad-подобная) палитра; темизированных call-sites пока нет.
+export const unthemedCompletionListStyles: ICompletionListStyles = {
+    borderFg: packRgb(83, 83, 83),
+    bg: packRgb(34, 34, 40),
+    fg: packRgb(204, 204, 204),
+    activeSelectionBg: packRgb(56, 62, 90),
+    activeSelectionFg: packRgb(255, 255, 255),
+    iconFg: packRgb(130, 170, 255),
+    detailFg: packRgb(120, 120, 130),
+};
 
 // ─── Layout ───────────────────────────────────────────────────────────────────
 // [│(0)][pad(1)][icon(2)][gap(3,4)][label…][…][pad(w-2)][│(w-1)]
@@ -57,6 +71,7 @@ export class CompletionListElement extends TUIElement {
     private filterValue = "";
     private selectedIndexValue = 0;
     private scrollOffset = 0;
+    private styles: ICompletionListStyles = unthemedCompletionListStyles;
 
     public constructor() {
         super();
@@ -71,6 +86,11 @@ export class CompletionListElement extends TUIElement {
     }
 
     // ─── Public API ──────────────────────────────────────────────────────────
+
+    public setStyles(styles: ICompletionListStyles): void {
+        this.styles = styles;
+        this.markDirty();
+    }
 
     /** Задаёт полный набор элементов; переприменяет текущий фильтр (fresh). */
     public setItems(items: readonly CompletionListItem[]): void {
@@ -180,7 +200,7 @@ export class CompletionListElement extends TUIElement {
         // Фон + рамка (единый стиль углов с остальными оверлеями). Рамку рисуем
         // только здесь; ряды заливают лишь внутреннюю область, чтобы фон
         // выделения не залезал на боковые рамки.
-        context.drawBox(0, 0, w, h, { fg: BORDER_FG, bg: BG, fill: true });
+        context.drawBox(0, 0, w, h, { fg: this.styles.borderFg, bg: this.styles.bg, fill: true });
 
         // Ряды
         for (let i = 0; i < this.visibleItemCount; i++) {
@@ -191,8 +211,8 @@ export class CompletionListElement extends TUIElement {
     private renderRow(context: RenderContext, w: number, rowY: number, itemIndex: number): void {
         const item = this.filteredItems[itemIndex];
         const isSelected = itemIndex === this.selectedIndexValue;
-        const rowBg = isSelected ? ACTIVE_SELECTION_BG : BG;
-        const rowFg = isSelected ? ACTIVE_SELECTION_FG : FG;
+        const rowBg = isSelected ? this.styles.activeSelectionBg : this.styles.bg;
+        const rowFg = isSelected ? this.styles.activeSelectionFg : this.styles.fg;
 
         // Фон ряда только во внутренней области [1, w-1) — боковые рамки (их
         // нарисовал drawBox) не трогаем, иначе фон выделения залезает на рамку.
@@ -200,7 +220,7 @@ export class CompletionListElement extends TUIElement {
 
         // Иконка типа
         const icon = kindIcon(item.kind);
-        context.drawText(2, rowY, icon, { fg: isSelected ? rowFg : ICON_FG, bg: rowBg });
+        context.drawText(2, rowY, icon, { fg: isSelected ? rowFg : this.styles.iconFg, bg: rowBg });
 
         // Правый блок: detail (dim, right-aligned)
         const contentRight = w - 1 - RIGHT_PAD; // exclusive
@@ -210,7 +230,7 @@ export class CompletionListElement extends TUIElement {
             const detailW = new DisplayLine(detailText).displayWidth;
             if (LABEL_X + 1 + detailW <= contentRight) {
                 context.drawText(contentRight - detailW, rowY, detailText, {
-                    fg: isSelected ? rowFg : DETAIL_FG,
+                    fg: isSelected ? rowFg : this.styles.detailFg,
                     bg: rowBg,
                 });
                 rightWidth = detailW;

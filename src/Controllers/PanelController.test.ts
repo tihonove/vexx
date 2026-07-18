@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { ThemeServiceDIToken } from "../Theme/ThemeTokens.ts";
+import { PanelContainerElement } from "../TUIDom/Widgets/PanelContainerElement.ts";
 
 import { createTestContainer } from "./Modules/TestProfile.ts";
 import { PanelController, PanelControllerDIToken, PROBLEMS_VIEW_ID } from "./PanelController.ts";
@@ -18,12 +19,17 @@ describe("PanelController", () => {
     });
 
     it("applies panel colours from the active theme", () => {
+        // onThemeChange файрит сразу при подписке (в конструкторе) — ставим шпиона заранее.
+        const setStyles = vi.spyOn(PanelContainerElement.prototype, "setStyles");
         const { container } = createTestContainer();
-        const controller = container.get(PanelControllerDIToken);
+        container.get(PanelControllerDIToken);
         const theme = container.get(ThemeServiceDIToken).theme;
-        expect(controller.view.background).toBe(theme.getRequiredColor("panel.background"));
-        expect(controller.view.titleForeground).toBe(theme.getRequiredColor("panelTitle.inactiveForeground"));
-        expect(controller.view.borderColor).toBe(theme.getRequiredColor("panel.border"));
+        expect(setStyles).toHaveBeenCalledWith({
+            background: theme.getRequiredColor("panel.background"),
+            titleForeground: theme.getRequiredColor("panelTitle.inactiveForeground"),
+            borderColor: theme.getRequiredColor("panel.border"),
+        });
+        setStyles.mockRestore();
     });
 
     it("reflects and restores the active-view state", () => {

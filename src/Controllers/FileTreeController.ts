@@ -7,10 +7,9 @@ import type { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
 import type { TUIElement } from "../TUIDom/TUIElement.ts";
 import { PaddingContainerElement } from "../TUIDom/Widgets/PaddingContainerElement.ts";
 import { ScrollBarDecorator } from "../TUIDom/Widgets/ScrollContainerElement.ts";
-
-import { applyScrollBarTheme } from "./applyScrollBarTheme.ts";
 import { TitledPanelElement } from "../TUIDom/Widgets/TitledPanelElement.ts";
 import { TreeViewElement } from "../TUIDom/Widgets/TreeViewElement.ts";
+import { getFileTreeStyles, getScrollBarStyles } from "../Workbench/Styles/defaultStyles.ts";
 
 import { FileTreeDataProvider, type FileTreeNode } from "./FileTreeDataProvider.ts";
 import type { IController } from "./IController.ts";
@@ -193,20 +192,15 @@ export class FileTreeController extends Disposable implements IController {
     }
 
     private applyTheme(theme: WorkbenchTheme): void {
+        // Темы могут приходить и до setRootPath — вью тогда ещё нет.
         if (!this.tree) return;
-        this.tree.activeSelectionBg = theme.getRequiredColor("list.activeSelectionBackground");
-        this.tree.activeSelectionFg = theme.getRequiredColor("list.activeSelectionForeground");
-        this.tree.inactiveSelectionBg = theme.getRequiredColor("list.inactiveSelectionBackground");
-        this.tree.inactiveSelectionFg = theme.getRequiredColor("list.inactiveSelectionForeground");
-        this.tree.hoverBg = theme.getRequiredColor("list.hoverBackground");
-        this.tree.hoverFg = theme.getColor("list.hoverForeground");
-        this.tree.cutFg = theme.getRequiredColor("list.deemphasizedForeground");
-        this.tree.symlinkFg = theme.getRequiredColor("list.deemphasizedForeground");
+        this.tree.setStyles(getFileTreeStyles(theme));
 
         this.view.style = {
             fg: theme.getRequiredColor("sideBar.foreground"),
             bg: theme.getRequiredColor("sideBar.background"),
         };
-        applyScrollBarTheme(this.scrollBars, theme, "sideBar.background");
+        /* v8 ignore next -- defensive: scrollBars создаётся вместе с tree в setRootPath, порознь они не бывают */
+        this.scrollBars?.setStyles(getScrollBarStyles(theme, "sideBar.background"));
     }
 }

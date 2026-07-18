@@ -57,9 +57,7 @@ function makeToken(overrides: Partial<MouseToken> & { action: MouseToken["action
 
 function themed(): PanelContainerElement {
     const panel = new PanelContainerElement();
-    panel.background = BG;
-    panel.titleForeground = TITLE_FG;
-    panel.borderColor = BORDER;
+    panel.setStyles({ background: BG, titleForeground: TITLE_FG, borderColor: BORDER });
     return panel;
 }
 

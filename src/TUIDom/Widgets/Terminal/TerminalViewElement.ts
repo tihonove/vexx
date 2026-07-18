@@ -35,6 +35,19 @@ const WHEEL_ACTION: Record<WheelDirection, TerminalMouseAction> = {
     right: "wheelRight",
 };
 
+export interface ITerminalViewStyles {
+    /** Заменяет DEFAULT_COLOR-fg ячеек при блите (цвет текста темы). */
+    readonly defaultFg: number;
+    /** Заменяет DEFAULT_COLOR-bg ячеек при блите (фон темы). */
+    readonly defaultBg: number;
+}
+
+// Без темы блитим DEFAULT_COLOR как есть; контроллер пушит цвета темы через setStyles.
+export const unthemedTerminalViewStyles: ITerminalViewStyles = {
+    defaultFg: DEFAULT_COLOR,
+    defaultBg: DEFAULT_COLOR,
+};
+
 export class TerminalViewElement extends TUIElement {
     private readonly surface: ITerminalSurface;
     // Переиспользуемая ячейка — readCell(x, y, cell) не аллоцирует новый объект на каждую ячейку.
@@ -45,8 +58,12 @@ export class TerminalViewElement extends TUIElement {
 
     // Цвета «по умолчанию», которыми заменяем DEFAULT_COLOR ячеек при блите. Контроллер
     // пушит сюда цвета темы (как EditorElement/PanelContainerElement получают цвета извне).
-    public defaultFg = DEFAULT_COLOR;
-    public defaultBg = DEFAULT_COLOR;
+    private styles: ITerminalViewStyles = unthemedTerminalViewStyles;
+
+    public setStyles(styles: ITerminalViewStyles): void {
+        this.styles = styles;
+        this.markDirty();
+    }
 
     public constructor(surface: ITerminalSurface) {
         super();
@@ -122,8 +139,8 @@ export class TerminalViewElement extends TUIElement {
                 if (this.surface.readCell(x, y, cell)) {
                     context.setCell(x, y, {
                         char: cell.char,
-                        fg: cell.fg === DEFAULT_COLOR ? this.defaultFg : cell.fg,
-                        bg: cell.bg === DEFAULT_COLOR ? this.defaultBg : cell.bg,
+                        fg: cell.fg === DEFAULT_COLOR ? this.styles.defaultFg : cell.fg,
+                        bg: cell.bg === DEFAULT_COLOR ? this.styles.defaultBg : cell.bg,
                         style: cell.style,
                         width: cell.width,
                     });
