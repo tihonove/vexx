@@ -12,6 +12,10 @@ import { quitAction } from "../../Actions/AppActions.ts";
 import { builtinActions } from "../../Actions/builtinActions.ts";
 import { registerAction } from "../../Actions/CommandAction.ts";
 import { ThemedComponent } from "../../Component.ts";
+import {
+    WorkbenchContributionsRegistry,
+    WorkbenchContributionsRegistryDIToken,
+} from "../../Contributions/WorkbenchContributionsRegistry.ts";
 import { UserKeybindingsDIToken } from "../../Modules/KeybindingsModule.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
@@ -21,7 +25,6 @@ import { DiagnosticsServiceDIToken } from "../../Services/Diagnostics/Diagnostic
 import type { DialogService } from "../../Services/DialogService.ts";
 import { DialogServiceDIToken } from "../../Services/DialogService.ts";
 import { EditorService, EditorServiceDIToken } from "../../Services/EditorService.ts";
-import { EditorStatusContributionDIToken } from "../../Services/EditorStatusContribution.ts";
 import { ExplorerService, ExplorerServiceDIToken } from "../../Services/ExplorerService.ts";
 import { FileOperationsService, FileOperationsServiceDIToken } from "../../Services/FileOperationsService.ts";
 import type { FileSearchService } from "../../Services/FileSearchService.ts";
@@ -41,7 +44,6 @@ import { QuickOpenServiceDIToken } from "../../Services/QuickOpenService.ts";
 import { type TerminalService, TerminalServiceDIToken } from "../../Services/Terminal/TerminalService.ts";
 import type { TerminalEnvironmentService } from "../../Services/TerminalEnvironment/TerminalEnvironmentService.ts";
 import { TerminalEnvironmentServiceDIToken } from "../../Services/TerminalEnvironment/TerminalEnvironmentService.ts";
-import { TerminalEnvStatusContributionDIToken } from "../../Services/TerminalEnvironment/TerminalEnvStatusContribution.ts";
 import type { WorkbenchContextKeys } from "../../Services/WorkbenchContextKeys.ts";
 import { WorkbenchContextKeysDIToken } from "../../Services/WorkbenchContextKeys.ts";
 import type { WorkbenchStateService } from "../../Services/WorkbenchStateService.ts";
@@ -109,6 +111,7 @@ export class WorkbenchComponent extends ThemedComponent {
     private themeRegistry: ThemeRegistry;
     private terminalEnv: TerminalEnvironmentService;
     private dispatcher: KeybindingDispatcher;
+    private contributionsRegistry: WorkbenchContributionsRegistry;
 
     public constructor(
         editorService: EditorService,
@@ -161,9 +164,6 @@ export class WorkbenchComponent extends ThemedComponent {
         const findComponent = this.register(accessor.get(FindComponentDIToken));
         this.register(accessor.get(FindServiceDIToken));
         this.statusBarComponent = this.register(statusBarComponent);
-        // Contribution-сервисы статус-бара: инстанцируем через DI и владеем их жизнью.
-        this.register(accessor.get(EditorStatusContributionDIToken));
-        this.register(accessor.get(TerminalEnvStatusContributionDIToken));
         // Panel-кластер: диагностики (headless), реестр вкладок панели, Problems и
         // терминал. Порядок резолва задаёт порядок табов: PROBLEMS регистрирует
         // ProblemsComponent, TERMINAL — TerminalService.
@@ -179,6 +179,10 @@ export class WorkbenchComponent extends ThemedComponent {
         // прикрепляем ниже, как только они построены.
         this.layoutService = this.register(accessor.get(LayoutServiceDIToken));
         this.workbenchContextKeys = this.register(accessor.get(WorkbenchContextKeysDIToken));
+        // Реестр workbench-contributions: фич-проводка вынесена в самодостаточные
+        // contribution-классы (статус-бар и пр.). Реестр инстанцирует их по фазам:
+        // Restored — в mount(), Eventually — из main.ts после первого кадра.
+        this.contributionsRegistry = this.register(accessor.get(WorkbenchContributionsRegistryDIToken));
 
         this.workbenchLayout = new WorkbenchLayoutElement();
         this.workbenchLayout.setCenterContent(this.editorGroupComponent.view);
@@ -287,6 +291,10 @@ export class WorkbenchComponent extends ThemedComponent {
     }
 
     public mount(): void {
+        // Фаза Restored: view построена, лёгкие сервисы готовы — инстанцируем
+        // contribution'ы этой фазы (статус-бар и пр.). Между конструктором и mount
+        // ни один редактор не открывается → эквивалентно прежней проводке в ctor.
+        this.contributionsRegistry.instantiateByPhase("restored");
         // Capture-phase listeners run before the focused widget (the target),
         // so while a chord is in progress they can swallow keys entirely —
         // keeping them out of the editor whether or not they match a command.
@@ -338,6 +346,15 @@ export class WorkbenchComponent extends ThemedComponent {
         this.terminalEnv.detect();
         await this.editorService.activate();
         await this.explorerService.refresh();
+    }
+
+    /**
+     * Фаза Eventually: idle после первого кадра. Запускает `main.ts` через
+     * `setImmediate` (mount() идёт до `app.run()`, поэтому из mount фаза сработала
+     * бы раньше кадра). Инстанцирует отложенные/тяжёлые contribution'ы.
+     */
+    public runEventuallyPhase(): void {
+        this.contributionsRegistry.instantiateByPhase("eventually");
     }
 
     public openFile(filePath: string): void {

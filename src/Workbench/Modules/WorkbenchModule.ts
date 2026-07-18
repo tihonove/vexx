@@ -1,5 +1,11 @@
 import type { ContainerModule } from "../../Common/DiContainer.ts";
 import { WorkspaceFolderOpenerDIToken } from "../Actions/FileActions.ts";
+import { WORKBENCH_CONTRIBUTIONS } from "../Contributions/workbenchContributions.ts";
+import {
+    WorkbenchContributionsDIToken,
+    WorkbenchContributionsRegistry,
+    WorkbenchContributionsRegistryDIToken,
+} from "../Contributions/WorkbenchContributionsRegistry.ts";
 import { EditorGroupComponent, EditorGroupComponentDIToken } from "../Components/Editor/EditorGroupComponent.ts";
 import { FindComponent, FindComponentDIToken } from "../Components/Editor/FindComponent.ts";
 import { SuggestComponent, SuggestComponentDIToken } from "../Components/Editor/SuggestComponent.ts";
@@ -111,6 +117,11 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(EditorStatusContributionDIToken, EditorStatusContribution);
     container.bind(TerminalEnvStatusContributionDIToken, TerminalEnvStatusContribution);
     container.bind(StatusBarComponentDIToken, StatusBarComponent);
+    // Реестр workbench-contributions: явный список (WORKBENCH_CONTRIBUTIONS) +
+    // сам реестр, инстанцирующий их по фазам. Фазы прогоняет WorkbenchComponent
+    // (Restored — в mount()) и main.ts (Eventually — после первого кадра).
+    container.bind(WorkbenchContributionsDIToken, () => WORKBENCH_CONTRIBUTIONS);
+    container.bind(WorkbenchContributionsRegistryDIToken, WorkbenchContributionsRegistry);
     // Panel-кластер (этап 6): реестр вкладок нижней панели + компонент-контрол,
     // Problems-дерево и встроенный терминал (сервис инстансов + view-владелец).
     container.bind(PanelServiceDIToken, PanelService);
