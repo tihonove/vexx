@@ -2,15 +2,18 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../../Backend/MockTerminalBackend.ts";
 import { ConfigurationModel } from "../../../Configuration/ConfigurationModel.ts";
+import { ConfigurationRegistry } from "../../../Configuration/ConfigurationRegistry.ts";
 import { ConfigurationService } from "../../../Configuration/ConfigurationService.ts";
-import { getDefaultConfiguration } from "../../../Configuration/defaults.ts";
 import type { IConfigurationService } from "../../../Configuration/IConfigurationService.ts";
+import { terminalConfiguration } from "../../Configuration/terminalConfiguration.ts";
 
 import { TerminalEnvironmentService } from "./TerminalEnvironmentService.ts";
 
 function configFrom(userRaw: Record<string, unknown> = {}): IConfigurationService {
     return new ConfigurationService({
-        defaultsLayer: ConfigurationModel.fromRaw(getDefaultConfiguration()),
+        defaultsLayer: ConfigurationModel.fromRaw(
+            new ConfigurationRegistry([terminalConfiguration]).getDefaultConfiguration(),
+        ),
         userLayer: ConfigurationModel.fromRaw(userRaw),
         profileLayer: ConfigurationModel.EMPTY,
     });

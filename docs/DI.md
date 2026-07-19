@@ -159,8 +159,8 @@ const container = new Container()
 | `tokenizationModule` | `{ tokenizationRegistry, tokenStyleResolver, languageService }` | Соответствующие токены. Реализации передаются снаружи. |
 | `backendModule` | `{ clipboard }` | `Clipboard` |
 | `backendModuleDefault` | — | `Clipboard` с `InMemoryClipboard` по умолчанию |
-| `configurationModule` | `{ configurationService }` | `IConfigurationService` (готовый экземпляр из `loadConfiguration(paths)`) |
-| `configurationModuleDefault` | — | `IConfigurationService` с `NULL_CONFIGURATION_SERVICE` (тесты и demo) |
+| `configurationModule` | `{ configurationService, configurationRegistry }` | `IConfigurationService` (готовый экземпляр из `loadConfiguration(paths, …, registry)`) + `ConfigurationRegistry` (реестр схем настроек) |
+| `configurationModuleDefault` | — | `NULL_CONFIGURATION_SERVICE` + настоящий `ConfigurationRegistry` из `CONFIGURATION_CONTRIBUTIONS` (тесты и demo) |
 | `stateModule` | `{ stateService }` | `IStateService` — машинное состояние UI/сессии (готовый экземпляр из `loadState(paths)`; см. [arch/State.md](arch/State.md)) |
 | `stateModuleDefault` | — | `IStateService` с `NULL_STATE_SERVICE` (тесты и demo) |
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |

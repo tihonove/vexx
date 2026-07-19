@@ -19,6 +19,7 @@ import { RingBufferSink } from "./Common/Logging/sinks/RingBufferSink.ts";
 import { OscClipboard } from "./Common/OscClipboard.ts";
 import { resolveUserDataPaths } from "./Common/UserDataPaths.ts";
 import { VEXX_VERSION } from "./Common/Version.ts";
+import { ConfigurationRegistry } from "./Configuration/ConfigurationRegistry.ts";
 import { loadConfiguration } from "./Configuration/ConfigurationService.ts";
 import { loadUserKeybindings } from "./Configuration/KeybindingsService.ts";
 import { loadState } from "./Configuration/StateService.ts";
@@ -41,6 +42,7 @@ import { ThemeServiceDIToken } from "./Theme/ThemeTokens.ts";
 import { TokenThemeResolver } from "./Theme/Tokenization/TokenThemeResolver.ts";
 import { TuiApplication } from "./TUIDom/TuiApplication.ts";
 import { WorkbenchComponentDIToken } from "./Workbench/Components/Shell/WorkbenchComponent.ts";
+import { CONFIGURATION_CONTRIBUTIONS } from "./Workbench/Configuration/configurationContributions.ts";
 import { createProductionContainer } from "./Workbench/Modules/ProductionProfile.ts";
 import { ChokidarFileWatcher } from "./Workbench/Services/ChokidarFileWatcher.ts";
 import { TuiApplicationDIToken } from "./Workbench/Services/CoreTokens.ts";
@@ -129,7 +131,15 @@ async function runEditor(): Promise<void> {
     // через FileWatcherModule — следят за другими файлами). Живёт всё время работы
     // приложения; fd освобождается ОС на выходе, как и у editor-watcher'ов.
     const settingsWatcher = new ChokidarFileWatcher();
-    const configurationService = await loadConfiguration(userDataPaths, configurationLogger, settingsWatcher);
+    // Реестр схем настроек: defaults-слой конфигурации и известные ключи для
+    // валидации settings.json собираются из configuration-узлов фич.
+    const configurationRegistry = new ConfigurationRegistry(CONFIGURATION_CONTRIBUTIONS);
+    const configurationService = await loadConfiguration(
+        userDataPaths,
+        configurationLogger,
+        settingsWatcher,
+        configurationRegistry,
+    );
     const userKeybindings = await loadUserKeybindings(userDataPaths.keybindingsFile, configurationLogger);
     // Машинное состояние UI/сессии (открытые файлы, layout) — отдельно от настроек.
     const stateService = loadState(userDataPaths, configurationLogger);
@@ -209,6 +219,7 @@ async function runEditor(): Promise<void> {
         tokenStyleResolver,
         languageService: languageRegistry,
         configurationService,
+        configurationRegistry,
         stateService,
         userKeybindings,
         logService,

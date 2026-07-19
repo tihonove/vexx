@@ -2,6 +2,7 @@ import type { ITerminalBackend } from "../../Backend/ITerminalBackend.ts";
 import { Container } from "../../Common/DiContainer.ts";
 import type { IClipboard } from "../../Common/IClipboard.ts";
 import type { ILogService } from "../../Common/Logging/ILogService.ts";
+import type { ConfigurationRegistry } from "../../Configuration/ConfigurationRegistry.ts";
 import type { IConfigurationService } from "../../Configuration/IConfigurationService.ts";
 import type { IStateService } from "../../Configuration/IStateService.ts";
 import type { IUserKeybindingRule } from "../../Configuration/KeybindingsService.ts";
@@ -38,6 +39,7 @@ export interface ProductionProfileContext {
     tokenStyleResolver: ITokenStyleResolver;
     languageService: ILanguageService;
     configurationService: IConfigurationService;
+    configurationRegistry: ConfigurationRegistry;
     stateService: IStateService;
     userKeybindings: readonly IUserKeybindingRule[];
     logService: ILogService;
@@ -63,7 +65,10 @@ export function createProductionContainer(ctx: ProductionProfileContext): Contai
             tokenStyleResolver: ctx.tokenStyleResolver,
             languageService: ctx.languageService,
         })
-        .use(configurationModule, { configurationService: ctx.configurationService })
+        .use(configurationModule, {
+            configurationService: ctx.configurationService,
+            configurationRegistry: ctx.configurationRegistry,
+        })
         .use(stateModule, { stateService: ctx.stateService })
         .use(terminalEnvironmentModule, { backend: ctx.backend })
         .use(keybindingsModule, { rules: ctx.userKeybindings })
