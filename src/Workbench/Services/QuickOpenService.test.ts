@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { charMask } from "../../Common/FuzzySearch.ts";
 import { Size } from "../../Common/GeometryPromitives.ts";
 import { TestApp } from "../../TestUtils/TestApp.ts";
@@ -16,7 +17,18 @@ import { CommandRegistry } from "./CommandRegistry.ts";
 import { ContextKeyService } from "./ContextKeyService.ts";
 import type { FileSearchEntry, FileSearchResult, FileSearchService } from "./FileSearchService.ts";
 import { KeybindingRegistry, parseChord, parseKeybinding } from "./KeybindingRegistry.ts";
-import type { IGotoLineEditor, IGotoLineEditorSource } from "./QuickOpenService.ts";
+import {
+    CommandsQuickAccessProvider,
+    CommandsQuickAccessProviderDIToken,
+} from "./QuickAccess/CommandsQuickAccessProvider.ts";
+import { FilesQuickAccessProvider, FilesQuickAccessProviderDIToken } from "./QuickAccess/FilesQuickAccessProvider.ts";
+import type { IGotoLineEditor, IGotoLineEditorSource } from "./QuickAccess/GotoLineQuickAccessProvider.ts";
+import {
+    GotoLineQuickAccessProvider,
+    GotoLineQuickAccessProviderDIToken,
+} from "./QuickAccess/GotoLineQuickAccessProvider.ts";
+import { QUICK_ACCESS_PROVIDERS } from "./QuickAccess/quickAccessProviders.ts";
+import { QuickAccessRegistry } from "./QuickAccess/QuickAccessRegistry.ts";
 import { QuickOpenService } from "./QuickOpenService.ts";
 
 function makeComponent(): QuickInputComponent {
@@ -69,6 +81,31 @@ function makeFileSearchStub(results: FileSearchResult[] = []): FileSearchService
     } as unknown as FileSearchService;
 }
 
+/** Реестр с настоящими провайдерами поверх стабов зависимостей (без DI-контейнера). */
+function makeQuickAccessRegistry(deps: {
+    fileSearch: FileSearchService;
+    commands: CommandRegistry;
+    keybindings: KeybindingRegistry;
+    contextKeys: ContextKeyService;
+    gotoSource: IGotoLineEditorSource;
+}): QuickAccessRegistry {
+    const instances = new Map<unknown, unknown>([
+        [
+            FilesQuickAccessProviderDIToken,
+            new FilesQuickAccessProvider(deps.fileSearch, deps.commands, deps.gotoSource),
+        ],
+        [
+            CommandsQuickAccessProviderDIToken,
+            new CommandsQuickAccessProvider(deps.commands, deps.keybindings, deps.contextKeys),
+        ],
+        [GotoLineQuickAccessProviderDIToken, new GotoLineQuickAccessProvider(deps.gotoSource)],
+    ]);
+    const accessor: ServiceAccessor = {
+        get: (diToken) => instances.get(diToken) as never,
+    };
+    return new QuickAccessRegistry(accessor, QUICK_ACCESS_PROVIDERS);
+}
+
 /** Мутабельный источник активного редактора: тесты подменяют getActiveEditor по ходу. */
 interface MutableGotoLineSource extends IGotoLineEditorSource {
     getActiveEditor: () => IGotoLineEditor | null;
@@ -92,7 +129,10 @@ function createService(fileResults: FileSearchResult[] = []): {
     const fileSearch = makeFileSearchStub(fileResults);
     const component = makeComponent();
     const gotoSource: MutableGotoLineSource = { getActiveEditor: () => null };
-    const service = new QuickOpenService(fileSearch, commands, keybindings, contextKeys, gotoSource, component);
+    const service = new QuickOpenService(
+        makeQuickAccessRegistry({ fileSearch, commands, keybindings, contextKeys, gotoSource }),
+        component,
+    );
 
     const body = new BodyElement();
     const testApp = TestApp.create(body, new Size(80, 24));
@@ -122,42 +162,42 @@ describe("QuickOpenService — open/close", () => {
 
     it("open() makes picker visible", () => {
         const { service, body } = createService();
-        service.open("files");
+        service.show();
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
     });
 
     it("close() hides picker", () => {
         const { service, body } = createService();
-        service.open("files");
+        service.show();
         service.close();
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("open() sets focus to QuickPickElement", () => {
         const { service, testApp } = createService();
-        service.open("files");
+        service.show();
         expect(testApp.focusedElement?.constructor.name).toBe("InputElement");
     });
 
     it("open() when already open calls focus instead of re-opening", () => {
         const { service, body } = createService();
-        service.open("files");
+        service.show();
         const setVisibleSpy = vi.spyOn(body.overlayLayer, "setVisible");
-        service.open("files");
+        service.show();
         // setVisible should not be called again (already visible, just focuses)
         expect(setVisibleSpy).not.toHaveBeenCalled();
     });
 
     it("Escape key closes picker", () => {
         const { service, body, testApp } = createService();
-        service.open("files");
+        service.show();
         testApp.sendKey("Escape");
         expect(body.overlayLayer.hasVisibleItems()).toBe(false);
     });
 
     it("an outside pointer press closes the picker (closeOnOutsidePointer)", () => {
         const { service, body } = createService();
-        service.open("files");
+        service.show();
         expect(body.overlayLayer.hasVisibleItems()).toBe(true);
 
         // A mousedown whose target is the body (outside the QuickPick widget) closes it.
@@ -195,7 +235,7 @@ describe("QuickOpenService — open/close", () => {
         dummyInput.focus();
         const prevFocused = testApp.focusedElement;
 
-        service.open("files");
+        service.show();
         service.close();
 
         expect(testApp.focusedElement).toBe(prevFocused);
@@ -205,25 +245,25 @@ describe("QuickOpenService — open/close", () => {
 describe("QuickOpenService — files mode", () => {
     it("open('files') sets empty placeholder", () => {
         const { service, view } = createService();
-        service.open("files");
+        service.show();
         expect(view.placeholder).toBe("Go to File...");
     });
 
     it("open('files') calls search with empty query", () => {
         const { service, fileSearch } = createService();
-        service.open("files");
+        service.show();
         expect(fileSearch.search).toHaveBeenCalledWith("", 50);
     });
 
     it("open('files') kicks a throttled background re-index", () => {
         const { service, fileSearch } = createService();
-        service.open("files");
+        service.show();
         expect(fileSearch.refreshIfStale).toHaveBeenCalled();
     });
 
     it("index growing while open re-runs the current query", () => {
         const { service, fileSearch, view } = createService();
-        service.open("files");
+        service.show();
         view.setQuery("App");
         (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
@@ -235,7 +275,7 @@ describe("QuickOpenService — files mode", () => {
 
     it("a late index-changed callback after close does not re-run the search", () => {
         const { service, fileSearch } = createService();
-        service.open("files");
+        service.show();
         // Capture the index-changed handler the controller installed.
         const handler = fileSearch.onIndexChanged;
         expect(handler).not.toBeNull();
@@ -251,7 +291,7 @@ describe("QuickOpenService — files mode", () => {
 
     it("switching to command mode stops live file refreshes", () => {
         const { service, fileSearch, view } = createService();
-        service.open("files");
+        service.show();
         view.onQueryChange?.(">cmd"); // now in command mode
         (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
@@ -262,7 +302,7 @@ describe("QuickOpenService — files mode", () => {
 
     it("close() unsubscribes from index changes", () => {
         const { service, fileSearch } = createService();
-        service.open("files");
+        service.show();
         expect(fileSearch.onIndexChanged).not.toBeNull();
         service.close();
         expect(fileSearch.onIndexChanged).toBeNull();
@@ -278,7 +318,7 @@ describe("QuickOpenService — files mode", () => {
             makeSearchResult("src/d.ts"),
         ];
         const { service, testApp, fileSearch, view } = createService(results);
-        service.open("files");
+        service.show();
 
         testApp.sendKey("ArrowDown");
         testApp.sendKey("ArrowDown");
@@ -295,7 +335,7 @@ describe("QuickOpenService — files mode", () => {
     it("a query change resets the cursor to the top", () => {
         const results = [makeSearchResult("src/a.ts"), makeSearchResult("src/b.ts"), makeSearchResult("src/c.ts")];
         const { service, testApp, view } = createService(results);
-        service.open("files");
+        service.show();
 
         testApp.sendKey("ArrowDown");
         testApp.sendKey("ArrowDown");
@@ -309,7 +349,7 @@ describe("QuickOpenService — files mode", () => {
     it("items show basename as label and directory as description", () => {
         const results = [makeSearchResult("src/Controls/AppContainer.ts")];
         const { service, view } = createService(results);
-        service.open("files");
+        service.show();
         const items = view.items;
         expect(items[0].label).toBe("AppContainer.ts");
         expect(items[0].description).toBe("src/Controls");
@@ -318,13 +358,13 @@ describe("QuickOpenService — files mode", () => {
     it("file in root directory has empty description", () => {
         const results = [makeSearchResult("README.md")];
         const { service, view } = createService(results);
-        service.open("files");
+        service.show();
         expect(view.items[0].description).toBe("");
     });
 
     it("typing triggers search with new query", () => {
         const { service, fileSearch, view } = createService();
-        service.open("files");
+        service.show();
         view.onQueryChange?.("App");
         expect(fileSearch.search).toHaveBeenCalledWith("App", 50);
     });
@@ -340,7 +380,7 @@ describe("QuickOpenService — files mode", () => {
             },
         ];
         const { service, view } = createService(results);
-        service.open("files");
+        service.show();
         const item = view.items[0];
         expect(item.labelMatchRanges).toEqual([[0, 3]]);
     });
@@ -356,7 +396,7 @@ describe("QuickOpenService — files mode", () => {
             },
         ];
         const { service, view } = createService(results);
-        service.open("files");
+        service.show();
         const item = view.items[0];
         expect(item.descriptionMatchRanges).toEqual([[0, 3]]);
         // Nothing matched inside the basename.
@@ -374,7 +414,7 @@ describe("QuickOpenService — files mode", () => {
             },
         ];
         const { service, view } = createService(results);
-        service.open("files");
+        service.show();
         const item = view.items[0];
         expect(item.descriptionMatchRanges).toEqual([
             [0, 1],
@@ -393,7 +433,7 @@ describe("QuickOpenService — files mode", () => {
             },
         ];
         const { service, view } = createService(results);
-        service.open("files");
+        service.show();
         const item = view.items[0];
         expect(item.descriptionMatchRanges).toEqual([[2, 4]]);
         expect(item.labelMatchRanges).toEqual([[0, 2]]);
@@ -403,7 +443,7 @@ describe("QuickOpenService — files mode", () => {
         const results = [makeSearchResult("src/main.ts", [])];
         const { service, commands, view } = createService(results);
         const execSpy = vi.spyOn(commands, "execute");
-        service.open("files");
+        service.show();
 
         const item = view.items[0] as QuickPickItem & { absolutePath: string };
         view.onAccept?.(item, 0);
@@ -417,7 +457,7 @@ describe("QuickOpenService — files mode", () => {
     it("accepting an item with neither commandId nor path does nothing", async () => {
         const { service, commands, body, view } = createService();
         const execSpy = vi.spyOn(commands, "execute");
-        service.open("files");
+        service.show();
 
         // A bare item carrying no routing metadata (no commandId, no absolutePath).
         const bareItem: QuickPickItem = { label: "orphan" };
@@ -434,7 +474,7 @@ describe("QuickOpenService — files mode", () => {
     it("accepting file closes the picker", async () => {
         const results = [makeSearchResult("src/main.ts")];
         const { service, commands, body, view } = createService(results);
-        service.open("files");
+        service.show();
         const item = view.items[0];
         view.onAccept?.(item, 0);
         await new Promise<void>((r) => {
@@ -447,13 +487,13 @@ describe("QuickOpenService — files mode", () => {
 describe("QuickOpenService — commands mode", () => {
     it("open('commands') sets placeholder", () => {
         const { service, commands, view } = createService();
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         expect(view.placeholder).toBe("Show All Commands");
     });
 
     it("open('commands') sets '>' query", () => {
         const { service, commands, view } = createService();
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         expect(view.getQuery()).toBe(">");
     });
 
@@ -461,7 +501,7 @@ describe("QuickOpenService — commands mode", () => {
         const { service, commands, view } = createService();
         commands.register("cmd.a", () => {}, "Command A");
         commands.register("cmd.b", () => {}, "Command B");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const labels = view.items.map((i) => i.label);
         expect(labels).toContain("Command A");
         expect(labels).toContain("Command B");
@@ -471,7 +511,7 @@ describe("QuickOpenService — commands mode", () => {
         const { service, commands, view } = createService();
         commands.register("cmd.hidden", () => {});
         commands.register("cmd.visible", () => {}, "Visible");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const labels = view.items.map((i) => i.label);
         expect(labels).toContain("Visible");
         expect(labels).not.toContain("cmd.hidden");
@@ -481,7 +521,7 @@ describe("QuickOpenService — commands mode", () => {
         const { service, commands, keybindings, view } = createService();
         commands.register("cmd.save", () => {}, "File: Save");
         keybindings.register(parseKeybinding("ctrl+s"), "cmd.save");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const item = view.items.find((i) => i.label === "File: Save");
         expect(item?.shortcut).toBe("Ctrl+S");
     });
@@ -490,7 +530,7 @@ describe("QuickOpenService — commands mode", () => {
         const { service, commands, keybindings, view } = createService();
         commands.register("cmd.save", () => {}, "File: Save");
         keybindings.register(parseChord("ctrl+k s"), "cmd.save");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const item = view.items.find((i) => i.label === "File: Save");
         expect(item?.shortcut).toBe("Ctrl+K S");
     });
@@ -498,7 +538,7 @@ describe("QuickOpenService — commands mode", () => {
     it("shows no shortcut when the command has no binding", () => {
         const { service, commands, view } = createService();
         commands.register("cmd.x", () => {}, "Do X");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const item = view.items.find((i) => i.label === "Do X");
         expect(item?.shortcut).toBeUndefined();
     });
@@ -508,7 +548,7 @@ describe("QuickOpenService — commands mode", () => {
         commands.register("cmd.save", () => {}, "File: Save");
         keybindings.register(parseKeybinding("ctrl+s"), "cmd.save");
         keybindings.register(parseChord("ctrl+k s"), "cmd.save");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const item = view.items.find((i) => i.label === "File: Save");
         expect(item?.shortcut).toBe("Ctrl+S");
     });
@@ -519,7 +559,7 @@ describe("QuickOpenService — commands mode", () => {
         keybindings.register(parseKeybinding("ctrl+s"), "cmd.go", "textInputFocus");
         keybindings.register(parseKeybinding("ctrl+l"), "cmd.go", "listFocus");
         contextKeys.set("listFocus", true);
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const item = view.items.find((i) => i.label === "Go");
         expect(item?.shortcut).toBe("Ctrl+L");
     });
@@ -529,7 +569,7 @@ describe("QuickOpenService — commands mode", () => {
         commands.register("cmd.save", () => {}, "File: Save");
         commands.register("cmd.open", () => {}, "File: Open");
         commands.register("cmd.quit", () => {}, "Quit");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         view.onQueryChange?.(">save");
         const labels = view.items.map((i) => i.label);
         expect(labels).toContain("File: Save");
@@ -541,7 +581,7 @@ describe("QuickOpenService — commands mode", () => {
         const { service, commands, view } = createService();
         commands.register("cmd.x", () => {}, "Do X");
         const execSpy = vi.spyOn(commands, "execute");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const item = view.items[0];
         view.onAccept?.(item, 0);
         await new Promise<void>((r) => {
@@ -553,7 +593,7 @@ describe("QuickOpenService — commands mode", () => {
     it("accepting command closes the picker", async () => {
         const { service, commands, body, view } = createService();
         commands.register("cmd.x", () => {}, "Do X");
-        service.open("commands");
+        service.show(CommandsQuickAccessProvider.PREFIX);
         const item = view.items[0];
         view.onAccept?.(item, 0);
         await new Promise<void>((r) => {
@@ -567,7 +607,7 @@ describe("QuickOpenService — mode switching via '>'", () => {
     it("typing '>' in file mode switches to command items", () => {
         const { service, commands, view } = createService();
         commands.register("cmd.a", () => {}, "Command A");
-        service.open("files");
+        service.show();
         view.onQueryChange?.(">Command");
         const labels = view.items.map((i) => i.label);
         expect(labels).toContain("Command A");
@@ -576,7 +616,7 @@ describe("QuickOpenService — mode switching via '>'", () => {
     it("removing '>' switches back to file results", () => {
         const results = [makeSearchResult("src/main.ts")];
         const { service, view } = createService(results);
-        service.open("files");
+        service.show();
         view.onQueryChange?.(">foo");
         view.onQueryChange?.("main");
         const labels = view.items.map((i) => i.label);
@@ -588,7 +628,7 @@ describe("QuickOpenService — position and size", () => {
     it("open() sets preferredWidth to computed pickerW", () => {
         // 80-wide screen: pickerW = min(80, max(40, 80-4)) = 76
         const { service, view } = createService();
-        service.open("files");
+        service.show();
         expect(view.preferredWidth).toBe(76);
     });
 
@@ -597,18 +637,20 @@ describe("QuickOpenService — position and size", () => {
         const fileSearch = makeFileSearchStub();
         const component = makeComponent();
         const svc = new QuickOpenService(
-            fileSearch,
-            commands,
-            new KeybindingRegistry(),
-            new ContextKeyService(),
-            { getActiveEditor: () => null },
+            makeQuickAccessRegistry({
+                fileSearch,
+                commands,
+                keybindings: new KeybindingRegistry(),
+                contextKeys: new ContextKeyService(),
+                gotoSource: { getActiveEditor: () => null },
+            }),
             component,
         );
         const body = new BodyElement();
         const testApp = TestApp.create(body, new Size(50, 24));
         component.attachHost(body);
 
-        svc.open("files");
+        svc.show();
         // pickerW = min(80, max(40, 50-4)) = min(80, 46) = 46
         expect(component.view.preferredWidth).toBe(46);
         testApp.render();
@@ -621,18 +663,20 @@ describe("QuickOpenService — position and size", () => {
         const fileSearch = makeFileSearchStub();
         const component = makeComponent();
         const svc = new QuickOpenService(
-            fileSearch,
-            commands,
-            new KeybindingRegistry(),
-            new ContextKeyService(),
-            { getActiveEditor: () => null },
+            makeQuickAccessRegistry({
+                fileSearch,
+                commands,
+                keybindings: new KeybindingRegistry(),
+                contextKeys: new ContextKeyService(),
+                gotoSource: { getActiveEditor: () => null },
+            }),
             component,
         );
 
         // open() reaches updatePosition, which must early-return without throwing
         // because there is no host body to measure against.
         expect(() => {
-            svc.open("files");
+            svc.show();
         }).not.toThrow();
         // preferredWidth keeps its default since positioning was skipped (no recompute).
         expect(component.view.preferredWidth).toBe(60);
@@ -645,7 +689,7 @@ describe("QuickOpenService — position and size", () => {
 
     it("picker is horizontally centred after layout", () => {
         const { service, testApp, view } = createService();
-        service.open("files");
+        service.show();
         testApp.render();
         // pickerW=76, screen=80: px = floor((80-76)/2) = 2
         expect(view.globalPosition.x).toBe(2);
@@ -653,7 +697,7 @@ describe("QuickOpenService — position and size", () => {
 
     it("picker width after layout matches preferredWidth", () => {
         const { service, testApp, view } = createService();
-        service.open("files");
+        service.show();
         testApp.render();
         expect(view.layoutSize.width).toBe(view.preferredWidth);
     });
@@ -662,7 +706,7 @@ describe("QuickOpenService — position and size", () => {
 describe("QuickOpenService — file-search debounce", () => {
     it("first keystroke after idle runs search synchronously (leading edge)", () => {
         const { service, fileSearch, view } = createService();
-        service.open("files");
+        service.show();
         (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
         view.onQueryChange?.("App");
@@ -675,7 +719,7 @@ describe("QuickOpenService — file-search debounce", () => {
         vi.useFakeTimers();
         try {
             const { service, fileSearch, view } = createService();
-            service.open("files");
+            service.show();
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
             view.onQueryChange?.("A"); // leading → runs now
@@ -699,7 +743,7 @@ describe("QuickOpenService — file-search debounce", () => {
         vi.useFakeTimers();
         try {
             const { service, fileSearch, view } = createService();
-            service.open("files");
+            service.show();
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
             view.onQueryChange?.("App"); // leading only
@@ -715,7 +759,7 @@ describe("QuickOpenService — file-search debounce", () => {
         vi.useFakeTimers();
         try {
             const { service, fileSearch, view } = createService();
-            service.open("files");
+            service.show();
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
             view.onQueryChange?.("A"); // leading
@@ -735,7 +779,7 @@ describe("QuickOpenService — file-search debounce", () => {
         vi.useFakeTimers();
         try {
             const { service, fileSearch, view } = createService();
-            service.open("files");
+            service.show();
             (fileSearch.search as ReturnType<typeof vi.fn>).mockClear();
 
             view.onQueryChange?.("A"); // file leading
@@ -757,14 +801,14 @@ describe("QuickOpenService — go to line mode", () => {
     it("open('line') seeds a ':' query", () => {
         const { service, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => makeGotoLineEditor();
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         expect(view.getQuery()).toBe(":");
     });
 
     it("placeholder reports the current position and line count", () => {
         const { service, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => makeGotoLineEditor(340, 11, 6);
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         expect(view.placeholder).toBe(
             "Current Line: 12, Character: 7. Type a line number between 1 and 340 to navigate to.",
         );
@@ -773,7 +817,7 @@ describe("QuickOpenService — go to line mode", () => {
     it("shows an info hint before a number is typed", () => {
         const { service, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => makeGotoLineEditor(200);
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         expect(view.items).toHaveLength(1);
         expect(view.items[0].label).toBe("Type a line number between 1 and 200 to navigate to");
     });
@@ -781,7 +825,7 @@ describe("QuickOpenService — go to line mode", () => {
     it("shows an actionable 'Go to line N' item once a number is typed", () => {
         const { service, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => makeGotoLineEditor();
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         view.onQueryChange?.(":42");
         expect(view.items[0].label).toBe("Go to line 42");
     });
@@ -789,7 +833,7 @@ describe("QuickOpenService — go to line mode", () => {
     it("includes the column in the 'Go to line' label", () => {
         const { service, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => makeGotoLineEditor();
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         view.onQueryChange?.(":42:8");
         expect(view.items[0].label).toBe("Go to line 42:8");
     });
@@ -798,7 +842,7 @@ describe("QuickOpenService — go to line mode", () => {
         const editor = makeGotoLineEditor();
         const { service, body, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => editor;
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         view.onQueryChange?.(":42:8");
 
         view.onAccept?.(view.items[0], 0);
@@ -815,7 +859,7 @@ describe("QuickOpenService — go to line mode", () => {
         const editor = makeGotoLineEditor();
         const { service, body, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => editor;
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
 
         view.onAccept?.(view.items[0], 0);
         await new Promise<void>((r) => {
@@ -831,7 +875,7 @@ describe("QuickOpenService — go to line mode", () => {
         const { service, body, view, gotoSource } = createService();
         // Present while building the item, gone by the time accept navigates.
         gotoSource.getActiveEditor = () => editor;
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         view.onQueryChange?.(":5");
         gotoSource.getActiveEditor = () => null;
 
@@ -847,7 +891,7 @@ describe("QuickOpenService — go to line mode", () => {
     it("shows a fallback when there is no active editor", () => {
         const { service, view, gotoSource } = createService();
         gotoSource.getActiveEditor = () => null;
-        service.open("line");
+        service.show(GotoLineQuickAccessProvider.PREFIX);
         expect(view.placeholder).toBe("Go to line");
         expect(view.items[0].label).toBe("No active editor to navigate");
     });
@@ -856,14 +900,14 @@ describe("QuickOpenService — go to line mode", () => {
 describe("QuickOpenService — file:line suffix", () => {
     it("strips the ':line' suffix before searching so the colon does not pollute the filter", () => {
         const { service, fileSearch, view } = createService([makeSearchResult("src/main.ts")]);
-        service.open("files");
+        service.show();
         view.onQueryChange?.("main:42");
         expect(fileSearch.search).toHaveBeenLastCalledWith("main", 50);
     });
 
     it("strips a bare trailing colon (mid-typing) from the search query", () => {
         const { service, fileSearch, view } = createService([makeSearchResult("src/main.ts")]);
-        service.open("files");
+        service.show();
         view.onQueryChange?.("main:");
         expect(fileSearch.search).toHaveBeenLastCalledWith("main", 50);
     });
@@ -874,7 +918,7 @@ describe("QuickOpenService — file:line suffix", () => {
         const { service, commands, view, gotoSource } = createService(results);
         const execSpy = vi.spyOn(commands, "execute");
         gotoSource.getActiveEditor = () => editor;
-        service.open("files");
+        service.show();
         view.onQueryChange?.("main:42:8");
 
         view.onAccept?.(view.items[0], 0);
@@ -891,7 +935,7 @@ describe("QuickOpenService — file:line suffix", () => {
         const results = [makeSearchResult("src/main.ts")];
         const { service, view, gotoSource } = createService(results);
         gotoSource.getActiveEditor = () => editor;
-        service.open("files");
+        service.show();
         view.onQueryChange?.("main");
 
         view.onAccept?.(view.items[0], 0);
