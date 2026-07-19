@@ -39,6 +39,32 @@
 
 Формат пункта: симптом → причина → что подкрутить.
 
+### [ ] Linux: исчерпан лимит inotify (ENOSPC/EMFILE) — сказать это пользователю, как VS Code
+
+- **Симптом.** На старте (или при раскрытии дерева) файловые watcher'ы отваливаются:
+  ОС отказывает в новом watch'е с `ENOSPC: System limit for number of file watchers reached`
+  (реже `EMFILE`). Раньше это **роняло весь редактор**: chokidar делал `emit('error')`,
+  слушателя не было, EventEmitter бросал исключение из async-потрохов → процесс умирал.
+
+- **Что уже сделано.** Watcher'ы больше не роняют процесс и пишут warn с подсказкой:
+  - `ChokidarFileWatcher` (`src/vs/platform/files/node/chokidarFileWatcher.ts`) — канал `files.watcher`;
+  - `FileTreeDataProvider` → `ExplorerService` (`onWatchError`) — канал `filetree.watcher`;
+  - общий разбор ошибки и текст подсказки — `describeFileWatchError` (`src/vs/platform/files/common/fileWatchErrors.ts`).
+  Редактор при этом работает, теряется только live-reload (settings.json/keybindings.json,
+  внешние изменения открытых файлов, авто-обновление ветки дерева).
+
+- **Что осталось (главное).** Пользователь ничего не видит — только строчка в логе. VS Code
+  в этой ситуации показывает **уведомление** вида «Unable to watch for file changes… ENOSPC»
+  со ссылкой на инструкцию, как поднять лимит. Нам нужно то же самое, как только появится
+  механизм уведомлений (см. раздел «как доносить до пользователя» выше):
+  - одно уведомление на сессию (не спамить на каждый упавший watcher — их десятки);
+  - текст с рецептом: `sysctl fs.inotify.max_user_watches` → поднять и записать в
+    `/etc/sysctl.d/*.conf` (`fs.inotify.max_user_watches=524288`);
+  - деградацию сформулировать честно: «внешние изменения файлов не отслеживаются».
+
+- **Заодно.** Это первый кандидат на общий паттерн «редактор жив, фича деградировала» —
+  такие вещи должны становиться уведомлением, а не молчаливой строкой в логе.
+
 ### [~] tmux + kitty: Ctrl+Tab / Ctrl+Shift+<key> не доходят (приходит голый Tab/легаси)
 
 Расследование закрыто бисекцией по слоям (демо — `src/demos/keyDiagnosticsDemo.ts`,

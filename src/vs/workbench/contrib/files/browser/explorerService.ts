@@ -4,6 +4,7 @@ import { Disposable } from "../../../../../../tuidom/common/disposable.ts";
 import type { IFileClipboard } from "../../../../platform/clipboard/common/iFileClipboard.ts";
 import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
+import { describeFileWatchError } from "../../../../platform/files/common/fileWatchErrors.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
 import type { ILogService } from "../../../../platform/log/common/iLogService.ts";
@@ -78,11 +79,7 @@ export class ExplorerService extends Disposable {
         // ловим её здесь и пишем в лог. ENOSPC/EMFILE — исчерпан лимит inotify; даём
         // самодокументирующуюся подсказку, как в уведомлении VS Code.
         this.provider.onWatchError = (dirPath, error) => {
-            const code = (error as NodeJS.ErrnoException).code;
-            const hint =
-                code === "ENOSPC" || code === "EMFILE"
-                    ? " — inotify watch limit reached; increase fs.inotify.max_user_watches"
-                    : "";
+            const { code, hint } = describeFileWatchError(error);
             this.watcherLogger.warn(`file watcher error${hint}`, { dirPath, code, error: String(error) });
         };
         for (const listener of [...this.rootListeners]) listener();
