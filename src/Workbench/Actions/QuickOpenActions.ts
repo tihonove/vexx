@@ -1,5 +1,7 @@
 import { MenuId } from "../Menus/MenuId.ts";
 import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
+import { CommandsQuickAccessProvider } from "../Services/QuickAccess/CommandsQuickAccessProvider.ts";
+import { GotoLineQuickAccessProvider } from "../Services/QuickAccess/GotoLineQuickAccessProvider.ts";
 import { QuickOpenServiceDIToken } from "../Services/QuickOpenService.ts";
 
 import type { CommandAction } from "./CommandAction.ts";
@@ -10,7 +12,7 @@ export const quickOpenAction: CommandAction = {
     menus: [{ menuId: MenuId.MenubarGoMenu, group: "1_goto", order: 10 }],
     keybinding: parseKeybinding("ctrl+p"),
     run(accessor) {
-        accessor.get(QuickOpenServiceDIToken).open("files");
+        accessor.get(QuickOpenServiceDIToken).show();
     },
 };
 
@@ -20,7 +22,7 @@ export const gotoLineAction: CommandAction = {
     menus: [{ menuId: MenuId.MenubarGoMenu, group: "1_goto", order: 20 }],
     keybinding: parseKeybinding("ctrl+g"),
     run(accessor) {
-        accessor.get(QuickOpenServiceDIToken).open("line");
+        accessor.get(QuickOpenServiceDIToken).show(GotoLineQuickAccessProvider.PREFIX);
     },
 };
 
@@ -32,6 +34,6 @@ export const showCommandsAction: CommandAction = {
     // Ctrl+Shift+letter is unreliable on legacy terminals — add the VS Code chord fallback.
     keybindings: [{ keys: parseChord("ctrl+k ctrl+p"), when: "tier == 'legacy'" }],
     run(accessor) {
-        accessor.get(QuickOpenServiceDIToken).open("commands");
+        accessor.get(QuickOpenServiceDIToken).show(CommandsQuickAccessProvider.PREFIX);
     },
 };

@@ -58,12 +58,27 @@ import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../Services/K
 import { LayoutService, LayoutServiceDIToken } from "../Services/LayoutService.ts";
 import { LifecycleService, LifecycleServiceDIToken } from "../Services/LifecycleService.ts";
 import { PanelService, PanelServiceDIToken } from "../Services/PanelService.ts";
-import { QuickInputService, QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
+import {
+    CommandsQuickAccessProvider,
+    CommandsQuickAccessProviderDIToken,
+} from "../Services/QuickAccess/CommandsQuickAccessProvider.ts";
+import {
+    FilesQuickAccessProvider,
+    FilesQuickAccessProviderDIToken,
+} from "../Services/QuickAccess/FilesQuickAccessProvider.ts";
 import {
     GotoLineEditorSourceDIToken,
-    QuickOpenService,
-    QuickOpenServiceDIToken,
-} from "../Services/QuickOpenService.ts";
+    GotoLineQuickAccessProvider,
+    GotoLineQuickAccessProviderDIToken,
+} from "../Services/QuickAccess/GotoLineQuickAccessProvider.ts";
+import { QUICK_ACCESS_PROVIDERS } from "../Services/QuickAccess/quickAccessProviders.ts";
+import {
+    QuickAccessProvidersDIToken,
+    QuickAccessRegistry,
+    QuickAccessRegistryDIToken,
+} from "../Services/QuickAccess/QuickAccessRegistry.ts";
+import { QuickInputService, QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
+import { QuickOpenService, QuickOpenServiceDIToken } from "../Services/QuickOpenService.ts";
 import { StatusBarService, StatusBarServiceDIToken } from "../Services/StatusBarService.ts";
 import { EmbeddedTerminalSession } from "../Services/Terminal/EmbeddedTerminalSession.ts";
 import { TerminalService, TerminalServiceDIToken } from "../Services/Terminal/TerminalService.ts";
@@ -112,6 +127,14 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(QuickInputServiceDIToken, QuickInputService);
     container.bind(FileSearchServiceDIToken, FileSearchService);
     container.bind(GotoLineEditorSourceDIToken, () => container.get(EditorServiceDIToken));
+    // Quick-access-провайдеры: явный список (QUICK_ACCESS_PROVIDERS) + реестр,
+    // выбирающий провайдера по префиксу запроса; QuickOpenService — контроллер
+    // показа, о конкретных префиксах не знает.
+    container.bind(FilesQuickAccessProviderDIToken, FilesQuickAccessProvider);
+    container.bind(CommandsQuickAccessProviderDIToken, CommandsQuickAccessProvider);
+    container.bind(GotoLineQuickAccessProviderDIToken, GotoLineQuickAccessProvider);
+    container.bind(QuickAccessProvidersDIToken, () => QUICK_ACCESS_PROVIDERS);
+    container.bind(QuickAccessRegistryDIToken, QuickAccessRegistry);
     container.bind(QuickOpenServiceDIToken, QuickOpenService);
     container.bind(WorkspaceFolderOpenerDIToken, () => container.get(WorkbenchComponentDIToken));
     // Выход из приложения (Ctrl+Q / меню / палитра → quitAction) — структурно
