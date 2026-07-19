@@ -20,7 +20,6 @@
     "demo:renderer": "node src/demos/rendererDemo.ts",
     "demo:mouse": "node src/demos/mouseDemo.ts",
     "demo:terminal": "tsx src/demos/terminal/terminalHost.ts",
-    "story": "tsx src/StoryRunner/run.ts",
     "screenshots": "tsx e2e/scenarios/generate.ts",
     "build": "tsup",
     "build:sea": "node scripts/build-sea.mjs",

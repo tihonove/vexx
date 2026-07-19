@@ -28,35 +28,6 @@
             "script": "typecheck",
             "problemMatcher": ["$tsc"],
             "detail": "tsc --noEmit"
-        },
-        {
-            "label": "Run Story",
-            "type": "shell",
-            "command": "${workspaceFolder}/scripts/run-story.sh ${relativeFile} ${selectedText}",
-            "problemMatcher": [],
-            "presentation": {
-                "reveal": "always",
-                "panel": "dedicated",
-                "focus": true
-            }
-        },
-        {
-            "label": "Debug Story",
-            "type": "shell",
-            "command": "${workspaceFolder}/scripts/debug-story.sh ${relativeFile} ${selectedText}",
-            "isBackground": true,
-            "problemMatcher": {
-                "pattern": { "regexp": "^$" },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".",
-                    "endsPattern": "Debugger listening"
-                }
-            },
-            "presentation": {
-                "reveal": "silent",
-                "panel": "shared"
-            }
         }
     ]
 }
