@@ -188,7 +188,9 @@ export class QuickOpenService extends Disposable {
     }
 
     private updateItems(query: string, preserveSelection = false): void {
+        /* v8 ignore start -- defensive: показ всегда активирует провайдера до первого updateItems */
         const provider = this.currentProvider ?? this.activateProviderFor(query);
+        /* v8 ignore stop */
         const items = provider.getItems(query);
 
         if (preserveSelection) {

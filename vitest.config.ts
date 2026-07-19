@@ -23,9 +23,11 @@ export default defineConfig({
         "src/**/*.test.ts",
 
         "src/**/*.bench.ts", // перф-бенчмарки, гоняются отдельным test:perf
+        "tuidom/**/*.bench.ts",
         "src/TestUtils/perfFixtures.ts", // фикстуры только для бенчей
         "src/vs/workbench/api/common/testStubRpc.ts", // тестовый стаб RpcEndpoint для unit-тестов namespace'ов
         "src/**/*.stories.ts",
+        "tuidom/**/*.stories.ts",
         "src/demos/**",
         "tuidom/demos/**",
         "src/vs/vexx/main.ts",
@@ -34,6 +36,20 @@ export default defineConfig({
 
         // --- Чистые типы: нечего исполнять ---
         "src/**/*.d.ts", // vscode.d.ts
+        // Чистые типы, выпавшие из рантайм-графа после перевода импортов в
+        // import type (eslint --fix при переезде на vs-раскладку):
+        "src/vs/editor/common/languages/iCompletionSource.ts",
+        "src/vs/editor/common/model/iDocumentLanguageChange.ts",
+        "src/vs/platform/clipboard/common/iFileClipboard.ts",
+        "src/vs/platform/state/common/iStateService.ts",
+        "src/vs/platform/undoRedo/common/iUndoRedoElement.ts",
+        "src/vs/workbench/api/common/vscodeHostContext.ts",
+        "src/vs/workbench/browser/iActivatable.ts",
+        "src/vs/workbench/common/iWorkbenchContribution.ts",
+        "src/vs/workbench/contrib/quickaccess/common/iQuickAccessProvider.ts",
+        "src/vs/workbench/services/textfile/common/iSaveParticipant.ts",
+        "tuidom/common/iTerminalSurface.ts",
+        "tuidom/inspector/index.ts", // barrel re-export
         "tuidom/dom/styles/index.ts", // barrel re-export
         "src/vs/workbench/services/themes/common/index.ts", // barrel re-export
         "tuidom/backend/iTerminalBackend.ts",
@@ -78,12 +94,12 @@ export default defineConfig({
         "extensions/vexx-settings/main.ts", // extension entry (грузится в subprocess); поведение — в ExtensionHost.SettingsCompletion.test.ts + e2e
         "src/**/*.generated.ts", // сгенерированные data-файлы (напр. settings-schema.generated.ts), исполняются в subprocess
         "src/vs/workbench/api/common/vscodeNamespace.ts", // RPC-проводка в subprocess
-        "src/Workbench/Modules/**", // DI-проводка (integration/e2e)
+        "src/vs/vexx/modules/**", // DI-проводка (integration/e2e)
         "src/vs/platform/configuration/common/nullConfigurationService.ts", // null-object заглушка
         "src/vs/platform/state/common/nullStateService.ts", // null-object заглушка
         "tuidom/inspector/InspectorDriver.ts", // только интерфейс write/capture-порта
         "tuidom/inspector/InspectorServer.ts", // рукописный ws-транспорт (смоук-тест)
-        "src/Inspector/ws/**", // рукописный RFC6455 фрейминг
+        "tuidom/inspector/ws/**", // рукописный RFC6455 фрейминг
         "tuidom/inspector/attachInspector.ts", // поднимает реальный сервер (смоук-тест)
       ],
     },
