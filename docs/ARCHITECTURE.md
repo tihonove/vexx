@@ -1,90 +1,83 @@
 # Vexx — Архитектура
 
-Этот файл — **концептуальная карта**: обзор слоёв, короткие описания каталогов
-`src/` со ссылками на детальные документы и правила зависимостей. Детальный
-per-layer справочник живёт в [arch/](arch/) — по одному файлу на слой.
+Этот файл — **концептуальная карта**: обзор осей раскладки `src/vs/*`, короткие
+описания каталогов со ссылками на детальные документы и правила зависимостей.
+Детальный per-layer справочник живёт в [arch/](arch/) — по одному файлу на слой
+(написан в терминах прежних имён слоёв; соответствие — в таблице ниже).
 
-## Обзор слоёв
+## Раскладка: две оси, как у vscode
 
-Проект организован в виде стека слоёв. Каждый слой зависит только от нижележащих.
+С переезда на vscode-раскладку код организован по **двум осям одновременно**
+(аналог upstream-правил `code-layering`/`code-import-patterns`; у нас их
+проверяет `npm run valid-layers-check` — `scripts/check-layers.mjs`):
 
-1. **App** (main.ts) — точка входа, bootstrap (CLI → user data paths → configuration → asset access → extensions → DI)
-2. **Extensions** — VS Code-совместимые расширения: манифесты, грамматики, extension host (subprocess + RPC)
-3. **Workbench** — прикладной слой приложения: Services (логика) + Components (UI-сборка, корень — `WorkbenchComponent`) + Contributions (фич-проводка вне корня, по фазам) + Actions (встроенные команды) + Menus (declarative menu-contributions: `MenuRegistry`+`MenuId`+`MenuService`) + Styles (мост тема → стили контролов) + Modules (DI-проводка)
-4. **Configuration** — настройки пользователя (JSONC, профили, слои default/user/profile)
-5. **Theme** — темизация (VS Code-совместимые theme files); на одном уровне с Workbench, подключается к Editor через интерфейсы
-6. **Editor** — модель текстового редактора + мост к TUIDom
-7. **TUIDom** — TUI-фреймворк (аналог браузерного DOM): дерево элементов, события, виджеты
-8. **Input**, **Rendering**, **Backend** — платформенный слой: парсинг ввода, отрисовка, терминальный I/O
-9. **Common** — общие примитивы и утилиты
+1. **Вертикальные слои** (импортировать можно только свой и нижние):
 
-Точная схема зависимостей (включая исключения) — в разделе [Правила зависимостей](#правила-зависимостей).
+   ```
+   base/common → base/node → tui → base/browser → platform → editor → workbench → vexx
+   ```
 
-## Каталоги src/
+   `vs/tui` — «движок браузера» (rendering/input/backend), наш слой вне
+   vscode-стека: у vscode эту роль играет Chromium. Он ниже `base/browser`
+   (виджеты рисуют через rendering) и выше `base/common`.
 
-Ниже — по одному абзацу на каталог. Детали каждого слоя — по ссылке в конце абзаца.
+2. **Окружения** внутри слоя: `common` → [common], `browser` → [common,
+   browser], `node` → [common, node]. «browser» — буквально, как у upstream,
+   хотя рендерим в терминал: `base/browser` — это TUIDom (наш аналог DOM).
+   `vs/tui/{rendering,input}` считаются common (чистые структуры/парсинг),
+   `vs/tui/backend` — node; `vs/vexx` (сборка приложения) склеивает оба мира,
+   env-ось к нему не применяется.
 
-### Common/
-Базовые типы и утилиты, не зависящие от других слоёв: геометрия (`Point`, `Size`, `Rect`, `BoxConstraints`), `IDisposable`/`Disposable`, DI-примитивы (`Token`, `Container`), Unicode-утилиты (`UnicodeWidth`, `DisplayLine`), `Uri` (идентичность ресурса — адаптер над upstream `vscode-uri`; общий тип для ядра и extension host'а). Подкаталоги `Common/Assets/` (унифицированный доступ к статическим ассетам через `IAssetAccess`) и `Common/Logging/` (VS Code-подобное логирование: `ILogService`/`ILogger`/sinks). Детали → [arch/Common.md](arch/Common.md).
+Имена файлов — camelCase по vscode-конвенции (`tuiElement.ts`,
+`menuRegistry.ts`); тесты — колокацией рядом с кодом (наше отличие от
+upstream, где они в `test/`-деревьях; оси на тесты не проверяются).
 
-### Input/
-Пайплайн парсинга терминального ввода: сырые байты stdin → токены → `KeyPressEvent` (browser-like keydown/keypress/keyup), отслеживание мыши, обратная сериализация для тестов. Детали → [arch/Input.md](arch/Input.md).
+Профит раскладки — **парность путей с vscode**: наш
+`src/vs/platform/configuration/common/configurationService.ts` диффается с
+таким же путём upstream, будущие фичи (scm, outline, notifications…) имеют
+готовые места, а знающие vscode ориентируются без обучения.
 
-### Rendering/
-Вывод на экран: двойная буферизация, diff, минимальные ANSI-последовательности; модель ячейки, 2D-матрица, API рисования. Плюс `GridSnapshot` (plain-data кадр) и `gridToSvg` (кадр → SVG для скриншотов). Детали → [arch/Rendering.md](arch/Rendering.md).
+## Карта каталогов (и соответствие прежним слоям)
 
-### Backend/
-Абстракция терминального I/O (интерфейс + три реализации: `NodeTerminalBackend`, `MockTerminalBackend`, `HeadlessCaptureBackend` для `--headless`). Детали → [arch/Backend.md](arch/Backend.md).
-
-### TUIDom/
-TUI-фреймворк — дерево элементов с layout, событиями, фокусом (аналог браузерного DOM). `RenderContext`, система событий (capture/bubble, default actions), стилей (наследование fg/bg), виджеты и `OverlayLayer` (session API с обязательным `pointerPolicy`). Среди виджетов — `Widgets/Terminal/` (`TerminalViewElement` рендерит абстрактную `ITerminalSurface`; чистый — без импортов PTY/эмулятора). Layout описан в [LAYOUT.md](LAYOUT.md). Детали → [arch/TUIDom.md](arch/TUIDom.md).
-
-### Editor/
-Модель текстового редактора и виджет-мост к TUIDom: хранение текста, view-state (scroll/selections/folding/cursor), undo/redo, слежение за файлом на диске, folding, подсистема токенизации (`Editor/Tokenization/`), реестр диагностик (`Editor/Markers/`) и view-проекции декораций (`Editor/Decorations/`). Editor НЕ зависит от Theme/Extensions напрямую — только через интерфейсы `ITokenStyleResolver`/`ILanguageService`. Детали → [arch/Editor.md](arch/Editor.md).
-
-### Extensions/
-Загрузка VS Code-совместимых расширений (`contributes.languages`/`grammars`, builtin + user), `LanguageRegistry`, установка `.vsix`. Подмодуль `Extensions/Host/` — extension host: реальный subprocess + RPC поверх Node IPC, субпроцессная поверхность `vscode`. Детали → [arch/Extensions.md](arch/Extensions.md).
-
-### Configuration/
-Сервис пользовательских настроек (аналог `IConfigurationService`): JSONC, профили, слои default/user/profile, раскладка user data, CLI-парсер. Здесь же `ConfigurationRegistry` (аналог `IConfigurationRegistry`) — реестр схем настроек, из которого деривируется defaults-слой; узлы схем приносят фичи (`Workbench/Configuration/`). Детали → [arch/Configuration.md](arch/Configuration.md). Рядом — `StateService` (аналог `IStorageService`/`Memento`): **машинное** состояние UI/сессии (открытые файлы, ширина/видимость панелей) в plain-JSON со scope `global`/`workspace` — отдельная система от человекочитаемых настроек. Дескрипторы состояния объявляются на уровне Workbench (`Workbench/Services/StateKeys.ts`), не в элементах TUIDom. Детали → [arch/State.md](arch/State.md).
-
-### Theme/
-Система темизации, совместимая с VS Code theme files: `WorkbenchTheme`, определения цветов `Theme/colors/` (аналог `registerColor`-реестра vscode; из них — дефолты и типизация ключей), `ThemeService`/`ThemeRegistry`, встроенные темы. Все цвета UI берутся только из активной темы. Детали → [arch/Theme.md](arch/Theme.md).
-
-### Workbench/
-Прикладной слой приложения — модель **Service ↔ Component**: сервис — где живёт логика приложения (`Workbench/Services/`: система команд `CommandRegistry`/`KeybindingRegistry`/`ContextKeyService`, `EditorService`, `FileSearchService`, `Workspace/` — единая система отмены, `TerminalEnvironment/`, `Terminal/` — `EmbeddedTerminalSession` за `ITerminalSurface`, `Diagnostics/` и др.); компонент (`Component`/`ThemedComponent` из `Workbench/Component.ts`) владеет корневым контролом (`view`), принимает сервисы в конструктор и общается с ними подписками/вызовами. Корень дерева компонентов — `WorkbenchComponent` (`Workbench/Components/Shell/`): владеет корневой view (`BodyElement` + `WorkbenchLayoutElement`), вставляет view остальных компонентов, регистрирует встроенные экшены и ведёт bootstrap-жизненный цикл (mount → activate — единственный компонент с lifecycle за пределами конструктора, его ведёт `main.ts`). У остальных компонентов нет `mount()`/`activate()` — всё в конструкторе; async-инициализация живёт в сервисах (`IActivatable`). Встроенные команды — `Workbench/Actions/` (`builtinActions.ts`). Фич-проводка (подписки на события, live-reload темы, контекст-меню, статус-бар) вынесена из конструктора корня в самодостаточные **workbench-contributions** (`Workbench/Contributions/`, аналог `IWorkbenchContribution` VS Code): реестр инстанцирует их по фазам (`restored` — в `mount()`, `eventually` — из `main.ts` после первого кадра); список — явный массив `WORKBENCH_CONTRIBUTIONS`. Схемы настроек фич — configuration-узлы в `Workbench/Configuration/` (явный массив `CONFIGURATION_CONTRIBUTIONS` → `ConfigurationRegistry` слоя Configuration; из него — defaults-слой настроек и известные ключи валидации settings.json). Пункты меню — декларативно из `Workbench/Menus/` (`MenuRegistry`+`MenuId`+`MenuService`, аналог `MenuRegistry`/`IMenuService` VS Code): placement'ы co-located на экшенах (`CommandAction.menus`+`shortTitle`, аналог `registerAction2`), явный массив `MENU_CONTRIBUTIONS` = submenu-структура меню-бара + деривация из `builtinActions`; из живых `IMenu` собираются контекст-меню (редактор, Explorer) и меню-бар. Плюс мост тема → стили контролов TUIDom: `Workbench/Styles/defaultStyles.ts` резолвит ключи активной темы (`button.*`, `menu.*`, …) в плоские styles-интерфейсы виджетов (`IButtonStyles`, `IMenuStyles`, …) — по функции `getXxxStyles(theme)` на контрол; сами виджеты TUIDom про Theme не знают (получают готовые packed-цвета через `setStyles`). DI-модули и профили (production/test) — `Workbench/Modules/` (см. [DI.md](DI.md)). Детали → [arch/Workbench.md](arch/Workbench.md).
-
-### demos/ · Stories (`*.stories.ts`) · TestUtils/
-Инструменты разработки: демо-приложения хостинга (`demos/`), демо-сценарии виджетов `*.stories.ts` рядом с компонентами + их контракт `StoryRunner/StoryTypes.ts` (браузер историй вынесен в отдельный сайд-проект `tuidom/storybook`, ссылающийся на соседний checkout vexx), утилиты для тестов (`TestUtils/`, включая `ExtensionTestHarness`). Детали → [arch/DevTooling.md](arch/DevTooling.md).
-
-### Inspector/
-Инспектор TUIDom («браузерный дебаг-порт»): сериализация дерева и протокол поверх рукописного WebSocket; write/capture-порт `InspectorDriver` для `--headless`. Детали → [arch/Inspector.md](arch/Inspector.md).
+| Каталог | Прежний слой | Что там | Детали |
+|---|---|---|---|
+| `vs/base/common/` | Common | примитивы: геометрия, `Disposable`, `Uri` (адаптер `vscode-uri`), Unicode/`DisplayLine`, fuzzy, packed-цвета (`colorUtils`, `styleFlags`), `iTerminalSurface`, ассеты (`assets/`) | [arch/Common.md](arch/Common.md) |
+| `vs/base/node/` | Common (node-часть) | SEA/`isSea`, fs-доступ к ассетам | [arch/Common.md](arch/Common.md) |
+| `vs/tui/rendering/` | Rendering | двойная буферизация, diff, ANSI; `GridSnapshot`, `gridToSvg` | [arch/Rendering.md](arch/Rendering.md) |
+| `vs/tui/input/` | Input | stdin-байты → токены → `KeyPressEvent`, мышь | [arch/Input.md](arch/Input.md) |
+| `vs/tui/backend/` | Backend | `ITerminalBackend` + Node/Mock/HeadlessCapture, пробинг терминала (`terminalEnv`) | [arch/Backend.md](arch/Backend.md) |
+| `vs/base/browser/` | TUIDom | дерево элементов, события (capture/bubble), фокус, JSX; виджеты — `ui/<widget>/` с vscode-именами (scrollbar, tree, inputbox, menu, contextview…) | [arch/TUIDom.md](arch/TUIDom.md), [LAYOUT.md](LAYOUT.md) |
+| `vs/platform/` | размазан (Common/Configuration/Theme/Editor/Workbench) | сервисы ниже editor: `instantiation` (наш DI), `log`, `configuration` (+`ConfigurationRegistry`), `state`, `markers`, `undoRedo`, `commands`, `contextkey`, `keybinding`, `actions` (`MenuRegistry`/`MenuId`), `theme` (определения цветов + мост `defaultStyles`), `clipboard`, `files`, `environment`, `extensions`, `extensionManagement` | [arch/Theme.md](arch/Theme.md), [arch/Configuration.md](arch/Configuration.md), [arch/State.md](arch/State.md) |
+| `vs/editor/` | Editor | `common/{core,model,viewModel,languages,tokens}` — текстовая модель, view-state, токенизация; `browser/` — `editorElement` (виджет-мост); `contrib/{find,folding}` — модельные части фич | [arch/Editor.md](arch/Editor.md) |
+| `vs/workbench/` | Workbench (+куски Editor/Extensions/Theme) | `browser/` (Component/ThemedComponent, `workbenchComponent`, `parts/*`: editor/statusbar/panel/dialogs/quickinput, `actions/`), `services/*` (themes, textMate, textfile, language, search, extensions, editor, layout, lifecycle, keybinding, dialogs, statusbar, terminalEnvironment), `contrib/<фича>/` (files, markers, quickaccess, find, suggest, terminal, themes, preferences, bulkEdit), `api/` (extension host: extHost-неймспейсы, адаптеры, RPC), `common/` (contributions-реестр, `CoreTokens`, configuration-узлы) | [arch/Workbench.md](arch/Workbench.md), [arch/Extensions.md](arch/Extensions.md) |
+| `vs/vexx/` | App | точка входа `main.ts` (bootstrap: CLI → user data → configuration → assets → extensions → DI), DI-модули и профили (`modules/`) | [DI.md](DI.md) |
+| `src/vscode-dts/` | Extensions/Api | `vscode.d.ts` (pinned, поверхность API) | [arch/Extensions.md](arch/Extensions.md) |
+| `extensions/` | src/Extensions/builtin | builtin-расширения (языковые паки verbatim + git, vexx-settings) — как у upstream | [arch/Extensions.md](arch/Extensions.md) |
+| `src/{Inspector,TestUtils,StoryRunner,demos}/` | как были | dev-тулинг вне `vs/` (аналогов в upstream `src/vs` нет) | [arch/Inspector.md](arch/Inspector.md), [arch/DevTooling.md](arch/DevTooling.md) |
 
 ## Правила зависимостей
 
-```
-App → Extensions → Workbench → Editor → TUIDom → { Input, Rendering, Backend } → Common
-          ↑            ↑          ↑
-        Theme ─────────┘──────────┘ (в Editor — через ITokenStyleResolver/ILanguageService;
-                                     Editor НЕ импортирует Theme/Extensions)
-        Theme → { Rendering, Common }
-```
+Формальную проверку обеих осей делает `npm run valid-layers-check`; признанные
+отступления перечислены в `EXCEPTIONS` внутри `scripts/check-layers.mjs` (наша
+single-process природа: «browser»-сторона зовёт node-сервисы напрямую, без
+RPC-мостов vscode). Смысловые правила поверх осей:
 
-- **Common** не импортирует ничего из проекта (внешние leaf-зависимости — по политике из [GOAL.md](../GOAL.md); так здесь живёт `Uri` на `vscode-uri`)
-- **Адресация ресурсов** — любой ресурс, который пользователь открывает как буфер или дифф (файл, `untitled:`-буфер, в будущем `git:`/`output:`), адресуется `Common/Uri.ts`; путь — производное от него (`uri.fsPath` при `scheme === "file"`). Строкой путь остаётся на границах ФС и персистентности (`UserDataPaths`, `StateService`, файловое дерево). Подъём строки в `Uri` — в одной точке на слой, с `path.resolve` вплотную перед `Uri.file`. Детали и правила → [arch/Common.md](arch/Common.md#uri)
-- **Input**, **Rendering** зависят только от Common
-- **Backend** зависит от Input, Rendering, Common
-- **TUIDom** зависит от Rendering, Common (через TerminalScreen)
-- **TUIDom/Events** используют тип TUIElement — это внутренняя зависимость TUIDom
-- **Editor** зависит от TUIDom, Rendering (ColorUtils), Common. **Не зависит** от Theme и Extensions — связь через интерфейсы (`ITokenStyleResolver`, `ILanguageService`)
-- **Theme/Tokenization** реализует `ITokenStyleResolver` из `Editor/Tokenization`
-- **Extensions** реализует `ILanguageService` из `Editor/Tokenization`, использует `TextMateGrammarLoader`/`TokenizationRegistry` для регистрации грамматик. Подмодуль **`Extensions/Host`** дополнительно зависит от `Workbench` (адаптеры над `EditorService`; мост файловых декораций типизирован минимальным портом `IFileDecorationsTarget` и в DI связывается с `ExplorerService`) и `Theme` (адаптер над `ThemeService` — резолв `ThemeColor` для декораций) — единственное место, где Extensions поднимается выше Editor. Ядро про источник декораций (git/SCM) не знает: адаптеры отдают уже резолвнутые цвета.
-- **Workbench** зависит от Editor, TUIDom, Theme, Configuration, Common и от интерфейса `Backend` (`ITerminalBackend` через `TerminalBackendDIToken`; Backend ниже по стеку)
-- **App** (main.ts) зависит от всех слоёв и оркеструет загрузку builtin-расширений до bootstrap DI
-- **Inspector** зависит от TUIDom (чтение дерева/типов) и Common; плюс тип-only зависимость на `GridSnapshot` из Rendering (тип результата `captureFrame`). Транспорт — встроенный `node:http` (рукописный WebSocket, без сторонних зависимостей). Не зависит от Workbench/Editor/Backend (write/capture-порт `InspectorDriver` — интерфейс; адаптер над бэкендом даёт App-слой)
+- **`base/common` не импортирует ничего из проекта** (внешние leaf-зависимости — по политике из [GOAL.md](../GOAL.md); так здесь живёт `uri` на `vscode-uri`).
+- **Адресация ресурсов** — любой ресурс, который пользователь открывает как буфер или дифф, адресуется `vs/base/common/uri.ts`; путь — производное (`uri.fsPath` при `scheme === "file"`). Подъём строки в `Uri` — в одной точке на слой, с `path.resolve` вплотную перед `Uri.file`. Детали → [arch/Common.md](arch/Common.md#uri).
+- **Editor не зависит от темизации и расширений** — связь через интерфейсы `ITokenStyleResolver`/`ILanguageService` (`vs/editor/common/languages/`); их реализуют `workbench/services/themes` и `workbench/services/extensions`.
+- **Extension host** (`vs/workbench/api/`) — единственное место, где расширения поднимаются к workbench-сервисам: адаптеры (`*Adapter` ≈ `mainThread*`) типизированы минимальными портами и связываются в DI.
+- **Editor-фичи с сервисами** (find/suggest) живут в `workbench/contrib`, а не `editor/contrib` (у vscode — второе): наш DI-запрет не пускает токены в editor-слой. Осознанное отклонение — см. [TODO/VscodeStructureFollowUps.md](TODO/VscodeStructureFollowUps.md).
+- **Inspector** зависит от `base/browser` (чтение дерева) и `base/common`; транспорт — рукописный WebSocket на `node:http`; write/capture-порт `InspectorDriver` — интерфейс, адаптер даёт `vexx`-слой.
 
 ### DI-контейнер: границы использования
 
-Примитивы DI (`Token`, `Container`, `token()`) реализованы в `Common/DiContainer.ts`, но **объявлять конкретные DI-токены и импортировать `Container`** можно **только на уровнях Workbench и App**. Слои ниже (Editor, TUIDom, Input, Rendering, Backend) не должны зависеть от DI-контейнера. Сквозные токены ядра живут в `Workbench/Services/CoreTokens.ts`; биндинги собираются в модулях `Workbench/Modules/`.
+Примитивы DI (`Token`, `Container`, `token()`) живут в
+`vs/platform/instantiation/common/diContainer.ts` (путь vscode-овский, модель
+наша — токены + `static dependencies`, без декораторов), но **объявлять
+конкретные DI-токены и импортировать `Container`** можно **только на уровнях
+workbench и vexx** (плюс исторические исключения `*DIToken`-файлов в
+platform). Сквозные токены ядра — `vs/workbench/common/coreTokens.ts`;
+биндинги собираются в модулях `vs/vexx/modules/`.
 
-Все DI-токены именуются по конвенции `*DIToken` (например `EditorServiceDIToken`, `TuiApplicationDIToken`). Подробности — [DI.md](DI.md).
+Все DI-токены именуются по конвенции `*DIToken` (например
+`EditorServiceDIToken`, `TuiApplicationDIToken`). Подробности — [DI.md](DI.md).

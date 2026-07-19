@@ -70,7 +70,7 @@ VS Code использует **Piece Tree** (red-black tree of pieces with line-
 
 ## Связанные файлы
 
-- `src/Editor/TextDocument.ts` — текущая реализация
-- `src/Editor/ITextDocument.ts` — публичный контракт
-- `src/Editor/IDocumentContentChange.ts` — событие
-- `src/Editor/UndoManager.ts` — undo-стек (потенциальная миграция на snapshots)
+- `src/vs/editor/common/model/textDocument.ts` — текущая реализация
+- `src/vs/editor/ITextDocument.ts` — публичный контракт
+- `src/vs/editor/common/model/iDocumentContentChange.ts` — событие
+- `src/vs/editor/common/model/undoManager.ts` — undo-стек (потенциальная миграция на snapshots)

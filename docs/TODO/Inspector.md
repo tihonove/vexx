@@ -20,7 +20,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 
 ### A. Кастомные лейаутеры → композиция готовых контейнеров
 Хардкодят раскладку в `performLayout`/`render` вместо `VStack`/`HFlex`/`Padding`:
-- `BodyElement` (`src/TUIDom/Widgets/BodyElement.ts`) → `VStack` + overlay-слой
+- `BodyElement` (`src/vs/base/browser/ui/body/bodyElement.ts`) → `VStack` + overlay-слой
 - `WorkbenchLayoutElement` → `HFlex` (left-fix / center-fill / right-fix)
 - `EditorGroupElement` → `VStack` (tabStrip h=1 / content fill); контроллер уже есть
 - `EditorTabStripElement` → упростить (ручной `rebuildHFlex` поверх `HFlex`)
@@ -31,7 +31,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 `FlexContainer` (несколько fill с весами).
 
 ### B. Контроллеры под видом элемента → логику в слой Workbench
-- `MenuBarElement` (`src/TUIDom/Widgets/MenuBarElement.ts`) — держит `activeMenu`,
+- `MenuBarElement` (`src/vs/base/browser/ui/menu/menuBarElement.ts`) — держит `activeMenu`,
   открытие/закрытие popup, навигацию, мнемоники, слушает родителя. **Чёткий
   кандидат**: перевести на пару `MenuService` ↔ `MenuBarComponent` целиком, элемент сделать тонким; связь
   callback'ами (эталон — `StatusBarComponent`/`EditorGroupComponent`).
@@ -60,10 +60,10 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
 `EditorGroupElement`, `InputWidgetService` ↔ `InputElement` + `InputState`.
 
 ## Основа приложения (bootstrap)
-- `TuiApplication` (`src/TUIDom/TuiApplication.ts`) уже generic ядро рантайма
+- `TuiApplication` (`src/vs/base/browser/TuiApplication.ts`) уже generic ядро рантайма
   (event loop / `scheduleRender` / `renderFrame` / `focusManager` / `backend` /
   `root`) — оставляем как есть.
-- Проблема — разбросанный bootstrap: `src/main.ts` (полный),
+- Проблема — разбросанный bootstrap: `src/vs/vexx/main.ts` (полный),
   `src/TestUtils/TestApp.ts` (мини-фасад), `src/TestUtils/ExtensionTestHarness.ts`
   (собирает сервисы руками, в обход DI → максимум дублирования).
 - Действие: выделить `bootstrapApp(opts)` (новый `src/AppRuntime/`, слой App),
@@ -94,7 +94,7 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
   `--inspect-tui[=host:port]`, работает и в SEA-бинаре.
 - Ввод в e2e — гибрид: действия через существующий `VexxSession.sendKey/write`
   (PTY), новый канал только читает DOM/свойства.
-- Опоры: `querySelector`/`querySelectorAll` (`src/TUIDom/TUISelector.ts`),
+- Опоры: `querySelector`/`querySelectorAll` (`src/vs/base/browser/tuiSelector.ts`),
   `resolvedStyle`/`globalPosition`/`layoutSize` (`TUIElement.ts`), грид через
   `TerminalScreen.grid`.
 

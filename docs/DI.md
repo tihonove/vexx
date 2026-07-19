@@ -1,6 +1,6 @@
 # DI-контейнер
 
-Реализация: `src/Common/DiContainer.ts`.
+Реализация: `src/vs/platform/instantiation/common/diContainer.ts`.
 
 Строго типизированный DI-контейнер на основе токенов. Без декораторов, без reflect-metadata, работает с `--erasableSyntaxOnly` / strip types.
 
@@ -27,7 +27,7 @@ DI-токены и зависимости (`static dependencies`) объявля
 
 `Common/DiContainer.ts` реализует механизм DI, но конкретные токены в Common/ не объявляются.
 
-Сквозные токены ядра (`TuiApplicationDIToken`, `TerminalBackendDIToken`, `ClipboardDIToken`, `MarkerServiceDIToken`, `StateServiceDIToken`, `SettingsResourceDIToken`/`KeybindingsResourceDIToken` и др.) живут в `src/Workbench/Services/CoreTokens.ts`; там же, в `Workbench/Services/`, — токены сервисов (`CommandRegistryDIToken`, `KeybindingRegistryDIToken`, `ContextKeyServiceDIToken`, `IFileWatcherDIToken`, `FileSearchServiceDIToken`, `UndoRedoServiceDIToken` и т.п.). Токены компонентов (`*ComponentDIToken`) — рядом с компонентами в `Workbench/Components/`.
+Сквозные токены ядра (`TuiApplicationDIToken`, `TerminalBackendDIToken`, `ClipboardDIToken`, `MarkerServiceDIToken`, `StateServiceDIToken`, `SettingsResourceDIToken`/`KeybindingsResourceDIToken` и др.) живут в `src/vs/workbench/Services/CoreTokens.ts`; там же, в `Workbench/Services/`, — токены сервисов (`CommandRegistryDIToken`, `KeybindingRegistryDIToken`, `ContextKeyServiceDIToken`, `IFileWatcherDIToken`, `FileSearchServiceDIToken`, `UndoRedoServiceDIToken` и т.п.). Токены компонентов (`*ComponentDIToken`) — рядом с компонентами в `Workbench/Components/`.
 
 ## Объявление токенов
 
@@ -126,7 +126,7 @@ const component = new StatusBarComponent(fakeStatusBarService, themeService);
 `(container, ctx) => void`. Модули собираются в **профили** — фабрики готовых
 контейнеров под конкретный сценарий (production, test).
 
-Файлы: `src/Workbench/Modules/` (исключение — `terminalEnvironmentModule`, живёт рядом со своим сервисом в `src/Workbench/Services/TerminalEnvironment/`).
+Файлы: `src/vs/vexx/modules/` (исключение — `terminalEnvironmentModule`, живёт рядом со своим сервисом в `src/vs/workbench/Services/TerminalEnvironment/`).
 
 ### `ContainerModule<Ctx>`
 

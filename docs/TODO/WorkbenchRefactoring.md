@@ -9,7 +9,7 @@
    сервисы и приложение. Стили — по VS Code-паттерну: плоский интерфейс `IXxxStyles`
    (packed-цвета) через `options.styles` конструктора и/или метод `setStyles()`, плюс
    `unthemedXxxStyles`-дефолты рядом с контролом.
-2. **Новый слой `src/Workbench/`** — прикладные компоненты + сервисы приложения. Компоненты
+2. **Новый слой `src/vs/workbench/`** — прикладные компоненты + сервисы приложения. Компоненты
    используют контролы композиционно: размещают их (как DOM), не вмешиваются в их жизненный
    цикл, не наследуются от конкретных контролов.
 3. **Модель Service ↔ Component**: сервис — где живёт логика приложения; компонент принимает
@@ -196,11 +196,11 @@ class ButtonElement {
 }
 ```
 
-Мост тема→стили — `src/Workbench/Styles/defaultStyles.ts`: по функции `getXxxStyles(theme)` на
+Мост тема→стили — `src/vs/platform/theme/browser/defaultStyles.ts`: по функции `getXxxStyles(theme)` на
 контрол; единственная точка знания «ключ темы → поле стиля». Раздача пуш-моделью: компонент
 подписан на смену темы (`ThemedComponent.updateStyles()`) и заново вызывает `control.setStyles(...)`.
 
-База компонентов — `src/Workbench/Component.ts`:
+База компонентов — `src/vs/workbench/Component.ts`:
 
 ```ts
 abstract class Component extends Disposable { abstract readonly view: TUIElement; }
