@@ -24,7 +24,7 @@ const VSCODE_TAG = "1.127.0";
 const RAW_BASE = `https://raw.githubusercontent.com/microsoft/vscode/${VSCODE_TAG}/extensions`;
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = resolve(SCRIPT_DIR, "..", "src", "Theme", "themes");
+const OUT_DIR = resolve(SCRIPT_DIR, "..", "src", "vs", "workbench", "services", "themes", "common", "themes");
 
 /**
  * Themes to import. `entry` is the top-of-chain JSON (relative to `RAW_BASE`);

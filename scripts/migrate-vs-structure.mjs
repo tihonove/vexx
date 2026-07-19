@@ -418,6 +418,9 @@ const FILE_FIXUPS = {
             `path.resolve(here, "..", "..", "..", "..", "..", "..", "..", "extensions")`,
         ],
     ],
+    "scripts/pack-assets.mjs": [
+        [`const builtinSrc = resolve(repoRoot, "src", "Extensions", "builtin");`, `const builtinSrc = resolve(repoRoot, "extensions");`],
+    ],
     "scripts/build-extensions.mjs": [
         [`resolve(repoRoot, "src", "Extensions", "builtin")`, `resolve(repoRoot, "extensions")`],
     ],
