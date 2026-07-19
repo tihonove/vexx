@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { packRgb } from "../src/Rendering/ColorUtils.ts";
+import { packRgb } from "../src/vs/base/common/colorUtils.ts";
 
 import { getBinaryPath } from "./helpers/buildOnce.ts";
 import { VexxSession } from "./helpers/runVexx.ts";

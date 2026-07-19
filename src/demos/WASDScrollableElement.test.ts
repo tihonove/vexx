@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
+import { Size } from "../vs/base/common/geometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 
 import { WASDScrollableElement } from "./WASDScrollableElement.ts";

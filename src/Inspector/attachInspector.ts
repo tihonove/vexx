@@ -1,4 +1,4 @@
-import type { TuiApplication } from "../TUIDom/TuiApplication.ts";
+import type { TuiApplication } from "../vs/base/browser/tuiApplication.ts";
 
 import { InspectorCore, type InspectorTarget } from "./InspectorCore.ts";
 import type { InspectorDriver } from "./InspectorDriver.ts";

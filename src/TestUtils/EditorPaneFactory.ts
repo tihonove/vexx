@@ -1,16 +1,16 @@
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
-import { EditorComponent } from "../Workbench/Components/Editor/EditorComponent.ts";
-import { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
-import { TextFileModel } from "../Workbench/Services/TextFile/TextFileModel.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import type { ILanguageService } from "../vs/editor/common/languages/iLanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../vs/editor/common/languages/iLanguageService.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../vs/editor/common/languages/iTokenStyleResolver.ts";
+import { TokenizationRegistry } from "../vs/editor/common/languages/tokenizationRegistry.ts";
+import { darkPlusTheme } from "../vs/workbench/services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../vs/workbench/services/themes/common/themeService.ts";
+import { WorkbenchTheme } from "../vs/platform/theme/common/workbenchTheme.ts";
+import { EditorComponent } from "../vs/workbench/browser/parts/editor/editorComponent.ts";
+import { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
+import { TextFileModel } from "../vs/workbench/services/textfile/common/textFileModel.ts";
+import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 
-export type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
+export type { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
 
 export interface IEditorPaneOverrides {
     readonly registry?: TokenizationRegistry;

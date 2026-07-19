@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import type { GridSnapshot } from "../../src/Rendering/GridSnapshot.ts";
+import type { GridSnapshot } from "../../src/vs/tui/rendering/gridSnapshot.ts";
 import { HeadlessSession } from "../helpers/headlessSession.ts";
 import { saveScreenshot } from "../helpers/renderScreenshot.ts";
 

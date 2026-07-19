@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import { emptyGridSnapshot } from "../Rendering/GridSnapshot.ts";
+import { Size } from "../vs/base/common/geometryPromitives.ts";
+import { emptyGridSnapshot } from "../vs/tui/rendering/gridSnapshot.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
+import { BodyElement } from "../vs/base/browser/ui/body/bodyElement.ts";
+import { BoxElement } from "../vs/base/browser/ui/layout/boxElement.ts";
 
 import { InspectorCore, type InspectorTarget } from "./InspectorCore.ts";
 import type { InspectorDriver } from "./InspectorDriver.ts";

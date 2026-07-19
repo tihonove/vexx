@@ -5,7 +5,7 @@
 // Methods live under the `TUIDom.*` namespace. The protocol is transport-
 // agnostic — InspectorCore speaks it directly (in-process) or over WebSocket.
 
-import type { GridSnapshot } from "../Rendering/GridSnapshot.ts";
+import type { GridSnapshot } from "../vs/tui/rendering/gridSnapshot.ts";
 
 /** Method names (namespace `TUIDom.*`). */
 export const InspectorMethod = {

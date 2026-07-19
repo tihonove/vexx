@@ -1,8 +1,8 @@
-import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
-import { TerminalScreen } from "../Rendering/TerminalScreen.ts";
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
-import { RenderContext } from "../TUIDom/TUIElement.ts";
+import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
+import { BoxConstraints, Point, Size } from "../vs/base/common/geometryPromitives.ts";
+import { TerminalScreen } from "../vs/tui/rendering/terminalScreen.ts";
+import type { TUIElement } from "../vs/base/browser/tuiElement.ts";
+import { RenderContext } from "../vs/base/browser/tuiElement.ts";
 
 export interface IRenderElementOptions {
     /** Constraints для layout; по умолчанию `BoxConstraints.tight(size)` бэкенда. */

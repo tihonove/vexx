@@ -3,14 +3,14 @@
   "version": "0.2.0",
   "type": "module",
   "exports": {
-    "./jsx-runtime": "./src/TUIDom/JSX/jsx-runtime.ts",
-    "./jsx-dev-runtime": "./src/TUIDom/JSX/jsx-runtime.ts"
+    "./jsx-runtime": "./src/vs/base/browser/jsx/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./src/vs/base/browser/jsx/jsx-runtime.ts"
   },
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "tsx src/main.ts",
+    "start": "tsx src/vs/vexx/main.ts",
     "prestart": "npm run build:extensions",
     "build:extensions": "node scripts/build-extensions.mjs",
     "demo:tuidom": "tsx src/demos/tuidom/minimalHost.ts",

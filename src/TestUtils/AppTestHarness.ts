@@ -1,20 +1,20 @@
-import type { Container } from "../Common/DiContainer.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
-import type { IConfigurationService } from "../Configuration/IConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../Configuration/IConfigurationServiceDIToken.ts";
-import type { IStateService } from "../Configuration/IStateService.ts";
-import type { EditorPane } from "../Workbench/Components/Editor/EditorPane.ts";
-import type { WorkbenchComponent } from "../Workbench/Components/Shell/WorkbenchComponent.ts";
-import { WorkbenchComponentDIToken } from "../Workbench/Components/Shell/WorkbenchComponent.ts";
-import { createTestContainer } from "../Workbench/Modules/TestProfile.ts";
-import type { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
-import { CommandRegistryDIToken } from "../Workbench/Services/CommandRegistry.ts";
+import type { Container } from "../vs/platform/instantiation/common/diContainer.ts";
+import { Size } from "../vs/base/common/geometryPromitives.ts";
+import type { IConfigurationService } from "../vs/platform/configuration/common/iConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../vs/platform/configuration/common/iConfigurationServiceDIToken.ts";
+import type { IStateService } from "../vs/platform/state/common/iStateService.ts";
+import type { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
+import type { WorkbenchComponent } from "../vs/workbench/browser/workbenchComponent.ts";
+import { WorkbenchComponentDIToken } from "../vs/workbench/browser/workbenchComponent.ts";
+import { createTestContainer } from "../vs/vexx/modules/testProfile.ts";
+import type { CommandRegistry } from "../vs/platform/commands/common/commandRegistry.ts";
+import { CommandRegistryDIToken } from "../vs/platform/commands/common/commandRegistry.ts";
 import {
     KeybindingsResourceDIToken,
     SettingsResourceDIToken,
     StateServiceDIToken,
-} from "../Workbench/Services/CoreTokens.ts";
-import { EditorServiceDIToken } from "../Workbench/Services/EditorService.ts";
+} from "../vs/workbench/common/coreTokens.ts";
+import { EditorServiceDIToken } from "../vs/workbench/services/editor/browser/editorService.ts";
 
 import { TestApp } from "./TestApp.ts";
 

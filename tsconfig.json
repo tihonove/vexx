@@ -14,7 +14,7 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "vscode": ["src/Extensions/Api/vscode.d.ts"]
+      "vscode": ["src/vscode-dts/vscode.d.ts"]
     }
   },
   "include": ["src"]

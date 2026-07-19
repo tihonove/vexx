@@ -2,7 +2,7 @@
 /**
  * Компиляция «кодовых» builtin-расширений в один CJS-файл `<dir>/out/extension.cjs`.
  *
- * Кодовый builtin — подкаталог `src/Extensions/builtin/*` с исходником `main.ts`
+ * Кодовый builtin — подкаталог `extensions/*` с исходником `main.ts`
  * (языковые паки его не имеют — только грамматики/конфиги). esbuild бандлит
  * `main.ts` + `./lib/*` в один файл; `vscode` остаётся external (его в subprocess'е
  * подменяет `installVscodeStub`), node:builtins — тоже external (`platform:"node"`).
@@ -55,7 +55,7 @@ function assertSelfContained(outfile, id) {
  * `{ id, entryPoint, outfile }` собранных.
  */
 export async function buildExtensions({ repoRoot }) {
-    const builtinDir = resolve(repoRoot, "src", "Extensions", "builtin");
+    const builtinDir = resolve(repoRoot, "extensions");
     // Генерируем каталог ключей настроек ДО esbuild — `vexx-settings/main.ts`
     // импортирует `settings-schema.generated.ts`, который бандлится в out/extension.cjs.
     await generateSettingsSchema({ repoRoot });

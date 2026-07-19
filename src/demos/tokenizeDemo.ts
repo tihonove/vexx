@@ -14,7 +14,7 @@
  * Total: 15 = 1 | 2 | 4 | 8
  */
 
-import { tokenize } from "../Input/tokenize.ts";
+import { tokenize } from "../vs/tui/input/tokenize.ts";
 
 import { exitOnCtrlCToken, stdin, stdout } from "./demoSetup.ts";
 

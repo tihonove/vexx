@@ -4,7 +4,7 @@
  *
  * Собирает известные ключи настроек из двух реальных источников:
  *  - configuration-узлы приложения (`CONFIGURATION_CONTRIBUTIONS` из
- *    `src/Workbench/Configuration/configurationContributions.ts`) — те же, из
+ *    `src/vs/workbench/common/configuration/configurationContributions.ts`) — те же, из
  *    которых runtime собирает `ConfigurationRegistry` (defaults-слой + валидация);
  *  - `contributes.configuration.properties` всех builtin-расширений (rich: type,
  *    default, description, enum) — тот же набор, что валидирует SettingsDiagnostics.
@@ -25,7 +25,7 @@ import { build } from "esbuild";
  * DEFAULT_COLOR_THEME) — поэтому bundle, как у каталога тем.
  */
 async function loadAppConfiguration(repoRoot) {
-    const entry = resolve(repoRoot, "src", "Workbench", "Configuration", "configurationContributions.ts");
+    const entry = resolve(repoRoot, "src", "vs", "workbench", "common", "configuration", "configurationContributions.ts");
     const result = await build({
         entryPoints: [entry],
         bundle: true,
@@ -59,7 +59,7 @@ async function loadAppConfiguration(repoRoot) {
  * (`contributes.themes`), сюда не попадут.
  */
 async function loadThemeNames(repoRoot) {
-    const entry = resolve(repoRoot, "src", "Theme", "themes", "builtinThemes.ts");
+    const entry = resolve(repoRoot, "src", "vs", "workbench", "services", "themes", "common", "themes", "builtinThemes.ts");
     const result = await build({
         entryPoints: [entry],
         bundle: true,
@@ -75,7 +75,7 @@ async function loadThemeNames(repoRoot) {
 }
 
 function collectBuiltinContributions(repoRoot) {
-    const builtinDir = resolve(repoRoot, "src", "Extensions", "builtin");
+    const builtinDir = resolve(repoRoot, "extensions");
     const entries = [];
     for (const dir of readdirSync(builtinDir, { withFileTypes: true })) {
         if (!dir.isDirectory()) continue;
@@ -143,7 +143,7 @@ export const SETTINGS_SCHEMA: readonly ISettingSchemaEntry[] = [
 ${body}
 ];
 `;
-    const outPath = resolve(repoRoot, "src", "Extensions", "builtin", "vexx-settings", "settings-schema.generated.ts");
+    const outPath = resolve(repoRoot, "extensions", "vexx-settings", "settings-schema.generated.ts");
     writeFileSync(outPath, file, "utf8");
     return { outPath, count: entries.length };
 }

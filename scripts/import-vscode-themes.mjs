@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Import built-in color themes from microsoft/vscode into `src/Theme/themes/`.
+ * Import built-in color themes from microsoft/vscode into `src/vs/workbench/services/themes/common/themes/`.
  *
  * VS Code ships its default themes as JSON files that reference a base theme via
  * `"include"` (e.g. Dark Modern → Dark+ → Dark (Visual Studio)). This script
@@ -9,7 +9,7 @@
  * our loader understands (`name` / `type` / `colors` / `tokenColors`).
  *
  * Repeatable: bumping `VSCODE_TAG` and re-running refreshes all generated theme
- * files to the new tag. The pinned tag matches `src/Extensions/builtin/VSCODE_VERSION`.
+ * files to the new tag. The pinned tag matches `extensions/VSCODE_VERSION`.
  *
  * Usage: node scripts/import-vscode-themes.mjs
  */

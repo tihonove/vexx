@@ -1,0 +1,125 @@
+import type { EditorViewState } from "../viewModel/editorViewState.ts";
+import type { EndOfLine } from "../core/endOfLine.ts";
+import type { ISelection } from "../core/iSelection.ts";
+import type { ITextDocument } from "./iTextDocument.ts";
+import type { ITextEdit } from "../core/iTextEdit.ts";
+import type { IUndoElement } from "./iUndoElement.ts";
+
+interface MutableUndoElement {
+    label: string;
+    versionBefore: number;
+    versionAfter: number;
+    forwardEdits: readonly ITextEdit[];
+    backwardEdits: readonly ITextEdit[];
+    beforeSelections: readonly ISelection[];
+    afterSelections: readonly ISelection[];
+    eolBefore?: EndOfLine;
+    eolAfter?: EndOfLine;
+}
+
+export class UndoManager {
+    private undoStack: MutableUndoElement[] = [];
+    private redoStack: MutableUndoElement[] = [];
+    private readonly doc: ITextDocument;
+    private readonly viewState: EditorViewState;
+
+    /**
+     * Вызывается после каждого `pushUndoElement` — единая точка-чока для всех правок
+     * (набор текста, удаления, вставка). Контроллер вешает сюда регистрацию шага в общий
+     * `UndoRedoService`. Editor-слой при этом не зависит от Workbench.
+     */
+    public onDidPush: ((element: IUndoElement) => void) | null = null;
+
+    public constructor(doc: ITextDocument, viewState: EditorViewState) {
+        this.doc = doc;
+        this.viewState = viewState;
+    }
+
+    public get canUndo(): boolean {
+        return this.undoStack.length > 0;
+    }
+
+    public get canRedo(): boolean {
+        return this.redoStack.length > 0;
+    }
+
+    public pushUndoElement(element: IUndoElement): void {
+        this.undoStack.push({ ...element });
+        this.redoStack.length = 0;
+        this.onDidPush?.(element);
+    }
+
+    public undo(): boolean {
+        const element = this.undoStack.pop();
+        if (!element) return false;
+
+        if (this.doc.versionId !== element.versionAfter) {
+            return false;
+        }
+
+        const { appliedVersion, inverseEdits } = this.doc.applyEdits(element.backwardEdits);
+        // Shift folding regions for the undone edits (the normal edit path does
+        // this via EditorViewState.applyEdits, which undo bypasses) so the caret
+        // reveal below and the later recompute see correct region boundaries.
+        this.viewState.adjustFoldingRegionsForEdits(element.backwardEdits);
+        this.viewState.restoreSelections(element.beforeSelections);
+        if (element.eolBefore !== undefined) {
+            this.doc.setEol(element.eolBefore);
+        }
+
+        this.redoStack.push({
+            label: element.label,
+            versionBefore: element.versionAfter,
+            versionAfter: appliedVersion,
+            forwardEdits: element.backwardEdits,
+            backwardEdits: inverseEdits,
+            beforeSelections: element.afterSelections,
+            afterSelections: element.beforeSelections,
+            eolBefore: element.eolAfter,
+            eolAfter: element.eolBefore,
+        });
+
+        // The next element on the undo stack now needs its versionAfter updated
+        // because the document version changed due to the undo operation
+        if (this.undoStack.length > 0) {
+            this.undoStack[this.undoStack.length - 1].versionAfter = appliedVersion;
+        }
+
+        return true;
+    }
+
+    public redo(): boolean {
+        const element = this.redoStack.pop();
+        if (!element) return false;
+
+        if (this.doc.versionId !== element.versionAfter) {
+            return false;
+        }
+
+        const { appliedVersion, inverseEdits } = this.doc.applyEdits(element.backwardEdits);
+        this.viewState.adjustFoldingRegionsForEdits(element.backwardEdits);
+        this.viewState.restoreSelections(element.beforeSelections);
+        if (element.eolBefore !== undefined) {
+            this.doc.setEol(element.eolBefore);
+        }
+
+        this.undoStack.push({
+            label: element.label,
+            versionBefore: element.versionAfter,
+            versionAfter: appliedVersion,
+            forwardEdits: element.backwardEdits,
+            backwardEdits: inverseEdits,
+            beforeSelections: element.afterSelections,
+            afterSelections: element.beforeSelections,
+            eolBefore: element.eolAfter,
+            eolAfter: element.eolBefore,
+        });
+
+        // Update the next redo element's versionAfter to match current doc version
+        if (this.redoStack.length > 0) {
+            this.redoStack[this.redoStack.length - 1].versionAfter = appliedVersion;
+        }
+
+        return true;
+    }
+}
