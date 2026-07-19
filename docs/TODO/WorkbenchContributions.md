@@ -47,5 +47,9 @@
   в `QuickOpenService`.
 - [ ] **`ConfigurationRegistry`** — фичи регистрируют свою схему настроек (сейчас
   генерённый `settings-schema` + хардкод дефолтов).
-- [ ] **`ColorRegistry`** — `registerColor(id, defaults, desc)`, цвета саморегистрируются
-  (сейчас центральный `IWorkbenchColors` + `defaultColors.ts`).
+- [x] **`ColorRegistry`** (#171) — определения цветов по областям в
+  `Theme/colors/` (`{ defaults: { dark, light } | null, description }`, явный
+  merge `COLOR_CONTRIBUTIONS`; механика — `Theme/ColorRegistry.ts`). Монолиты
+  `IWorkbenchColors.ts`/`defaultColors.ts` растворены; типизация ключей
+  деривируется (`WorkbenchColorKey`). Осознанное подмножество vscode: два
+  слота (dark/light, hc → `themeKindOf`), без transparent/derived-цветов.
