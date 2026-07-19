@@ -45,7 +45,7 @@ export class EditorComponent extends ThemedComponent {
     private tokenStore: DocumentTokenStore;
     private foldingRecomputeScheduled = false;
     private componentDisposed = false;
-    private contextMenuEntriesValue: MenuEntry[] = [];
+    private contextMenuProviderValue?: () => MenuEntry[];
     /**
      * Кэш стилей редактора из последнего updateStyles: EditorElement пересоздаётся
      * при перечитке модели с диска, и свежий экземпляр должен получить те же
@@ -53,9 +53,9 @@ export class EditorComponent extends ThemedComponent {
      */
     private currentEditorStyles: IEditorStyles = unthemedEditorStyles;
 
-    public set contextMenuEntries(entries: MenuEntry[]) {
-        this.contextMenuEntriesValue = entries;
-        this.editor.contextMenuEntries = entries;
+    public set contextMenuProvider(provider: () => MenuEntry[]) {
+        this.contextMenuProviderValue = provider;
+        this.editor.contextMenuProvider = provider;
     }
 
     public constructor(
@@ -145,7 +145,9 @@ export class EditorComponent extends ThemedComponent {
         this.editor = new EditorElement(this.editorViewState);
         this.editor.tokenStyleResolver = this.tokenStyleResolver;
         this.editor.tabIndex = 0;
-        this.editor.contextMenuEntries = this.contextMenuEntriesValue;
+        if (this.contextMenuProviderValue !== undefined) {
+            this.editor.contextMenuProvider = this.contextMenuProviderValue;
+        }
         this.editor.setStyles(this.currentEditorStyles);
         this.attachUndoRouting();
         this.view.setChild(this.editor);

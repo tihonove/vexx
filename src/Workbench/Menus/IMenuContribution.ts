@@ -1,0 +1,34 @@
+import { token } from "../../Common/DiContainer.ts";
+
+import type { MenuId } from "./MenuId.ts";
+
+/**
+ * Декларативная запись пункта меню (аналог вклада в `MenuRegistry` VS Code).
+ * Пункты собираются в явный массив `MENU_CONTRIBUTIONS` (зеркало `builtinActions`)
+ * и резолвятся `MenuRegistry.getMenuItems` в конкретный `MenuEntry`.
+ */
+export interface IMenuContribution {
+    readonly menuId: MenuId;
+    /** Команда, которую исполняет пункт (`CommandRegistry.execute`). */
+    readonly command: string;
+    /** Явный label. Иначе — title команды из `CommandRegistry`, иначе — id команды. */
+    readonly title?: string;
+    /** Условие видимости через контекст-ключи (`ContextKeyService.evaluate`). */
+    readonly when?: string;
+    /**
+     * Императивная видимость по контексту открытия — escape-hatch для состояния,
+     * не отражённого в контекст-ключах (например непустой буфер обмена файлов).
+     */
+    readonly visible?: (context: unknown) => boolean;
+    /** Группа (напр. `"2_clipboard"`); сортируется как строка, разделяет группы сепаратором. */
+    readonly group?: string;
+    /** Порядок внутри группы (по возрастанию, стабильно). */
+    readonly order?: number;
+    readonly icon?: string;
+    /** Аргументы для `execute`, резолвятся из контекста открытия (напр. путь файла в Explorer). */
+    readonly args?: (context: unknown) => readonly unknown[];
+    /** `false` — не показывать шорткат; строка — литерал; иначе — резолв из `KeybindingRegistry`. */
+    readonly shortcut?: string | false;
+}
+
+export const MenuContributionsDIToken = token<readonly IMenuContribution[]>("MenuContributions");

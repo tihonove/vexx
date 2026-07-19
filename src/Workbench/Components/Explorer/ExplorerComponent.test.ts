@@ -10,10 +10,19 @@ import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
+import { MENU_CONTRIBUTIONS } from "../../Menus/menuContributions.ts";
+import { MenuRegistry } from "../../Menus/MenuRegistry.ts";
 import { CommandRegistry } from "../../Services/CommandRegistry.ts";
+import { ContextKeyService } from "../../Services/ContextKeyService.ts";
 import { ExplorerService } from "../../Services/ExplorerService.ts";
+import { KeybindingRegistry } from "../../Services/KeybindingRegistry.ts";
 
 import { ExplorerComponent } from "./ExplorerComponent.ts";
+
+/** Собирает MenuRegistry для explorer-меню поверх переданного CommandRegistry. */
+function makeMenuRegistry(commands: CommandRegistry): MenuRegistry {
+    return new MenuRegistry(commands, new KeybindingRegistry(), new ContextKeyService(), MENU_CONTRIBUTIONS);
+}
 
 interface ExplorerHarness {
     service: ExplorerService;
@@ -37,6 +46,7 @@ function createExplorer(themeService?: ThemeService): ExplorerHarness {
         service,
         commands,
         clipboard,
+        makeMenuRegistry(commands),
         themeService ?? new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
     );
     return {
@@ -316,6 +326,7 @@ describe("ExplorerComponent — root assigned after construction", () => {
             service,
             new CommandRegistry(),
             clipboard,
+            makeMenuRegistry(new CommandRegistry()),
             new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme)),
         );
         const app = TestApp.createWithContent(component.view, new Size(30, 10));

@@ -426,7 +426,7 @@ describe("Workbench — menu bar wiring", () => {
 describe("Workbench — editor context menu", () => {
     function getEditorEntries(testApp: TestApp): MenuEntry[] {
         const editor = testApp.querySelector("EditorElement") as EditorElement;
-        return editor.contextMenuEntries;
+        return editor.contextMenuProvider?.() ?? editor.contextMenuEntries;
     }
 
     it("populates editor context menu entries when an editor is created", () => {

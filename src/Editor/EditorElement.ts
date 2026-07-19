@@ -148,6 +148,12 @@ export class EditorElement extends TUIElement implements IScrollable {
     public gutterChangeDecorations: readonly IGutterChangeDecoration[] = NO_GUTTER_CHANGE_DECORATIONS;
 
     public contextMenuEntries: MenuEntry[] = [];
+    /**
+     * Ленивый источник пунктов контекст-меню — резолвится в момент ОТКРЫТИЯ (чтобы
+     * `when`-видимость пунктов учитывала актуальный контекст). Если задан,
+     * перекрывает статический {@link contextMenuEntries}.
+     */
+    public contextMenuProvider?: () => MenuEntry[];
     /** Цвета редактора (см. {@link IEditorStyles}); задаются контроллером через {@link setStyles}. */
     private styles: IEditorStyles = unthemedEditorStyles;
 
@@ -822,9 +828,10 @@ export class EditorElement extends TUIElement implements IScrollable {
 
     private openContextMenu(screenX: number, screenY: number): void {
         this.closeContextMenu();
-        if (this.contextMenuEntries.length === 0) return;
+        const entries = this.contextMenuProvider?.() ?? this.contextMenuEntries;
+        if (entries.length === 0) return;
 
-        const wrappedEntries: MenuEntry[] = this.contextMenuEntries.map((entry) => {
+        const wrappedEntries: MenuEntry[] = entries.map((entry) => {
             if (entry.type === "separator") return entry;
             const original = entry.onSelect;
             return {

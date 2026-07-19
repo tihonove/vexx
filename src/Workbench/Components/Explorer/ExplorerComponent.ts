@@ -12,6 +12,9 @@ import { ScrollBarDecorator } from "../../../TUIDom/Widgets/ScrollContainerEleme
 import { TitledPanelElement } from "../../../TUIDom/Widgets/TitledPanelElement.ts";
 import { TreeViewElement } from "../../../TUIDom/Widgets/TreeViewElement.ts";
 import { ThemedComponent } from "../../Component.ts";
+import { MenuId } from "../../Menus/MenuId.ts";
+import type { MenuRegistry } from "../../Menus/MenuRegistry.ts";
+import { MenuRegistryDIToken } from "../../Menus/MenuRegistry.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
 import { FileClipboardDIToken } from "../../Services/CoreTokens.ts";
@@ -43,6 +46,7 @@ export class ExplorerComponent extends ThemedComponent {
         ExplorerServiceDIToken,
         CommandRegistryDIToken,
         FileClipboardDIToken,
+        MenuRegistryDIToken,
         ThemeServiceDIToken,
     ] as const;
 
@@ -54,6 +58,7 @@ export class ExplorerComponent extends ThemedComponent {
         private readonly explorerService: ExplorerService,
         private readonly commands: CommandRegistry,
         private readonly fileClipboard: IFileClipboard,
+        private readonly menuRegistry: MenuRegistry,
         themeService: ThemeService,
     ) {
         super(themeService);
@@ -132,94 +137,20 @@ export class ExplorerComponent extends ThemedComponent {
         const host = this.host;
         this.hideContextMenu();
 
-        const entries: MenuEntry[] = [
-            {
-                label: "New File...",
+        // Пункты — из MenuRegistry (MenuId.ExplorerContext). Контекст открытия несёт
+        // путь узла (args команд) и признак непустого буфера (видимость Paste).
+        const context = { path: filePath, canPaste: this.fileClipboard.read() !== null };
+        const entries: MenuEntry[] = this.menuRegistry.getMenuItems(MenuId.ExplorerContext, context).map((entry) => {
+            if (entry.type === "separator") return entry;
+            const original = entry.onSelect;
+            return {
+                ...entry,
                 onSelect: () => {
                     this.hideContextMenu();
-                    this.commands.execute("explorer.newFile", filePath);
+                    original?.();
                 },
-            },
-            {
-                label: "New Folder...",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("explorer.newFolder", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                label: "Copy",
-                shortcut: "Ctrl+C",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("fileOperations.copy");
-                },
-            },
-            {
-                label: "Cut",
-                shortcut: "Ctrl+X",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("fileOperations.cut");
-                },
-            },
-        ];
-        if (this.fileClipboard.read() !== null) {
-            entries.push({
-                label: "Paste",
-                shortcut: "Ctrl+V",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("fileOperations.paste");
-                },
-            });
-        }
-        entries.push(
-            { type: "separator" },
-            {
-                label: "Copy Path",
-                shortcut: "Shift+Alt+C",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("fileOperations.copyPath", filePath);
-                },
-            },
-            {
-                label: "Copy Relative Path",
-                shortcut: "Ctrl+K Ctrl+Shift+C",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("fileOperations.copyRelativePath", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                label: "Rename...",
-                shortcut: "F2",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("fileOperations.rename", filePath);
-                },
-            },
-            {
-                label: "Delete",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("fileOperations.deleteFile", filePath);
-                },
-            },
-            { type: "separator" },
-            {
-                // Re-read the directory contents from disk (external changes the
-                // live watcher might have missed — network shares, ignored paths).
-                label: "Refresh Explorer",
-                onSelect: () => {
-                    this.hideContextMenu();
-                    this.commands.execute("workbench.files.action.refreshFilesExplorer");
-                },
-            },
-        );
+            };
+        });
 
         const menu = new PopupMenuElement(entries);
         menu.setStyles(getMenuStyles(this.theme));
