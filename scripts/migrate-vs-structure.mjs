@@ -354,7 +354,13 @@ const DIR_RULES = {
     "src/Workbench/Modules": () => "src/vs/vexx/modules",
     "src/Workbench/Services": workbenchServicesRules,
     "src/Workbench/Services/Diagnostics": workbenchDiagnosticsRules,
-    "src/Workbench/Services/QuickAccess": () => "src/vs/platform/quickinput/common",
+    // Реестр использует DI-аксессор (workbench-инфраструктура), провайдеры
+    // тянут поиск/парсинг — весь кластер workbench-сторона, как у vscode
+    // (провайдеры квик-опена живут в workbench/contrib/quickaccess).
+    "src/Workbench/Services/QuickAccess": byBasename(
+        [[/^(IQuickAccessProvider|QuickAccessRegistry)\./, "src/vs/workbench/contrib/quickaccess/common"]],
+        "src/vs/workbench/contrib/quickaccess/browser",
+    ),
     "src/Workbench/Services/Terminal": workbenchTerminalRules,
     "src/Workbench/Services/TerminalEnvironment": () => "src/vs/workbench/services/terminalEnvironment/node",
     "src/Workbench/Services/TextFile": () => "src/vs/workbench/services/textfile/common",
