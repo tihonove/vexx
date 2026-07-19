@@ -2,8 +2,8 @@ import type { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKe
 import type { JsxNode } from "../../../../../../tuidom/dom/jsx/jsx-runtime.ts";
 import { reconcile } from "../../../../../../tuidom/dom/jsx/reconcile.ts";
 import type { TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
-import type { ButtonElement, IButtonStyles } from "../../../../base/browser/ui/button/buttonElement.ts";
-import { FitContentElement } from "../../../../base/browser/ui/layout/fitContentElement.ts";
+import type { ButtonElement, IButtonStyles } from "../../../../../../tuidom/ui/button/buttonElement.ts";
+import { FitContentElement } from "../../../../../../tuidom/ui/layout/fitContentElement.ts";
 import { getDialogStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemedComponent } from "../../component.ts";

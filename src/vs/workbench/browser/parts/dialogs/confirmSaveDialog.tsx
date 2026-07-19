@@ -1,11 +1,11 @@
 import type { JsxNode } from "../../../../../../tuidom/dom/jsx/jsx-runtime.ts";
-import { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
-import { BoxContainer } from "../../../../base/browser/ui/layout/boxContainerElement.ts";
-import { HFlex, hflexFill, hflexFit, hflexFixed } from "../../../../base/browser/ui/layout/hFlexElement.ts";
-import { PaddingContainer } from "../../../../base/browser/ui/layout/paddingContainerElement.ts";
-import { VStack } from "../../../../base/browser/ui/layout/vStackElement.ts";
-import type { StyledChar } from "../../../../base/browser/ui/text/textLabelElement.ts";
-import { TextLabel } from "../../../../base/browser/ui/text/textLabelElement.ts";
+import { ButtonElement } from "../../../../../../tuidom/ui/button/buttonElement.ts";
+import { BoxContainer } from "../../../../../../tuidom/ui/layout/boxContainerElement.ts";
+import { HFlex, hflexFill, hflexFit, hflexFixed } from "../../../../../../tuidom/ui/layout/hFlexElement.ts";
+import { PaddingContainer } from "../../../../../../tuidom/ui/layout/paddingContainerElement.ts";
+import { VStack } from "../../../../../../tuidom/ui/layout/vStackElement.ts";
+import type { StyledChar } from "../../../../../../tuidom/ui/text/textLabelElement.ts";
+import { TextLabel } from "../../../../../../tuidom/ui/text/textLabelElement.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 
 import type { IDialogStyles } from "./dialogComponent.ts";

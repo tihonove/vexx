@@ -1,10 +1,10 @@
 import type { JsxNode } from "../../../../../../tuidom/dom/jsx/jsx-runtime.ts";
-import { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
-import { BoxContainer } from "../../../../base/browser/ui/layout/boxContainerElement.ts";
-import { HFlex, hflexFill, hflexFit } from "../../../../base/browser/ui/layout/hFlexElement.ts";
-import { PaddingContainer } from "../../../../base/browser/ui/layout/paddingContainerElement.ts";
-import { VStack } from "../../../../base/browser/ui/layout/vStackElement.ts";
-import { TextLabel } from "../../../../base/browser/ui/text/textLabelElement.ts";
+import { ButtonElement } from "../../../../../../tuidom/ui/button/buttonElement.ts";
+import { BoxContainer } from "../../../../../../tuidom/ui/layout/boxContainerElement.ts";
+import { HFlex, hflexFill, hflexFit } from "../../../../../../tuidom/ui/layout/hFlexElement.ts";
+import { PaddingContainer } from "../../../../../../tuidom/ui/layout/paddingContainerElement.ts";
+import { VStack } from "../../../../../../tuidom/ui/layout/vStackElement.ts";
+import { TextLabel } from "../../../../../../tuidom/ui/text/textLabelElement.ts";
 import { APP_NAME, REPO_URL, VEXX_VERSION } from "../../../../base/common/version.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 

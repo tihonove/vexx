@@ -1,7 +1,7 @@
 import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
-import type { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
-import type { OverlaySessionHandle } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
-import { QuickPickElement, unthemedQuickPickStyles } from "../../../../base/browser/ui/quickpick/quickPickElement.ts";
+import type { BodyElement } from "../../../../../../tuidom/ui/body/bodyElement.ts";
+import type { OverlaySessionHandle } from "../../../../../../tuidom/ui/contextview/overlayLayer.ts";
+import { QuickPickElement, unthemedQuickPickStyles } from "../../../../../../tuidom/ui/quickpick/quickPickElement.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";

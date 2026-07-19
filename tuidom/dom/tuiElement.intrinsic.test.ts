@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { VStackElement } from "../../src/vs/base/browser/ui/layout/vStackElement.ts";
-import { PopupMenuElement } from "../../src/vs/base/browser/ui/menu/popupMenuElement.ts";
-import { StatusBarElement } from "../../src/vs/base/browser/ui/statusbar/statusBarElement.ts";
-import { TextBlockElement } from "../../src/vs/base/browser/ui/text/textBlockElement.ts";
 import { BoxConstraints, Size } from "../common/geometryPromitives.ts";
+import { VStackElement } from "../ui/layout/vStackElement.ts";
+import { PopupMenuElement } from "../ui/menu/popupMenuElement.ts";
+import { StatusBarElement } from "../ui/statusbar/statusBarElement.ts";
+import { TextBlockElement } from "../ui/text/textBlockElement.ts";
 
 import { TUIElement } from "./tuiElement.ts";
 

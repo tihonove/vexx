@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Point } from "../../../../tuidom/common/geometryPromitives.ts";
 import { TUIMouseEvent } from "../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import type { TreeViewElement } from "../../../../tuidom/ui/tree/treeViewElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import type { TreeViewElement } from "../../base/browser/ui/tree/treeViewElement.ts";
 
 let savedXdg: string | undefined;
 

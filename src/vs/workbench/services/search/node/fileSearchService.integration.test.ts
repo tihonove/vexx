@@ -60,7 +60,7 @@ describe("FileSearchService — integration against real project", () => {
         it("indexes files in nested directories", () => {
             const paths = relativePaths(service.search("", 2000));
             expect(paths.some((p) => p.includes("workbench/"))).toBe(true);
-            expect(paths.some((p) => p.includes("base/browser/"))).toBe(true);
+            expect(paths.some((p) => p.includes("platform/"))).toBe(true);
             expect(paths.some((p) => p.includes("editor/"))).toBe(true);
         });
 
@@ -104,9 +104,9 @@ describe("FileSearchService — integration against real project", () => {
             expect(paths.some((p) => p.includes("commandRegistry.ts"))).toBe(true);
         });
 
-        it('"ie" finds InputElement.ts', () => {
-            const paths = relativePaths(service.search("ie"));
-            expect(paths.some((p) => p.includes("inputElement.ts"))).toBe(true);
+        it('"ee" finds editorElement.ts', () => {
+            const paths = relativePaths(service.search("ee"));
+            expect(paths.some((p) => p.includes("editorElement.ts"))).toBe(true);
         });
 
         it('"fs" finds FuzzySearch.ts', () => {
@@ -149,17 +149,17 @@ describe("FileSearchService — integration against real project", () => {
             expect(top5.some((p) => p.includes("keybindingRegistry.ts"))).toBe(true);
         });
 
-        it('"sc": files sharing the Scroll* prefix score alike', () => {
+        it('"co": files sharing the Command* prefix score alike', () => {
             // Ранее тут стояло «ScrollContainerElement.ts в топ-10». Это кодировало
             // размер репозитория, а не качество ранжирования: любой новый файл с более
             // плотным «sc» (напр. settingsContext.ts) сдвигает индекс, ничего не ломая.
             // Сверяем счёт, а не позицию.
-            const results = service.search("sc");
-            const container = scoreOf(results, "scrollContainerElement.ts");
-            const renderer = scoreOf(results, "scrollBarRenderer.ts");
-            expect(container).toBeDefined();
-            // Оба начинаются со `Scroll` — префикс матчится одинаково, счёт совпадает.
-            expect(container).toBe(renderer);
+            const results = service.search("co");
+            const registry = scoreOf(results, "commandRegistry.ts");
+            const action = scoreOf(results, "commandAction.ts");
+            expect(registry).toBeDefined();
+            // Оба начинаются с `Command` — префикс матчится одинаково, счёт совпадает.
+            expect(registry).toBe(action);
         });
 
         it("results are sorted by score descending", () => {

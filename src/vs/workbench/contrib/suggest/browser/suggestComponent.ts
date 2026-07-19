@@ -1,10 +1,10 @@
 import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
-import type { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
-import { CompletionListElement } from "../../../../base/browser/ui/completionlist/completionListElement.ts";
+import type { BodyElement } from "../../../../../../tuidom/ui/body/bodyElement.ts";
+import { CompletionListElement } from "../../../../../../tuidom/ui/completionlist/completionListElement.ts";
 import type {
     OverlayAnchorPosition,
     OverlaySessionHandle,
-} from "../../../../base/browser/ui/contextview/overlayLayer.ts";
+} from "../../../../../../tuidom/ui/contextview/overlayLayer.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Component } from "../../../browser/component.ts";
 

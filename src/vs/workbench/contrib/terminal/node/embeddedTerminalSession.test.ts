@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { TerminalCell } from "../../../../base/common/iTerminalSurface.ts";
+import type { TerminalCell } from "../../../../../../tuidom/common/iTerminalSurface.ts";
 
 import { EmbeddedTerminalSession } from "./embeddedTerminalSession.ts";
 

@@ -1,7 +1,7 @@
-import type { OverlayAnchorPosition } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
-import type { MenuEntry } from "../../../../base/browser/ui/menu/popupMenuElement.ts";
-import type { ScrollBarDecorator } from "../../../../base/browser/ui/scrollbar/scrollContainerElement.ts";
-import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
+import { Disposable, type IDisposable } from "../../../../../../tuidom/common/disposable.ts";
+import type { OverlayAnchorPosition } from "../../../../../../tuidom/ui/contextview/overlayLayer.ts";
+import type { MenuEntry } from "../../../../../../tuidom/ui/menu/popupMenuElement.ts";
+import type { ScrollBarDecorator } from "../../../../../../tuidom/ui/scrollbar/scrollContainerElement.ts";
 import type { Uri } from "../../../../base/common/uri.ts";
 import type { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";

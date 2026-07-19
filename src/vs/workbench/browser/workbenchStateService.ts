@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 
-import { Disposable } from "../../base/common/disposable.ts";
+import { Disposable } from "../../../../tuidom/common/disposable.ts";
 import { token } from "../../platform/instantiation/common/diContainer.ts";
 import type { IStateService } from "../../platform/state/common/iStateService.ts";
 import { StateServiceDIToken } from "../common/coreTokens.ts";

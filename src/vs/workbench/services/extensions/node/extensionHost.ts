@@ -1,7 +1,7 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 
-import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
+import { Disposable, type IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import type { ICompletionRequest, ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";

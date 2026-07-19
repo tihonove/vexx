@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { Size } from "../../../../../tuidom/common/geometryPromitives.ts";
+import type { ITreeDataProvider, ITreeItem } from "../../../../../tuidom/ui/tree/iTreeDataProvider.ts";
+import { TreeViewElement } from "../../../../../tuidom/ui/tree/treeViewElement.ts";
 import { TestApp } from "../../../../TestUtils/TestApp.ts";
-import type { ITreeDataProvider, ITreeItem } from "../../../base/browser/ui/tree/iTreeDataProvider.ts";
-import { TreeViewElement } from "../../../base/browser/ui/tree/treeViewElement.ts";
 import { registerAction } from "../../../platform/actions/common/commandAction.ts";
 import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
 import { Container } from "../../../platform/instantiation/common/diContainer.ts";

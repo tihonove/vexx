@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TerminalViewElement } from "../../../../../../tuidom/ui/terminal/terminalViewElement.ts";
 import { FakeTerminalSurface } from "../../../../../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { TerminalViewElement } from "../../../../base/browser/ui/terminal/terminalViewElement.ts";
 import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { PanelComponent } from "../../../browser/parts/panel/panelComponent.ts";
 import { PanelService } from "../../../browser/parts/panel/panelService.ts";

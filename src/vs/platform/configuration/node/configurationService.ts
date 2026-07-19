@@ -3,7 +3,7 @@ import * as path from "node:path";
 
 import { applyEdits, modify, parse as parseJsonc, type ParseError, printParseErrorCode } from "jsonc-parser";
 
-import { Disposable, type IDisposable } from "../../../base/common/disposable.ts";
+import { Disposable, type IDisposable } from "../../../../../tuidom/common/disposable.ts";
 import type { IUserDataPaths } from "../../environment/node/userDataPaths.ts";
 import type { IFileWatcher } from "../../files/common/iFileWatcher.ts";
 import type { ILogger } from "../../log/common/iLogger.ts";

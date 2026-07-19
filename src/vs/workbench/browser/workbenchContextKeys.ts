@@ -1,10 +1,10 @@
+import { Disposable } from "../../../../tuidom/common/disposable.ts";
 import type { TUIFocusEvent } from "../../../../tuidom/dom/events/tuiFocusEvent.ts";
 import type { TUIElement } from "../../../../tuidom/dom/tuiElement.ts";
-import type { BodyElement } from "../../base/browser/ui/body/bodyElement.ts";
-import { InputElement } from "../../base/browser/ui/inputbox/inputElement.ts";
-import { TerminalViewElement } from "../../base/browser/ui/terminal/terminalViewElement.ts";
-import { TreeViewElement } from "../../base/browser/ui/tree/treeViewElement.ts";
-import { Disposable } from "../../base/common/disposable.ts";
+import type { BodyElement } from "../../../../tuidom/ui/body/bodyElement.ts";
+import { InputElement } from "../../../../tuidom/ui/inputbox/inputElement.ts";
+import { TerminalViewElement } from "../../../../tuidom/ui/terminal/terminalViewElement.ts";
+import { TreeViewElement } from "../../../../tuidom/ui/tree/treeViewElement.ts";
 import { EditorElement } from "../../editor/browser/editorElement.ts";
 import { registerContextKeys } from "../../platform/contextkey/common/contextKeys.ts";
 import type { ContextKeyService } from "../../platform/contextkey/common/contextKeyService.ts";

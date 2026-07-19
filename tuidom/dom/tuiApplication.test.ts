@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { expectScreen, screen } from "../../src/TestUtils/expectScreen.ts";
-import { BodyElement } from "../../src/vs/base/browser/ui/body/bodyElement.ts";
-import { BoxElement } from "../../src/vs/base/browser/ui/layout/boxElement.ts";
 import { EditorElement } from "../../src/vs/editor/browser/editorElement.ts";
 import { TextDocument } from "../../src/vs/editor/common/model/textDocument.ts";
 import { EditorViewState } from "../../src/vs/editor/common/viewModel/editorViewState.ts";
 import { MockTerminalBackend } from "../backend/mockTerminalBackend.ts";
 import { DEFAULT_COLOR } from "../common/colorUtils.ts";
 import { Point, Size } from "../common/geometryPromitives.ts";
+import { BodyElement } from "../ui/body/bodyElement.ts";
+import { BoxElement } from "../ui/layout/boxElement.ts";
 
 import { TuiApplication } from "./tuiApplication.ts";
 

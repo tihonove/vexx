@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { BodyElement } from "../../src/vs/base/browser/ui/body/bodyElement.ts";
-import { BoxElement } from "../../src/vs/base/browser/ui/layout/boxElement.ts";
-import { VStackElement } from "../../src/vs/base/browser/ui/layout/vStackElement.ts";
 import { MockTerminalBackend } from "../backend/mockTerminalBackend.ts";
 import { Size } from "../common/geometryPromitives.ts";
+import { BodyElement } from "../ui/body/bodyElement.ts";
+import { BoxElement } from "../ui/layout/boxElement.ts";
+import { VStackElement } from "../ui/layout/vStackElement.ts";
 
 import { TuiApplication } from "./tuiApplication.ts";
 import type { TUIElement } from "./tuiElement.ts";

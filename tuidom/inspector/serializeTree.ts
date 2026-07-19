@@ -1,5 +1,5 @@
-import { TextLabelElement } from "../../src/vs/base/browser/ui/text/textLabelElement.ts";
 import type { TUIElement } from "../dom/tuiElement.ts";
+import { TextLabelElement } from "../ui/text/textLabelElement.ts";
 
 import type { NodeSnapshot } from "./protocol.ts";
 

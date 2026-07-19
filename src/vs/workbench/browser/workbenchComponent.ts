@@ -1,5 +1,5 @@
-import { BodyElement } from "../../base/browser/ui/body/bodyElement.ts";
-import { WorkbenchLayoutElement } from "../../base/browser/ui/workbenchlayout/workbenchLayoutElement.ts";
+import { BodyElement } from "../../../../tuidom/ui/body/bodyElement.ts";
+import { WorkbenchLayoutElement } from "../../../../tuidom/ui/workbenchlayout/workbenchLayoutElement.ts";
 import { registerAction } from "../../platform/actions/common/commandAction.ts";
 import type { CommandRegistry } from "../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../platform/commands/common/commandRegistry.ts";

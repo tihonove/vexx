@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { MenuEntry, MenuItemEntry } from "../../../base/browser/ui/menu/popupMenuElement.ts";
+import type { MenuEntry, MenuItemEntry } from "../../../../../tuidom/ui/menu/popupMenuElement.ts";
 import { CommandRegistry } from "../../commands/common/commandRegistry.ts";
 import { ContextKeyService } from "../../contextkey/common/contextKeyService.ts";
 import { KeybindingRegistry, parseKeybinding } from "../../keybinding/common/keybindingRegistry.ts";

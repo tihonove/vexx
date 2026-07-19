@@ -1,7 +1,7 @@
 import * as path from "node:path";
 
-import { EditorGroupElement } from "../../../../base/browser/ui/editorgroup/editorGroupElement.ts";
-import type { TabInfo } from "../../../../base/browser/ui/editorgroup/editorTabStripElement.ts";
+import { EditorGroupElement } from "../../../../../../tuidom/ui/editorgroup/editorGroupElement.ts";
+import type { TabInfo } from "../../../../../../tuidom/ui/editorgroup/editorTabStripElement.ts";
 import { getFileIcon } from "../../../../base/common/fileIcons.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { getTabStripStyles } from "../../../../platform/theme/browser/defaultStyles.ts";

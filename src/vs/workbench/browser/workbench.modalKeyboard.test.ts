@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { TUIElement } from "../../../../tuidom/dom/tuiElement.ts";
+import type { QuickPickElement } from "../../../../tuidom/ui/quickpick/quickPickElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import type { QuickPickElement } from "../../base/browser/ui/quickpick/quickPickElement.ts";
 
 const TOGGLE_SIDEBAR = "workbench.action.toggleSidebarVisibility";
 

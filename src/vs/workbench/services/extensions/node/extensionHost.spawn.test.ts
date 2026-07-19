@@ -3,8 +3,8 @@ import type * as nodeModule from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import { registerAndActivate } from "../../../../../TestUtils/ExtensionTestHarness.ts";
-import type { IDisposable } from "../../../../base/common/disposable.ts";
 import { NULL_COMMAND_SERVICE } from "../../../api/common/iCommandService.ts";
 import type {
     IActiveEditorMeta,

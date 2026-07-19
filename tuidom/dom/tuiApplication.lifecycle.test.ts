@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { BodyElement } from "../../src/vs/base/browser/ui/body/bodyElement.ts";
-import { InputElement } from "../../src/vs/base/browser/ui/inputbox/inputElement.ts";
 import { MockTerminalBackend } from "../backend/mockTerminalBackend.ts";
 import { Point, Size } from "../common/geometryPromitives.ts";
 import type { MouseToken } from "../input/rawTerminalToken.ts";
+import { BodyElement } from "../ui/body/bodyElement.ts";
+import { InputElement } from "../ui/inputbox/inputElement.ts";
 
 import { TuiApplication } from "./tuiApplication.ts";
 import { TUIElement } from "./tuiElement.ts";

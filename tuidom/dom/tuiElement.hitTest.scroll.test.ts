@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { IContentSized } from "../../src/vs/base/browser/ui/scrollbar/iScrollable.ts";
-import { ScrollViewport } from "../../src/vs/base/browser/ui/scrollbar/scrollViewport.ts";
 import { BoxConstraints, Point, Size } from "../common/geometryPromitives.ts";
+import type { IContentSized } from "../ui/scrollbar/iScrollable.ts";
+import { ScrollViewport } from "../ui/scrollbar/scrollViewport.ts";
 
 import { TUIElement } from "./tuiElement.ts";
 

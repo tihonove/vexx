@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import type { TreeViewElement } from "../../../../tuidom/ui/tree/treeViewElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import type { TreeViewElement } from "../../base/browser/ui/tree/treeViewElement.ts";
 
 // End-to-end keyboard navigation in the file tree (issue #33): keys travel the real
 // path — raw escape sequence → parser → keybinding dispatch → list.* command.

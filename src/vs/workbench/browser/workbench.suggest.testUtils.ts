@@ -1,7 +1,7 @@
+import type { CompletionListElement } from "../../../../tuidom/ui/completionlist/completionListElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
-import type { CompletionListElement } from "../../base/browser/ui/completionlist/completionListElement.ts";
 import type { ContextKeyService } from "../../platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
 import { CompletionServiceDIToken } from "../contrib/suggest/browser/completionService.ts";

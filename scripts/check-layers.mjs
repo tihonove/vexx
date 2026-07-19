@@ -4,10 +4,11 @@
  * `local/code-layering` + `code-import-patterns` и `layersChecker`):
  *
  *  1. Вертикальные слои (зоны, импортировать можно только свою и нижние):
- *     base/common → base/node → base/browser → platform → editor →
- *     workbench → vexx. «Движок браузера» (DOM/rendering/input/backend)
- *     живёт в top-level `tuidom/` ВНЕ `src/vs` (аналог Chromium у vscode) —
- *     импорты в него, как и в прочий не-vs код, осями не проверяются.
+ *     base/common → base/node → platform → editor → workbench → vexx.
+ *     «Браузер» целиком (DOM-ядро, виджеты ui/*, rendering/input/backend,
+ *     Inspector) живёт в top-level `tuidom/` ВНЕ `src/vs` (аналог Chromium +
+ *     элементы у vscode) — импорты в него, как и в прочий не-vs код, осями
+ *     не проверяются.
  *  2. Окружения: common → [common], browser → [common, browser],
  *     node → [common, node]. Окружение файла — первый сегмент
  *     common/browser/node в его пути; `vs/tui/{rendering,input}` считаются
@@ -35,7 +36,6 @@ const vsRoot = path.join(repoRoot, "src", "vs");
 const ZONES = [
     "src/vs/base/common",
     "src/vs/base/node",
-    "src/vs/base/browser",
     "src/vs/platform",
     "src/vs/editor",
     "src/vs/workbench",

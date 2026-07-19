@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { TextLabel } from "../../src/vs/base/browser/ui/text/textLabelElement.ts";
 import { packRgb } from "../common/colorUtils.ts";
+import { TextLabel } from "../ui/text/textLabelElement.ts";
 
 import { CompositeElement } from "./compositeElement.ts";
 import type { JsxNode } from "./jsx/jsx-runtime.ts";

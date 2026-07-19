@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { BodyElement } from "../../src/vs/base/browser/ui/body/bodyElement.ts";
 import { Point, Size } from "../common/geometryPromitives.ts";
 import { TuiApplication } from "../dom/tuiApplication.ts";
+import { BodyElement } from "../ui/body/bodyElement.ts";
 
 import { MockTerminalBackend } from "./mockTerminalBackend.ts";
 

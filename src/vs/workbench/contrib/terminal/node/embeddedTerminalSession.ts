@@ -18,15 +18,15 @@ import xtermHeadless from "@xterm/headless";
 import type { IPty } from "node-pty";
 
 import { DEFAULT_COLOR } from "../../../../../../tuidom/common/colorUtils.ts";
-import { StyleFlags } from "../../../../../../tuidom/common/styleFlags.ts";
-import type { IDisposable } from "../../../../base/common/disposable.ts";
+import type { IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import type {
     ITerminalSurface,
     TerminalCell,
     TerminalMouseAction,
     TerminalMouseButton,
     TerminalMouseEventData,
-} from "../../../../base/common/iTerminalSurface.ts";
+} from "../../../../../../tuidom/common/iTerminalSurface.ts";
+import { StyleFlags } from "../../../../../../tuidom/common/styleFlags.ts";
 import { xtermPaletteToRgb } from "../common/xtermPalette.ts";
 
 import { loadNodePty } from "./loadNodePty.ts";

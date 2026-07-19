@@ -1,5 +1,5 @@
-import type { WorkbenchLayoutElement } from "../../../../base/browser/ui/workbenchlayout/workbenchLayoutElement.ts";
-import { Disposable } from "../../../../base/common/disposable.ts";
+import { Disposable } from "../../../../../../tuidom/common/disposable.ts";
+import type { WorkbenchLayoutElement } from "../../../../../../tuidom/ui/workbenchlayout/workbenchLayoutElement.ts";
 import type { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";

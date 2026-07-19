@@ -20,7 +20,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 
 ### A. Кастомные лейаутеры → композиция готовых контейнеров
 Хардкодят раскладку в `performLayout`/`render` вместо `VStack`/`HFlex`/`Padding`:
-- `BodyElement` (`src/vs/base/browser/ui/body/bodyElement.ts`) → `VStack` + overlay-слой
+- `BodyElement` (`tuidom/ui/body/bodyElement.ts`) → `VStack` + overlay-слой
 - `WorkbenchLayoutElement` → `HFlex` (left-fix / center-fill / right-fix)
 - `EditorGroupElement` → `VStack` (tabStrip h=1 / content fill); контроллер уже есть
 - `EditorTabStripElement` → упростить (ручной `rebuildHFlex` поверх `HFlex`)
@@ -31,7 +31,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 `FlexContainer` (несколько fill с весами).
 
 ### B. Контроллеры под видом элемента → логику в слой Workbench
-- `MenuBarElement` (`src/vs/base/browser/ui/menu/menuBarElement.ts`) — держит `activeMenu`,
+- `MenuBarElement` (`tuidom/ui/menu/menuBarElement.ts`) — держит `activeMenu`,
   открытие/закрытие popup, навигацию, мнемоники, слушает родителя. **Чёткий
   кандидат**: перевести на пару `MenuService` ↔ `MenuBarComponent` целиком, элемент сделать тонким; связь
   callback'ами (эталон — `StatusBarComponent`/`EditorGroupComponent`).

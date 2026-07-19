@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { unthemedMenuStyles } from "../../../base/browser/ui/menu/popupMenuItemElement.tsx";
-import { unthemedTreeViewStyles } from "../../../base/browser/ui/tree/treeViewElement.ts";
+import { unthemedMenuStyles } from "../../../../../tuidom/ui/menu/popupMenuItemElement.tsx";
+import { unthemedTreeViewStyles } from "../../../../../tuidom/ui/tree/treeViewElement.ts";
 import { unthemedEditorStyles } from "../../../editor/browser/editorElement.ts";
 import { dark2026Theme } from "../../../workbench/services/themes/common/themes/dark2026.ts";
 import { darkPlusTheme } from "../../../workbench/services/themes/common/themes/darkPlus.ts";

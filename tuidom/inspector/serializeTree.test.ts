@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { TestApp } from "../../src/TestUtils/TestApp.ts";
-import { BodyElement } from "../../src/vs/base/browser/ui/body/bodyElement.ts";
-import { InputElement } from "../../src/vs/base/browser/ui/inputbox/inputElement.ts";
-import { TextLabelElement } from "../../src/vs/base/browser/ui/text/textLabelElement.ts";
 import { Size } from "../common/geometryPromitives.ts";
+import { BodyElement } from "../ui/body/bodyElement.ts";
+import { InputElement } from "../ui/inputbox/inputElement.ts";
+import { TextLabelElement } from "../ui/text/textLabelElement.ts";
 
 import type { NodeSnapshot } from "./protocol.ts";
 import { serializeTree } from "./serializeTree.ts";

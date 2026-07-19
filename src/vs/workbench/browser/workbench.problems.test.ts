@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../../../../tuidom/common/geometryPromitives.ts";
+import { TreeViewElement } from "../../../../tuidom/ui/tree/treeViewElement.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { settle } from "../../../TestUtils/timing.ts";
-import { TreeViewElement } from "../../base/browser/ui/tree/treeViewElement.ts";
 import type { EditorElement } from "../../editor/browser/editorElement.ts";
 import { CommandRegistry, CommandRegistryDIToken } from "../../platform/commands/common/commandRegistry.ts";
 import { createTestContainer } from "../../vexx/modules/testProfile.ts";

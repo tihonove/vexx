@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { TextLabelElement } from "../../../../tuidom/ui/text/textLabelElement.ts";
 import { createAppTestHarness } from "../../../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
-import type { TextLabelElement } from "../../base/browser/ui/text/textLabelElement.ts";
 import type { CommandRegistry } from "../../platform/commands/common/commandRegistry.ts";
 import type { ServiceAccessor } from "../../platform/instantiation/common/diContainer.ts";
 import { ServiceAccessorDIToken } from "../common/coreTokens.ts";

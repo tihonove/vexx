@@ -1,5 +1,5 @@
 import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
-import type { IDisposable } from "../../../../base/common/disposable.ts";
+import type { IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import type { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";

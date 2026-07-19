@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { Size } from "../../tuidom/common/geometryPromitives.ts";
 import type { TUIKeyboardEvent } from "../../tuidom/dom/events/tuiKeyboardEvent.ts";
 import { TUIElement } from "../../tuidom/dom/tuiElement.ts";
-import { BodyElement } from "../vs/base/browser/ui/body/bodyElement.ts";
-import { BoxElement } from "../vs/base/browser/ui/layout/boxElement.ts";
+import { BodyElement } from "../../tuidom/ui/body/bodyElement.ts";
+import { BoxElement } from "../../tuidom/ui/layout/boxElement.ts";
 
 import { TestApp } from "./TestApp.ts";
 

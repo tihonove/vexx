@@ -21,9 +21,6 @@
   `editor/browser`.
 - [ ] **DI-токены в `vexx/modules`**: `workbenchComponent` импортирует токен из
   модуля профиля (слой выше) — вынести токены из модулей в слои-владельцы.
-- [ ] **Workbench-виджеты в `base/browser/ui`**: editorgroup (табы), statusbar,
-  workbenchlayout, panel — у vscode это workbench parts, не base-виджеты.
-  Решить: перенос в `workbench/browser/parts/*` или узаконить.
 - [ ] **`MenuEntry` в `platform/actions`** — type-only импорт из
   `base/browser/ui/menu`; завести собственный тип entry в platform.
 
@@ -33,11 +30,11 @@
   (граница видна, единый tsconfig); следующий шаг — пакет `tuidom` в своём
   репо, vexx потребляет как зависимость (jsx-runtime exports уже указывает в
   `tuidom/dom/jsx`).
-- [ ] **Примитивные элементы всё ещё в vexx**: `ui/body`, `ui/layout`,
-  `ui/text` — по смыслу DOM-примитивы (div/span/body), но `BodyElement` знает
-  про `menuBarElement`/`statusBarElement`-слоты — очистить и перевезти
-  примитивы в tuidom. Из-за этого же tuidom-хосты демо
-  (`src/demos/tuidom/minimalHost|inspectedHost`) остались в vexx.
+- [ ] **Наследие «контролы знают про vexx»**: все виджеты `ui/*` переехали в
+  tuidom, но часть несёт vexx-специфику старого дизайна — `BodyElement` знает
+  про `menuBarElement`/`statusBarElement`-слоты, editorgroup/statusbar/
+  workbenchlayout/panel — по смыслу workbench-parts. Вычистить связи, чтобы
+  tuidom-виджеты были «чистыми HTML-элементами».
 - [ ] `TuiApplication.root` расширен до `TUIElement` (ядро не знает о
   виджетах); тестовый харнесс держит `BodyElement`-ссылку сам. Колокационные
   тесты ядра (`tuidom/dom/*.test.ts`) по-прежнему используют vexx-виджеты и

@@ -1,5 +1,5 @@
-import { TerminalViewElement } from "../../../../base/browser/ui/terminal/terminalViewElement.ts";
-import { Disposable } from "../../../../base/common/disposable.ts";
+import { Disposable } from "../../../../../../tuidom/common/disposable.ts";
+import { TerminalViewElement } from "../../../../../../tuidom/ui/terminal/terminalViewElement.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { getTerminalViewStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import type { PanelService } from "../../../browser/parts/panel/panelService.ts";

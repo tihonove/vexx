@@ -1,6 +1,6 @@
 import * as path from "node:path";
 
-import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
+import { Disposable, type IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import type { CompletionSource } from "../../../../editor/common/languages/iCompletionSource.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";

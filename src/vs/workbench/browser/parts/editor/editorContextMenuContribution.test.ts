@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { MenuEntry, MenuItemEntry } from "../../../../base/browser/ui/menu/popupMenuElement.ts";
+import type { MenuEntry, MenuItemEntry } from "../../../../../../tuidom/ui/menu/popupMenuElement.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import { MenuRegistry } from "../../../../platform/actions/common/menuRegistry.ts";
 import { MenuService } from "../../../../platform/actions/common/menuService.ts";

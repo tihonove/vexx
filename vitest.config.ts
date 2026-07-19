@@ -59,8 +59,8 @@ export default defineConfig({
         "src/vs/workbench/services/extensions/node/iExtensionEntry.ts",
         "src/vs/workbench/api/common/iMessageChannel.ts",
         "tuidom/input/rawTerminalToken.ts",
-        "src/vs/base/browser/ui/tree/iTreeDataProvider.ts",
-        "src/vs/base/browser/ui/scrollbar/iScrollable.ts", // только интерфейсы (type guards удалены как мёртвые)
+        "tuidom/ui/tree/iTreeDataProvider.ts",
+        "tuidom/ui/scrollbar/iScrollable.ts", // только интерфейсы (type guards удалены как мёртвые)
         "src/vs/platform/theme/common/iEditorTokenTheme.ts",
         "src/vs/platform/theme/common/iThemeFile.ts",
         "src/vs/platform/theme/common/ivsCodeThemeFile.ts",

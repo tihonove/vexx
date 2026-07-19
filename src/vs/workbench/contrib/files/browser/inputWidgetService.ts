@@ -1,4 +1,4 @@
-import type { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
+import type { InputElement } from "../../../../../../tuidom/ui/inputbox/inputElement.ts";
 import type { IClipboard } from "../../../../platform/clipboard/common/iClipboard.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 

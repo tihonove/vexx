@@ -16,11 +16,11 @@
 import { NodeTerminalBackend } from "../../../tuidom/backend/nodeTerminalBackend.ts";
 import { TuiApplication } from "../../../tuidom/dom/tuiApplication.ts";
 import { TUIElement } from "../../../tuidom/dom/tuiElement.ts";
-import { BodyElement } from "../../vs/base/browser/ui/body/bodyElement.ts";
-import { ButtonElement } from "../../vs/base/browser/ui/button/buttonElement.ts";
-import { HFlexElement, hflexFit, hflexFixed } from "../../vs/base/browser/ui/layout/hFlexElement.ts";
-import { TerminalViewElement } from "../../vs/base/browser/ui/terminal/terminalViewElement.ts";
-import { TitledPanelElement } from "../../vs/base/browser/ui/titledpanel/titledPanelElement.ts";
+import { BodyElement } from "../../../tuidom/ui/body/bodyElement.ts";
+import { ButtonElement } from "../../../tuidom/ui/button/buttonElement.ts";
+import { HFlexElement, hflexFit, hflexFixed } from "../../../tuidom/ui/layout/hFlexElement.ts";
+import { TerminalViewElement } from "../../../tuidom/ui/terminal/terminalViewElement.ts";
+import { TitledPanelElement } from "../../../tuidom/ui/titledpanel/titledPanelElement.ts";
 import { EmbeddedTerminalSession } from "../../vs/workbench/contrib/terminal/node/embeddedTerminalSession.ts";
 
 import { HeaderBodyLayout } from "./HeaderBodyLayout.ts";

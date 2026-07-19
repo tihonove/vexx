@@ -3,8 +3,8 @@ import * as path from "node:path";
 
 import chokidar, { type FSWatcher } from "chokidar";
 
-import type { ITreeDataProvider, ITreeItem } from "../../../../base/browser/ui/tree/iTreeDataProvider.ts";
-import { Disposable } from "../../../../base/common/disposable.ts";
+import { Disposable } from "../../../../../../tuidom/common/disposable.ts";
+import type { ITreeDataProvider, ITreeItem } from "../../../../../../tuidom/ui/tree/iTreeDataProvider.ts";
 import { getFileIcon } from "../../../../base/common/fileIcons.ts";
 
 const EXCLUDED_NAMES = new Set(["node_modules", ".git", ".DS_Store"]);

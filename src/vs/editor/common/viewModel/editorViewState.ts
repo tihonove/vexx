@@ -1,5 +1,5 @@
 import { DisplayLine } from "../../../../../tuidom/common/displayLine.ts";
-import type { IDisposable } from "../../../base/common/disposable.ts";
+import type { IDisposable } from "../../../../../tuidom/common/disposable.ts";
 import type { IFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
 import type { IPosition } from "../core/iPosition.ts";
 import { comparePositions } from "../core/iPosition.ts";

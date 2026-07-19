@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import type { WorkbenchLayoutElement } from "../../../../tuidom/ui/workbenchlayout/workbenchLayoutElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import type { WorkbenchLayoutElement } from "../../base/browser/ui/workbenchlayout/workbenchLayoutElement.ts";
 
 describe("Side Bar width commands", () => {
     let ws: ITempWorkspace;

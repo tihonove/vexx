@@ -1,5 +1,5 @@
 import type { TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
-import { PanelContainerElement } from "../../../../base/browser/ui/panel/panelContainerElement.ts";
+import { PanelContainerElement } from "../../../../../../tuidom/ui/panel/panelContainerElement.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { getPanelContainerStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";

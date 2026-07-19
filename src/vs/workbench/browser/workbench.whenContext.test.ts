@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../../../../tuidom/common/geometryPromitives.ts";
+import type { EditorTabStripElement } from "../../../../tuidom/ui/editorgroup/editorTabStripElement.ts";
+import type { TreeViewElement } from "../../../../tuidom/ui/tree/treeViewElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import type { EditorTabStripElement } from "../../base/browser/ui/editorgroup/editorTabStripElement.ts";
-import type { TreeViewElement } from "../../base/browser/ui/tree/treeViewElement.ts";
 import type { EditorElement } from "../../editor/browser/editorElement.ts";
 import { ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
 

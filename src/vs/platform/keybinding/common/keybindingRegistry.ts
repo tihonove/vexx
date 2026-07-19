@@ -1,4 +1,4 @@
-import type { IDisposable } from "../../../base/common/disposable.ts";
+import type { IDisposable } from "../../../../../tuidom/common/disposable.ts";
 import type { ContextKeyService } from "../../contextkey/common/contextKeyService.ts";
 import { token } from "../../instantiation/common/diContainer.ts";
 

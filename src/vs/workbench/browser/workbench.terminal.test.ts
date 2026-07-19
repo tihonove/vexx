@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import type { PanelContainerElement } from "../../../../tuidom/ui/panel/panelContainerElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import type { PanelContainerElement } from "../../base/browser/ui/panel/panelContainerElement.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
 import {
     TERMINAL_VIEW_ID,

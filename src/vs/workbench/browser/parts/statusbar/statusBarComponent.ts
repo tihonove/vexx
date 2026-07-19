@@ -1,5 +1,5 @@
-import type { StatusBarItem } from "../../../../base/browser/ui/statusbar/statusBarElement.ts";
-import { StatusBarElement } from "../../../../base/browser/ui/statusbar/statusBarElement.ts";
+import type { StatusBarItem } from "../../../../../../tuidom/ui/statusbar/statusBarElement.ts";
+import { StatusBarElement } from "../../../../../../tuidom/ui/statusbar/statusBarElement.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { StatusBarService } from "../../../services/statusbar/common/statusBarService.ts";
 import { StatusBarServiceDIToken } from "../../../services/statusbar/common/statusBarService.ts";

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { InputElement } from "../../../base/browser/ui/inputbox/inputElement.ts";
+import { InputElement } from "../../../../../tuidom/ui/inputbox/inputElement.ts";
 import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 import { registerAction } from "../../../platform/actions/common/commandAction.ts";
 import type { IClipboard } from "../../../platform/clipboard/common/iClipboard.ts";

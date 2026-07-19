@@ -6,12 +6,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Point } from "../../../../tuidom/common/geometryPromitives.ts";
 import { TUIMouseEvent } from "../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import type { QuickPickElement } from "../../../../tuidom/ui/quickpick/quickPickElement.ts";
+import type { TreeViewElement } from "../../../../tuidom/ui/tree/treeViewElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { quickPickByTitle } from "../../../TestUtils/domQueries.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
-import type { QuickPickElement } from "../../base/browser/ui/quickpick/quickPickElement.ts";
-import type { TreeViewElement } from "../../base/browser/ui/tree/treeViewElement.ts";
 
 /** runRename awaits the QuickInput promise, then refresh → reveal; drain enough turns. */
 const FLUSH_TURNS = 20;

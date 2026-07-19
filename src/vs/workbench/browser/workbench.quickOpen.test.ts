@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { EditorTabStripElement } from "../../../../tuidom/ui/editorgroup/editorTabStripElement.ts";
+import type { QuickPickElement } from "../../../../tuidom/ui/quickpick/quickPickElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
-import type { EditorTabStripElement } from "../../base/browser/ui/editorgroup/editorTabStripElement.ts";
-import type { QuickPickElement } from "../../base/browser/ui/quickpick/quickPickElement.ts";
 import type { EditorService } from "../services/editor/browser/editorService.ts";
 
 describe("Workbench — Quick Open accept callbacks", () => {

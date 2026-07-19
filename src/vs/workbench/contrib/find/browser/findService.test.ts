@@ -5,10 +5,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import { BodyElement } from "../../../../../../tuidom/ui/body/bodyElement.ts";
+import type { InputElement } from "../../../../../../tuidom/ui/inputbox/inputElement.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
-import type { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
 import { createSelection } from "../../../../editor/common/core/iSelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../../../editor/common/languages/iTokenStyleResolver.ts";

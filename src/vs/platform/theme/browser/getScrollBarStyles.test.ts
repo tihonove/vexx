@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { unthemedScrollBarStyles } from "../../../base/browser/ui/scrollbar/scrollContainerElement.ts";
+import { unthemedScrollBarStyles } from "../../../../../tuidom/ui/scrollbar/scrollContainerElement.ts";
 import { darkPlusTheme } from "../../../workbench/services/themes/common/themes/darkPlus.ts";
 import { parseHexColor } from "../common/colorUtils.ts";
 import { WorkbenchTheme } from "../common/workbenchTheme.ts";

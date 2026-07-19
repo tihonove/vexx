@@ -1,5 +1,5 @@
-import type { MenuEntry } from "../../../base/browser/ui/menu/popupMenuElement.ts";
-import type { IDisposable } from "../../../base/common/disposable.ts";
+import type { IDisposable } from "../../../../../tuidom/common/disposable.ts";
+import type { MenuEntry } from "../../../../../tuidom/ui/menu/popupMenuElement.ts";
 import type { CommandRegistry } from "../../commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../commands/common/commandRegistry.ts";
 import type { ContextKeyService } from "../../contextkey/common/contextKeyService.ts";
