@@ -1,3 +1,4 @@
+import { MenuId } from "../Menus/MenuId.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
 import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
 
@@ -216,6 +217,8 @@ export const cursorWordRightAction: CommandAction = {
 export const cursorWordRightSelectAction: CommandAction = {
     id: "cursorWordRightSelect",
     title: "Cursor Word Right Select",
+    // Label только в меню — семантика пункта, не команды.
+    menus: [{ menuId: MenuId.MenubarSelectionMenu, title: "Expand Selection (Word)", group: "2_expand", order: 10 }],
     keybinding: parseKeybinding("ctrl+shift+right"),
     keybindings: [{ keys: parseChord("ctrl+k shift+right"), when: "tier == 'legacy'" }],
     when: "textInputFocus",

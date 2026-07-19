@@ -1,3 +1,4 @@
+import { MenuId } from "../Menus/MenuId.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 import { LayoutServiceDIToken } from "../Services/LayoutService.ts";
 import { PanelServiceDIToken } from "../Services/PanelService.ts";
@@ -11,6 +12,8 @@ import type { CommandAction } from "./CommandAction.ts";
 export const toggleTerminalAction: CommandAction = {
     id: "workbench.action.terminal.toggleTerminal",
     title: "Terminal: Toggle Terminal",
+    shortTitle: "Terminal",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "3_views", order: 30 }],
     keybinding: { keys: parseKeybinding("ctrl+`"), when: "tier == 'kitty' || tier == 'csi-u'" },
     run(accessor) {
         // Toggle like VS Code: hide the panel if Terminal is already the

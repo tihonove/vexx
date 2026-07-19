@@ -2,6 +2,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
+import { MenuId } from "../Menus/MenuId.ts";
 import { CommandRegistryDIToken } from "../Services/CommandRegistry.ts";
 import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../Services/CoreTokens.ts";
 import { parseChord, parseKeybinding } from "../Services/KeybindingRegistry.ts";
@@ -37,6 +38,8 @@ function openUserConfigFile(
 export const openSettingsAction: CommandAction = {
     id: "workbench.action.openSettings",
     title: "Preferences: Open User Settings",
+    shortTitle: "Settings",
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "4_preferences", order: 10 }],
     keybinding: parseKeybinding("ctrl+,"),
     run(accessor) {
         openUserConfigFile(accessor, accessor.get(SettingsResourceDIToken), "settings");
@@ -51,6 +54,8 @@ export const openSettingsAction: CommandAction = {
 export const openKeybindingsAction: CommandAction = {
     id: "workbench.action.openGlobalKeybindings",
     title: "Preferences: Open Keyboard Shortcuts",
+    shortTitle: "Keyboard Shortcuts",
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "4_preferences", order: 20 }],
     keybinding: parseChord("ctrl+k ctrl+s"),
     run(accessor) {
         openUserConfigFile(accessor, accessor.get(KeybindingsResourceDIToken), "keybindings");

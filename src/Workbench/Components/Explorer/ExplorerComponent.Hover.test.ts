@@ -12,6 +12,7 @@ import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
 import { MENU_CONTRIBUTIONS } from "../../Menus/menuContributions.ts";
 import { MenuRegistry } from "../../Menus/MenuRegistry.ts";
+import { MenuService } from "../../Menus/MenuService.ts";
 import { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { ContextKeyService } from "../../Services/ContextKeyService.ts";
 import { KeybindingRegistry } from "../../Services/KeybindingRegistry.ts";
@@ -50,13 +51,10 @@ describe("ExplorerComponent hover", () => {
         theme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
         const clipboard = new InMemoryFileClipboard();
         service = new ExplorerService(clipboard, NULL_CONFIGURATION_SERVICE, NULL_LOG_SERVICE);
-        const menuRegistry = new MenuRegistry(
-            new CommandRegistry(),
-            new KeybindingRegistry(),
-            new ContextKeyService(),
-            MENU_CONTRIBUTIONS,
+        const menuService = new MenuService(
+            new MenuRegistry(new CommandRegistry(), new KeybindingRegistry(), new ContextKeyService(), MENU_CONTRIBUTIONS),
         );
-        component = new ExplorerComponent(service, new CommandRegistry(), clipboard, menuRegistry, new ThemeService(theme));
+        component = new ExplorerComponent(service, new CommandRegistry(), clipboard, menuService, new ThemeService(theme));
         service.setRootPath(ws.dir);
         app = TestApp.createWithContent(component.view, new Size(30, 10));
         await service.refresh();

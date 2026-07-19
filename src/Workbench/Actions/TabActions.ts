@@ -1,4 +1,5 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
+import { MenuId } from "../Menus/MenuId.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 import { ModifierReleaseArmoryDIToken } from "../Services/ModifierReleaseArmory.ts";
@@ -24,6 +25,8 @@ function cycleMruStep(accessor: ServiceAccessor, direction: 1 | -1): void {
 export const nextEditorInGroupAction: CommandAction = {
     id: "workbench.action.nextEditorInGroup",
     title: "Next Editor In Group",
+    shortTitle: "Next Editor",
+    menus: [{ menuId: MenuId.MenubarGoMenu, group: "2_editors", order: 10 }],
     keybinding: parseKeybinding("ctrl+tab"),
     keybindings: [parseKeybinding("ctrl+pagedown"), parseKeybinding("alt+pagedown")],
     when: "textInputFocus && editorTabsMultiple",
@@ -35,6 +38,8 @@ export const nextEditorInGroupAction: CommandAction = {
 export const previousEditorInGroupAction: CommandAction = {
     id: "workbench.action.previousEditorInGroup",
     title: "Previous Editor In Group",
+    shortTitle: "Previous Editor",
+    menus: [{ menuId: MenuId.MenubarGoMenu, group: "2_editors", order: 20 }],
     keybinding: parseKeybinding("ctrl+shift+tab"),
     keybindings: [parseKeybinding("ctrl+pageup"), parseKeybinding("alt+pageup")],
     when: "textInputFocus && editorTabsMultiple",
@@ -46,6 +51,8 @@ export const previousEditorInGroupAction: CommandAction = {
 export const closeActiveEditorAction: CommandAction = {
     id: "workbench.action.closeActiveEditor",
     title: "Close Active Editor",
+    shortTitle: "Close Editor",
+    menus: [{ menuId: MenuId.MenubarGoMenu, group: "3_close", order: 10 }],
     keybinding: parseKeybinding("ctrl+w"),
     when: "textInputFocus && editorGroupHasEditors",
     run(accessor) {

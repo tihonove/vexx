@@ -10,37 +10,35 @@
 двигаться при желании сблизиться с каноном. Источник сверки —
 `vscode/src/vs/platform/actions/common/actions.ts` + `menuService.ts`.
 
-## MenuRegistry → vscode-канон (по убыванию ценности)
+## MenuRegistry → vscode-канон
 
-- [ ] **Меню-бар на `MenuRegistry`.** Сейчас `MenuService.getMenus()` хардкодит дерево
-  File/Edit/Selection/View/Go/Help. Перевести на реестр; для этого нужны:
-  - **submenus** (`ISubmenuItem` в vscode) — пункт, открывающий вложенный `MenuId`
-    (меню-бар = набор submenu-точек `MenubarFileMenu`/`MenubarEditMenu`/…);
-  - спец-группа **`navigation` сортируется первой** (у vscode `_compareMenuItems`:
-    navigation → потом `localeCompare` группы → order). Сейчас у нас обычный
-    `localeCompare` без спец-группы.
-  Риск: тесный golden-master `Workbench.Menu.test.ts` (точный порядок/лейблы/мнемоники).
+- [x] **Меню-бар на `MenuRegistry`** (#168): submenus (`ISubmenuContribution`, аналог
+  `ISubmenuItem`) — меню-бар = submenu-записи `MenubarMainMenu` → точки
+  `MenubarFileMenu`/`MenubarEditMenu`/…; спец-группа **`navigation` первой** в
+  сортировке групп; `MenuService.getMenus()` (хардкод дерева) удалён,
+  `MenuBarComponent` резолвит entries лениво при открытии попапа.
 
-- [ ] **Co-location placement на команде (`registerAction2`-аналог).** У нас пункт ссылается
-  на команду по **id** + опциональный override-`title`; в vscode пункт несёт
-  `command: ICommandAction` (id + title + icon + precondition + toggled), а идиоматичный
-  путь — `registerAction2`, кладущий команду+keybinding+**menu placement** одним классом
-  (`appendMenuItems` даже `@deprecated`). У нас placement живёт в отдельном массиве
-  `MENU_CONTRIBUTIONS` — осознанный дивёрж под нашу конвенцию явных массивов. Сближение:
-  дать `CommandAction` опциональные menu-placement'ы, из которых наполнять `MenuRegistry`.
-  Побочно уберёт дубль явных лейблов Explorer (сейчас нужны, т.к. title команд «File: …»,
-  а меню показывает «Copy»).
+- [x] **Co-location placement на команде (`registerAction2`-аналог)** (#168):
+  `CommandAction.menus: CommandMenuPlacement[]` + `shortTitle` («File: Copy» → «Copy»
+  для меню — убрал дубль явных лейблов Explorer); `MENU_CONTRIBUTIONS` деривируется
+  из `builtinActions` (`menuItemsOfAction`) + submenu-структура меню-бара.
 
-- [ ] **Живой `IMenu` вместо одноразового `getMenuItems`.** У vscode реестр (данные) отделён
-  от `IMenuService.createMenu(id, contextKeyService) → IMenu`; `IMenu.getActions()` отдаёт
-  `[group, actions][]` и **переэмитит** при смене контекста/реестра (`onDidChangeMenu`).
-  У нас `getMenuItems(menuId, context)` — чистая функция, собирается заново при каждом
-  открытии. Нужно только если меню должно перестраиваться на лету (тулбары/видимые меню),
-  а не при повторном открытии контекст-меню — низкий приоритет.
+- [x] **Живой `IMenu`** (#168): `MenuService.createMenu(menuId) → IMenu`
+  (`getEntries`/`getSubmenus`/`onDidChange` по `MenuRegistry.onDidChangeMenu`);
+  консюмеры (контекст-меню редактора/Explorer, меню-бар) держат `IMenu`, в реестр
+  напрямую не ходят. Отличие от vscode: `onDidChange` не реагирует на смену
+  контекст-ключей — у `ContextKeyService` нет событий, а все наши меню
+  пересобираются при открытии. Если появится живой тулбар — добавить событийность
+  контекст-ключей.
 
-- [ ] Мелочи vscode, которых нет: `alt` (альтернативный пункт по Alt), user hide-toggle
-  пунктов (`isHiddenByDefault` + скрытие пользователем), `MenuId` как расширяемый класс
-  (у нас закрытый const-набор — расширениям своих точек не завести).
+- [x] **`MenuId` как расширяемый класс** (#168): статические инстансы + `new
+  MenuId("my.menu")` с проверкой уникальности id — расширения смогут заводить свои
+  точки.
+
+- [ ] Мелочи vscode, которых по-прежнему нет: `alt` (альтернативный пункт по Alt) и
+  user hide-toggle пунктов (`isHiddenByDefault` + скрытие пользователем) — требуют
+  поддержки в `PopupMenuElement` и персиста; submenu-записи внутри попапов
+  (вложенные меню) PopupMenu не рендерит — `getMenuItems` их игнорирует.
 
 ## Другие contribution points (не начаты)
 

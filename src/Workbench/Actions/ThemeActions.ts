@@ -1,6 +1,7 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { IConfigurationServiceDIToken } from "../../Configuration/IConfigurationServiceDIToken.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../Theme/ThemeTokens.ts";
+import { MenuId } from "../Menus/MenuId.ts";
 import { parseChord } from "../Services/KeybindingRegistry.ts";
 import { QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
 
@@ -77,6 +78,8 @@ async function selectColorTheme(accessor: ServiceAccessor): Promise<void> {
 export const selectThemeAction: CommandAction = {
     id: "workbench.action.selectTheme",
     title: "Preferences: Color Theme",
+    shortTitle: "Color Theme",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "2_theme", order: 10 }],
     keybinding: parseChord("ctrl+k ctrl+t"),
     run(accessor) {
         void selectColorTheme(accessor);

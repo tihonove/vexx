@@ -1,4 +1,5 @@
 import { PROBLEMS_VIEW_ID, ProblemsComponentDIToken } from "../Components/Panel/ProblemsComponent.ts";
+import { MenuId } from "../Menus/MenuId.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
 import { ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
@@ -13,6 +14,8 @@ const SIDEBAR_WIDTH_STEP = 3;
 export const toggleSidebarAction: CommandAction = {
     id: "workbench.action.toggleSidebarVisibility",
     title: "View: Toggle Primary Side Bar Visibility",
+    shortTitle: "Toggle Primary Side Bar",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "3_views", order: 40 }],
     keybinding: parseKeybinding("ctrl+b"),
     run(accessor) {
         accessor.get(LayoutServiceDIToken).toggleSidebar();
@@ -22,6 +25,8 @@ export const toggleSidebarAction: CommandAction = {
 export const showExplorerAction: CommandAction = {
     id: "workbench.view.explorer",
     title: "View: Show Explorer",
+    shortTitle: "Explorer",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "3_views", order: 10 }],
     keybinding: parseKeybinding("ctrl+shift+e"),
     run(accessor) {
         accessor.get(LayoutServiceDIToken).setSidebarVisible(true);
@@ -47,6 +52,8 @@ export const revealActiveFileInExplorerAction: CommandAction = {
 export const increaseSidebarWidthAction: CommandAction = {
     id: "workbench.action.increaseSidebarWidth",
     title: "View: Increase Side Bar Width",
+    shortTitle: "Increase Side Bar Width",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "4_sidebar", order: 10 }],
     run(accessor) {
         accessor.get(LayoutServiceDIToken).nudgeSidebarWidth(SIDEBAR_WIDTH_STEP);
     },
@@ -55,6 +62,8 @@ export const increaseSidebarWidthAction: CommandAction = {
 export const decreaseSidebarWidthAction: CommandAction = {
     id: "workbench.action.decreaseSidebarWidth",
     title: "View: Decrease Side Bar Width",
+    shortTitle: "Decrease Side Bar Width",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "4_sidebar", order: 20 }],
     run(accessor) {
         accessor.get(LayoutServiceDIToken).nudgeSidebarWidth(-SIDEBAR_WIDTH_STEP);
     },
@@ -63,6 +72,8 @@ export const decreaseSidebarWidthAction: CommandAction = {
 export const resetSidebarWidthAction: CommandAction = {
     id: "workbench.action.resetSidebarWidth",
     title: "View: Reset Side Bar Width",
+    shortTitle: "Reset Side Bar Width",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "4_sidebar", order: 30 }],
     run(accessor) {
         accessor.get(LayoutServiceDIToken).resetSidebarWidth();
     },
@@ -72,6 +83,8 @@ export const resetSidebarWidthAction: CommandAction = {
 export const togglePanelAction: CommandAction = {
     id: "workbench.action.togglePanel",
     title: "View: Toggle Panel Visibility",
+    shortTitle: "Toggle Panel",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "3_views", order: 50 }],
     keybinding: parseKeybinding("ctrl+j"),
     run(accessor) {
         const layout = accessor.get(LayoutServiceDIToken);
@@ -82,6 +95,8 @@ export const togglePanelAction: CommandAction = {
 export const toggleProblemsAction: CommandAction = {
     id: "workbench.actions.view.problems",
     title: "View: Toggle Problems (Errors, Warnings, Infos)",
+    shortTitle: "Problems",
+    menus: [{ menuId: MenuId.MenubarViewMenu, group: "3_views", order: 20 }],
     keybinding: parseKeybinding("ctrl+shift+m"),
     run(accessor) {
         // Toggle like VS Code: show + focus Problems, or hide the panel if

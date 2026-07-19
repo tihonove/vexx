@@ -13,8 +13,8 @@ import { TitledPanelElement } from "../../../TUIDom/Widgets/TitledPanelElement.t
 import { TreeViewElement } from "../../../TUIDom/Widgets/TreeViewElement.ts";
 import { ThemedComponent } from "../../Component.ts";
 import { MenuId } from "../../Menus/MenuId.ts";
-import type { MenuRegistry } from "../../Menus/MenuRegistry.ts";
-import { MenuRegistryDIToken } from "../../Menus/MenuRegistry.ts";
+import type { IMenu, MenuService } from "../../Menus/MenuService.ts";
+import { MenuServiceDIToken } from "../../Menus/MenuService.ts";
 import type { CommandRegistry } from "../../Services/CommandRegistry.ts";
 import { CommandRegistryDIToken } from "../../Services/CommandRegistry.ts";
 import { FileClipboardDIToken } from "../../Services/CoreTokens.ts";
@@ -46,22 +46,24 @@ export class ExplorerComponent extends ThemedComponent {
         ExplorerServiceDIToken,
         CommandRegistryDIToken,
         FileClipboardDIToken,
-        MenuRegistryDIToken,
+        MenuServiceDIToken,
         ThemeServiceDIToken,
     ] as const;
 
     private parts: ExplorerViewParts | null = null;
     private host: BodyElement | null = null;
     private contextMenuSession: OverlaySessionHandle | null = null;
+    private readonly contextMenu: IMenu;
 
     public constructor(
         private readonly explorerService: ExplorerService,
         private readonly commands: CommandRegistry,
         private readonly fileClipboard: IFileClipboard,
-        private readonly menuRegistry: MenuRegistry,
+        menuService: MenuService,
         themeService: ThemeService,
     ) {
         super(themeService);
+        this.contextMenu = this.register(menuService.createMenu(MenuId.ExplorerContext));
         this.register(
             explorerService.onDidChangeRoot(() => {
                 this.rebuild();
@@ -137,10 +139,10 @@ export class ExplorerComponent extends ThemedComponent {
         const host = this.host;
         this.hideContextMenu();
 
-        // Пункты — из MenuRegistry (MenuId.ExplorerContext). Контекст открытия несёт
+        // Пункты — из живого меню MenuId.ExplorerContext. Контекст открытия несёт
         // путь узла (args команд) и признак непустого буфера (видимость Paste).
         const context = { path: filePath, canPaste: this.fileClipboard.read() !== null };
-        const entries: MenuEntry[] = this.menuRegistry.getMenuItems(MenuId.ExplorerContext, context).map((entry) => {
+        const entries: MenuEntry[] = this.contextMenu.getEntries(context).map((entry) => {
             if (entry.type === "separator") return entry;
             const original = entry.onSelect;
             return {

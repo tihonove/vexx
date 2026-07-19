@@ -1,3 +1,4 @@
+import { MenuId } from "../Menus/MenuId.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 
@@ -64,6 +65,10 @@ export const undoAction: CommandAction = {
     title: "Undo",
     keybinding: parseKeybinding("ctrl+z"),
     when: "textInputFocus",
+    menus: [
+        { menuId: MenuId.EditorContext, group: "2_undo", order: 10 },
+        { menuId: MenuId.MenubarEditMenu, group: "1_undo", order: 10 },
+    ],
     run(accessor) {
         accessor.get(EditorServiceDIToken).getActiveEditor()?.undo();
     },
@@ -74,6 +79,7 @@ export const redoAction: CommandAction = {
     title: "Redo",
     keybinding: parseKeybinding("ctrl+shift+z"),
     when: "textInputFocus",
+    menus: [{ menuId: MenuId.MenubarEditMenu, group: "1_undo", order: 20 }],
     run(accessor) {
         accessor.get(EditorServiceDIToken).getActiveEditor()?.redo();
     },
@@ -114,6 +120,7 @@ export const selectAllAction: CommandAction = {
     title: "Select All",
     keybinding: parseKeybinding("ctrl+a"),
     when: "textInputFocus",
+    menus: [{ menuId: MenuId.MenubarSelectionMenu, group: "1_select", order: 10 }],
     run(accessor) {
         accessor.get(EditorServiceDIToken).getActiveEditor()?.viewState.selectAll();
     },

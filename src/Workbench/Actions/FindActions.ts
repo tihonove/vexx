@@ -1,3 +1,4 @@
+import { MenuId } from "../Menus/MenuId.ts";
 import { FindServiceDIToken } from "../Services/FindService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 
@@ -12,6 +13,7 @@ import type { CommandAction } from "./CommandAction.ts";
 export const findAction: CommandAction = {
     id: "actions.find",
     title: "Find",
+    menus: [{ menuId: MenuId.MenubarEditMenu, group: "3_find", order: 10 }],
     keybinding: parseKeybinding("ctrl+f"),
     // Reachable from the editor, and while the widget is open (to refocus the input).
     when: "textInputFocus || findWidgetVisible",
@@ -23,6 +25,8 @@ export const findAction: CommandAction = {
 export const nextMatchAction: CommandAction = {
     id: "editor.action.nextMatchFindAction",
     title: "Find: Next Match",
+    shortTitle: "Find Next",
+    menus: [{ menuId: MenuId.MenubarEditMenu, group: "3_find", order: 20 }],
     keybinding: parseKeybinding("enter"),
     keybindings: [parseKeybinding("f3")],
     when: "findWidgetVisible",
@@ -34,6 +38,8 @@ export const nextMatchAction: CommandAction = {
 export const previousMatchAction: CommandAction = {
     id: "editor.action.previousMatchFindAction",
     title: "Find: Previous Match",
+    shortTitle: "Find Previous",
+    menus: [{ menuId: MenuId.MenubarEditMenu, group: "3_find", order: 30 }],
     keybinding: parseKeybinding("shift+enter"),
     keybindings: [parseKeybinding("shift+f3")],
     when: "findWidgetVisible",

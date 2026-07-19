@@ -1,44 +1,45 @@
-import type { IMenuContribution } from "./IMenuContribution.ts";
+import { builtinActions } from "../Actions/builtinActions.ts";
+import type { CommandAction } from "../Actions/CommandAction.ts";
+
+import type { IMenuContribution, ISubmenuContribution, MenuContribution } from "./IMenuContribution.ts";
 import { MenuId } from "./MenuId.ts";
 
-/** Контекст открытия ExplorerContext-меню (см. `args`/`visible` ниже). */
-interface ExplorerMenuContext {
-    readonly path: string;
-    readonly canPaste: boolean;
+/**
+ * Деривация menu-contributions из co-located размещений экшена
+ * (`CommandAction.menus`, аналог `registerAction2` VS Code): каждое размещение
+ * становится `IMenuContribution` с `command = id` экшена и label по цепочке
+ * «title размещения → shortTitle → title» (label фиксируется здесь, чтобы меню
+ * не зависело от наполнения `CommandRegistry`).
+ */
+export function menuItemsOfAction(action: CommandAction): IMenuContribution[] {
+    return (action.menus ?? []).map((placement) => ({
+        ...placement,
+        command: action.id,
+        title: placement.title ?? action.shortTitle ?? action.title,
+    }));
 }
 
-/** Аргумент команды Explorer — путь выделенного узла. */
-const pathArg = (context: unknown): readonly unknown[] => [(context as ExplorerMenuContext).path];
-/** Видимость Paste — непустой буфер обмена файлов (императивно, при открытии). */
-const canPaste = (context: unknown): boolean => (context as ExplorerMenuContext).canPaste;
+/**
+ * Структура меню-бара: submenu-записи корневой точки `MenubarMainMenu`
+ * (аналог `ISubmenuItem` VS Code). Пункты самих меню (File/Edit/…) приходят из
+ * co-located размещений экшенов (`CommandAction.menus`).
+ */
+const MENUBAR_SUBMENUS: readonly ISubmenuContribution[] = [
+    { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarFileMenu, title: "File", mnemonic: "f", order: 10 },
+    { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarEditMenu, title: "Edit", mnemonic: "e", order: 20 },
+    { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarSelectionMenu, title: "Selection", mnemonic: "s", order: 30 },
+    { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarViewMenu, title: "View", mnemonic: "v", order: 40 },
+    { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarGoMenu, title: "Go", mnemonic: "g", order: 50 },
+    { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarHelpMenu, title: "Help", mnemonic: "h", order: 60 },
+];
 
 /**
- * Явный список menu-contributions (зеркало `builtinActions`/`WORKBENCH_CONTRIBUTIONS`).
- * Пункты резолвит {@link MenuRegistry.getMenuItems}: label — из title команды или
- * явного `title`, шорткат — из `KeybindingRegistry`, порядок — group/order с
- * авто-разделителями между группами.
- *
- * Конвенция контекста открытия по меню:
- * - `EditorContext` → `undefined`;
- * - `ExplorerContext` → `{ path: string; canPaste: boolean }` (см. `args`/`visible`).
+ * Явный полный список menu-contributions (зеркало `builtinActions`/
+ * `WORKBENCH_CONTRIBUTIONS`): структура меню-бара + деривация из размещений
+ * встроенных экшенов. Пункты резолвит {@link MenuRegistry.getMenuItems}:
+ * порядок — group/order с авто-разделителями, шорткат — из `KeybindingRegistry`.
  */
-export const MENU_CONTRIBUTIONS: readonly IMenuContribution[] = [
-    // ─── EditorContext ─── (label из title команды: Copy/Cut/Paste/Undo)
-    { menuId: MenuId.EditorContext, command: "editor.action.clipboardCopyAction", group: "1_clipboard", order: 10 },
-    { menuId: MenuId.EditorContext, command: "editor.action.clipboardCutAction", group: "1_clipboard", order: 20 },
-    { menuId: MenuId.EditorContext, command: "editor.action.clipboardPasteAction", group: "1_clipboard", order: 30 },
-    { menuId: MenuId.EditorContext, command: "undo", group: "2_undo", order: 10 },
-
-    // ─── ExplorerContext ─── (label явный — title команд «File: …»; args = путь узла)
-    { menuId: MenuId.ExplorerContext, command: "explorer.newFile", title: "New File...", group: "1_new", order: 10, args: pathArg },
-    { menuId: MenuId.ExplorerContext, command: "explorer.newFolder", title: "New Folder...", group: "1_new", order: 20, args: pathArg },
-    { menuId: MenuId.ExplorerContext, command: "fileOperations.copy", title: "Copy", group: "2_clipboard", order: 10 },
-    { menuId: MenuId.ExplorerContext, command: "fileOperations.cut", title: "Cut", group: "2_clipboard", order: 20 },
-    { menuId: MenuId.ExplorerContext, command: "fileOperations.paste", title: "Paste", group: "2_clipboard", order: 30, visible: canPaste },
-    { menuId: MenuId.ExplorerContext, command: "fileOperations.copyPath", title: "Copy Path", group: "3_copypath", order: 10, args: pathArg },
-    { menuId: MenuId.ExplorerContext, command: "fileOperations.copyRelativePath", title: "Copy Relative Path", group: "3_copypath", order: 20, args: pathArg },
-    { menuId: MenuId.ExplorerContext, command: "fileOperations.rename", title: "Rename...", group: "4_modify", order: 10, args: pathArg },
-    // Delete забинжен `delete`, но меню шортката не показывает — подавляем.
-    { menuId: MenuId.ExplorerContext, command: "fileOperations.deleteFile", title: "Delete", group: "4_modify", order: 20, args: pathArg, shortcut: false },
-    { menuId: MenuId.ExplorerContext, command: "workbench.files.action.refreshFilesExplorer", title: "Refresh Explorer", group: "5_refresh", order: 10 },
+export const MENU_CONTRIBUTIONS: readonly MenuContribution[] = [
+    ...MENUBAR_SUBMENUS,
+    ...builtinActions.flatMap(menuItemsOfAction),
 ];

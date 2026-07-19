@@ -5,6 +5,7 @@ import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { token } from "../../Common/DiContainer.ts";
 import { ILogServiceDIToken } from "../../Common/Logging/ILogServiceDIToken.ts";
 import { Uri } from "../../Common/Uri.ts";
+import { MenuId } from "../Menus/MenuId.ts";
 import { CommandRegistryDIToken } from "../Services/CommandRegistry.ts";
 import { DialogServiceDIToken } from "../Services/DialogService.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
@@ -189,6 +190,8 @@ async function runSaveAs(accessor: ServiceAccessor): Promise<void> {
 export const fileSaveAction: CommandAction = {
     id: "workbench.action.files.save",
     title: "File: Save",
+    shortTitle: "Save",
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "3_save", order: 10 }],
     keybinding: parseKeybinding("ctrl+s"),
     // Additional chord binding for save: Ctrl+K then S.
     keybindings: [parseChord("ctrl+k s")],
@@ -200,6 +203,8 @@ export const fileSaveAction: CommandAction = {
 export const newUntitledFileAction: CommandAction = {
     id: "workbench.action.files.newUntitledFile",
     title: "File: New Untitled File",
+    shortTitle: "New Untitled File",
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "1_new", order: 10 }],
     keybinding: parseKeybinding("ctrl+n"),
     run(accessor) {
         accessor.get(EditorServiceDIToken).newUntitled();
@@ -210,6 +215,8 @@ export const newUntitledFileAction: CommandAction = {
 export const fileSaveAsAction: CommandAction = {
     id: "workbench.action.files.saveAs",
     title: "File: Save As...",
+    shortTitle: "Save As...",
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "3_save", order: 20 }],
     keybinding: parseKeybinding("ctrl+shift+s"),
     run(accessor) {
         void runSaveAs(accessor);
@@ -219,6 +226,8 @@ export const fileSaveAsAction: CommandAction = {
 export const fileOpenAction: CommandAction = {
     id: "workbench.action.files.openFile",
     title: "File: Open File...",
+    shortTitle: "Open File...",
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "2_open", order: 10 }],
     keybinding: parseKeybinding("ctrl+o"),
     run(accessor) {
         void runOpenFile(accessor);
@@ -228,6 +237,8 @@ export const fileOpenAction: CommandAction = {
 export const fileOpenFolderAction: CommandAction = {
     id: "workbench.action.files.openFolder",
     title: "File: Open Folder...",
+    shortTitle: "Open Folder...",
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "2_open", order: 20 }],
     keybinding: parseChord("ctrl+k ctrl+o"),
     run(accessor) {
         void runOpenFolder(accessor);

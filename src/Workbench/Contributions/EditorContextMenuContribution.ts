@@ -1,8 +1,8 @@
 import { token } from "../../Common/DiContainer.ts";
 import { Disposable } from "../../Common/Disposable.ts";
 import { MenuId } from "../Menus/MenuId.ts";
-import type { MenuRegistry } from "../Menus/MenuRegistry.ts";
-import { MenuRegistryDIToken } from "../Menus/MenuRegistry.ts";
+import type { MenuService } from "../Menus/MenuService.ts";
+import { MenuServiceDIToken } from "../Menus/MenuService.ts";
 import { EditorService, EditorServiceDIToken } from "../Services/EditorService.ts";
 
 import type { IWorkbenchContribution } from "./IWorkbenchContribution.ts";
@@ -12,21 +12,22 @@ export const EditorContextMenuContributionDIToken = token<EditorContextMenuContr
 );
 
 /**
- * Наполняет контекст-меню каждого создаваемого редактора пунктами из
- * {@link MenuRegistry} (`MenuId.EditorContext`). Ставит провайдер, который
- * резолвит пункты в момент ОТКРЫТИЯ меню (учитывая `when`-контекст), в
+ * Наполняет контекст-меню каждого создаваемого редактора живым меню
+ * {@link MenuService.createMenu} (`MenuId.EditorContext`). Ставит провайдер,
+ * который резолвит пункты в момент ОТКРЫТИЯ меню (учитывая `when`-контекст), в
  * `EditorService.onEditorCreate` — до открытия первого редактора.
  */
 export class EditorContextMenuContribution extends Disposable implements IWorkbenchContribution {
-    public static dependencies = [EditorServiceDIToken, MenuRegistryDIToken] as const;
+    public static dependencies = [EditorServiceDIToken, MenuServiceDIToken] as const;
 
     public constructor(
         private readonly editorService: EditorService,
-        private readonly menuRegistry: MenuRegistry,
+        menuService: MenuService,
     ) {
         super();
+        const menu = this.register(menuService.createMenu(MenuId.EditorContext));
         this.editorService.onEditorCreate = (editor) => {
-            editor.contextMenuProvider = () => this.menuRegistry.getMenuItems(MenuId.EditorContext);
+            editor.contextMenuProvider = () => menu.getEntries();
         };
     }
 }
