@@ -1,6 +1,6 @@
-import type { TuiApplication } from "../TUIDom/TuiApplication.ts";
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
-import type { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import type { TuiApplication } from "../../tuidom/dom/tuiApplication.ts";
+import type { TUIElement } from "../../tuidom/dom/tuiElement.ts";
+import type { BodyElement } from "../../tuidom/ui/body/bodyElement.ts";
 
 export interface StoryContext {
     readonly app: TuiApplication;

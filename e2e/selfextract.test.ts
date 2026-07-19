@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { packRgb } from "../src/Rendering/ColorUtils.ts";
+import { packRgb } from "../tuidom/common/colorUtils.ts";
 
 import { getSelfExtractPath } from "./helpers/buildOnce.ts";
 import { VexxSession } from "./helpers/runVexx.ts";

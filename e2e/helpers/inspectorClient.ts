@@ -8,7 +8,7 @@ import {
     type InspectorResponse,
     type InspectorSuccessResponse,
     type NodeSnapshot,
-} from "../../src/Inspector/protocol.ts";
+} from "../../tuidom/inspector/protocol.ts";
 
 /** Pick an ephemeral free TCP port on the loopback interface. */
 export function freePort(): Promise<number> {

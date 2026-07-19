@@ -3,26 +3,31 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { IDisposable } from "../Common/Disposable.ts";
-import { NULL_FILE_WATCHER } from "../Common/IFileWatcher.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../Configuration/NullConfigurationService.ts";
-import type { ILanguageService } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../Editor/Tokenization/ILanguageService.ts";
-import { NULL_TOKEN_STYLE_RESOLVER } from "../Editor/Tokenization/ITokenStyleResolver.ts";
-import { TokenizationRegistry } from "../Editor/Tokenization/TokenizationRegistry.ts";
-import { CommandServiceAdapter } from "../Extensions/Host/CommandServiceAdapter.ts";
-import { EditorOptionsServiceAdapter } from "../Extensions/Host/EditorOptionsServiceAdapter.ts";
-import { ExtensionHost, type IExtensionHostConfigProvider } from "../Extensions/Host/ExtensionHost.ts";
-import type { IEditorDecorationsService } from "../Extensions/Host/IEditorDecorationsService.ts";
-import type { IExtensionRegistration } from "../Extensions/Host/IExtensionEntry.ts";
-import type { IFileDecorationsService } from "../Extensions/Host/IFileDecorationsService.ts";
-import type { IThemeColorResolver } from "../Extensions/Host/IThemeColorResolver.ts";
-import { EditorGroupComponent } from "../Workbench/Components/Editor/EditorGroupComponent.ts";
-import { CommandRegistry } from "../Workbench/Services/CommandRegistry.ts";
-import { EditorService } from "../Workbench/Services/EditorService.ts";
-import { UndoRedoService } from "../Workbench/Services/Workspace/UndoRedoService.ts";
+import type { IDisposable } from "../../tuidom/common/disposable.ts";
+import type { ILanguageService } from "../vs/editor/common/languages/iLanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../vs/editor/common/languages/iLanguageService.ts";
+import { NULL_TOKEN_STYLE_RESOLVER } from "../vs/editor/common/languages/iTokenStyleResolver.ts";
+import { TokenizationRegistry } from "../vs/editor/common/languages/tokenizationRegistry.ts";
+import { CommandRegistry } from "../vs/platform/commands/common/commandRegistry.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
+import { NULL_FILE_WATCHER } from "../vs/platform/files/common/iFileWatcher.ts";
+import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
+import { CommandServiceAdapter } from "../vs/workbench/api/browser/commandServiceAdapter.ts";
+import { EditorOptionsServiceAdapter } from "../vs/workbench/api/browser/editorOptionsServiceAdapter.ts";
+import type { IEditorDecorationsService } from "../vs/workbench/api/common/iEditorDecorationsService.ts";
+import type { IFileDecorationsService } from "../vs/workbench/api/common/iFileDecorationsService.ts";
+import type { IThemeColorResolver } from "../vs/workbench/api/common/iThemeColorResolver.ts";
+import { EditorGroupComponent } from "../vs/workbench/browser/parts/editor/editorGroupComponent.ts";
+import { EditorService } from "../vs/workbench/services/editor/browser/editorService.ts";
+import {
+    ExtensionHost,
+    type IExtensionHostConfigProvider,
+} from "../vs/workbench/services/extensions/node/extensionHost.ts";
+import type { IExtensionRegistration } from "../vs/workbench/services/extensions/node/iExtensionEntry.ts";
 
-const SUBPROCESS_ENTRY = fileURLToPath(new URL("../Extensions/Host/__fixtures__/subprocessEntry.ts", import.meta.url));
+const SUBPROCESS_ENTRY = fileURLToPath(
+    new URL("../vs/workbench/services/extensions/node/__fixtures__/subprocessEntry.ts", import.meta.url),
+);
 
 /**
  * Возвращает `spawnArgs`-фабрику для тестового запуска subprocess'а — вместо
@@ -67,9 +72,9 @@ export async function registerAndActivate(host: ExtensionHost, reg: IExtensionRe
     await host.activateByEvent("*");
     return disposable;
 }
-import { darkPlusTheme } from "../Theme/themes/darkPlus.ts";
-import { ThemeService } from "../Theme/ThemeService.ts";
-import { WorkbenchTheme } from "../Theme/WorkbenchTheme.ts";
+import { WorkbenchTheme } from "../vs/platform/theme/common/workbenchTheme.ts";
+import { darkPlusTheme } from "../vs/workbench/services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../vs/workbench/services/themes/common/themeService.ts";
 
 import { TestApp } from "./TestApp.ts";
 

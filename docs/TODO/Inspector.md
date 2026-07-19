@@ -20,7 +20,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 
 ### A. Кастомные лейаутеры → композиция готовых контейнеров
 Хардкодят раскладку в `performLayout`/`render` вместо `VStack`/`HFlex`/`Padding`:
-- `BodyElement` (`src/TUIDom/Widgets/BodyElement.ts`) → `VStack` + overlay-слой
+- `BodyElement` (`tuidom/ui/body/bodyElement.ts`) → `VStack` + overlay-слой
 - `WorkbenchLayoutElement` → `HFlex` (left-fix / center-fill / right-fix)
 - `EditorGroupElement` → `VStack` (tabStrip h=1 / content fill); контроллер уже есть
 - `EditorTabStripElement` → упростить (ручной `rebuildHFlex` поверх `HFlex`)
@@ -31,7 +31,7 @@ Windows/macOS (см. [E2E.md](E2E.md)).
 `FlexContainer` (несколько fill с весами).
 
 ### B. Контроллеры под видом элемента → логику в слой Workbench
-- `MenuBarElement` (`src/TUIDom/Widgets/MenuBarElement.ts`) — держит `activeMenu`,
+- `MenuBarElement` (`tuidom/ui/menu/menuBarElement.ts`) — держит `activeMenu`,
   открытие/закрытие popup, навигацию, мнемоники, слушает родителя. **Чёткий
   кандидат**: перевести на пару `MenuService` ↔ `MenuBarComponent` целиком, элемент сделать тонким; связь
   callback'ами (эталон — `StatusBarComponent`/`EditorGroupComponent`).
@@ -60,10 +60,10 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
 `EditorGroupElement`, `InputWidgetService` ↔ `InputElement` + `InputState`.
 
 ## Основа приложения (bootstrap)
-- `TuiApplication` (`src/TUIDom/TuiApplication.ts`) уже generic ядро рантайма
+- `TuiApplication` (`src/vs/base/browser/TuiApplication.ts`) уже generic ядро рантайма
   (event loop / `scheduleRender` / `renderFrame` / `focusManager` / `backend` /
   `root`) — оставляем как есть.
-- Проблема — разбросанный bootstrap: `src/main.ts` (полный),
+- Проблема — разбросанный bootstrap: `src/vs/vexx/main.ts` (полный),
   `src/TestUtils/TestApp.ts` (мини-фасад), `src/TestUtils/ExtensionTestHarness.ts`
   (собирает сервисы руками, в обход DI → максимум дублирования).
 - Действие: выделить `bootstrapApp(opts)` (новый `src/AppRuntime/`, слой App),
@@ -80,7 +80,7 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
 3. **MenuBar (B)**: логику MenuBar целиком в `MenuService`/`MenuBarComponent`, тонкий `MenuBarElement`.
 4. **ContextMenuLayer (B)**: `OverlayManager` + тонкий контейнер, мигрировать
    потребителей по одному.
-5. **Инспектор**: `[~]` первый срез готов — `src/Inspector/` (`InspectorCore` +
+5. **Инспектор**: `[~]` первый срез готов — `tuidom/inspector/` (`InspectorCore` +
    `serializeTree` + `TUIDom.getDocument` + рукописный WS-транспорт
    `InspectorServer` + `attachInspector`), тесты in-process + смоук. Дальше —
    nodeId/самоописание/grid/renderTick/CLI-флаг `--inspect-tui`.
@@ -90,11 +90,11 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
   CDP-совместимость; DevTools frontend / Puppeteer / Playwright as-is отвергнуты
   (разрыв TUI↔HTML/CSS, нет `Runtime.evaluate`). CDP — образец формы.
 - Транспорт: рукописный WebSocket поверх `node:http`, zero runtime-deps
-  (GOAL.md). Слой `src/Inspector/` (→ TUIDom+Common). Флаг
+  (GOAL.md). Слой `tuidom/inspector/` (→ TUIDom+Common). Флаг
   `--inspect-tui[=host:port]`, работает и в SEA-бинаре.
 - Ввод в e2e — гибрид: действия через существующий `VexxSession.sendKey/write`
   (PTY), новый канал только читает DOM/свойства.
-- Опоры: `querySelector`/`querySelectorAll` (`src/TUIDom/TUISelector.ts`),
+- Опоры: `querySelector`/`querySelectorAll` (`src/vs/base/browser/tuiSelector.ts`),
   `resolvedStyle`/`globalPosition`/`layoutSize` (`TUIElement.ts`), грид через
   `TerminalScreen.grid`.
 
@@ -118,7 +118,7 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
   vs гибрид. Подвох: `CompositeElement.rebuild()` пересоздаёт поддеревья →
   эфемерные `nodeId` протухают между кадрами.
 - Источник свойств: самоописание `inspect()` на `TUIElement` vs серверный
-  сериализатор в `src/Inspector/` vs только базовый набор.
+  сериализатор в `tuidom/inspector/` vs только базовый набор.
 - Грид-снимок `TUIDom.getGridSnapshot` + событие `renderTick` в ядре v1 или
   отдельной фазой.
 - Объём GUI: только e2e-бекенд vs + CLI-инспектор (`npm run inspect`) vs + web.

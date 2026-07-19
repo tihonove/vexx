@@ -14,19 +14,20 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
-import type { KeyPressEvent } from "../Input/KeyEvent.ts";
-import { KeyInputParser } from "../Input/KeyInputParser.ts";
-import { tokenize } from "../Input/tokenize.ts";
-import type { CommandAction } from "../Workbench/Actions/CommandAction.ts";
-import { fileSaveAction } from "../Workbench/Actions/FileActions.ts";
-import { findAction } from "../Workbench/Actions/FindActions.ts";
-import { quickOpenAction, showCommandsAction } from "../Workbench/Actions/QuickOpenActions.ts";
+import { addCleanup, isCtrlC, stdin, stdout, writeDirect } from "../../tuidom/demos/demoSetup.ts";
+import type { KeyPressEvent } from "../../tuidom/input/keyEvent.ts";
+import { KeyInputParser } from "../../tuidom/input/keyInputParser.ts";
+import { tokenize } from "../../tuidom/input/tokenize.ts";
+import type { CommandAction } from "../vs/platform/actions/common/commandAction.ts";
+import { formatKeybinding, type Keybinding } from "../vs/platform/keybinding/common/keybindingRegistry.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,
     previousEditorInGroupAction,
-} from "../Workbench/Actions/TabActions.ts";
-import { formatKeybinding, type Keybinding } from "../Workbench/Services/KeybindingRegistry.ts";
+} from "../vs/workbench/browser/actions/tabActions.ts";
+import { fileSaveAction } from "../vs/workbench/contrib/files/browser/fileActions.ts";
+import { findAction } from "../vs/workbench/contrib/find/browser/findActions.ts";
+import { quickOpenAction, showCommandsAction } from "../vs/workbench/contrib/quickaccess/browser/quickOpenActions.ts";
 import {
     detectBaseModes,
     detectExtendedKeysHint,
@@ -34,9 +35,7 @@ import {
     detectTruecolor,
     emptyCapabilities,
     resolveTier,
-} from "../Workbench/Services/TerminalEnvironment/TerminalEnvironmentModel.ts";
-
-import { addCleanup, isCtrlC, stdin, stdout, writeDirect } from "./demoSetup.ts";
+} from "../vs/workbench/services/terminalEnvironment/node/terminalEnvironmentModel.ts";
 
 // ── Replicate the rest of vexx's input modes (demoSetup already did Kitty + raw mode) ──
 const MODIFY_OTHER_KEYS_ENABLE = "\x1b[>4;2m";

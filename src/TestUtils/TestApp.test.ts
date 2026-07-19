@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../Common/GeometryPromitives.ts";
-import type { TUIKeyboardEvent } from "../TUIDom/Events/TUIKeyboardEvent.ts";
-import { TUIElement } from "../TUIDom/TUIElement.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
-import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
+import { Size } from "../../tuidom/common/geometryPromitives.ts";
+import type { TUIKeyboardEvent } from "../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import { TUIElement } from "../../tuidom/dom/tuiElement.ts";
+import { BodyElement } from "../../tuidom/ui/body/bodyElement.ts";
+import { BoxElement } from "../../tuidom/ui/layout/boxElement.ts";
 
 import { TestApp } from "./TestApp.ts";
 

@@ -3,22 +3,22 @@
   "version": "0.2.0",
   "type": "module",
   "exports": {
-    "./jsx-runtime": "./src/TUIDom/JSX/jsx-runtime.ts",
-    "./jsx-dev-runtime": "./src/TUIDom/JSX/jsx-runtime.ts"
+    "./jsx-runtime": "./tuidom/dom/jsx/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./tuidom/dom/jsx/jsx-runtime.ts"
   },
   "engines": {
     "node": ">=24.0.0"
   },
   "scripts": {
-    "start": "tsx src/main.ts",
+    "start": "tsx src/vs/vexx/main.ts",
     "prestart": "npm run build:extensions",
     "build:extensions": "node scripts/build-extensions.mjs",
-    "demo:tuidom": "tsx src/demos/tuidom/minimalHost.ts",
-    "demo:tuidom:inspect": "tsx src/demos/tuidom/inspectedHost.ts",
-    "demo:events": "node src/demos/eventLogDemo.ts",
-    "demo:raw-events": "node src/demos/tokenizeDemo.ts",
-    "demo:renderer": "node src/demos/rendererDemo.ts",
-    "demo:mouse": "node src/demos/mouseDemo.ts",
+    "demo:tuidom": "tsx tuidom/demos/minimalHost.ts",
+    "demo:tuidom:inspect": "tsx tuidom/demos/inspectedHost.ts",
+    "demo:events": "node tuidom/demos/eventLogDemo.ts",
+    "demo:raw-events": "node tuidom/demos/tokenizeDemo.ts",
+    "demo:renderer": "node tuidom/demos/rendererDemo.ts",
+    "demo:mouse": "node tuidom/demos/mouseDemo.ts",
     "demo:terminal": "tsx src/demos/terminal/terminalHost.ts",
     "screenshots": "tsx e2e/scenarios/generate.ts",
     "build": "tsup",
@@ -30,8 +30,9 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:perf": "vitest bench --run --config vitest.perf.config.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint": "eslint src/ extensions/",
+    "lint:fix": "eslint src/ extensions/ --fix",
+    "valid-layers-check": "node scripts/check-layers.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

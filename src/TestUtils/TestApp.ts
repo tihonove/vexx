@@ -1,8 +1,8 @@
-import { MockTerminalBackend } from "../Backend/MockTerminalBackend.ts";
-import { Size } from "../Common/GeometryPromitives.ts";
-import { TuiApplication } from "../TUIDom/TuiApplication.ts";
-import type { TUIElement } from "../TUIDom/TUIElement.ts";
-import { BodyElement } from "../TUIDom/Widgets/BodyElement.ts";
+import { MockTerminalBackend } from "../../tuidom/backend/mockTerminalBackend.ts";
+import { Size } from "../../tuidom/common/geometryPromitives.ts";
+import { TuiApplication } from "../../tuidom/dom/tuiApplication.ts";
+import type { TUIElement } from "../../tuidom/dom/tuiElement.ts";
+import { BodyElement } from "../../tuidom/ui/body/bodyElement.ts";
 
 export class TestApp {
     public readonly backend: MockTerminalBackend;
@@ -12,6 +12,7 @@ export class TestApp {
         this.backend = backend;
         this.app = new TuiApplication(backend);
         this.app.root = root;
+        this.bodyRoot = root;
         this.app.run();
     }
 
@@ -25,9 +26,12 @@ export class TestApp {
         return new TestApp(new MockTerminalBackend(size), body);
     }
 
+    /** Корень как BodyElement: TuiApplication хранит рут широким типом (ядро
+     * tuidom не знает о виджетах), тестовый харнесс — конкретным. */
+    private readonly bodyRoot: BodyElement;
+
     public get root(): BodyElement {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- root is always set in constructor
-        return this.app.root!;
+        return this.bodyRoot;
     }
 
     public get focusedElement(): TUIElement | null {

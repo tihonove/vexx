@@ -25,7 +25,7 @@ API реестра: `changeOne(owner, resource, markers[])`, `read({ resource?, 
 
 ## Слои
 
-- **Реестр** — `src/Editor/Markers/` (чистый, без DI — зеркало `Editor/Tokenization`,
+- **Реестр** — `src/vs/editor/Markers/` (чистый, без DI — зеркало `Editor/Tokenization`,
   `TokenizationRegistry`). DI-токен `MarkerServiceDIToken` — в `Workbench/Services/CoreTokens.ts`,
   модуль — `Workbench/Modules/MarkersModule.ts`.
 - **Поставщик** — `DiagnosticsService` (`Workbench/Services/Diagnostics/`). Пишет через `changeOne`.

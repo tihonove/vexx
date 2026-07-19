@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Point, Size } from "../Common/GeometryPromitives.ts";
-import { BoxElement } from "../TUIDom/Widgets/BoxElement.ts";
-import { TextLabelElement } from "../TUIDom/Widgets/TextLabelElement.ts";
+import { BoxConstraints, Point, Size } from "../../tuidom/common/geometryPromitives.ts";
+import { BoxElement } from "../../tuidom/ui/layout/boxElement.ts";
+import { TextLabelElement } from "../../tuidom/ui/text/textLabelElement.ts";
 
 import { expectScreen, screen } from "./expectScreen.ts";
 import { renderElement } from "./renderElement.ts";

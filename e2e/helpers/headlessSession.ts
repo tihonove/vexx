@@ -2,8 +2,8 @@ import { type ChildProcess, spawn } from "node:child_process";
 
 import type WebSocket from "ws";
 
-import type { GridSnapshot } from "../../src/Rendering/GridSnapshot.ts";
-import type { CaptureFrameResult, InspectorResponse, InspectorSuccessResponse } from "../../src/Inspector/protocol.ts";
+import type { GridSnapshot } from "../../tuidom/rendering/gridSnapshot.ts";
+import type { CaptureFrameResult, InspectorResponse, InspectorSuccessResponse } from "../../tuidom/inspector/protocol.ts";
 
 import { getBinaryPath } from "./buildOnce.ts";
 import { connectWithRetry, freePort } from "./inspectorClient.ts";

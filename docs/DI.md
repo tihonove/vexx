@@ -1,6 +1,6 @@
 # DI-контейнер
 
-Реализация: `src/Common/DiContainer.ts`.
+Реализация: `src/vs/platform/instantiation/common/diContainer.ts`.
 
 Строго типизированный DI-контейнер на основе токенов. Без декораторов, без reflect-metadata, работает с `--erasableSyntaxOnly` / strip types.
 
@@ -27,7 +27,7 @@ DI-токены и зависимости (`static dependencies`) объявля
 
 `Common/DiContainer.ts` реализует механизм DI, но конкретные токены в Common/ не объявляются.
 
-Сквозные токены ядра (`TuiApplicationDIToken`, `TerminalBackendDIToken`, `ClipboardDIToken`, `MarkerServiceDIToken`, `StateServiceDIToken`, `SettingsResourceDIToken`/`KeybindingsResourceDIToken` и др.) живут в `src/Workbench/Services/CoreTokens.ts`; там же, в `Workbench/Services/`, — токены сервисов (`CommandRegistryDIToken`, `KeybindingRegistryDIToken`, `ContextKeyServiceDIToken`, `IFileWatcherDIToken`, `FileSearchServiceDIToken`, `UndoRedoServiceDIToken` и т.п.). Токены компонентов (`*ComponentDIToken`) — рядом с компонентами в `Workbench/Components/`.
+Сквозные токены ядра (`TuiApplicationDIToken`, `TerminalBackendDIToken`, `ClipboardDIToken`, `MarkerServiceDIToken`, `StateServiceDIToken`, `SettingsResourceDIToken`/`KeybindingsResourceDIToken` и др.) живут в `src/vs/workbench/Services/CoreTokens.ts`; там же, в `Workbench/Services/`, — токены сервисов (`CommandRegistryDIToken`, `KeybindingRegistryDIToken`, `ContextKeyServiceDIToken`, `IFileWatcherDIToken`, `FileSearchServiceDIToken`, `UndoRedoServiceDIToken` и т.п.). Токены компонентов (`*ComponentDIToken`) — рядом с компонентами в `Workbench/Components/`.
 
 ## Объявление токенов
 
@@ -126,7 +126,7 @@ const component = new StatusBarComponent(fakeStatusBarService, themeService);
 `(container, ctx) => void`. Модули собираются в **профили** — фабрики готовых
 контейнеров под конкретный сценарий (production, test).
 
-Файлы: `src/Workbench/Modules/` (исключение — `terminalEnvironmentModule`, живёт рядом со своим сервисом в `src/Workbench/Services/TerminalEnvironment/`).
+Файлы: `src/vs/vexx/modules/` (исключение — `terminalEnvironmentModule`, живёт рядом со своим сервисом в `src/vs/workbench/Services/TerminalEnvironment/`).
 
 ### `ContainerModule<Ctx>`
 
@@ -159,14 +159,14 @@ const container = new Container()
 | `tokenizationModule` | `{ tokenizationRegistry, tokenStyleResolver, languageService }` | Соответствующие токены. Реализации передаются снаружи. |
 | `backendModule` | `{ clipboard }` | `Clipboard` |
 | `backendModuleDefault` | — | `Clipboard` с `InMemoryClipboard` по умолчанию |
-| `configurationModule` | `{ configurationService }` | `IConfigurationService` (готовый экземпляр из `loadConfiguration(paths)`) |
-| `configurationModuleDefault` | — | `IConfigurationService` с `NULL_CONFIGURATION_SERVICE` (тесты и demo) |
+| `configurationModule` | `{ configurationService, configurationRegistry }` | `IConfigurationService` (готовый экземпляр из `loadConfiguration(paths, …, registry)`) + `ConfigurationRegistry` (реестр схем настроек) |
+| `configurationModuleDefault` | — | `NULL_CONFIGURATION_SERVICE` + настоящий `ConfigurationRegistry` из `CONFIGURATION_CONTRIBUTIONS` (тесты и demo) |
 | `stateModule` | `{ stateService }` | `IStateService` — машинное состояние UI/сессии (готовый экземпляр из `loadState(paths)`; см. [arch/State.md](arch/State.md)) |
 | `stateModuleDefault` | — | `IStateService` с `NULL_STATE_SERVICE` (тесты и demo) |
 | `loggingModule` | `{ logService }` | `ILogService` (production-экземпляр из `main.ts`) |
 | `loggingModuleDefault` | — | `ILogService` с `NULL_LOG_SERVICE` (тесты) |
 | `extensionHostModule` | — | `ExtensionHost` (+ адаптеры: `EditorOptionsServiceAdapter`/`EditorDecorationsServiceAdapter` поверх `EditorService` (Workbench), `FileDecorationsServiceAdapter` поверх `ExplorerService` (Workbench), `ThemeColorResolverAdapter` поверх `ThemeService`) |
-| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`; Explorer-кластер — `ExplorerService`+`ExplorerComponent`, `FileOperationsService`, `InputWidgetService`; QuickInput-кластер — `QuickInputComponent` (общий виджет), `QuickInputService`, `FileSearchService`, `QuickOpenService`; Editor-кластер — `EditorService`+`EditorGroupComponent`; Find/Suggest-кластер — `FindService`+`FindComponent` и `CompletionService`+`SuggestComponent`; Shell-кластер (этап 11) — `LayoutService`, `WorkbenchStateService`, `WorkbenchContextKeys`, `MenuRegistry`+`MenuService`+`MenuBarComponent`; корневой `WorkbenchComponent` (этап 12). Швы → `EditorService`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget`, `GotoLineEditorSource`; шов → `WorkbenchComponent`: `WorkspaceFolderOpener` (Open Folder) |
+| `workbenchModule` | — | Пары Service ↔ Component слоя Workbench: `StatusBarService`+`StatusBarComponent`, contribution'ы статус-бара (`EditorStatusContribution`, `TerminalEnvStatusContribution`), `KeybindingDispatcher`, `DialogService`, `LifecycleService`; Panel-кластер — `PanelService`+`PanelComponent`, `ProblemsComponent`, `TerminalService`+`TerminalPanelComponent` (+ прод-фабрика `TerminalSessionFactory` → `EmbeddedTerminalSession`), `DiagnosticsService`; Explorer-кластер — `ExplorerService`+`ExplorerComponent`, `FileOperationsService`, `InputWidgetService`; QuickInput-кластер — `QuickInputComponent` (общий виджет), `QuickInputService`, `FileSearchService`, quick-access-провайдеры (`Files`/`Commands`/`GotoLine` + явный список `QUICK_ACCESS_PROVIDERS` и `QuickAccessRegistry`), `QuickOpenService`; Editor-кластер — `EditorService`+`EditorGroupComponent`; Find/Suggest-кластер — `FindService`+`FindComponent` и `CompletionService`+`SuggestComponent`; Shell-кластер (этап 11) — `LayoutService`, `WorkbenchStateService`, `WorkbenchContextKeys`, `MenuRegistry`+`MenuService`+`MenuBarComponent`; корневой `WorkbenchComponent` (этап 12). Швы → `EditorService`: `ActiveEditorStatusSource`, `DiagnosticsEditorSource`, `MarkerRevealTarget`, `GotoLineEditorSource`; шов → `WorkbenchComponent`: `WorkspaceFolderOpener` (Open Folder) |
 
 ### Профили
 

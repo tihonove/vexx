@@ -23,7 +23,7 @@ IO-абстракции (интерфейс + no-op/in-memory заглушка),
 `createDefaultAssetAccess()` выбирает источник **одного и того же** `vexx.bundle` по убыванию приоритета:
 1. **SEA** — бандл внутри бинаря, `node:sea.getAsset("vexx.bundle")`;
 2. **self-extract** — бандл лежит файлом рядом с `main.js` (`BundleFile.ts`; сборка — `scripts/build-selfextract.mjs`);
-3. **dev/tests** — `FsAssetAccess` на `src/Extensions/builtin/` + `node_modules/vscode-oniguruma`.
+3. **dev/tests** — `FsAssetAccess` на `extensions/` + `node_modules/vscode-oniguruma`.
 
 Формат и потребители у всех трёх общие — меняется только источник байтов, поэтому новый способ упаковки не стоит ничего ни одному downstream-потребителю.
 

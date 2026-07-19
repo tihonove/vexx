@@ -13,15 +13,15 @@
 //
 // См. docs/TODO/IntegratedTerminal.md.
 
-import { NodeTerminalBackend } from "../../Backend/NodeTerminalBackend.ts";
-import { TuiApplication } from "../../TUIDom/TuiApplication.ts";
-import { TUIElement } from "../../TUIDom/TUIElement.ts";
-import { BodyElement } from "../../TUIDom/Widgets/BodyElement.ts";
-import { ButtonElement } from "../../TUIDom/Widgets/ButtonElement.ts";
-import { HFlexElement, hflexFit, hflexFixed } from "../../TUIDom/Widgets/HFlexElement.ts";
-import { TerminalViewElement } from "../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
-import { TitledPanelElement } from "../../TUIDom/Widgets/TitledPanelElement.ts";
-import { EmbeddedTerminalSession } from "../../Workbench/Services/Terminal/EmbeddedTerminalSession.ts";
+import { NodeTerminalBackend } from "../../../tuidom/backend/nodeTerminalBackend.ts";
+import { TuiApplication } from "../../../tuidom/dom/tuiApplication.ts";
+import { TUIElement } from "../../../tuidom/dom/tuiElement.ts";
+import { BodyElement } from "../../../tuidom/ui/body/bodyElement.ts";
+import { ButtonElement } from "../../../tuidom/ui/button/buttonElement.ts";
+import { HFlexElement, hflexFit, hflexFixed } from "../../../tuidom/ui/layout/hFlexElement.ts";
+import { TerminalViewElement } from "../../../tuidom/ui/terminal/terminalViewElement.ts";
+import { TitledPanelElement } from "../../../tuidom/ui/titledpanel/titledPanelElement.ts";
+import { EmbeddedTerminalSession } from "../../vs/workbench/contrib/terminal/node/embeddedTerminalSession.ts";
 
 import { HeaderBodyLayout } from "./HeaderBodyLayout.ts";
 

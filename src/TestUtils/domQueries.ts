@@ -1,5 +1,5 @@
-import type { EditorTabStripElement } from "../TUIDom/Widgets/EditorTabStripElement.ts";
-import type { QuickPickElement } from "../TUIDom/Widgets/QuickPickElement.ts";
+import type { EditorTabStripElement } from "../../tuidom/ui/editorgroup/editorTabStripElement.ts";
+import type { QuickPickElement } from "../../tuidom/ui/quickpick/quickPickElement.ts";
 
 import type { TestApp } from "./TestApp.ts";
 

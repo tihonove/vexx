@@ -1,0 +1,104 @@
+import { describe, expect, it } from "vitest";
+
+import { detectIndentation, detectTabSize } from "./indentationDetector.ts";
+import { TextDocument } from "./textDocument.ts";
+
+function makeDoc(lines: string[]): TextDocument {
+    return new TextDocument(lines.join("\n"));
+}
+
+describe("detectIndentation", () => {
+    it("returns null for empty document", () => {
+        const doc = makeDoc([]);
+        expect(detectIndentation(doc)).toBeNull();
+    });
+
+    it("returns null for document with no indented lines", () => {
+        const doc = makeDoc(["hello", "world", "foo"]);
+        expect(detectIndentation(doc)).toBeNull();
+    });
+
+    it("detects tab indentation", () => {
+        const doc = makeDoc(["function foo() {", "\tconst x = 1;", "\tif (x) {", "\t\treturn x;", "\t}", "}"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(false);
+    });
+
+    it("detects 2-space indentation", () => {
+        const doc = makeDoc(["function foo() {", "  const x = 1;", "  if (x) {", "    return x;", "  }", "}"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+        expect(result!.tabSize).toBe(2);
+    });
+
+    it("detects 4-space indentation", () => {
+        const doc = makeDoc([
+            "function foo() {",
+            "    const x = 1;",
+            "    if (x) {",
+            "        return x;",
+            "    }",
+            "}",
+        ]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+        expect(result!.tabSize).toBe(4);
+    });
+
+    it("prefers tabs when tab lines outnumber space lines", () => {
+        const doc = makeDoc(["\tline1", "\tline2", "\tline3", "  space1"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(false);
+    });
+
+    it("prefers spaces when space lines outnumber tab lines", () => {
+        const doc = makeDoc(["\ttab1", "  space1", "  space2", "  space3"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+    });
+
+    it("ignores fully whitespace-only lines in counting", () => {
+        const doc = makeDoc(["function foo() {", "    const x = 1;", "    ", "    return x;", "}"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+        expect(result!.tabSize).toBe(4);
+    });
+
+    it("returns null when all lines are blank", () => {
+        const doc = makeDoc(["", "", ""]);
+        expect(detectIndentation(doc)).toBeNull();
+    });
+
+    it("clamps an oversized detected tab size down to 8", () => {
+        // Every indented line uses 9 leading spaces → GCD is 9, which exceeds the
+        // allowed maximum and must be clamped to 8 (IndentationDetector.ts:59).
+        const doc = makeDoc(["a", "         x", "         y", "         z"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+        expect(result!.tabSize).toBe(8);
+    });
+
+    it("clamps the detected tab size up to at least 1", () => {
+        // GCD of {3,5,7} is 1 → already within range, so tabSize is exactly 1.
+        const doc = makeDoc(["a", "   x", "     y", "       z"]);
+        const result = detectIndentation(doc);
+        expect(result).not.toBeNull();
+        expect(result!.insertSpaces).toBe(true);
+        expect(result!.tabSize).toBe(1);
+    });
+});
+
+describe("detectTabSize", () => {
+    it("falls back to 4 when no space-indent samples were collected", () => {
+        // detectIndentation never calls detectTabSize with an empty map, so this
+        // guard (IndentationDetector.ts:53) is exercised directly.
+        expect(detectTabSize(new Map())).toBe(4);
+    });
+});

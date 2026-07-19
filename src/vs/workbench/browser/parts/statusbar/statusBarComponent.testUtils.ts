@@ -1,0 +1,133 @@
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import type { IDisposable } from "../../../../../../tuidom/common/disposable.ts";
+import type { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
+import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
+import { TextDocument } from "../../../../editor/common/model/textDocument.ts";
+import { EditorViewState } from "../../../../editor/common/viewModel/editorViewState.ts";
+import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { StatusBarService } from "../../../services/statusbar/common/statusBarService.ts";
+import { TerminalEnvironmentService } from "../../../services/terminalEnvironment/node/terminalEnvironmentService.ts";
+import { TerminalEnvStatusContribution } from "../../../services/terminalEnvironment/node/terminalEnvStatusContribution.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
+import type { IActiveEditorStatus, IActiveEditorStatusSource } from "../editor/editorStatusContribution.ts";
+import { EditorStatusContribution } from "../editor/editorStatusContribution.ts";
+
+import { StatusBarComponent } from "./statusBarComponent.ts";
+
+/**
+ * Тестовый редактор для сегментов статус-бара: реализует {@link IActiveEditorStatus}
+ * поверх настоящих `TextDocument` + `EditorViewState` (курсор/EOL/язык ведут себя
+ * как в проде и файрят те же события); только кодировка — собственное поле.
+ */
+export class FakeStatusEditor implements IActiveEditorStatus {
+    public readonly viewState: EditorViewState;
+    private readonly doc: TextDocument;
+    private encodingValue = "utf8";
+    private readonly encodingListeners = new Set<() => void>();
+
+    public constructor(text = "", languageId = "plaintext") {
+        this.doc = new TextDocument(text, languageId);
+        this.viewState = new EditorViewState(this.doc);
+    }
+
+    public get eol(): EndOfLine {
+        return this.doc.eol;
+    }
+
+    public get languageId(): string {
+        return this.doc.languageId;
+    }
+
+    public get encoding(): string {
+        return this.encodingValue;
+    }
+
+    public setEol(eol: EndOfLine): void {
+        this.doc.setEol(eol);
+    }
+
+    public setLanguage(languageId: string): void {
+        this.doc.setLanguage(languageId);
+    }
+
+    public setEncoding(encoding: string): void {
+        this.encodingValue = encoding;
+        for (const listener of [...this.encodingListeners]) listener();
+    }
+
+    public onDidChangeCursorPosition(listener: () => void): IDisposable {
+        return this.viewState.onDidChangeCursorPosition(listener);
+    }
+
+    public onDidChangeLanguage(listener: () => void): IDisposable {
+        return this.doc.onDidChangeLanguage(listener);
+    }
+
+    public onDidChangeEol(listener: () => void): IDisposable {
+        return this.doc.onDidChangeEol(listener);
+    }
+
+    public onDidChangeEncoding(listener: () => void): IDisposable {
+        this.encodingListeners.add(listener);
+        return { dispose: () => this.encodingListeners.delete(listener) };
+    }
+}
+
+/** Источник активного редактора: аналог EditorService в один экран кода. */
+export class FakeActiveEditorSource implements IActiveEditorStatusSource {
+    private active: FakeStatusEditor | null = null;
+    private readonly listeners = new Set<(editor: IActiveEditorStatus | null) => void>();
+
+    public getActiveEditor(): FakeStatusEditor | null {
+        return this.active;
+    }
+
+    public onActiveEditorChanged(listener: (editor: IActiveEditorStatus | null) => void): IDisposable {
+        this.listeners.add(listener);
+        return { dispose: () => this.listeners.delete(listener) };
+    }
+
+    public setActiveEditor(editor: FakeStatusEditor | null): void {
+        this.active = editor;
+        for (const listener of [...this.listeners]) listener(editor);
+    }
+
+    /** «Открывает файл»: создаёт редактор и делает его активным. */
+    public openEditor(text = "", languageId = "plaintext"): FakeStatusEditor {
+        const editor = new FakeStatusEditor(text, languageId);
+        this.setActiveEditor(editor);
+        return editor;
+    }
+}
+
+export interface StatusBarHarness {
+    component: StatusBarComponent;
+    statusBarService: StatusBarService;
+    source: FakeActiveEditorSource;
+    commands: CommandRegistry;
+    terminalEnv: TerminalEnvironmentService;
+    editorContribution: EditorStatusContribution;
+    terminalContribution: TerminalEnvStatusContribution;
+}
+
+/**
+ * Собирает полную связку статус-бара без DI-контейнера:
+ * StatusBarService + оба contribution'а + StatusBarComponent. Терминальное
+ * окружение — настоящий `TerminalEnvironmentService` (тесты чистят env-переменные,
+ * чтобы сегмент детерминированно резолвился в "legacy").
+ */
+export function createStatusBarHarness(languageService: ILanguageService = NULL_LANGUAGE_SERVICE): StatusBarHarness {
+    const statusBarService = new StatusBarService();
+    const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
+    const commands = new CommandRegistry();
+    const terminalEnv = new TerminalEnvironmentService(new MockTerminalBackend(), NULL_CONFIGURATION_SERVICE);
+    const source = new FakeActiveEditorSource();
+    const terminalContribution = new TerminalEnvStatusContribution(statusBarService, terminalEnv);
+    const editorContribution = new EditorStatusContribution(statusBarService, source, languageService, commands);
+    const component = new StatusBarComponent(statusBarService, themeService);
+    return { component, statusBarService, source, commands, terminalEnv, editorContribution, terminalContribution };
+}

@@ -1,10 +1,6 @@
-import type { IDisposable } from "../Common/Disposable.ts";
-import { DEFAULT_COLOR } from "../Rendering/ColorUtils.ts";
-import type {
-    ITerminalSurface,
-    TerminalCell,
-    TerminalMouseEventData,
-} from "../TUIDom/Widgets/Terminal/ITerminalSurface.ts";
+import { DEFAULT_COLOR } from "../../tuidom/common/colorUtils.ts";
+import type { IDisposable } from "../../tuidom/common/disposable.ts";
+import type { ITerminalSurface, TerminalCell, TerminalMouseEventData } from "../../tuidom/common/iTerminalSurface.ts";
 
 // Внутреннее представление ячейки в скриптованной сетке фейка.
 interface FakeCell {

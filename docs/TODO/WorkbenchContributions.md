@@ -40,12 +40,25 @@
   поддержки в `PopupMenuElement` и персиста; submenu-записи внутри попапов
   (вложенные меню) PopupMenu не рендерит — `getMenuItems` их игнорирует.
 
-## Другие contribution points (не начаты)
+## Другие contribution points
 
-- [ ] **`QuickAccessRegistry`** — провайдеры Quick Open саморегистрируются по префиксу
-  (`>` команды, `:` goto-line, будущие `@`/`#`). Сейчас — жёсткий `if startsWith(">")`
-  в `QuickOpenService`.
-- [ ] **`ConfigurationRegistry`** — фичи регистрируют свою схему настроек (сейчас
-  генерённый `settings-schema` + хардкод дефолтов).
-- [ ] **`ColorRegistry`** — `registerColor(id, defaults, desc)`, цвета саморегистрируются
-  (сейчас центральный `IWorkbenchColors` + `defaultColors.ts`).
+- [x] **`QuickAccessRegistry`** (#169) — провайдеры Quick Open регистрируются по
+  префиксу (`Services/QuickAccess/`): реестр выбирает по самому длинному префиксу,
+  явный массив `QUICK_ACCESS_PROVIDERS`, провайдеры `Files` (`""`, дефолтный) /
+  `Commands` (`>`) / `GotoLine` (`:`) со статикой `PREFIX` (как у vscode);
+  `QuickOpenService` — контроллер показа (`show(prefix)`), о префиксах не знает;
+  принятие — колбэк `accept` на пункте. Будущие `@`/`#` — класс + запись в массиве.
+- [x] **`ConfigurationRegistry`** (#170) — фичи регистрируют схему настроек:
+  `Configuration/ConfigurationRegistry.ts` (узлы `IConfigurationNode`, дубль
+  ключа — ошибка) + узлы приложения в `Workbench/Configuration/` (по файлу на
+  секцию, явный массив `CONFIGURATION_CONTRIBUTIONS`). Из реестра деривируются
+  defaults-слой `ConfigurationService` (`defaults.ts` удалён), известные ключи
+  валидации settings.json и каталог автодополнения vexx-settings (генератор
+  бандлит узлы). Runtime-регистрация узлов от расширений — Phase 6 в
+  [Extensions.md](Extensions.md).
+- [x] **`ColorRegistry`** (#171) — определения цветов по областям в
+  `Theme/colors/` (`{ defaults: { dark, light } | null, description }`, явный
+  merge `COLOR_CONTRIBUTIONS`; механика — `Theme/ColorRegistry.ts`). Монолиты
+  `IWorkbenchColors.ts`/`defaultColors.ts` растворены; типизация ключей
+  деривируется (`WorkbenchColorKey`). Осознанное подмножество vscode: два
+  слота (dark/light, hc → `themeKindOf`), без transparent/derived-цветов.

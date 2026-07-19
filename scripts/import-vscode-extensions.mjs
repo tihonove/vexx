@@ -115,7 +115,7 @@ function dirSize(dir) {
 }
 
 const repoRoot = resolve(import.meta.dirname, "..");
-const builtinDir = resolve(repoRoot, "src", "Extensions", "builtin");
+const builtinDir = resolve(repoRoot, "extensions");
 const keepClone = process.argv.includes("--keep-clone");
 
 const scratch = mkdtempSync(join(tmpdir(), "vscode-import-"));

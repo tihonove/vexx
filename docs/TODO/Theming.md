@@ -23,7 +23,7 @@ themes/*.ts ──▶ ThemeRegistry (label → IThemeFile) ──▶ resolve(lab
 Сейчас `ThemeRegistry` сидится только встроенными темами. VS Code-расширения (напр. `theme-monokai-dimmed`, One Dark Pro и т.п.) вкладывают темы через `contributes.themes: [{ label, uiTheme, path }]`.
 
 **План:**
-1. Раскомментировать `contributes.themes` в `IExtensionManifest` (`src/Extensions/**`) — типизация уже есть закомментированной.
+1. Раскомментировать `contributes.themes` в `IExtensionManifest` (`src/vs/platform/extensions/**`) — типизация уже есть закомментированной.
 2. Контрибьютор по аналогии с `ExtensionTokenizationContributor`: `ThemeContributor.apply()` проходит `contributes.themes`, читает `path` через `IAssetAccess`, парсит JSONC (резолв `include` уже есть в импорт-скрипте — вынести в рантайм-хелпер `resolveThemeInclude`), кладёт `IThemeFile` в `ThemeRegistry.register`.
 3. `uiTheme` (`vs`/`vs-dark`/`hc-black`/`hc-light`) → `IThemeFile.type`.
 4. Пикер уже читает `ThemeRegistry.list()` — новые темы появятся автоматически.
@@ -38,9 +38,9 @@ themes/*.ts ──▶ ThemeRegistry (label → IThemeFile) ──▶ resolve(lab
 Импортированные темы несут ~сотни цветовых ключей; `IWorkbenchColors` большинство держит закомментированными. Незаявленные ключи парсятся в модель, но типобезопасного `getColor` для них нет. Раскомментировать по мере того, как виджеты начинают их использовать (как и задумано в слое Theme).
 
 ## Связанные файлы
-- `src/Theme/ThemeRegistry.ts`, `src/Theme/themes/*` — реестр и встроенные темы
+- `src/vs/workbench/services/themes/common/themeRegistry.ts`, `src/vs/workbench/services/themes/common/themes/*` — реестр и встроенные темы
 - `scripts/import-vscode-themes.mjs` — импорт тем из microsoft/vscode
-- `src/Workbench/Services/QuickInputService.ts` — `quickPick()` list-pick flavor
-- `src/Workbench/Actions/ThemeActions.ts` — `selectColorTheme` (экшен-пикер), меню — `MenuService`
-- `src/Configuration/ConfigurationService.ts` — `updateUserValue` (persist)
-- `src/main.ts` — выбор активной темы на старте
+- `src/vs/workbench/browser/parts/quickinput/quickInputService.ts` — `quickPick()` list-pick flavor
+- `src/vs/workbench/Actions/ThemeActions.ts` — `selectColorTheme` (экшен-пикер), меню — `MenuService`
+- `src/vs/platform/configuration/node/configurationService.ts` — `updateUserValue` (persist)
+- `src/vs/vexx/main.ts` — выбор активной темы на старте
