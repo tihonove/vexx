@@ -1,6 +1,6 @@
 import type { IEditorStyles } from "../../Editor/EditorElement.ts";
 import { unthemedEditorStyles } from "../../Editor/EditorElement.ts";
-import type { IWorkbenchColors } from "../../Theme/IWorkbenchColors.ts";
+import type { IWorkbenchColors } from "../../Theme/colors/colorContributions.ts";
 import type { WorkbenchTheme } from "../../Theme/WorkbenchTheme.ts";
 import type { IButtonStyles } from "../../TUIDom/Widgets/ButtonElement.ts";
 import type { ITabStripStyles } from "../../TUIDom/Widgets/EditorTabStripElement.ts";
@@ -11,8 +11,8 @@ import type { IScrollBarStyles } from "../../TUIDom/Widgets/ScrollContainerEleme
 import type { ITerminalViewStyles } from "../../TUIDom/Widgets/Terminal/TerminalViewElement.ts";
 import type { ITreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
 import { unthemedTreeViewStyles } from "../../TUIDom/Widgets/TreeViewElement.ts";
-import type { IFindWidgetStyles } from "../Components/Editor/FindComponent.ts";
 import type { IDialogStyles } from "../Components/Dialogs/DialogComponent.ts";
+import type { IFindWidgetStyles } from "../Components/Editor/FindComponent.ts";
 
 /**
  * Мост тема → стили контролов TUIDom: единственное место, где ключи темы

@@ -1,5 +1,5 @@
 import type { IDisposable } from "../../Common/Disposable.ts";
-import type { IWorkbenchColors } from "../../Theme/IWorkbenchColors.ts";
+import type { IWorkbenchColors } from "../../Theme/colors/colorContributions.ts";
 import type { ThemeService } from "../../Theme/ThemeService.ts";
 
 import type { IThemeColorResolver } from "./IThemeColorResolver.ts";

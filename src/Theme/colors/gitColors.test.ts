@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { parseHexColor } from "./ColorUtils.ts";
-import type { IThemeFile } from "./IThemeFile.ts";
-import type { IWorkbenchColors } from "./IWorkbenchColors.ts";
-import { WorkbenchTheme } from "./WorkbenchTheme.ts";
+import { parseHexColor } from "../ColorUtils.ts";
+import type { IThemeFile } from "../IThemeFile.ts";
+import { WorkbenchTheme } from "../WorkbenchTheme.ts";
+
+import type { IWorkbenchColors } from "./colorContributions.ts";
 
 /**
  * The git-diff decoration colors (SCM gutter + `gitDecoration.*ResourceForeground`)
