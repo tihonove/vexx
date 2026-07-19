@@ -1,8 +1,8 @@
+import { themeKindOf } from "./ColorRegistry.ts";
+import { defaultWorkbenchColors, type IWorkbenchColors } from "./colors/colorContributions.ts";
 import { parseHexColor } from "./ColorUtils.ts";
-import { defaultWorkbenchColors, themeKindOf } from "./defaultColors.ts";
 import type { IEditorTokenTheme } from "./IEditorTokenTheme.ts";
 import type { IThemeFile } from "./IThemeFile.ts";
-import type { IWorkbenchColors } from "./IWorkbenchColors.ts";
 
 /**
  * The active workbench color theme.
@@ -68,7 +68,7 @@ export class WorkbenchTheme {
      *
      * Throws if the color is defined neither by the theme nor the default color
      * registry — a programming error meaning the key is missing from
-     * {@link defaultWorkbenchColors}. This enforces the invariant that every
+     * the color definitions (`Theme/colors/*`). This enforces the invariant that every
      * color the app relies on has a default and resolves on every theme.
      */
     public getRequiredColor(key: keyof IWorkbenchColors): number {
@@ -76,7 +76,7 @@ export class WorkbenchTheme {
         if (color === undefined) {
             throw new Error(
                 `Workbench color "${key}" is not defined by theme "${this.name}" ` +
-                    `and has no entry in the default color registry (src/Theme/defaultColors.ts).`,
+                    `and has no entry in the color definitions (src/Theme/colors/).`,
             );
         }
         return color;
