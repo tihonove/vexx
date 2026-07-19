@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { DEFAULT_COLOR, packRgb } from "../../../common/colorUtils.ts";
-import type { CellPatch } from "../../../../tui/rendering/grid.ts";
-import { StyleFlags } from "../../../common/styleFlags.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
 import { FakeTerminalSurface } from "../../../../../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import type { CellPatch } from "../../../../tui/rendering/grid.ts";
+import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
+import { DEFAULT_COLOR, packRgb } from "../../../common/colorUtils.ts";
+import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
+import { StyleFlags } from "../../../common/styleFlags.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import { TerminalViewElement, unthemedTerminalViewStyles } from "./terminalViewElement.ts";

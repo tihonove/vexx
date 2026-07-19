@@ -1,63 +1,80 @@
+import { MenuContributionsDIToken } from "../../platform/actions/common/iMenuContribution.ts";
+import { MenuRegistry, MenuRegistryDIToken } from "../../platform/actions/common/menuRegistry.ts";
+import { MenuService, MenuServiceDIToken } from "../../platform/actions/common/menuService.ts";
 import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import { QuitHandlerDIToken } from "../../workbench/browser/actions/appActions.ts";
-import { WorkspaceFolderOpenerDIToken } from "../../workbench/contrib/files/browser/fileActions.ts";
-import { EditorGroupComponent, EditorGroupComponentDIToken } from "../../workbench/browser/parts/editor/editorGroupComponent.ts";
-import { FindComponent, FindComponentDIToken } from "../../workbench/contrib/find/browser/findComponent.ts";
-import { SuggestComponent, SuggestComponentDIToken } from "../../workbench/contrib/suggest/browser/suggestComponent.ts";
-import { ExplorerComponent, ExplorerComponentDIToken } from "../../workbench/contrib/files/browser/explorerComponent.ts";
-import { PanelComponent, PanelComponentDIToken } from "../../workbench/browser/parts/panel/panelComponent.ts";
-import {
-    MarkerRevealTargetDIToken,
-    ProblemsComponent,
-    ProblemsComponentDIToken,
-} from "../../workbench/contrib/markers/browser/problemsComponent.ts";
-import { TerminalPanelComponent, TerminalPanelComponentDIToken } from "../../workbench/contrib/terminal/browser/terminalPanelComponent.ts";
-import { QuickInputComponent, QuickInputComponentDIToken } from "../../workbench/browser/parts/quickinput/quickInputComponent.ts";
+import { MENU_CONTRIBUTIONS } from "../../workbench/browser/actions/menuContributions.ts";
 import { MenuBarComponent, MenuBarComponentDIToken } from "../../workbench/browser/menuBarComponent.ts";
-import { WorkbenchComponent, WorkbenchComponentDIToken } from "../../workbench/browser/workbenchComponent.ts";
-import { StatusBarComponent, StatusBarComponentDIToken } from "../../workbench/browser/parts/statusbar/statusBarComponent.ts";
-import { AutoRevealContribution, AutoRevealContributionDIToken } from "../../workbench/contrib/files/browser/autoRevealContribution.ts";
 import {
     EditorContextMenuContribution,
     EditorContextMenuContributionDIToken,
 } from "../../workbench/browser/parts/editor/editorContextMenuContribution.ts";
 import {
-    OpenFileCommandContribution,
-    OpenFileCommandContributionDIToken,
-} from "../../workbench/contrib/files/browser/openFileCommandContribution.ts";
-import { ThemeConfigContribution, ThemeConfigContributionDIToken } from "../../workbench/contrib/themes/browser/themeConfigContribution.ts";
-import { WORKBENCH_CONTRIBUTIONS } from "../../workbench/browser/workbenchContributions.ts";
-import {
-    WorkbenchContributionsDIToken,
-    WorkbenchContributionsRegistry,
-    WorkbenchContributionsRegistryDIToken,
-} from "../../workbench/common/workbenchContributionsRegistry.ts";
-import { MenuContributionsDIToken } from "../../platform/actions/common/iMenuContribution.ts";
-import { MENU_CONTRIBUTIONS } from "../../workbench/browser/actions/menuContributions.ts";
-import { MenuRegistry, MenuRegistryDIToken } from "../../platform/actions/common/menuRegistry.ts";
-import { MenuService, MenuServiceDIToken } from "../../platform/actions/common/menuService.ts";
-import { CompletionService, CompletionServiceDIToken } from "../../workbench/contrib/suggest/browser/completionService.ts";
-import {
-    DiagnosticsEditorSourceDIToken,
-    DiagnosticsService,
-    DiagnosticsServiceDIToken,
-} from "../../workbench/contrib/markers/browser/diagnosticsService.ts";
-import { DialogService, DialogServiceDIToken } from "../../workbench/services/dialogs/browser/dialogService.ts";
-import { EditorService, EditorServiceDIToken } from "../../workbench/services/editor/browser/editorService.ts";
+    EditorGroupComponent,
+    EditorGroupComponentDIToken,
+} from "../../workbench/browser/parts/editor/editorGroupComponent.ts";
 import {
     ActiveEditorStatusSourceDIToken,
     EditorStatusContribution,
     EditorStatusContributionDIToken,
 } from "../../workbench/browser/parts/editor/editorStatusContribution.ts";
-import { ExplorerService, ExplorerServiceDIToken } from "../../workbench/contrib/files/browser/explorerService.ts";
-import { FileOperationsService, FileOperationsServiceDIToken } from "../../workbench/contrib/files/browser/fileOperationsService.ts";
-import { FileSearchService, FileSearchServiceDIToken } from "../../workbench/services/search/node/fileSearchService.ts";
-import { FindService, FindServiceDIToken } from "../../workbench/contrib/find/browser/findService.ts";
-import { InputWidgetService, InputWidgetServiceDIToken } from "../../workbench/contrib/files/browser/inputWidgetService.ts";
-import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../../workbench/services/keybinding/browser/keybindingDispatcher.ts";
-import { LayoutService, LayoutServiceDIToken } from "../../workbench/services/layout/browser/layoutService.ts";
-import { LifecycleService, LifecycleServiceDIToken } from "../../workbench/services/lifecycle/browser/lifecycleService.ts";
+import { PanelComponent, PanelComponentDIToken } from "../../workbench/browser/parts/panel/panelComponent.ts";
 import { PanelService, PanelServiceDIToken } from "../../workbench/browser/parts/panel/panelService.ts";
+import {
+    QuickInputComponent,
+    QuickInputComponentDIToken,
+} from "../../workbench/browser/parts/quickinput/quickInputComponent.ts";
+import {
+    QuickInputService,
+    QuickInputServiceDIToken,
+} from "../../workbench/browser/parts/quickinput/quickInputService.ts";
+import {
+    StatusBarComponent,
+    StatusBarComponentDIToken,
+} from "../../workbench/browser/parts/statusbar/statusBarComponent.ts";
+import { WorkbenchComponent, WorkbenchComponentDIToken } from "../../workbench/browser/workbenchComponent.ts";
+import { WorkbenchContextKeys, WorkbenchContextKeysDIToken } from "../../workbench/browser/workbenchContextKeys.ts";
+import { WORKBENCH_CONTRIBUTIONS } from "../../workbench/browser/workbenchContributions.ts";
+import { WorkbenchStateService, WorkbenchStateServiceDIToken } from "../../workbench/browser/workbenchStateService.ts";
+import {
+    WorkbenchContributionsDIToken,
+    WorkbenchContributionsRegistry,
+    WorkbenchContributionsRegistryDIToken,
+} from "../../workbench/common/workbenchContributionsRegistry.ts";
+import {
+    AutoRevealContribution,
+    AutoRevealContributionDIToken,
+} from "../../workbench/contrib/files/browser/autoRevealContribution.ts";
+import {
+    ExplorerComponent,
+    ExplorerComponentDIToken,
+} from "../../workbench/contrib/files/browser/explorerComponent.ts";
+import { ExplorerService, ExplorerServiceDIToken } from "../../workbench/contrib/files/browser/explorerService.ts";
+import { WorkspaceFolderOpenerDIToken } from "../../workbench/contrib/files/browser/fileActions.ts";
+import {
+    FileOperationsService,
+    FileOperationsServiceDIToken,
+} from "../../workbench/contrib/files/browser/fileOperationsService.ts";
+import {
+    InputWidgetService,
+    InputWidgetServiceDIToken,
+} from "../../workbench/contrib/files/browser/inputWidgetService.ts";
+import {
+    OpenFileCommandContribution,
+    OpenFileCommandContributionDIToken,
+} from "../../workbench/contrib/files/browser/openFileCommandContribution.ts";
+import { FindComponent, FindComponentDIToken } from "../../workbench/contrib/find/browser/findComponent.ts";
+import { FindService, FindServiceDIToken } from "../../workbench/contrib/find/browser/findService.ts";
+import {
+    DiagnosticsEditorSourceDIToken,
+    DiagnosticsService,
+    DiagnosticsServiceDIToken,
+} from "../../workbench/contrib/markers/browser/diagnosticsService.ts";
+import {
+    MarkerRevealTargetDIToken,
+    ProblemsComponent,
+    ProblemsComponentDIToken,
+} from "../../workbench/contrib/markers/browser/problemsComponent.ts";
 import {
     CommandsQuickAccessProvider,
     CommandsQuickAccessProviderDIToken,
@@ -73,22 +90,50 @@ import {
 } from "../../workbench/contrib/quickaccess/browser/gotoLineQuickAccessProvider.ts";
 import { QUICK_ACCESS_PROVIDERS } from "../../workbench/contrib/quickaccess/browser/quickAccessProviders.ts";
 import {
+    QuickOpenService,
+    QuickOpenServiceDIToken,
+} from "../../workbench/contrib/quickaccess/browser/quickOpenService.ts";
+import {
     QuickAccessProvidersDIToken,
     QuickAccessRegistry,
     QuickAccessRegistryDIToken,
 } from "../../workbench/contrib/quickaccess/common/quickAccessRegistry.ts";
-import { QuickInputService, QuickInputServiceDIToken } from "../../workbench/browser/parts/quickinput/quickInputService.ts";
-import { QuickOpenService, QuickOpenServiceDIToken } from "../../workbench/contrib/quickaccess/browser/quickOpenService.ts";
-import { StatusBarService, StatusBarServiceDIToken } from "../../workbench/services/statusbar/common/statusBarService.ts";
-import { EmbeddedTerminalSession } from "../../workbench/contrib/terminal/node/embeddedTerminalSession.ts";
+import {
+    CompletionService,
+    CompletionServiceDIToken,
+} from "../../workbench/contrib/suggest/browser/completionService.ts";
+import { SuggestComponent, SuggestComponentDIToken } from "../../workbench/contrib/suggest/browser/suggestComponent.ts";
+import {
+    TerminalPanelComponent,
+    TerminalPanelComponentDIToken,
+} from "../../workbench/contrib/terminal/browser/terminalPanelComponent.ts";
 import { TerminalService, TerminalServiceDIToken } from "../../workbench/contrib/terminal/browser/terminalService.ts";
 import { TerminalSessionFactoryDIToken } from "../../workbench/contrib/terminal/common/terminalSessionFactory.ts";
+import { EmbeddedTerminalSession } from "../../workbench/contrib/terminal/node/embeddedTerminalSession.ts";
+import {
+    ThemeConfigContribution,
+    ThemeConfigContributionDIToken,
+} from "../../workbench/contrib/themes/browser/themeConfigContribution.ts";
+import { DialogService, DialogServiceDIToken } from "../../workbench/services/dialogs/browser/dialogService.ts";
+import { EditorService, EditorServiceDIToken } from "../../workbench/services/editor/browser/editorService.ts";
+import {
+    KeybindingDispatcher,
+    KeybindingDispatcherDIToken,
+} from "../../workbench/services/keybinding/browser/keybindingDispatcher.ts";
+import { LayoutService, LayoutServiceDIToken } from "../../workbench/services/layout/browser/layoutService.ts";
+import {
+    LifecycleService,
+    LifecycleServiceDIToken,
+} from "../../workbench/services/lifecycle/browser/lifecycleService.ts";
+import { FileSearchService, FileSearchServiceDIToken } from "../../workbench/services/search/node/fileSearchService.ts";
+import {
+    StatusBarService,
+    StatusBarServiceDIToken,
+} from "../../workbench/services/statusbar/common/statusBarService.ts";
 import {
     TerminalEnvStatusContribution,
     TerminalEnvStatusContributionDIToken,
 } from "../../workbench/services/terminalEnvironment/node/terminalEnvStatusContribution.ts";
-import { WorkbenchContextKeys, WorkbenchContextKeysDIToken } from "../../workbench/browser/workbenchContextKeys.ts";
-import { WorkbenchStateService, WorkbenchStateServiceDIToken } from "../../workbench/browser/workbenchStateService.ts";
 
 /**
  * Пары Service ↔ Component слоя Workbench (пилот — статус-бар, этап 4

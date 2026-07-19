@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { EndOfLine } from "../core/endOfLine.ts";
+
 import { TextDocument } from "./textDocument.ts";
 
 describe("TextDocument EOL model", () => {

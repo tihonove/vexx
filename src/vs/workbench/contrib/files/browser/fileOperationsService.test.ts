@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { InMemoryFileClipboard } from "../../../../platform/clipboard/common/inMemoryFileClipboard.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
 import { createTempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
-
+import { InMemoryFileClipboard } from "../../../../platform/clipboard/common/inMemoryFileClipboard.ts";
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
+import type { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 import type { DialogService } from "../../../services/dialogs/browser/dialogService.ts";
+import type { WorkspaceEditService } from "../../bulkEdit/node/workspaceEditService.ts";
+
 import type { ExplorerService } from "./explorerService.ts";
 import { FileOperationsService } from "./fileOperationsService.ts";
-import type { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
-import type { WorkspaceEditService } from "../../bulkEdit/node/workspaceEditService.ts";
 
 /**
  * Юнит-крайности FileOperationsService: отменённый промпт (Escape / клик мимо →

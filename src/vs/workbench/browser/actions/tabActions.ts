@@ -1,10 +1,9 @@
-import type { ServiceAccessor } from "../../../platform/instantiation/common/diContainer.ts";
+import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../platform/actions/common/menuId.ts";
-import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
+import type { ServiceAccessor } from "../../../platform/instantiation/common/diContainer.ts";
 import { parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
 import { ModifierReleaseArmoryDIToken } from "../../../platform/keybinding/common/modifierReleaseArmory.ts";
-
-import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
 
 /**
  * Один шаг MRU-переключения вкладок. Каждое нажатие шагает по стеку, а отпускание

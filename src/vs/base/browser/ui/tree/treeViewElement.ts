@@ -1,13 +1,13 @@
+import { packRgb } from "../../../common/colorUtils.ts";
 import { DisplayLine } from "../../../common/displayLine.ts";
 import { Point } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 import type { RenderContext } from "../../tuiElement.ts";
+import { ScrollableElement, type ScrollViewportInfo } from "../scrollbar/scrollableElement.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";
-import { ScrollableElement, type ScrollViewportInfo } from "../scrollbar/scrollableElement.ts";
 
 const INDENT_SIZE = 2;
 // Окно, в течение которого напечатанные символы складываются в одну последовательность

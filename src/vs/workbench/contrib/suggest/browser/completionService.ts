@@ -1,21 +1,21 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { CompletionListItem } from "../../../../base/browser/ui/completionlist/completionListElement.ts";
 import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
-import type { ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
 import type { IPosition } from "../../../../editor/common/core/iPosition.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import { createRange } from "../../../../editor/common/core/iRange.ts";
 import { isSelectionCollapsed } from "../../../../editor/common/core/iSelection.ts";
 import { createTextEdit } from "../../../../editor/common/core/iTextEdit.ts";
-import type { CompletionListItem } from "../../../../base/browser/ui/completionlist/completionListElement.ts";
-import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
-import type { SuggestComponent } from "./suggestComponent.ts";
-import { SuggestComponentDIToken } from "./suggestComponent.ts";
-
-import { collectWordCompletions } from "./collectWordCompletions.ts";
+import type { ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
+
+import { collectWordCompletions } from "./collectWordCompletions.ts";
+import type { SuggestComponent } from "./suggestComponent.ts";
+import { SuggestComponentDIToken } from "./suggestComponent.ts";
 
 export const CompletionServiceDIToken = token<CompletionService>("CompletionService");
 

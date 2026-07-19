@@ -2,12 +2,12 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { resolveUserDataPaths, resolveWorkspaceStatePath } from "../../platform/environment/node/userDataPaths.ts";
 import { loadState, StateService } from "../../platform/state/node/stateService.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-
-import type { EditorService } from "../services/editor/browser/editorService.ts";
 import { OPEN_EDITORS_STATE } from "../common/stateKeys.ts";
+import type { EditorService } from "../services/editor/browser/editorService.ts";
+
 import { WorkbenchStateService } from "./workbenchStateService.ts";
 
 /** Минимальный дублёр EditorService — только методы, что дёргает сервис. */

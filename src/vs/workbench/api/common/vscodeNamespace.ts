@@ -1,9 +1,9 @@
 import type * as vscode from "vscode";
 
-import type { RpcEndpoint } from "./rpcEndpoint.ts";
 import { buildCommandsNamespace } from "./commandsNamespace.ts";
 import { DocumentRegistry } from "./extHostDocuments.ts";
 import { createLanguagesNamespace } from "./languagesNamespace.ts";
+import type { RpcEndpoint } from "./rpcEndpoint.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
 import {
     CompletionItem,

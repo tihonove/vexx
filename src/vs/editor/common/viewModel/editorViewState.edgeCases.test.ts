@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { createFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
 import { createCursorSelection, createSelection } from "../core/iSelection.ts";
-import { TextDocument } from "../model/textDocument.ts";
 import { PlainTextTokenizer } from "../languages/builtin/plainTextTokenizer.ts";
+import { TextDocument } from "../model/textDocument.ts";
 import { DocumentTokenStore } from "../tokens/documentTokenStore.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 // ─── getViewLine / getViewLineTokens out-of-range ───────────
 

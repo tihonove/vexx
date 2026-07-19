@@ -1,12 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Container } from "../../../platform/instantiation/common/diContainer.ts";
-import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
-import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
-import { KeybindingRegistry } from "../../../platform/keybinding/common/keybindingRegistry.ts";
-import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../../../platform/keybinding/common/modifierReleaseArmory.ts";
-
 import { registerAction } from "../../../platform/actions/common/commandAction.ts";
+import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
+import { Container } from "../../../platform/instantiation/common/diContainer.ts";
+import { KeybindingRegistry } from "../../../platform/keybinding/common/keybindingRegistry.ts";
+import {
+    ModifierReleaseArmory,
+    ModifierReleaseArmoryDIToken,
+} from "../../../platform/keybinding/common/modifierReleaseArmory.ts";
+import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
+
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./tabActions.ts";
 
 interface GroupStub {

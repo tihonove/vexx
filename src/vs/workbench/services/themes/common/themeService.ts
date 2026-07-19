@@ -1,5 +1,4 @@
 import type { IDisposable } from "../../../../base/common/disposable.ts";
-
 import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 export class ThemeService {

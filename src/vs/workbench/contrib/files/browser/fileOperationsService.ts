@@ -2,22 +2,26 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { FileClipboardEntry, IFileClipboard } from "../../../../platform/clipboard/common/iFileClipboard.ts";
-import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
-
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
+import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import {
+    UndoRedoService,
+    UndoRedoServiceDIToken,
+    WORKSPACE_UNDO_CONTEXT,
+} from "../../../../platform/undoRedo/common/undoRedoService.ts";
+import { QuickInputServiceDIToken } from "../../../browser/parts/quickinput/quickInputService.ts";
 import { FileClipboardDIToken } from "../../../common/coreTokens.ts";
 import type { DialogService } from "../../../services/dialogs/browser/dialogService.ts";
 import { DialogServiceDIToken } from "../../../services/dialogs/browser/dialogService.ts";
-import type { ExplorerService } from "./explorerService.ts";
-import { ExplorerServiceDIToken } from "./explorerService.ts";
-import { QuickInputServiceDIToken } from "../../../browser/parts/quickinput/quickInputService.ts";
-import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 import type { ResourceFileEdit } from "../../bulkEdit/common/workspaceEdit.ts";
 import { WorkspaceEditService, WorkspaceEditServiceDIToken } from "../../bulkEdit/node/workspaceEditService.ts";
+
+import type { ExplorerService } from "./explorerService.ts";
+import { ExplorerServiceDIToken } from "./explorerService.ts";
 
 export const FileOperationsServiceDIToken = token<FileOperationsService>("FileOperationsService");
 

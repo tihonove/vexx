@@ -1,23 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../../base/browser/events/tuiKeyboardEvent.ts";
 import { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
 import { PopupMenuElement } from "../../base/browser/ui/menu/popupMenuElement.ts";
-
-import { EditorElement } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { createLineTokens, createToken } from "../common/languages/iLineTokens.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { createSelection } from "../common/core/iSelection.ts";
-import { TextDocument } from "../common/model/textDocument.ts";
-import { DocumentTokenStore } from "../common/tokens/documentTokenStore.ts";
+import { createLineTokens, createToken } from "../common/languages/iLineTokens.ts";
 import type { IState } from "../common/languages/iState.ts";
 import { NULL_STATE } from "../common/languages/iState.ts";
 import type { ITokenizationResult, ITokenizationSupport } from "../common/languages/iTokenizationSupport.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "../common/languages/iTokenStyleResolver.ts";
 import { EMPTY_RESOLVED_TOKEN_STYLE } from "../common/languages/iTokenStyleResolver.ts";
+import { TextDocument } from "../common/model/textDocument.ts";
+import { DocumentTokenStore } from "../common/tokens/documentTokenStore.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+
+import { EditorElement } from "./editorElement.ts";
 
 // A tokenizer that reports zero tokens for every line. The renderer therefore
 // gets a non-null ILineTokens whose `tokens` array is empty, so TokenIndex.tokenAt

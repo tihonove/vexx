@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-
 import { DEFAULT_COLOR, packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
+import { StyleFlags } from "../../base/common/styleFlags.ts";
+
 import { Grid } from "./grid.ts";
 import { emptyGridSnapshot, snapshotGrid } from "./gridSnapshot.ts";
-import { StyleFlags } from "../../base/common/styleFlags.ts";
 
 describe("snapshotGrid", () => {
     it("copies dimensions, cursor and cell data row-major", () => {

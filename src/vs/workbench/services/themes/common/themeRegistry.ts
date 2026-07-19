@@ -1,6 +1,7 @@
 import type { IThemeFile } from "../../../../platform/theme/common/iThemeFile.ts";
-import { builtinThemes } from "./themes/builtinThemes.ts";
 import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+
+import { builtinThemes } from "./themes/builtinThemes.ts";
 
 /** A theme entry as surfaced to the theme picker. */
 export interface IThemeDescriptor {

@@ -1,9 +1,9 @@
-import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import { ConfigurationRegistry } from "../../platform/configuration/common/configurationRegistry.ts";
 import { ConfigurationRegistryDIToken } from "../../platform/configuration/common/configurationRegistryDIToken.ts";
 import type { IConfigurationService } from "../../platform/configuration/common/iConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../platform/configuration/common/iConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../platform/configuration/common/nullConfigurationService.ts";
+import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import { CONFIGURATION_CONTRIBUTIONS } from "../../workbench/common/configuration/configurationContributions.ts";
 
 export interface ConfigurationModuleContext {

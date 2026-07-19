@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_COLOR, packRgb } from "../../../../base/common/colorUtils.ts";
-import { StyleFlags } from "../../../../base/common/styleFlags.ts";
 import type { TerminalCell } from "../../../../base/common/iTerminalSurface.ts";
+import { StyleFlags } from "../../../../base/common/styleFlags.ts";
 
 import { EmbeddedTerminalSession } from "./embeddedTerminalSession.ts";
 

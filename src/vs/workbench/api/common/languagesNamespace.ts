@@ -1,11 +1,10 @@
 import type * as vscode from "vscode";
 
-import type { WireCompletionItem } from "./wireTypes.ts";
-
 import { matchDocumentSelector } from "./documentSelector.ts";
 import type { ExtHostTextDocument } from "./extHostDocuments.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
 import { DisposableImpl, EventEmitter, Position, Range } from "./vscodeTypes.ts";
+import type { WireCompletionItem } from "./wireTypes.ts";
 
 /** Зарегистрированный провайдер автодополнения. */
 export interface ICompletionRegistration {

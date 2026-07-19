@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { Point } from "../../../common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
+import { Point } from "../../../common/geometryPromitives.ts";
 
 import { TextBlockElement } from "./textBlockElement.ts";
 

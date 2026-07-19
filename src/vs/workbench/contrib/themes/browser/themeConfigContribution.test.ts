@@ -5,9 +5,9 @@ import type {
     IConfigurationChangeEvent,
     IConfigurationService,
 } from "../../../../platform/configuration/common/iConfigurationService.ts";
+import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import type { ThemeRegistry } from "../../../services/themes/common/themeRegistry.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import type { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 import { ThemeConfigContribution } from "./themeConfigContribution.ts";
 
@@ -53,10 +53,10 @@ class FakeThemeRegistry {
     }
 }
 
-function setup(options: {
-    active: string;
-    known?: Record<string, WorkbenchTheme>;
-}): { config: FakeConfig; themeService: FakeThemeService } {
+function setup(options: { active: string; known?: Record<string, WorkbenchTheme> }): {
+    config: FakeConfig;
+    themeService: FakeThemeService;
+} {
     const config = new FakeConfig();
     const themeService = new FakeThemeService(options.active);
     const registry = new FakeThemeRegistry(options.known ?? {});
@@ -80,7 +80,10 @@ describe("ThemeConfigContribution", () => {
     });
 
     it("игнорирует события, не затрагивающие workbench.colorTheme", () => {
-        const { config, themeService } = setup({ active: "Light", known: { Dark: { name: "Dark" } as WorkbenchTheme } });
+        const { config, themeService } = setup({
+            active: "Light",
+            known: { Dark: { name: "Dark" } as WorkbenchTheme },
+        });
         config.colorTheme = "Dark";
 
         config.emit(["editor.fontSize"]);
@@ -98,7 +101,10 @@ describe("ThemeConfigContribution", () => {
     });
 
     it("не перекрашивает, если тема уже активна (guard по имени)", () => {
-        const { config, themeService } = setup({ active: "Light", known: { Light: { name: "Light" } as WorkbenchTheme } });
+        const { config, themeService } = setup({
+            active: "Light",
+            known: { Light: { name: "Light" } as WorkbenchTheme },
+        });
         config.colorTheme = "Light";
 
         config.emit(["workbench.colorTheme"]);

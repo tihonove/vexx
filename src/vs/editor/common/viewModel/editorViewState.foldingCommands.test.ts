@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { createFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
 import { createCursorSelection } from "../core/iSelection.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 // 0: fn1          ← region 0..3 (level 1)
 // 1:   if         ← region 1..2 (level 2, nested in fn1)

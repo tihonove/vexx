@@ -16,10 +16,11 @@
 
 import { describe, expect, it } from "vitest";
 
-import { EditorElement } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 import { createCursorSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+
+import { EditorElement } from "./editorElement.ts";
 
 // ─── Helpers ────────────────────────────────────────────────
 

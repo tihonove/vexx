@@ -1,5 +1,5 @@
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { DEFAULT_COLOR, packRgb } from "../../../common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import type { IScrollable } from "./iScrollable.ts";

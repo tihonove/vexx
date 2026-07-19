@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 describe("EditorViewState scrollLineDown", () => {
     it("increases scrollTop by 1", () => {

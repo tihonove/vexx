@@ -1,12 +1,12 @@
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import type { TUIKeyboardEvent } from "../../../../base/browser/events/tuiKeyboardEvent.ts";
 import type { JsxNode } from "../../../../base/browser/jsx/jsx-runtime.ts";
 import { reconcile } from "../../../../base/browser/jsx/reconcile.ts";
 import type { TUIElement } from "../../../../base/browser/tuiElement.ts";
 import type { ButtonElement, IButtonStyles } from "../../../../base/browser/ui/button/buttonElement.ts";
 import { FitContentElement } from "../../../../base/browser/ui/layout/fitContentElement.ts";
-import { ThemedComponent } from "../../component.ts";
 import { getDialogStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemedComponent } from "../../component.ts";
 
 /**
  * Packed-цвета модального диалога. Единственный источник значений —

@@ -6,9 +6,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import yazl from "yazl";
 
 import { FsAssetAccess } from "../../../base/node/assets/fsAssetAccess.ts";
+import { scanExtensions } from "../../extensions/common/extensionScanner.ts";
 
 import { installVsix, listInstalledExtensions, uninstallExtension } from "./extensionInstaller.ts";
-import { scanExtensions } from "../../extensions/common/extensionScanner.ts";
 
 /** Каноничный набор записей внутри `.vsix` для расширения с заданным манифестом. */
 function vsixEntries(manifest: object, extra: Record<string, string> = {}): Record<string, string> {

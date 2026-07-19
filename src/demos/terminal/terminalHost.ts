@@ -13,7 +13,6 @@
 //
 // См. docs/TODO/IntegratedTerminal.md.
 
-import { NodeTerminalBackend } from "../../vs/tui/backend/nodeTerminalBackend.ts";
 import { TuiApplication } from "../../vs/base/browser/tuiApplication.ts";
 import { TUIElement } from "../../vs/base/browser/tuiElement.ts";
 import { BodyElement } from "../../vs/base/browser/ui/body/bodyElement.ts";
@@ -21,6 +20,7 @@ import { ButtonElement } from "../../vs/base/browser/ui/button/buttonElement.ts"
 import { HFlexElement, hflexFit, hflexFixed } from "../../vs/base/browser/ui/layout/hFlexElement.ts";
 import { TerminalViewElement } from "../../vs/base/browser/ui/terminal/terminalViewElement.ts";
 import { TitledPanelElement } from "../../vs/base/browser/ui/titledpanel/titledPanelElement.ts";
+import { NodeTerminalBackend } from "../../vs/tui/backend/nodeTerminalBackend.ts";
 import { EmbeddedTerminalSession } from "../../vs/workbench/contrib/terminal/node/embeddedTerminalSession.ts";
 
 import { HeaderBodyLayout } from "./HeaderBodyLayout.ts";

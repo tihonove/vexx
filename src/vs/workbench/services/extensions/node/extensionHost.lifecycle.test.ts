@@ -2,11 +2,9 @@ import { EventEmitter } from "node:events";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { registerAndActivate } from "../../../../../TestUtils/ExtensionTestHarness.ts";
 import type { IDisposable } from "../../../../base/common/disposable.ts";
 import { Uri } from "../../../../base/common/uri.ts";
-import { registerAndActivate } from "../../../../../TestUtils/ExtensionTestHarness.ts";
-
-import { ExtensionHost, type IExtensionHostConfigProvider } from "./extensionHost.ts";
 import type { ICommandService } from "../../../api/common/iCommandService.ts";
 import { NULL_COMMAND_SERVICE } from "../../../api/common/iCommandService.ts";
 import type {
@@ -15,8 +13,10 @@ import type {
     IEditorOptionsService,
     IEditorOptionsState,
 } from "../../../api/common/iEditorOptionsService.ts";
-import type { IExtensionRegistration } from "./iExtensionEntry.ts";
 import type { IProtocolMessage, IRequestMessage } from "../../../api/common/rpcEndpoint.ts";
+
+import { ExtensionHost, type IExtensionHostConfigProvider } from "./extensionHost.ts";
+import type { IExtensionRegistration } from "./iExtensionEntry.ts";
 
 // `spawn` is the only side effect we need to control; everything else (IPC channel,
 // RPC endpoint) runs for real against the in-memory FakeChild below.

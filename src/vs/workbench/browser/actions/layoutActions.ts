@@ -1,12 +1,11 @@
-import { PROBLEMS_VIEW_ID, ProblemsComponentDIToken } from "../../contrib/markers/browser/problemsComponent.ts";
+import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../platform/actions/common/menuId.ts";
-import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
-import { ExplorerServiceDIToken } from "../../contrib/files/browser/explorerService.ts";
 import { parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
+import { ExplorerServiceDIToken } from "../../contrib/files/browser/explorerService.ts";
+import { PROBLEMS_VIEW_ID, ProblemsComponentDIToken } from "../../contrib/markers/browser/problemsComponent.ts";
+import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
 import { LayoutServiceDIToken } from "../../services/layout/browser/layoutService.ts";
 import { PanelServiceDIToken } from "../parts/panel/panelService.ts";
-
-import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 
 // Columns added/removed per increase/decrease Side Bar Width command.
 const SIDEBAR_WIDTH_STEP = 3;

@@ -1,9 +1,8 @@
+import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../platform/actions/common/menuId.ts";
+import { parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
 import { ClipboardDIToken } from "../../common/coreTokens.ts";
 import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
-import { parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
-
-import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 
 export const clipboardCopyAction: CommandAction = {
     id: "editor.action.clipboardCopyAction",

@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import type { IDisposable } from "../../../../base/common/disposable.ts";
 import { Uri } from "../../../../base/common/uri.ts";
-import { ConfigurationRegistry } from "../../../../platform/configuration/common/configurationRegistry.ts";
 import { createRange } from "../../../../editor/common/core/iRange.ts";
+import { ConfigurationRegistry } from "../../../../platform/configuration/common/configurationRegistry.ts";
 import type { IMarkerDecoration } from "../../../../platform/markers/common/iMarker.ts";
 import { MarkerSeverity } from "../../../../platform/markers/common/iMarker.ts";
 import { MarkerService } from "../../../../platform/markers/common/markerService.ts";

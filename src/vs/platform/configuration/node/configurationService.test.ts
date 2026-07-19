@@ -3,22 +3,22 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../../../../TestUtils/TempWorkspace.ts";
 import type { IDisposable } from "../../../base/common/disposable.ts";
-import type { IFileWatcher } from "../../files/common/iFileWatcher.ts";
-import type { ILogger } from "../../log/common/iLogger.ts";
 import type { IUserDataPaths } from "../../environment/node/userDataPaths.ts";
 import { resolveUserDataPaths } from "../../environment/node/userDataPaths.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../../TestUtils/TempWorkspace.ts";
-
+import type { IFileWatcher } from "../../files/common/iFileWatcher.ts";
+import type { ILogger } from "../../log/common/iLogger.ts";
 import { ConfigurationModel } from "../common/configurationModel.ts";
 import { ConfigurationRegistry } from "../common/configurationRegistry.ts";
+import type { IConfigurationChangeEvent } from "../common/iConfigurationService.ts";
+
 import {
     ConfigurationService,
     createConfigurationChangeEvent,
     diffConfigurationKeys,
     loadConfiguration,
 } from "./configurationService.ts";
-import type { IConfigurationChangeEvent } from "../common/iConfigurationService.ts";
 
 /** Fake watcher: records the onChange callback per path so tests fire it by hand. */
 class FakeFileWatcher implements IFileWatcher {

@@ -7,7 +7,9 @@ import type { IIpcEndpoint } from "./ipcMessageChannel.ts";
 import { IpcMessageChannel } from "./ipcMessageChannel.ts";
 import { RpcEndpoint } from "./rpcEndpoint.ts";
 
-const fixturePath = fileURLToPath(new URL("../../services/extensions/node/__fixtures__/ipcEchoSubprocess.cjs", import.meta.url));
+const fixturePath = fileURLToPath(
+    new URL("../../services/extensions/node/__fixtures__/ipcEchoSubprocess.cjs", import.meta.url),
+);
 
 interface RunningChild {
     child: ChildProcess;

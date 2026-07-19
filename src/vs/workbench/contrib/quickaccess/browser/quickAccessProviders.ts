@@ -1,7 +1,8 @@
+import type { IQuickAccessProviderDescriptor } from "../common/quickAccessRegistry.ts";
+
 import { CommandsQuickAccessProvider, CommandsQuickAccessProviderDIToken } from "./commandsQuickAccessProvider.ts";
 import { FilesQuickAccessProvider, FilesQuickAccessProviderDIToken } from "./filesQuickAccessProvider.ts";
 import { GotoLineQuickAccessProvider, GotoLineQuickAccessProviderDIToken } from "./gotoLineQuickAccessProvider.ts";
-import type { IQuickAccessProviderDescriptor } from "../common/quickAccessRegistry.ts";
 
 /**
  * Явный список quick-access-провайдеров — наш аналог vscode-овского

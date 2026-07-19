@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 import { BoxConstraints, Size } from "../common/geometryPromitives.ts";
 
 import { TUIElement } from "./tuiElement.ts";
+import { VStackElement } from "./ui/layout/vStackElement.ts";
 import { PopupMenuElement } from "./ui/menu/popupMenuElement.ts";
 import { StatusBarElement } from "./ui/statusbar/statusBarElement.ts";
 import { TextBlockElement } from "./ui/text/textBlockElement.ts";
-import { VStackElement } from "./ui/layout/vStackElement.ts";
 
 describe("Intrinsic Size API", () => {
     describe("TUIElement base", () => {

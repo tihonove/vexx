@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { joinVirtualPath } from "../../../../base/common/assets/assetBundleFormat.ts";
 import { createDevAssetAccess } from "../../../../base/node/assets/createDefaultAssetAccess.ts";
+import { NULL_STATE } from "../../../../editor/common/languages/iState.ts";
 import { scanBuiltinExtensions } from "../../../../platform/extensions/common/extensionScanner.ts";
 import type { IExtension } from "../../../../platform/extensions/common/iExtension.ts";
-import { NULL_STATE } from "../../../../editor/common/languages/iState.ts";
 
 import type { IGrammarRecord } from "./textMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "./textMateGrammarLoader.ts";

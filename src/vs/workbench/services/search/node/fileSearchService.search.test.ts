@@ -2,8 +2,8 @@ import * as path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { fuzzyMatchBestLower } from "../../../../base/common/fuzzySearch.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { fuzzyMatchBestLower } from "../../../../base/common/fuzzySearch.ts";
 
 import { FileSearchService } from "./fileSearchService.ts";
 

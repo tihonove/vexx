@@ -1,6 +1,5 @@
 import { DisplayLine } from "../../../common/displayLine.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
-
 import type { IContentSized } from "../scrollbar/iScrollable.ts";
 
 export class TextBlockElement extends TUIElement implements IContentSized {

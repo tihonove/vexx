@@ -1,8 +1,7 @@
-import { MenuId } from "../../../platform/actions/common/menuId.ts";
-import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
-import { parseChord, parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
-
 import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import { MenuId } from "../../../platform/actions/common/menuId.ts";
+import { parseChord, parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
+import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
 
 // ─── Basic Cursor Movement ──────────────────────────────────
 

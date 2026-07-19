@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { packRgb } from "../../../common/colorUtils.ts";
+import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { TuiApplication } from "../../tuiApplication.ts";
 import { TUIElement } from "../../tuiElement.ts";
-
 import { BodyElement } from "../body/bodyElement.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
+
 import type { MenuBarItem } from "./menuBarElement.ts";
 import { MenuBarElement } from "./menuBarElement.ts";
 import { ACTIVE_MENU_BG, ACTIVE_MENU_FG, MENU_BAR_BG, MENU_BAR_FG } from "./menuBarItemElement.tsx";
 import { unthemedMenuStyles } from "./popupMenuItemElement.tsx";
-import { VStackElement } from "../layout/vStackElement.ts";
 
 class FocusableChild extends TUIElement {
     public constructor() {

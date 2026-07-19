@@ -3,12 +3,12 @@ import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import type { TUIFocusEvent } from "../../events/tuiFocusEvent.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
-
 import type { BodyElement } from "../body/bodyElement.ts";
-import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "../layout/hFlexElement.ts";
-import { MenuBarFillerElement, MenuBarItemElement } from "./menuBarItemElement.tsx";
 import type { OverlayLayer } from "../contextview/overlayLayer.ts";
 import type { OverlaySessionHandle } from "../contextview/overlayLayer.ts";
+import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "../layout/hFlexElement.ts";
+
+import { MenuBarFillerElement, MenuBarItemElement } from "./menuBarItemElement.tsx";
 import type { MenuEntry } from "./popupMenuElement.ts";
 import { PopupMenuElement } from "./popupMenuElement.ts";
 import type { IMenuStyles } from "./popupMenuItemElement.tsx";

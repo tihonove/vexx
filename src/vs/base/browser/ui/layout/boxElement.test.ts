@@ -1,8 +1,8 @@
 import { describe, it } from "vitest";
 
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { expectScreen, screen } from "../../../../../TestUtils/expectScreen.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
+import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 
 import { BoxElement } from "./boxElement.ts";
 

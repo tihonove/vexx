@@ -1,9 +1,9 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable } from "../../../../base/common/disposable.ts";
-import { EditorService, EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
-import { ExplorerService, ExplorerServiceDIToken } from "./explorerService.ts";
-
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { IWorkbenchContribution } from "../../../common/iWorkbenchContribution.ts";
+import { EditorService, EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
+
+import { ExplorerService, ExplorerServiceDIToken } from "./explorerService.ts";
 
 export const AutoRevealContributionDIToken = token<AutoRevealContribution>("AutoRevealContribution");
 

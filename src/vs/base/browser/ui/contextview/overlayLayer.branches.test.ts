@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 import { TUIElement } from "../../tuiElement.ts";
-
 import { InputElement } from "../inputbox/inputElement.ts";
-import { OverlayLayer } from "./overlayLayer.ts";
 import { PopupMenuElement } from "../menu/popupMenuElement.ts";
+
+import { OverlayLayer } from "./overlayLayer.ts";
 
 describe("OverlayLayer — item mutation guards", () => {
     it("removeItem is a no-op when the element is neither a session nor an item", () => {

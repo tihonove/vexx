@@ -1,10 +1,10 @@
 import type { IDisposable } from "../../../base/common/disposable.ts";
-
 import type { EndOfLine } from "../core/endOfLine.ts";
-import type { IDocumentContentChange } from "./iDocumentContentChange.ts";
-import type { IDocumentLanguageChange } from "./iDocumentLanguageChange.ts";
 import type { IRange } from "../core/iRange.ts";
 import type { ITextEdit } from "../core/iTextEdit.ts";
+
+import type { IDocumentContentChange } from "./iDocumentContentChange.ts";
+import type { IDocumentLanguageChange } from "./iDocumentLanguageChange.ts";
 
 export interface IApplyEditsResult {
     readonly appliedVersion: number;

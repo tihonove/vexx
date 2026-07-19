@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../tui/backend/mockTerminalBackend.ts";
-import { Point, Size } from "../common/geometryPromitives.ts";
-import { packRgb } from "../common/colorUtils.ts";
 import { TerminalScreen } from "../../tui/rendering/terminalScreen.ts";
+import { packRgb } from "../common/colorUtils.ts";
+import { Point, Size } from "../common/geometryPromitives.ts";
 
 import { BORDER_DOUBLE, BORDER_SINGLE } from "./borderStyle.ts";
 import { RenderContext } from "./tuiElement.ts";

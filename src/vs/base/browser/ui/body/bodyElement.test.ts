@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
 import { expectScreen, screen } from "../../../../../TestUtils/expectScreen.ts";
+import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
+import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import { RenderContext } from "../../tuiElement.ts";
-
-import { BodyElement } from "./bodyElement.ts";
 import { BoxElement } from "../layout/boxElement.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
 import { MenuBarElement } from "../menu/menuBarElement.ts";
 import { StatusBarElement } from "../statusbar/statusBarElement.ts";
-import { VStackElement } from "../layout/vStackElement.ts";
+
+import { BodyElement } from "./bodyElement.ts";
 
 describe("BodyElement root reference", () => {
     it("BodyElement initializes root pointing to itself", () => {

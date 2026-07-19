@@ -1,10 +1,9 @@
+import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import { MenuId } from "../../../platform/actions/common/menuId.ts";
 import type { ServiceAccessor } from "../../../platform/instantiation/common/diContainer.ts";
 import { token } from "../../../platform/instantiation/common/diContainer.ts";
-import { MenuId } from "../../../platform/actions/common/menuId.ts";
-import { DialogServiceDIToken } from "../../services/dialogs/browser/dialogService.ts";
 import { parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
-
-import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import { DialogServiceDIToken } from "../../services/dialogs/browser/dialogService.ts";
 
 /**
  * Выход из приложения. Интерфейсный шов: Workbench объявляет, владелец приложения

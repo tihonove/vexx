@@ -1,10 +1,10 @@
-import { token } from "../../instantiation/common/diContainer.ts";
-import type { IDisposable } from "../../../base/common/disposable.ts";
 import type { MenuEntry } from "../../../base/browser/ui/menu/popupMenuElement.ts";
+import type { IDisposable } from "../../../base/common/disposable.ts";
 import type { CommandRegistry } from "../../commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../commands/common/commandRegistry.ts";
 import type { ContextKeyService } from "../../contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../contextkey/common/contextKeyService.ts";
+import { token } from "../../instantiation/common/diContainer.ts";
 import type { KeybindingRegistry } from "../../keybinding/common/keybindingRegistry.ts";
 import { formatKeybinding, KeybindingRegistryDIToken } from "../../keybinding/common/keybindingRegistry.ts";
 

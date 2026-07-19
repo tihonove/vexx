@@ -3,8 +3,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { TUIKeyboardEvent } from "../../base/browser/events/tuiKeyboardEvent.ts";
+import {
+    ModifierReleaseArmory,
+    ModifierReleaseArmoryDIToken,
+} from "../../platform/keybinding/common/modifierReleaseArmory.ts";
 import { EditorService, EditorServiceDIToken } from "../services/editor/browser/editorService.ts";
-import { ModifierReleaseArmory, ModifierReleaseArmoryDIToken } from "../../platform/keybinding/common/modifierReleaseArmory.ts";
 
 /**
  * Проверяет маршрутизацию keyup в Workbench: любое отпускание клавиши идёт в

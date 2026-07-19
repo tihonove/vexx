@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
 import { expectScreen, screen } from "../../../../../TestUtils/expectScreen.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
+import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
+import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import { RenderContext } from "../../tuiElement.ts";
 
 import { ScrollableElement, type ScrollViewportInfo } from "./scrollableElement.ts";

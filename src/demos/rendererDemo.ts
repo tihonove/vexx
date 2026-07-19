@@ -5,11 +5,11 @@
  * Press Ctrl+C to exit.
  */
 
-import { Point, Size } from "../vs/base/common/geometryPromitives.ts";
-import { reject } from "../vs/base/common/typingUtils.ts";
 import { packRgb } from "../vs/base/common/colorUtils.ts";
-import { Grid } from "../vs/tui/rendering/grid.ts";
+import { Point, Size } from "../vs/base/common/geometryPromitives.ts";
 import { StyleFlags } from "../vs/base/common/styleFlags.ts";
+import { reject } from "../vs/base/common/typingUtils.ts";
+import { Grid } from "../vs/tui/rendering/grid.ts";
 import { TerminalRenderer } from "../vs/tui/rendering/terminalRenderer.ts";
 
 const cols = process.stdout.columns;

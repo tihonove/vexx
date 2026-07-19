@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { createAppTestHarness } from "../../../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
-import { ThemeServiceDIToken } from "../services/themes/common/themeTokens.ts";
-import { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 import type { StatusBarElement } from "../../base/browser/ui/statusbar/statusBarElement.ts";
+import { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
+import { ThemeServiceDIToken } from "../services/themes/common/themeTokens.ts";
 
 describe("Workbench — theme application", () => {
     it("applies foreground/background colors the theme defines", () => {

@@ -1,8 +1,9 @@
-import type { EditorViewState } from "../viewModel/editorViewState.ts";
 import type { EndOfLine } from "../core/endOfLine.ts";
 import type { ISelection } from "../core/iSelection.ts";
-import type { ITextDocument } from "./iTextDocument.ts";
 import type { ITextEdit } from "../core/iTextEdit.ts";
+import type { EditorViewState } from "../viewModel/editorViewState.ts";
+
+import type { ITextDocument } from "./iTextDocument.ts";
 import type { IUndoElement } from "./iUndoElement.ts";
 
 interface MutableUndoElement {

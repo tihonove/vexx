@@ -1,6 +1,5 @@
-import type { RpcEndpoint } from "./rpcEndpoint.ts";
-
 import type { DocumentRegistry } from "./extHostDocuments.ts";
+import type { RpcEndpoint } from "./rpcEndpoint.ts";
 import type { WorkspaceConfigStore } from "./workspaceConfigStore.ts";
 
 /**

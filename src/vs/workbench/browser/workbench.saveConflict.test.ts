@@ -5,8 +5,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
-import type { ConfirmDialog } from "./parts/dialogs/confirmDialog.tsx";
 import { DialogServiceDIToken } from "../services/dialogs/browser/dialogService.ts";
+
+import type { ConfirmDialog } from "./parts/dialogs/confirmDialog.tsx";
 
 describe("Workbench — save conflict (dirty-write protection)", () => {
     let ws: ITempWorkspace;

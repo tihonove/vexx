@@ -1,7 +1,6 @@
 import type { IDisposable } from "../../../base/common/disposable.ts";
 import { Uri } from "../../../base/common/uri.ts";
 import type { EditorService } from "../../services/editor/browser/editorService.ts";
-
 import type {
     IActiveEditorMeta,
     IEditorOptionsPatch,

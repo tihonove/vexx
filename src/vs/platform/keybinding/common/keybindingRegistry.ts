@@ -1,7 +1,6 @@
-import { token } from "../../instantiation/common/diContainer.ts";
 import type { IDisposable } from "../../../base/common/disposable.ts";
-
 import type { ContextKeyService } from "../../contextkey/common/contextKeyService.ts";
+import { token } from "../../instantiation/common/diContainer.ts";
 
 export const KeybindingRegistryDIToken = token<KeybindingRegistry>("KeybindingRegistry");
 

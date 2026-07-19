@@ -2,16 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { TUIFocusEvent } from "../../base/browser/events/tuiFocusEvent.ts";
 import { BodyElement } from "../../base/browser/ui/body/bodyElement.ts";
-
-import type { CompletionService } from "../contrib/suggest/browser/completionService.ts";
 import { ContextKeyService } from "../../platform/contextkey/common/contextKeyService.ts";
-import type { EditorService } from "../services/editor/browser/editorService.ts";
-import type { FindService } from "../contrib/find/browser/findService.ts";
 import type { InputWidgetService } from "../contrib/files/browser/inputWidgetService.ts";
+import type { FindService } from "../contrib/find/browser/findService.ts";
+import type { CompletionService } from "../contrib/suggest/browser/completionService.ts";
+import type { TerminalService } from "../contrib/terminal/browser/terminalService.ts";
+import type { EditorService } from "../services/editor/browser/editorService.ts";
 import type { KeybindingDispatcher } from "../services/keybinding/browser/keybindingDispatcher.ts";
 import type { LayoutService } from "../services/layout/browser/layoutService.ts";
-import type { TerminalService } from "../contrib/terminal/browser/terminalService.ts";
 import type { TerminalEnvironmentService } from "../services/terminalEnvironment/node/terminalEnvironmentService.ts";
+
 import { WorkbenchContextKeys } from "./workbenchContextKeys.ts";
 
 /**

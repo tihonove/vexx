@@ -1,11 +1,11 @@
-import { EditorStatusContributionDIToken } from "./parts/editor/editorStatusContribution.ts";
-import { TerminalEnvStatusContributionDIToken } from "../services/terminalEnvironment/node/terminalEnvStatusContribution.ts";
-
-import { AutoRevealContributionDIToken } from "../contrib/files/browser/autoRevealContribution.ts";
-import { EditorContextMenuContributionDIToken } from "./parts/editor/editorContextMenuContribution.ts";
 import type { IWorkbenchContributionRegistration } from "../common/iWorkbenchContribution.ts";
+import { AutoRevealContributionDIToken } from "../contrib/files/browser/autoRevealContribution.ts";
 import { OpenFileCommandContributionDIToken } from "../contrib/files/browser/openFileCommandContribution.ts";
 import { ThemeConfigContributionDIToken } from "../contrib/themes/browser/themeConfigContribution.ts";
+import { TerminalEnvStatusContributionDIToken } from "../services/terminalEnvironment/node/terminalEnvStatusContribution.ts";
+
+import { EditorContextMenuContributionDIToken } from "./parts/editor/editorContextMenuContribution.ts";
+import { EditorStatusContributionDIToken } from "./parts/editor/editorStatusContribution.ts";
 
 /**
  * Явный список workbench-contributions (зеркало `builtinActions`, без

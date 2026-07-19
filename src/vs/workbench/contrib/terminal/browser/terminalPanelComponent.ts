@@ -1,13 +1,14 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { Disposable } from "../../../../base/common/disposable.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import { TerminalViewElement } from "../../../../base/browser/ui/terminal/terminalViewElement.ts";
+import { Disposable } from "../../../../base/common/disposable.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import { getTerminalViewStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import type { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
+
 import type { ITerminalInstance, TerminalService } from "./terminalService.ts";
 import { TERMINAL_VIEW_ID, TerminalServiceDIToken } from "./terminalService.ts";
-import { getTerminalViewStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 
 export const TerminalPanelComponentDIToken = token<TerminalPanelComponent>("TerminalPanelComponent");
 

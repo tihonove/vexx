@@ -1,27 +1,30 @@
 import * as path from "node:path";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
-import type { IFileWatcher } from "../../../../platform/files/common/iFileWatcher.ts";
 import { Uri } from "../../../../base/common/uri.ts";
-import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
-import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
 import type { CompletionSource } from "../../../../editor/common/languages/iCompletionSource.ts";
-import type { SaveParticipant } from "../../textfile/common/iSaveParticipant.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import type { ITokenStyleResolver } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-import type { ThemeService } from "../../themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../themes/common/themeTokens.ts";
+import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
+import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
+import type { IFileWatcher } from "../../../../platform/files/common/iFileWatcher.ts";
+import { IFileWatcherDIToken } from "../../../../platform/files/common/iFileWatcherDIToken.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import { UndoRedoService, UndoRedoServiceDIToken } from "../../../../platform/undoRedo/common/undoRedoService.ts";
+import type { IActivatable } from "../../../browser/iActivatable.ts";
 import { EditorComponent } from "../../../browser/parts/editor/editorComponent.ts";
 import { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
-import type { IActivatable } from "../../../browser/iActivatable.ts";
-
-import { LanguageServiceDIToken, TokenizationRegistryDIToken, TokenStyleResolverDIToken } from "../../../common/coreTokens.ts";
-import { IFileWatcherDIToken } from "../../../../platform/files/common/iFileWatcherDIToken.ts";
+import {
+    LanguageServiceDIToken,
+    TokenizationRegistryDIToken,
+    TokenStyleResolverDIToken,
+} from "../../../common/coreTokens.ts";
 import type { IShutdownDirtyItem, IShutdownParticipant } from "../../lifecycle/browser/lifecycleService.ts";
+import type { SaveParticipant } from "../../textfile/common/iSaveParticipant.ts";
 import { TextFileModel } from "../../textfile/common/textFileModel.ts";
-import { UndoRedoService, UndoRedoServiceDIToken } from "../../../../platform/undoRedo/common/undoRedoService.ts";
+import type { ThemeService } from "../../themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../themes/common/themeTokens.ts";
 
 export const EditorServiceDIToken = token<EditorService>("EditorService");
 

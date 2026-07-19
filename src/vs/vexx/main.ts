@@ -2,51 +2,59 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import { HeadlessCaptureBackend } from "../tui/backend/headlessCaptureBackend.ts";
-import { NodeTerminalBackend } from "../tui/backend/nodeTerminalBackend.ts";
+import { attachInspector } from "../../Inspector/index.ts";
+import type { InspectorDriver } from "../../Inspector/InspectorDriver.ts";
+import { TuiApplication } from "../base/browser/tuiApplication.ts";
 import { joinVirtualPath } from "../base/common/assets/assetBundleFormat.ts";
 import { CompositeAssetAccess } from "../base/common/assets/compositeAssetAccess.ts";
+import type { IAssetAccess } from "../base/common/assets/iAssetAccess.ts";
+import { Size } from "../base/common/geometryPromitives.ts";
+import { VEXX_VERSION } from "../base/common/version.ts";
 import { createDefaultAssetAccess } from "../base/node/assets/createDefaultAssetAccess.ts";
 import { FsAssetAccess } from "../base/node/assets/fsAssetAccess.ts";
-import type { IAssetAccess } from "../base/common/assets/iAssetAccess.ts";
 import { isPackagedRuntime } from "../base/node/assets/packagedRuntime.ts";
-import type { ICliArgs } from "../platform/environment/node/cliArgs.ts";
-import { CliArgsError, parseCliArgs, USAGE } from "../platform/environment/node/cliArgs.ts";
-import { Size } from "../base/common/geometryPromitives.ts";
-import { LogService } from "../platform/log/common/logService.ts";
-import { FileSink } from "../platform/log/node/fileSink.ts";
-import { RingBufferSink } from "../platform/log/common/ringBufferSink.ts";
-import { OscClipboard } from "../platform/clipboard/common/oscClipboard.ts";
-import { resolveUserDataPaths } from "../platform/environment/node/userDataPaths.ts";
-import { VEXX_VERSION } from "../base/common/version.ts";
-import { ConfigurationRegistry } from "../platform/configuration/common/configurationRegistry.ts";
-import { loadConfiguration } from "../platform/configuration/node/configurationService.ts";
-import { loadUserKeybindings } from "../platform/keybinding/node/keybindingsService.ts";
-import { loadState } from "../platform/state/node/stateService.ts";
 import type { ILanguageService } from "../editor/common/languages/iLanguageService.ts";
 import { TokenizationRegistry } from "../editor/common/languages/tokenizationRegistry.ts";
-import { installVsix, listInstalledExtensions, uninstallExtension } from "../platform/extensionManagement/node/extensionInstaller.ts";
+import { OscClipboard } from "../platform/clipboard/common/oscClipboard.ts";
+import { ConfigurationRegistry } from "../platform/configuration/common/configurationRegistry.ts";
+import { loadConfiguration } from "../platform/configuration/node/configurationService.ts";
+import type { ICliArgs } from "../platform/environment/node/cliArgs.ts";
+import { CliArgsError, parseCliArgs, USAGE } from "../platform/environment/node/cliArgs.ts";
+import { resolveUserDataPaths } from "../platform/environment/node/userDataPaths.ts";
+import {
+    installVsix,
+    listInstalledExtensions,
+    uninstallExtension,
+} from "../platform/extensionManagement/node/extensionInstaller.ts";
 import { scanExtensions } from "../platform/extensions/common/extensionScanner.ts";
+import type {
+    ICommandContribution,
+    IConfigurationContribution,
+} from "../platform/extensions/common/iExtensionManifest.ts";
+import { mergeExtensions } from "../platform/extensions/common/mergeExtensions.ts";
+import { ChokidarFileWatcher } from "../platform/files/node/chokidarFileWatcher.ts";
+import { loadUserKeybindings } from "../platform/keybinding/node/keybindingsService.ts";
+import { LogService } from "../platform/log/common/logService.ts";
+import { RingBufferSink } from "../platform/log/common/ringBufferSink.ts";
+import { FileSink } from "../platform/log/node/fileSink.ts";
+import { loadState } from "../platform/state/node/stateService.ts";
+import { HeadlessCaptureBackend } from "../tui/backend/headlessCaptureBackend.ts";
+import { NodeTerminalBackend } from "../tui/backend/nodeTerminalBackend.ts";
+import { WorkbenchComponentDIToken } from "../workbench/browser/workbenchComponent.ts";
+import { CONFIGURATION_CONTRIBUTIONS } from "../workbench/common/configuration/configurationContributions.ts";
+import { TuiApplicationDIToken } from "../workbench/common/coreTokens.ts";
+import { EditorServiceDIToken } from "../workbench/services/editor/browser/editorService.ts";
 import { ExtensionTokenizationContributor } from "../workbench/services/extensions/common/extensionTokenizationContributor.ts";
 import { ExtensionHostDIToken } from "../workbench/services/extensions/node/extensionHost.ts";
 import { runExtensionHostSubprocess } from "../workbench/services/extensions/node/extensionHostSubprocess.ts";
 import type { IExtensionRegistration } from "../workbench/services/extensions/node/iExtensionEntry.ts";
-import type { ICommandContribution, IConfigurationContribution } from "../platform/extensions/common/iExtensionManifest.ts";
 import { LanguageRegistry } from "../workbench/services/language/common/languageRegistry.ts";
-import { mergeExtensions } from "../platform/extensions/common/mergeExtensions.ts";
-import { attachInspector } from "../../Inspector/index.ts";
-import type { InspectorDriver } from "../../Inspector/InspectorDriver.ts";
 import { createBuiltinThemeRegistry } from "../workbench/services/themes/common/themeRegistry.ts";
 import { DEFAULT_COLOR_THEME } from "../workbench/services/themes/common/themes/builtinThemes.ts";
 import { ThemeServiceDIToken } from "../workbench/services/themes/common/themeTokens.ts";
 import { TokenThemeResolver } from "../workbench/services/themes/common/tokenThemeResolver.ts";
-import { TuiApplication } from "../base/browser/tuiApplication.ts";
-import { WorkbenchComponentDIToken } from "../workbench/browser/workbenchComponent.ts";
-import { CONFIGURATION_CONTRIBUTIONS } from "../workbench/common/configuration/configurationContributions.ts";
+
 import { createProductionContainer } from "./modules/productionProfile.ts";
-import { ChokidarFileWatcher } from "../platform/files/node/chokidarFileWatcher.ts";
-import { TuiApplicationDIToken } from "../workbench/common/coreTokens.ts";
-import { EditorServiceDIToken } from "../workbench/services/editor/browser/editorService.ts";
 
 // ── Subprocess branch ─────────────────────────────────────
 // Если форкнул себя ExtensionHost'ом — уходим в subprocess entry до любых

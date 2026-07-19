@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { createCursorSelection } from "../core/iSelection.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 function makeDoc(lineCount: number): TextDocument {
     const lines = Array.from({ length: lineCount }, (_, i) => `line ${String(i)}`);

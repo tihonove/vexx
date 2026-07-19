@@ -1,7 +1,6 @@
-import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
-import { parseChord, parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
-
 import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import { parseChord, parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
+import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
 
 export const foldAction: CommandAction = {
     id: "editor.fold",

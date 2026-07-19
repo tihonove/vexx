@@ -1,9 +1,9 @@
 import * as path from "node:path";
 
+import type { ITreeDataProvider, ITreeItem } from "../../../../base/browser/ui/tree/iTreeDataProvider.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import type { IMarker } from "../../../../platform/markers/common/iMarker.ts";
 import { MarkerSeverity } from "../../../../platform/markers/common/iMarker.ts";
-import type { ITreeDataProvider, ITreeItem } from "../../../../base/browser/ui/tree/iTreeDataProvider.ts";
 
 /**
  * Короткая метка ресурса для узла-файла. Ресурс маркера — `uri.toString()`, поэтому

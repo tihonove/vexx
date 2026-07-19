@@ -11,10 +11,10 @@
  * Ctrl+C: выход
  */
 
-import { Point, Size } from "../vs/base/common/geometryPromitives.ts";
 import { packRgb } from "../vs/base/common/colorUtils.ts";
-import { Grid } from "../vs/tui/rendering/grid.ts";
+import { Point, Size } from "../vs/base/common/geometryPromitives.ts";
 import { StyleFlags } from "../vs/base/common/styleFlags.ts";
+import { Grid } from "../vs/tui/rendering/grid.ts";
 import { TerminalRenderer } from "../vs/tui/rendering/terminalRenderer.ts";
 
 // ── Theme: VS Code Dark Modern ───────────────────────────────────

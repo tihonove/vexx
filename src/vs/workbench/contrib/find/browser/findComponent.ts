@@ -1,18 +1,18 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { Point } from "../../../../base/common/geometryPromitives.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-import { BoxContainerElement } from "../../../../base/browser/ui/layout/boxContainerElement.ts";
 import type { IButtonStyles } from "../../../../base/browser/ui/button/buttonElement.ts";
 import { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
-import type { EditorGroupElement } from "../../../../base/browser/ui/editorgroup/editorGroupElement.ts";
-import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "../../../../base/browser/ui/layout/hFlexElement.ts";
-import { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
+import type { EditorGroupElement } from "../../../../base/browser/ui/editorgroup/editorGroupElement.ts";
+import { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
+import { BoxContainerElement } from "../../../../base/browser/ui/layout/boxContainerElement.ts";
+import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "../../../../base/browser/ui/layout/hFlexElement.ts";
 import { SizedBoxElement } from "../../../../base/browser/ui/layout/sizedBoxElement.ts";
 import { TextLabelElement } from "../../../../base/browser/ui/text/textLabelElement.ts";
-import { ThemedComponent } from "../../../browser/component.ts";
+import { Point } from "../../../../base/common/geometryPromitives.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { getFindWidgetStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
+import { ThemedComponent } from "../../../browser/component.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 
 export const FindComponentDIToken = token<FindComponent>("FindComponent");
 

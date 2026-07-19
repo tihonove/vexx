@@ -1,15 +1,15 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable } from "../../../../base/common/disposable.ts";
-import { findMatches } from "../../../../editor/contrib/find/findMatches.ts";
 import type { IPosition } from "../../../../editor/common/core/iPosition.ts";
 import { comparePositions } from "../../../../editor/common/core/iPosition.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import { createSelection } from "../../../../editor/common/core/iSelection.ts";
-import type { FindComponent } from "./findComponent.ts";
-import { FindComponentDIToken } from "./findComponent.ts";
-
+import { findMatches } from "../../../../editor/contrib/find/findMatches.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
+
+import type { FindComponent } from "./findComponent.ts";
+import { FindComponentDIToken } from "./findComponent.ts";
 
 export const FindServiceDIToken = token<FindService>("FindService");
 

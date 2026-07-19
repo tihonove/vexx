@@ -1,20 +1,23 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { createRequire } from "node:module";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
-import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
 import { Uri } from "../../../../base/common/uri.ts";
-import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
-import type { ICompletionRequest, ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
-import type { ISaveEdit, ISaveSnapshot } from "../../textfile/common/iSaveParticipant.ts";
-
+import type { ICompletionRequest, ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
+import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
 import type { ICommandService } from "../../../api/common/iCommandService.ts";
-import { type IEditorDecorationsService, NULL_EDITOR_DECORATIONS_SERVICE } from "../../../api/common/iEditorDecorationsService.ts";
+import {
+    type IEditorDecorationsService,
+    NULL_EDITOR_DECORATIONS_SERVICE,
+} from "../../../api/common/iEditorDecorationsService.ts";
 import type { IEditorOptionsPatch, IEditorOptionsService } from "../../../api/common/iEditorOptionsService.ts";
-import type { IExtensionRegistration } from "./iExtensionEntry.ts";
-import { type IFileDecorationsService, NULL_FILE_DECORATIONS_SERVICE } from "../../../api/common/iFileDecorationsService.ts";
+import {
+    type IFileDecorationsService,
+    NULL_FILE_DECORATIONS_SERVICE,
+} from "../../../api/common/iFileDecorationsService.ts";
 import type { IIpcEndpoint } from "../../../api/common/ipcMessageChannel.ts";
 import { IpcMessageChannel } from "../../../api/common/ipcMessageChannel.ts";
 import { type IThemeColorResolver, NULL_THEME_COLOR_RESOLVER } from "../../../api/common/iThemeColorResolver.ts";
@@ -27,6 +30,9 @@ import {
     type SerializedDecorationRenderOptions,
     themeColorIdOf,
 } from "../../../api/common/wireTypes.ts";
+import type { ISaveEdit, ISaveSnapshot } from "../../textfile/common/iSaveParticipant.ts";
+
+import type { IExtensionRegistration } from "./iExtensionEntry.ts";
 
 export const ExtensionHostDIToken = token<ExtensionHost>("ExtensionHost");
 

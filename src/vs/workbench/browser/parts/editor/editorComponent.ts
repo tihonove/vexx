@@ -1,24 +1,24 @@
-import type { IDisposable } from "../../../../base/common/disposable.ts";
-import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
-import type { IEditorStyles } from "../../../../editor/browser/editorElement.ts";
-import { EditorElement, unthemedEditorStyles } from "../../../../editor/browser/editorElement.ts";
-import { EditorViewState } from "../../../../editor/common/viewModel/editorViewState.ts";
-import { computeIndentationFolds } from "../../../../editor/contrib/folding/foldingRangeProvider.ts";
-import type { IRange } from "../../../../editor/common/core/iRange.ts";
-import type { IUndoElement } from "../../../../editor/common/model/iUndoElement.ts";
-import type { IMarkerDecoration } from "../../../../platform/markers/common/iMarker.ts";
-import { PlainTextTokenizer } from "../../../../editor/common/languages/builtin/plainTextTokenizer.ts";
-import { DocumentTokenStore } from "../../../../editor/common/tokens/documentTokenStore.ts";
-import type { ITokenizationSupport } from "../../../../editor/common/languages/iTokenizationSupport.ts";
-import type { ITokenStyleResolver } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
-import type { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import type { OverlayAnchorPosition } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
 import type { MenuEntry } from "../../../../base/browser/ui/menu/popupMenuElement.ts";
 import { ScrollBarDecorator } from "../../../../base/browser/ui/scrollbar/scrollContainerElement.ts";
-import { ThemedComponent } from "../../component.ts";
-import type { TextFileModel } from "../../../services/textfile/common/textFileModel.ts";
+import type { IDisposable } from "../../../../base/common/disposable.ts";
+import type { IEditorStyles } from "../../../../editor/browser/editorElement.ts";
+import { EditorElement, unthemedEditorStyles } from "../../../../editor/browser/editorElement.ts";
+import type { IRange } from "../../../../editor/common/core/iRange.ts";
+import { PlainTextTokenizer } from "../../../../editor/common/languages/builtin/plainTextTokenizer.ts";
+import type { ITokenizationSupport } from "../../../../editor/common/languages/iTokenizationSupport.ts";
+import type { ITokenStyleResolver } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
+import type { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
+import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
+import type { IUndoElement } from "../../../../editor/common/model/iUndoElement.ts";
+import { DocumentTokenStore } from "../../../../editor/common/tokens/documentTokenStore.ts";
+import { EditorViewState } from "../../../../editor/common/viewModel/editorViewState.ts";
+import { computeIndentationFolds } from "../../../../editor/contrib/folding/foldingRangeProvider.ts";
+import type { IMarkerDecoration } from "../../../../platform/markers/common/iMarker.ts";
 import { getEditorStyles, getScrollBarStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
+import type { TextFileModel } from "../../../services/textfile/common/textFileModel.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemedComponent } from "../../component.ts";
 
 /**
  * View-обвязка одного открытого файла: владеет `EditorElement` (+ его view-state и

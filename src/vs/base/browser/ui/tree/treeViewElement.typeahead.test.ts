@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Size } from "../../../common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { Size } from "../../../common/geometryPromitives.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";
 import { TreeViewElement } from "./treeViewElement.ts";

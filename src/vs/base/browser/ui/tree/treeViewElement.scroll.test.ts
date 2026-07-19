@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { packRgb } from "../../../common/colorUtils.ts";
+import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";
 import { TreeViewElement } from "./treeViewElement.ts";

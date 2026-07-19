@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../../common/geometryPromitives.ts";
+import { TestApp } from "../../../../../TestUtils/TestApp.ts";
 import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
 import { packRgb } from "../../../common/colorUtils.ts";
-import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { Point, Size } from "../../../common/geometryPromitives.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";
 import { TreeViewElement, unthemedTreeViewStyles } from "./treeViewElement.ts";

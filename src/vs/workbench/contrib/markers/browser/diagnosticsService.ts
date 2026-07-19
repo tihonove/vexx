@@ -1,14 +1,13 @@
 import * as path from "node:path";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import type { ConfigurationRegistry } from "../../../../platform/configuration/common/configurationRegistry.ts";
 import { ConfigurationRegistryDIToken } from "../../../../platform/configuration/common/configurationRegistryDIToken.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { IMarkerDecoration } from "../../../../platform/markers/common/iMarker.ts";
 import type { MarkerService } from "../../../../platform/markers/common/markerService.ts";
 import { MarkerServiceDIToken, SettingsResourceDIToken } from "../../../common/coreTokens.ts";
-
 import { collectKnownSettingKeys, validateSettingsJson } from "../../preferences/common/settingsDiagnostics.ts";
 
 /** Marker owner used by the built-in settings.json validator. */

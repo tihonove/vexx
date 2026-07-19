@@ -1,20 +1,20 @@
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import type { IDisposable } from "../../../../base/common/disposable.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
-import { EditorViewState } from "../../../../editor/common/viewModel/editorViewState.ts";
 import type { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
-import { TextDocument } from "../../../../editor/common/model/textDocument.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { TextDocument } from "../../../../editor/common/model/textDocument.ts";
+import { EditorViewState } from "../../../../editor/common/viewModel/editorViewState.ts";
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
-import type { IActiveEditorStatus, IActiveEditorStatusSource } from "../editor/editorStatusContribution.ts";
-import { EditorStatusContribution } from "../editor/editorStatusContribution.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { StatusBarService } from "../../../services/statusbar/common/statusBarService.ts";
 import { TerminalEnvironmentService } from "../../../services/terminalEnvironment/node/terminalEnvironmentService.ts";
 import { TerminalEnvStatusContribution } from "../../../services/terminalEnvironment/node/terminalEnvStatusContribution.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
+import type { IActiveEditorStatus, IActiveEditorStatusSource } from "../editor/editorStatusContribution.ts";
+import { EditorStatusContribution } from "../editor/editorStatusContribution.ts";
 
 import { StatusBarComponent } from "./statusBarComponent.ts";
 

@@ -1,5 +1,5 @@
-import type { ITerminalBackend } from "../../../../tui/backend/iTerminalBackend.ts";
 import type { ContainerModule } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { ITerminalBackend } from "../../../../tui/backend/iTerminalBackend.ts";
 import { TerminalBackendDIToken } from "../../../common/coreTokens.ts";
 
 import { TerminalEnvironmentService, TerminalEnvironmentServiceDIToken } from "./terminalEnvironmentService.ts";

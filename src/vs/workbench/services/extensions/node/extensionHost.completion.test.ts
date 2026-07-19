@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { Uri } from "../../../../base/common/uri.ts";
 import { createExtensionTestHarness, extensionFixture } from "../../../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../../../TestUtils/timing.ts";
+import { Uri } from "../../../../base/common/uri.ts";
 
 const REQ = {
     uri: Uri.file("/proj/.editorconfig").toString(),

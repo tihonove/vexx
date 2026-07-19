@@ -1,7 +1,7 @@
-import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import type { ILanguageService } from "../../editor/common/languages/iLanguageService.ts";
 import type { ITokenStyleResolver } from "../../editor/common/languages/iTokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../editor/common/languages/tokenizationRegistry.ts";
+import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import {
     LanguageServiceDIToken,
     TokenizationRegistryDIToken,

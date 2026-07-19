@@ -1,10 +1,10 @@
-import type { ITerminalBackend } from "../backend/iTerminalBackend.ts";
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-
 import { DEFAULT_COLOR } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
+import { StyleFlags } from "../../base/common/styleFlags.ts";
+import type { ITerminalBackend } from "../backend/iTerminalBackend.ts";
+
 import type { CellPatch } from "./grid.ts";
 import { Grid } from "./grid.ts";
-import { StyleFlags } from "../../base/common/styleFlags.ts";
 
 export class TerminalScreen {
     private grid: Grid;

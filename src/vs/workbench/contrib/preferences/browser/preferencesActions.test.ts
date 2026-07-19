@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { Container } from "../../../../platform/instantiation/common/diContainer.ts";
+import { registerAction } from "../../../../platform/actions/common/commandAction.ts";
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
+import { Container } from "../../../../platform/instantiation/common/diContainer.ts";
 import { formatKeybinding, KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
 
-import { registerAction } from "../../../../platform/actions/common/commandAction.ts";
 import { openKeybindingsAction, openSettingsAction } from "./preferencesActions.ts";
 
 describe("PreferencesActions", () => {

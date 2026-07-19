@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createRange } from "../core/iRange.ts";
 import { createTextEdit } from "../core/iTextEdit.ts";
+
 import { TextDocument } from "./textDocument.ts";
 
 describe("TextDocument.applyEdits — same-start tie-breaking", () => {

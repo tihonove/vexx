@@ -1,5 +1,5 @@
-import type { Token } from "../../platform/instantiation/common/diContainer.ts";
 import type { IDisposable } from "../../base/common/disposable.ts";
+import type { Token } from "../../platform/instantiation/common/diContainer.ts";
 
 /**
  * Workbench-contribution — самодостаточная единица фич-проводки поверх сервисов

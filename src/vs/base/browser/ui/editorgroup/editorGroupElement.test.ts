@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { getFileIcon } from "../../../common/fileIcons.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-
+import { packRgb } from "../../../common/colorUtils.ts";
+import { getFileIcon } from "../../../common/fileIcons.ts";
+import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import { BodyElement } from "../body/bodyElement.ts";
 import { BoxElement } from "../layout/boxElement.ts";
+
 import { EditorGroupElement } from "./editorGroupElement.ts";
 
 function layoutGroup(group: EditorGroupElement, width = 40, height = 10): void {

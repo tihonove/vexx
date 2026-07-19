@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import type { MenuEntry, MenuItemEntry } from "../../../../base/browser/ui/menu/popupMenuElement.ts";
-import type { EditorPane } from "./editorPane.ts";
-import { MENU_CONTRIBUTIONS } from "../../actions/menuContributions.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import { MenuRegistry } from "../../../../platform/actions/common/menuRegistry.ts";
 import { MenuService } from "../../../../platform/actions/common/menuService.ts";
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
-import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 import { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import type { EditorService } from "../../../services/editor/browser/editorService.ts";
+import { MENU_CONTRIBUTIONS } from "../../actions/menuContributions.ts";
 
 import { EditorContextMenuContribution } from "./editorContextMenuContribution.ts";
+import type { EditorPane } from "./editorPane.ts";
 
 class FakeEditorService {
     public onEditorCreate?: (pane: EditorPane) => void;

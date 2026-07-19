@@ -1,8 +1,8 @@
 import type { IPosition } from "../../common/core/iPosition.ts";
 import type { IRange } from "../../common/core/iRange.ts";
 import { createRange } from "../../common/core/iRange.ts";
-import type { ITextDocument } from "../../common/model/iTextDocument.ts";
 import { findWordRangeAt, isWordChar } from "../../common/core/wordClassification.ts";
+import type { ITextDocument } from "../../common/model/iTextDocument.ts";
 
 /**
  * Computes the ranges of every occurrence of the word under `position`, to be

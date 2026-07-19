@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createDevAssetAccess } from "../../../../base/node/assets/createDefaultAssetAccess.ts";
 import { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-
 import { scanBuiltinExtensions } from "../../../../platform/extensions/common/extensionScanner.ts";
+
 import { ExtensionTokenizationContributor } from "./extensionTokenizationContributor.ts";
 
 const ROOT_PREFIX = "Extensions/builtin/";

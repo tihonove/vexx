@@ -3,19 +3,19 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { NULL_FILE_WATCHER } from "../../../../platform/files/common/iFileWatcher.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
+import { NULL_FILE_WATCHER } from "../../../../platform/files/common/iFileWatcher.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
+import { EditorService } from "../../../services/editor/browser/editorService.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import { EditorService } from "../../../services/editor/browser/editorService.ts";
-import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 
 import { EditorGroupComponent } from "./editorGroupComponent.ts";
 

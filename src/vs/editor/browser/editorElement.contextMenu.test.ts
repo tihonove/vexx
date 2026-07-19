@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
 import { PopupMenuElement } from "../../base/browser/ui/menu/popupMenuElement.ts";
 import { unthemedMenuStyles } from "../../base/browser/ui/menu/popupMenuItemElement.tsx";
-
-import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { createCursorSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+
+import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
 
 function createEditor(text: string, width = 40, height = 10): { app: TestApp; editor: EditorElement } {
     const doc = new TextDocument(text);

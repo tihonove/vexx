@@ -1,18 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../../../../base/common/geometryPromitives.ts";
-import { Uri } from "../../../../base/common/uri.ts";
-import type { ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
-import type { ITextEdit } from "../../../../editor/common/core/iTextEdit.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
 import { TUIMouseEvent } from "../../../../base/browser/events/tuiMouseEvent.ts";
 import { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
-import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
-import { SuggestComponent } from "./suggestComponent.ts";
-
+import { Size } from "../../../../base/common/geometryPromitives.ts";
+import { Uri } from "../../../../base/common/uri.ts";
+import type { ITextEdit } from "../../../../editor/common/core/iTextEdit.ts";
+import type { ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
-import { CompletionService } from "./completionService.ts";
+import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
+
+import { CompletionService } from "./completionService.ts";
+import { SuggestComponent } from "./suggestComponent.ts";
 
 interface FakeEditor {
     editor: EditorPane;

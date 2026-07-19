@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Offset, Point, Size } from "../common/geometryPromitives.ts";
 import { renderElement } from "../../../TestUtils/renderElement.ts";
+import { BoxConstraints, Offset, Point, Size } from "../common/geometryPromitives.ts";
 
 import { CompositeElement } from "./compositeElement.ts";
 import type { ComponentType, JsxNode } from "./jsx/jsx-runtime.ts";

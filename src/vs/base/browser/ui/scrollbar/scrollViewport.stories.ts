@@ -1,8 +1,8 @@
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
+import { TextBlockElement } from "../text/textBlockElement.ts";
 
 import { ScrollBarDecorator } from "./scrollContainerElement.ts";
 import { ScrollViewport } from "./scrollViewport.ts";
-import { TextBlockElement } from "../text/textBlockElement.ts";
 
 export const meta: StoryMeta = {
     title: "ScrollViewport",

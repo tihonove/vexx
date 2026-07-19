@@ -3,28 +3,28 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { TUIMouseEvent } from "../../../../base/browser/events/tuiMouseEvent.ts";
+import { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
+import type { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
 import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
-import { NULL_FILE_WATCHER } from "../../../../platform/files/common/iFileWatcher.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
 import { createSelection } from "../../../../editor/common/core/iSelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
-import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
+import { NULL_FILE_WATCHER } from "../../../../platform/files/common/iFileWatcher.ts";
 import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import { TUIMouseEvent } from "../../../../base/browser/events/tuiMouseEvent.ts";
-import { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
-import type { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
+import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 import { EditorGroupComponent } from "../../../browser/parts/editor/editorGroupComponent.ts";
 import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
-import { FindComponent } from "./findComponent.ts";
-
 import { EditorService } from "../../../services/editor/browser/editorService.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
+
+import { FindComponent } from "./findComponent.ts";
 import { FindService } from "./findService.ts";
-import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 
 function makeGroup(): {
     group: EditorService;

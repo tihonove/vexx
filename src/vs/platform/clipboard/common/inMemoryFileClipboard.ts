@@ -1,4 +1,5 @@
 import type { IDisposable } from "../../../base/common/disposable.ts";
+
 import type { FileClipboardEntry, FileClipboardMode, IFileClipboard } from "./iFileClipboard.ts";
 
 export class InMemoryFileClipboard implements IFileClipboard {

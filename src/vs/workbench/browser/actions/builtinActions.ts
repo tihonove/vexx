@@ -1,6 +1,53 @@
+import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import {
+    fileOpenAction,
+    fileOpenFolderAction,
+    fileSaveAction,
+    fileSaveAsAction,
+    newUntitledFileAction,
+} from "../../contrib/files/browser/fileActions.ts";
+import {
+    fileDeleteAction,
+    fileRedoAction,
+    fileRenameAction,
+    fileUndoAction,
+    refreshExplorerAction,
+    showExplorerContextMenuAction,
+} from "../../contrib/files/browser/fileTreeActions.ts";
+import {
+    fileCopyAction,
+    fileCopyPathAction,
+    fileCopyRelativePathAction,
+    fileCutAction,
+    filePasteAction,
+} from "../../contrib/files/browser/fileTreeClipboardActions.ts";
+import { explorerNewFileAction, explorerNewFolderAction } from "../../contrib/files/browser/fileTreeCreateActions.ts";
+import {
+    closeFindWidgetAction,
+    findAction,
+    nextMatchAction,
+    previousMatchAction,
+} from "../../contrib/find/browser/findActions.ts";
+import { openKeybindingsAction, openSettingsAction } from "../../contrib/preferences/browser/preferencesActions.ts";
+import {
+    gotoLineAction,
+    quickOpenAction,
+    showCommandsAction,
+} from "../../contrib/quickaccess/browser/quickOpenActions.ts";
+import {
+    acceptSelectedSuggestionAction,
+    hideSuggestWidgetAction,
+    selectNextPageSuggestionAction,
+    selectNextSuggestionAction,
+    selectPrevPageSuggestionAction,
+    selectPrevSuggestionAction,
+    triggerSuggestAction,
+} from "../../contrib/suggest/browser/suggestActions.ts";
+import { newTerminalAction, toggleTerminalAction } from "../../contrib/terminal/browser/terminalActions.ts";
+import { selectThemeAction } from "../../contrib/themes/browser/themeActions.ts";
+
 import { quitAction, showAboutDialogAction } from "./appActions.ts";
 import { clipboardCopyAction, clipboardCutAction, clipboardPasteAction } from "./clipboardActions.ts";
-import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 import { showEditorContextMenuAction } from "./contextMenuActions.ts";
 import {
     cursorBottomAction,
@@ -43,30 +90,6 @@ import {
 } from "./editorEditActions.ts";
 import { changeEncodingAction } from "./encodingActions.ts";
 import { changeEolAction, convertToCrlfAction, convertToLfAction, toggleEolAction } from "./eolActions.ts";
-import {
-    fileOpenAction,
-    fileOpenFolderAction,
-    fileSaveAction,
-    fileSaveAsAction,
-    newUntitledFileAction,
-} from "../../contrib/files/browser/fileActions.ts";
-import {
-    fileDeleteAction,
-    fileRedoAction,
-    fileRenameAction,
-    fileUndoAction,
-    refreshExplorerAction,
-    showExplorerContextMenuAction,
-} from "../../contrib/files/browser/fileTreeActions.ts";
-import {
-    fileCopyAction,
-    fileCopyPathAction,
-    fileCopyRelativePathAction,
-    fileCutAction,
-    filePasteAction,
-} from "../../contrib/files/browser/fileTreeClipboardActions.ts";
-import { explorerNewFileAction, explorerNewFolderAction } from "../../contrib/files/browser/fileTreeCreateActions.ts";
-import { closeFindWidgetAction, findAction, nextMatchAction, previousMatchAction } from "../../contrib/find/browser/findActions.ts";
 import {
     foldAction,
     foldAllAction,
@@ -119,20 +142,7 @@ import {
     listFocusPageDownAction,
     listFocusPageUpAction,
 } from "./listActions.ts";
-import { openKeybindingsAction, openSettingsAction } from "../../contrib/preferences/browser/preferencesActions.ts";
-import { gotoLineAction, quickOpenAction, showCommandsAction } from "../../contrib/quickaccess/browser/quickOpenActions.ts";
-import {
-    acceptSelectedSuggestionAction,
-    hideSuggestWidgetAction,
-    selectNextPageSuggestionAction,
-    selectNextSuggestionAction,
-    selectPrevPageSuggestionAction,
-    selectPrevSuggestionAction,
-    triggerSuggestAction,
-} from "../../contrib/suggest/browser/suggestActions.ts";
 import { closeActiveEditorAction, nextEditorInGroupAction, previousEditorInGroupAction } from "./tabActions.ts";
-import { newTerminalAction, toggleTerminalAction } from "../../contrib/terminal/browser/terminalActions.ts";
-import { selectThemeAction } from "../../contrib/themes/browser/themeActions.ts";
 import { insertFinalNewLineAction, trimTrailingWhitespaceAction } from "./whitespaceActions.ts";
 
 /**

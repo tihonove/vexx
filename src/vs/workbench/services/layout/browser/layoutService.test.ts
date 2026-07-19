@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { resolveUserDataPaths } from "../../../../platform/environment/node/userDataPaths.ts";
-import { loadState, StateService } from "../../../../platform/state/node/stateService.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { WorkbenchLayoutElement } from "../../../../base/browser/ui/workbenchlayout/workbenchLayoutElement.ts";
-
 import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
-import { LayoutService } from "./layoutService.ts";
+import { resolveUserDataPaths } from "../../../../platform/environment/node/userDataPaths.ts";
+import { loadState, StateService } from "../../../../platform/state/node/stateService.ts";
 import { PanelService } from "../../../browser/parts/panel/panelService.ts";
-import { PANEL_HEIGHT_STATE, PANEL_VISIBLE_STATE, SIDEBAR_VISIBLE_STATE, SIDEBAR_WIDTH_STATE } from "../../../common/stateKeys.ts";
+import {
+    PANEL_HEIGHT_STATE,
+    PANEL_VISIBLE_STATE,
+    SIDEBAR_VISIBLE_STATE,
+    SIDEBAR_WIDTH_STATE,
+} from "../../../common/stateKeys.ts";
+
+import { LayoutService } from "./layoutService.ts";
 
 describe("LayoutService", () => {
     let ws: ITempWorkspace;

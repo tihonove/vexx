@@ -22,6 +22,8 @@ describe("Workbench contributions", () => {
     });
 
     it("runEventuallyPhase не падает при пустой фазе Eventually", () => {
-        expect(() => h.workbench.runEventuallyPhase()).not.toThrow();
+        expect(() => {
+            h.workbench.runEventuallyPhase();
+        }).not.toThrow();
     });
 });

@@ -1,5 +1,4 @@
 import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { isInsideTmux } from "./terminalEnv.ts";
 import type { KeyPressEvent } from "../input/keyEvent.ts";
 import { KeyInputParser } from "../input/keyInputParser.ts";
 import { MOUSE_TRACKING_ALL_ENABLE, MOUSE_TRACKING_DISABLE } from "../input/mouseTracking.ts";
@@ -8,6 +7,7 @@ import { Grid } from "../rendering/grid.ts";
 import { TerminalRenderer } from "../rendering/terminalRenderer.ts";
 
 import type { ITerminalBackend } from "./iTerminalBackend.ts";
+import { isInsideTmux } from "./terminalEnv.ts";
 
 /**
  * Kitty Keyboard Protocol escape sequences.
@@ -76,7 +76,6 @@ const PARTIAL_INPUT_FLUSH_MS = 50;
  * See: https://github.com/tmux/tmux/wiki/FAQ#what-is-the-passthrough-escape-sequence-and-how-do-i-use-it
  */
 function wrapForTmux(sequence: string): string {
-    // eslint-disable-next-line no-control-regex
     const escaped = sequence.replace(/\x1b/g, "\x1b\x1b");
     return `\x1bPtmux;${escaped}\x1b\\`;
 }

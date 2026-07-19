@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-
-import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { createCursorSelection, createSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+
+import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
 
 // Default occurrence-highlight background (DEFAULT_OCCURRENCE_HIGHLIGHT_BG in EditorElement).
 const OCCURRENCE_BG = packRgb(71, 71, 71);

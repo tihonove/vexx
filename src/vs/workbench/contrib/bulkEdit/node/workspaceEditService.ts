@@ -1,14 +1,22 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
-
-import { copyInto, moveInto, moveToPath, resolveNonConflictingDest } from "../../../../platform/files/node/fileClipboardFs.ts";
-import type { IUndoRedoElement } from "../../../../platform/undoRedo/common/iUndoRedoElement.ts";
+import {
+    copyInto,
+    moveInto,
+    moveToPath,
+    resolveNonConflictingDest,
+} from "../../../../platform/files/node/fileClipboardFs.ts";
 import { TrashService, TrashServiceDIToken } from "../../../../platform/files/node/trashService.ts";
-import { UndoRedoService, UndoRedoServiceDIToken, WORKSPACE_UNDO_CONTEXT } from "../../../../platform/undoRedo/common/undoRedoService.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { IUndoRedoElement } from "../../../../platform/undoRedo/common/iUndoRedoElement.ts";
+import {
+    UndoRedoService,
+    UndoRedoServiceDIToken,
+    WORKSPACE_UNDO_CONTEXT,
+} from "../../../../platform/undoRedo/common/undoRedoService.ts";
 import type { ResourceFileEdit } from "../common/workspaceEdit.ts";
 
 interface ReversibleOp {

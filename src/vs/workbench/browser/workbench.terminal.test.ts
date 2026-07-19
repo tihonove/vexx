@@ -4,7 +4,11 @@ import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTe
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { PanelContainerElement } from "../../base/browser/ui/panel/panelContainerElement.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
-import { TERMINAL_VIEW_ID, TerminalService, TerminalServiceDIToken } from "../contrib/terminal/browser/terminalService.ts";
+import {
+    TERMINAL_VIEW_ID,
+    TerminalService,
+    TerminalServiceDIToken,
+} from "../contrib/terminal/browser/terminalService.ts";
 
 const TOGGLE_TERMINAL = "workbench.action.terminal.toggleTerminal";
 const NEW_TERMINAL = "workbench.action.terminal.new";

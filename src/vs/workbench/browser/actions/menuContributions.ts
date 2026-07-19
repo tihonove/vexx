@@ -1,8 +1,12 @@
-import { builtinActions } from "./builtinActions.ts";
 import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
-
-import type { IMenuContribution, ISubmenuContribution, MenuContribution } from "../../../platform/actions/common/iMenuContribution.ts";
+import type {
+    IMenuContribution,
+    ISubmenuContribution,
+    MenuContribution,
+} from "../../../platform/actions/common/iMenuContribution.ts";
 import { MenuId } from "../../../platform/actions/common/menuId.ts";
+
+import { builtinActions } from "./builtinActions.ts";
 
 /**
  * Деривация menu-contributions из co-located размещений экшена
@@ -27,7 +31,13 @@ export function menuItemsOfAction(action: CommandAction): IMenuContribution[] {
 const MENUBAR_SUBMENUS: readonly ISubmenuContribution[] = [
     { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarFileMenu, title: "File", mnemonic: "f", order: 10 },
     { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarEditMenu, title: "Edit", mnemonic: "e", order: 20 },
-    { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarSelectionMenu, title: "Selection", mnemonic: "s", order: 30 },
+    {
+        menuId: MenuId.MenubarMainMenu,
+        submenu: MenuId.MenubarSelectionMenu,
+        title: "Selection",
+        mnemonic: "s",
+        order: 30,
+    },
     { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarViewMenu, title: "View", mnemonic: "v", order: 40 },
     { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarGoMenu, title: "Go", mnemonic: "g", order: 50 },
     { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarHelpMenu, title: "Help", mnemonic: "h", order: 60 },

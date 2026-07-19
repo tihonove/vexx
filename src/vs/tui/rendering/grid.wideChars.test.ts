@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_COLOR } from "../../base/common/colorUtils.ts";
 import { Point, Size } from "../../base/common/geometryPromitives.ts";
 
-import { DEFAULT_COLOR } from "../../base/common/colorUtils.ts";
 import { Grid } from "./grid.ts";
 
 describe("Grid — wide character support", () => {

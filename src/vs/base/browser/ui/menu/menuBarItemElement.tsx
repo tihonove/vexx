@@ -3,7 +3,6 @@ import { StyleFlags } from "../../../common/styleFlags.ts";
 import { CompositeElement } from "../../compositeElement.ts";
 import type { JsxNode } from "../../jsx/jsx-runtime.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
-
 import type { StyledChar } from "../text/textLabelElement.ts";
 import { TextLabel } from "../text/textLabelElement.ts";
 

@@ -1,14 +1,15 @@
+import { Disposable } from "../../base/common/disposable.ts";
 import type { ServiceAccessor } from "../../platform/instantiation/common/diContainer.ts";
 import { token } from "../../platform/instantiation/common/diContainer.ts";
-import { Disposable } from "../../base/common/disposable.ts";
-import { ServiceAccessorDIToken } from "./coreTokens.ts";
 
+import { ServiceAccessorDIToken } from "./coreTokens.ts";
 import type { IWorkbenchContributionRegistration, WorkbenchContributionPhase } from "./iWorkbenchContribution.ts";
 
 export const WorkbenchContributionsDIToken =
     token<readonly IWorkbenchContributionRegistration[]>("WorkbenchContributions");
-export const WorkbenchContributionsRegistryDIToken =
-    token<WorkbenchContributionsRegistry>("WorkbenchContributionsRegistry");
+export const WorkbenchContributionsRegistryDIToken = token<WorkbenchContributionsRegistry>(
+    "WorkbenchContributionsRegistry",
+);
 
 /**
  * Реестр workbench-contributions: по фазе инстанцирует свою пачку через DI

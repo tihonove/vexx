@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { createFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
 import { createCursorSelection } from "../core/iSelection.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 // ─── runDetectIndentation early-return ──────────────────────
 

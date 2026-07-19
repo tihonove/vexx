@@ -1,5 +1,4 @@
 import type { ILineTokens } from "./iLineTokens.ts";
-
 import type { IState } from "./iState.ts";
 
 export interface ITokenizationResult {

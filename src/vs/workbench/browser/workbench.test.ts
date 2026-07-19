@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { EditorElement } from "../../editor/browser/editorElement.ts";
 import { createAppTestHarness } from "../../../TestUtils/AppTestHarness.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
 import { TUIKeyboardEvent } from "../../base/browser/events/tuiKeyboardEvent.ts";
 import type { EditorTabStripElement } from "../../base/browser/ui/editorgroup/editorTabStripElement.ts";
 import type { QuickPickElement } from "../../base/browser/ui/quickpick/quickPickElement.ts";
 import type { StatusBarElement } from "../../base/browser/ui/statusbar/statusBarElement.ts";
+import type { EditorElement } from "../../editor/browser/editorElement.ts";
 import { createTestContainer } from "../../vexx/modules/testProfile.ts";
 import { TerminalEnvironmentServiceDIToken } from "../services/terminalEnvironment/node/terminalEnvironmentService.ts";
 

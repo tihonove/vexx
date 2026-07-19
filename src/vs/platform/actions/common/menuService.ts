@@ -1,6 +1,6 @@
-import { token } from "../../instantiation/common/diContainer.ts";
-import { Disposable, type IDisposable } from "../../../base/common/disposable.ts";
 import type { MenuEntry } from "../../../base/browser/ui/menu/popupMenuElement.ts";
+import { Disposable, type IDisposable } from "../../../base/common/disposable.ts";
+import { token } from "../../instantiation/common/diContainer.ts";
 
 import type { MenuId } from "./menuId.ts";
 import type { ISubmenuEntry, MenuRegistry } from "./menuRegistry.ts";

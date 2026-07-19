@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { createAppTestHarness } from "../../../../../TestUtils/AppTestHarness.ts";
-import { StatusBarComponentDIToken } from "../../../browser/parts/statusbar/statusBarComponent.ts";
 import { registerContextKeys } from "../../../../platform/contextkey/common/contextKeys.ts";
 import { ContextKeyServiceDIToken } from "../../../../platform/contextkey/common/contextKeyService.ts";
+import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import { StatusBarComponentDIToken } from "../../../browser/parts/statusbar/statusBarComponent.ts";
 import { TerminalBackendDIToken } from "../../../common/coreTokens.ts";
 
 import { TerminalEnvironmentServiceDIToken } from "./terminalEnvironmentService.ts";

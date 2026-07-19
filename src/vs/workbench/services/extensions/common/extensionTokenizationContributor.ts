@@ -1,12 +1,11 @@
 import { joinVirtualPath } from "../../../../base/common/assets/assetBundleFormat.ts";
 import type { IAssetAccess } from "../../../../base/common/assets/iAssetAccess.ts";
 import type { IDisposable } from "../../../../base/common/disposable.ts";
+import type { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
+import type { IExtension } from "../../../../platform/extensions/common/iExtension.ts";
 import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
 import type { IGrammarRecord } from "../../textMate/common/textMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "../../textMate/common/textMateGrammarLoader.ts";
-import type { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-
-import type { IExtension } from "../../../../platform/extensions/common/iExtension.ts";
 
 /**
  * Применяет вклад расширений в подсветку синтаксиса:

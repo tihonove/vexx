@@ -1,13 +1,12 @@
 import * as fs from "node:fs";
 
-import { token } from "../../platform/instantiation/common/diContainer.ts";
 import { Disposable } from "../../base/common/disposable.ts";
+import { token } from "../../platform/instantiation/common/diContainer.ts";
 import type { IStateService } from "../../platform/state/common/iStateService.ts";
-
 import { StateServiceDIToken } from "../common/coreTokens.ts";
+import { OPEN_EDITORS_STATE } from "../common/stateKeys.ts";
 import type { EditorService } from "../services/editor/browser/editorService.ts";
 import { EditorServiceDIToken } from "../services/editor/browser/editorService.ts";
-import { OPEN_EDITORS_STATE } from "../common/stateKeys.ts";
 
 export const WorkbenchStateServiceDIToken = token<WorkbenchStateService>("WorkbenchStateService");
 

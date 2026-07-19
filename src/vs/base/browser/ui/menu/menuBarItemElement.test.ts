@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { Point } from "../../../common/geometryPromitives.ts";
-import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 
 import { ACTIVE_MENU_BG, MENU_BAR_BG, MenuBarFillerElement, MenuBarItemElement } from "./menuBarItemElement.tsx";

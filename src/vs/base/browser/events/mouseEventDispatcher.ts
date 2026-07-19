@@ -1,5 +1,5 @@
-import { Point } from "../../common/geometryPromitives.ts";
 import type { MouseToken } from "../../../tui/input/rawTerminalToken.ts";
+import { Point } from "../../common/geometryPromitives.ts";
 import type { TUIElement } from "../tuiElement.ts";
 
 import type { TUIMouseEventInit, TUIMouseEventType, WheelDirection } from "./tuiMouseEvent.ts";

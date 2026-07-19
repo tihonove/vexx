@@ -3,16 +3,19 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { resolveUserDataPaths } from "../../platform/environment/node/userDataPaths.ts";
+import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import type {
+    IConfigurationChangeEvent,
+    IConfigurationService,
+} from "../../platform/configuration/common/iConfigurationService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../platform/configuration/common/nullConfigurationService.ts";
 import {
     type ConfigurationService,
     createConfigurationChangeEvent,
     loadConfiguration,
 } from "../../platform/configuration/node/configurationService.ts";
-import type { IConfigurationChangeEvent, IConfigurationService } from "../../platform/configuration/common/iConfigurationService.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../platform/configuration/common/nullConfigurationService.ts";
-import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import { resolveUserDataPaths } from "../../platform/environment/node/userDataPaths.ts";
 import { ThemeServiceDIToken } from "../services/themes/common/themeTokens.ts";
 
 /** IConfigurationService with a live emitter and a mutable value map (for edge cases). */

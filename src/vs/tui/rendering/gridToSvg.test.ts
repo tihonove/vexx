@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { DEFAULT_COLOR, packRgb } from "../../base/common/colorUtils.ts";
+import { StyleFlags } from "../../base/common/styleFlags.ts";
+
 import type { CellSnapshot, GridSnapshot } from "./gridSnapshot.ts";
 import { gridToSvg } from "./gridToSvg.ts";
-import { StyleFlags } from "../../base/common/styleFlags.ts";
 
 function cell(partial: Partial<CellSnapshot>): CellSnapshot {
     return { char: " ", fg: DEFAULT_COLOR, bg: DEFAULT_COLOR, style: 0, width: 1, ...partial };

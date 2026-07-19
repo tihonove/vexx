@@ -1,13 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
-import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../../../common/coreTokens.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
 import { parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
+import { KeybindingsResourceDIToken, SettingsResourceDIToken } from "../../../common/coreTokens.ts";
 
 /**
  * Opens a user-config file (settings.json / keybindings.json) as an editor tab.

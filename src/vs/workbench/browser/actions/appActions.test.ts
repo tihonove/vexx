@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { registerAction } from "../../../platform/actions/common/commandAction.ts";
+import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
 import type { ServiceAccessor } from "../../../platform/instantiation/common/diContainer.ts";
 import { Container } from "../../../platform/instantiation/common/diContainer.ts";
-import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
 import { KeybindingRegistry } from "../../../platform/keybinding/common/keybindingRegistry.ts";
 
 import { type IQuitHandler, quitAction, QuitHandlerDIToken } from "./appActions.ts";
-import { registerAction } from "../../../platform/actions/common/commandAction.ts";
 
 describe("AppActions — quit", () => {
     it("делегирует выход в QuitHandler (WorkbenchComponent.requestQuit)", () => {

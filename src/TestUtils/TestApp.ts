@@ -1,8 +1,8 @@
-import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
-import { Size } from "../vs/base/common/geometryPromitives.ts";
 import { TuiApplication } from "../vs/base/browser/tuiApplication.ts";
 import type { TUIElement } from "../vs/base/browser/tuiElement.ts";
 import { BodyElement } from "../vs/base/browser/ui/body/bodyElement.ts";
+import { Size } from "../vs/base/common/geometryPromitives.ts";
+import { MockTerminalBackend } from "../vs/tui/backend/mockTerminalBackend.ts";
 
 export class TestApp {
     public readonly backend: MockTerminalBackend;

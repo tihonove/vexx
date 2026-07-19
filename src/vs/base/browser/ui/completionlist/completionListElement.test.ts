@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
+import { packRgb } from "../../../common/colorUtils.ts";
+import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 
 import type { CompletionListItem } from "./completionListElement.ts";

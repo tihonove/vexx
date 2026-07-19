@@ -1,13 +1,13 @@
 import * as path from "node:path";
 
-import { explorerCanPaste, explorerPathArg } from "../../../browser/actions/menuContexts.ts";
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
+import { parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import { explorerCanPaste, explorerPathArg } from "../../../browser/actions/menuContexts.ts";
 import { ClipboardDIToken } from "../../../common/coreTokens.ts";
+
 import { ExplorerServiceDIToken } from "./explorerService.ts";
 import { FileOperationsServiceDIToken } from "./fileOperationsService.ts";
-import { parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 
 /**
  * Команды copy/cut/paste для explorer поверх `FileOperationsService` (файловый

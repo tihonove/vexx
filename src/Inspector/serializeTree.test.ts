@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../vs/base/common/geometryPromitives.ts";
 import { TestApp } from "../TestUtils/TestApp.ts";
 import { BodyElement } from "../vs/base/browser/ui/body/bodyElement.ts";
 import { InputElement } from "../vs/base/browser/ui/inputbox/inputElement.ts";
 import { TextLabelElement } from "../vs/base/browser/ui/text/textLabelElement.ts";
+import { Size } from "../vs/base/common/geometryPromitives.ts";
 
 import type { NodeSnapshot } from "./protocol.ts";
 import { serializeTree } from "./serializeTree.ts";

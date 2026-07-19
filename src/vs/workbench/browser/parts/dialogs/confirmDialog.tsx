@@ -1,11 +1,11 @@
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import type { JsxNode } from "../../../../base/browser/jsx/jsx-runtime.ts";
-import { BoxContainer } from "../../../../base/browser/ui/layout/boxContainerElement.ts";
 import { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
+import { BoxContainer } from "../../../../base/browser/ui/layout/boxContainerElement.ts";
 import { HFlex, hflexFill, hflexFit, hflexFixed } from "../../../../base/browser/ui/layout/hFlexElement.ts";
 import { PaddingContainer } from "../../../../base/browser/ui/layout/paddingContainerElement.ts";
-import { TextLabel } from "../../../../base/browser/ui/text/textLabelElement.ts";
 import { VStack } from "../../../../base/browser/ui/layout/vStackElement.ts";
+import { TextLabel } from "../../../../base/browser/ui/text/textLabelElement.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 
 import type { IDialogStyles } from "./dialogComponent.ts";
 import { DialogComponent } from "./dialogComponent.ts";

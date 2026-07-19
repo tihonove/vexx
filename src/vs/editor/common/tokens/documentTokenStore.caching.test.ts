@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { PlainTextTokenizer } from "../languages/builtin/plainTextTokenizer.ts";
 import { TextDocument } from "../model/textDocument.ts";
 
-import { PlainTextTokenizer } from "../languages/builtin/plainTextTokenizer.ts";
 import { DocumentTokenStore } from "./documentTokenStore.ts";
 
 describe("DocumentTokenStore caching", () => {

@@ -14,19 +14,19 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
+import type { CommandAction } from "../vs/platform/actions/common/commandAction.ts";
+import { formatKeybinding, type Keybinding } from "../vs/platform/keybinding/common/keybindingRegistry.ts";
 import type { KeyPressEvent } from "../vs/tui/input/keyEvent.ts";
 import { KeyInputParser } from "../vs/tui/input/keyInputParser.ts";
 import { tokenize } from "../vs/tui/input/tokenize.ts";
-import type { CommandAction } from "../vs/platform/actions/common/commandAction.ts";
-import { fileSaveAction } from "../vs/workbench/contrib/files/browser/fileActions.ts";
-import { findAction } from "../vs/workbench/contrib/find/browser/findActions.ts";
-import { quickOpenAction, showCommandsAction } from "../vs/workbench/contrib/quickaccess/browser/quickOpenActions.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,
     previousEditorInGroupAction,
 } from "../vs/workbench/browser/actions/tabActions.ts";
-import { formatKeybinding, type Keybinding } from "../vs/platform/keybinding/common/keybindingRegistry.ts";
+import { fileSaveAction } from "../vs/workbench/contrib/files/browser/fileActions.ts";
+import { findAction } from "../vs/workbench/contrib/find/browser/findActions.ts";
+import { quickOpenAction, showCommandsAction } from "../vs/workbench/contrib/quickaccess/browser/quickOpenActions.ts";
 import {
     detectBaseModes,
     detectExtendedKeysHint,

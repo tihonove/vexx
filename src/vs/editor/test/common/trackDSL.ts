@@ -1,17 +1,22 @@
 import { expect } from "vitest";
 
 import { reject } from "../../../base/common/typingUtils.ts";
+import { comparePositions } from "../../common/core/iPosition.ts";
+import type { ISelection } from "../../common/core/iSelection.ts";
+import {
+    createCursorSelection,
+    createSelection,
+    isSelectionCollapsed,
+    selectionToRange,
+} from "../../common/core/iSelection.ts";
+import { PlainTextTokenizer } from "../../common/languages/builtin/plainTextTokenizer.ts";
+import type { ILineTokens } from "../../common/languages/iLineTokens.ts";
+import { createLineTokens, createToken } from "../../common/languages/iLineTokens.ts";
+import { TextDocument } from "../../common/model/textDocument.ts";
+import { DocumentTokenStore } from "../../common/tokens/documentTokenStore.ts";
 import { EditorViewState } from "../../common/viewModel/editorViewState.ts";
 import type { IFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
 import { createFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
-import type { ILineTokens } from "../../common/languages/iLineTokens.ts";
-import { createLineTokens, createToken } from "../../common/languages/iLineTokens.ts";
-import { comparePositions } from "../../common/core/iPosition.ts";
-import type { ISelection } from "../../common/core/iSelection.ts";
-import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "../../common/core/iSelection.ts";
-import { TextDocument } from "../../common/model/textDocument.ts";
-import { PlainTextTokenizer } from "../../common/languages/builtin/plainTextTokenizer.ts";
-import { DocumentTokenStore } from "../../common/tokens/documentTokenStore.ts";
 
 // ─── Constants ──────────────────────────────────────────────
 

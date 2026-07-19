@@ -1,18 +1,18 @@
-import type { IEditorStyles } from "../../../editor/browser/editorElement.ts";
-import { unthemedEditorStyles } from "../../../editor/browser/editorElement.ts";
-import type { IWorkbenchColors } from "../common/colors/colorContributions.ts";
-import type { WorkbenchTheme } from "../common/workbenchTheme.ts";
 import type { IButtonStyles } from "../../../base/browser/ui/button/buttonElement.ts";
 import type { ITabStripStyles } from "../../../base/browser/ui/editorgroup/editorTabStripElement.ts";
-import type { IPanelContainerStyles } from "../../../base/browser/ui/panel/panelContainerElement.ts";
 import type { IMenuStyles } from "../../../base/browser/ui/menu/popupMenuItemElement.tsx";
 import { unthemedMenuStyles } from "../../../base/browser/ui/menu/popupMenuItemElement.tsx";
+import type { IPanelContainerStyles } from "../../../base/browser/ui/panel/panelContainerElement.ts";
 import type { IScrollBarStyles } from "../../../base/browser/ui/scrollbar/scrollContainerElement.ts";
 import type { ITerminalViewStyles } from "../../../base/browser/ui/terminal/terminalViewElement.ts";
 import type { ITreeViewStyles } from "../../../base/browser/ui/tree/treeViewElement.ts";
 import { unthemedTreeViewStyles } from "../../../base/browser/ui/tree/treeViewElement.ts";
+import type { IEditorStyles } from "../../../editor/browser/editorElement.ts";
+import { unthemedEditorStyles } from "../../../editor/browser/editorElement.ts";
 import type { IDialogStyles } from "../../../workbench/browser/parts/dialogs/dialogComponent.ts";
 import type { IFindWidgetStyles } from "../../../workbench/contrib/find/browser/findComponent.ts";
+import type { IWorkbenchColors } from "../common/colors/colorContributions.ts";
+import type { WorkbenchTheme } from "../common/workbenchTheme.ts";
 
 /**
  * Мост тема → стили контролов TUIDom: единственное место, где ключи темы

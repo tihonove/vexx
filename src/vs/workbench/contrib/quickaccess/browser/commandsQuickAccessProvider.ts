@@ -1,11 +1,13 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
 import type { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../../../platform/contextkey/common/contextKeyService.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-import { formatKeybinding, KeybindingRegistryDIToken } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-
+import {
+    formatKeybinding,
+    KeybindingRegistryDIToken,
+} from "../../../../platform/keybinding/common/keybindingRegistry.ts";
 import type { IQuickAccessProvider, QuickAccessItem } from "../common/iQuickAccessProvider.ts";
 
 export const CommandsQuickAccessProviderDIToken = token<CommandsQuickAccessProvider>("CommandsQuickAccessProvider");

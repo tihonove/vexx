@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../../../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import type { TestApp } from "../../../../../TestUtils/TestApp.ts";
-
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
+
 import { type EditorService, EditorServiceDIToken } from "./editorService.ts";
 
 interface TestContext {

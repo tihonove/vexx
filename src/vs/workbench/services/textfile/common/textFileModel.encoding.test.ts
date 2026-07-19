@@ -3,11 +3,11 @@ import * as fs from "node:fs";
 import iconv from "iconv-lite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { createRange } from "../../../../editor/common/core/iRange.ts";
 import { createTextEdit } from "../../../../editor/common/core/iTextEdit.ts";
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 
 describe("TextFileModel — encoding axis", () => {
     let ws: ITempWorkspace;

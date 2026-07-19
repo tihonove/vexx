@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Size } from "../../../common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { Size } from "../../../common/geometryPromitives.ts";
 import { TUIPasteEvent } from "../../events/tuiPasteEvent.ts";
 
 import { InputElement } from "./inputElement.ts";

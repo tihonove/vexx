@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { Uri } from "../../../base/common/uri.ts";
-import type { WireCompletionItem } from "./wireTypes.ts";
 
 import { DocumentRegistry } from "./extHostDocuments.ts";
 import { createLanguagesNamespace } from "./languagesNamespace.ts";
 import { type IStubRpc, makeStubRpc } from "./testStubRpc.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
 import { CompletionItem, CompletionItemKind, Range } from "./vscodeTypes.ts";
+import type { WireCompletionItem } from "./wireTypes.ts";
 import { WorkspaceConfigStore } from "./workspaceConfigStore.ts";
 
 function makeCtx(stub: IStubRpc = makeStubRpc()): { ctx: IVscodeHostContext; stub: IStubRpc } {

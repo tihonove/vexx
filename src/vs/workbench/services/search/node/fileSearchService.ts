@@ -1,9 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable } from "../../../../base/common/disposable.ts";
 import { charMask, fuzzyMatchBestLower } from "../../../../base/common/fuzzySearch.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 
 export const FileSearchServiceDIToken = token<FileSearchService>("FileSearchService");
 

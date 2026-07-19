@@ -1,6 +1,6 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import type { IClipboard } from "../../../../platform/clipboard/common/iClipboard.ts";
 import type { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
+import type { IClipboard } from "../../../../platform/clipboard/common/iClipboard.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 
 export const InputWidgetServiceDIToken = token<InputWidgetService>("InputWidgetService");
 

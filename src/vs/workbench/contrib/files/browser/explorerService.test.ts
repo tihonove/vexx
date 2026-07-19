@@ -2,13 +2,13 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { createTempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { InMemoryFileClipboard } from "../../../../platform/clipboard/common/inMemoryFileClipboard.ts";
+import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
 import type { LogEntry } from "../../../../platform/log/common/iLogService.ts";
 import { LogService } from "../../../../platform/log/common/logService.ts";
 import { NULL_LOG_SERVICE } from "../../../../platform/log/common/nullLogService.ts";
-import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
-import { createTempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 
 import { ExplorerService, type IExplorerView } from "./explorerService.ts";
 import type { FileTreeNode } from "./fileTreeDataProvider.ts";

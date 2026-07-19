@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { createDevAssetAccess } from "../../../../base/node/assets/createDefaultAssetAccess.ts";
 import type { IAssetAccess, IAssetEntry } from "../../../../base/common/assets/iAssetAccess.ts";
+import { createDevAssetAccess } from "../../../../base/node/assets/createDefaultAssetAccess.ts";
 
 import type { IGrammarRecord } from "./textMateGrammarLoader.ts";
 import { TextMateGrammarLoader } from "./textMateGrammarLoader.ts";

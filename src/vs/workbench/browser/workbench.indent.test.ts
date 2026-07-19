@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { Size } from "../../base/common/geometryPromitives.ts";
 import type { EditorElement } from "../../editor/browser/editorElement.ts";
 import { createCursorSelection, createSelection } from "../../editor/common/core/iSelection.ts";
-import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 
 function createIntegrationApp(ws: ITempWorkspace): IAppHarness {
     return createAppTestHarness({ workspaceFolder: ws.dir, size: new Size(80, 40) });

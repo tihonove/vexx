@@ -1,15 +1,15 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../../../base/common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { TUIMouseEvent } from "../../../../base/browser/events/tuiMouseEvent.ts";
 import type { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
 import type { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
+import { BoxConstraints, Point, Size } from "../../../../base/common/geometryPromitives.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
 
 import { FindComponent } from "./findComponent.ts";
 

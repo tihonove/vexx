@@ -1,14 +1,14 @@
-import type { Container } from "../vs/platform/instantiation/common/diContainer.ts";
 import { Size } from "../vs/base/common/geometryPromitives.ts";
+import type { CommandRegistry } from "../vs/platform/commands/common/commandRegistry.ts";
+import { CommandRegistryDIToken } from "../vs/platform/commands/common/commandRegistry.ts";
 import type { IConfigurationService } from "../vs/platform/configuration/common/iConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../vs/platform/configuration/common/iConfigurationServiceDIToken.ts";
+import type { Container } from "../vs/platform/instantiation/common/diContainer.ts";
 import type { IStateService } from "../vs/platform/state/common/iStateService.ts";
+import { createTestContainer } from "../vs/vexx/modules/testProfile.ts";
 import type { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
 import type { WorkbenchComponent } from "../vs/workbench/browser/workbenchComponent.ts";
 import { WorkbenchComponentDIToken } from "../vs/workbench/browser/workbenchComponent.ts";
-import { createTestContainer } from "../vs/vexx/modules/testProfile.ts";
-import type { CommandRegistry } from "../vs/platform/commands/common/commandRegistry.ts";
-import { CommandRegistryDIToken } from "../vs/platform/commands/common/commandRegistry.ts";
 import {
     KeybindingsResourceDIToken,
     SettingsResourceDIToken,

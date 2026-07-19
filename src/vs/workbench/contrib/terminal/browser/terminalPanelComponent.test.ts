@@ -1,18 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { Size } from "../../../../base/common/geometryPromitives.ts";
 import { FakeTerminalSurface } from "../../../../../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { TerminalViewElement } from "../../../../base/browser/ui/terminal/terminalViewElement.ts";
+import { Size } from "../../../../base/common/geometryPromitives.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { PanelComponent } from "../../../browser/parts/panel/panelComponent.ts";
+import { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import { TerminalViewElement } from "../../../../base/browser/ui/terminal/terminalViewElement.ts";
-import { PanelService } from "../../../browser/parts/panel/panelService.ts";
-import { TERMINAL_VIEW_ID, TerminalService } from "./terminalService.ts";
 import type { TerminalSessionFactory } from "../common/terminalSessionFactory.ts";
 
-import { PanelComponent } from "../../../browser/parts/panel/panelComponent.ts";
 import { TerminalPanelComponent } from "./terminalPanelComponent.ts";
+import { TERMINAL_VIEW_ID, TerminalService } from "./terminalService.ts";
 
 function buildHarness() {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));

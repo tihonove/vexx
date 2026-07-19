@@ -1,19 +1,25 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { Disposable } from "../../../../base/common/disposable.ts";
-import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
-import type { ILogService } from "../../../../platform/log/common/iLogService.ts";
-import { ILogServiceDIToken } from "../../../../platform/log/common/iLogServiceDIToken.ts";
-import type { IUserKeybindingRule } from "../../../../platform/keybinding/node/keybindingsService.ts";
 import type { TUIKeyboardEvent } from "../../../../base/browser/events/tuiKeyboardEvent.ts";
-
+import { Disposable } from "../../../../base/common/disposable.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
 import type { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../../../platform/contextkey/common/contextKeyService.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { Keybinding, KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-import { formatKeybinding, KeybindingRegistryDIToken, parseChord } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-import type { CommandTrigger, ModifierReleaseArmory } from "../../../../platform/keybinding/common/modifierReleaseArmory.ts";
+import {
+    formatKeybinding,
+    KeybindingRegistryDIToken,
+    parseChord,
+} from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import type {
+    CommandTrigger,
+    ModifierReleaseArmory,
+} from "../../../../platform/keybinding/common/modifierReleaseArmory.ts";
 import { ModifierReleaseArmoryDIToken } from "../../../../platform/keybinding/common/modifierReleaseArmory.ts";
+import type { IUserKeybindingRule } from "../../../../platform/keybinding/node/keybindingsService.ts";
+import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
+import type { ILogService } from "../../../../platform/log/common/iLogService.ts";
+import { ILogServiceDIToken } from "../../../../platform/log/common/iLogServiceDIToken.ts";
 import type { IStatusBarEntryHandle, StatusBarService } from "../../statusbar/common/statusBarService.ts";
 import { StatusBarServiceDIToken } from "../../statusbar/common/statusBarService.ts";
 import { TerminalEnvironmentServiceDIToken } from "../../terminalEnvironment/node/terminalEnvironmentService.ts";

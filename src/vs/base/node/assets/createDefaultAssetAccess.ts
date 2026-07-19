@@ -4,8 +4,9 @@ import { fileURLToPath } from "node:url";
 
 import { BundleAssetAccess } from "../../common/assets/bundleAssetAccess.ts";
 import { BUNDLE_FILE_NAME, tryReadBundleFile } from "../../common/assets/bundleFile.ts";
-import { FsAssetAccess } from "./fsAssetAccess.ts";
 import type { IAssetAccess } from "../../common/assets/iAssetAccess.ts";
+
+import { FsAssetAccess } from "./fsAssetAccess.ts";
 import { entryDir } from "./packagedRuntime.ts";
 
 const SEA_BUNDLE_KEY = BUNDLE_FILE_NAME;

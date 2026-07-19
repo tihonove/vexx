@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { editorState, expectEditorState, parseDSL, renderToDSL } from "../../test/common/trackDSL.ts";
-import { EditorViewState } from "./editorViewState.ts";
 import { createFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
+import { editorState, expectEditorState, parseDSL, renderToDSL } from "../../test/common/trackDSL.ts";
 import { createCursorSelection, createSelection } from "../core/iSelection.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 // ─── Folding: Basic Mapping ────────────────────────────────
 

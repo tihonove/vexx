@@ -1,9 +1,9 @@
 import { FocusableBox } from "../../../../../demos/FocusableBox.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
 
 import type { MenuBarItem } from "./menuBarElement.ts";
 import { MenuBarElement } from "./menuBarElement.ts";
-import { VStackElement } from "../layout/vStackElement.ts";
 
 export const meta: StoryMeta = {
     title: "MenuBarElement",

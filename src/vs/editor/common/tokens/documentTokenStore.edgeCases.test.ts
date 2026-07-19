@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { createDeleteEdit } from "../core/iTextEdit.ts";
+import { PlainTextTokenizer } from "../languages/builtin/plainTextTokenizer.ts";
 import { TextDocument } from "../model/textDocument.ts";
 
-import { PlainTextTokenizer } from "../languages/builtin/plainTextTokenizer.ts";
 import { DocumentTokenStore } from "./documentTokenStore.ts";
 
 describe("DocumentTokenStore.getEndState", () => {

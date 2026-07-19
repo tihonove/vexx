@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { IClipboard } from "../../../../platform/clipboard/common/iClipboard.ts";
 import { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
+import type { IClipboard } from "../../../../platform/clipboard/common/iClipboard.ts";
 
 import { InputWidgetService } from "./inputWidgetService.ts";
 

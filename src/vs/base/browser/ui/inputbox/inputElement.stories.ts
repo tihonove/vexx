@@ -1,8 +1,11 @@
-import type { Token } from "../../../../platform/instantiation/common/diContainer.ts";
-import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
-import { InMemoryClipboard } from "../../../../platform/clipboard/common/inMemoryClipboard.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
 import { registerAction } from "../../../../platform/actions/common/commandAction.ts";
+import { InMemoryClipboard } from "../../../../platform/clipboard/common/inMemoryClipboard.ts";
+import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
+import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
+import type { Token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
+import { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
 import {
     inputCopyAction,
     inputCursorEndAction,
@@ -25,15 +28,15 @@ import {
     inputSelectWordLeftAction,
     inputSelectWordRightAction,
 } from "../../../../workbench/browser/actions/inputActions.ts";
-import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
-import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { ClipboardDIToken } from "../../../../workbench/common/coreTokens.ts";
-import { InputWidgetService, InputWidgetServiceDIToken } from "../../../../workbench/contrib/files/browser/inputWidgetService.ts";
-import { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import {
+    InputWidgetService,
+    InputWidgetServiceDIToken,
+} from "../../../../workbench/contrib/files/browser/inputWidgetService.ts";
 import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
 
 import { InputElement } from "./inputElement.ts";
-import { VStackElement } from "../layout/vStackElement.ts";
 
 /** Wires up a minimal keybinding stack for a single InputElement. */
 function mountInputKeybindings(ctx: StoryContext, input: InputElement): void {

@@ -1,8 +1,9 @@
-import type { ServiceAccessor } from "../../instantiation/common/diContainer.ts";
 import type { IDisposable } from "../../../base/common/disposable.ts";
-import type { MenuId } from "./menuId.ts";
 import type { CommandRegistry } from "../../commands/common/commandRegistry.ts";
+import type { ServiceAccessor } from "../../instantiation/common/diContainer.ts";
 import type { Keybinding, KeybindingChord, KeybindingRegistry } from "../../keybinding/common/keybindingRegistry.ts";
+
+import type { MenuId } from "./menuId.ts";
 
 /**
  * A binding plus an optional `when` that narrows JUST this binding — used for

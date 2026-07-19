@@ -1,17 +1,18 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { Uri } from "../../../../base/common/uri.ts";
-import type { IRange } from "../../../../editor/common/core/iRange.ts";
-import type { MarkerService } from "../../../../platform/markers/common/markerService.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import { ScrollBarDecorator } from "../../../../base/browser/ui/scrollbar/scrollContainerElement.ts";
 import { TreeViewElement } from "../../../../base/browser/ui/tree/treeViewElement.ts";
+import { Uri } from "../../../../base/common/uri.ts";
+import type { IRange } from "../../../../editor/common/core/iRange.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { MarkerService } from "../../../../platform/markers/common/markerService.ts";
+import { getProblemsTreeStyles, getScrollBarStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import { ThemedComponent } from "../../../browser/component.ts";
-import { MarkerServiceDIToken } from "../../../common/coreTokens.ts";
-import { type ProblemNode, ProblemsTreeDataProvider } from "./problemsTreeDataProvider.ts";
 import type { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
-import { getProblemsTreeStyles, getScrollBarStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
+import { MarkerServiceDIToken } from "../../../common/coreTokens.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
+
+import { type ProblemNode, ProblemsTreeDataProvider } from "./problemsTreeDataProvider.ts";
 
 /** VS Code view id of the Problems (Markers) view living in the bottom Panel. */
 export const PROBLEMS_VIEW_ID = "workbench.panel.markers.view";

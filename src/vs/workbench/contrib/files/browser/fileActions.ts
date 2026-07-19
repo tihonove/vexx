@@ -1,20 +1,20 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { ILogServiceDIToken } from "../../../../platform/log/common/iLogServiceDIToken.ts";
 import { Uri } from "../../../../base/common/uri.ts";
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
-import { DialogServiceDIToken } from "../../../services/dialogs/browser/dialogService.ts";
-import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
-import { FileOperationsServiceDIToken } from "./fileOperationsService.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import { ILogServiceDIToken } from "../../../../platform/log/common/iLogServiceDIToken.ts";
 import { QuickInputServiceDIToken } from "../../../browser/parts/quickinput/quickInputService.ts";
 import { WorkbenchContextKeysDIToken } from "../../../browser/workbenchContextKeys.ts";
+import { DialogServiceDIToken } from "../../../services/dialogs/browser/dialogService.ts";
+import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
 
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
+import { FileOperationsServiceDIToken } from "./fileOperationsService.ts";
 
 /**
  * Смена папки воркспейса (Open Folder). Интерфейсный шов: Workbench объявляет,

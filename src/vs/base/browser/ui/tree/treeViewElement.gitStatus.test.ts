@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
+import { packRgb } from "../../../common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { RenderContext } from "../../tuiElement.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";

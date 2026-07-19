@@ -1,13 +1,14 @@
-import { token } from "../../platform/instantiation/common/diContainer.ts";
-import type { ThemeService } from "../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../services/themes/common/themeTokens.ts";
 import type { MenuBarItem } from "../../base/browser/ui/menu/menuBarElement.ts";
 import { MenuBarElement } from "../../base/browser/ui/menu/menuBarElement.ts";
-import { ThemedComponent } from "./component.ts";
 import { MenuId } from "../../platform/actions/common/menuId.ts";
 import type { IMenu, MenuService } from "../../platform/actions/common/menuService.ts";
 import { MenuServiceDIToken } from "../../platform/actions/common/menuService.ts";
+import { token } from "../../platform/instantiation/common/diContainer.ts";
 import { getMenuStyles } from "../../platform/theme/browser/defaultStyles.ts";
+import type { ThemeService } from "../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../services/themes/common/themeTokens.ts";
+
+import { ThemedComponent } from "./component.ts";
 
 export const MenuBarComponentDIToken = token<MenuBarComponent>("MenuBarComponent");
 
@@ -32,7 +33,10 @@ export class MenuBarComponent extends ThemedComponent {
         this.initStyles();
     }
 
-    private buildItem(menuService: MenuService, sub: { title: string; mnemonic?: string; submenu: MenuId }): MenuBarItem {
+    private buildItem(
+        menuService: MenuService,
+        sub: { title: string; mnemonic?: string; submenu: MenuId },
+    ): MenuBarItem {
         const menu: IMenu = this.register(menuService.createMenu(sub.submenu));
         return {
             label: sub.title,

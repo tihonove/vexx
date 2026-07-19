@@ -1,5 +1,5 @@
-import { token } from "../../instantiation/common/diContainer.ts";
 import type { IDisposable } from "../../../base/common/disposable.ts";
+import { token } from "../../instantiation/common/diContainer.ts";
 
 import type { ContextKey, ContextKeyTypes } from "./contextKeys.ts";
 import { getAllContextKeyNames } from "./contextKeys.ts";

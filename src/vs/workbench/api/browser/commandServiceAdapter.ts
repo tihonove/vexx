@@ -1,6 +1,5 @@
 import type { IDisposable } from "../../../base/common/disposable.ts";
 import type { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
-
 import type { ICommandService } from "../common/iCommandService.ts";
 
 /**

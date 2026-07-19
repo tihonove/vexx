@@ -1,34 +1,36 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
-import { charMask } from "../../../../base/common/fuzzySearch.ts";
-import { Size } from "../../../../base/common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { TUIMouseEvent } from "../../../../base/browser/events/tuiMouseEvent.ts";
 import { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
 import { InputElement } from "../../../../base/browser/ui/inputbox/inputElement.ts";
 import type { QuickPickElement, QuickPickItem } from "../../../../base/browser/ui/quickpick/quickPickElement.ts";
-import { QuickInputComponent } from "../../../browser/parts/quickinput/quickInputComponent.ts";
-
+import { charMask } from "../../../../base/common/fuzzySearch.ts";
+import { Size } from "../../../../base/common/geometryPromitives.ts";
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
-import type { FileSearchEntry, FileSearchResult, FileSearchService } from "../../../services/search/node/fileSearchService.ts";
-import { KeybindingRegistry, parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
 import {
-    CommandsQuickAccessProvider,
-    CommandsQuickAccessProviderDIToken,
-} from "./commandsQuickAccessProvider.ts";
+    KeybindingRegistry,
+    parseChord,
+    parseKeybinding,
+} from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { QuickInputComponent } from "../../../browser/parts/quickinput/quickInputComponent.ts";
+import type {
+    FileSearchEntry,
+    FileSearchResult,
+    FileSearchService,
+} from "../../../services/search/node/fileSearchService.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { QuickAccessRegistry } from "../common/quickAccessRegistry.ts";
+
+import { CommandsQuickAccessProvider, CommandsQuickAccessProviderDIToken } from "./commandsQuickAccessProvider.ts";
 import { FilesQuickAccessProvider, FilesQuickAccessProviderDIToken } from "./filesQuickAccessProvider.ts";
 import type { IGotoLineEditor, IGotoLineEditorSource } from "./gotoLineQuickAccessProvider.ts";
-import {
-    GotoLineQuickAccessProvider,
-    GotoLineQuickAccessProviderDIToken,
-} from "./gotoLineQuickAccessProvider.ts";
+import { GotoLineQuickAccessProvider, GotoLineQuickAccessProviderDIToken } from "./gotoLineQuickAccessProvider.ts";
 import { QUICK_ACCESS_PROVIDERS } from "./quickAccessProviders.ts";
-import { QuickAccessRegistry } from "../common/quickAccessRegistry.ts";
 import { QuickOpenService } from "./quickOpenService.ts";
 
 function makeComponent(): QuickInputComponent {

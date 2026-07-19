@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ContextKeyService } from "../../contextkey/common/contextKeyService.ts";
+
 import { formatKeybinding, KeybindingRegistry, parseChord, parseKeybinding } from "./keybindingRegistry.ts";
 
 describe("KeybindingRegistry — getKeybindingForCommand", () => {

@@ -1,7 +1,7 @@
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { parseGotoLineQuery } from "./quickOpenParsing.ts";
-
 import type { IQuickAccessProvider, QuickAccessItem } from "../common/iQuickAccessProvider.ts";
+
+import { parseGotoLineQuery } from "./quickOpenParsing.ts";
 
 /**
  * The active editor as seen by Go-to-Line. Structurally satisfied by

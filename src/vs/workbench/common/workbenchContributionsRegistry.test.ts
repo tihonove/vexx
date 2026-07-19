@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import type { ServiceAccessor, Token } from "../../platform/instantiation/common/diContainer.ts";
 import { Disposable } from "../../base/common/disposable.ts";
+import type { ServiceAccessor, Token } from "../../platform/instantiation/common/diContainer.ts";
 
 import type { IWorkbenchContribution, IWorkbenchContributionRegistration } from "./iWorkbenchContribution.ts";
 import { WorkbenchContributionsRegistry } from "./workbenchContributionsRegistry.ts";
@@ -15,7 +15,10 @@ class FakeContribution extends Disposable implements IWorkbenchContribution {
 }
 
 /** Фейковый accessor: отдаёт заранее уложенные инстансы и считает резолвы. */
-function fakeAccessor(instances: Map<Token<unknown>, unknown>): { accessor: ServiceAccessor; resolved: Token<unknown>[] } {
+function fakeAccessor(instances: Map<Token<unknown>, unknown>): {
+    accessor: ServiceAccessor;
+    resolved: Token<unknown>[];
+} {
     const resolved: Token<unknown>[] = [];
     const accessor: ServiceAccessor = {
         get: <T>(tok: Token<T>): T => {

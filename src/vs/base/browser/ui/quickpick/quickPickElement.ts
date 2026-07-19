@@ -1,12 +1,11 @@
+import { packRgb } from "../../../common/colorUtils.ts";
 import { DisplayLine } from "../../../common/displayLine.ts";
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { abbreviatePath, truncateEnd } from "../../../common/textTruncation.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
-
 import { InputElement } from "../inputbox/inputElement.ts";
 
 // ─── Styles ─────────────────────────────────────────────────────────────────

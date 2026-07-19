@@ -1,11 +1,11 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import type { StatusBarItem } from "../../../../base/browser/ui/statusbar/statusBarElement.ts";
 import { StatusBarElement } from "../../../../base/browser/ui/statusbar/statusBarElement.ts";
-import { ThemedComponent } from "../../component.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { StatusBarService } from "../../../services/statusbar/common/statusBarService.ts";
 import { StatusBarServiceDIToken } from "../../../services/statusbar/common/statusBarService.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
+import { ThemedComponent } from "../../component.ts";
 
 export const StatusBarComponentDIToken = token<StatusBarComponent>("StatusBarComponent");
 

@@ -1,11 +1,11 @@
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-import { LayoutServiceDIToken } from "../../../services/layout/browser/layoutService.ts";
 import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
-import { TERMINAL_VIEW_ID, TerminalServiceDIToken } from "./terminalService.ts";
 import { WorkbenchContextKeysDIToken } from "../../../browser/workbenchContextKeys.ts";
+import { LayoutServiceDIToken } from "../../../services/layout/browser/layoutService.ts";
 
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
+import { TERMINAL_VIEW_ID, TerminalServiceDIToken } from "./terminalService.ts";
 
 // Integrated Terminal. Только tier csi-u/kitty умеет однозначно кодировать
 // Ctrl+` (в legacy это NUL = Ctrl+Space), поэтому legacy-бинда нет.

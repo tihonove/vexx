@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { TokenIndex } from "./editorElement.ts";
 import { createLineTokens, createToken } from "../common/languages/iLineTokens.ts";
+
+import { TokenIndex } from "./editorElement.ts";
 
 describe("TokenIndex", () => {
     const tokens = createLineTokens([createToken(0, ["a"]), createToken(5, ["b"]), createToken(10, ["c"])]);

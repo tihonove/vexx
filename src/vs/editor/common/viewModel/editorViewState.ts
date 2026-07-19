@@ -1,10 +1,6 @@
 import { DisplayLine } from "../../../base/common/displayLine.ts";
 import type { IDisposable } from "../../../base/common/disposable.ts";
-
-import { computeNewLinePlan } from "../languages/autoIndent.ts";
 import type { IFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
-import type { ILineTokens } from "../languages/iLineTokens.ts";
-import { detectIndentation } from "../model/indentationDetector.ts";
 import type { IPosition } from "../core/iPosition.ts";
 import { comparePositions } from "../core/iPosition.ts";
 import type { IRange } from "../core/iRange.ts";
@@ -17,12 +13,15 @@ import {
     isSelectionCollapsed,
     selectionToRange,
 } from "../core/iSelection.ts";
-import type { ITextDocument } from "../model/iTextDocument.ts";
 import type { ITextEdit } from "../core/iTextEdit.ts";
 import { createTextEdit } from "../core/iTextEdit.ts";
+import { charClass } from "../core/wordClassification.ts";
+import { computeNewLinePlan } from "../languages/autoIndent.ts";
+import type { ILineTokens } from "../languages/iLineTokens.ts";
+import { detectIndentation } from "../model/indentationDetector.ts";
+import type { ITextDocument } from "../model/iTextDocument.ts";
 import type { IUndoElement } from "../model/iUndoElement.ts";
 import type { DocumentTokenStore } from "../tokens/documentTokenStore.ts";
-import { charClass } from "../core/wordClassification.ts";
 
 /**
  * Represents the view state for one editor pane.

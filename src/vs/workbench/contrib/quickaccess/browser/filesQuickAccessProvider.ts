@@ -1,16 +1,16 @@
 import * as nodePath from "node:path";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { FileSearchResult, FileSearchService } from "../../../services/search/node/fileSearchService.ts";
 import { FileSearchServiceDIToken } from "../../../services/search/node/fileSearchService.ts";
-import type { ParsedGoto } from "./quickOpenParsing.ts";
-import { splitFileQuery } from "./quickOpenParsing.ts";
+import type { IQuickAccessProvider, QuickAccessItem } from "../common/iQuickAccessProvider.ts";
 
 import type { IGotoLineEditorSource } from "./gotoLineQuickAccessProvider.ts";
 import { GotoLineEditorSourceDIToken, navigateActiveEditor } from "./gotoLineQuickAccessProvider.ts";
-import type { IQuickAccessProvider, QuickAccessItem } from "../common/iQuickAccessProvider.ts";
+import type { ParsedGoto } from "./quickOpenParsing.ts";
+import { splitFileQuery } from "./quickOpenParsing.ts";
 
 export const FilesQuickAccessProviderDIToken = token<FilesQuickAccessProvider>("FilesQuickAccessProvider");
 

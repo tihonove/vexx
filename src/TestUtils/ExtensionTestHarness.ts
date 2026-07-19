@@ -4,25 +4,30 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type { IDisposable } from "../vs/base/common/disposable.ts";
-import { NULL_FILE_WATCHER } from "../vs/platform/files/common/iFileWatcher.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
 import type { ILanguageService } from "../vs/editor/common/languages/iLanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../vs/editor/common/languages/iLanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../vs/editor/common/languages/iTokenStyleResolver.ts";
 import { TokenizationRegistry } from "../vs/editor/common/languages/tokenizationRegistry.ts";
+import { CommandRegistry } from "../vs/platform/commands/common/commandRegistry.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../vs/platform/configuration/common/nullConfigurationService.ts";
+import { NULL_FILE_WATCHER } from "../vs/platform/files/common/iFileWatcher.ts";
+import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 import { CommandServiceAdapter } from "../vs/workbench/api/browser/commandServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../vs/workbench/api/browser/editorOptionsServiceAdapter.ts";
-import { ExtensionHost, type IExtensionHostConfigProvider } from "../vs/workbench/services/extensions/node/extensionHost.ts";
 import type { IEditorDecorationsService } from "../vs/workbench/api/common/iEditorDecorationsService.ts";
-import type { IExtensionRegistration } from "../vs/workbench/services/extensions/node/iExtensionEntry.ts";
 import type { IFileDecorationsService } from "../vs/workbench/api/common/iFileDecorationsService.ts";
 import type { IThemeColorResolver } from "../vs/workbench/api/common/iThemeColorResolver.ts";
 import { EditorGroupComponent } from "../vs/workbench/browser/parts/editor/editorGroupComponent.ts";
-import { CommandRegistry } from "../vs/platform/commands/common/commandRegistry.ts";
 import { EditorService } from "../vs/workbench/services/editor/browser/editorService.ts";
-import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
+import {
+    ExtensionHost,
+    type IExtensionHostConfigProvider,
+} from "../vs/workbench/services/extensions/node/extensionHost.ts";
+import type { IExtensionRegistration } from "../vs/workbench/services/extensions/node/iExtensionEntry.ts";
 
-const SUBPROCESS_ENTRY = fileURLToPath(new URL("../vs/workbench/services/extensions/node/__fixtures__/subprocessEntry.ts", import.meta.url));
+const SUBPROCESS_ENTRY = fileURLToPath(
+    new URL("../vs/workbench/services/extensions/node/__fixtures__/subprocessEntry.ts", import.meta.url),
+);
 
 /**
  * Возвращает `spawnArgs`-фабрику для тестового запуска subprocess'а — вместо
@@ -67,9 +72,9 @@ export async function registerAndActivate(host: ExtensionHost, reg: IExtensionRe
     await host.activateByEvent("*");
     return disposable;
 }
+import { WorkbenchTheme } from "../vs/platform/theme/common/workbenchTheme.ts";
 import { darkPlusTheme } from "../vs/workbench/services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../vs/workbench/services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../vs/platform/theme/common/workbenchTheme.ts";
 
 import { TestApp } from "./TestApp.ts";
 

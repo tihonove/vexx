@@ -3,11 +3,15 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { ILogger } from "../../log/common/iLogger.ts";
-import { type IUserDataPaths, resolveUserDataPaths, resolveWorkspaceStatePath } from "../../environment/node/userDataPaths.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../TestUtils/TempWorkspace.ts";
-
+import {
+    type IUserDataPaths,
+    resolveUserDataPaths,
+    resolveWorkspaceStatePath,
+} from "../../environment/node/userDataPaths.ts";
+import type { ILogger } from "../../log/common/iLogger.ts";
 import type { IStateDescriptor } from "../common/iStateService.ts";
+
 import { loadState, StateService } from "./stateService.ts";
 
 const width: IStateDescriptor<number> = { key: "workbench.sideBar.width", scope: "global", default: 30 };

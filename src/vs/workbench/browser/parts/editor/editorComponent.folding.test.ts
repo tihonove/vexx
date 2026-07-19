@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../../../../base/common/uri.ts";
-import { createCursorSelection } from "../../../../editor/common/core/iSelection.ts";
 import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { Uri } from "../../../../base/common/uri.ts";
+import { createCursorSelection } from "../../../../editor/common/core/iSelection.ts";
 
 /** The folding recompute runs on a microtask; a macrotask tick flushes it. */
 function flush(): Promise<void> {

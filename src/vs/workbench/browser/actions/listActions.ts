@@ -1,8 +1,7 @@
 import { TreeViewElement } from "../../../base/browser/ui/tree/treeViewElement.ts";
-import { TuiApplicationDIToken } from "../../common/coreTokens.ts";
-import { parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
-
 import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import { parseKeybinding } from "../../../platform/keybinding/common/keybindingRegistry.ts";
+import { TuiApplicationDIToken } from "../../common/coreTokens.ts";
 
 export const listFocusPageDownAction: CommandAction = {
     id: "list.focusPageDown",

@@ -1,10 +1,10 @@
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import { parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+
 import { CommandsQuickAccessProvider } from "./commandsQuickAccessProvider.ts";
 import { GotoLineQuickAccessProvider } from "./gotoLineQuickAccessProvider.ts";
 import { QuickOpenServiceDIToken } from "./quickOpenService.ts";
-
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 
 export const quickOpenAction: CommandAction = {
     id: "workbench.action.quickOpen",

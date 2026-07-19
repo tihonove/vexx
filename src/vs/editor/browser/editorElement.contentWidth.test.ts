@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../../base/common/geometryPromitives.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
+import { Size } from "../../base/common/geometryPromitives.ts";
+import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 
 import { EditorElement } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { TextDocument } from "../common/model/textDocument.ts";
 
 function createEditor(text: string): { app: TestApp; editor: EditorElement; viewState: EditorViewState } {
     const doc = new TextDocument(text);

@@ -1,6 +1,7 @@
+import type { ITextDocument } from "../../common/model/iTextDocument.ts";
+
 import type { IFoldingRegion } from "./iFoldingRegion.ts";
 import { createFoldingRegion } from "./iFoldingRegion.ts";
-import type { ITextDocument } from "../../common/model/iTextDocument.ts";
 
 /**
  * Computes the visual indentation width of a line (spaces + tab expansion),

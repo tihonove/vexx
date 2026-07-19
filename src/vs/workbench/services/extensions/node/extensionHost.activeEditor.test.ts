@@ -2,14 +2,14 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
 import {
     createExtensionTestHarness,
     EXTENSION_FIXTURES_DIR,
     extensionFixture,
 } from "../../../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../../../TestUtils/timing.ts";
+import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
 
 /** Мини-сервис языков: `.ts` → typescript, иначе — undefined. */
 const TS_LANGUAGE_SERVICE: ILanguageService = {

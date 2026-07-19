@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import { TUIElement } from "../../tuiElement.ts";
+import { TextBlockElement } from "../text/textBlockElement.ts";
 
 import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "./hFlexElement.ts";
-import { TextBlockElement } from "../text/textBlockElement.ts";
 
 class FixedSizeElement extends TUIElement {
     private intrinsicWidth: number;

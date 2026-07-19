@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { IDisposable } from "../../../../base/common/disposable.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
-import type { ExplorerService } from "./explorerService.ts";
 
 import { AutoRevealContribution } from "./autoRevealContribution.ts";
+import type { ExplorerService } from "./explorerService.ts";
 
 class FakeEditorService {
     public activePath: string | null = null;

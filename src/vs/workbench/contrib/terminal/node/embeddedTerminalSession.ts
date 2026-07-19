@@ -17,9 +17,8 @@ import type { IBufferCell, Terminal } from "@xterm/headless";
 import xtermHeadless from "@xterm/headless";
 import type { IPty } from "node-pty";
 
-import type { IDisposable } from "../../../../base/common/disposable.ts";
 import { DEFAULT_COLOR } from "../../../../base/common/colorUtils.ts";
-import { StyleFlags } from "../../../../base/common/styleFlags.ts";
+import type { IDisposable } from "../../../../base/common/disposable.ts";
 import type {
     ITerminalSurface,
     TerminalCell,
@@ -27,9 +26,10 @@ import type {
     TerminalMouseButton,
     TerminalMouseEventData,
 } from "../../../../base/common/iTerminalSurface.ts";
+import { StyleFlags } from "../../../../base/common/styleFlags.ts";
+import { xtermPaletteToRgb } from "../common/xtermPalette.ts";
 
 import { loadNodePty } from "./loadNodePty.ts";
-import { xtermPaletteToRgb } from "../common/xtermPalette.ts";
 
 /** Событие для внутреннего coreMouseService xterm (значения enum-ов — как в xterm). */
 export interface CoreMouseEvent {

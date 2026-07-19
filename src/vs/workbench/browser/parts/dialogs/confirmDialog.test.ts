@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { TUIKeyboardEvent } from "../../../../base/browser/events/tuiKeyboardEvent.ts";
 import type { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
+import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
 
 import { ConfirmDialog, type ConfirmDialogOptions } from "./confirmDialog.tsx";
 

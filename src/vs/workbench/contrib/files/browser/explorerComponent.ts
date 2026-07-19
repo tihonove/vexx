@@ -1,7 +1,3 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import type { IFileClipboard } from "../../../../platform/clipboard/common/iFileClipboard.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import type { TUIElement } from "../../../../base/browser/tuiElement.ts";
 import type { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
@@ -11,17 +7,26 @@ import { PopupMenuElement } from "../../../../base/browser/ui/menu/popupMenuElem
 import { ScrollBarDecorator } from "../../../../base/browser/ui/scrollbar/scrollContainerElement.ts";
 import { TitledPanelElement } from "../../../../base/browser/ui/titledpanel/titledPanelElement.ts";
 import { TreeViewElement } from "../../../../base/browser/ui/tree/treeViewElement.ts";
-import { ThemedComponent } from "../../../browser/component.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import type { IMenu, MenuService } from "../../../../platform/actions/common/menuService.ts";
 import { MenuServiceDIToken } from "../../../../platform/actions/common/menuService.ts";
+import type { IFileClipboard } from "../../../../platform/clipboard/common/iFileClipboard.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import {
+    getFileTreeStyles,
+    getMenuStyles,
+    getScrollBarStyles,
+} from "../../../../platform/theme/browser/defaultStyles.ts";
+import { ThemedComponent } from "../../../browser/component.ts";
 import { FileClipboardDIToken } from "../../../common/coreTokens.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
+
 import type { ExplorerService } from "./explorerService.ts";
 import { ExplorerServiceDIToken } from "./explorerService.ts";
 import type { FileTreeNode } from "./fileTreeDataProvider.ts";
-import { getFileTreeStyles, getMenuStyles, getScrollBarStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 
 export const ExplorerComponentDIToken = token<ExplorerComponent>("ExplorerComponent");
 

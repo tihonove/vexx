@@ -1,18 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { Point, Size } from "../../../common/geometryPromitives.ts";
-import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
 import { expectScreen, screen } from "../../../../../TestUtils/expectScreen.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
+import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
+import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { TuiApplication } from "../../tuiApplication.ts";
 import { TUIElement } from "../../tuiElement.ts";
-
 import { BodyElement } from "../body/bodyElement.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
+
 import type { MenuBarItem } from "./menuBarElement.ts";
 import { MenuBarElement } from "./menuBarElement.ts";
-import { VStackElement } from "../layout/vStackElement.ts";
 
 class FocusableChild extends TUIElement {
     public constructor() {

@@ -1,8 +1,8 @@
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
-import { FindServiceDIToken } from "./findService.ts";
 import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
 
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
+import { FindServiceDIToken } from "./findService.ts";
 
 // Тонкие экшены find-виджета поверх FindService (этап 10: run-обработчики живут
 // в самих экшенах, как у quick-open). nextMatch/previousMatch/closeFindWidget

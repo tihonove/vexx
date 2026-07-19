@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import type { KeyPressEvent } from "../input/keyEvent.ts";
 import { packRgb } from "../../base/common/colorUtils.ts";
-import { Grid } from "../rendering/grid.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { StyleFlags } from "../../base/common/styleFlags.ts";
+import type { KeyPressEvent } from "../input/keyEvent.ts";
+import { Grid } from "../rendering/grid.ts";
 
 import { HeadlessCaptureBackend } from "./headlessCaptureBackend.ts";
 

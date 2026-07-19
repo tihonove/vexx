@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-
 import { BoxElement } from "../layout/boxElement.ts";
-import { OverlayLayer } from "./overlayLayer.ts";
 import { PopupMenuElement } from "../menu/popupMenuElement.ts";
+
+import { OverlayLayer } from "./overlayLayer.ts";
 
 function sizedBox(global: Point, size: Size): BoxElement {
     const box = new BoxElement();

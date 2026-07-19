@@ -2,12 +2,11 @@ import { createRequire, Module } from "node:module";
 import * as path from "node:path";
 
 import type { IDisposable } from "../../../../base/common/disposable.ts";
-
 import type { IIpcEndpoint } from "../../../api/common/ipcMessageChannel.ts";
 import { IpcMessageChannel } from "../../../api/common/ipcMessageChannel.ts";
 import { RpcEndpoint } from "../../../api/common/rpcEndpoint.ts";
-import type { WorkspaceConfigStore } from "../../../api/common/workspaceConfigStore.ts";
 import { buildVscodeNamespace } from "../../../api/common/vscodeNamespace.ts";
+import type { WorkspaceConfigStore } from "../../../api/common/workspaceConfigStore.ts";
 
 /**
  * Сообщения protocol host -> subprocess. RPC-методы:

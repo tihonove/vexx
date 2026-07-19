@@ -1,11 +1,10 @@
 import { Disposable } from "../../../base/common/disposable.ts";
-import type { IDocumentContentChange } from "../model/iDocumentContentChange.ts";
 import type { ILineTokens } from "../languages/iLineTokens.ts";
 import { createLineTokens, createToken } from "../languages/iLineTokens.ts";
-import type { ITextDocument } from "../model/iTextDocument.ts";
-
 import type { IState } from "../languages/iState.ts";
 import type { ITokenizationSupport } from "../languages/iTokenizationSupport.ts";
+import type { IDocumentContentChange } from "../model/iDocumentContentChange.ts";
+import type { ITextDocument } from "../model/iTextDocument.ts";
 
 const EMPTY_LINE_TOKENS: ILineTokens = createLineTokens([createToken(0, [])]);
 

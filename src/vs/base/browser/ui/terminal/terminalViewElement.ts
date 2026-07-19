@@ -8,9 +8,15 @@
 // поэтому ресайз окна автоматически рефлоует шелл. Ввод пробрасывает в surface через
 // `encodeKeyForPty`. См. docs/TODO/IntegratedTerminal.md.
 
+import { DEFAULT_COLOR } from "../../../common/colorUtils.ts";
 import type { IDisposable } from "../../../common/disposable.ts";
 import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
-import { DEFAULT_COLOR } from "../../../common/colorUtils.ts";
+import type {
+    ITerminalSurface,
+    TerminalCell,
+    TerminalMouseAction,
+    TerminalMouseButton,
+} from "../../../common/iTerminalSurface.ts";
 import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import type { TUIMouseEvent, WheelDirection } from "../../events/tuiMouseEvent.ts";
@@ -18,7 +24,6 @@ import type { TUIPasteEvent } from "../../events/tuiPasteEvent.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import { encodeKeyForPty } from "./encodeKeyForPty.ts";
-import type { ITerminalSurface, TerminalCell, TerminalMouseAction, TerminalMouseButton } from "../../../common/iTerminalSurface.ts";
 
 // wheelDirection ("up"|"down"|"left"|"right") → семантический action поверхности.
 // Ключи типизированы точно (WheelDirection, а не string) — индексация тотальна,

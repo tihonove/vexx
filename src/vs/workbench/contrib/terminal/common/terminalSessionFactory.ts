@@ -2,9 +2,9 @@
 // фабрику на FakeTerminalSurface и не спавнят реальные PTY. Прод-биндинг (реальный
 // EmbeddedTerminalSession) навешивается на уровне DI-модулей отдельно.
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { IDisposable } from "../../../../base/common/disposable.ts";
 import type { ITerminalSurface } from "../../../../base/common/iTerminalSurface.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 
 export interface ITerminalSessionOptions {
     cols: number;

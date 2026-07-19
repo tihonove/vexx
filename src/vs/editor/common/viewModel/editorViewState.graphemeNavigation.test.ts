@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { createCursorSelection } from "../core/iSelection.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 function createState(text: string, line = 0, character = 0): EditorViewState {
     const doc = new TextDocument(text);

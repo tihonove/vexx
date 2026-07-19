@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { HeadlessCaptureBackend } from "../vs/tui/backend/headlessCaptureBackend.ts";
-import { Size } from "../vs/base/common/geometryPromitives.ts";
-import type { GridSnapshot } from "../vs/tui/rendering/gridSnapshot.ts";
 import { TuiApplication } from "../vs/base/browser/tuiApplication.ts";
 import { BodyElement } from "../vs/base/browser/ui/body/bodyElement.ts";
 import { InputElement } from "../vs/base/browser/ui/inputbox/inputElement.ts";
+import { Size } from "../vs/base/common/geometryPromitives.ts";
+import { HeadlessCaptureBackend } from "../vs/tui/backend/headlessCaptureBackend.ts";
+import type { GridSnapshot } from "../vs/tui/rendering/gridSnapshot.ts";
 
 import { InspectorCore, type InspectorTarget } from "./InspectorCore.ts";
 import type { InspectorDriver } from "./InspectorDriver.ts";

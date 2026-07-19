@@ -1,7 +1,7 @@
-import { Point } from "../../../common/geometryPromitives.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
-
+import { Point } from "../../../common/geometryPromitives.ts";
 import { BoxElement } from "../layout/boxElement.ts";
+
 import { PopupMenuElement } from "./popupMenuElement.ts";
 
 export const meta: StoryMeta = {

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
-
-import { EditorElement } from "./editorElement.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
+import { TextDocument } from "../common/model/textDocument.ts";
 import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 import { createFoldingRegion } from "../contrib/folding/iFoldingRegion.ts";
-import { TextDocument } from "../common/model/textDocument.ts";
+
+import { EditorElement } from "./editorElement.ts";
 
 // Expanded fold chevrons only show while the mouse is over the gutter (à la VS
 // Code `editor.showFoldingControls: "mouseover"`); collapsed ones always show.

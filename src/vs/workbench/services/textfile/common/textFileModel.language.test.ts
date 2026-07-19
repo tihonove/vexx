@@ -1,15 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../../../../base/common/uri.ts";
-import type { IDocumentLanguageChange } from "../../../../editor/common/model/iDocumentLanguageChange.ts";
-import { createLineTokens, createToken } from "../../../../editor/common/languages/iLineTokens.ts";
-import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
-import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
-import { NULL_STATE } from "../../../../editor/common/languages/iState.ts";
-import type { ITokenizationResult, ITokenizationSupport } from "../../../../editor/common/languages/iTokenizationSupport.ts";
-import { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
 import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { Uri } from "../../../../base/common/uri.ts";
+import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
+import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
+import { createLineTokens, createToken } from "../../../../editor/common/languages/iLineTokens.ts";
+import { NULL_STATE } from "../../../../editor/common/languages/iState.ts";
+import type {
+    ITokenizationResult,
+    ITokenizationSupport,
+} from "../../../../editor/common/languages/iTokenizationSupport.ts";
+import { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
+import type { IDocumentLanguageChange } from "../../../../editor/common/model/iDocumentLanguageChange.ts";
 
 /** Токенизатор-маркер: помечает всю строку одним заданным scope. */
 function markerTokenizer(scope: string): ITokenizationSupport {

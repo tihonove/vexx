@@ -10,12 +10,11 @@
 
 import { basename } from "node:path";
 
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
 import type { ITerminalSurface } from "../../../../base/common/iTerminalSurface.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
-
 import { type TerminalSessionFactory, TerminalSessionFactoryDIToken } from "../common/terminalSessionFactory.ts";
 
 /** VS Code view id of the integrated Terminal view living in the bottom Panel. */

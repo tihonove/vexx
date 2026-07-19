@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createRange } from "../core/iRange.ts";
 import { createDeleteEdit, createInsertEdit, createTextEdit } from "../core/iTextEdit.ts";
+
 import { TextDocument } from "./textDocument.ts";
 
 // ─── Construction ───────────────────────────────────────────

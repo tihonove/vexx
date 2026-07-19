@@ -6,9 +6,7 @@ import {
     subprocessSpawnArgsForTests,
 } from "../../../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../../../TestUtils/timing.ts";
-
 import { EditorOptionsServiceAdapter } from "../../../api/browser/editorOptionsServiceAdapter.ts";
-import { ExtensionHost } from "./extensionHost.ts";
 import { NULL_COMMAND_SERVICE } from "../../../api/common/iCommandService.ts";
 import type {
     IActiveEditorMeta,
@@ -16,6 +14,8 @@ import type {
     IEditorOptionsService,
     IEditorOptionsState,
 } from "../../../api/common/iEditorOptionsService.ts";
+
+import { ExtensionHost } from "./extensionHost.ts";
 
 class FakeOptionsService implements IEditorOptionsService {
     public state: IEditorOptionsState | null = { tabSize: 4, insertSpaces: true };

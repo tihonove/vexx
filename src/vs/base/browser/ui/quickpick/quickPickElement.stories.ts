@@ -1,8 +1,8 @@
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
 
 import type { QuickPickItem } from "./quickPickElement.ts";
 import { QuickPickElement } from "./quickPickElement.ts";
-import { VStackElement } from "../layout/vStackElement.ts";
 
 export const meta: StoryMeta = {
     title: "QuickPickElement",

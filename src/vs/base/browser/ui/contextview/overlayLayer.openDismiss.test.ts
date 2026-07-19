@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
-
-import { BoxElement } from "../layout/boxElement.ts";
 import { InputElement } from "../inputbox/inputElement.ts";
+import { BoxElement } from "../layout/boxElement.ts";
 
 // Renders the body so the overlay's corner glyph ("+") can be located on screen.
 function cornerCells(app: TestApp): { x: number; y: number }[] {

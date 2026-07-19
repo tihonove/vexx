@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import { packRgb } from "../../../common/colorUtils.ts";
 import { getFileIcon } from "../../../common/fileIcons.ts";
 import { BoxConstraints, Offset, Point, Size } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
-import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 
 import { EditorTabItemElement } from "./editorTabItemElement.ts";

@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "../viewModel/editorViewState.ts";
 import { EndOfLine } from "../core/endOfLine.ts";
 import { createCursorSelection } from "../core/iSelection.ts";
+import { EditorViewState } from "../viewModel/editorViewState.ts";
+
 import type { IUndoElement } from "./iUndoElement.ts";
 import { TextDocument } from "./textDocument.ts";
 import { UndoManager } from "./undoManager.ts";

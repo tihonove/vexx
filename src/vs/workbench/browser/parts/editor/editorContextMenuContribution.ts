@@ -1,11 +1,10 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable } from "../../../../base/common/disposable.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
 import type { MenuService } from "../../../../platform/actions/common/menuService.ts";
 import { MenuServiceDIToken } from "../../../../platform/actions/common/menuService.ts";
-import { EditorService, EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
-
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { IWorkbenchContribution } from "../../../common/iWorkbenchContribution.ts";
+import { EditorService, EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
 
 export const EditorContextMenuContributionDIToken = token<EditorContextMenuContribution>(
     "EditorContextMenuContribution",

@@ -1,8 +1,8 @@
-import { explorerPathArg } from "../../../browser/actions/menuContexts.ts";
-import { MenuId } from "../../../../platform/actions/common/menuId.ts";
-import { FileOperationsServiceDIToken } from "./fileOperationsService.ts";
-
 import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
+import { MenuId } from "../../../../platform/actions/common/menuId.ts";
+import { explorerPathArg } from "../../../browser/actions/menuContexts.ts";
+
+import { FileOperationsServiceDIToken } from "./fileOperationsService.ts";
 
 /**
  * Команды создания в explorer поверх `FileOperationsService.runCreate` (промпт

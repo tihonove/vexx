@@ -1,5 +1,4 @@
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-
 import type { DialogService } from "../../dialogs/browser/dialogService.ts";
 import { DialogServiceDIToken } from "../../dialogs/browser/dialogService.ts";
 

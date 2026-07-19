@@ -1,6 +1,7 @@
 import { DEFAULT_COLOR, unpackB, unpackG, unpackR } from "../../base/common/colorUtils.ts";
-import type { GridSnapshot } from "./gridSnapshot.ts";
 import { StyleFlags } from "../../base/common/styleFlags.ts";
+
+import type { GridSnapshot } from "./gridSnapshot.ts";
 
 /**
  * Options for {@link gridToSvg}. Colours are packed 24-bit RGB. Metrics are in

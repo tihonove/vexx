@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { IThemeFile } from "../../../../platform/theme/common/iThemeFile.ts";
+
 import { createBuiltinThemeRegistry, ThemeRegistry } from "./themeRegistry.ts";
 import { builtinThemes, DEFAULT_COLOR_THEME } from "./themes/builtinThemes.ts";
 

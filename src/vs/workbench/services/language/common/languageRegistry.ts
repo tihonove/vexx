@@ -3,7 +3,6 @@ import * as path from "node:path";
 import { joinVirtualPath } from "../../../../base/common/assets/assetBundleFormat.ts";
 import type { IDisposable } from "../../../../base/common/disposable.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
-
 import type { IExtension } from "../../../../platform/extensions/common/iExtension.ts";
 import type { ILanguageContribution } from "../../../../platform/extensions/common/iLanguageContribution.ts";
 

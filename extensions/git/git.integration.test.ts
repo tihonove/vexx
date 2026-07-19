@@ -5,17 +5,17 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import type { IGutterChangeDecoration } from "../../src/vs/editor/common/model/iGutterChangeDecoration.ts";
 import {
     createExtensionTestHarness,
     type IExtensionHarness,
     registerAndActivate,
 } from "../../src/TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../src/TestUtils/timing.ts";
+import type { IGutterChangeDecoration } from "../../src/vs/editor/common/model/iGutterChangeDecoration.ts";
 import type { IEditorDecorationsService } from "../../src/vs/workbench/api/common/iEditorDecorationsService.ts";
-import type { IExtensionRegistration } from "../../src/vs/workbench/services/extensions/node/iExtensionEntry.ts";
 import type { IFileDecorationsService } from "../../src/vs/workbench/api/common/iFileDecorationsService.ts";
 import type { IThemeColorResolver } from "../../src/vs/workbench/api/common/iThemeColorResolver.ts";
+import type { IExtensionRegistration } from "../../src/vs/workbench/services/extensions/node/iExtensionEntry.ts";
 
 const GIT_MAIN = fileURLToPath(new URL("./main.ts", import.meta.url));
 

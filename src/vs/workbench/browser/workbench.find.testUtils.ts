@@ -2,10 +2,10 @@ import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTe
 import { typeText } from "../../../TestUtils/domQueries.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { TestApp } from "../../../TestUtils/TestApp.ts";
-import type { EditorPane } from "./parts/editor/editorPane.ts";
 import type { ContextKeyService } from "../../platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
 
+import type { EditorPane } from "./parts/editor/editorPane.ts";
 import type { WorkbenchComponent } from "./workbenchComponent.ts";
 
 export interface FindContext {

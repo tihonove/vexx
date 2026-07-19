@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { Point } from "../../../common/geometryPromitives.ts";
 import { expectScreen, screen } from "../../../../../TestUtils/expectScreen.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
+import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import { Point } from "../../../common/geometryPromitives.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-
 import { BoxElement } from "../layout/boxElement.ts";
+
 import { OverlayLayer } from "./overlayLayer.ts";
 
 function renderLayer(

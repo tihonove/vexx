@@ -1,13 +1,12 @@
 import * as fs from "node:fs";
 
-import type { ServiceAccessor } from "../../../platform/instantiation/common/diContainer.ts";
 import { SUPPORTED_ENCODINGS } from "../../../editor/common/model/encoding.ts";
+import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 import { CommandRegistryDIToken } from "../../../platform/commands/common/commandRegistry.ts";
+import type { ServiceAccessor } from "../../../platform/instantiation/common/diContainer.ts";
 import { DialogServiceDIToken } from "../../services/dialogs/browser/dialogService.ts";
 import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
 import { QuickInputServiceDIToken } from "../parts/quickinput/quickInputService.ts";
-
-import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 
 /**
  * Encoding picker (VS Code `workbench.action.editor.changeEncoding`):

@@ -2,9 +2,8 @@ import * as nodeFs from "node:fs/promises";
 
 import type * as vscode from "vscode";
 
-import { decodeBuffer } from "../../../editor/common/model/encoding.ts";
 import { detectEndOfLine, EndOfLine as CoreEndOfLine } from "../../../editor/common/core/endOfLine.ts";
-import type { WireTextEdit } from "./wireTypes.ts";
+import { decodeBuffer } from "../../../editor/common/model/encoding.ts";
 
 import { ExtHostTextDocument } from "./extHostDocuments.ts";
 import { createFileSystemNamespace } from "./fileSystemNamespace.ts";
@@ -18,6 +17,7 @@ import {
     TextEdit,
     Uri,
 } from "./vscodeTypes.ts";
+import type { WireTextEdit } from "./wireTypes.ts";
 
 /** Тайм-аут на один waitUntil-thenable участника will-save, мс. */
 const WILL_SAVE_LISTENER_TIMEOUT_MS = 1500;

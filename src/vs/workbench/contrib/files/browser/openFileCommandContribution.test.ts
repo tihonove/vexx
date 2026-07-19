@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
-import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 import type { WorkbenchContextKeys } from "../../../browser/workbenchContextKeys.ts";
+import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 
 import { OpenFileCommandContribution } from "./openFileCommandContribution.ts";
 

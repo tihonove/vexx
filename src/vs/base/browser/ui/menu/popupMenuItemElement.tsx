@@ -2,7 +2,6 @@ import { packRgb } from "../../../common/colorUtils.ts";
 import { CompositeElement } from "../../compositeElement.ts";
 import type { JsxNode } from "../../jsx/jsx-runtime.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
-
 import { HFlex, hflexFill, hflexFit, hflexFixed } from "../layout/hFlexElement.ts";
 import { TextLabel } from "../text/textLabelElement.ts";
 

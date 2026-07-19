@@ -1,12 +1,13 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import type { TUIElement } from "../../../../base/browser/tuiElement.ts";
 import { PanelContainerElement } from "../../../../base/browser/ui/panel/panelContainerElement.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import { getPanelContainerStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import { ThemedComponent } from "../../component.ts";
+
 import type { PanelService } from "./panelService.ts";
 import { PanelServiceDIToken } from "./panelService.ts";
-import { getPanelContainerStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 
 export const PanelComponentDIToken = token<PanelComponent>("PanelComponent");
 

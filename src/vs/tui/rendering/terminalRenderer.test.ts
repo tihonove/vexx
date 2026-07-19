@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-
 import { DEFAULT_COLOR, packRgb } from "../../base/common/colorUtils.ts";
-import { Grid } from "./grid.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { StyleFlags } from "../../base/common/styleFlags.ts";
+
+import { Grid } from "./grid.ts";
 import { TerminalRenderer } from "./terminalRenderer.ts";
 
 /**

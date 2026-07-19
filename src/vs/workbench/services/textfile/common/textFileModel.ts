@@ -2,22 +2,28 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
-import type { IFileWatcher } from "../../../../platform/files/common/iFileWatcher.ts";
 import { Uri } from "../../../../base/common/uri.ts";
-import { decodeBuffer, DEFAULT_ENCODING, encodeText, getEncodingInfo } from "../../../../editor/common/model/encoding.ts";
 import type { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
-import type { IDocumentLanguageChange } from "../../../../editor/common/model/iDocumentLanguageChange.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import { createRange } from "../../../../editor/common/core/iRange.ts";
-import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "./iSaveParticipant.ts";
 import type { ISelection } from "../../../../editor/common/core/iSelection.ts";
 import type { ITextEdit } from "../../../../editor/common/core/iTextEdit.ts";
 import { createTextEdit } from "../../../../editor/common/core/iTextEdit.ts";
+import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
+import {
+    decodeBuffer,
+    DEFAULT_ENCODING,
+    encodeText,
+    getEncodingInfo,
+} from "../../../../editor/common/model/encoding.ts";
+import type { IDocumentLanguageChange } from "../../../../editor/common/model/iDocumentLanguageChange.ts";
 import type { IUndoElement } from "../../../../editor/common/model/iUndoElement.ts";
 import { TextDocument } from "../../../../editor/common/model/textDocument.ts";
-import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import type { UndoManager } from "../../../../editor/common/model/undoManager.ts";
+import type { IFileWatcher } from "../../../../platform/files/common/iFileWatcher.ts";
 import type { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
+
+import type { ISaveEdit, ISaveSnapshot, SaveParticipant } from "./iSaveParticipant.ts";
 
 /**
  * Итог сохранения. `conflict` — файл на диске изменился внешним процессом с

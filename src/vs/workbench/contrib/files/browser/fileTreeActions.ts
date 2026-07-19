@@ -1,11 +1,11 @@
-import { ExplorerComponentDIToken } from "./explorerComponent.ts";
-import { explorerPathArg } from "../../../browser/actions/menuContexts.ts";
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
+import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import { explorerPathArg } from "../../../browser/actions/menuContexts.ts";
+
+import { ExplorerComponentDIToken } from "./explorerComponent.ts";
 import { ExplorerServiceDIToken } from "./explorerService.ts";
 import { FileOperationsServiceDIToken } from "./fileOperationsService.ts";
-import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 
 /**
  * Удаление файла/каталога из explorer'а: подтверждение + запись в историю отмены

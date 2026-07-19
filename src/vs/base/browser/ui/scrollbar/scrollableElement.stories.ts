@@ -1,6 +1,6 @@
-import { reject } from "../../../common/typingUtils.ts";
 import { WASDScrollableElement } from "../../../../../demos/WASDScrollableElement.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
+import { reject } from "../../../common/typingUtils.ts";
 
 import { ScrollBarDecorator } from "./scrollContainerElement.ts";
 

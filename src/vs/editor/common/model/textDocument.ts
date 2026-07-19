@@ -1,14 +1,14 @@
 import type { IDisposable } from "../../../base/common/disposable.ts";
-
 import { detectEndOfLine, EndOfLine, eolToSequence } from "../core/endOfLine.ts";
-import type { IDocumentContentChange } from "./iDocumentContentChange.ts";
-import type { IDocumentLanguageChange } from "./iDocumentLanguageChange.ts";
 import { comparePositions } from "../core/iPosition.ts";
 import type { IRange } from "../core/iRange.ts";
 import { createRange } from "../core/iRange.ts";
-import type { IApplyEditsResult, ITextDocument } from "./iTextDocument.ts";
 import type { ITextEdit } from "../core/iTextEdit.ts";
 import { createTextEdit } from "../core/iTextEdit.ts";
+
+import type { IDocumentContentChange } from "./iDocumentContentChange.ts";
+import type { IDocumentLanguageChange } from "./iDocumentLanguageChange.ts";
+import type { IApplyEditsResult, ITextDocument } from "./iTextDocument.ts";
 
 /**
  * Simple array-backed implementation of ITextDocument.

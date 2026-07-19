@@ -1,24 +1,24 @@
 import * as path from "node:path";
 
+import { Uri } from "../../base/common/uri.ts";
+import { CommandRegistryDIToken } from "../../platform/commands/common/commandRegistry.ts";
+import { IConfigurationServiceDIToken } from "../../platform/configuration/common/iConfigurationServiceDIToken.ts";
 import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import { ILogServiceDIToken } from "../../platform/log/common/iLogServiceDIToken.ts";
 import { LogLevel } from "../../platform/log/common/logLevel.ts";
-import { Uri } from "../../base/common/uri.ts";
-import { IConfigurationServiceDIToken } from "../../platform/configuration/common/iConfigurationServiceDIToken.ts";
 import { CommandServiceAdapter } from "../../workbench/api/browser/commandServiceAdapter.ts";
 import { EditorDecorationsServiceAdapter } from "../../workbench/api/browser/editorDecorationsServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../../workbench/api/browser/editorOptionsServiceAdapter.ts";
+import { FileDecorationsServiceAdapter } from "../../workbench/api/browser/fileDecorationsServiceAdapter.ts";
+import { ThemeColorResolverAdapter } from "../../workbench/api/browser/themeColorResolverAdapter.ts";
+import { ExplorerServiceDIToken } from "../../workbench/contrib/files/browser/explorerService.ts";
+import { EditorServiceDIToken } from "../../workbench/services/editor/browser/editorService.ts";
 import {
     ExtensionHost,
     ExtensionHostDIToken,
     type IExtensionHostConfigProvider,
 } from "../../workbench/services/extensions/node/extensionHost.ts";
-import { FileDecorationsServiceAdapter } from "../../workbench/api/browser/fileDecorationsServiceAdapter.ts";
-import { ThemeColorResolverAdapter } from "../../workbench/api/browser/themeColorResolverAdapter.ts";
 import { ThemeServiceDIToken } from "../../workbench/services/themes/common/themeTokens.ts";
-import { CommandRegistryDIToken } from "../../platform/commands/common/commandRegistry.ts";
-import { EditorServiceDIToken } from "../../workbench/services/editor/browser/editorService.ts";
-import { ExplorerServiceDIToken } from "../../workbench/contrib/files/browser/explorerService.ts";
 
 /**
  * DI-модуль extension host'а. Связывает `EditorService` →

@@ -3,13 +3,14 @@ import * as fs from "node:fs";
 import iconv from "iconv-lite";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { EndOfLine } from "../../editor/common/core/endOfLine.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { flushMicrotasks } from "../../../TestUtils/timing.ts";
 import type { QuickPickElement } from "../../base/browser/ui/quickpick/quickPickElement.ts";
-import { StatusBarComponentDIToken } from "./parts/statusbar/statusBarComponent.ts";
+import { EndOfLine } from "../../editor/common/core/endOfLine.ts";
 import { DialogServiceDIToken } from "../services/dialogs/browser/dialogService.ts";
+
+import { StatusBarComponentDIToken } from "./parts/statusbar/statusBarComponent.ts";
 
 function visiblePicker(h: IAppHarness): QuickPickElement {
     // В дереве может быть несколько QuickPickElement (quick open держит свой);

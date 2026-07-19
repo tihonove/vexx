@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../backend/mockTerminalBackend.ts";
 import { Point, Size } from "../../base/common/geometryPromitives.ts";
+import { MockTerminalBackend } from "../backend/mockTerminalBackend.ts";
 
 import { TerminalScreen } from "./terminalScreen.ts";
 

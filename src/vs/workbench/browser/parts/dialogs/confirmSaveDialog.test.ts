@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { BoxConstraints, Point, Size } from "../../../../base/common/geometryPromitives.ts";
+import { ROOT_RESOLVED_STYLE } from "../../../../base/browser/styles/tuiStyle.ts";
+import { RenderContext } from "../../../../base/browser/tuiElement.ts";
 import { DEFAULT_COLOR } from "../../../../base/common/colorUtils.ts";
+import { BoxConstraints, Point, Size } from "../../../../base/common/geometryPromitives.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import { ROOT_RESOLVED_STYLE } from "../../../../base/browser/styles/tuiStyle.ts";
-import { RenderContext } from "../../../../base/browser/tuiElement.ts";
 
 import { ConfirmSaveDialog } from "./confirmSaveDialog.tsx";
 

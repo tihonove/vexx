@@ -1,9 +1,8 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { Disposable } from "../../../../base/common/disposable.ts";
 import type { QuickPickElement, QuickPickItem } from "../../../../base/browser/ui/quickpick/quickPickElement.ts";
+import { Disposable } from "../../../../base/common/disposable.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { QuickInputComponent } from "../../../browser/parts/quickinput/quickInputComponent.ts";
 import { QuickInputComponentDIToken } from "../../../browser/parts/quickinput/quickInputComponent.ts";
-
 import type { IQuickAccessProvider, QuickAccessItem } from "../common/iQuickAccessProvider.ts";
 import type { QuickAccessRegistry } from "../common/quickAccessRegistry.ts";
 import { QuickAccessRegistryDIToken } from "../common/quickAccessRegistry.ts";

@@ -3,13 +3,13 @@ import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { Uri } from "../../../base/common/uri.ts";
-import type { IGutterChangeDecoration } from "../../../editor/common/model/iGutterChangeDecoration.ts";
 import { createRange } from "../../../editor/common/core/iRange.ts";
+import type { IGutterChangeDecoration } from "../../../editor/common/model/iGutterChangeDecoration.ts";
+import { WorkbenchTheme } from "../../../platform/theme/common/workbenchTheme.ts";
+import type { EditorService } from "../../services/editor/browser/editorService.ts";
 import { darkPlusTheme } from "../../services/themes/common/themes/darkPlus.ts";
 import { lightPlusTheme } from "../../services/themes/common/themes/lightPlus.ts";
 import { ThemeService } from "../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../platform/theme/common/workbenchTheme.ts";
-import type { EditorService } from "../../services/editor/browser/editorService.ts";
 
 import { EditorDecorationsServiceAdapter } from "./editorDecorationsServiceAdapter.ts";
 import { FileDecorationsServiceAdapter } from "./fileDecorationsServiceAdapter.ts";

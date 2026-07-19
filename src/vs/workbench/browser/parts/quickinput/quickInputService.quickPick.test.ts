@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../../../../base/common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { TUIMouseEvent } from "../../../../base/browser/events/tuiMouseEvent.ts";
 import { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
 import type { QuickPickItem } from "../../../../base/browser/ui/quickpick/quickPickElement.ts";
-import { QuickInputComponent } from "./quickInputComponent.ts";
+import { Size } from "../../../../base/common/geometryPromitives.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
 
+import { QuickInputComponent } from "./quickInputComponent.ts";
 import { QuickInputService } from "./quickInputService.ts";
 
 function createService(): {

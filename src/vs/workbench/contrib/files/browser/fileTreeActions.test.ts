@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { Container } from "../../../../platform/instantiation/common/diContainer.ts";
+import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+
 import { type ExplorerComponent, ExplorerComponentDIToken } from "./explorerComponent.ts";
 import { type ExplorerService, ExplorerServiceDIToken } from "./explorerService.ts";
 import { type FileOperationsService, FileOperationsServiceDIToken } from "./fileOperationsService.ts";
-import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-
 import {
     fileDeleteAction,
     fileRedoAction,

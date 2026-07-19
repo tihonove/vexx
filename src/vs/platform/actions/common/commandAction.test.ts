@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { Container, token } from "../../instantiation/common/diContainer.ts";
 import { CommandRegistry } from "../../commands/common/commandRegistry.ts";
 import { ContextKeyService } from "../../contextkey/common/contextKeyService.ts";
+import { Container, token } from "../../instantiation/common/diContainer.ts";
 import type { KeyboardEventLike } from "../../keybinding/common/keybindingRegistry.ts";
 import { KeybindingRegistry, parseChord, parseKeybinding } from "../../keybinding/common/keybindingRegistry.ts";
 

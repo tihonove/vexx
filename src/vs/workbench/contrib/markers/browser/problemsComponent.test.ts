@@ -1,21 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { settle } from "../../../../../TestUtils/timing.ts";
 import { Size } from "../../../../base/common/geometryPromitives.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { createRange } from "../../../../editor/common/core/iRange.ts";
 import type { IMarkerData } from "../../../../platform/markers/common/iMarker.ts";
 import { MarkerSeverity } from "../../../../platform/markers/common/iMarker.ts";
 import { MarkerService } from "../../../../platform/markers/common/markerService.ts";
-import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { settle } from "../../../../../TestUtils/timing.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { PanelComponent } from "../../../browser/parts/panel/panelComponent.ts";
+import { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import type { ProblemNode } from "./problemsTreeDataProvider.ts";
-import { PanelService } from "../../../browser/parts/panel/panelService.ts";
 
-import { PanelComponent } from "../../../browser/parts/panel/panelComponent.ts";
 import { type IMarkerRevealEditor, ProblemsComponent } from "./problemsComponent.ts";
+import type { ProblemNode } from "./problemsTreeDataProvider.ts";
 
 const RESOURCE = "/ws/settings.json";
 

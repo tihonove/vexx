@@ -1,6 +1,6 @@
-import { packRgb } from "../vs/base/common/colorUtils.ts";
 import { RenderContext } from "../vs/base/browser/tuiElement.ts";
 import { ScrollableElement, type ScrollViewportInfo } from "../vs/base/browser/ui/scrollbar/scrollableElement.ts";
+import { packRgb } from "../vs/base/common/colorUtils.ts";
 
 const BG_EVEN = packRgb(40, 40, 50);
 const BG_ODD = packRgb(30, 30, 40);

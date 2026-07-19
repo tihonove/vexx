@@ -30,8 +30,8 @@
     "test:e2e": "vitest run --config vitest.e2e.config.ts",
     "test:perf": "vitest bench --run --config vitest.perf.config.ts",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
+    "lint": "eslint src/ extensions/",
+    "lint:fix": "eslint src/ extensions/ --fix",
     "valid-layers-check": "node scripts/check-layers.mjs"
   },
   "devDependencies": {

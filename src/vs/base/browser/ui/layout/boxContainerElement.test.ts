@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
+import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import { TUIElement } from "../../tuiElement.ts";
 
 import { BoxContainerElement } from "./boxContainerElement.ts";

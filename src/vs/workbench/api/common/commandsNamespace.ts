@@ -1,7 +1,6 @@
 import type * as vscode from "vscode";
 
 import type { RpcEndpoint } from "./rpcEndpoint.ts";
-
 import { DisposableImpl } from "./vscodeTypes.ts";
 
 type CommandHandler = (...args: unknown[]) => unknown;

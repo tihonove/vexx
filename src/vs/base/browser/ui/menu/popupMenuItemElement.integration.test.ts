@@ -3,9 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { Size } from "../../../common/geometryPromitives.ts";
 import { TuiApplication } from "../../tuiApplication.ts";
-
 import { BodyElement } from "../body/bodyElement.ts";
 import { BoxElement } from "../layout/boxElement.ts";
+
 import type { MenuBarItem } from "./menuBarElement.ts";
 import { MenuBarElement } from "./menuBarElement.ts";
 

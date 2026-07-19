@@ -1,4 +1,7 @@
-import type { ITokenStyleResolver, ResolvedTokenStyle } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
+import type {
+    ITokenStyleResolver,
+    ResolvedTokenStyle,
+} from "../../../../editor/common/languages/iTokenStyleResolver.ts";
 import { EMPTY_RESOLVED_TOKEN_STYLE } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
 import { parseHexColor } from "../../../../platform/theme/common/colorUtils.ts";
 import type { IEditorTokenTheme } from "../../../../platform/theme/common/iEditorTokenTheme.ts";

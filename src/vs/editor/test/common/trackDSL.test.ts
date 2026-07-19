@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { createCursorSelection, createSelection } from "../../common/core/iSelection.ts";
+import { PlainTextTokenizer } from "../../common/languages/builtin/plainTextTokenizer.ts";
+import { createLineTokens, createToken } from "../../common/languages/iLineTokens.ts";
+import { TextDocument } from "../../common/model/textDocument.ts";
+import { DocumentTokenStore } from "../../common/tokens/documentTokenStore.ts";
 import { EditorViewState } from "../../common/viewModel/editorViewState.ts";
 import { createFoldingRegion } from "../../contrib/folding/iFoldingRegion.ts";
-import { createLineTokens, createToken } from "../../common/languages/iLineTokens.ts";
-import { createCursorSelection, createSelection } from "../../common/core/iSelection.ts";
-import { TextDocument } from "../../common/model/textDocument.ts";
-import { PlainTextTokenizer } from "../../common/languages/builtin/plainTextTokenizer.ts";
-import { DocumentTokenStore } from "../../common/tokens/documentTokenStore.ts";
 
 import { editorState, expectEditorState, parseDSL, renderToDSL } from "./trackDSL.ts";
 

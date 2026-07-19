@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-
-import { EditorElement } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { TextDocument } from "../common/model/textDocument.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { WordTokenizer } from "../common/languages/builtin/wordTokenizer.ts";
-import { DocumentTokenStore } from "../common/tokens/documentTokenStore.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "../common/languages/iTokenStyleResolver.ts";
 import { EMPTY_RESOLVED_TOKEN_STYLE } from "../common/languages/iTokenStyleResolver.ts";
+import { TextDocument } from "../common/model/textDocument.ts";
+import { DocumentTokenStore } from "../common/tokens/documentTokenStore.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+
+import { EditorElement } from "./editorElement.ts";
 
 const KEYWORD_FG = packRgb(255, 0, 0);
 const NUMBER_FG = packRgb(0, 255, 0);

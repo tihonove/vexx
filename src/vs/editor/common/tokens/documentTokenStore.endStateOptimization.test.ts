@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { createInsertEdit } from "../core/iTextEdit.ts";
+import type { IState } from "../languages/iState.ts";
+import type { ITokenizationResult, ITokenizationSupport } from "../languages/iTokenizationSupport.ts";
 import { TextDocument } from "../model/textDocument.ts";
 
 import { DocumentTokenStore } from "./documentTokenStore.ts";
-import type { IState } from "../languages/iState.ts";
-import type { ITokenizationResult, ITokenizationSupport } from "../languages/iTokenizationSupport.ts";
 
 class CounterState implements IState {
     public readonly value: number;

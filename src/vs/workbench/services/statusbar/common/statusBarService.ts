@@ -1,5 +1,5 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { IDisposable } from "../../../../base/common/disposable.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 
 /**
  * Запись статус-бара (аналог VS Code `IStatusbarEntry`). Записи публикуют

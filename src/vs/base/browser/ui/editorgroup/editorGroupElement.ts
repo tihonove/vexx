@@ -1,8 +1,8 @@
 import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { OverlayLayer } from "../contextview/overlayLayer.ts";
 
 import { EditorTabStripElement } from "./editorTabStripElement.ts";
-import { OverlayLayer } from "../contextview/overlayLayer.ts";
 
 export class EditorGroupElement extends TUIElement {
     public readonly tabStrip: EditorTabStripElement;

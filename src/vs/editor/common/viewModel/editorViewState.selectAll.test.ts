@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { createCursorSelection, createSelection, isSelectionCollapsed } from "../core/iSelection.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 describe("EditorViewState.selectAll", () => {
     it("selects entire single-line document", () => {

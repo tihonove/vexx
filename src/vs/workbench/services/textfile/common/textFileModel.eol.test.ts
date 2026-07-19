@@ -2,10 +2,10 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Uri } from "../../../../base/common/uri.ts";
-import { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
 import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { Uri } from "../../../../base/common/uri.ts";
+import { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
 
 describe("TextFileModel EOL", () => {
     let ws: ITempWorkspace;

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
+import { NULL_COMMAND_SERVICE } from "../common/iCommandService.ts";
 
 import { CommandServiceAdapter } from "./commandServiceAdapter.ts";
-import { NULL_COMMAND_SERVICE } from "../common/iCommandService.ts";
 
 describe("CommandServiceAdapter", () => {
     it("execute делегирует в CommandRegistry и пробрасывает args/результат", () => {

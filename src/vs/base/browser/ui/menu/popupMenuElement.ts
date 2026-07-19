@@ -2,10 +2,10 @@ import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geome
 import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
 
 import type { IMenuStyles, PopupMenuItemConfig } from "./popupMenuItemElement.tsx";
 import { PopupMenuItemElement, PopupMenuSeparatorElement, unthemedMenuStyles } from "./popupMenuItemElement.tsx";
-import { VStackElement } from "../layout/vStackElement.ts";
 
 export interface MenuItemEntry {
     type?: "item";

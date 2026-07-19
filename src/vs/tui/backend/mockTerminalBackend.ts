@@ -1,9 +1,9 @@
+import { DEFAULT_COLOR } from "../../base/common/colorUtils.ts";
 import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import type { KeyPressEvent } from "../input/keyEvent.ts";
 import { KeyInputParser } from "../input/keyInputParser.ts";
 import type { MouseToken } from "../input/rawTerminalToken.ts";
 import { serializeKey } from "../input/serializeKey.ts";
-import { DEFAULT_COLOR } from "../../base/common/colorUtils.ts";
 import type { Grid } from "../rendering/grid.ts";
 
 import type { ITerminalBackend } from "./iTerminalBackend.ts";

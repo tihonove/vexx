@@ -10,9 +10,9 @@ export default tseslint.config(
             "dist/",
             "node_modules/",
             "*.config.*",
-            "src/Extensions/Api/vscode.d.ts",
-            "src/Extensions/Host/__fixtures__/*.cjs",
-            "src/Extensions/builtin/*/out/",
+            "src/vscode-dts/vscode.d.ts",
+            "src/vs/workbench/services/extensions/node/__fixtures__/*.cjs",
+            "extensions/*/out/",
         ],
     },
 

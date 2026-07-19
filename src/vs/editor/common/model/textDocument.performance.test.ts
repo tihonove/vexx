@@ -12,6 +12,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createInsertEdit } from "../core/iTextEdit.ts";
+
 import { TextDocument } from "./textDocument.ts";
 
 // ─── Helpers ────────────────────────────────────────────────

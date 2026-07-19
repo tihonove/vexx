@@ -1,24 +1,24 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
-import { InMemoryFileClipboard } from "../../../../platform/clipboard/common/inMemoryFileClipboard.ts";
-import { NULL_LOG_SERVICE } from "../../../../platform/log/common/nullLogService.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
-import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import { MENU_CONTRIBUTIONS } from "../../../browser/actions/menuContributions.ts";
+import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
 import { MenuRegistry } from "../../../../platform/actions/common/menuRegistry.ts";
 import { MenuService } from "../../../../platform/actions/common/menuService.ts";
+import { InMemoryFileClipboard } from "../../../../platform/clipboard/common/inMemoryFileClipboard.ts";
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
 import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-import { ExplorerService } from "./explorerService.ts";
+import { NULL_LOG_SERVICE } from "../../../../platform/log/common/nullLogService.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
+import { MENU_CONTRIBUTIONS } from "../../../browser/actions/menuContributions.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
 
 import { ExplorerComponent } from "./explorerComponent.ts";
+import { ExplorerService } from "./explorerService.ts";
 
 function makeMove(x: number, y: number): MouseToken {
     return {
@@ -52,9 +52,20 @@ describe("ExplorerComponent hover", () => {
         const clipboard = new InMemoryFileClipboard();
         service = new ExplorerService(clipboard, NULL_CONFIGURATION_SERVICE, NULL_LOG_SERVICE);
         const menuService = new MenuService(
-            new MenuRegistry(new CommandRegistry(), new KeybindingRegistry(), new ContextKeyService(), MENU_CONTRIBUTIONS),
+            new MenuRegistry(
+                new CommandRegistry(),
+                new KeybindingRegistry(),
+                new ContextKeyService(),
+                MENU_CONTRIBUTIONS,
+            ),
         );
-        component = new ExplorerComponent(service, new CommandRegistry(), clipboard, menuService, new ThemeService(theme));
+        component = new ExplorerComponent(
+            service,
+            new CommandRegistry(),
+            clipboard,
+            menuService,
+            new ThemeService(theme),
+        );
         service.setRootPath(ws.dir);
         app = TestApp.createWithContent(component.view, new Size(30, 10));
         await service.refresh();

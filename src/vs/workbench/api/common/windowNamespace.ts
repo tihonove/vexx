@@ -1,11 +1,10 @@
 import type * as vscode from "vscode";
 
-import type { RpcEndpoint } from "./rpcEndpoint.ts";
-import { type IWireFileDecoration, serializeDecorationRenderOptions } from "./wireTypes.ts";
-
 import type { ExtHostTextDocument } from "./extHostDocuments.ts";
+import type { RpcEndpoint } from "./rpcEndpoint.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
 import { DisposableImpl, Uri } from "./vscodeTypes.ts";
+import { type IWireFileDecoration, serializeDecorationRenderOptions } from "./wireTypes.ts";
 
 /** Wire-форма диапазона декорации (nested `start`/`end`, совпадает с `IRange`). */
 interface IWireRange {

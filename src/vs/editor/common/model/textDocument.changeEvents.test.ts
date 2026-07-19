@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import type { IDocumentContentChange } from "./iDocumentContentChange.ts";
 import { createDeleteEdit, createInsertEdit } from "../core/iTextEdit.ts";
+
+import type { IDocumentContentChange } from "./iDocumentContentChange.ts";
 import { TextDocument } from "./textDocument.ts";
 
 function recordChanges(doc: TextDocument): IDocumentContentChange[] {

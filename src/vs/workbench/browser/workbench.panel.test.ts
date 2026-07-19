@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import type { PanelContainerElement } from "../../base/browser/ui/panel/panelContainerElement.ts";
-import { PROBLEMS_VIEW_ID } from "../contrib/markers/browser/problemsComponent.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
+import { PROBLEMS_VIEW_ID } from "../contrib/markers/browser/problemsComponent.ts";
 
 const TOGGLE_PANEL = "workbench.action.togglePanel";
 const TOGGLE_PROBLEMS = "workbench.actions.view.problems";

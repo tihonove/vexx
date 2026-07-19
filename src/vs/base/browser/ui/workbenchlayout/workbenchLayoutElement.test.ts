@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
-
 import { SashElement } from "../sash/sashElement.ts";
+
 import { WorkbenchLayoutElement } from "./workbenchLayoutElement.ts";
 
 function createPanel(): TUIElement {

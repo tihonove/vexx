@@ -1,11 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
+import { flushMicrotasks } from "../../../../../TestUtils/timing.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
-import { flushMicrotasks } from "../../../../../TestUtils/timing.ts";
-
-import { ExtensionHost } from "./extensionHost.ts";
+import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
 import type { ICommandService } from "../../../api/common/iCommandService.ts";
 import type { IEditorDecorationsService } from "../../../api/common/iEditorDecorationsService.ts";
 import type { IEditorOptionsService } from "../../../api/common/iEditorOptionsService.ts";
@@ -13,6 +11,8 @@ import type { IFileDecorationsService } from "../../../api/common/iFileDecoratio
 import { createInProcessChannelPair } from "../../../api/common/inProcessChannelPair.ts";
 import type { IThemeColorResolver } from "../../../api/common/iThemeColorResolver.ts";
 import { RpcEndpoint } from "../../../api/common/rpcEndpoint.ts";
+
+import { ExtensionHost } from "./extensionHost.ts";
 
 // Детерминированный in-process тест decoration-хендлеров host'а: вместо форка
 // subprocess'а гоняем `installHostHandlers` на in-process RPC-паре и шлём

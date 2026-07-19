@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
-import { Uri } from "../../../../base/common/uri.ts";
-import { createRange } from "../../../../editor/common/core/iRange.ts";
-import { packRgb } from "../../../../base/common/colorUtils.ts";
 import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { packRgb } from "../../../../base/common/colorUtils.ts";
+import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
+import { Uri } from "../../../../base/common/uri.ts";
+import { createRange } from "../../../../editor/common/core/iRange.ts";
 
 const BAR = "┃"; // solid change bar (no dashed flag on this decoration)
 const CHANGE_COLOR = packRgb(0x1b, 0x81, 0xa8);

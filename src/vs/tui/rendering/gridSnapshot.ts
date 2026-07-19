@@ -1,6 +1,6 @@
+import { DEFAULT_COLOR } from "../../base/common/colorUtils.ts";
 import type { Point } from "../../base/common/geometryPromitives.ts";
 
-import { DEFAULT_COLOR } from "../../base/common/colorUtils.ts";
 import type { Grid } from "./grid.ts";
 
 /**

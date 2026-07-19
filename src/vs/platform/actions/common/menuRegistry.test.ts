@@ -27,7 +27,11 @@ function setup(items: IMenuContribution[]): Harness {
     for (const item of items) {
         if (seen.has(item.command)) continue;
         seen.add(item.command);
-        commands.register(item.command, (...args) => executed.push({ id: item.command, args }), `Title:${item.command}`);
+        commands.register(
+            item.command,
+            (...args) => executed.push({ id: item.command, args }),
+            `Title:${item.command}`,
+        );
     }
     const registry = new MenuRegistry(commands, keybindings, contextKeys, items);
     return { registry, commands, keybindings, contextKeys, executed };
@@ -128,11 +132,7 @@ describe("MenuRegistry", () => {
             { menuId: MenuId.EditorContext, command: "nav", group: "navigation" },
             { menuId: MenuId.EditorContext, command: "other", group: "1_other" },
         ]);
-        expect(labels(first.registry.getMenuItems(MenuId.EditorContext))).toEqual([
-            "Title:nav",
-            "─",
-            "Title:other",
-        ]);
+        expect(labels(first.registry.getMenuItems(MenuId.EditorContext))).toEqual(["Title:nav", "─", "Title:other"]);
     });
 
     it("дефолты: без group (→ '') и без order (→ 0)", () => {
@@ -227,8 +227,20 @@ describe("MenuRegistry", () => {
     it("getSubmenus: фильтр по точке и when, сортировка по order, мнемоника", () => {
         const h = setup([]);
         const registry = new MenuRegistry(h.commands, h.keybindings, h.contextKeys, [
-            { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarEditMenu, title: "Edit", mnemonic: "e", order: 20 },
-            { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarFileMenu, title: "File", mnemonic: "f", order: 10 },
+            {
+                menuId: MenuId.MenubarMainMenu,
+                submenu: MenuId.MenubarEditMenu,
+                title: "Edit",
+                mnemonic: "e",
+                order: 20,
+            },
+            {
+                menuId: MenuId.MenubarMainMenu,
+                submenu: MenuId.MenubarFileMenu,
+                title: "File",
+                mnemonic: "f",
+                order: 10,
+            },
             // Чужая точка и непроходящий when — не попадают в выдачу.
             { menuId: MenuId.EditorContext, submenu: MenuId.MenubarHelpMenu, title: "Elsewhere" },
             { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarViewMenu, title: "Focused", when: "listFocus" },

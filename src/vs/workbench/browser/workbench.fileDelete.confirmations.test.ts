@@ -3,15 +3,15 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { Size } from "../../base/common/geometryPromitives.ts";
+import type { CommandRegistry } from "../../platform/commands/common/commandRegistry.ts";
+import { CommandRegistryDIToken } from "../../platform/commands/common/commandRegistry.ts";
 import type { IConfigurationService } from "../../platform/configuration/common/iConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../platform/configuration/common/iConfigurationServiceDIToken.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../platform/configuration/common/nullConfigurationService.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
-import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { createTestContainer } from "../../vexx/modules/testProfile.ts";
-import type { CommandRegistry } from "../../platform/commands/common/commandRegistry.ts";
-import { CommandRegistryDIToken } from "../../platform/commands/common/commandRegistry.ts";
 
 import { WorkbenchComponent, WorkbenchComponentDIToken } from "./workbenchComponent.ts";
 

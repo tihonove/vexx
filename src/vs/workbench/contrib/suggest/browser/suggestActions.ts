@@ -1,7 +1,7 @@
-import { CompletionServiceDIToken } from "./completionService.ts";
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
 
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
+import { CompletionServiceDIToken } from "./completionService.ts";
 
 // Тонкие экшены suggest-попапа поверх CompletionService (этап 10:
 // run-обработчики живут в самих экшенах, как у find/quick-open). Экшены под

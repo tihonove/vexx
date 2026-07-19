@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
+import { packRgb } from "../../../common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
 import { MouseEventDispatcher } from "../../events/mouseEventDispatcher.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";
 

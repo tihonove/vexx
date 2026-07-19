@@ -3,9 +3,9 @@ import * as path from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { createDeleteEdit } from "../../../../editor/common/core/iTextEdit.ts";
 import { createExtensionTestHarness, extensionFixture } from "../../../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../../../TestUtils/timing.ts";
+import { createDeleteEdit } from "../../../../editor/common/core/iTextEdit.ts";
 
 describe("ExtensionHost — onWillSaveTextDocument (save pipeline)", () => {
     it("применяет trim/insert-final-newline из участника к байтам на диске + undoable", async () => {

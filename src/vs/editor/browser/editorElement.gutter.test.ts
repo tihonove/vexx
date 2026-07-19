@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
+import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 
 import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { TextDocument } from "../common/model/textDocument.ts";
 
 function createEditor(text: string, width = 30, height = 10): { app: TestApp; editor: EditorElement } {
     const doc = new TextDocument(text);

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "../viewModel/editorViewState.ts";
 import { createCursorSelection } from "../core/iSelection.ts";
+import { EditorViewState } from "../viewModel/editorViewState.ts";
+
 import { TextDocument } from "./textDocument.ts";
 import { UndoManager } from "./undoManager.ts";
 

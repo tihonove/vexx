@@ -1,7 +1,6 @@
 import type { IDisposable } from "../../../base/common/disposable.ts";
 import type { IWorkbenchColors } from "../../../platform/theme/common/colors/colorContributions.ts";
 import type { ThemeService } from "../../services/themes/common/themeService.ts";
-
 import type { IThemeColorResolver } from "../common/iThemeColorResolver.ts";
 
 /**

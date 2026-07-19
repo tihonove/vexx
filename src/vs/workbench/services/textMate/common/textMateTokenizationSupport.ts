@@ -4,7 +4,10 @@ import vsctm from "vscode-textmate";
 import type { IToken } from "../../../../editor/common/languages/iLineTokens.ts";
 import { createLineTokens, createToken } from "../../../../editor/common/languages/iLineTokens.ts";
 import type { IState } from "../../../../editor/common/languages/iState.ts";
-import type { ITokenizationResult, ITokenizationSupport } from "../../../../editor/common/languages/iTokenizationSupport.ts";
+import type {
+    ITokenizationResult,
+    ITokenizationSupport,
+} from "../../../../editor/common/languages/iTokenizationSupport.ts";
 
 import { TextMateState } from "./textMateState.ts";
 

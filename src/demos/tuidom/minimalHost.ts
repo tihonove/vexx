@@ -7,10 +7,10 @@
 //
 // Run: npm run demo:tuidom   (Ctrl+C to exit)
 
-import { NodeTerminalBackend } from "../../vs/tui/backend/nodeTerminalBackend.ts";
 import { TuiApplication } from "../../vs/base/browser/tuiApplication.ts";
 import { BodyElement } from "../../vs/base/browser/ui/body/bodyElement.ts";
 import { BoxElement } from "../../vs/base/browser/ui/layout/boxElement.ts";
+import { NodeTerminalBackend } from "../../vs/tui/backend/nodeTerminalBackend.ts";
 
 const backend = new NodeTerminalBackend();
 const app = new TuiApplication(backend);

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { Size } from "../../../common/geometryPromitives.ts";
 import { FakeTerminalSurface } from "../../../../../TestUtils/FakeTerminalSurface.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { Size } from "../../../common/geometryPromitives.ts";
 import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 
 import { TerminalViewElement } from "./terminalViewElement.ts";

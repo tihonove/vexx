@@ -1,12 +1,11 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { Disposable } from "../../../../base/common/disposable.ts";
 import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { IWorkbenchContribution } from "../../../common/iWorkbenchContribution.ts";
 import type { ThemeRegistry } from "../../../services/themes/common/themeRegistry.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-
-import type { IWorkbenchContribution } from "../../../common/iWorkbenchContribution.ts";
 
 export const ThemeConfigContributionDIToken = token<ThemeConfigContribution>("ThemeConfigContribution");
 

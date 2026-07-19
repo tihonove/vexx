@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { findMatches } from "./findMatches.ts";
 import { TextDocument } from "../../common/model/textDocument.ts";
+
+import { findMatches } from "./findMatches.ts";
 
 describe("findMatches", () => {
     it("returns no matches for an empty query", () => {

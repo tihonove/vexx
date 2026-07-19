@@ -1,23 +1,23 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { Container } from "../../../platform/instantiation/common/diContainer.ts";
-import { NULL_FILE_WATCHER } from "../../../platform/files/common/iFileWatcher.ts";
-import { NULL_CONFIGURATION_SERVICE } from "../../../platform/configuration/common/nullConfigurationService.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../../TestUtils/TempWorkspace.ts";
 import { createCursorSelection, createSelection } from "../../../editor/common/core/iSelection.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../editor/common/languages/iLanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../../editor/common/languages/iTokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../../editor/common/languages/tokenizationRegistry.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../../TestUtils/TempWorkspace.ts";
-import { darkPlusTheme } from "../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../platform/theme/common/workbenchTheme.ts";
-import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
-import { EditorService, EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
-import { KeybindingRegistry } from "../../../platform/keybinding/common/keybindingRegistry.ts";
-import { UndoRedoService } from "../../../platform/undoRedo/common/undoRedoService.ts";
-
 import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
 import { registerAction } from "../../../platform/actions/common/commandAction.ts";
+import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
+import { NULL_CONFIGURATION_SERVICE } from "../../../platform/configuration/common/nullConfigurationService.ts";
+import { NULL_FILE_WATCHER } from "../../../platform/files/common/iFileWatcher.ts";
+import { Container } from "../../../platform/instantiation/common/diContainer.ts";
+import { KeybindingRegistry } from "../../../platform/keybinding/common/keybindingRegistry.ts";
+import { WorkbenchTheme } from "../../../platform/theme/common/workbenchTheme.ts";
+import { UndoRedoService } from "../../../platform/undoRedo/common/undoRedoService.ts";
+import { EditorService, EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
+import { darkPlusTheme } from "../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../services/themes/common/themeService.ts";
+
 import {
     deleteLeftAction,
     deleteRightAction,

@@ -2,9 +2,9 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { FakeTerminalSurface } from "../../../../../TestUtils/FakeTerminalSurface.ts";
 import { PanelService } from "../../../browser/parts/panel/panelService.ts";
+import type { ITerminalSessionOptions, TerminalSessionFactory } from "../common/terminalSessionFactory.ts";
 
 import { TERMINAL_VIEW_ID, TerminalService } from "./terminalService.ts";
-import type { ITerminalSessionOptions, TerminalSessionFactory } from "../common/terminalSessionFactory.ts";
 
 function buildHarness() {
     const panelService = new PanelService();

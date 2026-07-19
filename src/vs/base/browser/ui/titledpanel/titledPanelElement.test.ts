@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { Offset, Point, Size } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
-
+import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
+import { packRgb } from "../../../common/colorUtils.ts";
+import { Offset, Point, Size } from "../../../common/geometryPromitives.ts";
 import { BoxElement } from "../layout/boxElement.ts";
+
 import { TitledPanelElement } from "./titledPanelElement.ts";
 
 function renderPanel(

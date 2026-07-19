@@ -1,9 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { buildCommandsNamespace } from "./commandsNamespace.ts";
 import { createInProcessChannelPair } from "./inProcessChannelPair.ts";
 import { RpcEndpoint } from "./rpcEndpoint.ts";
-
-import { buildCommandsNamespace } from "./commandsNamespace.ts";
 
 const microtasks = async (turns = 4): Promise<void> => {
     for (let i = 0; i < turns; i++) await Promise.resolve();

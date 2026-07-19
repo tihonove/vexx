@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { CommandAction } from "../../../platform/actions/common/commandAction.ts";
+import { MenuId } from "../../../platform/actions/common/menuId.ts";
+import { MenuRegistry } from "../../../platform/actions/common/menuRegistry.ts";
 import { CommandRegistry } from "../../../platform/commands/common/commandRegistry.ts";
 import { ContextKeyService } from "../../../platform/contextkey/common/contextKeyService.ts";
 import { KeybindingRegistry } from "../../../platform/keybinding/common/keybindingRegistry.ts";
 
 import { MENU_CONTRIBUTIONS, menuItemsOfAction } from "./menuContributions.ts";
-import { MenuId } from "../../../platform/actions/common/menuId.ts";
-import { MenuRegistry } from "../../../platform/actions/common/menuRegistry.ts";
 
 function action(overrides: Partial<CommandAction>): CommandAction {
     return { id: "test.command", title: "Test: Command", run: () => undefined, ...overrides };
@@ -27,9 +27,7 @@ describe("menuItemsOfAction — деривация contributions из co-located
         );
         expect(explicit[0].title).toBe("Menu-Only Label");
 
-        const short = menuItemsOfAction(
-            action({ shortTitle: "Command", menus: [{ menuId: MenuId.EditorContext }] }),
-        );
+        const short = menuItemsOfAction(action({ shortTitle: "Command", menus: [{ menuId: MenuId.EditorContext }] }));
         expect(short[0].title).toBe("Command");
 
         const full = menuItemsOfAction(action({ menus: [{ menuId: MenuId.EditorContext }] }));
@@ -56,7 +54,12 @@ describe("menuItemsOfAction — деривация contributions из co-located
 
 describe("MENU_CONTRIBUTIONS — итоговые встроенные меню", () => {
     function registryOfBuiltins(): MenuRegistry {
-        return new MenuRegistry(new CommandRegistry(), new KeybindingRegistry(), new ContextKeyService(), MENU_CONTRIBUTIONS);
+        return new MenuRegistry(
+            new CommandRegistry(),
+            new KeybindingRegistry(),
+            new ContextKeyService(),
+            MENU_CONTRIBUTIONS,
+        );
     }
 
     function labels(menuId: MenuId, context?: unknown): (string | "─")[] {

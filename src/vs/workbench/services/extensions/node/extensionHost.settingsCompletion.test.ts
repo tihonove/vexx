@@ -2,15 +2,17 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { Uri } from "../../../../base/common/uri.ts";
 import { createExtensionTestHarness } from "../../../../../TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../../../../TestUtils/timing.ts";
+import { Uri } from "../../../../base/common/uri.ts";
 
 import type { IExtensionRegistration } from "./iExtensionEntry.ts";
 
 // Грузим настоящий builtin `vexx-settings` по mainPath (subprocess тестов —
 // tsx, транспилирует `.ts`-main и вшитый `settings-schema.generated.ts`).
-const VEXX_SETTINGS_MAIN = fileURLToPath(new URL("../../../../../../extensions/vexx-settings/main.ts", import.meta.url));
+const VEXX_SETTINGS_MAIN = fileURLToPath(
+    new URL("../../../../../../extensions/vexx-settings/main.ts", import.meta.url),
+);
 
 function settingsExtension(): IExtensionRegistration {
     return {

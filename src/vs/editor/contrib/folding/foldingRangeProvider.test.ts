@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { computeIndentationFolds, computeIndentLevel } from "./foldingRangeProvider.ts";
 import { TextDocument } from "../../common/model/textDocument.ts";
+
+import { computeIndentationFolds, computeIndentLevel } from "./foldingRangeProvider.ts";
 
 function folds(text: string, tabSize = 4): { startLine: number; endLine: number }[] {
     return computeIndentationFolds(new TextDocument(text), tabSize).map((r) => ({

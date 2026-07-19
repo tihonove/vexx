@@ -2,23 +2,23 @@ import * as fs from "node:fs";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
+import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { packRgb } from "../../../../base/common/colorUtils.ts";
 import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
 import { Uri } from "../../../../base/common/uri.ts";
-import { createLineTokens, createToken } from "../../../../editor/common/languages/iLineTokens.ts";
 import { createCursorSelection } from "../../../../editor/common/core/iSelection.ts";
 import { PlainTextTokenizer } from "../../../../editor/common/languages/builtin/plainTextTokenizer.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
+import { createLineTokens, createToken } from "../../../../editor/common/languages/iLineTokens.ts";
 import { NULL_STATE } from "../../../../editor/common/languages/iState.ts";
 import type { ITokenizationSupport } from "../../../../editor/common/languages/iTokenizationSupport.ts";
 import { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-import { packRgb } from "../../../../base/common/colorUtils.ts";
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
-import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
-import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 
 /** Скоуп первого токена первой строки — чем токенизирован документ прямо сейчас. */
 function firstScope(ctrl: EditorPane): string | undefined {

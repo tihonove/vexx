@@ -2,13 +2,13 @@ import type { ILanguageService } from "../vs/editor/common/languages/iLanguageSe
 import { NULL_LANGUAGE_SERVICE } from "../vs/editor/common/languages/iLanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../vs/editor/common/languages/iTokenStyleResolver.ts";
 import { TokenizationRegistry } from "../vs/editor/common/languages/tokenizationRegistry.ts";
-import { darkPlusTheme } from "../vs/workbench/services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../vs/workbench/services/themes/common/themeService.ts";
 import { WorkbenchTheme } from "../vs/platform/theme/common/workbenchTheme.ts";
+import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 import { EditorComponent } from "../vs/workbench/browser/parts/editor/editorComponent.ts";
 import { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
 import { TextFileModel } from "../vs/workbench/services/textfile/common/textFileModel.ts";
-import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
+import { darkPlusTheme } from "../vs/workbench/services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../vs/workbench/services/themes/common/themeService.ts";
 
 export type { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
 

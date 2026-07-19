@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { EditorViewState } from "./editorViewState.ts";
 import { TextDocument } from "../model/textDocument.ts";
+
+import { EditorViewState } from "./editorViewState.ts";
 
 function makeState(lineCount: number): EditorViewState {
     const lines = Array.from({ length: lineCount }, (_, i) => `line ${i}`);

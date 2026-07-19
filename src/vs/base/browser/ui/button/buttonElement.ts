@@ -1,5 +1,5 @@
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
 import { packRgb } from "../../../common/colorUtils.ts";
+import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
 import type { TUIEventBase } from "../../events/tuiEventBase.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../../tuiElement.ts";

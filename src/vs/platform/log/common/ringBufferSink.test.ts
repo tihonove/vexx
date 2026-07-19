@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { LogEntry } from "./iLogService.ts";
 import { LogLevel } from "./logLevel.ts";
-
 import { RingBufferSink } from "./ringBufferSink.ts";
 
 function entry(channel: string, message: string): LogEntry {

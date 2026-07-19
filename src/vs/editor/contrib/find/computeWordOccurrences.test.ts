@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { computeWordOccurrences } from "./computeWordOccurrences.ts";
 import { createRange } from "../../common/core/iRange.ts";
 import { TextDocument } from "../../common/model/textDocument.ts";
+
+import { computeWordOccurrences } from "./computeWordOccurrences.ts";
 
 function occurrences(text: string, line: number, character: number) {
     return computeWordOccurrences(new TextDocument(text), { line, character });

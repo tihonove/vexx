@@ -1,8 +1,8 @@
 import type { ITerminalBackend } from "../../tui/backend/iTerminalBackend.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../common/geometryPromitives.ts";
 import type { KeyPressEvent } from "../../tui/input/keyEvent.ts";
 import type { MouseToken } from "../../tui/input/rawTerminalToken.ts";
 import { TerminalScreen } from "../../tui/rendering/terminalScreen.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../common/geometryPromitives.ts";
 
 import { FocusManager } from "./events/focusManager.ts";
 import { MouseEventDispatcher } from "./events/mouseEventDispatcher.ts";

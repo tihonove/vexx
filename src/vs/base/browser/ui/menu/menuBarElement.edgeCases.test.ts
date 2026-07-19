@@ -5,11 +5,11 @@ import { Size } from "../../../common/geometryPromitives.ts";
 import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { TuiApplication } from "../../tuiApplication.ts";
 import { TUIElement } from "../../tuiElement.ts";
-
 import { BodyElement } from "../body/bodyElement.ts";
+import { VStackElement } from "../layout/vStackElement.ts";
+
 import type { MenuBarItem } from "./menuBarElement.ts";
 import { MenuBarElement } from "./menuBarElement.ts";
-import { VStackElement } from "../layout/vStackElement.ts";
 
 class FocusableChild extends TUIElement {
     public constructor() {

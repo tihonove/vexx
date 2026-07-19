@@ -3,10 +3,8 @@ import type * as nodeModule from "node:module";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import type { IDisposable } from "../../../../base/common/disposable.ts";
 import { registerAndActivate } from "../../../../../TestUtils/ExtensionTestHarness.ts";
-
-import { ExtensionHost } from "./extensionHost.ts";
+import type { IDisposable } from "../../../../base/common/disposable.ts";
 import { NULL_COMMAND_SERVICE } from "../../../api/common/iCommandService.ts";
 import type {
     IActiveEditorMeta,
@@ -14,8 +12,10 @@ import type {
     IEditorOptionsService,
     IEditorOptionsState,
 } from "../../../api/common/iEditorOptionsService.ts";
-import type { IExtensionRegistration } from "./iExtensionEntry.ts";
 import type { IProtocolMessage } from "../../../api/common/rpcEndpoint.ts";
+
+import { ExtensionHost } from "./extensionHost.ts";
+import type { IExtensionRegistration } from "./iExtensionEntry.ts";
 
 // `spawn` is mocked so no real subprocess is launched; `createRequire` is mocked so the
 // SEA-detection branch in `defaultSpawnArgs` can be driven from the test.

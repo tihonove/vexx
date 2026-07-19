@@ -1,10 +1,10 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { Point } from "../../../../base/common/geometryPromitives.ts";
-import type { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import type { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
 import { QuickPickElement, unthemedQuickPickStyles } from "../../../../base/browser/ui/quickpick/quickPickElement.ts";
+import { Point } from "../../../../base/common/geometryPromitives.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { ThemeService } from "../../../services/themes/common/themeService.ts";
+import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import { ThemedComponent } from "../../component.ts";
 
 export const QuickInputComponentDIToken = token<QuickInputComponent>("QuickInputComponent");

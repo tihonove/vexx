@@ -1,35 +1,39 @@
-import { DisplayLine } from "../../base/common/displayLine.ts";
-import { Point } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
-import { StyleFlags } from "../../base/common/styleFlags.ts";
 import type { TUIEventBase } from "../../base/browser/events/tuiEventBase.ts";
 import type { TUIKeyboardEvent } from "../../base/browser/events/tuiKeyboardEvent.ts";
 import type { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
 import type { TUIPasteEvent } from "../../base/browser/events/tuiPasteEvent.ts";
 import { RenderContext, TUIElement } from "../../base/browser/tuiElement.ts";
 import type { BodyElement } from "../../base/browser/ui/body/bodyElement.ts";
-import type { IScrollable } from "../../base/browser/ui/scrollbar/iScrollable.ts";
 import type { OverlaySessionHandle } from "../../base/browser/ui/contextview/overlayLayer.ts";
 import type { MenuEntry } from "../../base/browser/ui/menu/popupMenuElement.ts";
 import { PopupMenuElement } from "../../base/browser/ui/menu/popupMenuElement.ts";
 import type { IMenuStyles } from "../../base/browser/ui/menu/popupMenuItemElement.tsx";
 import { unthemedMenuStyles } from "../../base/browser/ui/menu/popupMenuItemElement.tsx";
-
-import { computeWordOccurrences } from "../contrib/find/computeWordOccurrences.ts";
-import type { IGutterChangeDecoration } from "../common/model/iGutterChangeDecoration.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { computeIndentLevel } from "../contrib/folding/foldingRangeProvider.ts";
-import type { IFoldingRegion } from "../contrib/folding/iFoldingRegion.ts";
-import type { ILineTokens, IToken } from "../common/languages/iLineTokens.ts";
-import type { IRange } from "../common/core/iRange.ts";
-import { createCursorSelection, createSelection, isSelectionCollapsed, selectionToRange } from "../common/core/iSelection.ts";
-import type { IUndoElement } from "../common/model/iUndoElement.ts";
+import type { IScrollable } from "../../base/browser/ui/scrollbar/iScrollable.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { DisplayLine } from "../../base/common/displayLine.ts";
+import { Point } from "../../base/common/geometryPromitives.ts";
+import { StyleFlags } from "../../base/common/styleFlags.ts";
 import type { IMarkerDecoration } from "../../platform/markers/common/iMarker.ts";
 import { MarkerSeverity } from "../../platform/markers/common/iMarker.ts";
+import type { IRange } from "../common/core/iRange.ts";
+import {
+    createCursorSelection,
+    createSelection,
+    isSelectionCollapsed,
+    selectionToRange,
+} from "../common/core/iSelection.ts";
+import { findWordRangeAt } from "../common/core/wordClassification.ts";
+import type { ILineTokens, IToken } from "../common/languages/iLineTokens.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "../common/languages/iTokenStyleResolver.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../common/languages/iTokenStyleResolver.ts";
+import type { IGutterChangeDecoration } from "../common/model/iGutterChangeDecoration.ts";
+import type { IUndoElement } from "../common/model/iUndoElement.ts";
 import { UndoManager } from "../common/model/undoManager.ts";
-import { findWordRangeAt } from "../common/core/wordClassification.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+import { computeWordOccurrences } from "../contrib/find/computeWordOccurrences.ts";
+import { computeIndentLevel } from "../contrib/folding/foldingRangeProvider.ts";
+import type { IFoldingRegion } from "../contrib/folding/iFoldingRegion.ts";
 
 const SELECTION_BG = packRgb(38, 79, 120);
 // Find-in-file highlights: all matches get a dim background; the current match a brighter one.

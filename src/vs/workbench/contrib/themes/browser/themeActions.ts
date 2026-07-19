@@ -1,11 +1,10 @@
-import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
-import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
-import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
+import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
 import { MenuId } from "../../../../platform/actions/common/menuId.ts";
+import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
+import type { ServiceAccessor } from "../../../../platform/instantiation/common/diContainer.ts";
 import { parseChord } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
 import { QuickInputServiceDIToken } from "../../../browser/parts/quickinput/quickInputService.ts";
-
-import type { CommandAction } from "../../../../platform/actions/common/commandAction.ts";
+import { ThemeRegistryDIToken, ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 
 /** Human-readable base-type label shown next to a theme in the picker. */
 export function themeTypeLabel(type: "dark" | "light" | "hc" | "hcLight"): string {

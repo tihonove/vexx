@@ -3,13 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { IAssetAccess } from "../../../../base/common/assets/iAssetAccess.ts";
 import { NULL_STATE } from "../../../../editor/common/languages/iState.ts";
 import type { ITokenizationSupport } from "../../../../editor/common/languages/iTokenizationSupport.ts";
-import type { IGrammarRecord } from "../../textMate/common/textMateGrammarLoader.ts";
-import { TextMateGrammarLoader } from "../../textMate/common/textMateGrammarLoader.ts";
 import { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
-
-import { ExtensionTokenizationContributor } from "./extensionTokenizationContributor.ts";
 import type { IExtension } from "../../../../platform/extensions/common/iExtension.ts";
 import type { IGrammarContribution } from "../../../../platform/extensions/common/iGrammarContribution.ts";
+import type { IGrammarRecord } from "../../textMate/common/textMateGrammarLoader.ts";
+import { TextMateGrammarLoader } from "../../textMate/common/textMateGrammarLoader.ts";
+
+import { ExtensionTokenizationContributor } from "./extensionTokenizationContributor.ts";
 
 // Mock the grammar loader so we can inspect exactly which IGrammarRecord[] the
 // contributor collects (constructor arg) without touching real grammar assets.

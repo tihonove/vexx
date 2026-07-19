@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-
-import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { computeIndentationFolds } from "../contrib/folding/foldingRangeProvider.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { createCursorSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
+import { computeIndentationFolds } from "../contrib/folding/foldingRangeProvider.ts";
+
+import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
 
 const GUIDE = "│";
 

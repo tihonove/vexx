@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import type { EditorElement } from "../../editor/browser/editorElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
+import type { EditorElement } from "../../editor/browser/editorElement.ts";
 
 describe("Workbench word selection (Ctrl+Shift+Arrow/Home/End)", () => {
     let ws: ITempWorkspace;

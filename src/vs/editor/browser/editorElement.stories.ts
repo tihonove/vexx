@@ -1,9 +1,9 @@
-import { packRgb } from "../../base/common/colorUtils.ts";
 import type { StoryContext, StoryMeta } from "../../../StoryRunner/StoryTypes.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 
 import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { TextDocument } from "../common/model/textDocument.ts";
 
 export const meta: StoryMeta = {
     title: "EditorElement",

@@ -1,13 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
-import { ThemeService } from "../../../services/themes/common/themeService.ts";
-import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { TUIElement } from "../../../../base/browser/tuiElement.ts";
 import { PanelContainerElement } from "../../../../base/browser/ui/panel/panelContainerElement.ts";
-import { PanelService } from "./panelService.ts";
+import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
+import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
+import { ThemeService } from "../../../services/themes/common/themeService.ts";
 
 import { PanelComponent } from "./panelComponent.ts";
+import { PanelService } from "./panelService.ts";
 
 function makeHarness() {
     const themeService = new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));

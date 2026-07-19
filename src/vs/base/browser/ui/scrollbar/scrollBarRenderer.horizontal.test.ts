@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { Point, Size } from "../../../common/geometryPromitives.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
+import { packRgb } from "../../../common/colorUtils.ts";
+import { Point, Size } from "../../../common/geometryPromitives.ts";
 import { RenderContext } from "../../tuiElement.ts";
 
 import type { ScrollBarColors } from "./scrollBarRenderer.ts";

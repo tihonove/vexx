@@ -1,15 +1,19 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NULL_LOG_SERVICE } from "../../../../platform/log/common/nullLogService.ts";
 import { TUIKeyboardEvent } from "../../../../base/browser/events/tuiKeyboardEvent.ts";
-
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
+import {
+    KeybindingRegistry,
+    parseChord,
+    parseKeybinding,
+} from "../../../../platform/keybinding/common/keybindingRegistry.ts";
+import { ModifierReleaseArmory } from "../../../../platform/keybinding/common/modifierReleaseArmory.ts";
+import { NULL_LOG_SERVICE } from "../../../../platform/log/common/nullLogService.ts";
+import { StatusBarService } from "../../statusbar/common/statusBarService.ts";
+
 import type { IExtendedKeysObserver } from "./keybindingDispatcher.ts";
 import { KeybindingDispatcher } from "./keybindingDispatcher.ts";
-import { KeybindingRegistry, parseChord, parseKeybinding } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
-import { ModifierReleaseArmory } from "../../../../platform/keybinding/common/modifierReleaseArmory.ts";
-import { StatusBarService } from "../../statusbar/common/statusBarService.ts";
 
 function keyDown(init: ConstructorParameters<typeof TUIKeyboardEvent>[1]): TUIKeyboardEvent {
     return new TUIKeyboardEvent("keydown", init);

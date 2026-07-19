@@ -1,14 +1,18 @@
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { Disposable } from "../../../../base/common/disposable.ts";
-import type { IStateService } from "../../../../platform/state/common/iStateService.ts";
 import type { WorkbenchLayoutElement } from "../../../../base/browser/ui/workbenchlayout/workbenchLayoutElement.ts";
-
+import { Disposable } from "../../../../base/common/disposable.ts";
 import type { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../../../platform/contextkey/common/contextKeyService.ts";
-import { StateServiceDIToken } from "../../../common/coreTokens.ts";
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
+import type { IStateService } from "../../../../platform/state/common/iStateService.ts";
 import type { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
-import { PANEL_HEIGHT_STATE, PANEL_VISIBLE_STATE, SIDEBAR_VISIBLE_STATE, SIDEBAR_WIDTH_STATE } from "../../../common/stateKeys.ts";
+import { StateServiceDIToken } from "../../../common/coreTokens.ts";
+import {
+    PANEL_HEIGHT_STATE,
+    PANEL_VISIBLE_STATE,
+    SIDEBAR_VISIBLE_STATE,
+    SIDEBAR_WIDTH_STATE,
+} from "../../../common/stateKeys.ts";
 
 export const LayoutServiceDIToken = token<LayoutService>("LayoutService");
 

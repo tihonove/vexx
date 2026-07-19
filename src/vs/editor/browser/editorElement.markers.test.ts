@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
+import { packRgb } from "../../base/common/colorUtils.ts";
+import { Point, Size } from "../../base/common/geometryPromitives.ts";
+import { MarkerSeverity } from "../../platform/markers/common/iMarker.ts";
+import { createRange } from "../common/core/iRange.ts";
+import { TextDocument } from "../common/model/textDocument.ts";
+import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 
 import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
-import { EditorViewState } from "../common/viewModel/editorViewState.ts";
-import { createRange } from "../common/core/iRange.ts";
-import { MarkerSeverity } from "../../platform/markers/common/iMarker.ts";
-import { TextDocument } from "../common/model/textDocument.ts";
 
 function makeEditor(content: string): EditorElement {
     const doc = new TextDocument(content);
