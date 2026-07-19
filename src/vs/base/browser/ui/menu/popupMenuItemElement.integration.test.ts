@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { Size } from "../../../common/geometryPromitives.ts";
-import { TuiApplication } from "../../tuiApplication.ts";
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TuiApplication } from "../../../../../../tuidom/dom/tuiApplication.ts";
 import { BodyElement } from "../body/bodyElement.ts";
 import { BoxElement } from "../layout/boxElement.ts";
 

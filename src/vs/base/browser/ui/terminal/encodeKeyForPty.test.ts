@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
 
 import { encodeKeyForPty } from "./encodeKeyForPty.ts";
 

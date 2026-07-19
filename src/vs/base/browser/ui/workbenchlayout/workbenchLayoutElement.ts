@@ -1,5 +1,5 @@
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { SashElement } from "../sash/sashElement.ts";
 
 /** Default/reset width of the left panel (file explorer), in columns. */

@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
+import { TerminalScreen } from "../../../../../../tuidom/rendering/terminalScreen.ts";
 
 import type { PopupMenuItemConfig } from "./popupMenuItemElement.tsx";
 import { PopupMenuItemElement, PopupMenuSeparatorElement } from "./popupMenuItemElement.tsx";

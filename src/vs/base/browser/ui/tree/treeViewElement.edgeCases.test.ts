@@ -1,8 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import {
+    TUIMouseEvent,
+    type TUIMouseEventType,
+    type WheelDirection,
+} from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { TUIMouseEvent, type TUIMouseEventType, type WheelDirection } from "../../events/tuiMouseEvent.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";
 import { TreeViewElement, unthemedTreeViewStyles } from "./treeViewElement.ts";

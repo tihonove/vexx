@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { getFileIcon } from "../../../common/fileIcons.ts";
-import { Point } from "../../../common/geometryPromitives.ts";
 
 import type { TabInfo } from "./editorTabStripElement.ts";
 import { EditorTabStripElement, unthemedTabStripStyles } from "./editorTabStripElement.ts";

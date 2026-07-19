@@ -1,5 +1,5 @@
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { OverlayLayer } from "../contextview/overlayLayer.ts";
 import type { MenuBarElement } from "../menu/menuBarElement.ts";
 import type { StatusBarElement } from "../statusbar/statusBarElement.ts";

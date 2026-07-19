@@ -1,5 +1,5 @@
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 export interface StatusBarItem {
     text: string;

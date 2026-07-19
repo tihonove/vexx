@@ -1,4 +1,4 @@
-import { FocusableBox } from "../../../../../demos/FocusableBox.ts";
+import { FocusableBox } from "../../../../../../tuidom/demos/FocusableBox.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
 import { VStackElement } from "../layout/vStackElement.ts";
 

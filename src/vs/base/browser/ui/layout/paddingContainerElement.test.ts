@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { DEFAULT_COLOR, packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { ROOT_RESOLVED_STYLE } from "../../../../../../tuidom/dom/styles/tuiStyle.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
+import { TerminalScreen } from "../../../../../../tuidom/rendering/terminalScreen.ts";
 import { expectScreen, screen } from "../../../../../TestUtils/expectScreen.ts";
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
-import { DEFAULT_COLOR, packRgb } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Offset, Point, Size } from "../../../common/geometryPromitives.ts";
-import { ROOT_RESOLVED_STYLE } from "../../styles/tuiStyle.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import { BoxElement } from "./boxElement.ts";
 import { PaddingContainerElement } from "./paddingContainerElement.ts";

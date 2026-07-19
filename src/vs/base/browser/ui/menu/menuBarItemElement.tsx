@@ -1,8 +1,8 @@
-import { DEFAULT_COLOR, packRgb } from "../../../common/colorUtils.ts";
-import { StyleFlags } from "../../../common/styleFlags.ts";
-import { CompositeElement } from "../../compositeElement.ts";
-import type { JsxNode } from "../../jsx/jsx-runtime.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { DEFAULT_COLOR, packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { StyleFlags } from "../../../../../../tuidom/common/styleFlags.ts";
+import { CompositeElement } from "../../../../../../tuidom/dom/compositeElement.ts";
+import type { JsxNode } from "../../../../../../tuidom/dom/jsx/jsx-runtime.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import type { StyledChar } from "../text/textLabelElement.ts";
 import { TextLabel } from "../text/textLabelElement.ts";
 

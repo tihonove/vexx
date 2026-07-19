@@ -1,5 +1,6 @@
 import { bench, describe } from "vitest";
 
+import { Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import {
     buildInMemoryTree,
     collectCollapsibleNodes,
@@ -7,7 +8,6 @@ import {
     type PerfTreeNode,
 } from "../../../../../TestUtils/perfFixtures.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { Size } from "../../../common/geometryPromitives.ts";
 
 import { TreeViewElement } from "./treeViewElement.ts";
 

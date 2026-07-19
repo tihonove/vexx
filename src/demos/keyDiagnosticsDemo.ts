@@ -14,11 +14,12 @@
  * Press keys (Ctrl+Tab, Ctrl+Shift+L, …). Ctrl+C to exit.
  */
 
+import { addCleanup, isCtrlC, stdin, stdout, writeDirect } from "../../tuidom/demos/demoSetup.ts";
+import type { KeyPressEvent } from "../../tuidom/input/keyEvent.ts";
+import { KeyInputParser } from "../../tuidom/input/keyInputParser.ts";
+import { tokenize } from "../../tuidom/input/tokenize.ts";
 import type { CommandAction } from "../vs/platform/actions/common/commandAction.ts";
 import { formatKeybinding, type Keybinding } from "../vs/platform/keybinding/common/keybindingRegistry.ts";
-import type { KeyPressEvent } from "../vs/tui/input/keyEvent.ts";
-import { KeyInputParser } from "../vs/tui/input/keyInputParser.ts";
-import { tokenize } from "../vs/tui/input/tokenize.ts";
 import {
     closeActiveEditorAction,
     nextEditorInGroupAction,
@@ -35,8 +36,6 @@ import {
     emptyCapabilities,
     resolveTier,
 } from "../vs/workbench/services/terminalEnvironment/node/terminalEnvironmentModel.ts";
-
-import { addCleanup, isCtrlC, stdin, stdout, writeDirect } from "./demoSetup.ts";
 
 // ── Replicate the rest of vexx's input modes (demoSetup already did Kitty + raw mode) ──
 const MODIFY_OTHER_KEYS_ENABLE = "\x1b[>4;2m";

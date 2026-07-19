@@ -1,7 +1,7 @@
-import { packRgb } from "../../../common/colorUtils.ts";
-import { CompositeElement } from "../../compositeElement.ts";
-import type { JsxNode } from "../../jsx/jsx-runtime.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { CompositeElement } from "../../../../../../tuidom/dom/compositeElement.ts";
+import type { JsxNode } from "../../../../../../tuidom/dom/jsx/jsx-runtime.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { HFlex, hflexFill, hflexFit, hflexFixed } from "../layout/hFlexElement.ts";
 import { TextLabel } from "../text/textLabelElement.ts";
 

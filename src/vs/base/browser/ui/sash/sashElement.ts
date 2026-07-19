@@ -1,5 +1,5 @@
-import type { RenderContext } from "../../tuiElement.ts";
-import { TUIElement } from "../../tuiElement.ts";
+import type { RenderContext } from "../../../../../../tuidom/dom/tuiElement.ts";
+import { TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 /** How long the cursor must linger on the sash before the hover line lights up. */
 const HOVER_DELAY_MS = 300;

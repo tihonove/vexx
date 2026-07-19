@@ -1,4 +1,4 @@
-import type { TUIKeyboardEvent } from "../../../../base/browser/events/tuiKeyboardEvent.ts";
+import type { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
 import { Disposable } from "../../../../base/common/disposable.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";

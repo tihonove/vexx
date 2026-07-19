@@ -1,7 +1,7 @@
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
-import { StyleFlags } from "../../../common/styleFlags.ts";
-import type { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { StyleFlags } from "../../../../../../tuidom/common/styleFlags.ts";
+import type { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 const CLOSE_CHAR = "×";
 const MODIFIED_CHAR = "●";

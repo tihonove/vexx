@@ -3,8 +3,8 @@
   "version": "0.2.0",
   "type": "module",
   "exports": {
-    "./jsx-runtime": "./src/vs/base/browser/jsx/jsx-runtime.ts",
-    "./jsx-dev-runtime": "./src/vs/base/browser/jsx/jsx-runtime.ts"
+    "./jsx-runtime": "./tuidom/dom/jsx/jsx-runtime.ts",
+    "./jsx-dev-runtime": "./tuidom/dom/jsx/jsx-runtime.ts"
   },
   "engines": {
     "node": ">=24.0.0"
@@ -15,10 +15,10 @@
     "build:extensions": "node scripts/build-extensions.mjs",
     "demo:tuidom": "tsx src/demos/tuidom/minimalHost.ts",
     "demo:tuidom:inspect": "tsx src/demos/tuidom/inspectedHost.ts",
-    "demo:events": "node src/demos/eventLogDemo.ts",
-    "demo:raw-events": "node src/demos/tokenizeDemo.ts",
-    "demo:renderer": "node src/demos/rendererDemo.ts",
-    "demo:mouse": "node src/demos/mouseDemo.ts",
+    "demo:events": "node tuidom/demos/eventLogDemo.ts",
+    "demo:raw-events": "node tuidom/demos/tokenizeDemo.ts",
+    "demo:renderer": "node tuidom/demos/rendererDemo.ts",
+    "demo:mouse": "node tuidom/demos/mouseDemo.ts",
     "demo:terminal": "tsx src/demos/terminal/terminalHost.ts",
     "screenshots": "tsx e2e/scenarios/generate.ts",
     "build": "tsup",

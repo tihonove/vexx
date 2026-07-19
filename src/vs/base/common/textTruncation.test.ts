@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { DisplayLine } from "./displayLine.ts";
+import { DisplayLine } from "../../../../tuidom/common/displayLine.ts";
+
 import { abbreviatePath, truncateEnd, truncateMiddle } from "./textTruncation.ts";
 
 const w = (s: string): number => new DisplayLine(s).displayWidth;

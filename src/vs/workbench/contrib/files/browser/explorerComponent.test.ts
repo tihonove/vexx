@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { packRgb } from "../../../../base/common/colorUtils.ts";
-import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
 import { MenuRegistry } from "../../../../platform/actions/common/menuRegistry.ts";
 import { MenuService } from "../../../../platform/actions/common/menuService.ts";
 import { InMemoryFileClipboard } from "../../../../platform/clipboard/common/inMemoryFileClipboard.ts";

@@ -1,8 +1,8 @@
-import { DEFAULT_COLOR } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import type { JsxChild } from "../../jsx/jsx-runtime.ts";
-import { normalizeChildren, reconcileChildren } from "../../jsx/reconcile.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { DEFAULT_COLOR } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { JsxChild } from "../../../../../../tuidom/dom/jsx/jsx-runtime.ts";
+import { normalizeChildren, reconcileChildren } from "../../../../../../tuidom/dom/jsx/reconcile.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 export interface BoxContainerProps {
     bg?: number;

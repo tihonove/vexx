@@ -8,20 +8,20 @@
 // поэтому ресайз окна автоматически рефлоует шелл. Ввод пробрасывает в surface через
 // `encodeKeyForPty`. См. docs/TODO/IntegratedTerminal.md.
 
-import { DEFAULT_COLOR } from "../../../common/colorUtils.ts";
+import { DEFAULT_COLOR } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { TUIEventBase } from "../../../../../../tuidom/dom/events/tuiEventBase.ts";
+import type { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import type { TUIMouseEvent, WheelDirection } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import type { TUIPasteEvent } from "../../../../../../tuidom/dom/events/tuiPasteEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import type { IDisposable } from "../../../common/disposable.ts";
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
 import type {
     ITerminalSurface,
     TerminalCell,
     TerminalMouseAction,
     TerminalMouseButton,
 } from "../../../common/iTerminalSurface.ts";
-import type { TUIEventBase } from "../../events/tuiEventBase.ts";
-import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import type { TUIMouseEvent, WheelDirection } from "../../events/tuiMouseEvent.ts";
-import type { TUIPasteEvent } from "../../events/tuiPasteEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import { encodeKeyForPty } from "./encodeKeyForPty.ts";
 

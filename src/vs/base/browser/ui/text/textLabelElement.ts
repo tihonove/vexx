@@ -1,8 +1,8 @@
-import { DEFAULT_COLOR } from "../../../common/colorUtils.ts";
-import { DisplayLine } from "../../../common/displayLine.ts";
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
-import { StyleFlags } from "../../../common/styleFlags.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { DEFAULT_COLOR } from "../../../../../../tuidom/common/colorUtils.ts";
+import { DisplayLine } from "../../../../../../tuidom/common/displayLine.ts";
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { StyleFlags } from "../../../../../../tuidom/common/styleFlags.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 export interface StyledChar {
     fg?: number;

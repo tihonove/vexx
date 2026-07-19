@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import { EditorGroupElement } from "./editorGroupElement.ts";
 

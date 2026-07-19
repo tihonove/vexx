@@ -1,8 +1,8 @@
-import { packRgb } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import type { StyleColor, TUIStyle } from "../../styles/tuiStyle.ts";
-import { resolveStyleColor } from "../../styles/tuiStyle.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { StyleColor, TUIStyle } from "../../../../../../tuidom/dom/styles/tuiStyle.ts";
+import { resolveStyleColor } from "../../../../../../tuidom/dom/styles/tuiStyle.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 export interface TitledPanelStyle extends TUIStyle {
     panelTitleFg?: StyleColor;

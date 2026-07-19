@@ -1,4 +1,4 @@
-import { DisplayLine } from "../../../common/displayLine.ts";
+import { DisplayLine } from "../../../../../../tuidom/common/displayLine.ts";
 
 /** Immutable snapshot of the editable state, used for undo/redo. */
 interface Snapshot {

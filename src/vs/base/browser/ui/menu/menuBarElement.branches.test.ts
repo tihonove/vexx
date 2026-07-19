@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { Size } from "../../../common/geometryPromitives.ts";
-import { TUIFocusEvent } from "../../events/tuiFocusEvent.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import { TuiApplication } from "../../tuiApplication.ts";
-import { TUIElement } from "../../tuiElement.ts";
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TUIFocusEvent } from "../../../../../../tuidom/dom/events/tuiFocusEvent.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import { TuiApplication } from "../../../../../../tuidom/dom/tuiApplication.ts";
+import { TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { BodyElement } from "../body/bodyElement.ts";
 import { VStackElement } from "../layout/vStackElement.ts";
 

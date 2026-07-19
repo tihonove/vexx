@@ -8,7 +8,7 @@
 // стрелки/навигация и Ctrl+буква (Ctrl+C/D/Z/L …). Application-cursor-keys режим не
 // различаем — шлём стандартные CSI-последовательности.
 
-import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
+import type { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
 
 const SPECIAL: Record<string, string | undefined> = {
     Enter: "\r",

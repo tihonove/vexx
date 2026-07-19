@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { TUIElement } from "../../base/browser/tuiElement.ts";
+import { TUIElement } from "../../../../tuidom/dom/tuiElement.ts";
 import { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 import { dark2026Theme } from "../services/themes/common/themes/dark2026.ts";
 import { darkPlusTheme } from "../services/themes/common/themes/darkPlus.ts";

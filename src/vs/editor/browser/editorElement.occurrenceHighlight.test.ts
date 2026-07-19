@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { packRgb } from "../../../../tuidom/common/colorUtils.ts";
+import { Point, Size } from "../../../../tuidom/common/geometryPromitives.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { createCursorSelection, createSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
 import { EditorViewState } from "../common/viewModel/editorViewState.ts";

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
-import { Point, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext } from "../../tuiElement.ts";
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext } from "../../../../../../tuidom/dom/tuiElement.ts";
+import { TerminalScreen } from "../../../../../../tuidom/rendering/terminalScreen.ts";
 
 import type { ScrollBarColors } from "./scrollBarRenderer.ts";
 import { renderHorizontalScrollBar } from "./scrollBarRenderer.ts";

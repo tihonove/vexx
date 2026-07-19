@@ -1,4 +1,4 @@
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 import type { IScrollable } from "./iScrollable.ts";
 

@@ -1,8 +1,12 @@
-import type { TUIEventBase } from "../../base/browser/events/tuiEventBase.ts";
-import type { TUIKeyboardEvent } from "../../base/browser/events/tuiKeyboardEvent.ts";
-import type { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
-import type { TUIPasteEvent } from "../../base/browser/events/tuiPasteEvent.ts";
-import { RenderContext, TUIElement } from "../../base/browser/tuiElement.ts";
+import { packRgb } from "../../../../tuidom/common/colorUtils.ts";
+import { DisplayLine } from "../../../../tuidom/common/displayLine.ts";
+import { Point } from "../../../../tuidom/common/geometryPromitives.ts";
+import { StyleFlags } from "../../../../tuidom/common/styleFlags.ts";
+import type { TUIEventBase } from "../../../../tuidom/dom/events/tuiEventBase.ts";
+import type { TUIKeyboardEvent } from "../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import type { TUIPasteEvent } from "../../../../tuidom/dom/events/tuiPasteEvent.ts";
+import { RenderContext, TUIElement } from "../../../../tuidom/dom/tuiElement.ts";
 import type { BodyElement } from "../../base/browser/ui/body/bodyElement.ts";
 import type { OverlaySessionHandle } from "../../base/browser/ui/contextview/overlayLayer.ts";
 import type { MenuEntry } from "../../base/browser/ui/menu/popupMenuElement.ts";
@@ -10,10 +14,6 @@ import { PopupMenuElement } from "../../base/browser/ui/menu/popupMenuElement.ts
 import type { IMenuStyles } from "../../base/browser/ui/menu/popupMenuItemElement.tsx";
 import { unthemedMenuStyles } from "../../base/browser/ui/menu/popupMenuItemElement.tsx";
 import type { IScrollable } from "../../base/browser/ui/scrollbar/iScrollable.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
-import { DisplayLine } from "../../base/common/displayLine.ts";
-import { Point } from "../../base/common/geometryPromitives.ts";
-import { StyleFlags } from "../../base/common/styleFlags.ts";
 import type { IMarkerDecoration } from "../../platform/markers/common/iMarker.ts";
 import { MarkerSeverity } from "../../platform/markers/common/iMarker.ts";
 import type { IRange } from "../common/core/iRange.ts";

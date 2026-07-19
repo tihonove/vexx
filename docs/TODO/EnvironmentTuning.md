@@ -70,7 +70,7 @@
 
 - **Что уже сделано в vexx (коммиты `chore:`).**
   - Бэкенд шлёт ещё и xterm-`modifyOtherKeys` (`\x1b[>4;2m`) рядом с kitty-enable
-    (`src/vs/tui/backend/nodeTerminalBackend.ts`) — это помогает терминалам/мультиплексорам, которые
+    (`tuidom/backend/nodeTerminalBackend.ts`) — это помогает терминалам/мультиплексорам, которые
     его понимают; на чистом kitty работает kitty-протокол. С tmux 3.4+kitty не спасает (см. выше).
   - Runtime-детект tier из фактически пришедшей CSI-u клавиши
     (`TerminalEnvironmentService.noteExtendedKeysObserved()` + хук в `WorkbenchComponent`) — индикатор

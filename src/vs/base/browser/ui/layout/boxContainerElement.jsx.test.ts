@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
-import { Point } from "../../../common/geometryPromitives.ts";
 
 import { BoxContainer, BoxContainerElement } from "./boxContainerElement.ts";
 import { BoxElement } from "./boxElement.ts";

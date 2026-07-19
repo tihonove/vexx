@@ -1,8 +1,8 @@
-import { packRgb } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
-import type { TUIEventBase } from "../../events/tuiEventBase.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { TUIEventBase } from "../../../../../../tuidom/dom/events/tuiEventBase.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 export interface IButtonStyles {
     readonly fg: number;

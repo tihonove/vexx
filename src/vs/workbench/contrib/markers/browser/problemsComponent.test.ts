@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
 import { settle } from "../../../../../TestUtils/timing.ts";
-import { Size } from "../../../../base/common/geometryPromitives.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { createRange } from "../../../../editor/common/core/iRange.ts";
 import type { IMarkerData } from "../../../../platform/markers/common/iMarker.ts";

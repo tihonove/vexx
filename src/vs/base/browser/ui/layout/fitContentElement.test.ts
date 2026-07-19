@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import type { TextLabelElement } from "../text/textLabelElement.ts";
 import { TextLabel } from "../text/textLabelElement.ts";
 

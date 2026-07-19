@@ -1,4 +1,4 @@
-import type { TUIElement } from "../../base/browser/tuiElement.ts";
+import type { TUIElement } from "../../../../tuidom/dom/tuiElement.ts";
 import { Disposable } from "../../base/common/disposable.ts";
 import type { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 import type { ThemeService } from "../services/themes/common/themeService.ts";

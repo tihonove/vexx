@@ -1,4 +1,4 @@
-import { packRgb } from "./colorUtils.ts";
+import { packRgb } from "../../../../tuidom/common/colorUtils.ts";
 
 export interface FileIcon {
     icon: string;

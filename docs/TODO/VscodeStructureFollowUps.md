@@ -27,6 +27,23 @@
 - [ ] **`MenuEntry` в `platform/actions`** — type-only импорт из
   `base/browser/ui/menu`; завести собственный тип entry в platform.
 
+## tuidom («браузер» вынут из src/vs)
+
+- [ ] **Отдельный репозиторий**: `tuidom/` сейчас top-level каталог этого репо
+  (граница видна, единый tsconfig); следующий шаг — пакет `tuidom` в своём
+  репо, vexx потребляет как зависимость (jsx-runtime exports уже указывает в
+  `tuidom/dom/jsx`).
+- [ ] **Примитивные элементы всё ещё в vexx**: `ui/body`, `ui/layout`,
+  `ui/text` — по смыслу DOM-примитивы (div/span/body), но `BodyElement` знает
+  про `menuBarElement`/`statusBarElement`-слоты — очистить и перевезти
+  примитивы в tuidom. Из-за этого же tuidom-хосты демо
+  (`src/demos/tuidom/minimalHost|inspectedHost`) остались в vexx.
+- [ ] `TuiApplication.root` расширен до `TUIElement` (ядро не знает о
+  виджетах); тестовый харнесс держит `BodyElement`-ссылку сам. Колокационные
+  тесты ядра (`tuidom/dom/*.test.ts`) по-прежнему используют vexx-виджеты и
+  редактор как подопытных — при выносе в отдельный репо их надо переписать на
+  примитивы.
+
 ## Механика (пути повторяем, механизм — нет; узаконено, ревизия по мере надобности)
 
 - Явные массивы регистраций (`WORKBENCH_CONTRIBUTIONS`, `MENU_CONTRIBUTIONS`,

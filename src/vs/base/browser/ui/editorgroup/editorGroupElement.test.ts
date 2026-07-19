@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
 import { getFileIcon } from "../../../common/fileIcons.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
 import { BodyElement } from "../body/bodyElement.ts";
 import { BoxElement } from "../layout/boxElement.ts";
 

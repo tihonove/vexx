@@ -1,12 +1,12 @@
 import * as path from "node:path";
 
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
 import {
     FileTreeDataProvider,
     type FileTreeNode,
 } from "../../../../workbench/contrib/files/browser/fileTreeDataProvider.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 import { HFlexElement, hflexFill, hflexFixed } from "../layout/hFlexElement.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";

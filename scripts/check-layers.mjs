@@ -4,10 +4,10 @@
  * `local/code-layering` + `code-import-patterns` и `layersChecker`):
  *
  *  1. Вертикальные слои (зоны, импортировать можно только свою и нижние):
- *     base/common → base/node → tui → base/browser → platform → editor →
- *     workbench → vexx. `vs/tui` — «движок браузера» (rendering/input/backend),
- *     наш слой вне vscode-стека: ниже base/browser (виджеты рисуют через
- *     rendering), выше base/common.
+ *     base/common → base/node → base/browser → platform → editor →
+ *     workbench → vexx. «Движок браузера» (DOM/rendering/input/backend)
+ *     живёт в top-level `tuidom/` ВНЕ `src/vs` (аналог Chromium у vscode) —
+ *     импорты в него, как и в прочий не-vs код, осями не проверяются.
  *  2. Окружения: common → [common], browser → [common, browser],
  *     node → [common, node]. Окружение файла — первый сегмент
  *     common/browser/node в его пути; `vs/tui/{rendering,input}` считаются
@@ -35,7 +35,6 @@ const vsRoot = path.join(repoRoot, "src", "vs");
 const ZONES = [
     "src/vs/base/common",
     "src/vs/base/node",
-    "src/vs/tui",
     "src/vs/base/browser",
     "src/vs/platform",
     "src/vs/editor",
@@ -86,18 +85,11 @@ function isCheckedSource(rel) {
 }
 
 /** Точечные env-оверрайды: чистые контракты в node/browser-каталогах. */
-const ENV_OVERRIDES = new Map([
-    // Интерфейс терминального бэкенда — читается и browser-слоем (TuiApplication).
-    ["src/vs/tui/backend/iTerminalBackend.ts", "common"],
-]);
+const ENV_OVERRIDES = new Map([]);
 
 function envOf(rel) {
     const override = ENV_OVERRIDES.get(rel);
     if (override !== undefined) return override;
-    // Движок: rendering/input — чистые структуры и парсинг (как common),
-    // backend — терминальный I/O (node). Entry point — node.
-    if (rel.startsWith("src/vs/tui/backend/")) return "node";
-    if (rel.startsWith("src/vs/tui/")) return "common";
     // vexx — сборка приложения (DI-профили, entry): единственный слой, которому
     // env-ось не применяется — он по определению склеивает browser и node.
     if (rel.startsWith("src/vs/vexx/")) return null;

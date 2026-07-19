@@ -1,3 +1,4 @@
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
 import type { IDisposable } from "../../../../base/common/disposable.ts";
 import type { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
@@ -7,7 +8,6 @@ import { EditorViewState } from "../../../../editor/common/viewModel/editorViewS
 import { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { NULL_CONFIGURATION_SERVICE } from "../../../../platform/configuration/common/nullConfigurationService.ts";
 import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
 import { StatusBarService } from "../../../services/statusbar/common/statusBarService.ts";
 import { TerminalEnvironmentService } from "../../../services/terminalEnvironment/node/terminalEnvironmentService.ts";
 import { TerminalEnvStatusContribution } from "../../../services/terminalEnvironment/node/terminalEnvStatusContribution.ts";

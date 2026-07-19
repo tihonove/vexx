@@ -1,4 +1,4 @@
-import type { JsxNode } from "../../../../base/browser/jsx/jsx-runtime.ts";
+import type { JsxNode } from "../../../../../../tuidom/dom/jsx/jsx-runtime.ts";
 import { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
 import { BoxContainer } from "../../../../base/browser/ui/layout/boxContainerElement.ts";
 import { HFlex, hflexFill, hflexFit, hflexFixed } from "../../../../base/browser/ui/layout/hFlexElement.ts";

@@ -2,7 +2,7 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "extensions/**/*.test.ts"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx", "extensions/**/*.test.ts", "tuidom/**/*.test.ts", "tuidom/**/*.test.tsx"],
     coverage: {
       skipFull: true,
       reportOnFailure: true,
@@ -18,7 +18,7 @@ export default defineConfig({
         lines: 100,
       },
       reporter: ["text", "lcov", "json", "json-summary", "text-summary"],
-      include: ["src/**/*.ts", "extensions/**/*.ts"],
+      include: ["src/**/*.ts", "extensions/**/*.ts", "tuidom/**/*.ts"],
       exclude: [
         "src/**/*.test.ts",
 
@@ -27,15 +27,16 @@ export default defineConfig({
         "src/vs/workbench/api/common/testStubRpc.ts", // тестовый стаб RpcEndpoint для unit-тестов namespace'ов
         "src/**/*.stories.ts",
         "src/demos/**",
+        "tuidom/demos/**",
         "src/vs/vexx/main.ts",
         "src/StoryRunner/**",
         "src/vs/workbench/services/extensions/node/__fixtures__/**",
 
         // --- Чистые типы: нечего исполнять ---
         "src/**/*.d.ts", // vscode.d.ts
-        "src/vs/base/browser/styles/index.ts", // barrel re-export
+        "tuidom/dom/styles/index.ts", // barrel re-export
         "src/vs/workbench/services/themes/common/index.ts", // barrel re-export
-        "src/vs/tui/backend/iTerminalBackend.ts",
+        "tuidom/backend/iTerminalBackend.ts",
         "src/vs/platform/clipboard/common/iClipboard.ts",
         "src/vs/base/common/assets/iAssetAccess.ts",
         "src/vs/platform/log/common/iLogService.ts",
@@ -57,7 +58,7 @@ export default defineConfig({
         "src/vs/workbench/api/common/iThemeColorResolver.ts",
         "src/vs/workbench/services/extensions/node/iExtensionEntry.ts",
         "src/vs/workbench/api/common/iMessageChannel.ts",
-        "src/vs/tui/input/rawTerminalToken.ts",
+        "tuidom/input/rawTerminalToken.ts",
         "src/vs/base/browser/ui/tree/iTreeDataProvider.ts",
         "src/vs/base/browser/ui/scrollbar/iScrollable.ts", // только интерфейсы (type guards удалены как мёртвые)
         "src/vs/platform/theme/common/iEditorTokenTheme.ts",
@@ -66,7 +67,7 @@ export default defineConfig({
         "src/Theme/IWorkbenchColors.ts",
 
         // --- Непокрываемо юнит-тестами (есть e2e) ---
-        "src/vs/tui/backend/nodeTerminalBackend.ts", // реальный tty/stdin/stdout
+        "tuidom/backend/nodeTerminalBackend.ts", // реальный tty/stdin/stdout
         "src/vs/platform/files/node/chokidarFileWatcher.ts", // реальный fs-watcher (chokidar), e2e
         "src/vs/base/node/isSea.ts", // node:sea, только в SEA-бинаре
         "src/vs/base/node/assets/createDefaultAssetAccess.ts", // SEA vs dev + fs-резолв
@@ -80,10 +81,10 @@ export default defineConfig({
         "src/Workbench/Modules/**", // DI-проводка (integration/e2e)
         "src/vs/platform/configuration/common/nullConfigurationService.ts", // null-object заглушка
         "src/vs/platform/state/common/nullStateService.ts", // null-object заглушка
-        "src/Inspector/InspectorDriver.ts", // только интерфейс write/capture-порта
-        "src/Inspector/InspectorServer.ts", // рукописный ws-транспорт (смоук-тест)
+        "tuidom/inspector/InspectorDriver.ts", // только интерфейс write/capture-порта
+        "tuidom/inspector/InspectorServer.ts", // рукописный ws-транспорт (смоук-тест)
         "src/Inspector/ws/**", // рукописный RFC6455 фрейминг
-        "src/Inspector/attachInspector.ts", // поднимает реальный сервер (смоук-тест)
+        "tuidom/inspector/attachInspector.ts", // поднимает реальный сервер (смоук-тест)
       ],
     },
   },

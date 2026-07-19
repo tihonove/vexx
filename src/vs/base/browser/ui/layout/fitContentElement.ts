@@ -1,5 +1,5 @@
-import { BoxConstraints, Offset, Point, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Offset, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 /**
  * Контейнер «по содержимому»: занимает max-intrinsic размер единственного

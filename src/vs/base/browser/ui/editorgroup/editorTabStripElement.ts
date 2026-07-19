@@ -1,6 +1,6 @@
-import { DEFAULT_COLOR, packRgb } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { DEFAULT_COLOR, packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { HFlexElement, hflexFill, hflexFit } from "../layout/hFlexElement.ts";
 
 import { EditorTabItemElement } from "./editorTabItemElement.ts";

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { packRgb } from "../../../../tuidom/common/colorUtils.ts";
+import { Point, Size } from "../../../../tuidom/common/geometryPromitives.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { packRgb } from "../../base/common/colorUtils.ts";
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { WordTokenizer } from "../common/languages/builtin/wordTokenizer.ts";
 import type { ITokenStyleResolver, ResolvedTokenStyle } from "../common/languages/iTokenStyleResolver.ts";
 import { EMPTY_RESOLVED_TOKEN_STYLE } from "../common/languages/iTokenStyleResolver.ts";

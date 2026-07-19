@@ -1,4 +1,4 @@
-import { DEFAULT_COLOR } from "../vs/base/common/colorUtils.ts";
+import { DEFAULT_COLOR } from "../../tuidom/common/colorUtils.ts";
 import type { IDisposable } from "../vs/base/common/disposable.ts";
 import type { ITerminalSurface, TerminalCell, TerminalMouseEventData } from "../vs/base/common/iTerminalSurface.ts";
 

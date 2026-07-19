@@ -1,4 +1,4 @@
-import { DisplayLine } from "./displayLine.ts";
+import { DisplayLine } from "../../../../tuidom/common/displayLine.ts";
 
 /**
  * Display-width-aware text truncation helpers.

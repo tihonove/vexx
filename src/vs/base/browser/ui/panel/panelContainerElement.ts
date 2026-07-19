@@ -1,7 +1,7 @@
-import { packRgb } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import { StyleFlags } from "../../../common/styleFlags.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { StyleFlags } from "../../../../../../tuidom/common/styleFlags.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 /** A view hosted in the bottom Panel (e.g. Problems, Output). */
 export interface PanelView {

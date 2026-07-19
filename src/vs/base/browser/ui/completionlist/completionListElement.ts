@@ -1,9 +1,9 @@
-import { packRgb } from "../../../common/colorUtils.ts";
-import { DisplayLine } from "../../../common/displayLine.ts";
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { DisplayLine } from "../../../../../../tuidom/common/displayLine.ts";
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { truncateEnd } from "../../../common/textTruncation.ts";
-import type { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import { kindIcon } from "./completionItemKindIcon.ts";
 

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
+import type { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { DEFAULT_COLOR } from "../../../../../../tuidom/common/colorUtils.ts";
+import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { DEFAULT_COLOR } from "../../../common/colorUtils.ts";
-import { Point } from "../../../common/geometryPromitives.ts";
 
 import { TextLabel, TextLabelElement } from "./textLabelElement.ts";
 

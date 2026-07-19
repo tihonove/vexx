@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
+import { TerminalScreen } from "../../../../../../tuidom/rendering/terminalScreen.ts";
 import { expectScreen, screen } from "../../../../../TestUtils/expectScreen.ts";
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import type { IContentSized } from "./iScrollable.ts";
 import { ScrollViewport } from "./scrollViewport.ts";

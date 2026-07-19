@@ -1,4 +1,5 @@
-import type { TuiApplication } from "../../base/browser/tuiApplication.ts";
+import type { ITerminalBackend } from "../../../../tuidom/backend/iTerminalBackend.ts";
+import type { TuiApplication } from "../../../../tuidom/dom/tuiApplication.ts";
 import type { ILanguageService } from "../../editor/common/languages/iLanguageService.ts";
 import type { ITokenStyleResolver } from "../../editor/common/languages/iTokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../editor/common/languages/tokenizationRegistry.ts";
@@ -8,7 +9,6 @@ import type { ServiceAccessor } from "../../platform/instantiation/common/diCont
 import { token } from "../../platform/instantiation/common/diContainer.ts";
 import type { MarkerService } from "../../platform/markers/common/markerService.ts";
 import type { IStateService } from "../../platform/state/common/iStateService.ts";
-import type { ITerminalBackend } from "../../tui/backend/iTerminalBackend.ts";
 
 export const ServiceAccessorDIToken = token<ServiceAccessor>("ServiceAccessor");
 export const TuiApplicationDIToken = token<TuiApplication>("TuiApplication");

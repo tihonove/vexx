@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { packRgb } from "../src/vs/base/common/colorUtils.ts";
+import { packRgb } from "../tuidom/common/colorUtils.ts";
 
 import type { AnsiScreen } from "./helpers/AnsiScreen.ts";
 import { getBinaryPath } from "./helpers/buildOnce.ts";

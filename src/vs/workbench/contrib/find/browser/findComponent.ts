@@ -1,3 +1,4 @@
+import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import type { IButtonStyles } from "../../../../base/browser/ui/button/buttonElement.ts";
 import { ButtonElement } from "../../../../base/browser/ui/button/buttonElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
@@ -7,7 +8,6 @@ import { BoxContainerElement } from "../../../../base/browser/ui/layout/boxConta
 import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "../../../../base/browser/ui/layout/hFlexElement.ts";
 import { SizedBoxElement } from "../../../../base/browser/ui/layout/sizedBoxElement.ts";
 import { TextLabelElement } from "../../../../base/browser/ui/text/textLabelElement.ts";
-import { Point } from "../../../../base/common/geometryPromitives.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { getFindWidgetStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import { ThemedComponent } from "../../../browser/component.ts";

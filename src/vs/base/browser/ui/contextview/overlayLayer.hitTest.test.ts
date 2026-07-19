@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { BoxElement } from "../layout/boxElement.ts";
 import { PopupMenuElement } from "../menu/popupMenuElement.ts";
 

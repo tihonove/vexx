@@ -1,4 +1,4 @@
-import { packRgb } from "../../../base/common/colorUtils.ts";
+import { packRgb } from "../../../../../tuidom/common/colorUtils.ts";
 
 /**
  * Parse a CSS hex color string into a packed 24-bit RGB integer.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { Size } from "../../../common/geometryPromitives.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";
 import { TreeViewElement } from "./treeViewElement.ts";

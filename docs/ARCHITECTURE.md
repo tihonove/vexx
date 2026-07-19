@@ -14,19 +14,20 @@
 1. **Вертикальные слои** (импортировать можно только свой и нижние):
 
    ```
-   base/common → base/node → tui → base/browser → platform → editor → workbench → vexx
+   base/common → base/node → base/browser → platform → editor → workbench → vexx
    ```
 
-   `vs/tui` — «движок браузера» (rendering/input/backend), наш слой вне
-   vscode-стека: у vscode эту роль играет Chromium. Он ниже `base/browser`
-   (виджеты рисуют через rendering) и выше `base/common`.
+   «Движок браузера» — top-level **`tuidom/`** ВНЕ `src/vs`: DOM-ядро
+   (дерево элементов, события, JSX), rendering, input, backend и Inspector
+   (devtools). У vscode эту роль играет Chromium — поэтому tuidom не часть
+   vscode-структуры и планируется к выносу в отдельный репозиторий; для
+   vexx-кода он — «браузерное API» (импорты в него осями не проверяются).
 
 2. **Окружения** внутри слоя: `common` → [common], `browser` → [common,
    browser], `node` → [common, node]. «browser» — буквально, как у upstream,
    хотя рендерим в терминал: `base/browser` — это TUIDom (наш аналог DOM).
-   `vs/tui/{rendering,input}` считаются common (чистые структуры/парсинг),
-   `vs/tui/backend` — node; `vs/vexx` (сборка приложения) склеивает оба мира,
-   env-ось к нему не применяется.
+   `vs/vexx` (сборка приложения) склеивает оба мира, env-ось к нему не
+   применяется.
 
 Имена файлов — camelCase по vscode-конвенции (`tuiElement.ts`,
 `menuRegistry.ts`); тесты — колокацией рядом с кодом (наше отличие от
@@ -41,19 +42,17 @@ upstream, где они в `test/`-деревьях; оси на тесты не
 
 | Каталог | Прежний слой | Что там | Детали |
 |---|---|---|---|
-| `vs/base/common/` | Common | примитивы: геометрия, `Disposable`, `Uri` (адаптер `vscode-uri`), Unicode/`DisplayLine`, fuzzy, packed-цвета (`colorUtils`, `styleFlags`), `iTerminalSurface`, ассеты (`assets/`) | [arch/Common.md](arch/Common.md) |
+| `tuidom/` | TUIDom + Rendering + Input + Backend + Inspector | «браузер»: DOM-ядро (`dom/`: дерево элементов, события, фокус, JSX, стили), `rendering/`, `input/`, `backend/`, `inspector/` (devtools), `common/` (геометрия, `DisplayLine`/Unicode, packed-цвета), `demos/`. Кандидат на отдельный репозиторий | [arch/TUIDom.md](arch/TUIDom.md), [arch/Rendering.md](arch/Rendering.md), [arch/Input.md](arch/Input.md), [arch/Backend.md](arch/Backend.md), [arch/Inspector.md](arch/Inspector.md) |
+| `vs/base/common/` | Common | примитивы: `Disposable`, `Uri` (адаптер `vscode-uri`), fuzzy, `iTerminalSurface`, ассеты (`assets/`) | [arch/Common.md](arch/Common.md) |
 | `vs/base/node/` | Common (node-часть) | SEA/`isSea`, fs-доступ к ассетам | [arch/Common.md](arch/Common.md) |
-| `vs/tui/rendering/` | Rendering | двойная буферизация, diff, ANSI; `GridSnapshot`, `gridToSvg` | [arch/Rendering.md](arch/Rendering.md) |
-| `vs/tui/input/` | Input | stdin-байты → токены → `KeyPressEvent`, мышь | [arch/Input.md](arch/Input.md) |
-| `vs/tui/backend/` | Backend | `ITerminalBackend` + Node/Mock/HeadlessCapture, пробинг терминала (`terminalEnv`) | [arch/Backend.md](arch/Backend.md) |
-| `vs/base/browser/` | TUIDom | дерево элементов, события (capture/bubble), фокус, JSX; виджеты — `ui/<widget>/` с vscode-именами (scrollbar, tree, inputbox, menu, contextview…) | [arch/TUIDom.md](arch/TUIDom.md), [LAYOUT.md](LAYOUT.md) |
+| `vs/base/browser/` | TUIDom/Widgets | **только виджеты-обёртки** над tuidom-DOM — `ui/<widget>/` с vscode-именами (scrollbar, tree, inputbox, menu, contextview…) | [arch/TUIDom.md](arch/TUIDom.md), [LAYOUT.md](LAYOUT.md) |
 | `vs/platform/` | размазан (Common/Configuration/Theme/Editor/Workbench) | сервисы ниже editor: `instantiation` (наш DI), `log`, `configuration` (+`ConfigurationRegistry`), `state`, `markers`, `undoRedo`, `commands`, `contextkey`, `keybinding`, `actions` (`MenuRegistry`/`MenuId`), `theme` (определения цветов + мост `defaultStyles`), `clipboard`, `files`, `environment`, `extensions`, `extensionManagement` | [arch/Theme.md](arch/Theme.md), [arch/Configuration.md](arch/Configuration.md), [arch/State.md](arch/State.md) |
 | `vs/editor/` | Editor | `common/{core,model,viewModel,languages,tokens}` — текстовая модель, view-state, токенизация; `browser/` — `editorElement` (виджет-мост); `contrib/{find,folding}` — модельные части фич | [arch/Editor.md](arch/Editor.md) |
 | `vs/workbench/` | Workbench (+куски Editor/Extensions/Theme) | `browser/` (Component/ThemedComponent, `workbenchComponent`, `parts/*`: editor/statusbar/panel/dialogs/quickinput, `actions/`), `services/*` (themes, textMate, textfile, language, search, extensions, editor, layout, lifecycle, keybinding, dialogs, statusbar, terminalEnvironment), `contrib/<фича>/` (files, markers, quickaccess, find, suggest, terminal, themes, preferences, bulkEdit), `api/` (extension host: extHost-неймспейсы, адаптеры, RPC), `common/` (contributions-реестр, `CoreTokens`, configuration-узлы) | [arch/Workbench.md](arch/Workbench.md), [arch/Extensions.md](arch/Extensions.md) |
 | `vs/vexx/` | App | точка входа `main.ts` (bootstrap: CLI → user data → configuration → assets → extensions → DI), DI-модули и профили (`modules/`) | [DI.md](DI.md) |
 | `src/vscode-dts/` | Extensions/Api | `vscode.d.ts` (pinned, поверхность API) | [arch/Extensions.md](arch/Extensions.md) |
 | `extensions/` | src/Extensions/builtin | builtin-расширения (языковые паки verbatim + git, vexx-settings) — как у upstream | [arch/Extensions.md](arch/Extensions.md) |
-| `src/{Inspector,TestUtils,StoryRunner,demos}/` | как были | dev-тулинг вне `vs/` (аналогов в upstream `src/vs` нет) | [arch/Inspector.md](arch/Inspector.md), [arch/DevTooling.md](arch/DevTooling.md) |
+| `src/{TestUtils,StoryRunner,demos}/` | как были | dev-тулинг вне `vs/` (аналогов в upstream `src/vs` нет); в `src/demos` — app-демо, DOM/движковые демо — в `tuidom/demos` | [arch/DevTooling.md](arch/DevTooling.md) |
 
 ## Правила зависимостей
 

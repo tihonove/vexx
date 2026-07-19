@@ -1,7 +1,7 @@
+import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import type { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
 import { Disposable } from "../../../../base/common/disposable.ts";
-import { Point } from "../../../../base/common/geometryPromitives.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import { AboutDialog } from "../../../browser/parts/dialogs/aboutDialog.tsx";
 import { ConfirmDialog, type ConfirmDialogOptions } from "../../../browser/parts/dialogs/confirmDialog.tsx";

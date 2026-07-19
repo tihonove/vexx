@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { TextBlockElement } from "../text/textBlockElement.ts";
 
 import { HFlexElement, hflexFill, hflexFit, hflexFixed } from "./hFlexElement.ts";

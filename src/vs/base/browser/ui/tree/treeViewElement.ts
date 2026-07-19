@@ -1,10 +1,10 @@
-import { packRgb } from "../../../common/colorUtils.ts";
-import { DisplayLine } from "../../../common/displayLine.ts";
-import { Point } from "../../../common/geometryPromitives.ts";
-import type { TUIEventBase } from "../../events/tuiEventBase.ts";
-import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import type { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
-import type { RenderContext } from "../../tuiElement.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { DisplayLine } from "../../../../../../tuidom/common/displayLine.ts";
+import { Point } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { TUIEventBase } from "../../../../../../tuidom/dom/events/tuiEventBase.ts";
+import type { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import type { RenderContext } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { ScrollableElement, type ScrollViewportInfo } from "../scrollbar/scrollableElement.ts";
 
 import type { ITreeDataProvider, ITreeItem } from "./iTreeDataProvider.ts";

@@ -1,8 +1,8 @@
-import { BoxConstraints, Offset, Point, Size } from "../../../common/geometryPromitives.ts";
-import type { TUIEventBase } from "../../events/tuiEventBase.ts";
-import type { TUIFocusEvent } from "../../events/tuiFocusEvent.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Offset, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { TUIEventBase } from "../../../../../../tuidom/dom/events/tuiEventBase.ts";
+import type { TUIFocusEvent } from "../../../../../../tuidom/dom/events/tuiFocusEvent.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import type { BodyElement } from "../body/bodyElement.ts";
 import type { OverlayLayer } from "../contextview/overlayLayer.ts";
 import type { OverlaySessionHandle } from "../contextview/overlayLayer.ts";

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { Size } from "../../../../tuidom/common/geometryPromitives.ts";
+import { TUIKeyboardEvent } from "../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import { TUIMouseEvent } from "../../../../tuidom/dom/events/tuiMouseEvent.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { TUIKeyboardEvent } from "../../base/browser/events/tuiKeyboardEvent.ts";
-import { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
 import { PopupMenuElement } from "../../base/browser/ui/menu/popupMenuElement.ts";
-import { Size } from "../../base/common/geometryPromitives.ts";
 import { createCursorSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
 import { EditorViewState } from "../common/viewModel/editorViewState.ts";

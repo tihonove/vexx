@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { packRgb } from "../../../../tuidom/common/colorUtils.ts";
+import { Point, Size } from "../../../../tuidom/common/geometryPromitives.ts";
+import { TUIMouseEvent } from "../../../../tuidom/dom/events/tuiMouseEvent.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
 import { PopupMenuElement } from "../../base/browser/ui/menu/popupMenuElement.ts";
 import { unthemedMenuStyles } from "../../base/browser/ui/menu/popupMenuItemElement.tsx";
-import { packRgb } from "../../base/common/colorUtils.ts";
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { createCursorSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
 import { EditorViewState } from "../common/viewModel/editorViewState.ts";

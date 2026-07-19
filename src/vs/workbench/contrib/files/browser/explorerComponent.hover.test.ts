@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
+import { Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { MouseToken } from "../../../../../../tuidom/input/rawTerminalToken.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { Point, Size } from "../../../../base/common/geometryPromitives.ts";
 import { MenuRegistry } from "../../../../platform/actions/common/menuRegistry.ts";
 import { MenuService } from "../../../../platform/actions/common/menuService.ts";
 import { InMemoryFileClipboard } from "../../../../platform/clipboard/common/inMemoryFileClipboard.ts";
@@ -12,7 +13,6 @@ import { ContextKeyService } from "../../../../platform/contextkey/common/contex
 import { KeybindingRegistry } from "../../../../platform/keybinding/common/keybindingRegistry.ts";
 import { NULL_LOG_SERVICE } from "../../../../platform/log/common/nullLogService.ts";
 import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
-import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
 import { MENU_CONTRIBUTIONS } from "../../../browser/actions/menuContributions.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";

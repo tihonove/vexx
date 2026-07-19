@@ -1,12 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { BoxConstraints, Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import type { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import { packRgb } from "../../../common/colorUtils.ts";
-import { BoxConstraints, Point, Size } from "../../../common/geometryPromitives.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
 
 import { ButtonElement, unthemedButtonStyles } from "./buttonElement.ts";
 

@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
 import { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
-import { Size } from "../../../../base/common/geometryPromitives.ts";
 import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { DialogService } from "../../dialogs/browser/dialogService.ts";
 import { darkPlusTheme } from "../../themes/common/themes/darkPlus.ts";

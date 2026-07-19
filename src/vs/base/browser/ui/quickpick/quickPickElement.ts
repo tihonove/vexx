@@ -1,11 +1,11 @@
-import { packRgb } from "../../../common/colorUtils.ts";
-import { DisplayLine } from "../../../common/displayLine.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
+import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
+import { DisplayLine } from "../../../../../../tuidom/common/displayLine.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { TUIEventBase } from "../../../../../../tuidom/dom/events/tuiEventBase.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import type { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { abbreviatePath, truncateEnd } from "../../../common/textTruncation.ts";
-import type { TUIEventBase } from "../../events/tuiEventBase.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import type { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 import { InputElement } from "../inputbox/inputElement.ts";
 
 // ─── Styles ─────────────────────────────────────────────────────────────────

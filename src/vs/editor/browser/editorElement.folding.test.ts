@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
+import { Point, Size } from "../../../../tuidom/common/geometryPromitives.ts";
+import { TUIMouseEvent } from "../../../../tuidom/dom/events/tuiMouseEvent.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { TUIMouseEvent } from "../../base/browser/events/tuiMouseEvent.ts";
-import { Point, Size } from "../../base/common/geometryPromitives.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
 import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 import { createFoldingRegion } from "../contrib/folding/iFoldingRegion.ts";

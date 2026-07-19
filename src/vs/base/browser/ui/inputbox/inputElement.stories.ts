@@ -1,3 +1,4 @@
+import type { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
 import type { StoryContext, StoryMeta } from "../../../../../StoryRunner/StoryTypes.ts";
 import { registerAction } from "../../../../platform/actions/common/commandAction.ts";
 import { InMemoryClipboard } from "../../../../platform/clipboard/common/inMemoryClipboard.ts";
@@ -33,7 +34,6 @@ import {
     InputWidgetService,
     InputWidgetServiceDIToken,
 } from "../../../../workbench/contrib/files/browser/inputWidgetService.ts";
-import type { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { VStackElement } from "../layout/vStackElement.ts";
 
 import { InputElement } from "./inputElement.ts";

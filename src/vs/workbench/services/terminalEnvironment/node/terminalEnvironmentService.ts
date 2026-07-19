@@ -1,8 +1,8 @@
+import type { ITerminalBackend } from "../../../../../../tuidom/backend/iTerminalBackend.ts";
 import { Disposable, type IDisposable } from "../../../../base/common/disposable.ts";
 import type { IConfigurationService } from "../../../../platform/configuration/common/iConfigurationService.ts";
 import { IConfigurationServiceDIToken } from "../../../../platform/configuration/common/iConfigurationServiceDIToken.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import type { ITerminalBackend } from "../../../../tui/backend/iTerminalBackend.ts";
 import { TerminalBackendDIToken } from "../../../common/coreTokens.ts";
 
 import {

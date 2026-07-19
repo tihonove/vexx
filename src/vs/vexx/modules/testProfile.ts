@@ -1,11 +1,11 @@
+import { MockTerminalBackend } from "../../../../tuidom/backend/mockTerminalBackend.ts";
+import type { TuiApplication } from "../../../../tuidom/dom/tuiApplication.ts";
 import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";
-import type { TuiApplication } from "../../base/browser/tuiApplication.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../editor/common/languages/iLanguageService.ts";
 import { NULL_TOKEN_STYLE_RESOLVER } from "../../editor/common/languages/iTokenStyleResolver.ts";
 import { TokenizationRegistry } from "../../editor/common/languages/tokenizationRegistry.ts";
 import { Container } from "../../platform/instantiation/common/diContainer.ts";
 import { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
-import { MockTerminalBackend } from "../../tui/backend/mockTerminalBackend.ts";
 import { TuiApplicationDIToken } from "../../workbench/common/coreTokens.ts";
 import { TerminalSessionFactoryDIToken } from "../../workbench/contrib/terminal/common/terminalSessionFactory.ts";
 import { terminalEnvironmentModule } from "../../workbench/services/terminalEnvironment/node/terminalEnvironmentModule.ts";

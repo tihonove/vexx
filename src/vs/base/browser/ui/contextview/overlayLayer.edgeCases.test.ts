@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
-import { Point, Size } from "../../../common/geometryPromitives.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
 import { InputElement } from "../inputbox/inputElement.ts";
 import { PopupMenuElement } from "../menu/popupMenuElement.ts";
 

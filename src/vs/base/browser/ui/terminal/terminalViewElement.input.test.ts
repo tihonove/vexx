@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import type { TUIMouseEventType } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
+import { TUIPasteEvent } from "../../../../../../tuidom/dom/events/tuiPasteEvent.ts";
 import { FakeTerminalSurface } from "../../../../../TestUtils/FakeTerminalSurface.ts";
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import type { TUIMouseEventType } from "../../events/tuiMouseEvent.ts";
-import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
-import { TUIPasteEvent } from "../../events/tuiPasteEvent.ts";
 
 import { TerminalViewElement } from "./terminalViewElement.ts";
 

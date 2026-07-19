@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { TUIFocusEvent } from "../../base/browser/events/tuiFocusEvent.ts";
+import type { TUIFocusEvent } from "../../../../tuidom/dom/events/tuiFocusEvent.ts";
 import { BodyElement } from "../../base/browser/ui/body/bodyElement.ts";
 import { ContextKeyService } from "../../platform/contextkey/common/contextKeyService.ts";
 import type { InputWidgetService } from "../contrib/files/browser/inputWidgetService.ts";

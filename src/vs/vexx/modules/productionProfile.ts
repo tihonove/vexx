@@ -1,4 +1,5 @@
-import type { TuiApplication } from "../../base/browser/tuiApplication.ts";
+import type { ITerminalBackend } from "../../../../tuidom/backend/iTerminalBackend.ts";
+import type { TuiApplication } from "../../../../tuidom/dom/tuiApplication.ts";
 import type { ILanguageService } from "../../editor/common/languages/iLanguageService.ts";
 import type { ITokenStyleResolver } from "../../editor/common/languages/iTokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../editor/common/languages/tokenizationRegistry.ts";
@@ -10,7 +11,6 @@ import type { IUserKeybindingRule } from "../../platform/keybinding/node/keybind
 import type { ILogService } from "../../platform/log/common/iLogService.ts";
 import type { IStateService } from "../../platform/state/common/iStateService.ts";
 import type { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
-import type { ITerminalBackend } from "../../tui/backend/iTerminalBackend.ts";
 import { terminalEnvironmentModule } from "../../workbench/services/terminalEnvironment/node/terminalEnvironmentModule.ts";
 import type { ThemeRegistry } from "../../workbench/services/themes/common/themeRegistry.ts";
 

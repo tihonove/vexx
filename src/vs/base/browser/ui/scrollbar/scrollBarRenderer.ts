@@ -1,4 +1,4 @@
-import type { RenderContext } from "../../tuiElement.ts";
+import type { RenderContext } from "../../../../../../tuidom/dom/tuiElement.ts";
 
 /**
  * Resolved scrollbar colours. `background` fills the half of each cell the bar

@@ -1,7 +1,7 @@
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import type { TUIEventBase } from "../../events/tuiEventBase.ts";
-import { TUIKeyboardEvent } from "../../events/tuiKeyboardEvent.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import type { TUIEventBase } from "../../../../../../tuidom/dom/events/tuiEventBase.ts";
+import { TUIKeyboardEvent } from "../../../../../../tuidom/dom/events/tuiKeyboardEvent.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import { VStackElement } from "../layout/vStackElement.ts";
 
 import type { IMenuStyles, PopupMenuItemConfig } from "./popupMenuItemElement.tsx";

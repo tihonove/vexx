@@ -1,4 +1,4 @@
-import type { TUIElement } from "../../../../base/browser/tuiElement.ts";
+import type { TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
 import type { BodyElement } from "../../../../base/browser/ui/body/bodyElement.ts";
 import type { OverlaySessionHandle } from "../../../../base/browser/ui/contextview/overlayLayer.ts";
 import { PaddingContainerElement } from "../../../../base/browser/ui/layout/paddingContainerElement.ts";

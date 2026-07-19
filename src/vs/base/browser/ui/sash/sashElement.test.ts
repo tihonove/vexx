@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { MockTerminalBackend } from "../../../../../../tuidom/backend/mockTerminalBackend.ts";
+import { BoxConstraints, Offset, Point, Rect, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { MouseEventDispatcher } from "../../../../../../tuidom/dom/events/mouseEventDispatcher.ts";
+import { RenderContext, TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
+import type { MouseToken } from "../../../../../../tuidom/input/rawTerminalToken.ts";
+import { TerminalScreen } from "../../../../../../tuidom/rendering/terminalScreen.ts";
 import { renderElement } from "../../../../../TestUtils/renderElement.ts";
-import { MockTerminalBackend } from "../../../../tui/backend/mockTerminalBackend.ts";
-import type { MouseToken } from "../../../../tui/input/rawTerminalToken.ts";
-import { TerminalScreen } from "../../../../tui/rendering/terminalScreen.ts";
-import { BoxConstraints, Offset, Point, Rect, Size } from "../../../common/geometryPromitives.ts";
-import { MouseEventDispatcher } from "../../events/mouseEventDispatcher.ts";
-import { RenderContext, TUIElement } from "../../tuiElement.ts";
 
 import { SashElement } from "./sashElement.ts";
 

@@ -1,5 +1,5 @@
-import type { TuiApplication } from "../vs/base/browser/tuiApplication.ts";
-import type { TUIElement } from "../vs/base/browser/tuiElement.ts";
+import type { TuiApplication } from "../../tuidom/dom/tuiApplication.ts";
+import type { TUIElement } from "../../tuidom/dom/tuiElement.ts";
 import type { BodyElement } from "../vs/base/browser/ui/body/bodyElement.ts";
 
 export interface StoryContext {

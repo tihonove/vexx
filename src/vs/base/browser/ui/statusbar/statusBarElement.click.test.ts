@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { BoxConstraints, Size } from "../../../common/geometryPromitives.ts";
-import { TUIMouseEvent } from "../../events/tuiMouseEvent.ts";
+import { BoxConstraints, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
+import { TUIMouseEvent } from "../../../../../../tuidom/dom/events/tuiMouseEvent.ts";
 
 import { StatusBarElement, type StatusBarItem } from "./statusBarElement.ts";
 

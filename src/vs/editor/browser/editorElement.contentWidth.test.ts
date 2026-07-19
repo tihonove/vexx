@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { Size } from "../../../../tuidom/common/geometryPromitives.ts";
 import { TestApp } from "../../../TestUtils/TestApp.ts";
-import { Size } from "../../base/common/geometryPromitives.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
 import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 
