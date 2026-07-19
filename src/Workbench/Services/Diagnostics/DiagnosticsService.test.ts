@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 
 import type { IDisposable } from "../../../Common/Disposable.ts";
 import { Uri } from "../../../Common/Uri.ts";
+import { ConfigurationRegistry } from "../../../Configuration/ConfigurationRegistry.ts";
 import { createRange } from "../../../Editor/IRange.ts";
 import type { IMarkerDecoration } from "../../../Editor/Markers/IMarker.ts";
 import { MarkerSeverity } from "../../../Editor/Markers/IMarker.ts";
 import { MarkerService } from "../../../Editor/Markers/MarkerService.ts";
+import { CONFIGURATION_CONTRIBUTIONS } from "../../Configuration/configurationContributions.ts";
 
 import { DiagnosticsService, type IDiagnosticsEditor, type IDiagnosticsEditorSource } from "./DiagnosticsService.ts";
+
+/** Реестр с реальными узлами приложения — известные ключи как в production. */
+function appConfigurationRegistry(): ConfigurationRegistry {
+    return new ConfigurationRegistry(CONFIGURATION_CONTRIBUTIONS);
+}
 
 const UNKNOWN_SETTINGS = ["{", '    "editor.tabSize": 2,', '    "editor.fontSize": 12', "}"].join("\n");
 const KNOWN_SETTINGS = ["{", '    "editor.tabSize": 2', "}"].join("\n");
@@ -86,7 +93,7 @@ interface Harness {
 function createHarness(settingsResource: string | null = SETTINGS_PATH): Harness {
     const source = new FakeEditorSource();
     const markerService = new MarkerService();
-    const service = new DiagnosticsService(source, markerService, settingsResource);
+    const service = new DiagnosticsService(source, markerService, settingsResource, appConfigurationRegistry());
     return { source, markerService, service };
 }
 
@@ -188,7 +195,7 @@ describe("DiagnosticsService — settings.json validation", () => {
         const editor = new FakeEditor(SETTINGS_PATH, UNKNOWN_SETTINGS);
         source.open(editor);
 
-        const service = new DiagnosticsService(source, markerService, SETTINGS_PATH);
+        const service = new DiagnosticsService(source, markerService, SETTINGS_PATH, appConfigurationRegistry());
 
         expect(markerService.read({ resource: resourceOf(SETTINGS_PATH) })).toHaveLength(1);
         expect(editor.decorations).toHaveLength(1);

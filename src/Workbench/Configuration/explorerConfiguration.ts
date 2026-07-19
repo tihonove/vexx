@@ -1,0 +1,24 @@
+import type { IConfigurationNode } from "../../Configuration/ConfigurationRegistry.ts";
+
+export const explorerConfiguration: IConfigurationNode = {
+    id: "explorer",
+    title: "File Explorer",
+    properties: {
+        // Безвозвратное удаление спрашивает подтверждение всегда, независимо от значения.
+        "explorer.confirmDelete": {
+            type: "boolean",
+            default: true,
+            description: "Ask for confirmation before deleting a file via the explorer.",
+        },
+        "explorer.confirmUndo": {
+            type: "boolean",
+            default: true,
+            description: "Ask for confirmation before undoing a destructive file operation.",
+        },
+        "explorer.autoReveal": {
+            type: "boolean",
+            default: true,
+            description: "Automatically reveal and select the active file in the explorer tree.",
+        },
+    },
+};

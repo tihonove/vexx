@@ -3,7 +3,8 @@ import * as path from "node:path";
 import { token } from "../../../Common/DiContainer.ts";
 import { Disposable, type IDisposable } from "../../../Common/Disposable.ts";
 import { Uri } from "../../../Common/Uri.ts";
-import { getDefaultConfiguration } from "../../../Configuration/defaults.ts";
+import type { ConfigurationRegistry } from "../../../Configuration/ConfigurationRegistry.ts";
+import { ConfigurationRegistryDIToken } from "../../../Configuration/ConfigurationRegistryDIToken.ts";
 import type { IMarkerDecoration } from "../../../Editor/Markers/IMarker.ts";
 import type { MarkerService } from "../../../Editor/Markers/MarkerService.ts";
 import { MarkerServiceDIToken, SettingsResourceDIToken } from "../CoreTokens.ts";
@@ -54,6 +55,7 @@ export class DiagnosticsService extends Disposable {
         DiagnosticsEditorSourceDIToken,
         MarkerServiceDIToken,
         SettingsResourceDIToken,
+        ConfigurationRegistryDIToken,
     ] as const;
 
     private editorSource: IDiagnosticsEditorSource;
@@ -73,13 +75,14 @@ export class DiagnosticsService extends Disposable {
         editorSource: IDiagnosticsEditorSource,
         markerService: MarkerService,
         settingsResource: string | null,
+        configurationRegistry: ConfigurationRegistry,
     ) {
         super();
         this.editorSource = editorSource;
         this.markerService = markerService;
         // path.resolve строго ДО Uri.file: Uri.file относительный путь не резолвит.
         this.settingsResource = settingsResource === null ? null : Uri.file(path.resolve(settingsResource));
-        this.knownSettingKeys = collectKnownSettingKeys(getDefaultConfiguration());
+        this.knownSettingKeys = collectKnownSettingKeys(configurationRegistry.getDefaultConfiguration());
 
         this.register(
             this.editorSource.onActiveEditorChanged((editor) => {

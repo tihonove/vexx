@@ -48,7 +48,13 @@
   `Commands` (`>`) / `GotoLine` (`:`) со статикой `PREFIX` (как у vscode);
   `QuickOpenService` — контроллер показа (`show(prefix)`), о префиксах не знает;
   принятие — колбэк `accept` на пункте. Будущие `@`/`#` — класс + запись в массиве.
-- [ ] **`ConfigurationRegistry`** — фичи регистрируют свою схему настроек (сейчас
-  генерённый `settings-schema` + хардкод дефолтов).
+- [x] **`ConfigurationRegistry`** (#170) — фичи регистрируют схему настроек:
+  `Configuration/ConfigurationRegistry.ts` (узлы `IConfigurationNode`, дубль
+  ключа — ошибка) + узлы приложения в `Workbench/Configuration/` (по файлу на
+  секцию, явный массив `CONFIGURATION_CONTRIBUTIONS`). Из реестра деривируются
+  defaults-слой `ConfigurationService` (`defaults.ts` удалён), известные ключи
+  валидации settings.json и каталог автодополнения vexx-settings (генератор
+  бандлит узлы). Runtime-регистрация узлов от расширений — Phase 6 в
+  [Extensions.md](Extensions.md).
 - [ ] **`ColorRegistry`** — `registerColor(id, defaults, desc)`, цвета саморегистрируются
   (сейчас центральный `IWorkbenchColors` + `defaultColors.ts`).

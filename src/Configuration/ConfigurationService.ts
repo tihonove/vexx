@@ -9,7 +9,7 @@ import type { ILogger } from "../Common/Logging/ILogger.ts";
 import type { IUserDataPaths } from "../Common/UserDataPaths.ts";
 
 import { ConfigurationModel } from "./ConfigurationModel.ts";
-import { getDefaultConfiguration } from "./defaults.ts";
+import type { ConfigurationRegistry } from "./ConfigurationRegistry.ts";
 import type {
     IConfigurationChangeEvent,
     IConfigurationInspectResult,
@@ -20,7 +20,7 @@ import type {
  * Реализация {@link IConfigurationService}.
  *
  * Слои (в порядке возрастания приоритета):
- *   1. defaults — хардкод приложения (`getDefaultConfiguration()`);
+ *   1. defaults — из `ConfigurationRegistry` (узлы `CONFIGURATION_CONTRIBUTIONS`);
  *   2. user — `User/settings.json` (default-профиль);
  *   3. profile — `User/profiles/<name>/settings.json` (только если активный
  *      профиль не default, иначе пусто).
@@ -249,9 +249,14 @@ export async function loadConfiguration(
     paths: IUserDataPaths,
     logger?: ILogger,
     fileWatcher?: IFileWatcher,
+    /**
+     * Источник defaults-слоя. Production (`main.ts`) передаёт реестр, собранный
+     * из `CONFIGURATION_CONTRIBUTIONS`; без него слой дефолтов пуст (юнит-тесты
+     * слоёв user/profile).
+     */
+    registry?: ConfigurationRegistry,
 ): Promise<ConfigurationService> {
-    const defaultsRaw = getDefaultConfiguration();
-    const defaultsLayer = ConfigurationModel.fromRaw(defaultsRaw);
+    const defaultsLayer = ConfigurationModel.fromRaw(registry?.getDefaultConfiguration() ?? {});
 
     const userSettingsPath = path.join(paths.userDir, "settings.json");
     const userLayer = await loadSettingsLayer(userSettingsPath, logger);

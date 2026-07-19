@@ -5,10 +5,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { IDisposable } from "../Common/Disposable.ts";
 import type { IFileWatcher } from "../Common/IFileWatcher.ts";
+import type { ILogger } from "../Common/Logging/ILogger.ts";
+import type { IUserDataPaths } from "../Common/UserDataPaths.ts";
 import { resolveUserDataPaths } from "../Common/UserDataPaths.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../TestUtils/TempWorkspace.ts";
 
 import { ConfigurationModel } from "./ConfigurationModel.ts";
+import { ConfigurationRegistry } from "./ConfigurationRegistry.ts";
 import {
     ConfigurationService,
     createConfigurationChangeEvent,
@@ -39,6 +42,27 @@ class FakeFileWatcher implements IFileWatcher {
     }
 }
 
+/**
+ * Тестовый реестр дефолтов — минимальный editor-узел, который ассертят тесты
+ * слоёв. Реальные узлы приложения (`CONFIGURATION_CONTRIBUTIONS`) живут выше по
+ * стеку (Workbench) и сюда не тянутся.
+ */
+const TEST_REGISTRY = new ConfigurationRegistry([
+    {
+        id: "editor",
+        properties: {
+            "editor.tabSize": { type: "number", default: 4 },
+            "editor.insertSpaces": { type: "boolean", default: true },
+            "editor.cursorSurroundingLines": { type: "number", default: 3 },
+        },
+    },
+]);
+
+/** `loadConfiguration` с тестовым defaults-реестром (как production с app-узлами). */
+function loadCfg(paths: IUserDataPaths, logger?: ILogger, fileWatcher?: IFileWatcher) {
+    return loadConfiguration(paths, logger, fileWatcher, TEST_REGISTRY);
+}
+
 describe("loadConfiguration", () => {
     let ws: ITempWorkspace;
 
@@ -60,7 +84,7 @@ describe("loadConfiguration", () => {
     }
 
     it("returns defaults when no settings files exist", async () => {
-        const cfg = await loadConfiguration(paths());
+        const cfg = await loadCfg(paths());
         expect(cfg.get<number>("editor.tabSize")).toBe(4);
         expect(cfg.get<boolean>("editor.insertSpaces")).toBe(true);
     });
@@ -68,7 +92,7 @@ describe("loadConfiguration", () => {
     it("loads user settings.json (default profile)", async () => {
         const p = paths();
         writeSettings(p.settingsFile, `{ "editor.tabSize": 2 }`);
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         expect(cfg.get<number>("editor.tabSize")).toBe(2);
         expect(cfg.get<boolean>("editor.insertSpaces")).toBe(true); // from defaults
     });
@@ -83,7 +107,7 @@ describe("loadConfiguration", () => {
                 "editor.insertSpaces": false, // trailing
             }`,
         );
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         expect(cfg.get<number>("editor.tabSize")).toBe(8);
         expect(cfg.get<boolean>("editor.insertSpaces")).toBe(false);
     });
@@ -99,7 +123,7 @@ describe("loadConfiguration", () => {
             error: vi.fn(),
             isEnabled: () => true,
         };
-        const cfg = await loadConfiguration(p, logger);
+        const cfg = await loadCfg(p, logger);
         expect(cfg.get<number>("editor.tabSize")).toBe(4);
         expect(logger.error).toHaveBeenCalled();
     });
@@ -111,7 +135,7 @@ describe("loadConfiguration", () => {
         const compactPaths = paths("compact");
         writeSettings(compactPaths.settingsFile, `{ "editor.tabSize": 8 }`);
 
-        const cfg = await loadConfiguration(compactPaths);
+        const cfg = await loadCfg(compactPaths);
         expect(cfg.get<number>("editor.tabSize")).toBe(8);
         // user-слой ещё применяется поверх defaults
         expect(cfg.get<boolean>("editor.insertSpaces")).toBe(true);
@@ -124,7 +148,7 @@ describe("loadConfiguration", () => {
         const compactPaths = paths("compact");
         writeSettings(compactPaths.settingsFile, `{ "editor.tabSize": 8 }`);
 
-        const cfg = await loadConfiguration(compactPaths);
+        const cfg = await loadCfg(compactPaths);
         const ins = cfg.inspect<number>("editor.tabSize");
         expect(ins.default).toBe(4);
         expect(ins.user).toBe(2);
@@ -136,23 +160,23 @@ describe("loadConfiguration", () => {
         const defaultPaths = paths();
         writeSettings(defaultPaths.settingsFile, `{ "editor.tabSize": 2 }`);
 
-        const cfg = await loadConfiguration(paths("compact"));
+        const cfg = await loadCfg(paths("compact"));
         expect(cfg.get<number>("editor.tabSize")).toBe(2);
     });
 
     it("get returns provided default for unknown keys", async () => {
-        const cfg = await loadConfiguration(paths());
+        const cfg = await loadCfg(paths());
         expect(cfg.get<string>("unknown.key", "fallback")).toBe("fallback");
     });
 
     it("getValue returns nested subtree", async () => {
-        const cfg = await loadConfiguration(paths());
+        const cfg = await loadCfg(paths());
         expect(cfg.getValue("editor")).toEqual({ tabSize: 4, insertSpaces: true, cursorSurroundingLines: 3 });
     });
 
     it("onDidChangeConfiguration subscription can be disposed (listener no longer fires)", async () => {
         const p = paths();
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         let calls = 0;
         const sub = cfg.onDidChangeConfiguration(() => {
             calls++;
@@ -178,7 +202,7 @@ describe("loadConfiguration", () => {
             error: vi.fn(),
             isEnabled: () => true,
         };
-        const cfg = await loadConfiguration(p, logger);
+        const cfg = await loadCfg(p, logger);
         expect(cfg.get<number>("editor.tabSize")).toBe(4);
         expect(logger.error).toHaveBeenCalledWith(
             expect.stringContaining("Failed to read settings file"),
@@ -204,7 +228,7 @@ describe("ConfigurationService.updateUserValue", () => {
 
     it("writes the key to settings.json when the file did not exist", async () => {
         const p = paths();
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         await cfg.updateUserValue("workbench.colorTheme", "Monokai");
 
         const written = fs.readFileSync(p.settingsFile, "utf-8");
@@ -224,7 +248,7 @@ describe("ConfigurationService.updateUserValue", () => {
 }
 `,
         );
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         await cfg.updateUserValue("workbench.colorTheme", "Light Modern");
 
         const written = fs.readFileSync(p.settingsFile, "utf-8");
@@ -237,7 +261,7 @@ describe("ConfigurationService.updateUserValue", () => {
 
     it("writes to the profile settings file for a named profile", async () => {
         const p = paths("compact");
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         await cfg.updateUserValue("workbench.colorTheme", "Dark+");
 
         expect(fs.existsSync(p.settingsFile)).toBe(true);
@@ -259,14 +283,14 @@ describe("ConfigurationService.updateUserValue", () => {
 
     it("rethrows read errors that are not 'file not found'", async () => {
         const p = paths();
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         // Make the settings path a directory so reading it fails with EISDIR (not ENOENT).
         fs.mkdirSync(p.settingsFile, { recursive: true });
         await expect(cfg.updateUserValue("workbench.colorTheme", "Monokai")).rejects.toThrow();
     });
 
     it("updateUserValue emits onDidChangeConfiguration with the changed key", async () => {
-        const cfg = await loadConfiguration(paths());
+        const cfg = await loadCfg(paths());
         const events: IConfigurationChangeEvent[] = [];
         cfg.onDidChangeConfiguration((e) => events.push(e));
 
@@ -282,7 +306,7 @@ describe("ConfigurationService.updateUserValue", () => {
         const p = paths();
         fs.mkdirSync(path.dirname(p.settingsFile), { recursive: true });
         fs.writeFileSync(p.settingsFile, `{ "editor.tabSize": 4 }`); // same as default
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         const events: IConfigurationChangeEvent[] = [];
         cfg.onDidChangeConfiguration((e) => events.push(e));
 
@@ -319,7 +343,7 @@ describe("ConfigurationService — live reload", () => {
 
     it("watches the user settings.json for the default profile", async () => {
         const watcher = new FakeFileWatcher();
-        await loadConfiguration(paths(), undefined, watcher);
+        await loadCfg(paths(), undefined, watcher);
         expect(watcher.isWatching(userSettingsPath())).toBe(true);
         expect(watcher.watchedCount).toBe(1);
     });
@@ -327,7 +351,7 @@ describe("ConfigurationService — live reload", () => {
     it("watches both user and profile settings for a named profile", async () => {
         const watcher = new FakeFileWatcher();
         const p = paths("compact");
-        await loadConfiguration(p, undefined, watcher);
+        await loadCfg(p, undefined, watcher);
         expect(watcher.isWatching(userSettingsPath("compact"))).toBe(true);
         expect(watcher.isWatching(p.settingsFile)).toBe(true);
         expect(watcher.watchedCount).toBe(2);
@@ -335,7 +359,7 @@ describe("ConfigurationService — live reload", () => {
 
     it("does not set up watching when no watcher is provided", async () => {
         // loadConfiguration without a watcher must not throw and reload still works manually.
-        const cfg = await loadConfiguration(paths());
+        const cfg = await loadCfg(paths());
         writeSettings(userSettingsPath(), `{ "editor.tabSize": 2 }`);
         await cfg.reload();
         expect(cfg.get<number>("editor.tabSize")).toBe(2);
@@ -344,7 +368,7 @@ describe("ConfigurationService — live reload", () => {
     it("reload picks up an external edit and emits the changed keys", async () => {
         const p = paths();
         writeSettings(p.settingsFile, `{ "editor.tabSize": 2 }`);
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         const events: IConfigurationChangeEvent[] = [];
         cfg.onDidChangeConfiguration((e) => events.push(e));
 
@@ -360,7 +384,7 @@ describe("ConfigurationService — live reload", () => {
     it("reload emits nothing when the file content is effectively unchanged", async () => {
         const p = paths();
         writeSettings(p.settingsFile, `{ "editor.tabSize": 2 }`);
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         const events: IConfigurationChangeEvent[] = [];
         cfg.onDidChangeConfiguration((e) => events.push(e));
 
@@ -374,7 +398,7 @@ describe("ConfigurationService — live reload", () => {
     it("reload reports a key reverting to its default value", async () => {
         const p = paths();
         writeSettings(p.settingsFile, `{ "editor.tabSize": 2 }`);
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         const events: IConfigurationChangeEvent[] = [];
         cfg.onDidChangeConfiguration((e) => events.push(e));
 
@@ -390,7 +414,7 @@ describe("ConfigurationService — live reload", () => {
     it("reload of a named profile picks up a profile-layer change", async () => {
         const p = paths("compact");
         writeSettings(p.settingsFile, `{ "editor.tabSize": 8 }`);
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
         const events: IConfigurationChangeEvent[] = [];
         cfg.onDidChangeConfiguration((e) => events.push(e));
 
@@ -404,7 +428,7 @@ describe("ConfigurationService — live reload", () => {
     it("reload treats a broken/removed settings file as an empty layer", async () => {
         const p = paths();
         writeSettings(p.settingsFile, `{ "editor.tabSize": 2 }`);
-        const cfg = await loadConfiguration(p);
+        const cfg = await loadCfg(p);
 
         fs.rmSync(p.settingsFile);
         await cfg.reload();
@@ -416,7 +440,7 @@ describe("ConfigurationService — live reload", () => {
     it("firing the watcher triggers a reload and emits the event", async () => {
         const watcher = new FakeFileWatcher();
         const p = paths();
-        const cfg = await loadConfiguration(p, undefined, watcher);
+        const cfg = await loadCfg(p, undefined, watcher);
         const events: IConfigurationChangeEvent[] = [];
         cfg.onDidChangeConfiguration((e) => events.push(e));
 
@@ -432,7 +456,7 @@ describe("ConfigurationService — live reload", () => {
 
     it("disposing the service stops the file watch", async () => {
         const watcher = new FakeFileWatcher();
-        const cfg = await loadConfiguration(paths(), undefined, watcher);
+        const cfg = await loadCfg(paths(), undefined, watcher);
         expect(watcher.isWatching(userSettingsPath())).toBe(true);
         cfg.dispose();
         expect(watcher.isWatching(userSettingsPath())).toBe(false);
@@ -457,7 +481,7 @@ describe("ConfigurationService — live reload", () => {
     });
 
     it("disposing a subscription twice is safe", async () => {
-        const cfg = await loadConfiguration(paths());
+        const cfg = await loadCfg(paths());
         const sub = cfg.onDidChangeConfiguration(() => {
             /* noop */
         });
