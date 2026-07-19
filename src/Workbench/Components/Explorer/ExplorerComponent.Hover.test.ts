@@ -10,7 +10,11 @@ import { TestApp } from "../../../TestUtils/TestApp.ts";
 import { darkPlusTheme } from "../../../Theme/themes/darkPlus.ts";
 import { ThemeService } from "../../../Theme/ThemeService.ts";
 import { WorkbenchTheme } from "../../../Theme/WorkbenchTheme.ts";
+import { MENU_CONTRIBUTIONS } from "../../Menus/menuContributions.ts";
+import { MenuRegistry } from "../../Menus/MenuRegistry.ts";
 import { CommandRegistry } from "../../Services/CommandRegistry.ts";
+import { ContextKeyService } from "../../Services/ContextKeyService.ts";
+import { KeybindingRegistry } from "../../Services/KeybindingRegistry.ts";
 import { ExplorerService } from "../../Services/ExplorerService.ts";
 
 import { ExplorerComponent } from "./ExplorerComponent.ts";
@@ -46,7 +50,13 @@ describe("ExplorerComponent hover", () => {
         theme = WorkbenchTheme.fromThemeFile(darkPlusTheme);
         const clipboard = new InMemoryFileClipboard();
         service = new ExplorerService(clipboard, NULL_CONFIGURATION_SERVICE, NULL_LOG_SERVICE);
-        component = new ExplorerComponent(service, new CommandRegistry(), clipboard, new ThemeService(theme));
+        const menuRegistry = new MenuRegistry(
+            new CommandRegistry(),
+            new KeybindingRegistry(),
+            new ContextKeyService(),
+            MENU_CONTRIBUTIONS,
+        );
+        component = new ExplorerComponent(service, new CommandRegistry(), clipboard, menuRegistry, new ThemeService(theme));
         service.setRootPath(ws.dir);
         app = TestApp.createWithContent(component.view, new Size(30, 10));
         await service.refresh();
