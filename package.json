@@ -31,7 +31,8 @@
     "test:perf": "vitest bench --run --config vitest.perf.config.ts",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
-    "lint:fix": "eslint src/ --fix"
+    "lint:fix": "eslint src/ --fix",
+    "valid-layers-check": "node scripts/check-layers.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
