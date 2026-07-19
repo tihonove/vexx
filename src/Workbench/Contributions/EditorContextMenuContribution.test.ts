@@ -5,6 +5,7 @@ import type { EditorPane } from "../Components/Editor/EditorPane.ts";
 import { MENU_CONTRIBUTIONS } from "../Menus/menuContributions.ts";
 import { MenuId } from "../Menus/MenuId.ts";
 import { MenuRegistry } from "../Menus/MenuRegistry.ts";
+import { MenuService } from "../Menus/MenuService.ts";
 import { CommandRegistry } from "../Services/CommandRegistry.ts";
 import { ContextKeyService } from "../Services/ContextKeyService.ts";
 import type { EditorService } from "../Services/EditorService.ts";
@@ -34,9 +35,11 @@ function setup(): { pane: FakePane; executed: string[] } {
     ] as const) {
         commands.register(id, () => executed.push(id), title);
     }
-    const menuRegistry = new MenuRegistry(commands, new KeybindingRegistry(), new ContextKeyService(), MENU_CONTRIBUTIONS);
+    const menuService = new MenuService(
+        new MenuRegistry(commands, new KeybindingRegistry(), new ContextKeyService(), MENU_CONTRIBUTIONS),
+    );
     const editorService = new FakeEditorService();
-    new EditorContextMenuContribution(editorService as unknown as EditorService, menuRegistry);
+    new EditorContextMenuContribution(editorService as unknown as EditorService, menuService);
     const pane = new FakePane();
     editorService.createEditor(pane);
     return { pane, executed };

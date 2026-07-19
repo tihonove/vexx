@@ -107,6 +107,34 @@ describe("MenuRegistry", () => {
         ]);
     });
 
+    it("группа navigation всегда первая, независимо от строкового порядка", () => {
+        const h = setup([
+            { menuId: MenuId.EditorContext, command: "first", group: "1_first" },
+            { menuId: MenuId.EditorContext, command: "nav", group: "navigation" },
+            { menuId: MenuId.EditorContext, command: "second", group: "2_second" },
+        ]);
+        // navigation впереди (спец-группа vscode), дальше — 1_first < 2_second.
+        expect(labels(h.registry.getMenuItems(MenuId.EditorContext))).toEqual([
+            "Title:nav",
+            "─",
+            "Title:first",
+            "─",
+            "Title:second",
+        ]);
+
+        // И симметрично: когда navigation вставлена первой, остальные группы
+        // всё равно уходят после неё (сравнение с navigation справа).
+        const first = setup([
+            { menuId: MenuId.EditorContext, command: "nav", group: "navigation" },
+            { menuId: MenuId.EditorContext, command: "other", group: "1_other" },
+        ]);
+        expect(labels(first.registry.getMenuItems(MenuId.EditorContext))).toEqual([
+            "Title:nav",
+            "─",
+            "Title:other",
+        ]);
+    });
+
     it("дефолты: без group (→ '') и без order (→ 0)", () => {
         const h = setup([
             { menuId: MenuId.EditorContext, command: "grouped", group: "1_g" },
@@ -194,5 +222,53 @@ describe("MenuRegistry", () => {
         expect(labels(h.registry.getMenuItems(MenuId.EditorContext))).toEqual(["Title:base"]);
         handle.dispose(); // idempotent — пункт уже снят
         expect(labels(h.registry.getMenuItems(MenuId.EditorContext))).toEqual(["Title:base"]);
+    });
+
+    it("getSubmenus: фильтр по точке и when, сортировка по order, мнемоника", () => {
+        const h = setup([]);
+        const registry = new MenuRegistry(h.commands, h.keybindings, h.contextKeys, [
+            { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarEditMenu, title: "Edit", mnemonic: "e", order: 20 },
+            { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarFileMenu, title: "File", mnemonic: "f", order: 10 },
+            // Чужая точка и непроходящий when — не попадают в выдачу.
+            { menuId: MenuId.EditorContext, submenu: MenuId.MenubarHelpMenu, title: "Elsewhere" },
+            { menuId: MenuId.MenubarMainMenu, submenu: MenuId.MenubarViewMenu, title: "Focused", when: "listFocus" },
+            // Обычный пункт-команда в той же точке — не submenu, отфильтрован.
+            { menuId: MenuId.MenubarMainMenu, command: "not-a-submenu" },
+        ]);
+        expect(registry.getSubmenus(MenuId.MenubarMainMenu)).toEqual([
+            { title: "File", mnemonic: "f", submenu: MenuId.MenubarFileMenu },
+            { title: "Edit", mnemonic: "e", submenu: MenuId.MenubarEditMenu },
+        ]);
+    });
+
+    it("getMenuItems игнорирует submenu-записи (вложенные попапы не рендерим)", () => {
+        const h = setup([{ menuId: MenuId.EditorContext, command: "cmd" }]);
+        h.registry.appendMenuItem({ menuId: MenuId.EditorContext, submenu: MenuId.MenubarFileMenu, title: "Sub" });
+        expect(labels(h.registry.getMenuItems(MenuId.EditorContext))).toEqual(["Title:cmd"]);
+    });
+
+    it("onDidChangeMenu: срабатывает на append и на снятие, но не на повторный dispose", () => {
+        const h = setup([]);
+        const changed: string[] = [];
+        h.registry.onDidChangeMenu((menuId) => changed.push(menuId.id));
+
+        const handle = h.registry.appendMenuItem({ menuId: MenuId.EditorContext, command: "x" });
+        expect(changed).toEqual(["EditorContext"]);
+
+        handle.dispose();
+        expect(changed).toEqual(["EditorContext", "EditorContext"]);
+
+        handle.dispose(); // пункт уже снят — события нет
+        expect(changed).toEqual(["EditorContext", "EditorContext"]);
+    });
+
+    it("onDidChangeMenu: dispose подписки прекращает уведомления", () => {
+        const h = setup([]);
+        const changed: string[] = [];
+        const subscription = h.registry.onDidChangeMenu((menuId) => changed.push(menuId.id));
+        subscription.dispose();
+
+        h.registry.appendMenuItem({ menuId: MenuId.ExplorerContext, command: "y" });
+        expect(changed).toEqual([]);
     });
 });

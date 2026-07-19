@@ -1,4 +1,6 @@
 import { ExplorerComponentDIToken } from "../Components/Explorer/ExplorerComponent.ts";
+import { explorerPathArg } from "../Menus/menuContexts.ts";
+import { MenuId } from "../Menus/MenuId.ts";
 import { ExplorerServiceDIToken } from "../Services/ExplorerService.ts";
 import { FileOperationsServiceDIToken } from "../Services/FileOperationsService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
@@ -13,8 +15,11 @@ import type { CommandAction } from "./CommandAction.ts";
 export const fileDeleteAction: CommandAction = {
     id: "fileOperations.deleteFile",
     title: "File: Delete",
+    shortTitle: "Delete",
     keybinding: parseKeybinding("delete"),
     when: "listFocus",
+    // Delete забинжен `delete`, но меню шортката не показывает — подавляем.
+    menus: [{ menuId: MenuId.ExplorerContext, group: "4_modify", order: 20, args: explorerPathArg, shortcut: false }],
     run(accessor, filePath: unknown) {
         const target = (filePath as string | undefined) ?? accessor.get(ExplorerServiceDIToken).getSelectedPaths()[0];
         if (target) accessor.get(FileOperationsServiceDIToken).requestDeleteFile(target);
@@ -25,8 +30,10 @@ export const fileDeleteAction: CommandAction = {
 export const fileRenameAction: CommandAction = {
     id: "fileOperations.rename",
     title: "File: Rename",
+    shortTitle: "Rename...",
     keybinding: parseKeybinding("f2"),
     when: "listFocus",
+    menus: [{ menuId: MenuId.ExplorerContext, group: "4_modify", order: 10, args: explorerPathArg }],
     run(accessor, filePath: unknown) {
         const target = (filePath as string | undefined) ?? accessor.get(ExplorerServiceDIToken).getSelectedPaths()[0];
         if (target) void accessor.get(FileOperationsServiceDIToken).runRename(target);
@@ -41,6 +48,8 @@ export const fileRenameAction: CommandAction = {
 export const refreshExplorerAction: CommandAction = {
     id: "workbench.files.action.refreshFilesExplorer",
     title: "File: Refresh Explorer",
+    shortTitle: "Refresh Explorer",
+    menus: [{ menuId: MenuId.ExplorerContext, group: "5_refresh", order: 10 }],
     run(accessor) {
         void accessor.get(ExplorerServiceDIToken).refresh();
     },

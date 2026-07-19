@@ -1,5 +1,6 @@
 import type { ServiceAccessor } from "../../Common/DiContainer.ts";
 import { token } from "../../Common/DiContainer.ts";
+import { MenuId } from "../Menus/MenuId.ts";
 import { DialogServiceDIToken } from "../Services/DialogService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
 
@@ -19,6 +20,8 @@ export const QuitHandlerDIToken = token<IQuitHandler>("QuitHandler");
 export const quitAction: CommandAction = {
     id: "workbench.action.quit",
     title: "Quit",
+    // Label только в меню — vscode-паттерн per-menu title override.
+    menus: [{ menuId: MenuId.MenubarFileMenu, title: "Exit", group: "5_quit", order: 10 }],
     keybinding: parseKeybinding("ctrl+q"),
     run(accessor) {
         accessor.get(QuitHandlerDIToken).requestQuit(accessor);
@@ -28,6 +31,7 @@ export const quitAction: CommandAction = {
 export const showAboutDialogAction: CommandAction = {
     id: "workbench.action.showAboutDialog",
     title: "About",
+    menus: [{ menuId: MenuId.MenubarHelpMenu, group: "1_about", order: 10 }],
     run(accessor) {
         accessor.get(DialogServiceDIToken).showAboutDialog();
     },

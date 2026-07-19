@@ -35,6 +35,7 @@ import {
 import { MenuContributionsDIToken } from "../Menus/IMenuContribution.ts";
 import { MENU_CONTRIBUTIONS } from "../Menus/menuContributions.ts";
 import { MenuRegistry, MenuRegistryDIToken } from "../Menus/MenuRegistry.ts";
+import { MenuService, MenuServiceDIToken } from "../Menus/MenuService.ts";
 import { CompletionService, CompletionServiceDIToken } from "../Services/CompletionService.ts";
 import {
     DiagnosticsEditorSourceDIToken,
@@ -56,7 +57,6 @@ import { InputWidgetService, InputWidgetServiceDIToken } from "../Services/Input
 import { KeybindingDispatcher, KeybindingDispatcherDIToken } from "../Services/KeybindingDispatcher.ts";
 import { LayoutService, LayoutServiceDIToken } from "../Services/LayoutService.ts";
 import { LifecycleService, LifecycleServiceDIToken } from "../Services/LifecycleService.ts";
-import { MenuService, MenuServiceDIToken } from "../Services/MenuService.ts";
 import { PanelService, PanelServiceDIToken } from "../Services/PanelService.ts";
 import { QuickInputService, QuickInputServiceDIToken } from "../Services/QuickInputService.ts";
 import {
@@ -139,10 +139,12 @@ export const workbenchModule: ContainerModule = (container) => {
     // (Restored — в mount()) и main.ts (Eventually — после первого кадра).
     container.bind(WorkbenchContributionsDIToken, () => WORKBENCH_CONTRIBUTIONS);
     container.bind(WorkbenchContributionsRegistryDIToken, WorkbenchContributionsRegistry);
-    // Реестр declarative menu-contributions: явный список MENU_CONTRIBUTIONS + сам
-    // реестр, из которого собираются контекст-меню (редактор, Explorer).
+    // Реестр declarative menu-contributions: явный список MENU_CONTRIBUTIONS +
+    // реестр (данные) + MenuService (живые IMenu), из которых собираются
+    // контекст-меню (редактор, Explorer) и меню-бар.
     container.bind(MenuContributionsDIToken, () => MENU_CONTRIBUTIONS);
     container.bind(MenuRegistryDIToken, MenuRegistry);
+    container.bind(MenuServiceDIToken, MenuService);
     container.bind(AutoRevealContributionDIToken, AutoRevealContribution);
     container.bind(ThemeConfigContributionDIToken, ThemeConfigContribution);
     container.bind(EditorContextMenuContributionDIToken, EditorContextMenuContribution);
@@ -165,11 +167,10 @@ export const workbenchModule: ContainerModule = (container) => {
     // WorkbenchLayoutElement приходит от владельца view через attachLayout),
     // персист открытых редакторов, контекст-ключи workbench'а (замыкают
     // KeybindingDispatcher.updateContextKeys; корневая view — через attachView)
-    // и главное меню (модель — MenuService, контрол — MenuBarComponent).
+    // и главное меню (пункты — из MenuRegistry, контрол — MenuBarComponent).
     container.bind(LayoutServiceDIToken, LayoutService);
     container.bind(WorkbenchStateServiceDIToken, WorkbenchStateService);
     container.bind(WorkbenchContextKeysDIToken, WorkbenchContextKeys);
-    container.bind(MenuServiceDIToken, MenuService);
     container.bind(MenuBarComponentDIToken, MenuBarComponent);
     // Этап 12: корневой компонент приложения — владелец корневой view и
     // bootstrap-жизненного цикла (mount/activate ведёт main.ts).

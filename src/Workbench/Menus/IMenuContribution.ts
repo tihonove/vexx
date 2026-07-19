@@ -31,4 +31,28 @@ export interface IMenuContribution {
     readonly shortcut?: string | false;
 }
 
-export const MenuContributionsDIToken = token<readonly IMenuContribution[]>("MenuContributions");
+/**
+ * Submenu-запись (аналог `ISubmenuItem` VS Code): пункт меню `menuId`,
+ * открывающий вложенную точку `submenu`. Меню-бар — набор таких записей в
+ * `MenuId.MenubarMainMenu` (File/Edit/… → `MenubarFileMenu`/…).
+ */
+export interface ISubmenuContribution {
+    readonly menuId: MenuId;
+    /** Вложенная точка, чьи пункты открывает эта запись. */
+    readonly submenu: MenuId;
+    readonly title: string;
+    /** Мнемоника top-уровня меню-бара (Alt+буква); у vscode — `&&` в title. */
+    readonly mnemonic?: string;
+    /** Условие видимости через контекст-ключи (`ContextKeyService.evaluate`). */
+    readonly when?: string;
+    readonly group?: string;
+    readonly order?: number;
+}
+
+export type MenuContribution = IMenuContribution | ISubmenuContribution;
+
+export function isSubmenuContribution(item: MenuContribution): item is ISubmenuContribution {
+    return "submenu" in item;
+}
+
+export const MenuContributionsDIToken = token<readonly MenuContribution[]>("MenuContributions");

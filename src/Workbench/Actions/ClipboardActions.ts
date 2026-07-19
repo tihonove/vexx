@@ -1,3 +1,4 @@
+import { MenuId } from "../Menus/MenuId.ts";
 import { ClipboardDIToken } from "../Services/CoreTokens.ts";
 import { EditorServiceDIToken } from "../Services/EditorService.ts";
 import { parseKeybinding } from "../Services/KeybindingRegistry.ts";
@@ -9,6 +10,10 @@ export const clipboardCopyAction: CommandAction = {
     title: "Copy",
     keybinding: parseKeybinding("ctrl+c"),
     when: "textInputFocus",
+    menus: [
+        { menuId: MenuId.EditorContext, group: "1_clipboard", order: 10 },
+        { menuId: MenuId.MenubarEditMenu, group: "2_clipboard", order: 20 },
+    ],
     async run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
@@ -24,6 +29,10 @@ export const clipboardCutAction: CommandAction = {
     title: "Cut",
     keybinding: parseKeybinding("ctrl+x"),
     when: "textInputFocus",
+    menus: [
+        { menuId: MenuId.EditorContext, group: "1_clipboard", order: 20 },
+        { menuId: MenuId.MenubarEditMenu, group: "2_clipboard", order: 10 },
+    ],
     async run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
@@ -42,6 +51,10 @@ export const clipboardPasteAction: CommandAction = {
     title: "Paste",
     keybinding: parseKeybinding("ctrl+v"),
     when: "textInputFocus",
+    menus: [
+        { menuId: MenuId.EditorContext, group: "1_clipboard", order: 30 },
+        { menuId: MenuId.MenubarEditMenu, group: "2_clipboard", order: 30 },
+    ],
     async run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
