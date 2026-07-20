@@ -4,7 +4,7 @@
 // Реестра в памяти нет принципиально: состояние выводится из мира заново на каждый вызов
 // (`claude agents --json`, mtime сессионного JSONL, git в worktree). Поэтому перезапуск
 // демона ничего не восстанавливает — он просто снова смотрит.
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { basename } from "node:path";
 
@@ -38,6 +38,8 @@ export interface AgentInfo {
     status: string;
     state?: string;
     worktree: string;
+    /** Читается из самого worktree, а не выводится из имени: имя ветки задаёт claude, не мы. */
+    branch: string | null;
     /** Минут с последней записи в сессионный JSONL — бесплатный heartbeat. */
     idleMin: number | null;
     alive: boolean;
@@ -92,7 +94,11 @@ function idleMinutes(cwd: string, sessionId: string, now: number): number | null
 export function toAgentInfo(
     sessions: RawSession[],
     now: number,
-    deps: { alive: (pid: number) => boolean; idleMin: (cwd: string, sessionId: string) => number | null },
+    deps: {
+        alive: (pid: number) => boolean;
+        idleMin: (cwd: string, sessionId: string) => number | null;
+        branch: (cwd: string) => string | null;
+    },
     worktreesDir = WORKTREES_DIR,
 ): AgentInfo[] {
     return sessions
@@ -106,10 +112,19 @@ export function toAgentInfo(
             status: session.status,
             state: session.state,
             worktree: session.cwd,
+            branch: deps.branch(session.cwd),
             idleMin: deps.idleMin(session.cwd, session.sessionId),
             alive: deps.alive(session.pid),
             ageMin: Math.floor((now - session.startedAt) / 60000),
         }));
+}
+
+function currentBranch(cwd: string): string | null {
+    try {
+        return execFileSync("git", ["-C", cwd, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf8" }).trim() || null;
+    } catch {
+        return null;
+    }
 }
 
 export async function listAgents(): Promise<AgentInfo[]> {
@@ -117,6 +132,7 @@ export async function listAgents(): Promise<AgentInfo[]> {
     return toAgentInfo(await readSessions(), now, {
         alive: isProcessAlive,
         idleMin: (cwd, sessionId) => idleMinutes(cwd, sessionId, now),
+        branch: currentBranch,
     });
 }
 
