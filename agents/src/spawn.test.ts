@@ -1,28 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { UserError } from "./gh.ts";
+import { AGENT_NAME_RE, skillPrompt } from "./agents.ts";
 import { countSpawnsSince, parseLines } from "./history.ts";
-import { parseTask } from "./task.ts";
 
-const valid = { id: "issue-136", title: "Go To Definition", fields: { issue: 136 }, text: "Постановка" };
-
-describe("parseTask", () => {
-    it("принимает корректную задачу", () => {
-        expect(parseTask(valid)).toEqual(valid);
+describe("skillPrompt", () => {
+    it("собирает промпт из имени скилла и аргументов", () => {
+        expect(skillPrompt("implement", "136")).toBe("/implement 136");
     });
 
-    it("подставляет пустые fields", () => {
-        expect(parseTask({ ...valid, fields: undefined }).fields).toEqual({});
+    it("не оставляет висящий пробел, если аргументов нет", () => {
+        expect(skillPrompt("orchestrate", "")).toBe("/orchestrate");
+        expect(skillPrompt("orchestrate", "   ")).toBe("/orchestrate");
+    });
+});
+
+describe("AGENT_NAME_RE", () => {
+    it("пропускает нормальные имена агентов", () => {
+        for (const name of ["issue-136", "probe_1", "a.b"]) expect(AGENT_NAME_RE.test(name)).toBe(true);
     });
 
-    it("требует непустой text — это единственное, что увидит агент", () => {
-        expect(() => parseTask({ ...valid, text: "   " })).toThrow(UserError);
-    });
-
-    it("не пускает id, опасный для пути", () => {
-        for (const id of ["../escape", "a/b", "", ".hidden"]) {
-            expect(() => parseTask({ ...valid, id })).toThrow(UserError);
-        }
+    it("не пускает имена, опасные для пути", () => {
+        for (const name of ["../escape", "a/b", "", ".hidden"]) expect(AGENT_NAME_RE.test(name)).toBe(false);
     });
 });
 

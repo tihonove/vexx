@@ -11,7 +11,9 @@ import { basename } from "node:path";
 import type { Limits } from "./config.ts";
 import { countSpawnsSince, type HistoryEvent } from "./history.ts";
 import { sessionFile, worktreePath, WORKTREES_DIR } from "./paths.ts";
-import { type Task, writeTaskFile } from "./task.ts";
+
+/** Имя агента = имя его worktree = имя каталога, поэтому оно должно быть безопасным для пути. */
+export const AGENT_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 /** Сырая запись из `claude agents --json`. */
 export interface RawSession {
@@ -129,7 +131,7 @@ export interface SpawnResult {
     name: string;
     skill: string;
     worktree: string;
-    taskFile: string;
+    prompt: string;
 }
 
 /**
@@ -165,17 +167,14 @@ export function checkLimits(
  * Важно: скилл должен быть ЗАКОММИЧЕН. Агент работает в свежем worktree, где
  * неотслеживаемых файлов нет, и незакоммиченный `.claude/skills/*` до него не доедет.
  */
-export async function spawnAgent(args: { name: string; skill: string; task: Task }): Promise<SpawnResult> {
-    const taskFile = writeTaskFile({ ...args.task, id: args.name });
-    await run("claude", [
-        "--worktree",
-        args.name,
-        "--background",
-        "--permission-mode",
-        "acceptEdits",
-        `/${args.skill} ${taskFile}`,
-    ]);
-    return { refused: false, name: args.name, skill: args.skill, worktree: worktreePath(args.name), taskFile };
+export function skillPrompt(skill: string, args: string): string {
+    return `/${skill}${args.trim() ? ` ${args.trim()}` : ""}`;
+}
+
+export async function spawnAgent(args: { name: string; skill: string; args: string }): Promise<SpawnResult> {
+    const prompt = skillPrompt(args.skill, args.args);
+    await run("claude", ["--worktree", args.name, "--background", "--permission-mode", "acceptEdits", prompt]);
+    return { refused: false, name: args.name, skill: args.skill, worktree: worktreePath(args.name), prompt };
 }
 
 /**

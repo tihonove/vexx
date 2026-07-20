@@ -12,10 +12,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
-import { checkLimits, listAgents, readAgentLog, spawnAgent, stopAgent } from "./agents.ts";
+import { AGENT_NAME_RE, checkLimits, listAgents, readAgentLog, skillPrompt, spawnAgent, stopAgent } from "./agents.ts";
 import type { AgentsConfig } from "./config.ts";
 import { append, readAll } from "./history.ts";
-import { TASK_ID_RE } from "./task.ts";
 
 function ok(value: unknown) {
     return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
@@ -51,20 +50,16 @@ export function createMcpServer(getConfig: () => AgentsConfig): McpServer {
             title: "Запустить агента",
             description:
                 "Запускает скилл в отдельном git worktree фоновой сессией. `name` — идентификатор агента, " +
-                "он же имя worktree (например issue-136). `task` — вся постановка: агент не ходит за ней никуда, " +
-                "что положишь, с тем он и будет работать. Может вернуть отказ (refused) по потолкам — это нормальный " +
-                "ответ, а не ошибка; спорить с ним не надо.",
+                "он же имя worktree (например issue-136). `args` — аргументы скилла одной строкой, " +
+                "обычно просто номер задачи: агент разберётся сам. Может вернуть отказ (refused) по потолкам — " +
+                "это нормальный ответ, а не ошибка; спорить с ним не надо.",
             inputSchema: {
-                name: z.string().regex(TASK_ID_RE, "имя должно быть безопасным для пути"),
+                name: z.string().regex(AGENT_NAME_RE, "имя должно быть безопасным для пути"),
                 role: z.string().describe("роль из config.jsonc, например implement"),
-                task: z.object({
-                    title: z.string(),
-                    fields: z.record(z.string(), z.unknown()).optional(),
-                    text: z.string().describe("полная постановка — всё, что нужно агенту для работы"),
-                }),
+                args: z.string().describe("аргументы скилла, например номер issue"),
             },
         },
-        async ({ name, role, task }) => {
+        async ({ name, role, args }) => {
             const config = getConfig();
             const roleSpec = config.roles[role];
             if (!roleSpec) {
@@ -84,9 +79,10 @@ export function createMcpServer(getConfig: () => AgentsConfig): McpServer {
                 return ok(refusal);
             }
 
-            const result = await spawnAgent({ name, skill: roleSpec.skill, task: { id: name, ...task, fields: task.fields ?? {} } });
+            const result = await spawnAgent({ name, skill: roleSpec.skill, args });
             append({ at: new Date().toISOString(), kind: "spawn", name, skill: roleSpec.skill });
-            return ok(result);
+            // Отдаём и промпт: по нему видно, чем именно запущен агент, и его можно повторить руками.
+            return ok({ ...result, repeatManually: `./agents.sh run ${role} ${args}` });
         },
     );
 

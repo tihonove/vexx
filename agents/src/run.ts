@@ -1,26 +1,24 @@
-// Отладка скилла в одиночку: форграунд, без демона, без потолков, без GitHub.
+// Отладка скилла в одиночку: форграунд, без демона, без потолков.
 //
-// Это главный инструмент разработки скиллов. Задача пишется руками в JSON-файл, скилл
-// получает ровно тот же вход, что и в проде, — потому что он в принципе не умеет получать
-// его иначе. Что отладили здесь, то и поедет.
+// Запуск руками и запуск оркестратором — это одна и та же команда с одним и тем же
+// аргументом: `spawn_agent` делает ровно `/<скилл> <аргументы>`, и здесь то же самое.
+// Поэтому всё, что делает машинерия, вы можете повторить сами и посмотреть глазами.
 //
-//   run implement .agents-runs/tasks/my-test.json   — скилл агента в своём worktree
-//   run orchestrate                                 — один тик оркестратора, как у демона
+//   run implement 136    — реализатор по задаче 136
+//   run orchestrate      — один тик оркестратора, как у демона
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
-import { resolve } from "node:path";
 
+import { skillPrompt } from "./agents.ts";
 import { loadConfig } from "./config.ts";
 import { UserError } from "./gh.ts";
 import { REPO_ROOT } from "./paths.ts";
-import { readTaskFile, writeTaskFile } from "./task.ts";
 
-const USAGE = `Использование: run <роль|orchestrate> [файл-задачи.json] [--worktree [имя]]
+const USAGE = `Использование: run <роль|orchestrate> [аргументы скилла] [--worktree [имя]]
 
-  run orchestrate                       один тик оркестратора в форграунде
-  run implement task.json               прогнать роль здесь же, в текущем рабочем дереве
-  run implement task.json --worktree    как в проде: в отдельном worktree от main
-  run implement task.json --worktree t1 то же, но с явным именем
+  run orchestrate                один тик оркестратора в форграунде
+  run implement 136              прогнать роль здесь же, в текущем рабочем дереве
+  run implement 136 --worktree   как в проде: в отдельном worktree от main
+  run implement 136 --worktree t1  то же, но с явным именем worktree
 
 По умолчанию отладка идёт БЕЗ отдельного worktree — иначе правки скилла не видны:
 claude --worktree создаёт дерево от main, и незамёрженный .claude/skills/* туда не попадает.
@@ -58,7 +56,7 @@ async function main(argv: string[]): Promise<number> {
         positional.push(argv[index]!);
     }
 
-    const [target, taskFileArg] = positional;
+    const [target, ...skillArgs] = positional;
     if (!target) throw new UserError(USAGE);
     const config = loadConfig();
 
@@ -88,26 +86,20 @@ async function main(argv: string[]): Promise<number> {
     if (!role) {
         throw new UserError(`Неизвестная роль "${target}". В config.jsonc объявлены: ${Object.keys(config.roles).join(", ") || "нет ни одной"}`);
     }
-    if (!taskFileArg) throw new UserError(`Роли "${target}" нужен файл задачи.\n\n${USAGE}`);
+    if (skillArgs.length === 0) throw new UserError(`Роли "${target}" нужен аргумент — номер задачи.\n\n${USAGE}`);
 
-    // Путь к задаче может прийти относительно корня репо (так его набирают в ./agents.sh),
-    // а мы запускаемся из agents/ — поэтому пробуем оба варианта.
-    const candidates = [resolve(taskFileArg), resolve(REPO_ROOT, taskFileArg)];
-    const found = candidates.find(path => existsSync(path));
-    if (!found) throw new UserError(`Файл задачи не найден: ${taskFileArg}`);
-    const task = readTaskFile(found);
-    const name = worktree ?? task.id;
-    // Перекладываем задачу в свой каталог под тем же именем, что и spawn_agent,
-    // чтобы путь и содержимое совпадали с боевым запуском.
-    const taskFile = writeTaskFile({ ...task, id: name });
+    // Тот же промпт, что собирает spawn_agent: запуск руками и запуск машинерией совпадают.
+    const prompt = skillPrompt(role.skill, skillArgs.join(" "));
+    // Без --worktree имя не нужно; с ним по умолчанию берём его из аргументов.
+    const name = worktree ?? `${target}-${skillArgs.join("-").replace(/[^a-zA-Z0-9._-]/g, "-")}`;
 
-    const args = ["--permission-mode", "acceptEdits", `/${role.skill} ${taskFile}`];
+    const args = ["--permission-mode", "acceptEdits", prompt];
     if (isolate) {
         args.unshift("--worktree", name);
-        console.log(`Роль: ${target} · скилл: /${role.skill} · worktree: ${name}`);
+        console.log(`Роль: ${target} · ${prompt} · worktree: ${name}`);
         console.log("Внимание: worktree создаётся от main — незамёрженные правки скилла агент не увидит.\n");
     } else {
-        console.log(`Роль: ${target} · скилл: /${role.skill} · здесь же: ${REPO_ROOT}\n`);
+        console.log(`Роль: ${target} · ${prompt} · здесь же: ${REPO_ROOT}\n`);
     }
     return passthrough(args, target);
 }

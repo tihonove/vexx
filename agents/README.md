@@ -79,6 +79,7 @@ npm run typecheck && npm test
 
 ```sh
 ./agents.sh start      # поднять в tmux-сессии "agents" (идемпотентно)
+./agents.sh start --paused  # только серверы, тики руками — когда хочется всё видеть
 ./agents.sh status     # демон + живые агенты
 ./agents.sh tick       # тик прямо сейчас (то же, что кнопка на витрине)
 ./agents.sh attach     # подключиться к сессии демона
@@ -101,7 +102,7 @@ npm run typecheck && npm test
 | Инструмент | |
 | --- | --- |
 | `list_agents` | кто жив: status, `idleMin`, alive, worktree |
-| `spawn_agent` | запустить роль с готовой задачей (или отказать по потолкам) |
+| `spawn_agent` | запустить роль с аргументами (или отказать по потолкам) |
 | `stop_agent` | мягко остановить и освободить слот |
 | `agent_log` | выжимка последних действий агента |
 
@@ -112,22 +113,24 @@ npm run typecheck && npm test
 3. **Настройки** — `limits`, `dryRun`, `tickIntervalMin` в `config.jsonc`. Перечитываются
    каждый тик; рестарт нужен только при смене портов.
 
-## Контракт входа скилла
+## Аргументы скилла
 
-Задача попадает в агента **только** JSON-файлом, путь передаётся аргументом:
+Оркестратор передаёт агенту **только номер задачи** — за постановкой скилл идёт сам:
 
-```json
-{ "id": "issue-136", "title": "…", "fields": { "issue": 136 }, "text": "вся постановка" }
+```
+spawn_agent({ name: "issue-136", role: "implement", args: "136" })
+   →  claude --worktree issue-136 --background "/implement 136"
 ```
 
-Скилл не ходит за постановкой никуда: что положили в `text`, с тем он и работает.
-Отсюда же отладка — файл пишется руками:
+Поэтому любое действие машинерии повторяется руками одной командой:
 
 ```sh
-./agents.sh run implement task.json              # здесь же, видит незакоммиченный скилл
-./agents.sh run implement task.json --worktree   # как в проде, в отдельном дереве
-./agents.sh run orchestrate                      # один тик (нужен живой демон — он держит MCP)
+./agents.sh run implement 136              # здесь же, видит незакоммиченный скилл
+./agents.sh run implement 136 --worktree   # как в проде, в отдельном дереве
+./agents.sh run orchestrate                # один тик (нужен живой демон — он держит MCP)
 ```
+
+`spawn_agent` возвращает в ответе поле `repeatManually` с этой самой командой.
 
 ## Что важно знать
 
