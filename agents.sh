@@ -14,8 +14,27 @@ STOP="$RUNS/STOP"
 cd "$ROOT"
 mkdir -p "$RUNS"
 
-dashboard_port() {
-    (cd agents && node -e "const{parse}=require('jsonc-parser');const fs=require('fs');process.stdout.write(String(parse(fs.readFileSync('config.jsonc','utf8')).ports?.dashboard??7777))") 2>/dev/null || echo 7777
+config_port() {
+    (cd agents && node -e "const{parse}=require('jsonc-parser');const fs=require('fs');process.stdout.write(String(parse(fs.readFileSync('config.jsonc','utf8')).ports?.$1??$2))") 2>/dev/null || echo "$2"
+}
+dashboard_port() { config_port dashboard 7777; }
+mcp_port() { config_port mcp 7778; }
+
+# Фоновый запуск агента — через тот же MCP-инструмент, которым пользуется оркестратор.
+# Не в обход: тогда бы потолки и журнал обошлись вместе с ним.
+cmd_spawn() {
+    local role="${1:-}" args="${2:-}"
+    [ -n "$role" ] && [ -n "$args" ] || { echo "Использование: ./agents.sh spawn <роль> <аргументы>"; exit 2; }
+    tmux has-session -t "$SESSION" 2>/dev/null || { echo "Демон не поднят: ./agents.sh start --paused"; exit 1; }
+
+    local name="${3:-issue-$args}"
+    curl -sS -H content-type:application/json -H accept:application/json,text/event-stream \
+        -X POST "http://127.0.0.1:$(mcp_port)/mcp" \
+        -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"spawn_agent\",\"arguments\":{\"name\":\"$name\",\"role\":\"$role\",\"args\":\"$args\"}}}" |
+        sed -n 's/^data: //p' |
+        node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
+            try { console.log(JSON.parse(r).result.content[0].text) } catch { console.log(r || "нет ответа от MCP") }
+        })'
 }
 
 usage() {
@@ -31,6 +50,7 @@ usage() {
   logs            tail -f лога демона
   attach          подключиться к tmux-сессии демона
   tick            запустить тик прямо сейчас
+  spawn <роль> <номер>       запустить агента фоном, как в проде (spawn implement 175)
   run <роль> <номер>         прогнать один скилл в форграунде (run implement 136)
   run orchestrate            один тик оркестратора, видно всё
 EOF
@@ -110,6 +130,7 @@ case "${1:-}" in
     logs)    touch "$LOG"; tail -f "$LOG" ;;
     attach)  tmux attach -t "$SESSION" ;;
     tick)    curl -sS -X POST "http://127.0.0.1:$(dashboard_port)/api/tick" && echo ;;
+    spawn)   shift; cmd_spawn "$@" ;;
     run)     shift; (cd agents && npx tsx src/run.ts "$@") ;;
     ""|-h|--help) usage ;;
     *)       echo "Неизвестная команда: $1"; echo; usage; exit 2 ;;
