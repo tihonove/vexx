@@ -19,6 +19,10 @@ import {
     EditorStatusContributionDIToken,
 } from "../../workbench/browser/parts/editor/editorStatusContribution.ts";
 import { PanelComponent, PanelComponentDIToken } from "../../workbench/browser/parts/panel/panelComponent.ts";
+import {
+    PanelFocusContribution,
+    PanelFocusContributionDIToken,
+} from "../../workbench/browser/parts/panel/panelFocusContribution.ts";
 import { PanelService, PanelServiceDIToken } from "../../workbench/browser/parts/panel/panelService.ts";
 import {
     QuickInputComponent,
@@ -221,6 +225,7 @@ export const workbenchModule: ContainerModule = (container) => {
     // Problems-дерево и встроенный терминал (сервис инстансов + view-владелец).
     container.bind(PanelServiceDIToken, PanelService);
     container.bind(PanelComponentDIToken, PanelComponent);
+    container.bind(PanelFocusContributionDIToken, PanelFocusContribution);
     container.bind(ProblemsComponentDIToken, ProblemsComponent);
     // Прод-фабрика сессий терминала: реальная связка node-pty + @xterm/headless.
     // Тестовый профиль перебивает биндинг на FakeTerminalSurface (см. TestProfile).
