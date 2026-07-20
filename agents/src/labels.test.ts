@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
-import type { AgentsConfig } from "./config.ts";
+import { type AgentsConfig, DEFAULT_LIMITS, DEFAULT_PORTS } from "./config.ts";
 import { type ExistingLabel, isEmptyLabelPlan, planLabels } from "./labels.ts";
 
 function makeConfig(items: AgentsConfig["labels"]["items"]): AgentsConfig {
     return {
         repo: "tihonove/vexx",
         project: { owner: "tihonove", number: 2 },
+        ports: DEFAULT_PORTS,
+        limits: DEFAULT_LIMITS,
+        dryRun: true,
+        roles: {},
         labels: { prefix: "agent:", items },
         fields: {},
     };

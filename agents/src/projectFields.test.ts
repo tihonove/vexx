@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { AgentsConfig, OptionSpec } from "./config.ts";
+import { type AgentsConfig, DEFAULT_LIMITS, DEFAULT_PORTS, type OptionSpec } from "./config.ts";
 import { UserError } from "./gh.ts";
 import { type ExistingField, isEmptyFieldPlan, planFields } from "./projectFields.ts";
 
@@ -8,6 +8,10 @@ function makeConfig(fields: AgentsConfig["fields"]): AgentsConfig {
     return {
         repo: "tihonove/vexx",
         project: { owner: "tihonove", number: 2 },
+        ports: DEFAULT_PORTS,
+        limits: DEFAULT_LIMITS,
+        dryRun: true,
+        roles: {},
         labels: { prefix: "agent:", items: {} },
         fields,
     };

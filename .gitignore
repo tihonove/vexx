@@ -11,3 +11,6 @@ coverage/coverage-final.json
 
 # Compiled builtin code-extensions (built by scripts/build-extensions.mjs)
 extensions/*/out/
+
+# Агентская машинерия (agents/): журналы, задачи, STOP-флаг
+.agents-runs/

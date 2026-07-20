@@ -32,12 +32,36 @@ export interface FieldSpec {
     options?: OptionSpec[];
 }
 
+export interface Ports {
+    dashboard: number;
+    mcp: number;
+}
+
+export interface Limits {
+    maxConcurrent: number;
+    spawnsPerHour: number;
+    tickIntervalMin: number;
+}
+
+export interface RoleSpec {
+    /** Каталог в `.claude/skills/`; он же имя команды `/<skill>`. */
+    skill: string;
+}
+
 export interface AgentsConfig {
     repo: string;
     project: { owner: string; number: number };
+    ports: Ports;
+    limits: Limits;
+    /** Режим наблюдения: spawn_agent отказывает, остальное работает. */
+    dryRun: boolean;
+    roles: Record<string, RoleSpec>;
     labels: { prefix: string; items: Record<string, LabelSpec> };
     fields: Record<string, FieldSpec>;
 }
+
+export const DEFAULT_PORTS: Ports = { dashboard: 7777, mcp: 7778 };
+export const DEFAULT_LIMITS: Limits = { maxConcurrent: 2, spawnsPerHour: 4, tickIntervalMin: 10 };
 
 export const DEFAULT_CONFIG_PATH = join(dirname(dirname(fileURLToPath(import.meta.url))), "config.jsonc");
 
@@ -83,6 +107,46 @@ export function validateConfig(raw: unknown, source = "config"): AgentsConfig {
     if (typeof owner !== "string" || owner.length === 0) return fail("`project.owner` должен быть непустой строкой");
     if (typeof number !== "number" || !Number.isInteger(number) || number <= 0) {
         return fail("`project.number` должен быть положительным целым");
+    }
+
+    // ports/limits/roles/dryRun — секции демона. Необязательны: `sync` работает и без них,
+    // а у демона есть разумные дефолты.
+    const positiveInt = (value: unknown, path: string, fallback: number): number => {
+        if (value === undefined) return fallback;
+        if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
+            return fail(`\`${path}\` должен быть положительным целым`);
+        }
+        return value;
+    };
+
+    if (raw.ports !== undefined && !isRecord(raw.ports)) return fail("`ports` должен быть объектом");
+    const rawPorts = isRecord(raw.ports) ? raw.ports : {};
+    const ports: Ports = {
+        dashboard: positiveInt(rawPorts.dashboard, "ports.dashboard", DEFAULT_PORTS.dashboard),
+        mcp: positiveInt(rawPorts.mcp, "ports.mcp", DEFAULT_PORTS.mcp),
+    };
+    if (ports.dashboard === ports.mcp) return fail("`ports.dashboard` и `ports.mcp` должны отличаться");
+
+    if (raw.limits !== undefined && !isRecord(raw.limits)) return fail("`limits` должен быть объектом");
+    const rawLimits = isRecord(raw.limits) ? raw.limits : {};
+    const limits: Limits = {
+        maxConcurrent: positiveInt(rawLimits.maxConcurrent, "limits.maxConcurrent", DEFAULT_LIMITS.maxConcurrent),
+        spawnsPerHour: positiveInt(rawLimits.spawnsPerHour, "limits.spawnsPerHour", DEFAULT_LIMITS.spawnsPerHour),
+        tickIntervalMin: positiveInt(rawLimits.tickIntervalMin, "limits.tickIntervalMin", DEFAULT_LIMITS.tickIntervalMin),
+    };
+
+    if (raw.dryRun !== undefined && typeof raw.dryRun !== "boolean") return fail("`dryRun` должен быть boolean");
+    // Отсутствующий dryRun трактуем как true: забыть его — не повод начать спавнить.
+    const dryRun = raw.dryRun === undefined ? true : raw.dryRun;
+
+    if (raw.roles !== undefined && !isRecord(raw.roles)) return fail("`roles` должен быть объектом");
+    const roles: Record<string, RoleSpec> = {};
+    for (const [roleName, value] of Object.entries(isRecord(raw.roles) ? raw.roles : {})) {
+        if (!isRecord(value)) return fail(`роль "${roleName}": ожидался объект`);
+        if (typeof value.skill !== "string" || !/^[a-z0-9][a-z0-9-]*$/.test(value.skill)) {
+            return fail(`роль "${roleName}": skill должен быть именем каталога скилла (a-z, 0-9, дефис)`);
+        }
+        roles[roleName] = { skill: value.skill };
     }
 
     if (!isRecord(raw.labels)) return fail("`labels` должен быть объектом");
@@ -147,6 +211,10 @@ export function validateConfig(raw: unknown, source = "config"): AgentsConfig {
     return {
         repo: raw.repo,
         project: { owner, number },
+        ports,
+        limits,
+        dryRun,
+        roles,
         labels: { prefix, items: labelItems },
         fields,
     };
