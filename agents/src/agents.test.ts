@@ -46,7 +46,7 @@ describe("toAgentInfo", () => {
         const agents = toAgentInfo(
             [session(), session({ kind: "interactive", cwd: "/repo" })],
             1_000_000 + 5 * 60_000,
-            { alive: () => true, idleMin: () => 3 },
+            { alive: () => true, idleMin: () => 3, branch: () => "worktree-issue-136" },
             WORKTREES,
         );
         expect(agents).toHaveLength(1);
@@ -54,7 +54,7 @@ describe("toAgentInfo", () => {
     });
 
     it("переживает отсутствие файла сессии", () => {
-        const agents = toAgentInfo([session()], 1_000_000, { alive: () => false, idleMin: () => null }, WORKTREES);
+        const agents = toAgentInfo([session()], 1_000_000, { alive: () => false, idleMin: () => null, branch: () => null }, WORKTREES);
         expect(agents[0]).toMatchObject({ idleMin: null, alive: false });
     });
 });
@@ -63,7 +63,7 @@ describe("checkLimits", () => {
     const now = new Date("2026-07-20T21:00:00Z");
     const running = (count: number) =>
         Array.from({ length: count }, (_, index) =>
-            toAgentInfo([session({ cwd: `${WORKTREES}/issue-${index}` })], 0, { alive: () => true, idleMin: () => 0 }, WORKTREES)[0]!,
+            toAgentInfo([session({ cwd: `${WORKTREES}/issue-${index}` })], 0, { alive: () => true, idleMin: () => 0, branch: () => null }, WORKTREES)[0]!,
         );
 
     it("пропускает, когда всё в пределах", () => {
