@@ -46,8 +46,10 @@
       "dataType": "SINGLE_SELECT",
       "options": [
         { "name": "Backlog", "color": "GRAY", "description": "Не разобрано" },
-        { "name": "To implement", "color": "GREEN", "description": "Постановка готова" },
-        { "name": "Done", "color": "PURPLE", "description": "Смёржено" }
+        { "name": "To implement", "color": "GREEN", "description": "Постановка готова, можно брать агентом" },
+        // Ставит и снимает сам агент, не оркестратор: только он знает, что реально взялся.
+        { "name": "Implementing", "color": "YELLOW", "description": "Агент в работе" },
+        { "name": "Done", "color": "PURPLE", "description": "PR открыт, ждёт ревью" }
       ]
     }
   }
