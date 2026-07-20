@@ -23,6 +23,7 @@ usage() {
 Использование: ./agents.sh <команда>
 
   start           поднять демон в tmux-сессии "agents" (идемпотентно)
+  start --paused  поднять серверы, но не тикать по расписанию — тики руками
   stop            мягко: поставить STOP — новые задачи не раздаются
   stop --now      жёстко: остановить демон и всех агентов (диалоги агентов сохраняются)
   restart         перезапустить демон (агенты не пострадают)
@@ -53,7 +54,13 @@ cmd_start() {
         return 0
     fi
     [ -d agents/node_modules ] || (cd agents && npm install)
-    rm -f "$STOP"
+    # --paused: поднять только серверы (MCP + витрину), но не тикать по расписанию.
+    # Нужно, когда тики хочется запускать руками и видеть их целиком.
+    if [ "${1:-}" = "--paused" ]; then
+        touch "$STOP"
+    else
+        rm -f "$STOP"
+    fi
     tmux new-session -d -s "$SESSION" -c "$ROOT" \
         "cd '$ROOT/agents' && npx tsx src/daemon.ts 2>&1 | tee -a '$LOG'"
     echo "Демон поднят. Витрина: http://localhost:$(dashboard_port)"
@@ -95,9 +102,9 @@ cmd_status() {
 }
 
 case "${1:-}" in
-    start)   cmd_start ;;
+    start)   shift; cmd_start "$@" ;;
     stop)    shift; cmd_stop "$@" ;;
-    restart) tmux kill-session -t "$SESSION" 2>/dev/null || true; cmd_start ;;
+    restart) shift; tmux kill-session -t "$SESSION" 2>/dev/null || true; cmd_start "$@" ;;
     status)  cmd_status ;;
     logs)    touch "$LOG"; tail -f "$LOG" ;;
     attach)  tmux attach -t "$SESSION" ;;
