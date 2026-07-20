@@ -80,7 +80,7 @@ async function main(argv: string[]): Promise<number> {
                 "--tools",
                 "Bash Read Glob Grep",
                 "--allowedTools",
-                "mcp__agents__list_agents mcp__agents__spawn_agent mcp__agents__stop_agent mcp__agents__agent_log Bash(gh *) Read Glob Grep",
+                "mcp__agents__list_agents mcp__agents__spawn_agent mcp__agents__stop_agent mcp__agents__agent_log Bash(gh *) Bash(node agents/bin/status.mjs*) Read Glob Grep",
             ],
             "orchestrate",
         );
