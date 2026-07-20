@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { checkLimits, digestSessionLines, isManagedSession, type RawSession, toAgentInfo } from "./agents.ts";
+import {
+    type AgentInfo,
+    checkLimits,
+    digestSessionLines,
+    isManagedSession,
+    planReap,
+    type RawSession,
+    toAgentInfo,
+} from "./agents.ts";
 import type { Limits } from "./config.ts";
 import type { HistoryEvent } from "./history.ts";
 
@@ -20,7 +28,7 @@ function session(overrides: Partial<RawSession> = {}): RawSession {
     };
 }
 
-const limits: Limits = { maxConcurrent: 2, spawnsPerHour: 4, tickIntervalMin: 10 };
+const limits: Limits = { maxConcurrent: 2, spawnsPerHour: 4, tickIntervalMin: 10, reapIdleMin: 10, maxAgeMin: 360 };
 
 describe("isManagedSession", () => {
     it("берёт фоновые сессии внутри worktrees", () => {
@@ -115,5 +123,43 @@ describe("digestSessionLines", () => {
         ];
         expect(digestSessionLines(lines, 10)).toEqual(["assistant | tool: Bash — npm test", "assistant | text: Готово"]);
         expect(digestSessionLines(lines, 1)).toEqual(["assistant | text: Готово"]);
+    });
+});
+
+describe("planReap", () => {
+    const agent = (overrides: Partial<AgentInfo> = {}): AgentInfo => ({
+        name: "issue-136",
+        agentId: "abc12345",
+        sessionId: "s",
+        pid: 1,
+        status: "busy",
+        worktree: `${WORKTREES}/issue-136`,
+        branch: "worktree-issue-136",
+        idleMin: 0,
+        alive: true,
+        ageMin: 5,
+        ...overrides,
+    });
+
+    it("не трогает работающего", () => {
+        expect(planReap([agent()], limits)).toHaveLength(0);
+    });
+
+    it("останавливает доработавшего: он сам не завершится и держит слот", () => {
+        const decisions = planReap([agent({ status: "idle", idleMin: 12 })], limits);
+        expect(decisions[0]?.reason).toContain("доработал");
+    });
+
+    it("даёт передышку недавно затихшему — вдруг к нему подключились руками", () => {
+        expect(planReap([agent({ status: "idle", idleMin: 3 })], limits)).toHaveLength(0);
+    });
+
+    it("останавливает застрявшего по возрасту, даже если он занят", () => {
+        const decisions = planReap([agent({ status: "busy", ageMin: 400, idleMin: 1 })], limits);
+        expect(decisions[0]?.reason).toContain("застрял");
+    });
+
+    it("не пытается останавливать мёртвый процесс", () => {
+        expect(planReap([agent({ alive: false, status: "idle", idleMin: 999, ageMin: 999 })], limits)).toHaveLength(0);
     });
 });

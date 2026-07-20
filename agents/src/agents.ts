@@ -196,6 +196,38 @@ export async function spawnAgent(args: { name: string; skill: string; args: stri
     return { refused: false, name: args.name, skill: args.skill, worktree: worktreePath(args.name), prompt };
 }
 
+export interface ReapDecision {
+    name: string;
+    agentId: string;
+    reason: string;
+}
+
+/**
+ * Кого пора останавливать. Чистая функция — на ней жнец и тестируется.
+ *
+ * Зачем он вообще: агент, доделавший работу, **не завершается сам** — `--bg` это фоновая
+ * интерактивная сессия, она переходит в `idle` и держит слот вечно. Оркестратор это тоже
+ * делает, но он может не дойти до шага, запутаться или вовсе не тикать; страховка не должна
+ * зависеть от компонента, который мог сломаться.
+ *
+ * `idleMin` считается по mtime сессионного JSONL, поэтому человек, подключившийся через
+ * `claude attach`, автоматически защищён: его сообщения двигают mtime, и порог не набегает.
+ */
+export function planReap(agents: AgentInfo[], limits: Limits): ReapDecision[] {
+    const decisions: ReapDecision[] = [];
+    for (const agent of agents) {
+        if (!agent.alive) continue; // процесс уже мёртв, останавливать нечего
+        if (agent.ageMin >= limits.maxAgeMin) {
+            decisions.push({ name: agent.name, agentId: agent.agentId, reason: `застрял: живёт ${agent.ageMin} мин` });
+            continue;
+        }
+        if (agent.status === "idle" && agent.idleMin !== null && agent.idleMin >= limits.reapIdleMin) {
+            decisions.push({ name: agent.name, agentId: agent.agentId, reason: `доработал: простой ${agent.idleMin} мин` });
+        }
+    }
+    return decisions;
+}
+
 /**
  * Остановка — штатным `claude stop <id>`, а не SIGTERM: диалог сохраняется, агента можно
  * поднять обратно через `claude attach`. Смерть агента становится штатной операцией.
