@@ -189,7 +189,10 @@ export function skillPrompt(skill: string, args: string): string {
 
 export async function spawnAgent(args: { name: string; skill: string; args: string }): Promise<SpawnResult> {
     const prompt = skillPrompt(args.skill, args.args);
-    await run("claude", ["--worktree", args.name, "--background", "--permission-mode", "acceptEdits", prompt]);
+    // bypassPermissions, потому что спрашивать некого: на любом вопросе фоновый агент
+    // повис бы навсегда, держа слот. Допустимо ровно потому, что он в отдельном worktree.
+    // Форграундный `run` наоборот идёт на acceptEdits — там за него отвечает человек.
+    await run("claude", ["--worktree", args.name, "--background", "--permission-mode", "bypassPermissions", prompt]);
     return { refused: false, name: args.name, skill: args.skill, worktree: worktreePath(args.name), prompt };
 }
 

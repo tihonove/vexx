@@ -13,16 +13,16 @@ import { loadConfig } from "./config.ts";
 import { UserError } from "./gh.ts";
 import { REPO_ROOT } from "./paths.ts";
 
-const USAGE = `Использование: run <роль|orchestrate> [аргументы скилла] [--worktree [имя]]
+const USAGE = `Использование: run <роль|orchestrate> [аргументы скилла] [--worktree <имя>] [--here]
 
   run orchestrate                один тик оркестратора в форграунде
-  run implement 136              прогнать роль здесь же, в текущем рабочем дереве
-  run implement 136 --worktree   как в проде: в отдельном worktree от main
+  run implement 136              как в проде: в отдельном worktree (implement-136)
   run implement 136 --worktree t1  то же, но с явным именем worktree
+  run implement 136 --here       в текущем рабочем дереве — см. предупреждение ниже
 
-По умолчанию отладка идёт БЕЗ отдельного worktree — иначе правки скилла не видны:
-claude --worktree создаёт дерево от main, и незамёрженный .claude/skills/* туда не попадает.
-Взамен агент работает в вашем каталоге, так что держите его на коротком поводке.
+--here нужен только для отладки самого скилла: worktree создаётся от main, поэтому
+незакоммиченный .claude/skills/* агент в нём не увидит. Ценой этого агент работает
+в вашем каталоге и может переключить вам ветку — держите его на коротком поводке.
 `;
 
 function passthrough(args: string[], label: string): Promise<number> {
@@ -39,12 +39,16 @@ function passthrough(args: string[], label: string): Promise<number> {
 
 async function main(argv: string[]): Promise<number> {
     const positional: string[] = [];
-    let isolate = false;
+    // Изоляция по умолчанию: агент не должен трогать рабочий каталог человека.
+    let isolate = true;
     let worktree: string | undefined;
     for (let index = 0; index < argv.length; index++) {
+        if (argv[index] === "--here") {
+            isolate = false;
+            continue;
+        }
         if (argv[index] === "--worktree") {
             isolate = true;
-            // Имя необязательно: без него берём id задачи.
             const next = argv[index + 1];
             if (next && !next.startsWith("-")) {
                 worktree = next;
@@ -97,9 +101,10 @@ async function main(argv: string[]): Promise<number> {
     if (isolate) {
         args.unshift("--worktree", name);
         console.log(`Роль: ${target} · ${prompt} · worktree: ${name}`);
-        console.log("Внимание: worktree создаётся от main — незамёрженные правки скилла агент не увидит.\n");
+        console.log("Worktree отводится от main — незакоммиченные правки скилла агент не увидит.\n");
     } else {
-        console.log(`Роль: ${target} · ${prompt} · здесь же: ${REPO_ROOT}\n`);
+        console.log(`Роль: ${target} · ${prompt} · ЗДЕСЬ ЖЕ: ${REPO_ROOT}`);
+        console.log("Внимание: агент работает в вашем рабочем каталоге и может переключить ветку.\n");
     }
     return passthrough(args, target);
 }
