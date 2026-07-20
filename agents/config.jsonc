@@ -10,21 +10,9 @@
     // даже под --prune.
     "prefix": "agent:",
     "items": {
-      "agent:ready": {
+      "agent:bug": {
         "color": "0e8a16",
         "description": "Постановка готова, задачу можно брать агентом"
-      },
-      "agent:running": {
-        "color": "fbca04",
-        "description": "Агент в работе над задачей"
-      },
-      "agent:review": {
-        "color": "1d76db",
-        "description": "PR открыт, ждёт ревью человека"
-      },
-      "agent:blocked": {
-        "color": "b60205",
-        "description": "Нужно решение человека, агент дальше не идёт"
       }
     }
   },
@@ -37,9 +25,6 @@
       "options": [
         { "name": "Backlog", "color": "GRAY", "description": "Не разобрано" },
         { "name": "To implement", "color": "GREEN", "description": "Постановка готова" },
-        { "name": "In progress", "color": "YELLOW", "description": "Агент в работе" },
-        { "name": "In review", "color": "BLUE", "description": "PR ждёт человека" },
-        { "name": "Blocked", "color": "RED", "description": "Нужно решение человека" },
         { "name": "Done", "color": "PURPLE", "description": "Смёржено" }
       ]
     }
