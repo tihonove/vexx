@@ -36,7 +36,9 @@ export interface TerminalMouseEventData {
 
 export interface ITerminalSurface {
     /**
-     * Прочитать ячейку в переданный `out`.
+     * Прочитать ячейку вьюпорта в переданный `out`. Координата `y` отсчитывается от верха
+     * вьюпорта — с учётом текущего `scrollOffset`, поэтому при заглядывании в скролбэк
+     * виджету ничего пересчитывать не надо.
      * `false` = continuation-ячейка wide-char (голова уже нарисована с width=2) либо
      * координата вне диапазона; в обоих случаях `out` не тронут.
      */
@@ -47,10 +49,35 @@ export interface ITerminalSurface {
 
     readonly isExited: boolean;
 
-    /** Уже закодированные байты в PTY (см. encodeKeyForPty). */
+    /**
+     * Уже закодированные байты в PTY (см. encodeKeyForPty). Ввод возвращает вьюпорт
+     * на дно — печатать, глядя в историю, бессмысленно.
+     */
     write(data: string): void;
 
     sendMouse(event: TerminalMouseEventData): void;
+
+    /**
+     * Включила ли запущенная в шелле программа mouse-tracking (htop/vim/less --mouse).
+     * Пока `true` — колесо принадлежит программе и уходит в `sendMouse`; пока `false` —
+     * колесо обрабатывает виджет сам и крутит вьюпорт по скролбэку (как xterm.js
+     * смотрит на `coreMouseService.areMouseEventsActive`).
+     */
+    readonly mouseEventsActive: boolean;
+
+    /**
+     * На сколько строк вьюпорт поднят в скролбэк. `0` — смотрим на дно, живой вывод.
+     * Пока значение > 0, `getCursor()` отдаёт `null`: курсор шелла живёт на дне, и
+     * показывать его поверх истории нельзя.
+     */
+    readonly scrollOffset: number;
+
+    /**
+     * Прокрутить вьюпорт: `delta < 0` — вверх, в историю, `delta > 0` — вниз, к живому
+     * выводу. Результат клампится в `[0, <длина скролбэка>]`. Если смещение изменилось,
+     * поверхность дёргает `onUpdate` — виджету достаточно обычной подписки.
+     */
+    scrollLines(delta: number): void;
 
     /** Держать PTY+эмулятор по выделенной области; no-op при совпадении. */
     resize(cols: number, rows: number): void;
