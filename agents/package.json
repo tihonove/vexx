@@ -1,0 +1,26 @@
+{
+  "name": "@vexx/agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Агентская машинерия Vexx: декларативный конфиг состояний и его синк с GitHub",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "sync": "tsx src/cli.ts sync",
+    "sync:dry": "tsx src/cli.ts sync --dry-run",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "jsonc-parser": "^3.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8",
+    "vitest": "^4.0.18"
+  }
+}
