@@ -15,11 +15,16 @@ import { UserError } from "./gh.ts";
 import { REPO_ROOT } from "./paths.ts";
 import { readTaskFile, writeTaskFile } from "./task.ts";
 
-const USAGE = `Использование: run <роль|orchestrate> [файл-задачи.json] [--worktree <имя>]
+const USAGE = `Использование: run <роль|orchestrate> [файл-задачи.json] [--worktree [имя]]
 
   run orchestrate                       один тик оркестратора в форграунде
-  run implement task.json               запустить роль implement с этой задачей
-  run implement task.json --worktree t1 имя worktree (по умолчанию — id из задачи)
+  run implement task.json               прогнать роль здесь же, в текущем рабочем дереве
+  run implement task.json --worktree    как в проде: в отдельном worktree от main
+  run implement task.json --worktree t1 то же, но с явным именем
+
+По умолчанию отладка идёт БЕЗ отдельного worktree — иначе правки скилла не видны:
+claude --worktree создаёт дерево от main, и незамёрженный .claude/skills/* туда не попадает.
+Взамен агент работает в вашем каталоге, так что держите его на коротком поводке.
 `;
 
 function passthrough(args: string[], label: string): Promise<number> {
@@ -36,11 +41,17 @@ function passthrough(args: string[], label: string): Promise<number> {
 
 async function main(argv: string[]): Promise<number> {
     const positional: string[] = [];
+    let isolate = false;
     let worktree: string | undefined;
     for (let index = 0; index < argv.length; index++) {
         if (argv[index] === "--worktree") {
-            worktree = argv[++index];
-            if (!worktree) throw new UserError("--worktree требует имя");
+            isolate = true;
+            // Имя необязательно: без него берём id задачи.
+            const next = argv[index + 1];
+            if (next && !next.startsWith("-")) {
+                worktree = next;
+                index++;
+            }
             continue;
         }
         if (argv[index] === "--help" || argv[index] === "-h") throw new UserError(USAGE, 0);
@@ -86,12 +97,19 @@ async function main(argv: string[]): Promise<number> {
     if (!found) throw new UserError(`Файл задачи не найден: ${taskFileArg}`);
     const task = readTaskFile(found);
     const name = worktree ?? task.id;
-    // Перекладываем задачу в свой каталог под именем worktree — как это делает spawn_agent,
+    // Перекладываем задачу в свой каталог под тем же именем, что и spawn_agent,
     // чтобы путь и содержимое совпадали с боевым запуском.
     const taskFile = writeTaskFile({ ...task, id: name });
 
-    console.log(`Роль: ${target} · скилл: /${role.skill} · worktree: ${name}\n`);
-    return passthrough(["--worktree", name, "--permission-mode", "acceptEdits", `/${role.skill} ${taskFile}`], target);
+    const args = ["--permission-mode", "acceptEdits", `/${role.skill} ${taskFile}`];
+    if (isolate) {
+        args.unshift("--worktree", name);
+        console.log(`Роль: ${target} · скилл: /${role.skill} · worktree: ${name}`);
+        console.log("Внимание: worktree создаётся от main — незамёрженные правки скилла агент не увидит.\n");
+    } else {
+        console.log(`Роль: ${target} · скилл: /${role.skill} · здесь же: ${REPO_ROOT}\n`);
+    }
+    return passthrough(args, target);
 }
 
 main(process.argv.slice(2)).then(
