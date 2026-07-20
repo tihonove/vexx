@@ -47,9 +47,11 @@
       "options": [
         { "name": "Backlog", "color": "GRAY", "description": "Не разобрано" },
         { "name": "To implement", "color": "GREEN", "description": "Постановка готова, можно брать агентом" },
-        // Ставит и снимает сам агент, не оркестратор: только он знает, что реально взялся.
-        { "name": "Implementing", "color": "YELLOW", "description": "Агент в работе" },
-        { "name": "Done", "color": "PURPLE", "description": "PR открыт, ждёт ревью" }
+        // Implementing и Ready for review ставит сам агент, не оркестратор:
+        // только он знает, что реально взялся и что реально довёл работу до конца.
+        { "name": "Implementing", "color": "YELLOW", "description": "Агент в работе: пишет код, гоняет CI" },
+        { "name": "Ready for review", "color": "BLUE", "description": "PR открыт и зелёный, ждёт человека" },
+        { "name": "Done", "color": "PURPLE", "description": "Смёржено" }
       ]
     }
   }
