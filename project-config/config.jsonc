@@ -14,6 +14,9 @@
       "dataType": "SINGLE_SELECT",
       "options": [
         { "name": "Backlog", "color": "GRAY", "description": "Не разобрано" },
+        // Analytics и Implementing/Ready for review ставят агенты; из Analytics
+        // в To implement задачу двигает только человек, приняв развёрнутую постановку.
+        { "name": "Analytics", "color": "ORANGE", "description": "Аналитик разворачивает постановку; двигает дальше человек" },
         { "name": "To implement", "color": "GREEN", "description": "Постановка готова, можно брать агентом" },
         // Implementing и Ready for review ставит сам агент, не оркестратор:
         // только он знает, что реально взялся и что реально довёл работу до конца.

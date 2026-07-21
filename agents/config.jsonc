@@ -49,6 +49,20 @@
       "permissionMode": "bypassPermissions"
     },
 
+    // Аналитик. Разворачивает задачу из пары строк в постановку и обсуждает её в
+    // комментариях issue. Долгоживущий (mode: session): держит живой цикл ~30 минут,
+    // отвечая на комментарии оперативно, а уснувшего поднимает оркестратор по новому
+    // комментарию. Кода не пишет — только читает репозиторий и пишет в issue через gh,
+    // поэтому Write в инструментах нет.
+    "analyst": {
+      "skill": "analyst",
+      "mode": "session",
+      "worktree": true,
+      "tools": "Bash Read Glob Grep",
+      "allow": ["Bash(gh *)", "Read", "Glob", "Grep"],
+      "permissionMode": "bypassPermissions"
+    },
+
     // Реализатор.
     //
     // mode: session — живёт в своём окне tmux со стабильным id сессии, поэтому повторный
