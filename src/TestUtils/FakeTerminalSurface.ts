@@ -27,6 +27,11 @@ export interface FakeCellOptions {
  * курсор — `setCursor`, флаг выхода — `isExited`. Все обращения виджета наружу
  * (`write`/`sendMouse`/`resize`) пишутся в публичные массивы для ассертов, а `onUpdate`/
  * `onExit` дёргаются вручную через `emitUpdate`/`emitExit`.
+ *
+ * Прокрутка смоделирована состоянием, а не историей: `scrollbackLines` задаёт потолок
+ * для `scrollLines`, а `scrollOffset` можно проверять напрямую. Сетка — это всегда
+ * вьюпорт как он есть, смещение её не двигает (настоящий сдвиг строк проверяется на
+ * `EmbeddedTerminalSession`).
  */
 export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
     private grid: FakeSlot[][] = [];
@@ -35,6 +40,11 @@ export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
     private readonly exitListeners = new Set<(exitCode: number) => void>();
 
     public isExited = false;
+    /** Включила ли «программа в шелле» mouse-tracking — от этого зависит судьба колеса. */
+    public mouseEventsActive = false;
+    /** Сколько строк истории лежит выше вьюпорта: потолок для `scrollLines`. */
+    public scrollbackLines = 0;
+    public scrollOffset = 0;
     /** Стал ли фейк «убитым» — контроллер обязан звать dispose() при закрытии терминала. */
     public disposed = false;
 
@@ -94,11 +104,17 @@ export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
     }
 
     public getCursor(): { x: number; y: number } | null {
-        return this.cursor;
+        return this.scrollOffset > 0 ? null : this.cursor; // в скролбэке курсор прячем
     }
 
     public write(data: string): void {
         this.writes.push(data);
+        this.setScrollOffset(0); // как настоящая поверхность: ввод возвращает на дно
+    }
+
+    /** Прокрутка вьюпорта: `delta < 0` — вверх, в историю; клампится в [0, scrollbackLines]. */
+    public scrollLines(delta: number): void {
+        this.setScrollOffset(this.scrollOffset - delta);
     }
 
     public sendMouse(event: TerminalMouseEventData): void {
@@ -122,6 +138,13 @@ export class FakeTerminalSurface implements ITerminalSurface, IDisposable {
     /** Помечает фейк убитым (в реале — kill PTY + dispose эмулятора). */
     public dispose(): void {
         this.disposed = true;
+    }
+
+    private setScrollOffset(value: number): void {
+        const next = Math.max(0, Math.min(value, this.scrollbackLines));
+        if (next === this.scrollOffset) return;
+        this.scrollOffset = next;
+        this.emitUpdate();
     }
 
     private ensureRow(y: number): FakeSlot[] {

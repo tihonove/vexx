@@ -6,7 +6,9 @@
 // поэтому TUIDom остаётся чистым (без импортов @xterm/headless и node-pty).
 // Размером PTY управляет по реально выделенному месту (`performLayout` → `surface.resize`),
 // поэтому ресайз окна автоматически рефлоует шелл. Ввод пробрасывает в surface через
-// `encodeKeyForPty`. См. docs/TODO/IntegratedTerminal.md.
+// `encodeKeyForPty`. Колесо и Shift+PageUp/PageDown крутят вьюпорт по скролбэку
+// (`surface.scrollLines`), пока программа в шелле не включила свой mouse-tracking —
+// тогда колесо целиком её. См. docs/TODO/IntegratedTerminal.md.
 
 import { DEFAULT_COLOR } from "../../common/colorUtils.ts";
 import type { IDisposable } from "../../common/disposable.ts";
@@ -34,6 +36,11 @@ const WHEEL_ACTION: Record<WheelDirection, TerminalMouseAction> = {
     left: "wheelLeft",
     right: "wheelRight",
 };
+
+// Локальная прокрутка вьюпорта колесом: строк на «щелчок» и знак направления.
+// Горизонтальные направления дают 0 — скролбэк одномерный, крутить вбок нечего.
+const WHEEL_SCROLL_LINES = 3;
+const WHEEL_SCROLL_SIGN: Record<WheelDirection, number> = { up: -1, down: 1, left: 0, right: 0 };
 
 export interface ITerminalViewStyles {
     /** Заменяет DEFAULT_COLOR-fg ячеек при блите (цвет текста темы). */
@@ -97,8 +104,18 @@ export class TerminalViewElement extends TUIElement {
         this.addEventListener("wheel", (event) => {
             const mouse = event;
             // Колесо без направления (бэкенд его не распознал) трактуем как прокрутку вверх.
-            const action = WHEEL_ACTION[mouse.wheelDirection ?? "up"];
-            this.sendMouse(mouse, "wheel", action);
+            const direction = mouse.wheelDirection ?? "up";
+            // Программа включила mouse-tracking (htop/vim/less --mouse) — колесо её,
+            // отдаём отчёт как есть. Обычный шелл mouse-режимов не включает, и тогда
+            // колесо наше: крутим вьюпорт по скролбэку (как xterm.js/VS Code).
+            if (this.surface.mouseEventsActive) {
+                this.sendMouse(mouse, "wheel", WHEEL_ACTION[direction]);
+                return;
+            }
+            const sign = WHEEL_SCROLL_SIGN[direction];
+            if (sign === 0) return;
+            mouse.preventDefault();
+            this.surface.scrollLines(sign * WHEEL_SCROLL_LINES);
         });
     }
 
@@ -177,7 +194,16 @@ export class TerminalViewElement extends TUIElement {
             return;
         }
         if (event.type === "keydown") {
-            const bytes = encodeKeyForPty(event as TUIKeyboardEvent);
+            const key = event as TUIKeyboardEvent;
+            // Shift+PageUp/PageDown — клавиатурный аналог колеса: листаем скролбэк
+            // страницами, в PTY эти сочетания не уходят.
+            if (key.shiftKey && (key.key === "PageUp" || key.key === "PageDown")) {
+                event.preventDefault();
+                const page = Math.max(1, this.layoutSize.height - 1);
+                this.surface.scrollLines(key.key === "PageUp" ? -page : page);
+                return;
+            }
+            const bytes = encodeKeyForPty(key);
             if (bytes !== "") {
                 event.preventDefault();
                 this.surface.write(bytes);

@@ -144,6 +144,18 @@ describe("TerminalViewElement — cursor", () => {
         expect(app.backend.cursorPosition).toBeNull();
     });
 
+    it("does not set the cursor while the viewport looks into the scrollback", () => {
+        // Курсор шелла живёт на дне — над историей его показывать нельзя, и поверхность
+        // сама отдаёт null, пока смещение > 0.
+        const surface = new FakeTerminalSurface();
+        surface.setCursor({ x: 3, y: 1 });
+        surface.scrollbackLines = 10;
+        surface.scrollLines(-4);
+        const { app } = focusedApp(surface);
+
+        expect(app.backend.cursorPosition).toBeNull();
+    });
+
     it("does not set the cursor when getCursor returns null", () => {
         const surface = new FakeTerminalSurface();
         surface.setCursor(null);
