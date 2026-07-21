@@ -30,7 +30,6 @@
         "mcp__agents__stop_agent",
         "mcp__agents__agent_log",
         "Bash(gh *)",
-        "Bash(node project-config/bin/status.mjs*)",
         "Read",
         "Write",
         "Glob",

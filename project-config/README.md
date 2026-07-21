@@ -33,16 +33,12 @@ npx tsx src/cli.ts sync --prune --yes   # считать конфиг полны
 Порядок опций в конфиге = порядок колонок на доске. Цвет — enum, не hex:
 `GRAY | BLUE | GREEN | YELLOW | ORANGE | RED | PINK | PURPLE`.
 
-## `bin/status.mjs`
+## Агенты сюда не ходят
 
-Инструмент доски для агентов — читать и менять состояние задачи:
+Двигать задачи по доске — работа агентов, и делают они это обычным `gh`
+(`gh project item-list` / `item-edit`), как это делал бы человек. Здесь когда-то жила
+обёртка `bin/status.mjs`, и это была ошибка: агент должен быть максимально похож на
+разработчика за клавиатурой, а не управлять самодельным CLI. Рецепты — в
+`.claude/skills/*/SKILL.md`.
 
-```sh
-node project-config/bin/status.mjs get 175
-node project-config/bin/status.mjs set 175 Implementing
-node project-config/bin/status.mjs list "To implement" --json
-```
-
-Он **без зависимостей** и запускается голым `node`: агенты работают в свежих worktree,
-где `node_modules` нет и ставить их ради одной команды незачем. Поэтому же JSONC он чистит
-грубо, регуляркой, а не парсером.
+Этот пакет — только про описание доски как кода и его применение человеком.
