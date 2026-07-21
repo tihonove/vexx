@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Рубильник агентской машинерии. Всё поднимается и тушится отсюда.
 #
-# Демон живёт в tmux-сессии, потому что cron и systemd в devcontainer недоступны,
+# Сервер живёт в tmux-сессии, потому что cron и systemd в devcontainer недоступны,
 # а tmux заодно даёт возможность подключиться и посмотреть живьём.
 set -euo pipefail
 
@@ -18,41 +18,29 @@ config_port() {
     (cd agents && node -e "const{parse}=require('jsonc-parser');const fs=require('fs');process.stdout.write(String(parse(fs.readFileSync('config.jsonc','utf8')).ports?.$1??$2))") 2>/dev/null || echo "$2"
 }
 dashboard_port() { config_port dashboard 7777; }
-mcp_port() { config_port mcp 7778; }
-
-# Фоновый запуск агента — через тот же MCP-инструмент, которым пользуется оркестратор.
-# Не в обход: тогда бы потолки и журнал обошлись вместе с ним.
-cmd_spawn() {
-    local role="${1:-}" args="${2:-}"
-    [ -n "$role" ] && [ -n "$args" ] || { echo "Использование: ./agents.sh spawn <роль> <аргументы>"; exit 2; }
-    tmux has-session -t "$SESSION" 2>/dev/null || { echo "Демон не поднят: ./agents.sh start --paused"; exit 1; }
-
-    local name="${3:-issue-$args}"
-    curl -sS -H content-type:application/json -H accept:application/json,text/event-stream \
-        -X POST "http://127.0.0.1:$(mcp_port)/mcp" \
-        -d "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"name\":\"spawn_agent\",\"arguments\":{\"name\":\"$name\",\"role\":\"$role\",\"args\":\"$args\"}}}" |
-        sed -n 's/^data: //p' |
-        node -e 'let r="";process.stdin.on("data",c=>r+=c).on("end",()=>{
-            try { console.log(JSON.parse(r).result.content[0].text) } catch { console.log(r || "нет ответа от MCP") }
-        })'
-}
 
 usage() {
     cat <<'EOF'
 Использование: ./agents.sh <команда>
 
-  start           поднять демон в tmux-сессии "agents" (идемпотентно)
-  start --paused  поднять серверы, но не тикать по расписанию — тики руками
-  stop            мягко: поставить STOP — новые задачи не раздаются
-  stop --now      жёстко: остановить демон и всех агентов (диалоги агентов сохраняются)
-  restart         перезапустить демон (агенты не пострадают)
-  status          состояние демона и агентов
-  logs            tail -f лога демона
-  attach          подключиться к tmux-сессии демона
-  tick            запустить тик прямо сейчас
-  spawn <роль> <номер>       запустить агента фоном, как в проде (spawn implement 175)
-  run <роль> <номер>         прогнать один скилл в форграунде (run implement 136)
-  run orchestrate            один тик оркестратора, видно всё
+  start           поднять сервер в tmux-сессии "agents" (идемпотентно)
+  start --paused  поднять сервер, но не запускать роли по расписанию
+  stop            мягко: поставить STOP — по расписанию ничего не запускается
+  stop --now      жёстко: остановить сервер и всех агентов (разговоры сохраняются)
+  restart         перезапустить сервер (агенты не пострадают)
+  status          состояние сервера и агентов
+  logs            tail -f лога сервера
+  attach          подключиться к tmux-сессии сервера
+
+  run <роль> [аргумент]     форграунд, живой диалог — отладка скилла руками
+  spawn <роль> [аргумент]   фоном, как по расписанию
+  wake <роль> <аргумент>    синоним spawn: тот же ключ → продолжение той же сессии
+  list                      живые агенты
+  stop-agent <ключ>         остановить одного агента
+  tick                      запустить роль orchestrate прямо сейчас
+
+Повторный запуск с тем же аргументом НЕ создаёт нового агента, а продолжает
+разговор с прежним — так его и зовут обратно после ревью.
 EOF
 }
 
@@ -71,20 +59,20 @@ managed_agent_ids() {
 
 cmd_start() {
     if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "Демон уже поднят (tmux: $SESSION). Два тикера = двойные спавны, так что ничего не делаю."
+        echo "Сервер уже поднят (tmux: $SESSION). Два планировщика = двойные запуски, так что ничего не делаю."
         return 0
     fi
     [ -d agents/node_modules ] || (cd agents && npm install)
-    # --paused: поднять только серверы (MCP + витрину), но не тикать по расписанию.
-    # Нужно, когда тики хочется запускать руками и видеть их целиком.
+    # --paused: поднять серверы (MCP + витрину), но не запускать роли по расписанию.
+    # Нужно, когда запуски хочется делать руками и видеть их целиком.
     if [ "${1:-}" = "--paused" ]; then
         touch "$STOP"
     else
         rm -f "$STOP"
     fi
     tmux new-session -d -s "$SESSION" -c "$ROOT" \
-        "cd '$ROOT/agents' && npx tsx src/daemon.ts 2>&1 | tee -a '$LOG'"
-    echo "Демон поднят. Витрина: http://localhost:$(dashboard_port)"
+        "cd '$ROOT/agents' && npx tsx src/server.ts 2>&1 | tee -a '$LOG'"
+    echo "Сервер поднят. Витрина: http://localhost:$(dashboard_port)"
 }
 
 cmd_stop() {
@@ -94,32 +82,41 @@ cmd_stop() {
             claude stop "$id" || true
         done
         tmux kill-session -t "$SESSION" 2>/dev/null || true
-        echo "Демон и агенты остановлены."
+        echo "Сервер и агенты остановлены."
         return 0
     fi
     touch "$STOP"
-    echo "STOP поставлен: демон дорабатывает текущий тик и больше не раздаёт задачи."
+    echo "STOP поставлен: по расписанию ничего не запускается."
     echo "Снять — ./agents.sh start, или кнопкой на витрине."
 }
 
 cmd_status() {
     if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "демон: работает (tmux: $SESSION)"
+        echo "сервер: работает (tmux: $SESSION)"
     else
-        echo "демон: не запущен"
+        echo "сервер: не запущен"
     fi
-    [ -f "$STOP" ] && echo "режим: STOP" || echo "режим: раздаёт задачи"
+    [ -f "$STOP" ] && echo "режим: STOP" || echo "режим: работает по расписанию"
     echo
     curl -s "http://127.0.0.1:$(dashboard_port)/api/state" | node -e '
         let raw = ""; process.stdin.on("data", c => raw += c).on("end", () => {
             if (!raw) { console.log("витрина не отвечает"); return; }
             const s = JSON.parse(raw);
-            console.log(`dry-run: ${s.dryRun} · тик идёт: ${s.ticking} · последний: ${s.lastTickAt ?? "—"}`);
+            console.log("роли: " + s.roles.map(r => r.name + (r.everyMin ? ` (раз в ${r.everyMin}м)` : "")).join(", "));
+            if (s.running.length) console.log("сейчас выполняются: " + s.running.join(", "));
             if (!s.agents.length) { console.log("агентов нет"); return; }
             for (const a of s.agents)
-                console.log(`  ${a.name}  ${a.status}${a.state ? "/" + a.state : ""}  idle ${a.idleMin ?? "—"}м  ${a.alive ? "" : "МЁРТВ"}`);
+                console.log(`  ${a.key}  ${a.status}${a.state ? "/" + a.state : ""}  idle ${a.idleMin ?? "—"}м  ${a.alive ? "" : "МЁРТВ"}`);
         });
     ' || true
+}
+
+# Запуск роли немедленно — через витрину, чтобы он прошёл тем же путём, что и по расписанию
+# (и попал в журнал с trigger: dashboard). Сервер не поднят — говорим прямо.
+cmd_tick() {
+    local role="${1:-orchestrate}"
+    tmux has-session -t "$SESSION" 2>/dev/null || { echo "Сервер не поднят: ./agents.sh start --paused"; exit 1; }
+    curl -sS -X POST "http://127.0.0.1:$(dashboard_port)/api/run?role=$role" && echo
 }
 
 case "${1:-}" in
@@ -129,9 +126,8 @@ case "${1:-}" in
     status)  cmd_status ;;
     logs)    touch "$LOG"; tail -f "$LOG" ;;
     attach)  tmux attach -t "$SESSION" ;;
-    tick)    curl -sS -X POST "http://127.0.0.1:$(dashboard_port)/api/tick" && echo ;;
-    spawn)   shift; cmd_spawn "$@" ;;
-    run)     shift; (cd agents && npx tsx src/run.ts "$@") ;;
+    tick)    shift; cmd_tick "$@" ;;
+    run|spawn|wake|list|stop-agent) (cd agents && npx tsx src/cli.ts "$@") ;;
     ""|-h|--help) usage ;;
     *)       echo "Неизвестная команда: $1"; echo; usage; exit 2 ;;
 esac

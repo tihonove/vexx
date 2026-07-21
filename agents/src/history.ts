@@ -1,40 +1,46 @@
-// Журнал оркестрации: append-only JSONL.
+// Журнал запусков: append-only JSONL.
 //
-// Здесь живут ФАКТЫ — спавн, отказ по лимиту, kill, начало и конец тика. Суждения
-// оркестратора («даю до 20:00 на флейк») сюда не пишутся: им место в комментарии issue,
-// иначе о них узнает только этот файл, а не человек и не следующий тик.
+// Пишется ровно в одном месте — в launch.ts, через который проходит любой запуск агента.
+// Поэтому мимо журнала запустить никого нельзя, и на вопрос «когда и кто дёрнул эту роль»
+// он отвечает всегда: за это отвечают поля trigger (откуда пришёл запуск) и by (кто дёрнул).
 //
-// Журнал же — единственный источник счётчика спавнов за час: демон не держит его в памяти,
-// поэтому его перезапуск не обнуляет rate limit.
+// Полная командная строка пишется намеренно: любой запуск можно скопировать отсюда
+// и повторить руками.
 import { appendFileSync, mkdirSync, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 
 import { HISTORY_FILE } from "./paths.ts";
 
+/** Откуда пришёл запрос на запуск. */
+export type Trigger = "schedule" | "mcp" | "cli" | "dashboard";
+
+/** Что случилось с сессией: завели новую или продолжили прежнюю. */
+export type SessionAction = "create" | "resume" | "fresh";
+
 export type HistoryEvent =
-    | { at: string; kind: "tick-start"; trigger: "schedule" | "manual" }
-    | { at: string; kind: "tick-end"; ok: boolean; summary: string; durationMs: number }
-    | { at: string; kind: "spawn"; name: string; skill: string; agentId?: string }
-    | { at: string; kind: "spawn-refused"; name: string; skill: string; reason: string }
-    | { at: string; kind: "kill"; name: string; agentId: string }
-    | { at: string; kind: "error"; message: string };
+    | {
+          at: string;
+          kind: "launch";
+          role: string;
+          arg: string;
+          key: string;
+          session: SessionAction;
+          trigger: Trigger;
+          by: string;
+          cwd: string;
+          base?: string;
+          cmd: string;
+      }
+    | { at: string; kind: "finish"; key: string; ok: boolean; durationMs: number; summary: string }
+    | { at: string; kind: "stop"; key: string; agentId: string; by: string }
+    | { at: string; kind: "error"; message: string; key?: string };
 
 export function append(event: HistoryEvent, file = HISTORY_FILE): void {
     mkdirSync(dirname(file), { recursive: true });
     appendFileSync(file, `${JSON.stringify(event)}\n`, "utf8");
 }
 
-export function readAll(file = HISTORY_FILE): HistoryEvent[] {
-    let text: string;
-    try {
-        text = readFileSync(file, "utf8");
-    } catch {
-        return [];
-    }
-    return parseLines(text);
-}
-
-/** Битую строку пропускаем молча: журнал — диагностика, он не должен ронять демон. */
+/** Битую строку пропускаем молча: журнал — диагностика, он не должен ронять сервер. */
 export function parseLines(text: string): HistoryEvent[] {
     const events: HistoryEvent[] = [];
     for (const line of text.split("\n")) {
@@ -48,9 +54,12 @@ export function parseLines(text: string): HistoryEvent[] {
     return events;
 }
 
-/** Чистая функция — на ней и тестируется rate limit. */
-export function countSpawnsSince(events: HistoryEvent[], since: Date): number {
-    return events.filter(event => event.kind === "spawn" && Date.parse(event.at) >= since.getTime()).length;
+export function readAll(file = HISTORY_FILE): HistoryEvent[] {
+    try {
+        return parseLines(readFileSync(file, "utf8"));
+    } catch {
+        return [];
+    }
 }
 
 export function tail(count: number, file = HISTORY_FILE): HistoryEvent[] {

@@ -8,17 +8,14 @@ import { fileURLToPath } from "node:url";
 export const REPO_ROOT = resolve(dirname(dirname(dirname(fileURLToPath(import.meta.url)))));
 
 export const RUNS_DIR = join(REPO_ROOT, ".agents-runs");
-export const TASKS_DIR = join(RUNS_DIR, "tasks");
 export const HISTORY_FILE = join(RUNS_DIR, "history.jsonl");
 export const STOP_FILE = join(RUNS_DIR, "STOP");
+/** Заметки агентов между запусками: файлы пишут они сами, машинерия сюда не лезет. */
+export const STATE_DIR = join(RUNS_DIR, "state");
 export const WORKTREES_DIR = join(REPO_ROOT, ".claude", "worktrees");
 
-export function worktreePath(name: string): string {
-    return join(WORKTREES_DIR, name);
-}
-
-export function taskPath(name: string): string {
-    return join(TASKS_DIR, `${name}.json`);
+export function worktreePath(key: string): string {
+    return join(WORKTREES_DIR, key);
 }
 
 /**
@@ -32,10 +29,14 @@ export function encodeProjectDir(cwd: string): string {
 }
 
 /**
- * Файл сессии лежит в ~/.claude/projects/<закодированный cwd>/<sessionId>.jsonl.
- * Это недокументированная деталь раскладки, но она — единственный источник «когда агент
- * последний раз дышал», и получается бесплатно, без инструментирования.
+ * Каталог сессий рабочей директории: ~/.claude/projects/<закодированный cwd>/.
+ * Недокументированная деталь раскладки, но на ней держатся две вещи, которые иначе
+ * пришлось бы хранить самим: «когда агент последний раз дышал» и «какая у него сессия».
  */
+export function sessionDir(cwd: string): string {
+    return join(homedir(), ".claude", "projects", encodeProjectDir(cwd));
+}
+
 export function sessionFile(cwd: string, sessionId: string): string {
-    return join(homedir(), ".claude", "projects", encodeProjectDir(cwd), `${sessionId}.jsonl`);
+    return join(sessionDir(cwd), `${sessionId}.jsonl`);
 }

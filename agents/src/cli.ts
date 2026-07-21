@@ -1,165 +1,79 @@
-// Точка входа машинерии. Пока одна команда — sync.
-import { DEFAULT_CONFIG_PATH, loadConfig } from "./config.ts";
-import { assertProjectScope, GhError, UserError } from "./gh.ts";
-import { applyLabels, isEmptyLabelPlan, type LabelPlan, planLabels, readLabels } from "./labels.ts";
-import { applyFields, type FieldPlan, isEmptyFieldPlan, planFields, readProject } from "./projectFields.ts";
+// Ручной запуск ролей — тем же кодом, что и в проде.
+//
+// Отладка скилла в одиночку: `run` показывает диалог целиком, `spawn` уводит агента в фон.
+// Разницы в сборке команды нет — она вся описана ролью, поэтому отлаживается ровно то,
+// что потом поедет по расписанию.
+import { ConfigError, loadConfig } from "./config.ts";
+import { launch, LaunchError } from "./launch.ts";
+import { listAgents, stopAgent } from "./inspect.ts";
+import { append } from "./history.ts";
 
-const USAGE = `Использование: sync [флаги]
+const USAGE = `Использование: agents.sh <команда>
 
-  --dry-run        показать план и выйти, ничего не меняя
-  --prune          считать конфиг полным владельцем: удалять лишние
-                   лейблы с префиксом из конфига и лишние опции полей
-  --yes            подтвердить удаление (обязателен вместе с --prune)
-  --labels-only    синкать только лейблы репозитория
-  --project-only   синкать только поля проекта
-  --config <путь>  путь к config.jsonc (по умолчанию ${DEFAULT_CONFIG_PATH})
+  run <роль> [аргумент]     форграунд, живой диалог — отладка скилла руками
+  spawn <роль> [аргумент]   фоном, как по расписанию
+  wake <роль> <аргумент>    синоним spawn: тот же ключ → продолжение той же сессии
+  list                      живые агенты
+  stop-agent <ключ>         остановить агента
 `;
 
-interface Flags {
-    dryRun: boolean;
-    prune: boolean;
-    yes: boolean;
-    labelsOnly: boolean;
-    projectOnly: boolean;
-    config: string;
-}
-
-function parseArgs(argv: string[]): Flags {
-    const flags: Flags = {
-        dryRun: false,
-        prune: false,
-        yes: false,
-        labelsOnly: false,
-        projectOnly: false,
-        config: DEFAULT_CONFIG_PATH,
-    };
-    for (let index = 0; index < argv.length; index++) {
-        const arg = argv[index];
-        switch (arg) {
-            case "sync":
-                break;
-            case "--dry-run":
-                flags.dryRun = true;
-                break;
-            case "--prune":
-                flags.prune = true;
-                break;
-            case "--yes":
-                flags.yes = true;
-                break;
-            case "--labels-only":
-                flags.labelsOnly = true;
-                break;
-            case "--project-only":
-                flags.projectOnly = true;
-                break;
-            case "--config": {
-                const value = argv[++index];
-                if (!value) throw new UserError("--config требует путь");
-                flags.config = value;
-                break;
-            }
-            case "--help":
-            case "-h":
-                throw new UserError(USAGE, 0);
-            default:
-                throw new UserError(`Неизвестный аргумент: ${arg}\n\n${USAGE}`);
-        }
-    }
-    if (flags.labelsOnly && flags.projectOnly) throw new UserError("--labels-only и --project-only взаимоисключающие");
-    return flags;
-}
-
-function printLabelPlan(plan: LabelPlan): void {
-    if (isEmptyLabelPlan(plan)) {
-        console.log("Лейблы: без изменений");
-        return;
-    }
-    console.log("Лейблы:");
-    for (const { name, spec } of plan.create) console.log(`  + ${name}  #${spec.color}  ${spec.description}`);
-    for (const { name, from, spec } of plan.update) {
-        const diff: string[] = [];
-        if (from.color !== spec.color) diff.push(`цвет #${from.color} → #${spec.color}`);
-        if (from.description !== spec.description) diff.push(`описание "${from.description}" → "${spec.description}"`);
-        console.log(`  ~ ${name}  ${diff.join(", ") || "переименование"}`);
-    }
-    for (const name of plan.delete) console.log(`  - ${name}`);
-}
-
-function printFieldPlan(plan: FieldPlan): void {
-    if (isEmptyFieldPlan(plan)) {
-        console.log("Поля проекта: без изменений");
-        return;
-    }
-    console.log("Поля проекта:");
-    for (const action of plan.actions) {
-        if (action.kind === "create") {
-            console.log(`  + ${action.field} (${action.dataType})`);
-            for (const option of action.options) console.log(`      + ${option.name}  ${option.color}`);
-            continue;
-        }
-        console.log(`  ~ ${action.field}`);
-        for (const name of action.added) console.log(`      + ${name}`);
-        for (const name of action.changed) console.log(`      ~ ${name}`);
-        for (const name of action.removed) console.log(`      - ${name}  (значение обнулится у карточек)`);
-        if (action.reordered) console.log("      ~ порядок колонок");
-    }
-}
-
 async function main(argv: string[]): Promise<number> {
-    const flags = parseArgs(argv);
-    const config = loadConfig(flags.config);
+    const [command, role, ...rest] = argv;
+    const arg = rest.join(" ").trim();
 
-    const syncLabels = !flags.projectOnly;
-    const syncProject = !flags.labelsOnly;
-
-    if (syncProject) await assertProjectScope();
-
-    let labelPlan: LabelPlan = { create: [], update: [], delete: [] };
-    if (syncLabels) {
-        labelPlan = planLabels(await readLabels(config.repo), config, { prune: flags.prune });
-        printLabelPlan(labelPlan);
-    }
-
-    let fieldPlan: FieldPlan = { actions: [] };
-    let projectId = "";
-    if (syncProject) {
-        const project = await readProject(config.project.owner, config.project.number);
-        projectId = project.id;
-        fieldPlan = planFields(project.fields, config, { prune: flags.prune });
-        printFieldPlan(fieldPlan);
-    }
-
-    const deletions =
-        labelPlan.delete.length + fieldPlan.actions.reduce((sum, a) => sum + (a.kind === "update-options" ? a.removed.length : 0), 0);
-
-    if (flags.dryRun) {
-        console.log("\n--dry-run: ничего не применено");
+    if (command === "list") {
+        const agents = await listAgents();
+        if (agents.length === 0) {
+            console.log("Живых агентов нет");
+            return 0;
+        }
+        for (const agent of agents) {
+            const idle = agent.idleMin === null ? "—" : `${agent.idleMin}м`;
+            console.log(
+                `${agent.key}  ${agent.status}${agent.state ? `/${agent.state}` : ""}  idle ${idle}  ` +
+                    `возраст ${agent.ageMin}м  ${agent.alive ? "" : "МЁРТВ  "}${agent.branch ?? "—"}`,
+            );
+        }
         return 0;
     }
-    if (deletions > 0 && !flags.yes) {
-        // Удаление опции обнуляет её у карточек — это не должно случаться от опечатки.
-        throw new UserError(`План содержит ${deletions} удалени(й). Добавьте --yes, если это намеренно.`);
+
+    if (command === "stop-agent") {
+        if (!role) throw new LaunchError(`stop-agent требует ключ агента.\n\n${USAGE}`);
+        const agent = (await listAgents()).find(candidate => candidate.key === role);
+        if (!agent) throw new LaunchError(`Агента "${role}" среди живых нет`);
+        await stopAgent(agent.agentId);
+        append({ at: new Date().toISOString(), kind: "stop", key: role, agentId: agent.agentId, by: "human" });
+        console.log(`Остановлен ${role}`);
+        return 0;
     }
 
-    if (syncLabels) await applyLabels(config.repo, labelPlan);
-    if (syncProject) await applyFields(projectId, fieldPlan);
+    if (command !== "run" && command !== "spawn" && command !== "wake") {
+        console.error(USAGE);
+        return 2;
+    }
+    if (!role) throw new LaunchError(`${command} требует имя роли.\n\n${USAGE}`);
 
-    const fieldSummary = fieldPlan.actions.length === 0 ? "без изменений" : `${fieldPlan.actions.length} действ.`;
-    console.log(
-        `\nГотово. лейблы: +${labelPlan.create.length} ~${labelPlan.update.length} -${labelPlan.delete.length} | поля: ${fieldSummary}`,
-    );
-    return 0;
+    const config = loadConfig();
+    const result = await launch(config, { role, arg, trigger: "cli", by: "human", inherit: command === "run" });
+
+    if (command === "run") return result.ok ? 0 : 1;
+
+    const how =
+        result.session === "resume"
+            ? "продолжена прежняя сессия — агент помнит разговор"
+            : result.session === "create"
+              ? "заведена новая сессия"
+              : "разовый запуск без памяти";
+    console.log(`${result.key}: ${how}`);
+    console.log(`worktree: ${result.cwd}${result.base ? `\nbase: ${result.base}` : ""}`);
+    if (result.summary) console.log(result.summary);
+    return result.ok ? 0 : 1;
 }
 
 main(process.argv.slice(2)).then(
     code => process.exit(code),
     (error: unknown) => {
-        if (error instanceof UserError) {
-            console.error(error.message);
-            process.exit(error.exitCode);
-        }
-        if (error instanceof GhError) {
+        if (error instanceof LaunchError || error instanceof ConfigError) {
             console.error(error.message);
             process.exit(1);
         }

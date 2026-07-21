@@ -1,60 +1,54 @@
-// Единственный источник правды по настройкам агентской машинерии.
-// Состояния (лейблы/колонки) применяются командой `npm run sync`;
-// секции ports/limits/roles/dryRun читает демон — на каждом тике заново,
-// так что правки подхватываются без рестарта (кроме смены портов).
+// Роли агентов. Конфиг описывает ТОЛЬКО запуск: как собрать команду claude.
+// Доска и её состояния живут в project-config/config.jsonc — это другой пакет.
+//
+// Перечитывается перед каждым запуском, так что правки ролей подхватываются
+// без рестарта сервера. Рестарт нужен только при смене портов.
+//
+// Лимитов здесь НЕТ намеренно: все ограничения описаны прозой в скиллах.
+// Роль = строчка здесь + каталог в .claude/skills/. Больше ничего добавлять не нужно.
 {
-  "repo": "tihonove/vexx",
-  "project": { "owner": "tihonove", "number": 2 },
-
-  // Витрина публикуется наружу через appPort; MCP — только для claude внутри контейнера.
+  // Витрина публикуется наружу; MCP — только для claude внутри контейнера.
   "ports": { "dashboard": 7777, "mcp": 7778 },
 
-  // Потолки живут здесь, а не в прозе скилла: инструкцию модель себе уговорит,
-  // отказ от spawn_agent — нет.
-  "limits": {
-    "maxConcurrent": 2,
-    "spawnsPerHour": 4,
-    "tickIntervalMin": 10
-  },
-
-  // Режим наблюдения: spawn_agent отказывает, всё остальное работает.
-  // Выключен: оркестратор агентов не запускает, спавн бывает только руками
-  // через `./agents.sh spawn`, так что автоматом никто не появится.
-  "dryRun": false,
-
-  // Роли агентов. Ключ — имя роли, skill — каталог в .claude/skills/.
-  // Новая роль = новый скилл + строчка здесь.
   "roles": {
-    "implement": { "skill": "implement" }
-  },
+    // Оркестратор. Работает в основном репозитории и только читает его.
+    // resume не задан → каждый запуск начинается с чистого листа. Это НАМЕРЕННО:
+    // постоянная сессия копила бы контекст и уходила в компакт, давая частичную
+    // память — она хуже, чем никакой, потому что ей начинаешь верить.
+    "orchestrate": {
+      "skill": "orchestrate",
+      "worktree": false,
+      "background": false,
+      "everyMin": 10,
+      // --tools сужает набор встроенных инструментов; --allowedTools лишь раздаёт
+      // разрешения и сам по себе ничего не запрещает.
+      "tools": "Bash Read Write Glob Grep",
+      "allow": [
+        "mcp__agents__list_agents",
+        "mcp__agents__spawn_agent",
+        "mcp__agents__stop_agent",
+        "mcp__agents__agent_log",
+        "Bash(gh *)",
+        "Bash(node project-config/bin/status.mjs*)",
+        "Read",
+        "Write",
+        "Glob",
+        "Grep"
+      ],
+      "permissionMode": "acceptEdits"
+    },
 
-  "labels": {
-    // Юрисдикция синка: он владеет только лейблами с этим префиксом.
-    // Всё остальное (bug, tech-debt, claude, …) не трогается никогда,
-    // даже под --prune.
-    "prefix": "agent:",
-    "items": {
-      "agent:bug": {
-        "color": "0e8a16",
-        "description": "Постановка готова, задачу можно брать агентом"
-      }
-    }
-  },
-
-  // Поля проекта. Порядок опций single-select = порядок колонок на доске.
-  // Цвет опции — enum, не hex: GRAY | BLUE | GREEN | YELLOW | ORANGE | RED | PINK | PURPLE.
-  "fields": {
-    "Status": {
-      "dataType": "SINGLE_SELECT",
-      "options": [
-        { "name": "Backlog", "color": "GRAY", "description": "Не разобрано" },
-        { "name": "To implement", "color": "GREEN", "description": "Постановка готова, можно брать агентом" },
-        // Implementing и Ready for review ставит сам агент, не оркестратор:
-        // только он знает, что реально взялся и что реально довёл работу до конца.
-        { "name": "Implementing", "color": "YELLOW", "description": "Агент в работе: пишет код, гоняет CI" },
-        { "name": "Ready for review", "color": "BLUE", "description": "PR открыт и зелёный, ждёт человека" },
-        { "name": "Done", "color": "PURPLE", "description": "Смёржено" }
-      ]
+    // Реализатор. Своё дерево, фоном, с памятью между вызовами:
+    // повторный запуск с тем же номером задачи продолжает прежний разговор.
+    // bypassPermissions — потому что спрашивать некого: на любом вопросе фоновый
+    // агент повис бы навсегда. Допустимо ровно потому, что он в отдельном worktree.
+    "implement": {
+      "skill": "implement",
+      "worktree": true,
+      "background": true,
+      "resume": true,
+      "tools": "default",
+      "permissionMode": "bypassPermissions"
     }
   }
 }

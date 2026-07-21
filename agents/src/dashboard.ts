@@ -1,22 +1,23 @@
-// Витрина состояния на :7777 — HTML + JSON + две кнопки.
+// Витрина на :7777 — HTML + JSON + кнопки.
 //
-// Она ничего не решает и не считает: только показывает то, что вывели agents.ts и history.ts.
-// Кнопка «Тик сейчас» будит цикл демона; кнопка STOP — аварийный тормоз.
-import { createServer, type Server } from "node:http";
-import { existsSync, rmSync, writeFileSync } from "node:fs";
-import { mkdirSync } from "node:fs";
+// Она ничего не решает и не считает: только показывает то, что вывели inspect.ts
+// и history.ts. Кнопка у каждой роли запускает её немедленно; STOP — аварийный тормоз.
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { createServer, type Server, type ServerResponse } from "node:http";
 
-import { listAgents } from "./agents.ts";
 import type { AgentsConfig } from "./config.ts";
 import { tail } from "./history.ts";
+import { listAgents } from "./inspect.ts";
 import { RUNS_DIR, STOP_FILE } from "./paths.ts";
+
+/** Сколько записей журнала показывать. Файл append-only и растёт — читаем только хвост. */
+export const HISTORY_ON_PAGE = 20;
 
 export interface DashboardDeps {
     getConfig: () => AgentsConfig;
-    /** Возвращает false, если тик уже идёт — тогда отвечаем 409, а не ставим второй в очередь. */
-    requestTick: () => boolean;
-    isTicking: () => boolean;
-    lastTickAt: () => string | undefined;
+    /** Запустить роль немедленно. false — если такой запуск уже идёт. */
+    requestRun: (role: string) => boolean;
+    running: () => string[];
 }
 
 export function isStopped(): boolean {
@@ -33,19 +34,23 @@ async function buildState(deps: DashboardDeps) {
     const config = deps.getConfig();
     return {
         stopped: isStopped(),
-        dryRun: config.dryRun,
-        ticking: deps.isTicking(),
-        lastTickAt: deps.lastTickAt(),
-        limits: config.limits,
+        running: deps.running(),
+        roles: Object.entries(config.roles).map(([name, spec]) => ({
+            name,
+            skill: spec.skill,
+            everyMin: spec.everyMin,
+            worktree: spec.worktree,
+            background: spec.background,
+            resume: spec.resume,
+        })),
         agents: await listAgents(),
-        history: tail(40).reverse(),
+        history: tail(HISTORY_ON_PAGE).reverse(),
     };
 }
 
-function json(response: import("node:http").ServerResponse, status: number, body: unknown): void {
-    const text = JSON.stringify(body, null, 2);
+function json(response: ServerResponse, status: number, body: unknown): void {
     response.writeHead(status, { "content-type": "application/json; charset=utf-8" });
-    response.end(text);
+    response.end(JSON.stringify(body, null, 2));
 }
 
 export function createDashboard(deps: DashboardDeps): Server {
@@ -53,12 +58,17 @@ export function createDashboard(deps: DashboardDeps): Server {
         void (async () => {
             const url = new URL(request.url ?? "/", "http://localhost");
             try {
-                if (request.method === "POST" && url.pathname === "/api/tick") {
-                    if (!deps.requestTick()) {
-                        json(response, 409, { error: "тик уже идёт" });
+                if (request.method === "POST" && url.pathname === "/api/run") {
+                    const role = url.searchParams.get("role") ?? "";
+                    if (!deps.getConfig().roles[role]) {
+                        json(response, 404, { error: `нет роли "${role}"` });
                         return;
                     }
-                    json(response, 202, { queued: true });
+                    if (!deps.requestRun(role)) {
+                        json(response, 409, { error: `роль "${role}" уже выполняется` });
+                        return;
+                    }
+                    json(response, 202, { queued: role });
                     return;
                 }
                 if (request.method === "POST" && url.pathname === "/api/stop") {
@@ -88,52 +98,80 @@ const PAGE = `<!doctype html>
 <meta charset="utf-8">
 <title>vexx agents</title>
 <style>
-  body { font: 14px/1.5 ui-monospace, monospace; margin: 2rem; background: #111; color: #ddd; }
+  body { font: 13px/1.5 ui-monospace, monospace; margin: 2rem; background: #111; color: #ddd; }
   h1 { font-size: 1.1rem; margin: 0 0 1rem; }
-  table { border-collapse: collapse; width: 100%; margin-bottom: 2rem; }
-  th, td { text-align: left; padding: .35rem .6rem; border-bottom: 1px solid #333; }
-  th { color: #888; font-weight: normal; }
-  button { font: inherit; padding: .4rem .9rem; margin-right: .5rem; cursor: pointer;
+  h2 { font-size: .95rem; color: #888; font-weight: normal; margin: 1.6rem 0 .5rem; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { text-align: left; padding: .3rem .6rem; border-bottom: 1px solid #2a2a2a; vertical-align: top; }
+  th { color: #777; font-weight: normal; }
+  button { font: inherit; padding: .3rem .8rem; margin-right: .4rem; cursor: pointer;
            background: #222; color: #ddd; border: 1px solid #444; border-radius: 4px; }
   button:hover { background: #2c2c2c; }
-  .bad { color: #e06c75; } .good { color: #98c379; } .warn { color: #e5c07b; }
-  pre { background: #181818; padding: .8rem; overflow-x: auto; border-radius: 4px; }
+  .bad { color: #e06c75; } .good { color: #98c379; } .warn { color: #e5c07b; } .dim { color: #666; }
+  td.cmd { color: #666; font-size: 11px; word-break: break-all; }
 </style>
 <h1>vexx agents</h1>
-<div>
-  <button id="tick">Тик сейчас</button>
-  <button id="stop">STOP</button>
-  <span id="mode"></span>
-</div>
+<div id="roles"></div>
+<div style="margin-top:.6rem"><button id="stop">STOP</button><span id="mode"></span></div>
+
 <h2>Агенты</h2>
 <table id="agents"><thead><tr>
-  <th>имя<th>статус<th>idle, мин<th>возраст, мин<th>жив<th>worktree
+  <th>ключ<th>статус<th>idle, мин<th>возраст, мин<th>жив<th>ветка
 </tr></thead><tbody></tbody></table>
-<h2>История</h2>
-<pre id="history"></pre>
+
+<h2>Журнал — последние 20</h2>
+<table id="history"><thead><tr>
+  <th>время<th>событие<th>роль / ключ<th>кто дёрнул<th>подробности
+</tr></thead><tbody></tbody></table>
+
 <script>
 const el = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[<>&]/g, c => ({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]));
+const time = s => esc(String(s).slice(11, 19));
+
+function historyRow(e) {
+  if (e.kind === "launch") {
+    const how = e.session === "resume" ? "<span class=warn>продолжает сессию</span>"
+              : e.session === "create" ? "новая сессия" : "разовый запуск";
+    return "<td>" + time(e.at) + "<td class=good>запуск<td>" + esc(e.key) +
+           "<td>" + esc(e.trigger) + " / " + esc(e.by) +
+           "<td>" + how + "<br><span class=cmd>" + esc(e.cmd) + "</span>";
+  }
+  if (e.kind === "finish")
+    return "<td>" + time(e.at) + "<td class=" + (e.ok ? "good" : "bad") + ">итог<td>" + esc(e.key) +
+           "<td class=dim>—<td>" + Math.round(e.durationMs / 1000) + "с · " + esc(e.summary).slice(0, 300);
+  if (e.kind === "stop")
+    return "<td>" + time(e.at) + "<td class=warn>остановлен<td>" + esc(e.key) + "<td>" + esc(e.by) + "<td class=dim>—";
+  return "<td>" + time(e.at) + "<td class=bad>ошибка<td>" + esc(e.key ?? "—") + "<td class=dim>—<td>" + esc(e.message);
+}
+
 async function refresh() {
   const state = await (await fetch("/api/state")).json();
-  el("mode").textContent =
-    (state.stopped ? "ОСТАНОВЛЕНО" : "работает") +
-    (state.dryRun ? " · dry-run" : "") +
-    (state.ticking ? " · тик идёт" : "") +
-    (state.lastTickAt ? " · последний тик " + state.lastTickAt : "");
+  el("mode").textContent = state.stopped ? " ОСТАНОВЛЕНО — по расписанию ничего не запускается" : " работает";
   el("mode").className = state.stopped ? "bad" : "good";
+
+  el("roles").innerHTML = state.roles.map(r =>
+    "<button data-role=" + r.name + ">" + r.name +
+    (r.everyMin ? " (" + r.everyMin + "м)" : "") +
+    (state.running.includes(r.name) ? " ⏳" : "") + "</button>").join("");
+  for (const b of el("roles").children)
+    b.onclick = async () => {
+      const r = await fetch("/api/run?role=" + b.dataset.role, { method: "POST" });
+      if (r.status === 409) alert("Эта роль уже выполняется");
+      refresh();
+    };
+
   el("agents").tBodies[0].innerHTML = state.agents.map(a =>
-    "<tr><td>" + a.name + "<td>" + a.status + (a.state ? " / " + a.state : "") +
+    "<tr><td>" + esc(a.key) + "<td>" + esc(a.status) + (a.state ? " / " + esc(a.state) : "") +
     "<td>" + (a.idleMin ?? "—") + "<td>" + a.ageMin +
     "<td>" + (a.alive ? "да" : "<span class=bad>нет</span>") +
-    "<td>" + a.worktree + "</tr>").join("") ||
-    "<tr><td colspan=6>никого</td></tr>";
-  el("history").textContent = state.history.map(e => JSON.stringify(e)).join("\\n") || "пусто";
+    "<td>" + esc(a.branch ?? "—") + "</tr>").join("") ||
+    "<tr><td colspan=6 class=dim>никого</td></tr>";
+
+  el("history").tBodies[0].innerHTML =
+    state.history.map(e => "<tr>" + historyRow(e) + "</tr>").join("") ||
+    "<tr><td colspan=5 class=dim>пусто</td></tr>";
 }
-el("tick").onclick = async () => {
-  const r = await fetch("/api/tick", { method: "POST" });
-  if (r.status === 409) alert("Тик уже идёт");
-  refresh();
-};
 el("stop").onclick = async () => { await fetch("/api/stop", { method: "POST" }); refresh(); };
 refresh();
 setInterval(refresh, 5000);

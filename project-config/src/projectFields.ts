@@ -5,7 +5,7 @@
 // у карточек; переданная без `id` — создаётся; НЕ переданная — удаляется, и её значение
 // у карточек обнуляется. Поэтому в аддитивном режиме незнакомые опции обязаны
 // дописываться в хвост payload'а, иначе «ничего не удаляем» превратится в тихое удаление.
-import type { AgentsConfig, FieldSpec, OptionSpec } from "./config.ts";
+import type { ProjectConfig, FieldSpec, OptionSpec } from "./config.ts";
 import { GhError, graphql, UserError } from "./gh.ts";
 
 export interface ExistingOption {
@@ -124,7 +124,7 @@ function samePayload(a: OptionPayload, existing: ExistingOption): boolean {
  * в принципе, а удаление кастомного поля унесло бы данные всех карточек.
  * --prune управляет только составом опций.
  */
-export function planFields(existing: ExistingField[], config: AgentsConfig, options: { prune: boolean }): FieldPlan {
+export function planFields(existing: ExistingField[], config: ProjectConfig, options: { prune: boolean }): FieldPlan {
     const byName = new Map(existing.map(field => [field.name.toLowerCase(), field]));
     const actions: FieldAction[] = [];
 

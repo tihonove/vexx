@@ -5,12 +5,12 @@
 // используются: два источника правды разъехались бы на первой же ошибке.
 //
 // Скрипт намеренно БЕЗ ЗАВИСИМОСТЕЙ и запускается голым node: агенты работают в свежих
-// worktree, где `agents/node_modules` нет и ставить его ради одной команды незачем.
+// worktree, где `node_modules` нет и ставить его ради одной команды незачем.
 //
-//   node agents/bin/status.mjs get 175
-//   node agents/bin/status.mjs set 175 Implementing
-//   node agents/bin/status.mjs list "To implement"
-//   node agents/bin/status.mjs list Implementing --json
+//   node project-config/bin/status.mjs get 175
+//   node project-config/bin/status.mjs set 175 Implementing
+//   node project-config/bin/status.mjs list "To implement"
+//   node project-config/bin/status.mjs list Implementing --json
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -88,7 +88,7 @@ function setStatus(project, issue, statusName) {
     return `#${issue}: ${item.status ?? "—"} → ${option.name}`;
 }
 
-const USAGE = `Использование: node agents/bin/status.mjs <команда>
+const USAGE = `Использование: node project-config/bin/status.mjs <команда>
 
   get <issue>              текущее состояние задачи
   set <issue> <состояние>  перевести задачу в состояние
