@@ -13,7 +13,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 
-import type { AgentsConfig } from "./config.ts";
+import { type AgentsConfig, ConfigError } from "./config.ts";
 import { append } from "./history.ts";
 import { listAgents, readAgentLog } from "./inspect.ts";
 import { launch, LaunchError } from "./launch.ts";
@@ -74,7 +74,9 @@ export function createMcpServer(getConfig: () => AgentsConfig): McpServer {
                     repeatManually: `./agents.sh spawn ${role}${arg ? ` ${arg}` : ""}`,
                 });
             } catch (error) {
-                if (error instanceof LaunchError) return failed(error.message);
+                // Конфиг читается свежим на каждый вызов; недосохранённый файл — не повод
+                // ронять транспорт, отвечаем ошибкой по-человечески.
+                if (error instanceof LaunchError || error instanceof ConfigError) return failed(error.message);
                 throw error;
             }
         },

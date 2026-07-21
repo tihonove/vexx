@@ -4,20 +4,24 @@
 // раз в N минут запусти её через тот же launch(), которым пользуются MCP и CLI.
 // Оркестратор — обычная роль, просто с расписанием.
 //
-// Сервер не владеет правдой: агенты запущены с --background и его смерть переживают,
-// а состояние выводится из мира заново. Рестарт ничего не восстанавливает — он просто
-// снова смотрит.
+// Конфиг в памяти НЕ хранится: он перечитывается с диска на каждом обращении — витрина,
+// MCP, планировщик все видят config.jsonc «на горячую». Поменял роль, everyMin или список
+// ролей — эффект сразу, без рестарта. Рестарт нужен только под смену портов: сокеты
+// биндятся на старте.
+//
+// Сервер не владеет и правдой о мире: агенты живут в tmux и его смерть переживают, а их
+// состояние выводится заново. Рестарт ничего не восстанавливает — он просто снова смотрит.
 import { createServer, type IncomingMessage } from "node:http";
 
-import { type AgentsConfig, loadConfig } from "./config.ts";
+import { type AgentsConfig, ConfigError, loadConfig } from "./config.ts";
 import { createDashboard, isStopped } from "./dashboard.ts";
 import { refreshMain } from "./git.ts";
 import { append } from "./history.ts";
 import { launch } from "./launch.ts";
 import { handleMcpRequest } from "./mcp.ts";
 
-let config: AgentsConfig = loadConfig();
-const getConfig = () => config;
+// Единственный доступ к конфигу — свежее чтение с диска. Никакого кэша: в этом весь смысл.
+const getConfig = (): AgentsConfig => loadConfig();
 
 /** Роли, чей запуск сейчас идёт. Не даём накладывать второй запуск той же роли на первый. */
 const running = new Set<string>();
@@ -30,10 +34,7 @@ async function runRole(role: string, trigger: "schedule" | "dashboard"): Promise
     if (running.has(role)) return;
     running.add(role);
     try {
-        // Конфиг перечитывается перед каждым запуском: правки ролей подхватываются
-        // без рестарта. Рестарт нужен только при смене портов.
-        config = loadConfig();
-        const result = await launch(config, { role, trigger, by: "human" });
+        const result = await launch(getConfig(), { role, trigger, by: "human" });
         log(`${role} (${trigger}): ${result.summary?.split("\n")[0] ?? "запущен фоном"}`);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -58,19 +59,52 @@ async function pullMain(): Promise<void> {
 }
 
 /**
- * По таймеру на роль. Отдельный таймер вместо общего цикла — потому что роли независимы:
- * долгий тик оркестратора не должен сдвигать расписание остальных.
+ * Один общий тикер расписания вместо таймера-на-роль. Так планировщик тоже работает на
+ * горячую: config.jsonc перечитывается каждый проход, и новая роль с everyMin, изменённый
+ * интервал или снятая роль подхватываются сами. За каждой ролью держим момент, от которого
+ * отсчитываем её интервал (`dueSince`).
  */
-function schedule(role: string, everyMin: number): void {
-    setInterval(() => {
-        // STOP проверяется здесь, а не внутри скилла: останавливать процесс, который в этот
-        // момент плодит агентов, — гонка, а файл-стоп её не создаёт.
+const SCHED_GRANULARITY_MS = 60_000;
+const dueSince = new Map<string, number>();
+
+function scheduleTick(): void {
+    let config: AgentsConfig;
+    try {
+        config = loadConfig();
+    } catch (error) {
+        // Битый конфиг (например, недосохранённый редактором) — не роняем сервер и не
+        // спавним по устаревшим данным: пропускаем проход, следующий подхватит исправленный.
+        log(`конфиг не читается, расписание на паузе: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`);
+        return;
+    }
+
+    const now = Date.now();
+    const scheduled = new Set<string>();
+    for (const [role, spec] of Object.entries(config.roles)) {
+        if (!spec.everyMin) continue;
+        scheduled.add(role);
+
+        const since = dueSince.get(role);
+        // Роль впервые попала в расписание — начинаем отсчёт, но сразу не запускаем:
+        // первый прогон будет через everyMin, как и раньше.
+        if (since === undefined) {
+            dueSince.set(role, now);
+            continue;
+        }
+        if (now - since < spec.everyMin * 60_000) continue;
+
+        dueSince.set(role, now);
+        // STOP проверяется здесь, а не в скилле: тормозить процесс, который в этот момент
+        // плодит агентов, — гонка, а файл-стоп её не создаёт.
         if (isStopped()) {
             log(`STOP — ${role} пропущен`);
-            return;
+            continue;
         }
         void runRole(role, "schedule");
-    }, everyMin * 60_000);
+    }
+
+    // Роль убрали из расписания — забываем её отсчёт, чтобы вернувшись, она начала заново.
+    for (const role of [...dueSince.keys()]) if (!scheduled.has(role)) dueSince.delete(role);
 }
 
 function readBody(request: IncomingMessage): Promise<unknown> {
@@ -93,7 +127,9 @@ function readBody(request: IncomingMessage): Promise<unknown> {
 }
 
 function main(): void {
-    const { dashboard: dashboardPort, mcp: mcpPort } = config.ports;
+    // Порты читаются один раз: сокеты биндятся на старте, их смена требует рестарта.
+    // Всё остальное в конфиге — на горячую.
+    const { dashboard: dashboardPort, mcp: mcpPort } = loadConfig().ports;
 
     createDashboard({
         getConfig,
@@ -124,13 +160,8 @@ function main(): void {
     void pullMain();
     setInterval(() => void pullMain(), PULL_EVERY_MIN * 60_000);
 
-    const scheduled = Object.entries(config.roles).filter(([, spec]) => spec.everyMin);
-    for (const [role, spec] of scheduled) schedule(role, spec.everyMin as number);
-    log(
-        scheduled.length > 0
-            ? `по расписанию: ${scheduled.map(([role, spec]) => `${role} раз в ${spec.everyMin}м`).join(", ")}`
-            : "ролей по расписанию нет — только по требованию",
-    );
+    setInterval(scheduleTick, SCHED_GRANULARITY_MS);
+    log("конфиг перечитывается на горячую; расписание проверяется раз в минуту");
     if (isStopped()) log("режим: STOP — по расписанию ничего не запускается");
 }
 
