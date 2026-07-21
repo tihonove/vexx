@@ -163,7 +163,11 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
 
     /** Включила ли программа в шелле mouse-tracking — тогда колесо принадлежит ей. */
     public get mouseEventsActive(): boolean {
-        return this.coreMouseService?.areMouseEventsActive ?? false;
+        const service = this.coreMouseService;
+        /* v8 ignore start -- defensive: a live xterm Terminal always exposes _core.coreMouseService, so this guard is only a safety net against a change in xterm internals */
+        if (!service) return false;
+        /* v8 ignore stop */
+        return service.areMouseEventsActive;
     }
 
     /**
