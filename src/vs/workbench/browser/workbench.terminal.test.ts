@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import type { PanelContainerElement } from "../../../../tuidom/ui/panel/panelContainerElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
+import { FakeTerminalSurface } from "../../../TestUtils/FakeTerminalSurface.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { ContextKeyService, ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
 import {
@@ -77,6 +78,21 @@ describe("Workbench — integrated terminal", () => {
         expect(terminal.hasOpenTerminals).toBe(true);
         const secondWidget = panel().getChildren()[0];
         expect(secondWidget).not.toBe(firstWidget);
+    });
+
+    it("Toggle Terminal after the shell exited spawns a new one instead of hiding the panel", () => {
+        h.commands.execute(TOGGLE_TERMINAL);
+        const session = terminal.getActiveInstance()?.session as FakeTerminalSurface;
+
+        session.emitExit(0); // `exit` в шелле — вкладка остаётся с placeholder'ом
+        expect(terminal.hasOpenTerminals).toBe(false);
+        expect(h.workbench.workbenchLayout.getBottomPanelVisible()).toBe(true);
+
+        h.commands.execute(TOGGLE_TERMINAL);
+
+        expect(h.workbench.workbenchLayout.getBottomPanelVisible()).toBe(true);
+        expect(panel().getActiveViewId()).toBe(TERMINAL_VIEW_ID);
+        expect(terminal.hasOpenTerminals).toBe(true);
     });
 
     it("activating the TERMINAL tab lazily spawns a shell", () => {

@@ -20,13 +20,17 @@ export const toggleTerminalAction: CommandAction = {
         // visible view, otherwise show + spawn/focus a terminal.
         const layout = accessor.get(LayoutServiceDIToken);
         const panel = accessor.get(PanelServiceDIToken);
-        const showing = layout.isPanelVisible() && panel.getActiveViewId() === TERMINAL_VIEW_ID;
+        const terminal = accessor.get(TerminalServiceDIToken);
+        // Пустая вкладка (шелл вышел, остался placeholder) — это не «терминал показан»:
+        // прятать нечего, команда должна поднять новый шелл.
+        const showing =
+            layout.isPanelVisible() && panel.getActiveViewId() === TERMINAL_VIEW_ID && terminal.hasOpenTerminals;
         if (showing) {
             layout.setPanelVisible(false);
         } else {
             panel.setActiveView(TERMINAL_VIEW_ID);
             layout.setPanelVisible(true);
-            accessor.get(TerminalServiceDIToken).openTerminal();
+            terminal.openTerminal();
             accessor.get(WorkbenchContextKeysDIToken).update();
         }
     },
