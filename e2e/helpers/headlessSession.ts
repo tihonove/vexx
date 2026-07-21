@@ -3,10 +3,20 @@ import { type ChildProcess, spawn } from "node:child_process";
 import type WebSocket from "ws";
 
 import type { GridSnapshot } from "../../tuidom/rendering/gridSnapshot.ts";
-import type { CaptureFrameResult, InspectorResponse, InspectorSuccessResponse } from "../../tuidom/inspector/protocol.ts";
+import type {
+    CaptureFrameResult,
+    GetDocumentResult,
+    InspectorResponse,
+    InspectorSuccessResponse,
+    NodeSnapshot,
+    SendMouseParams,
+} from "../../tuidom/inspector/protocol.ts";
 
 import { getBinaryPath } from "./buildOnce.ts";
 import { connectWithRetry, freePort } from "./inspectorClient.ts";
+
+/** Modifier flags shared by the mouse convenience verbs. */
+export type MouseModifiers = Pick<SendMouseParams, "shiftKey" | "altKey" | "ctrlKey">;
 
 export interface HeadlessSessionOptions {
     /** Positional args (files/dirs to open) and any flags except headless/inspect-tui. */
@@ -89,12 +99,56 @@ export class HeadlessSession {
         await this.rpc("TUIDom.sendText", { text });
     }
 
+    /**
+     * Inject a mouse event at 0-based screen coordinates — the same frame of
+     * reference as a node's `box` in `TUIDom.getDocument`.
+     */
+    public async sendMouse(params: SendMouseParams): Promise<void> {
+        await this.rpc("TUIDom.sendMouse", params);
+    }
+
+    /** Press and release the left button on a cell — the usual `press`+`release` pair. */
+    public async click(x: number, y: number, opts: MouseModifiers = {}): Promise<void> {
+        await this.sendMouse({ action: "press", button: "left", x, y, ...opts });
+        await this.sendMouse({ action: "release", button: "left", x, y, ...opts });
+    }
+
+    /** Spin the wheel over a cell; `direction` matches the DOM `wheelDirection`. */
+    public async wheel(x: number, y: number, direction: "up" | "down" | "left" | "right"): Promise<void> {
+        await this.sendMouse({ action: `scroll-${direction}`, x, y });
+    }
+
     public async resize(cols: number, rows: number): Promise<void> {
         await this.rpc("TUIDom.resize", { cols, rows });
     }
 
     public async captureFrame(): Promise<GridSnapshot> {
         return (await this.rpc<CaptureFrameResult>("TUIDom.captureFrame")).frame;
+    }
+
+    /** Snapshot of the element tree — node boxes are the coordinates {@link click} takes. */
+    public async getDocument(): Promise<GetDocumentResult> {
+        return this.rpc<GetDocumentResult>("TUIDom.getDocument");
+    }
+
+    /** Poll `getDocument` until `predicate(root)` holds; returns the matching root. */
+    public async waitForDocument(
+        predicate: (root: NodeSnapshot) => boolean,
+        opts: { timeoutMs?: number; intervalMs?: number } = {},
+    ): Promise<NodeSnapshot> {
+        const timeoutMs = opts.timeoutMs ?? 10_000;
+        const intervalMs = opts.intervalMs ?? 100;
+        const deadline = Date.now() + timeoutMs;
+        let lastRootType = "<null>";
+        while (Date.now() < deadline) {
+            const { root } = await this.getDocument();
+            if (root !== null) {
+                lastRootType = root.type;
+                if (predicate(root)) return root;
+            }
+            await sleep(intervalMs);
+        }
+        throw new Error(`waitForDocument timed out after ${String(timeoutMs)}ms (last root: ${lastRootType})`);
     }
 
     /** Poll `captureFrame` until `predicate(text)` holds on the rendered screen. */

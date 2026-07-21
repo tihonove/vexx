@@ -3,6 +3,7 @@ import type { KeyPressEvent } from "../input/keyEvent.ts";
 import { KeyInputParser } from "../input/keyInputParser.ts";
 import type { MouseToken } from "../input/rawTerminalToken.ts";
 import { serializeKey } from "../input/serializeKey.ts";
+import { serializeMouse, type SerializeMouseInit } from "../input/serializeMouse.ts";
 import type { Grid } from "../rendering/grid.ts";
 import { emptyGridSnapshot, type GridSnapshot, snapshotGrid } from "../rendering/gridSnapshot.ts";
 
@@ -116,9 +117,18 @@ export class HeadlessCaptureBackend implements ITerminalBackend {
         this.emitStreams(this.inputParser.parseWithMouse(data));
     }
 
-    /** Inject a mouse event. */
+    /** Inject a ready-made mouse token straight to subscribers, bypassing the parser. */
     public simulateMouse(token: MouseToken): void {
         for (const cb of this.mouseCallbacks) cb(token);
+    }
+
+    /**
+     * Inject a mouse event through the real parser: it is encoded as an SGR (1006)
+     * sequence and tokenized back, exactly like input from a terminal. Coordinates
+     * are 1-based, as {@link MouseToken} carries them.
+     */
+    public sendMouse(init: SerializeMouseInit): void {
+        this.sendRaw(serializeMouse(init));
     }
 
     /** Resize the virtual terminal and notify the application. */
@@ -135,6 +145,9 @@ export class HeadlessCaptureBackend implements ITerminalBackend {
     private emitStreams(streams: ReturnType<KeyInputParser["parseWithMouse"]>): void {
         for (const event of streams.keys) {
             for (const cb of this.inputCallbacks) cb(event);
+        }
+        for (const token of streams.mouse) {
+            for (const cb of this.mouseCallbacks) cb(token);
         }
         for (const text of streams.paste) {
             for (const cb of this.pasteCallbacks) cb(text);

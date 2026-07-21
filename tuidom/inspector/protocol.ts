@@ -5,6 +5,7 @@
 // Methods live under the `TUIDom.*` namespace. The protocol is transport-
 // agnostic — InspectorCore speaks it directly (in-process) or over WebSocket.
 
+import type { MouseAction, MouseButton } from "../input/rawTerminalToken.ts";
 import type { GridSnapshot } from "../rendering/gridSnapshot.ts";
 
 /** Method names (namespace `TUIDom.*`). */
@@ -14,6 +15,8 @@ export const InspectorMethod = {
     sendKey: "TUIDom.sendKey",
     /** Inject literal text as a paste. Requires a driver. */
     sendText: "TUIDom.sendText",
+    /** Inject a mouse event at screen coordinates. Requires a driver. */
+    sendMouse: "TUIDom.sendMouse",
     /** Resize the virtual terminal. Requires a driver. */
     resize: "TUIDom.resize",
     /** Capture the current screen as a {@link GridSnapshot}. Requires a driver. */
@@ -30,6 +33,29 @@ export interface SendKeyParams {
 /** Params for `TUIDom.sendText`. */
 export interface SendTextParams {
     text: string;
+}
+
+/**
+ * Params for `TUIDom.sendMouse`.
+ *
+ * Coordinates are **0-based screen cells**, the same frame of reference as
+ * {@link NodeSnapshot.box} — so a client can read the document, take a node's
+ * `box` and click into it without any coordinate arithmetic.
+ *
+ * A click is two calls (`press` then `release`) — the same pair a terminal sends;
+ * the DOM's `click`/`dblclick` events are synthesized from it downstream.
+ */
+export interface SendMouseParams {
+    action: MouseAction;
+    /** Defaults to `"none"` — the only meaningful button for wheel actions. */
+    button?: MouseButton;
+    /** 0-based column */
+    x: number;
+    /** 0-based row */
+    y: number;
+    shiftKey?: boolean;
+    altKey?: boolean;
+    ctrlKey?: boolean;
 }
 
 /** Params for `TUIDom.resize`. */
