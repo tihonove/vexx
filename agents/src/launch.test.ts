@@ -22,7 +22,7 @@ const implement: RoleSpec = {
     permissionMode: "bypassPermissions",
 };
 
-const base = { mcpPort: 7778, worktreeExists: false };
+const base = { mcpPort: 7778 };
 
 function flag(args: string[], name: string): string | undefined {
     const index = args.indexOf(name);
@@ -62,26 +62,31 @@ describe("buildLaunch — ошейник", () => {
 });
 
 describe("buildLaunch — create-or-update по сессии", () => {
-    it("нового агента заводит с новой сессией и создаёт ему дерево", () => {
+    it("нового агента заводит с новой сессией", () => {
         const plan = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181" });
         expect(plan.session).toBe("create");
-        expect(flag(plan.args, "--worktree")).toBe("implement-181");
         expect(plan.args).not.toContain("--resume");
+        expect(plan.cwd).toMatch(/\.claude\/worktrees\/implement-181$/);
     });
 
-    it("прежнего агента продолжает: --resume и дерево не пересоздаётся", () => {
+    it("прежнего агента продолжает через --resume", () => {
         const plan = buildLaunch({
             ...base,
             role: "implement",
             spec: implement,
             arg: "181",
-            worktreeExists: true,
             sessionId: "c0cfee5c-1090-4934-8482-f0b1814e0d85",
         });
         expect(plan.session).toBe("resume");
         expect(flag(plan.args, "--resume")).toBe("c0cfee5c-1090-4934-8482-f0b1814e0d85");
-        expect(plan.args).not.toContain("--worktree");
-        expect(plan.cwd).toMatch(/\.claude\/worktrees\/implement-181$/);
+    });
+
+    it("никогда не передаёт --worktree: claude отвёл бы дерево от origin/main", () => {
+        // Из-за этого до агента не доезжали закоммиченные, но не запушенные скиллы,
+        // и он встречал «Unknown command». Дерево заводит prepareWorktree от локального main.
+        for (const spec of [implement, orchestrate]) {
+            expect(buildLaunch({ ...base, role: "r", spec, arg: "181" }).args).not.toContain("--worktree");
+        }
     });
 
     it("роль без resume не подхватывает чужую сессию, даже если та найдена", () => {

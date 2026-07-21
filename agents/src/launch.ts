@@ -54,8 +54,6 @@ export function buildLaunch(args: {
     spec: RoleSpec;
     arg: string;
     mcpPort: number;
-    /** Уже существующее дерево: тогда --worktree не передаём, а просто заходим в него. */
-    worktreeExists: boolean;
     /** Найденная прежняя сессия — если роль умеет resume. */
     sessionId?: string;
     /** Отладка руками: живой диалог в терминале вместо -p и фонового режима. */
@@ -80,7 +78,9 @@ export function buildLaunch(args: {
     if (args.spec.allow?.length) argv.push("--allowedTools", args.spec.allow.join(" "));
     if (args.spec.permissionMode) argv.push("--permission-mode", args.spec.permissionMode);
 
-    if (args.spec.worktree && !args.worktreeExists) argv.push("--worktree", key);
+    // Флага --worktree здесь нет намеренно: дерево заводит prepareWorktree(), потому что
+    // claude отвёл бы его от origin/main и не увидел бы наших локальных коммитов.
+    // Агент просто запускается с cwd внутри готового дерева.
 
     let session: SessionAction = "fresh";
     if (args.spec.resume) {
@@ -102,28 +102,47 @@ export function buildLaunch(args: {
     return { key, role: args.role, arg: args.arg, cwd, args: argv, session, background };
 }
 
+/** Ветка агента. Своё пространство имён, чтобы она не путалась с ветками человека. */
+export function agentBranch(key: string): string {
+    return `agent/${key}`;
+}
+
 /**
- * Подтянуть `main` перед созданием дерева: `claude --worktree` отводит его от локального
- * `main`, поэтому устаревший `main` = агент пишет код на вчерашней базе и ловит конфликты.
+ * Завести агенту дерево от ЛОКАЛЬНОГО `main`.
  *
- * Двигаем только вперёд: выкачен `main` — `merge --ff-only` (git сам откажется, если это
- * затрёт правки); не выкачен — двигаем ref через `fetch origin main:main`, дерева не касаясь.
- * Не вышло — не блокируем запуск, а сообщаем: решать человеку.
+ * Делаем это сами, а не флагом `claude --worktree`, из-за проверенного факта: тот отводит
+ * дерево от `origin/main`. Разница не косметическая — из-за неё до агента не доезжали
+ * закоммиченные, но не запушенные скиллы, и он встречал `Unknown command: /probe`.
+ * Свой `git worktree add` заодно не запирает дерево, так что убирается оно обычным
+ * `git worktree remove`, без двух `-f`.
+ *
+ * `fetch` делаем попыткой: сеть может быть недоступна (в devcontainer remote по SSH,
+ * а ключа нет), и это не повод не запускать агента — просто база будет вчерашней.
  */
-export async function refreshMain(): Promise<string> {
+export async function prepareWorktree(key: string, path: string): Promise<string> {
+    let fetched = "";
     try {
         await run("git", ["-C", REPO_ROOT, "fetch", "origin", "main"]);
         const head = (await run("git", ["-C", REPO_ROOT, "rev-parse", "--abbrev-ref", "HEAD"])).trim();
+        // Двигаем только вперёд: git сам откажется, если это затрёт правки.
         if (head === "main") await run("git", ["-C", REPO_ROOT, "merge", "--ff-only", "origin/main"]);
         else await run("git", ["-C", REPO_ROOT, "fetch", "origin", "main:main"]);
-
-        const base = (await run("git", ["-C", REPO_ROOT, "rev-parse", "--short", "main"])).trim();
-        // Непушенные коммиты main попадут в ветку агента и будут выглядеть в PR как его работа.
-        const ahead = Number((await run("git", ["-C", REPO_ROOT, "rev-list", "--count", "origin/main..main"])).trim());
-        return ahead > 0 ? `${base} (локальный main опережает origin на ${ahead} — они попадут в PR агента)` : base;
     } catch (error) {
-        return `не обновлён: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`;
+        fetched = ` (origin недоступен: ${error instanceof Error ? error.message.split("\n")[0].slice(0, 80) : ""})`;
     }
+
+    await run("git", ["-C", REPO_ROOT, "worktree", "add", "-b", agentBranch(key), path, "main"]);
+    const base = (await run("git", ["-C", REPO_ROOT, "rev-parse", "--short", "main"])).trim();
+
+    let ahead = 0;
+    try {
+        ahead = Number((await run("git", ["-C", REPO_ROOT, "rev-list", "--count", "origin/main..main"])).trim());
+    } catch {
+        // origin/main может отсутствовать — тогда и сравнивать не с чем.
+    }
+    // Непушенные коммиты main попадут в ветку агента и будут выглядеть в PR как его работа.
+    const warning = ahead > 0 ? ` (локальный main опережает origin на ${ahead} — они попадут в PR агента)` : "";
+    return `${base}${warning}${fetched}`;
 }
 
 export interface LaunchRequest {
@@ -157,11 +176,10 @@ export async function launch(config: AgentsConfig, request: LaunchRequest): Prom
         spec,
         arg,
         mcpPort: config.ports.mcp,
-        worktreeExists,
         sessionId,
         interactive: request.inherit,
     });
-    const base = spec.worktree && !worktreeExists ? await refreshMain() : undefined;
+    const base = spec.worktree && !worktreeExists ? await prepareWorktree(key, cwd) : undefined;
 
     const cmd = `claude ${plan.args.join(" ")}`;
     append({
@@ -178,17 +196,15 @@ export async function launch(config: AgentsConfig, request: LaunchRequest): Prom
         cmd,
     });
 
-    // Дерево создаёт claude сам (флаг --worktree), поэтому при первом запуске cwd ещё нет
-    // и заходить надо из корня репозитория.
-    const spawnCwd = worktreeExists || !spec.worktree ? plan.cwd : REPO_ROOT;
+    // К этому моменту дерево уже есть: его завёл prepareWorktree выше.
     const startedAt = Date.now();
 
     if (request.inherit) {
-        const code = await runInherit(plan.args, spawnCwd);
+        const code = await runInherit(plan.args, plan.cwd);
         return { ...plan, cmd, base, ok: code === 0, summary: `код выхода ${code}` };
     }
 
-    const finished = await runCaptured(plan.args, spawnCwd);
+    const finished = await runCaptured(plan.args, plan.cwd);
     if (!plan.background) {
         append({
             at: new Date().toISOString(),
