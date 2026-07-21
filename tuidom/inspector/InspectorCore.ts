@@ -144,9 +144,9 @@ function asSendMouseParams(params: unknown): SendMouseParams {
         ...(button === undefined ? {} : { button: button as SendMouseParams["button"] }),
         x: x as number,
         y: y as number,
-        ...(shiftKey === undefined ? {} : { shiftKey: shiftKey === true }),
-        ...(altKey === undefined ? {} : { altKey: altKey === true }),
-        ...(ctrlKey === undefined ? {} : { ctrlKey: ctrlKey === true }),
+        shiftKey: shiftKey === true,
+        altKey: altKey === true,
+        ctrlKey: ctrlKey === true,
     };
 }
 

@@ -157,6 +157,8 @@ describe("InspectorCore", () => {
                 button: "left",
                 x: 3,
                 y: 4,
+                shiftKey: false,
+                altKey: false,
                 ctrlKey: true,
             });
         });
@@ -171,7 +173,35 @@ describe("InspectorCore", () => {
                 params: { action: "scroll-down", x: 0, y: 0 },
             });
 
-            expect(driver.sendMouse).toHaveBeenCalledWith({ action: "scroll-down", x: 0, y: 0 });
+            expect(driver.sendMouse).toHaveBeenCalledWith({
+                action: "scroll-down",
+                x: 0,
+                y: 0,
+                shiftKey: false,
+                altKey: false,
+                ctrlKey: false,
+            });
+        });
+
+        it("normalizes sendMouse modifiers to booleans", async () => {
+            const driver = makeDriver();
+            const core = new InspectorCore(makeTarget(), driver);
+
+            await core.dispatch({
+                id: 1,
+                method: InspectorMethod.sendMouse,
+                params: { action: "move", button: "left", x: 1, y: 2, shiftKey: true, altKey: true },
+            });
+
+            expect(driver.sendMouse).toHaveBeenCalledWith({
+                action: "move",
+                button: "left",
+                x: 1,
+                y: 2,
+                shiftKey: true,
+                altKey: true,
+                ctrlKey: false,
+            });
         });
 
         it("rejects sendMouse with an unknown action", async () => {
