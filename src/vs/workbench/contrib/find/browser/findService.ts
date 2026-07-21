@@ -60,7 +60,10 @@ export class FindService extends Disposable {
 
     public open(): void {
         if (this.component.isOpen()) {
+            // Повторный Ctrl+F на уже открытом виджете: вернуть фокус и выделить
+            // весь запрос, чтобы его можно было сразу перепечатать (VS Code).
             this.component.focus();
+            this.component.selectQuery();
             return;
         }
 
@@ -75,6 +78,9 @@ export class FindService extends Disposable {
 
         this.recompute();
         this.component.show();
+        // Выделить сохранённый/засеянный запрос целиком — готов к перезаписи
+        // первым же нажатием. Для пустого запроса selectAll — no-op.
+        this.component.selectQuery();
     }
 
     public close(): void {

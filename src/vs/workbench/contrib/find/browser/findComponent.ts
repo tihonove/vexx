@@ -154,6 +154,20 @@ export class FindComponent extends ThemedComponent {
         this.refreshCounter();
     }
 
+    /**
+     * Выделяет весь текст запроса (как в VS Code при Ctrl+F): первое же нажатие
+     * клавиши или Backspace/Delete сотрёт старый запрос и начнёт ввод заново.
+     * Зовётся ПОСЛЕ {@link setQuery} — сеттер `InputState.value` сбрасывает
+     * выделение и ставит курсор в конец, так что выделять надо отдельным вызовом.
+     */
+    public selectQuery(): void {
+        // Пустой запрос выделять нечего — а selectAll на пустой строке оставил бы
+        // якорь выделения в 0, что сломало бы первый же ввод символа.
+        if (this.input.inputState.value.length === 0) return;
+        this.input.inputState.selectAll();
+        this.input.markDirty();
+    }
+
     /** Обновляет счётчик совпадений. `current` — 1-based; `total` 0 — совпадений нет. */
     public setCounter(current: number, total: number): void {
         this.matchCurrent = current;

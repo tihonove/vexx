@@ -41,5 +41,18 @@ export default defineScenario({
         await typeText(editor, "zzz");
         await editor.waitForText((t) => t.includes("No results"));
         await editor.capture("find-no-results");
+
+        // Close and reopen: the previous query is kept but fully selected (VS
+        // Code behaviour) — highlighted with the editor's selection background,
+        // ready to be overwritten by the next keystroke.
+        for (let i = 0; i < "zzz".length; i++) {
+            await editor.sendKey("Backspace");
+        }
+        await typeText(editor, "greeting");
+        await editor.waitForText((t) => t.includes("of 2"));
+        await editor.sendKey("Escape");
+        await editor.sendKey("Ctrl+F");
+        await editor.waitForText((t) => t.includes("of 2"));
+        await editor.capture("find-query-selected");
     },
 });
