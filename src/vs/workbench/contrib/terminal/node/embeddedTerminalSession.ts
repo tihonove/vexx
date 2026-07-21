@@ -44,6 +44,8 @@ export interface CoreMouseEvent {
 
 interface ICoreMouseService {
     triggerMouseEvent(event: CoreMouseEvent): boolean;
+    /** Включила ли программа хоть один mouse-режим (?1000/?1002/?1003…). */
+    readonly areMouseEventsActive: boolean;
 }
 
 // xterm CoreMouseButton / CoreMouseAction (значения enum-ов). Семантические строки
@@ -91,6 +93,8 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
     private cols: number;
     private rows: number;
     private exited = false;
+    // Смещение вьюпорта в скролбэк, в строках вверх от дна (0 = живой вывод).
+    private viewportScrollOffset = 0;
 
     public constructor(options: EmbeddedTerminalOptions) {
         this.cols = options.cols;
@@ -128,6 +132,9 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
         // читает устаревшее состояние, и картинка отстаёт на одно событие («залипание»).
         this.pty.onData((data) => {
             this.term.write(data, () => {
+                // Новый вывод возвращает вьюпорт на дно — иначе картинка «уезжает»
+                // относительно растущего baseY и превращается в кашу.
+                this.viewportScrollOffset = 0;
                 this.emitUpdate();
             });
         });
@@ -147,13 +154,39 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
     }
 
     /**
-     * Прочитать ячейку в переданный `out`. Возвращает false для continuation-ячейки
-     * wide-char (`getWidth() === 0` — голова уже отдана с width=2) либо координаты вне
-     * диапазона; в обоих случаях `out` не тронут.
+     * Смещение вьюпорта в скролбэк, в строках. Клампим на чтении: `baseY` живой и может
+     * уменьшиться (ресайз, clear) уже после того, как пользователь прокрутил вверх.
+     */
+    public get scrollOffset(): number {
+        return Math.min(this.viewportScrollOffset, this.maxScrollOffset);
+    }
+
+    /** Включила ли программа в шелле mouse-tracking — тогда колесо принадлежит ей. */
+    public get mouseEventsActive(): boolean {
+        const service = this.coreMouseService;
+        /* v8 ignore start -- defensive: a live xterm Terminal always exposes _core.coreMouseService, so this guard is only a safety net against a change in xterm internals */
+        if (!service) return false;
+        /* v8 ignore stop */
+        return service.areMouseEventsActive;
+    }
+
+    /**
+     * Прокрутить вьюпорт по скролбэку: `delta < 0` — вверх, `delta > 0` — вниз.
+     * Клампится в `[0, baseY]`; при реальном изменении дёргает `onUpdate`.
+     */
+    public scrollLines(delta: number): void {
+        this.setScrollOffset(this.scrollOffset - delta);
+    }
+
+    /**
+     * Прочитать ячейку вьюпорта в переданный `out`. Строка берётся с учётом смещения
+     * прокрутки (`baseY - scrollOffset + y`), поэтому в скролбэке рисуется история.
+     * Возвращает false для continuation-ячейки wide-char (`getWidth() === 0` — голова
+     * уже отдана с width=2) либо координаты вне диапазона; в обоих случаях `out` не тронут.
      */
     public readCell(x: number, y: number, out: TerminalCell): boolean {
         const buffer = this.term.buffer.active;
-        const line = buffer.getLine(buffer.baseY + y);
+        const line = buffer.getLine(buffer.baseY - this.scrollOffset + y);
         if (!line) return false;
         const cell = line.getCell(x, this.cellBuffer);
         if (cell) this.cellBuffer = cell;
@@ -169,8 +202,12 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
         return true;
     }
 
-    /** Позиция курсора в видимой области или `null`, когда координата вне диапазона. */
+    /**
+     * Позиция курсора в видимой области или `null`, когда координата вне диапазона
+     * либо мы смотрим в скролбэк (курсор живёт на дне — над историей он врёт).
+     */
     public getCursor(): { x: number; y: number } | null {
+        if (this.scrollOffset > 0) return null;
         const buffer = this.term.buffer.active;
         const x = buffer.cursorX;
         const y = buffer.cursorY;
@@ -178,8 +215,12 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
         return { x, y };
     }
 
-    /** Ввод пользователя (уже закодированный в байты, которые ждёт PTY). */
+    /**
+     * Ввод пользователя (уже закодированный в байты, которые ждёт PTY). Любой ввод
+     * возвращает вьюпорт на дно — печатать, глядя в историю, бессмысленно.
+     */
     public write(data: string): void {
+        this.setScrollOffset(0);
         if (!this.exited) this.pty.write(data);
     }
 
@@ -190,6 +231,8 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
         this.cols = cols;
         this.rows = rows;
         this.term.resize(cols, rows);
+        // Рефлоу меняет длину скролбэка — подрезаем смещение под новый максимум.
+        this.setScrollOffset(this.scrollOffset);
         if (!this.exited) this.pty.resize(cols, rows);
     }
 
@@ -205,9 +248,8 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
      */
     public sendMouse(event: TerminalMouseEventData): void {
         if (this.exited) return;
-        const core = (this.term as unknown as { _core?: { coreMouseService?: ICoreMouseService } })._core;
+        const service = this.coreMouseService;
         /* v8 ignore start -- defensive: a live xterm Terminal always exposes _core.coreMouseService, so the optional chain and this guard are only a safety net against a change in xterm internals */
-        const service = core?.coreMouseService;
         if (!service) return;
         /* v8 ignore stop */
         service.triggerMouseEvent({
@@ -244,6 +286,26 @@ export class EmbeddedTerminalSession implements ITerminalSurface, IDisposable {
 
     private emitUpdate(): void {
         for (const cb of this.updateListeners) cb();
+    }
+
+    /** Сколько строк истории лежит выше вьюпорта — максимум, на который можно уехать. */
+    private get maxScrollOffset(): number {
+        return this.term.buffer.active.baseY;
+    }
+
+    /**
+     * coreMouseService — внутренний (не публичный) сервис xterm; ходим к нему напрямую,
+     * поэтому доступ спрятан в одно место.
+     */
+    private get coreMouseService(): ICoreMouseService | undefined {
+        return (this.term as unknown as { _core?: { coreMouseService?: ICoreMouseService } })._core?.coreMouseService;
+    }
+
+    private setScrollOffset(value: number): void {
+        const next = Math.max(0, Math.min(value, this.maxScrollOffset));
+        if (next === this.viewportScrollOffset) return;
+        this.viewportScrollOffset = next;
+        this.emitUpdate();
     }
 }
 

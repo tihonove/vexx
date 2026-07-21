@@ -106,6 +106,9 @@ describe("TerminalViewElement — mouse", () => {
         ["right", "wheelRight"],
     ] as const)('forwards wheel %s as button "wheel"', (direction, action) => {
         const { el, surface } = makeElement();
+        // Отчёт уходит в поверхность, только пока программа держит mouse-tracking;
+        // без него колесо крутит вьюпорт (см. terminalViewElement.scroll.test.ts).
+        surface.mouseEventsActive = true;
         el.dispatchEvent(mouse("wheel", { localX: 2, localY: 5, wheelDirection: direction }));
         expect(surface.mouseEvents).toEqual([
             { col: 2, row: 5, button: "wheel", action, ctrl: false, alt: false, shift: false },
@@ -114,6 +117,7 @@ describe("TerminalViewElement — mouse", () => {
 
     it("treats a wheel event without a direction as a scroll up", () => {
         const { el, surface } = makeElement();
+        surface.mouseEventsActive = true;
         // wheelDirection необязателен в TUIMouseEvent — бэкенд мог не распознать направление.
         el.dispatchEvent(mouse("wheel", { localX: 0, localY: 0, wheelDirection: undefined }));
         expect(surface.mouseEvents).toEqual([
@@ -123,6 +127,7 @@ describe("TerminalViewElement — mouse", () => {
 
     it("keeps modifier flags on wheel events", () => {
         const { el, surface } = makeElement();
+        surface.mouseEventsActive = true;
         el.dispatchEvent(
             mouse("wheel", {
                 localX: 1,
