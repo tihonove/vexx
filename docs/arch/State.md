@@ -104,6 +104,11 @@ main.ts: build container ─► process.on("exit", stateService.flushSync)
   `LayoutService.attachLayout` подписывает его на `captureLayout()`. Открытые
   файлы — собственная подписка `WorkbenchStateService` на
   `EditorService.onActiveEditorChanged` → `captureOpenEditors()`.
+- **Активная вкладка нижней панели** живёт не в layout-элементе, а в
+  `PanelService`, поэтому у неё свой write-through: подписка `LayoutService` на
+  `onDidChangeActiveView` → `PANEL_ACTIVE_VIEW_STATE`. На restore вкладка
+  активируется программно (`setActiveView`, не `activateView`) — ленивые фичи не
+  будятся, TERMINAL восстанавливается с placeholder'ом без спавна шелла.
 - **restoreLayout** во время restore глушит авто-capture (re-entrancy guard).
 - **restoreOpenEditors** пропускает отсутствующие на диске файлы (как VS Code) и
   переотображает индекс активной вкладки на выживших.

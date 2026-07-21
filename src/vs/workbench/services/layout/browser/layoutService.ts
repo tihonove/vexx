@@ -8,6 +8,7 @@ import type { PanelService } from "../../../browser/parts/panel/panelService.ts"
 import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
 import { StateServiceDIToken } from "../../../common/coreTokens.ts";
 import {
+    PANEL_ACTIVE_VIEW_STATE,
     PANEL_HEIGHT_STATE,
     PANEL_VISIBLE_STATE,
     SIDEBAR_VISIBLE_STATE,
@@ -51,6 +52,14 @@ export class LayoutService extends Disposable {
                 this.contextKeys.set("panelVisible", visible);
             }),
         );
+        // Активная вкладка живёт в PanelService и меняется мимо layout-элемента,
+        // поэтому write-through у неё свой (onDidChangeLayout её не видит).
+        this.register(
+            this.panelService.onDidChangeActiveView((id) => {
+                if (this.restoring) return;
+                this.state.store(PANEL_ACTIVE_VIEW_STATE, id);
+            }),
+        );
     }
 
     /**
@@ -80,6 +89,10 @@ export class LayoutService extends Disposable {
             layout.setBottomPanelHeight(this.state.get(PANEL_HEIGHT_STATE));
             layout.setBottomPanelVisible(this.state.get(PANEL_VISIBLE_STATE));
             layout.markDirty();
+            // Программная активация (не `activateView`) — ленивые фичи не будят:
+            // вкладка TERMINAL восстанавливается с placeholder'ом, шелл не спавним.
+            const activeViewId = this.state.get(PANEL_ACTIVE_VIEW_STATE);
+            if (activeViewId !== "") this.panelService.setActiveView(activeViewId);
         } finally {
             this.restoring = false;
         }
@@ -94,6 +107,7 @@ export class LayoutService extends Disposable {
         this.state.store(SIDEBAR_VISIBLE_STATE, layout.getLeftPanelVisible());
         this.state.store(PANEL_HEIGHT_STATE, layout.getBottomPanelHeight());
         this.state.store(PANEL_VISIBLE_STATE, layout.getBottomPanelVisible());
+        this.state.store(PANEL_ACTIVE_VIEW_STATE, this.panelService.getActiveViewId() ?? "");
     }
 
     // ── Сайдбар ─────────────────────────────────────────────────────────────

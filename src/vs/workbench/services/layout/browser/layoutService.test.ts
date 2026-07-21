@@ -7,6 +7,7 @@ import { resolveUserDataPaths } from "../../../../platform/environment/node/user
 import { loadState, StateService } from "../../../../platform/state/node/stateService.ts";
 import { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import {
+    PANEL_ACTIVE_VIEW_STATE,
     PANEL_HEIGHT_STATE,
     PANEL_VISIBLE_STATE,
     SIDEBAR_VISIBLE_STATE,
@@ -160,6 +161,63 @@ describe("LayoutService", () => {
             service.setPanelVisible(false);
             expect(layout.getBottomPanelVisible()).toBe(false);
             expect(contextKeys.get("panelVisible")).toBe(false);
+        });
+
+        it("persists the active panel tab and restores it after a restart", () => {
+            panelService.addView({ id: "problems", title: "PROBLEMS" });
+            panelService.addView({ id: "terminal", title: "TERMINAL" });
+
+            const { service } = make();
+            service.restoreLayout();
+            panelService.activateView("terminal");
+            expect(state.get(PANEL_ACTIVE_VIEW_STATE)).toBe("terminal");
+
+            // «Перезапуск»: свежий PanelService с тем же порядком регистрации.
+            panelService = new PanelService();
+            panelService.addView({ id: "problems", title: "PROBLEMS" });
+            panelService.addView({ id: "terminal", title: "TERMINAL" });
+            expect(panelService.getActiveViewId()).toBe("problems");
+
+            make().service.restoreLayout();
+            expect(panelService.getActiveViewId()).toBe("terminal");
+        });
+
+        it("restore activates the tab without waking lazy features", () => {
+            panelService.addView({ id: "problems", title: "PROBLEMS" });
+            panelService.addView({ id: "terminal", title: "TERMINAL" });
+            state.store(PANEL_ACTIVE_VIEW_STATE, "terminal");
+
+            let activated = 0;
+            panelService.onDidActivateView(() => {
+                activated++;
+            });
+
+            make().service.restoreLayout();
+            // Ленивый спавн шелла висит на onDidActivateView — restore его не будит.
+            expect(panelService.getActiveViewId()).toBe("terminal");
+            expect(activated).toBe(0);
+        });
+
+        it("keeps the first registered tab active when nothing is stored", () => {
+            panelService.addView({ id: "problems", title: "PROBLEMS" });
+            panelService.addView({ id: "terminal", title: "TERMINAL" });
+
+            make().service.restoreLayout();
+            expect(panelService.getActiveViewId()).toBe("problems");
+        });
+
+        it("captureLayout snapshots the active tab too", () => {
+            panelService.addView({ id: "problems", title: "PROBLEMS" });
+            panelService.addView({ id: "terminal", title: "TERMINAL" });
+            panelService.setActiveView("terminal");
+
+            make().service.captureLayout();
+            expect(state.get(PANEL_ACTIVE_VIEW_STATE)).toBe("terminal");
+        });
+
+        it("captureLayout stores an empty id when no tab is registered", () => {
+            make().service.captureLayout();
+            expect(state.get(PANEL_ACTIVE_VIEW_STATE)).toBe("");
         });
 
         it("visibility changes before attachLayout still update the context key", () => {
