@@ -41,10 +41,6 @@ export interface Limits {
     maxConcurrent: number;
     spawnsPerHour: number;
     tickIntervalMin: number;
-    /** Через сколько минут простоя жнец останавливает доработавшего агента. */
-    reapIdleMin: number;
-    /** Возраст, после которого агент считается застрявшим, чем бы он ни был занят. */
-    maxAgeMin: number;
 }
 
 export interface RoleSpec {
@@ -69,8 +65,6 @@ export const DEFAULT_LIMITS: Limits = {
     maxConcurrent: 2,
     spawnsPerHour: 4,
     tickIntervalMin: 10,
-    reapIdleMin: 10,
-    maxAgeMin: 360,
 };
 
 export const DEFAULT_CONFIG_PATH = join(dirname(dirname(fileURLToPath(import.meta.url))), "config.jsonc");
@@ -143,8 +137,6 @@ export function validateConfig(raw: unknown, source = "config"): AgentsConfig {
         maxConcurrent: positiveInt(rawLimits.maxConcurrent, "limits.maxConcurrent", DEFAULT_LIMITS.maxConcurrent),
         spawnsPerHour: positiveInt(rawLimits.spawnsPerHour, "limits.spawnsPerHour", DEFAULT_LIMITS.spawnsPerHour),
         tickIntervalMin: positiveInt(rawLimits.tickIntervalMin, "limits.tickIntervalMin", DEFAULT_LIMITS.tickIntervalMin),
-        reapIdleMin: positiveInt(rawLimits.reapIdleMin, "limits.reapIdleMin", DEFAULT_LIMITS.reapIdleMin),
-        maxAgeMin: positiveInt(rawLimits.maxAgeMin, "limits.maxAgeMin", DEFAULT_LIMITS.maxAgeMin),
     };
 
     if (raw.dryRun !== undefined && typeof raw.dryRun !== "boolean") return fail("`dryRun` должен быть boolean");

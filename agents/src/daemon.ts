@@ -9,7 +9,6 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:http";
 
-import { listAgents, planReap, stopAgent } from "./agents.ts";
 import { loadConfig } from "./config.ts";
 import type { AgentsConfig } from "./config.ts";
 import { createDashboard, isStopped } from "./dashboard.ts";
@@ -97,25 +96,6 @@ function runOrchestrator(mcpPort: number): Promise<{ ok: boolean; summary: strin
     });
 }
 
-/**
- * Жнец. Идёт каждый цикл, в том числе под STOP: агент, доделавший работу, сам не
- * завершается, и если его не остановить, он держит слот навсегда. Оркестратор делает
- * то же самое, но полагаться только на него нельзя — он может не тикать вовсе.
- */
-async function reap(): Promise<void> {
-    try {
-        const decisions = planReap(await listAgents(), config.limits);
-        for (const decision of decisions) {
-            await stopAgent(decision.agentId);
-            append({ at: new Date().toISOString(), kind: "kill", name: decision.name, agentId: decision.agentId });
-            log(`жнец остановил ${decision.name} — ${decision.reason}`);
-        }
-    } catch (error) {
-        // Жнец не должен ронять цикл: не сработал сейчас — сработает через интервал.
-        log(`жнец: ${error instanceof Error ? error.message : String(error)}`);
-    }
-}
-
 async function tick(trigger: "schedule" | "manual"): Promise<void> {
     if (ticking) return;
     ticking = true;
@@ -164,8 +144,6 @@ async function loop(): Promise<void> {
         // момент спавнит процессы, — гонка, а файл-стоп её не создаёт.
         const trigger = nextTrigger;
         nextTrigger = "schedule";
-        config = loadConfig();
-        await reap();
         if (isStopped()) log("STOP — тик пропущен");
         else await tick(trigger);
         await sleep(config.limits.tickIntervalMin * 60_000);

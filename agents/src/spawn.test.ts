@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { AGENT_NAME_RE, skillPrompt } from "./agents.ts";
 import { countSpawnsSince, parseLines } from "./history.ts";
+import { encodeProjectDir } from "./paths.ts";
 
 describe("skillPrompt", () => {
     it("собирает промпт из имени скилла и аргументов", () => {
@@ -39,5 +40,13 @@ describe("history", () => {
             ].join("\n"),
         );
         expect(countSpawnsSince(events, new Date("2026-07-20T20:00:00Z"))).toBe(1);
+    });
+});
+
+describe("encodeProjectDir", () => {
+    it("заменяет и слэши, и точки — иначе файл сессии не находится", () => {
+        expect(encodeProjectDir("/workspaces/vexx/.claude/worktrees/issue-180")).toBe(
+            "-workspaces-vexx--claude-worktrees-issue-180",
+        );
     });
 });
