@@ -29,6 +29,7 @@ function makeDriver(overrides: Partial<InspectorDriver> = {}): InspectorDriver {
     return {
         sendKey: vi.fn(),
         sendText: vi.fn(),
+        sendMouse: vi.fn(),
         resize: vi.fn(),
         captureFrame: vi.fn().mockResolvedValue(emptyGridSnapshot(4, 2)),
         shutdown: vi.fn(),
@@ -139,6 +140,120 @@ describe("InspectorCore", () => {
             await core.dispatch({ id: 1, method: InspectorMethod.sendText, params: { text: "hello" } });
 
             expect(driver.sendText).toHaveBeenCalledWith("hello");
+        });
+
+        it("routes sendMouse to the driver", async () => {
+            const driver = makeDriver();
+            const core = new InspectorCore(makeTarget(), driver);
+
+            await core.dispatch({
+                id: 1,
+                method: InspectorMethod.sendMouse,
+                params: { action: "press", button: "left", x: 3, y: 4, ctrlKey: true },
+            });
+
+            expect(driver.sendMouse).toHaveBeenCalledWith({
+                action: "press",
+                button: "left",
+                x: 3,
+                y: 4,
+                shiftKey: false,
+                altKey: false,
+                ctrlKey: true,
+            });
+        });
+
+        it("passes sendMouse through without a button (wheel)", async () => {
+            const driver = makeDriver();
+            const core = new InspectorCore(makeTarget(), driver);
+
+            await core.dispatch({
+                id: 1,
+                method: InspectorMethod.sendMouse,
+                params: { action: "scroll-down", x: 0, y: 0 },
+            });
+
+            expect(driver.sendMouse).toHaveBeenCalledWith({
+                action: "scroll-down",
+                x: 0,
+                y: 0,
+                shiftKey: false,
+                altKey: false,
+                ctrlKey: false,
+            });
+        });
+
+        it("normalizes sendMouse modifiers to booleans", async () => {
+            const driver = makeDriver();
+            const core = new InspectorCore(makeTarget(), driver);
+
+            await core.dispatch({
+                id: 1,
+                method: InspectorMethod.sendMouse,
+                params: { action: "move", button: "left", x: 1, y: 2, shiftKey: true, altKey: true },
+            });
+
+            expect(driver.sendMouse).toHaveBeenCalledWith({
+                action: "move",
+                button: "left",
+                x: 1,
+                y: 2,
+                shiftKey: true,
+                altKey: true,
+                ctrlKey: false,
+            });
+        });
+
+        it("rejects sendMouse with an unknown action", async () => {
+            const core = new InspectorCore(makeTarget(), makeDriver());
+
+            const res = await core.dispatch({
+                id: 1,
+                method: InspectorMethod.sendMouse,
+                params: { action: "wiggle", x: 1, y: 1 },
+            });
+
+            expect(res).toEqual({
+                id: 1,
+                error: {
+                    message:
+                        "sendMouse requires 'action' one of: press, release, move, scroll-up, scroll-down, scroll-left, scroll-right",
+                },
+            });
+        });
+
+        it("rejects sendMouse with an unknown button", async () => {
+            const core = new InspectorCore(makeTarget(), makeDriver());
+
+            const res = await core.dispatch({
+                id: 1,
+                method: InspectorMethod.sendMouse,
+                params: { action: "press", button: "thumb", x: 1, y: 1 },
+            });
+
+            expect(res).toEqual({
+                id: 1,
+                error: { message: "sendMouse 'button' must be one of: left, middle, right, none" },
+            });
+        });
+
+        it("rejects sendMouse with negative or non-integer coordinates", async () => {
+            const core = new InspectorCore(makeTarget(), makeDriver());
+            const expected = { message: "sendMouse requires non-negative integer 'x' and 'y'" };
+
+            const negative = await core.dispatch({
+                id: 1,
+                method: InspectorMethod.sendMouse,
+                params: { action: "press", x: -1, y: 1 },
+            });
+            const fractional = await core.dispatch({
+                id: 2,
+                method: InspectorMethod.sendMouse,
+                params: { action: "press", x: 1, y: 1.5 },
+            });
+
+            expect(negative).toEqual({ id: 1, error: expected });
+            expect(fractional).toEqual({ id: 2, error: expected });
         });
 
         it("routes resize to the driver", async () => {

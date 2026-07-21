@@ -290,6 +290,11 @@ async function runEditor(): Promise<void> {
                       sendText: (text) => {
                           headlessBackend.sendPaste(text);
                       },
+                      sendMouse: (params) => {
+                          // Протокол говорит в 0-based экранных ячейках (как box узла),
+                          // терминальные последовательности — в 1-based.
+                          headlessBackend.sendMouse({ ...params, x: params.x + 1, y: params.y + 1 });
+                      },
                       resize: (cols, rows) => {
                           headlessBackend.resize(new Size(cols, rows));
                       },

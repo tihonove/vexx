@@ -4,6 +4,7 @@ import { packRgb } from "../common/colorUtils.ts";
 import { Point, Size } from "../common/geometryPromitives.ts";
 import { StyleFlags } from "../common/styleFlags.ts";
 import type { KeyPressEvent } from "../input/keyEvent.ts";
+import type { MouseToken } from "../input/rawTerminalToken.ts";
 import { Grid } from "../rendering/grid.ts";
 
 import { HeadlessCaptureBackend } from "./headlessCaptureBackend.ts";
@@ -77,6 +78,34 @@ describe("HeadlessCaptureBackend", () => {
         backend.simulateMouse(token);
 
         expect(onMouse).toHaveBeenCalledWith(token);
+    });
+
+    it("injects mouse events through the real parser to onMouse subscribers", () => {
+        const backend = new HeadlessCaptureBackend();
+        const tokens: MouseToken[] = [];
+        backend.onMouse((t) => tokens.push(t));
+
+        backend.sendMouse({ action: "press", button: "left", x: 10, y: 20, ctrlKey: true });
+
+        expect(tokens).toHaveLength(1);
+        expect(tokens[0]).toMatchObject({
+            kind: "mouse",
+            button: "left",
+            action: "press",
+            x: 10,
+            y: 20,
+            ctrlKey: true,
+        });
+    });
+
+    it("injects a wheel event", () => {
+        const backend = new HeadlessCaptureBackend();
+        const tokens: MouseToken[] = [];
+        backend.onMouse((t) => tokens.push(t));
+
+        backend.sendMouse({ action: "scroll-down", x: 1, y: 1 });
+
+        expect(tokens[0]).toMatchObject({ action: "scroll-down", button: "none" });
     });
 
     it("captures a rendered frame with char, colours, style and width", () => {

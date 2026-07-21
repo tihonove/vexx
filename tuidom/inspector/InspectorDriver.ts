@@ -1,5 +1,7 @@
 import type { GridSnapshot } from "../rendering/gridSnapshot.ts";
 
+import type { SendMouseParams } from "./protocol.ts";
+
 /**
  * Write/capture side of the inspector — the counterpart to the read-only
  * {@link import("./InspectorCore.ts").InspectorTarget}. Present only when the app
@@ -15,6 +17,8 @@ export interface InspectorDriver {
     sendKey(name: string): void;
     /** Inject literal text as a single bracketed paste. */
     sendText(text: string): void;
+    /** Inject a mouse event at 0-based screen coordinates (see {@link SendMouseParams}). */
+    sendMouse(params: SendMouseParams): void;
     /** Resize the virtual terminal. */
     resize(cols: number, rows: number): void;
     /**

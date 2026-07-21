@@ -9,6 +9,7 @@ import {
     type InspectorResponse,
     type ResizeParams,
     type SendKeyParams,
+    type SendMouseParams,
     type SendTextParams,
 } from "./protocol.ts";
 import { serializeTree } from "./serializeTree.ts";
@@ -74,6 +75,10 @@ export class InspectorCore {
             driver.sendText(asSendTextParams(params).text);
             return {};
         });
+        this.register(InspectorMethod.sendMouse, (params) => {
+            driver.sendMouse(asSendMouseParams(params));
+            return {};
+        });
         this.register(InspectorMethod.resize, (params) => {
             const { cols, rows } = asResizeParams(params);
             driver.resize(cols, rows);
@@ -110,6 +115,39 @@ function asSendTextParams(params: unknown): SendTextParams {
         throw new Error("sendText requires a string 'text'");
     }
     return { text };
+}
+
+const MOUSE_ACTIONS: ReadonlySet<string> = new Set([
+    "press",
+    "release",
+    "move",
+    "scroll-up",
+    "scroll-down",
+    "scroll-left",
+    "scroll-right",
+]);
+const MOUSE_BUTTONS: ReadonlySet<string> = new Set(["left", "middle", "right", "none"]);
+
+function asSendMouseParams(params: unknown): SendMouseParams {
+    const { action, button, x, y, shiftKey, altKey, ctrlKey } = asRecord(params);
+    if (typeof action !== "string" || !MOUSE_ACTIONS.has(action)) {
+        throw new Error(`sendMouse requires 'action' one of: ${[...MOUSE_ACTIONS].join(", ")}`);
+    }
+    if (button !== undefined && (typeof button !== "string" || !MOUSE_BUTTONS.has(button))) {
+        throw new Error(`sendMouse 'button' must be one of: ${[...MOUSE_BUTTONS].join(", ")}`);
+    }
+    if (!Number.isInteger(x) || !Number.isInteger(y) || (x as number) < 0 || (y as number) < 0) {
+        throw new Error("sendMouse requires non-negative integer 'x' and 'y'");
+    }
+    return {
+        action: action as SendMouseParams["action"],
+        ...(button === undefined ? {} : { button: button as SendMouseParams["button"] }),
+        x: x as number,
+        y: y as number,
+        shiftKey: shiftKey === true,
+        altKey: altKey === true,
+        ctrlKey: ctrlKey === true,
+    };
 }
 
 function asResizeParams(params: unknown): ResizeParams {
