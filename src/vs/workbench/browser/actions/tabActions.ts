@@ -51,7 +51,7 @@ export const closeActiveEditorAction: CommandAction = {
     id: "workbench.action.closeActiveEditor",
     title: "Close Active Editor",
     shortTitle: "Close Editor",
-    menus: [{ menuId: MenuId.MenubarGoMenu, group: "3_close", order: 10 }],
+    menus: [{ menuId: MenuId.MenubarFileMenu, group: "5_close", order: 10 }],
     keybinding: parseKeybinding("ctrl+w"),
     when: "textInputFocus && editorGroupHasEditors",
     run(accessor) {

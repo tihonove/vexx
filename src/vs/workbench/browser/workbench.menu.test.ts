@@ -40,6 +40,7 @@ describe("Workbench — menu bar wiring", () => {
             "Save As...",
             "Settings",
             "Keyboard Shortcuts",
+            "Close Editor",
             "Exit",
         ]);
     });
@@ -312,7 +313,6 @@ describe("Workbench — menu bar wiring", () => {
             "Go to Line/Column...",
             "Next Editor",
             "Previous Editor",
-            "Close Editor",
         ]);
     });
 
@@ -336,10 +336,10 @@ describe("Workbench — menu bar wiring", () => {
         expect(executeSpy).toHaveBeenCalledWith("workbench.action.nextEditorInGroup");
     });
 
-    it("Go → Close Editor runs the close-active-editor command", () => {
+    it("File → Close Editor runs the close-active-editor command", () => {
         const { testApp, commands } = createAppTestHarness();
         const executeSpy = vi.spyOn(commands, "execute");
-        const popup = openMenu(testApp, "g");
+        const popup = openMenu(testApp, "f");
 
         entryByLabel(popup, "Close Editor").onSelect?.();
 
