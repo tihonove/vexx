@@ -93,7 +93,9 @@ Workbench-модели Service ↔ Component), `EditorGroupComponent` ↔
   (GOAL.md). Слой `tuidom/inspector/` (→ TUIDom+Common). Флаг
   `--inspect-tui[=host:port]`, работает и в SEA-бинаре.
 - Ввод в e2e — гибрид: действия через существующий `VexxSession.sendKey/write`
-  (PTY), новый канал только читает DOM/свойства.
+  (PTY), новый канал только читает DOM/свойства. Поправка: в `--headless` драйвер
+  уже пишет — `sendKey/sendText/sendMouse/resize`; мышь (`TUIDom.sendMouse`)
+  инъектируется только этим каналом, PTY-аналога у неё нет.
 - Опоры: `querySelector`/`querySelectorAll` (`src/vs/base/browser/tuiSelector.ts`),
   `resolvedStyle`/`globalPosition`/`layoutSize` (`TUIElement.ts`), грид через
   `TerminalScreen.grid`.
