@@ -28,7 +28,7 @@ usage() {
   start --paused  поднять сервер, но не запускать роли по расписанию
   stop            мягко: поставить STOP — по расписанию ничего не запускается
   stop --now      жёстко: остановить сервер и всех агентов (разговоры сохраняются)
-  restart         перезапустить сервер (агенты не пострадают)
+  restart         перезапустить только сервер — агенты продолжают работать
   status          состояние сервера и агентов
   logs            tail -f лога сервера
   attach          подключиться к серверу (tmux)
@@ -52,24 +52,55 @@ agent_windows() {
     tmux list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -vx "$SERVER_WINDOW" || true
 }
 
-cmd_start() {
-    if tmux has-session -t "$SESSION" 2>/dev/null; then
-        echo "Сервер уже поднят (tmux: $SESSION). Два планировщика = двойные запуски, так что ничего не делаю."
-        return 0
-    fi
-    [ -d agents/node_modules ] || (cd agents && npm install)
-    # --paused: поднять серверы (MCP + витрину), но не запускать роли по расписанию.
-    # Нужно, когда запуски хочется делать руками и видеть их целиком.
+SERVER_CMD="cd '$ROOT/agents' && npx tsx src/server.ts 2>&1 | tee -a '$LOG'"
+
+server_running() {
+    tmux list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$SERVER_WINDOW"
+}
+
+# --paused: поднять серверы (MCP + витрину), но не запускать роли по расписанию.
+# Нужно, когда запуски хочется делать руками и видеть их целиком.
+apply_pause() {
     if [ "${1:-}" = "--paused" ]; then
         touch "$STOP"
     else
         rm -f "$STOP"
     fi
-    # Сервер — окно "server" в той же сессии; агенты станут соседними окнами,
-    # и tmux сам окажется реестром: имя окна = ключ агента.
-    tmux new-session -d -s "$SESSION" -n "$SERVER_WINDOW" -c "$ROOT" \
-        "cd '$ROOT/agents' && npx tsx src/server.ts 2>&1 | tee -a '$LOG'"
+}
+
+cmd_start() {
+    [ -d agents/node_modules ] || (cd agents && npm install)
+    apply_pause "${1:-}"
+
+    if server_running; then
+        echo "Сервер уже поднят. Два планировщика = двойные запуски, так что второй не поднимаю."
+        [ -f "$STOP" ] && echo "режим: STOP" || echo "режим: работает по расписанию"
+        return 0
+    fi
+
+    # Сервер — окно "server"; агенты живут соседними окнами той же сессии,
+    # и tmux сам оказывается реестром: имя окна = ключ агента.
+    if tmux has-session -t "$SESSION" 2>/dev/null; then
+        tmux new-window -d -t "$SESSION" -n "$SERVER_WINDOW" -c "$ROOT" "$SERVER_CMD"
+    else
+        tmux new-session -d -s "$SESSION" -n "$SERVER_WINDOW" -c "$ROOT" "$SERVER_CMD"
+    fi
     echo "Сервер поднят. Витрина: http://localhost:$(dashboard_port)"
+}
+
+# Рестарт трогает ТОЛЬКО окно сервера. Агенты — соседние окна, и терять их незачем:
+# сервер не владеет их состоянием, он выводит его из мира заново (окна tmux, claude
+# agents --json, git). Поэтому его перезапуск для агентов вообще незаметен.
+cmd_restart() {
+    apply_pause "${1:-}"
+    if ! server_running; then
+        cmd_start "${1:-}"
+        return 0
+    fi
+    tmux respawn-window -k -c "$ROOT" -t "$SESSION:$SERVER_WINDOW" "$SERVER_CMD"
+    local kept
+    kept="$(agent_windows | wc -l)"
+    echo "Сервер перезапущен. Агентов не тронуто: $kept"
 }
 
 cmd_stop() {
@@ -119,7 +150,7 @@ cmd_tick() {
 case "${1:-}" in
     start)   shift; cmd_start "$@" ;;
     stop)    shift; cmd_stop "$@" ;;
-    restart) shift; tmux kill-session -t "$SESSION" 2>/dev/null || true; cmd_start "$@" ;;
+    restart) shift; cmd_restart "$@" ;;
     status)  cmd_status ;;
     logs)    touch "$LOG"; tail -f "$LOG" ;;
     attach)  tmux attach -t "$SESSION:$SERVER_WINDOW" ;;
