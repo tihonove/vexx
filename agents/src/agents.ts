@@ -10,7 +10,7 @@ import { basename } from "node:path";
 
 import type { Limits } from "./config.ts";
 import { countSpawnsSince, type HistoryEvent } from "./history.ts";
-import { sessionFile, worktreePath, WORKTREES_DIR } from "./paths.ts";
+import { REPO_ROOT, sessionFile, worktreePath, WORKTREES_DIR } from "./paths.ts";
 
 /** Имя агента = имя его worktree = имя каталога, поэтому оно должно быть безопасным для пути. */
 export const AGENT_NAME_RE = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
@@ -148,6 +148,8 @@ export interface SpawnResult {
     skill: string;
     worktree: string;
     prompt: string;
+    /** Коммит main, от которого отведён worktree, — чтобы было видно, на чём агент работает. */
+    base: string;
 }
 
 /**
@@ -187,13 +189,40 @@ export function skillPrompt(skill: string, args: string): string {
     return `/${skill}${args.trim() ? ` ${args.trim()}` : ""}`;
 }
 
+/**
+ * Подтянуть `main` перед спавном: `claude --worktree` отводит дерево от локального `main`,
+ * поэтому устаревший `main` = агент пишет код на вчерашней базе и получает конфликты в PR.
+ *
+ * Обновляем аккуратно и только вперёд:
+ *  - если `main` сейчас выкачен — `merge --ff-only`, git сам откажется, если это затрёт правки;
+ *  - если нет — двигаем сам ref через `fetch origin main:main`, рабочего дерева не касаясь.
+ *
+ * Не получилось (разъехались, грязное дерево) — не блокируем спавн, а сообщаем: решать человеку.
+ */
+export async function refreshMain(): Promise<string> {
+    try {
+        await run("git", ["-C", REPO_ROOT, "fetch", "origin", "main"]);
+        const head = (await run("git", ["-C", REPO_ROOT, "rev-parse", "--abbrev-ref", "HEAD"])).trim();
+        if (head === "main") await run("git", ["-C", REPO_ROOT, "merge", "--ff-only", "origin/main"]);
+        else await run("git", ["-C", REPO_ROOT, "fetch", "origin", "main:main"]);
+
+        const base = (await run("git", ["-C", REPO_ROOT, "rev-parse", "--short", "main"])).trim();
+        // Непушенные коммиты main попадут в ветку агента и будут выглядеть в PR как его работа.
+        const ahead = Number((await run("git", ["-C", REPO_ROOT, "rev-list", "--count", "origin/main..main"])).trim());
+        return ahead > 0 ? `${base} (локальный main опережает origin на ${ahead} — они попадут в PR агента)` : base;
+    } catch (error) {
+        return `не обновлён: ${error instanceof Error ? error.message.split("\n")[0] : String(error)}`;
+    }
+}
+
 export async function spawnAgent(args: { name: string; skill: string; args: string }): Promise<SpawnResult> {
+    const base = await refreshMain();
     const prompt = skillPrompt(args.skill, args.args);
     // bypassPermissions, потому что спрашивать некого: на любом вопросе фоновый агент
     // повис бы навсегда, держа слот. Допустимо ровно потому, что он в отдельном worktree.
     // Форграундный `run` наоборот идёт на acceptEdits — там за него отвечает человек.
     await run("claude", ["--worktree", args.name, "--background", "--permission-mode", "bypassPermissions", prompt]);
-    return { refused: false, name: args.name, skill: args.skill, worktree: worktreePath(args.name), prompt };
+    return { refused: false, name: args.name, skill: args.skill, worktree: worktreePath(args.name), prompt, base };
 }
 
 /**
