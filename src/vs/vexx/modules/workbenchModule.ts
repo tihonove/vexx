@@ -108,6 +108,7 @@ import {
 } from "../../workbench/contrib/suggest/browser/completionService.ts";
 import { SuggestComponent, SuggestComponentDIToken } from "../../workbench/contrib/suggest/browser/suggestComponent.ts";
 import {
+    TerminalFocusFallbackDIToken,
     TerminalPanelComponent,
     TerminalPanelComponentDIToken,
 } from "../../workbench/contrib/terminal/browser/terminalPanelComponent.ts";
@@ -145,7 +146,7 @@ import {
  * `WorkbenchComponent` (этап 12). Здесь же — интерфейсные швы Workbench:
  * `EditorService` выполняет их структурно (`ActiveEditorStatusSourceDIToken` /
  * `DiagnosticsEditorSourceDIToken` / `MarkerRevealTargetDIToken` /
- * `GotoLineEditorSourceDIToken`), смену папки воркспейса (Open Folder)
+ * `GotoLineEditorSourceDIToken` / `TerminalFocusFallbackDIToken`), смену папки воркспейса (Open Folder)
  * структурно выполняет `WorkbenchComponent` (`WorkspaceFolderOpenerDIToken`).
  */
 export const workbenchModule: ContainerModule = (container) => {
@@ -231,6 +232,8 @@ export const workbenchModule: ContainerModule = (container) => {
     // Тестовый профиль перебивает биндинг на FakeTerminalSurface (см. TestProfile).
     container.bind(TerminalSessionFactoryDIToken, () => (options) => new EmbeddedTerminalSession(options));
     container.bind(TerminalServiceDIToken, TerminalService);
+    // Куда уходит фокус, когда последний шелл вышел и виджет ушёл со сцены.
+    container.bind(TerminalFocusFallbackDIToken, () => container.get(EditorServiceDIToken));
     container.bind(TerminalPanelComponentDIToken, TerminalPanelComponent);
     // Диагностики: поставщики → MarkerService → потребители (squiggles, Problems).
     container.bind(DiagnosticsEditorSourceDIToken, () => container.get(EditorServiceDIToken));

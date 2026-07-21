@@ -25,13 +25,24 @@ function buildHarness() {
         return surface;
     };
     const service = new TerminalService(panelService, factory);
-    const component = new TerminalPanelComponent(service, panelService, themeService);
+    const focusFallback = { focusEditor: vi.fn() };
+    const component = new TerminalPanelComponent(service, panelService, themeService, focusFallback);
     const testApp = TestApp.createWithContent(panelComponent.view, new Size(70, 12));
     const dispose = (): void => {
         component.dispose();
         service.dispose();
     };
-    return { themeService, panelService, panelComponent, service, component, testApp, created: sessions, dispose };
+    return {
+        themeService,
+        panelService,
+        panelComponent,
+        service,
+        component,
+        testApp,
+        created: sessions,
+        focusFallback,
+        dispose,
+    };
 }
 
 type Harness = ReturnType<typeof buildHarness>;
@@ -132,6 +143,43 @@ describe("TerminalPanelComponent", () => {
         h.dispose();
     });
 
+    // Регрессия на BUG-3 (#177): после `exit` фокус оставался на снятом с дерева
+    // виджете (FocusManager его обнулял) — ввод пропадал целиком.
+    it("hands focus to the editor when the last shell exits", () => {
+        h.service.openTerminal();
+        h.testApp.render();
+
+        h.created[0].emitExit(0);
+
+        expect(h.focusFallback.focusEditor).toHaveBeenCalledTimes(1);
+        h.dispose();
+    });
+
+    it("hands focus to the remaining terminal when the focused one exits", () => {
+        h.service.newTerminal(); // #1
+        const firstWidget = h.panelComponent.view.getChildren()[0] as TerminalViewElement;
+        h.service.newTerminal(); // #2 — активный и в фокусе
+        h.testApp.render();
+
+        h.created[1].emitExit(0);
+        h.testApp.render();
+
+        expect(firstWidget.isFocused).toBe(true);
+        expect(h.focusFallback.focusEditor).not.toHaveBeenCalled();
+        h.dispose();
+    });
+
+    it("leaves focus alone when a terminal exits while it was not focused", () => {
+        h.service.openTerminal();
+        h.testApp.render();
+        (h.panelComponent.view.getChildren()[0] as TerminalViewElement).blur();
+
+        h.created[0].emitExit(0);
+
+        expect(h.focusFallback.focusEditor).not.toHaveBeenCalled();
+        h.dispose();
+    });
+
     it("spawns, shows and focuses the terminal when its tab is clicked", () => {
         // Клик по табу: контрол зовёт onActivateView → PanelService.activateView →
         // TerminalService лениво спавнит шелл → компонент вкидывает и фокусирует виджет.
@@ -153,7 +201,7 @@ describe("TerminalPanelComponent", () => {
         const service = new TerminalService(panelService, () => new FakeTerminalSurface());
         service.openTerminal(); // инстанс существует ДО компонента
 
-        const component = new TerminalPanelComponent(service, panelService, themeService);
+        const component = new TerminalPanelComponent(service, panelService, themeService, { focusEditor: vi.fn() });
 
         expect(panelComponent.view.getChildren()).toHaveLength(1);
         expect(panelComponent.view.getChildren()[0]).toBeInstanceOf(TerminalViewElement);
