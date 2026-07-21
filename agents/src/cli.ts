@@ -5,7 +5,8 @@
 // что потом поедет по расписанию.
 import { ConfigError, loadConfig } from "./config.ts";
 import { launch, LaunchError } from "./launch.ts";
-import { listAgents, stopAgent } from "./inspect.ts";
+import { listAgents } from "./inspect.ts";
+import { killWindow } from "./tmux.ts";
 import { append } from "./history.ts";
 
 const USAGE = `Использование: agents.sh <команда>
@@ -28,10 +29,9 @@ async function main(argv: string[]): Promise<number> {
             return 0;
         }
         for (const agent of agents) {
-            const idle = agent.idleMin === null ? "—" : `${agent.idleMin}м`;
             console.log(
-                `${agent.key}  ${agent.status}${agent.state ? `/${agent.state}` : ""}  idle ${idle}  ` +
-                    `возраст ${agent.ageMin}м  ${agent.alive ? "" : "МЁРТВ  "}${agent.branch ?? "—"}`,
+                `${agent.key}  ${agent.status ?? "—"}${agent.state ? `/${agent.state}` : ""}  ` +
+                    `возраст ${agent.ageMin}м  ${agent.branch ?? "—"}`,
             );
         }
         return 0;
@@ -41,8 +41,8 @@ async function main(argv: string[]): Promise<number> {
         if (!role) throw new LaunchError(`stop-agent требует ключ агента.\n\n${USAGE}`);
         const agent = (await listAgents()).find(candidate => candidate.key === role);
         if (!agent) throw new LaunchError(`Агента "${role}" среди живых нет`);
-        await stopAgent(agent.agentId);
-        append({ at: new Date().toISOString(), kind: "stop", key: role, agentId: agent.agentId, by: "human" });
+        await killWindow(agent.key);
+        append({ at: new Date().toISOString(), kind: "stop", key: role, by: "human" });
         console.log(`Остановлен ${role}`);
         return 0;
     }
@@ -65,7 +65,7 @@ async function main(argv: string[]): Promise<number> {
               ? "заведена новая сессия"
               : "разовый запуск без памяти";
     console.log(`${result.key}: ${how}`);
-    console.log(`worktree: ${result.cwd}${result.base ? `\nbase: ${result.base}` : ""}`);
+    console.log(`worktree: ${result.cwd}`);
     if (result.summary) console.log(result.summary);
     return result.ok ? 0 : 1;
 }

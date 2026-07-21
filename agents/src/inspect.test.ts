@@ -1,69 +1,76 @@
 import { describe, expect, it } from "vitest";
 
-import { digestSessionLines, isManagedSession, type RawSession, toAgentInfo } from "./inspect.ts";
+import { digestSessionLines, type RawSession, toAgentInfo } from "./inspect.ts";
+import { uuidFromKey } from "./keys.ts";
 import { encodeProjectDir } from "./paths.ts";
+import { parseWindows, SERVER_WINDOW } from "./tmux.ts";
 
-const WORKTREES = "/repo/.claude/worktrees";
+const worktree = (key: string) => `/repo/.claude/worktrees/${key}`;
 
 function session(overrides: Partial<RawSession> = {}): RawSession {
     return {
         pid: 100,
-        id: "abc12345",
-        cwd: `${WORKTREES}/implement-136`,
-        kind: "background",
+        cwd: worktree("implement-136"),
+        kind: "interactive",
         startedAt: 1_000_000,
-        sessionId: "abc12345-0000-0000-0000-000000000000",
-        name: "/implement 136",
+        sessionId: uuidFromKey("implement-136"),
+        name: "implement-136",
         status: "busy",
         ...overrides,
     };
 }
 
-describe("isManagedSession", () => {
-    it("берёт фоновые сессии внутри worktrees", () => {
-        expect(isManagedSession(session(), WORKTREES)).toBe(true);
+describe("parseWindows", () => {
+    it("окно tmux — это агент, а его имя — ключ", () => {
+        const windows = parseWindows("implement-136\t1000\nimplement-181\t940\n", 1060);
+        expect(windows).toEqual([
+            { name: "implement-136", ageSec: 60 },
+            { name: "implement-181", ageSec: 120 },
+        ]);
     });
 
-    it("не трогает интерактивные сессии — это разговоры с человеком", () => {
-        expect(isManagedSession(session({ kind: "interactive" }), WORKTREES)).toBe(false);
+    it("окно сервера агентом не считается — иначе машинерия убила бы сама себя", () => {
+        expect(parseWindows(`${SERVER_WINDOW}\t1000\nimplement-136\t1000\n`, 1000).map(w => w.name)).toEqual(["implement-136"]);
     });
 
-    it("не трогает фоновые сессии вне worktrees", () => {
-        expect(isManagedSession(session({ cwd: "/repo" }), WORKTREES)).toBe(false);
-        expect(isManagedSession(session({ cwd: "/elsewhere/.claude/worktrees/x" }), WORKTREES)).toBe(false);
-    });
-
-    it("не путает каталог-префикс с каталогом", () => {
-        expect(isManagedSession(session({ cwd: `${WORKTREES}-evil/x` }), WORKTREES)).toBe(false);
+    it("пустой вывод — это «агентов нет», а не ошибка", () => {
+        expect(parseWindows("", 1000)).toEqual([]);
     });
 });
 
 describe("toAgentInfo", () => {
-    it("берёт ключ агента из имени worktree и считает возраст", () => {
-        const agents = toAgentInfo(
-            [session(), session({ kind: "interactive", cwd: "/repo" })],
-            1_000_000 + 5 * 60_000,
-            { alive: () => true, idleMin: () => 3, branch: () => "worktree-implement-136" },
-            WORKTREES,
-        );
+    it("склеивает окно tmux со статусом от claude по рабочему каталогу", () => {
+        const agents = toAgentInfo([{ name: "implement-136", ageSec: 300 }], [session()], {
+            branch: () => "worktree-implement-136",
+            worktree,
+        });
         expect(agents).toHaveLength(1);
-        expect(agents[0]).toMatchObject({ key: "implement-136", agentId: "abc12345", idleMin: 3, alive: true, ageMin: 5 });
+        expect(agents[0]).toMatchObject({
+            key: "implement-136",
+            status: "busy",
+            ageMin: 5,
+            branch: "worktree-implement-136",
+            sessionId: uuidFromKey("implement-136"),
+        });
     });
 
-    it("переживает отсутствие файла сессии", () => {
-        const agents = toAgentInfo(
-            [session()],
-            1_000_000,
-            { alive: () => false, idleMin: () => null, branch: () => null },
-            WORKTREES,
-        );
-        expect(agents[0]).toMatchObject({ idleMin: null, alive: false });
+    it("окно есть, а статуса нет — агент считается живым: реестр это tmux, а не claude", () => {
+        // Сессия могла ещё не зарегистрироваться или уже закрыться, но пока окно живо,
+        // агент занимает место, и оркестратор должен его видеть.
+        const agents = toAgentInfo([{ name: "implement-181", ageSec: 0 }], [], { branch: () => null, worktree });
+        expect(agents[0]).toMatchObject({ key: "implement-181", status: null });
+    });
+
+    it("чужие сессии claude в список не попадают", () => {
+        // У человека свой разговор в корне репозитория — окна tmux у него нет,
+        // значит и агентом он не станет ни при каких обстоятельствах.
+        const agents = toAgentInfo([], [session({ cwd: "/repo" })], { branch: () => null, worktree });
+        expect(agents).toEqual([]);
     });
 });
 
 describe("encodeProjectDir", () => {
-    // Пропущенные точки однажды уже сломали весь heartbeat молча: файл сессии не находился,
-    // и idleMin всегда был null. Поэтому проверка именно на точку.
+    // Пропущенные точки однажды уже сломали весь heartbeat молча: файл сессии не находился.
     it("заменяет на дефис и слэши, и точки", () => {
         expect(encodeProjectDir("/workspaces/vexx/.claude/worktrees/implement-181")).toBe(
             "-workspaces-vexx--claude-worktrees-implement-181",

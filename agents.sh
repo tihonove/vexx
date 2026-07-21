@@ -7,6 +7,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SESSION="agents"
+SERVER_WINDOW="server"
 RUNS="$ROOT/.agents-runs"
 LOG="$RUNS/daemon.log"
 STOP="$RUNS/STOP"
@@ -30,7 +31,8 @@ usage() {
   restart         перезапустить сервер (агенты не пострадают)
   status          состояние сервера и агентов
   logs            tail -f лога сервера
-  attach          подключиться к tmux-сессии сервера
+  attach          подключиться к серверу (tmux)
+  watch <ключ>    подключиться к живому агенту и договорить с ним руками
 
   run <роль> [аргумент]     форграунд, живой диалог — отладка скилла руками
   spawn <роль> [аргумент]   фоном, как по расписанию
@@ -44,17 +46,10 @@ usage() {
 EOF
 }
 
-# Наши агенты — и только они: фоновые сессии внутри .claude/worktrees.
-# Интерактивные сессии (ваши разговоры) не трогаем никогда.
-managed_agent_ids() {
-    claude agents --json 2>/dev/null |
-        node -e '
-            let raw = ""; process.stdin.on("data", c => raw += c).on("end", () => {
-                const prefix = process.argv[1] + "/.claude/worktrees/";
-                for (const s of JSON.parse(raw || "[]"))
-                    if (s.kind === "background" && s.cwd.startsWith(prefix) && s.id) console.log(s.id);
-            });
-        ' "$ROOT"
+# Наши агенты — и только они: окна нашей tmux-сессии, кроме окна сервера.
+# Разговоры человека живут в других сессиях и сюда не попадают по построению.
+agent_windows() {
+    tmux list-windows -t "$SESSION" -F '#{window_name}' 2>/dev/null | grep -vx "$SERVER_WINDOW" || true
 }
 
 cmd_start() {
@@ -70,16 +65,18 @@ cmd_start() {
     else
         rm -f "$STOP"
     fi
-    tmux new-session -d -s "$SESSION" -c "$ROOT" \
+    # Сервер — окно "server" в той же сессии; агенты станут соседними окнами,
+    # и tmux сам окажется реестром: имя окна = ключ агента.
+    tmux new-session -d -s "$SESSION" -n "$SERVER_WINDOW" -c "$ROOT" \
         "cd '$ROOT/agents' && npx tsx src/server.ts 2>&1 | tee -a '$LOG'"
     echo "Сервер поднят. Витрина: http://localhost:$(dashboard_port)"
 }
 
 cmd_stop() {
     if [ "${1:-}" = "--now" ]; then
-        for id in $(managed_agent_ids); do
-            echo "останавливаю агента $id"
-            claude stop "$id" || true
+        for name in $(agent_windows); do
+            echo "останавливаю агента $name"
+            tmux kill-window -t "$SESSION:$name" || true
         done
         tmux kill-session -t "$SESSION" 2>/dev/null || true
         echo "Сервер и агенты остановлены."
@@ -125,7 +122,9 @@ case "${1:-}" in
     restart) shift; tmux kill-session -t "$SESSION" 2>/dev/null || true; cmd_start "$@" ;;
     status)  cmd_status ;;
     logs)    touch "$LOG"; tail -f "$LOG" ;;
-    attach)  tmux attach -t "$SESSION" ;;
+    attach)  tmux attach -t "$SESSION:$SERVER_WINDOW" ;;
+    watch)   shift; [ -n "${1:-}" ] || { echo "Использование: ./agents.sh watch <ключ агента>"; exit 2; }
+             tmux attach -t "$SESSION:$1" ;;
     tick)    shift; cmd_tick "$@" ;;
     run|spawn|wake|list|stop-agent) (cd agents && npx tsx src/cli.ts "$@") ;;
     ""|-h|--help) usage ;;

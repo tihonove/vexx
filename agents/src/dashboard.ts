@@ -40,8 +40,7 @@ async function buildState(deps: DashboardDeps) {
             skill: spec.skill,
             everyMin: spec.everyMin,
             worktree: spec.worktree,
-            background: spec.background,
-            resume: spec.resume,
+            mode: spec.mode,
         })),
         agents: await listAgents(),
         history: tail(HISTORY_ON_PAGE).reverse(),
@@ -116,7 +115,7 @@ const PAGE = `<!doctype html>
 
 <h2>Агенты</h2>
 <table id="agents"><thead><tr>
-  <th>ключ<th>статус<th>idle, мин<th>возраст, мин<th>жив<th>ветка
+  <th>ключ<th>статус<th>возраст, мин<th>ветка<th>сессия
 </tr></thead><tbody></tbody></table>
 
 <h2>Журнал — последние 20</h2>
@@ -162,11 +161,10 @@ async function refresh() {
     };
 
   el("agents").tBodies[0].innerHTML = state.agents.map(a =>
-    "<tr><td>" + esc(a.key) + "<td>" + esc(a.status) + (a.state ? " / " + esc(a.state) : "") +
-    "<td>" + (a.idleMin ?? "—") + "<td>" + a.ageMin +
-    "<td>" + (a.alive ? "да" : "<span class=bad>нет</span>") +
-    "<td>" + esc(a.branch ?? "—") + "</tr>").join("") ||
-    "<tr><td colspan=6 class=dim>никого</td></tr>";
+    "<tr><td>" + esc(a.key) + "<td>" + esc(a.status ?? "—") + (a.state ? " / " + esc(a.state) : "") +
+    "<td>" + a.ageMin + "<td>" + esc(a.branch ?? "—") +
+    "<td class=cmd>" + esc(a.sessionId) + "</tr>").join("") ||
+    "<tr><td colspan=5 class=dim>никого</td></tr>";
 
   el("history").tBodies[0].innerHTML =
     state.history.map(e => "<tr>" + historyRow(e) + "</tr>").join("") ||

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { RoleSpec } from "./config.ts";
+import { uuidFromKey } from "./keys.ts";
 import { buildLaunch, skillPrompt } from "./launch.ts";
 
 const orchestrate: RoleSpec = {
     skill: "orchestrate",
+    mode: "oneshot",
     worktree: false,
-    background: false,
-    resume: false,
     tools: "Bash Read Glob Grep",
     allow: ["mcp__agents__list_agents", "Bash(gh *)"],
     permissionMode: "acceptEdits",
@@ -15,21 +15,20 @@ const orchestrate: RoleSpec = {
 
 const implement: RoleSpec = {
     skill: "implement",
+    mode: "session",
     worktree: true,
-    background: true,
-    resume: true,
     tools: "default",
     permissionMode: "bypassPermissions",
 };
 
-const base = { mcpPort: 7778 };
+const base = { mcpPort: 7778, worktreeExists: false };
 
 function flag(args: string[], name: string): string | undefined {
     const index = args.indexOf(name);
     return index === -1 ? undefined : args[index + 1];
 }
 
-describe("buildLaunch — общие для всех ролей", () => {
+describe("buildLaunch — общее для всех ролей", () => {
     it("подкладывает MCP каждой роли: аналитик и наблюдатель за PR — такие же агенты", () => {
         for (const spec of [orchestrate, implement]) {
             const plan = buildLaunch({ ...base, role: "r", spec, arg: "" });
@@ -62,59 +61,50 @@ describe("buildLaunch — ошейник", () => {
 });
 
 describe("buildLaunch — create-or-update по сессии", () => {
-    it("нового агента заводит с новой сессией", () => {
+    it("нового агента заводит: своё дерево и НАШ session id", () => {
         const plan = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181" });
         expect(plan.session).toBe("create");
-        expect(plan.args).not.toContain("--resume");
+        expect(flag(plan.args, "--worktree")).toBe("implement-181");
+        expect(flag(plan.args, "--session-id")).toBe(uuidFromKey("implement-181"));
+        // Дерева ещё нет, а заводить его claude умеет только из корня репозитория.
+        expect(plan.cwd).not.toMatch(/worktrees/);
+    });
+
+    it("прежнего агента продолжает тем же id, из его дерева", () => {
+        const plan = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181", worktreeExists: true });
+        expect(plan.session).toBe("resume");
+        expect(flag(plan.args, "--resume")).toBe(uuidFromKey("implement-181"));
+        expect(plan.args).not.toContain("--worktree");
         expect(plan.cwd).toMatch(/\.claude\/worktrees\/implement-181$/);
     });
 
-    it("прежнего агента продолжает через --resume", () => {
-        const plan = buildLaunch({
-            ...base,
-            role: "implement",
-            spec: implement,
-            arg: "181",
-            sessionId: "c0cfee5c-1090-4934-8482-f0b1814e0d85",
-        });
-        expect(plan.session).toBe("resume");
-        expect(flag(plan.args, "--resume")).toBe("c0cfee5c-1090-4934-8482-f0b1814e0d85");
+    it("id один и тот же при создании и при продолжении — иначе агента не позвать обратно", () => {
+        const created = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181" });
+        const resumed = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181", worktreeExists: true });
+        expect(flag(created.args, "--session-id")).toBe(flag(resumed.args, "--resume"));
     });
 
-    it("никогда не передаёт --worktree: claude отвёл бы дерево от origin/main", () => {
-        // Из-за этого до агента не доезжали закоммиченные, но не запушенные скиллы,
-        // и он встречал «Unknown command». Дерево заводит prepareWorktree от локального main.
-        for (const spec of [implement, orchestrate]) {
-            expect(buildLaunch({ ...base, role: "r", spec, arg: "181" }).args).not.toContain("--worktree");
-        }
-    });
-
-    it("роль без resume не подхватывает чужую сессию, даже если та найдена", () => {
+    it("oneshot-роль сессией не обзаводится вовсе", () => {
         // Оркестратор обязан начинать каждый тик с чистого листа: накопленный контекст
         // ушёл бы в компакт и дал частичную память — она хуже, чем никакой.
-        const plan = buildLaunch({ ...base, role: "orchestrate", spec: orchestrate, arg: "", sessionId: "какая-то" });
+        const plan = buildLaunch({ ...base, role: "orchestrate", spec: orchestrate, arg: "" });
         expect(plan.session).toBe("fresh");
         expect(plan.args).not.toContain("--resume");
+        expect(plan.args).not.toContain("--session-id");
     });
 });
 
-describe("buildLaunch — режимы запуска", () => {
-    it("фоновая роль уходит в --background", () => {
-        const plan = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181" });
-        expect(plan.args).toContain("--background");
-        expect(plan.background).toBe(true);
-    });
-
-    it("не фоновая роль печатает результат машинно", () => {
+describe("buildLaunch — режимы", () => {
+    it("oneshot печатает результат машинно и умирает", () => {
         const plan = buildLaunch({ ...base, role: "orchestrate", spec: orchestrate, arg: "" });
         expect(plan.args).toContain("-p");
         expect(flag(plan.args, "--output-format")).toBe("json");
     });
 
-    it("отладка руками — живой диалог: ни фона, ни -p", () => {
-        const plan = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181", interactive: true });
-        expect(plan.args).not.toContain("--background");
+    it("session остаётся интерактивным: ни -p, ни --background", () => {
+        // Интерактивность здесь не роскошь: только ей можно задать свой --session-id.
+        const plan = buildLaunch({ ...base, role: "implement", spec: implement, arg: "181" });
         expect(plan.args).not.toContain("-p");
-        expect(plan.background).toBe(false);
+        expect(plan.args).not.toContain("--background");
     });
 });

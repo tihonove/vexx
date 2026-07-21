@@ -28,11 +28,10 @@ export type HistoryEvent =
           trigger: Trigger;
           by: string;
           cwd: string;
-          base?: string;
           cmd: string;
       }
     | { at: string; kind: "finish"; key: string; ok: boolean; durationMs: number; summary: string }
-    | { at: string; kind: "stop"; key: string; agentId: string; by: string }
+    | { at: string; kind: "stop"; key: string; by: string }
     | { at: string; kind: "error"; message: string; key?: string };
 
 export function append(event: HistoryEvent, file = HISTORY_FILE): void {

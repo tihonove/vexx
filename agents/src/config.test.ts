@@ -5,16 +5,19 @@ import { DEFAULT_PORTS, loadConfig, validateConfig } from "./config.ts";
 const minimal = { roles: { implement: { skill: "implement" } } };
 
 describe("validateConfig", () => {
-    it("роли без флагов — самые скромные: своего дерева нет, фона нет, памяти нет", () => {
+    it("роль без флагов — самая скромная: разовый запуск, своего дерева нет", () => {
         const config = validateConfig(minimal);
-        expect(config.roles.implement).toMatchObject({ worktree: false, background: false, resume: false });
+        expect(config.roles.implement).toMatchObject({ mode: "oneshot", worktree: false });
         expect(config.ports).toEqual(DEFAULT_PORTS);
     });
 
-    it("запрещает resume без своего дерева", () => {
-        // Иначе сессия искалась бы в каталоге корня репозитория, где лежат
-        // ИНТЕРАКТИВНЫЕ сессии человека, — и агент продолжил бы чужой разговор.
-        expect(() => validateConfig({ roles: { r: { skill: "implement", resume: true } } })).toThrow(/требует `worktree: true`/);
+    it("запрещает долгоживущего агента без своего дерева", () => {
+        // Иначе двое таких подерутся за ветку рабочей копии — этот инцидент уже был.
+        expect(() => validateConfig({ roles: { r: { skill: "implement", mode: "session" } } })).toThrow(/требует `worktree: true`/);
+    });
+
+    it("ловит опечатку в режиме", () => {
+        expect(() => validateConfig({ roles: { r: { skill: "implement", mode: "background" } } })).toThrow(/mode/);
     });
 
     it("требует хотя бы одну роль", () => {
@@ -41,6 +44,6 @@ describe("боевой config.jsonc", () => {
         expect(config.roles.orchestrate).toMatchObject({ skill: "orchestrate", worktree: false, everyMin: 10 });
         // Оркестратор должен ходить в gh и на доску — иначе он не увидит очередь задач.
         expect(config.roles.orchestrate?.allow).toContain("Bash(gh *)");
-        expect(config.roles.implement).toMatchObject({ worktree: true, background: true, resume: true });
+        expect(config.roles.implement).toMatchObject({ mode: "session", worktree: true });
     });
 });

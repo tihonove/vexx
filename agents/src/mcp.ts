@@ -15,8 +15,9 @@ import { z } from "zod";
 
 import type { AgentsConfig } from "./config.ts";
 import { append } from "./history.ts";
-import { listAgents, readAgentLog, stopAgent } from "./inspect.ts";
+import { listAgents, readAgentLog } from "./inspect.ts";
 import { launch, LaunchError } from "./launch.ts";
+import { killWindow } from "./tmux.ts";
 
 function ok(value: unknown) {
     return { content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }] };
@@ -38,8 +39,8 @@ export function createMcpServer(getConfig: () => AgentsConfig): McpServer {
         {
             title: "Список агентов",
             description:
-                "Живые агенты машинерии. key — ключ агента (роль-аргумент), он же имя worktree. " +
-                "idleMin — минут с последней записи в сессию (эвристика «дышит ли»); alive — жив ли процесс; " +
+                "Живые агенты машинерии. key — ключ агента (роль-аргумент), он же имя его worktree. " +
+                "status — что докладывает сам claude: busy значит работает, idle значит доделал и ждёт. " +
                 "branch — реальная ветка в его дереве. Агент, доделавший работу, не завершается сам: " +
                 "он переходит в idle и держит место, пока его не остановят.",
             inputSchema: {},
@@ -68,8 +69,7 @@ export function createMcpServer(getConfig: () => AgentsConfig): McpServer {
                     key: result.key,
                     session: result.session,
                     worktree: result.cwd,
-                    base: result.base,
-                    background: result.background,
+                    mode: result.mode,
                     summary: result.summary,
                     repeatManually: `./agents.sh spawn ${role}${arg ? ` ${arg}` : ""}`,
                 });
@@ -93,8 +93,8 @@ export function createMcpServer(getConfig: () => AgentsConfig): McpServer {
         async ({ key }) => {
             const agent = (await listAgents()).find(candidate => candidate.key === key);
             if (!agent) return failed(`Агента "${key}" среди живых нет`);
-            await stopAgent(agent.agentId);
-            append({ at: new Date().toISOString(), kind: "stop", key, agentId: agent.agentId, by: "agent" });
+            await killWindow(agent.key);
+            append({ at: new Date().toISOString(), kind: "stop", key, by: "agent" });
             return ok({ stopped: key });
         },
     );

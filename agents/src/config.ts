@@ -16,15 +16,25 @@ export interface Ports {
     mcp: number;
 }
 
+/**
+ * Как живёт агент этой роли.
+ *
+ * `oneshot` — `claude -p`: отработал и умер, итог попадает в журнал. Памяти между
+ * запусками нет намеренно. Так живёт оркестратор: постоянная сессия копила бы контекст
+ * и уходила в компакт, давая частичную память — она хуже, чем никакой.
+ *
+ * `session` — интерактивный claude в своём окне tmux: долгоживущий агент со стабильным
+ * id сессии, которого можно позвать обратно и к которому можно подключиться руками.
+ */
+export type RoleMode = "oneshot" | "session";
+export const ROLE_MODES = ["oneshot", "session"] as const;
+
 export interface RoleSpec {
     /** Каталог в `.claude/skills/`; он же имя команды `/<skill>`. */
     skill: string;
+    mode: RoleMode;
     /** Своё git-дерево. Без него агенты подерутся за ветку рабочей копии. */
     worktree: boolean;
-    /** `--background`: отсоединённая сессия, переживает рестарт сервера. */
-    background: boolean;
-    /** Повторный запуск продолжает прежнюю сессию, а не начинает новую. */
-    resume: boolean;
     /** Запускать по расписанию раз в N минут. Нет поля — только по требованию. */
     everyMin?: number;
     /** Значение `--tools`. "default" — не сужать набор встроенных инструментов. */
@@ -107,11 +117,14 @@ export function validateConfig(raw: unknown, source = "config"): AgentsConfig {
         };
 
         const worktree = bool("worktree", false);
-        const resume = bool("resume", false);
-        // Сессия ищется в каталоге сессий рабочей директории. Без своего дерева это корень
-        // репозитория, где лежат ИНТЕРАКТИВНЫЕ сессии человека, — и «продолжить прежнюю»
-        // означало бы влезть в чужой разговор. Поэтому запрет, а не молчаливый фоллбэк.
-        if (resume && !worktree) return fail(`роль "${name}": \`resume\` требует \`worktree: true\``);
+
+        const mode = value.mode ?? "oneshot";
+        if (!(ROLE_MODES as readonly unknown[]).includes(mode)) {
+            return fail(`роль "${name}": \`mode\` должен быть ${ROLE_MODES.join(" | ")}`);
+        }
+        // Долгоживущий агент правит код, поэтому обязан сидеть в своём дереве: иначе двое
+        // таких подерутся за ветку рабочей копии — этот инцидент у нас уже был.
+        if (mode === "session" && !worktree) return fail(`роль "${name}": \`mode: "session"\` требует \`worktree: true\``);
 
         if (value.everyMin !== undefined && (typeof value.everyMin !== "number" || value.everyMin <= 0)) {
             return fail(`роль "${name}": \`everyMin\` должен быть положительным числом`);
@@ -128,9 +141,8 @@ export function validateConfig(raw: unknown, source = "config"): AgentsConfig {
 
         roles[name] = {
             skill: value.skill,
+            mode: mode as RoleMode,
             worktree,
-            background: bool("background", false),
-            resume,
             everyMin: value.everyMin as number | undefined,
             tools: value.tools as string | undefined,
             allow: value.allow as string[] | undefined,

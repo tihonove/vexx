@@ -11,6 +11,7 @@ import { createServer, type IncomingMessage } from "node:http";
 
 import { type AgentsConfig, loadConfig } from "./config.ts";
 import { createDashboard, isStopped } from "./dashboard.ts";
+import { refreshMain } from "./git.ts";
 import { append } from "./history.ts";
 import { launch } from "./launch.ts";
 import { handleMcpRequest } from "./mcp.ts";
@@ -41,6 +42,19 @@ async function runRole(role: string, trigger: "schedule" | "dashboard"): Promise
     } finally {
         running.delete(role);
     }
+}
+
+/**
+ * Свежесть main — по таймеру, а не перед каждым запуском. Дерево агенту отводит сам claude
+ * от локального main, поэтому устаревший main = агент работает на вчерашней базе. Ошибка
+ * здесь не фатальна: сеть могла лечь, и это не повод не запускать агента.
+ */
+const PULL_EVERY_MIN = 10;
+
+async function pullMain(): Promise<void> {
+    const state = await refreshMain();
+    const ahead = state.ahead > 0 ? ` · непушенных коммитов: ${state.ahead}` : "";
+    log(`main: ${state.base}${ahead}${state.note ? ` · ${state.note}` : ""}`);
 }
 
 /**
@@ -106,6 +120,9 @@ function main(): void {
             }
         })();
     }).listen(mcpPort, "127.0.0.1", () => log(`MCP: http://127.0.0.1:${mcpPort}/mcp`));
+
+    void pullMain();
+    setInterval(() => void pullMain(), PULL_EVERY_MIN * 60_000);
 
     const scheduled = Object.entries(config.roles).filter(([, spec]) => spec.everyMin);
     for (const [role, spec] of scheduled) schedule(role, spec.everyMin as number);
