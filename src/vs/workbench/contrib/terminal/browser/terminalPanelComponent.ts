@@ -10,6 +10,17 @@ import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens
 import type { ITerminalInstance, TerminalService } from "./terminalService.ts";
 import { TERMINAL_VIEW_ID, TerminalServiceDIToken } from "./terminalService.ts";
 
+/**
+ * Минимальный срез редакторов, нужный терминалу: куда вернуть фокус, когда
+ * виджет терминала уходит со сцены (шелл вышел, а других терминалов нет).
+ * `EditorService` соответствует ему структурно — связывание делает DI-модуль
+ * ({@link TerminalFocusFallbackDIToken}).
+ */
+export interface ITerminalFocusFallback {
+    focusEditor(): void;
+}
+
+export const TerminalFocusFallbackDIToken = token<ITerminalFocusFallback>("TerminalFocusFallback");
 export const TerminalPanelComponentDIToken = token<TerminalPanelComponent>("TerminalPanelComponent");
 
 /**
@@ -24,7 +35,12 @@ export const TerminalPanelComponentDIToken = token<TerminalPanelComponent>("Term
  * dispose'ить виджеты — при закрытии инстанса и при своём dispose().
  */
 export class TerminalPanelComponent extends Disposable {
-    public static dependencies = [TerminalServiceDIToken, PanelServiceDIToken, ThemeServiceDIToken] as const;
+    public static dependencies = [
+        TerminalServiceDIToken,
+        PanelServiceDIToken,
+        ThemeServiceDIToken,
+        TerminalFocusFallbackDIToken,
+    ] as const;
 
     private widgets = new Map<number, TerminalViewElement>();
     private activeWidget: TerminalViewElement | null = null;
@@ -33,6 +49,7 @@ export class TerminalPanelComponent extends Disposable {
         terminalService: TerminalService,
         private readonly panelService: PanelService,
         private readonly themeService: ThemeService,
+        private readonly focusFallback: ITerminalFocusFallback,
     ) {
         super();
         this.register(
@@ -93,6 +110,11 @@ export class TerminalPanelComponent extends Disposable {
 
     /** Вкидывает виджет активного инстанса в TERMINAL-вкладку (null → placeholder). */
     private handleActiveChange(instance: ITerminalInstance | null): void {
+        // Фокус подмену контента вкладки не переживает: уходящий виджет снимут с
+        // дерева (`setViewContent` → `setParent(null)`), а FocusManager на этом
+        // обнуляет фокус — после `exit` ввод проваливался в никуда. Поэтому
+        // спрашиваем ДО подмены и раздаём фокус заново ПОСЛЕ.
+        const hadFocus = this.activeWidget !== null && holdsFocus(this.activeWidget);
         if (instance === null) {
             this.activeWidget = null;
         } else {
@@ -103,5 +125,16 @@ export class TerminalPanelComponent extends Disposable {
             this.activeWidget = widget;
         }
         this.panelService.setViewContent(TERMINAL_VIEW_ID, this.activeWidget);
+        if (!hadFocus) return;
+        // Следующий терминал есть — фокус идёт в него; не осталось ни одного —
+        // возвращаем его редактору, как VS Code при выходе последнего шелла.
+        if (this.activeWidget !== null) this.activeWidget.focus();
+        else this.focusFallback.focusEditor();
     }
+}
+
+/** Держит ли фокус сам виджет или что-то в его поддереве. */
+function holdsFocus(widget: TerminalViewElement): boolean {
+    const active = widget.getRoot()?.focusManager?.activeElement ?? null;
+    return active !== null && active.getAncestorPath().includes(widget);
 }
