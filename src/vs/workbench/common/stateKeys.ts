@@ -49,6 +49,16 @@ export const PANEL_HEIGHT_STATE: IStateDescriptor<number> = {
     default: 12,
 };
 
+/**
+ * Активная вкладка нижней панели (id view'а). Пустая строка — «не сохранено»,
+ * тогда активной остаётся первая зарегистрированная вкладка.
+ */
+export const PANEL_ACTIVE_VIEW_STATE: IStateDescriptor<string> = {
+    key: "workbench.panel.activeView",
+    scope: "workspace",
+    default: "",
+};
+
 /** Открытые файлы + активная вкладка. */
 export const OPEN_EDITORS_STATE: IStateDescriptor<IOpenEditorsState> = {
     key: "workbench.editors.openEditors",

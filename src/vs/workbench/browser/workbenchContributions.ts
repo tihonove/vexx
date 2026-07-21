@@ -6,6 +6,7 @@ import { TerminalEnvStatusContributionDIToken } from "../services/terminalEnviro
 
 import { EditorContextMenuContributionDIToken } from "./parts/editor/editorContextMenuContribution.ts";
 import { EditorStatusContributionDIToken } from "./parts/editor/editorStatusContribution.ts";
+import { PanelFocusContributionDIToken } from "./parts/panel/panelFocusContribution.ts";
 
 /**
  * Явный список workbench-contributions (зеркало `builtinActions`, без
@@ -20,4 +21,5 @@ export const WORKBENCH_CONTRIBUTIONS: readonly IWorkbenchContributionRegistratio
     { token: ThemeConfigContributionDIToken, phase: "restored" },
     { token: EditorContextMenuContributionDIToken, phase: "restored" },
     { token: OpenFileCommandContributionDIToken, phase: "restored" },
+    { token: PanelFocusContributionDIToken, phase: "restored" },
 ];

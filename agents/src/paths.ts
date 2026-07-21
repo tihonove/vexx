@@ -22,10 +22,20 @@ export function taskPath(name: string): string {
 }
 
 /**
- * Файл сессии лежит в ~/.claude/projects/<cwd с заменёнными слэшами>/<sessionId>.jsonl.
+ * Кодирование cwd в имя каталога сессий: на дефис заменяются и слэши, и ТОЧКИ.
+ * Из-за пропущенных точек `/workspaces/vexx/.claude/...` превращался в
+ * `-workspaces-vexx-.claude-...` вместо `-workspaces-vexx--claude-...`, файл не находился,
+ * и `idleMin` всегда был null — то есть весь heartbeat молча не работал.
+ */
+export function encodeProjectDir(cwd: string): string {
+    return cwd.replaceAll(/[/.]/g, "-");
+}
+
+/**
+ * Файл сессии лежит в ~/.claude/projects/<закодированный cwd>/<sessionId>.jsonl.
  * Это недокументированная деталь раскладки, но она — единственный источник «когда агент
  * последний раз дышал», и получается бесплатно, без инструментирования.
  */
 export function sessionFile(cwd: string, sessionId: string): string {
-    return join(homedir(), ".claude", "projects", cwd.replaceAll("/", "-"), `${sessionId}.jsonl`);
+    return join(homedir(), ".claude", "projects", encodeProjectDir(cwd), `${sessionId}.jsonl`);
 }

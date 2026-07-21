@@ -64,6 +64,7 @@ function runOrchestrator(mcpPort: number): Promise<{ ok: boolean; summary: strin
             "mcp__agents__stop_agent",
             "mcp__agents__agent_log",
             "Bash(gh *)",
+            "Bash(node agents/bin/status.mjs*)",
             "Read",
             "Glob",
             "Grep",

@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { checkLimits, digestSessionLines, isManagedSession, type RawSession, toAgentInfo } from "./agents.ts";
+import {
+    checkLimits,
+    digestSessionLines,
+    isManagedSession,
+    type RawSession,
+    toAgentInfo,
+} from "./agents.ts";
 import type { Limits } from "./config.ts";
 import type { HistoryEvent } from "./history.ts";
 
@@ -117,3 +123,4 @@ describe("digestSessionLines", () => {
         expect(digestSessionLines(lines, 1)).toEqual(["assistant | text: Готово"]);
     });
 });
+

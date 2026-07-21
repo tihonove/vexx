@@ -61,7 +61,11 @@ export interface AgentsConfig {
 }
 
 export const DEFAULT_PORTS: Ports = { dashboard: 7777, mcp: 7778 };
-export const DEFAULT_LIMITS: Limits = { maxConcurrent: 2, spawnsPerHour: 4, tickIntervalMin: 10 };
+export const DEFAULT_LIMITS: Limits = {
+    maxConcurrent: 2,
+    spawnsPerHour: 4,
+    tickIntervalMin: 10,
+};
 
 export const DEFAULT_CONFIG_PATH = join(dirname(dirname(fileURLToPath(import.meta.url))), "config.jsonc");
 
