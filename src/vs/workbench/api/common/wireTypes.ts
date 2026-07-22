@@ -619,3 +619,22 @@ export function parseWireFileDecorations(raw: unknown): IWireFileDecoration[] {
     }
     return result;
 }
+
+// ── workspace.fs: чтение ресурса провайдером расширения ──────────────────────
+
+/**
+ * Ответ субпроцесса на `workspace.fs.readFile`. Содержимое едет base64-строкой:
+ * канал RPC — JSON, а бинарный `Uint8Array` в нём не переживает round-trip
+ * (превратился бы в объект с числовыми ключами).
+ */
+export interface IWireReadFileResult {
+    content: string;
+}
+
+/** Разбирает ответ `workspace.fs.readFile` в байты. Бросает на структурно чужом ответе. */
+export function parseWireReadFileResult(raw: unknown): Uint8Array {
+    if (typeof raw !== "object" || raw === null) throw new Error("workspace.fs.readFile: result must be an object");
+    const content = (raw as { content?: unknown }).content;
+    if (typeof content !== "string") throw new Error("workspace.fs.readFile: content must be a base64 string");
+    return new Uint8Array(Buffer.from(content, "base64"));
+}

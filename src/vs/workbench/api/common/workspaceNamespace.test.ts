@@ -463,3 +463,76 @@ describe("WorkspaceNamespace — did-save notification", () => {
         expect(fired).toBe(false);
     });
 });
+
+describe("WorkspaceNamespace — registerFileSystemProvider", () => {
+    const provider = (content: string) => ({
+        onDidChangeFile: () => ({ dispose: () => undefined }),
+        watch: () => ({ dispose: () => undefined }),
+        stat: () => ({ type: 1, ctime: 0, mtime: 0, size: 0 }),
+        readFile: () => new TextEncoder().encode(content),
+    });
+
+    it("регистрация объявляет схему хосту", () => {
+        const { stub, workspace } = makeCtx();
+
+        workspace.registerFileSystemProvider("git", provider("x") as never);
+
+        expect(stub.notifies).toContainEqual({
+            method: "workspace.fileSystemProvidersChanged",
+            params: { schemes: ["git"] },
+        });
+    });
+
+    it("dispose регистрации снимает схему у хоста", () => {
+        const { stub, workspace } = makeCtx();
+
+        workspace.registerFileSystemProvider("git", provider("x") as never).dispose();
+
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "workspace.fileSystemProvidersChanged",
+            params: { schemes: [] },
+        });
+    });
+
+    it("запрос хоста readFile уходит провайдеру и возвращает base64", async () => {
+        const { stub, workspace } = makeCtx();
+        workspace.registerFileSystemProvider("git", provider("оригинал") as never);
+
+        const result = await stub.callRequest("workspace.fs.readFile", { uri: "git:/repo/a.ts" });
+
+        expect(Buffer.from((result as { content: string }).content, "base64").toString("utf8")).toBe("оригинал");
+    });
+
+    it("readFile без строкового uri — ошибка, а не чтение мусора", async () => {
+        const { stub } = makeCtx();
+
+        await expect(stub.callRequest("workspace.fs.readFile", { uri: 42 })).rejects.toThrow(/uri must be a string/);
+    });
+
+    it("readFile по незарегистрированной схеме — ошибка", async () => {
+        const { stub } = makeCtx();
+
+        await expect(stub.callRequest("workspace.fs.readFile", { uri: "git:/a.ts" })).rejects.toThrow(
+            /no file system provider for scheme "git"/,
+        );
+    });
+
+    it("изменения провайдера уходят хосту нотификацией", () => {
+        const { stub, workspace } = makeCtx();
+        const listeners: ((events: { uri: Uri }[]) => void)[] = [];
+        workspace.registerFileSystemProvider("git", {
+            ...provider("x"),
+            onDidChangeFile: (cb: (e: { uri: Uri }[]) => void) => {
+                listeners.push(cb);
+                return { dispose: () => undefined };
+            },
+        } as never);
+
+        listeners[0]([{ uri: Uri.parse("git:/repo/a.ts") }]);
+
+        expect(stub.notifies.at(-1)).toEqual({
+            method: "workspace.fs.didChangeFile",
+            params: { uris: ["git:/repo/a.ts"] },
+        });
+    });
+});

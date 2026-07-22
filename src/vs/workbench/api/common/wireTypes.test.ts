@@ -10,6 +10,7 @@ import {
     parseWireCompletionItems,
     parseWireEditorEdits,
     parseWireFoldingRanges,
+    parseWireReadFileResult,
     parseWireSelections,
     parseWireTextEdits,
     requestCompletionItems,
@@ -429,5 +430,24 @@ describe("WireTypes — parseWireEditorEdits", () => {
 
     it("не-массив → []", () => {
         expect(parseWireEditorEdits(null)).toEqual([]);
+    });
+});
+
+describe("parseWireReadFileResult", () => {
+    it("разбирает base64 в байты", () => {
+        const content = Buffer.from("оригинал", "utf8").toString("base64");
+        expect(new TextDecoder().decode(parseWireReadFileResult({ content }))).toBe("оригинал");
+    });
+
+    it("пустое содержимое — валидный результат", () => {
+        expect(parseWireReadFileResult({ content: "" })).toEqual(new Uint8Array());
+    });
+
+    it.each([null, undefined, 42, "строка", []])("структурно чужой ответ (%s) — ошибка", (raw) => {
+        expect(() => parseWireReadFileResult(raw)).toThrow(/workspace\.fs\.readFile/);
+    });
+
+    it("нестроковый content — ошибка", () => {
+        expect(() => parseWireReadFileResult({ content: 42 })).toThrow(/base64 string/);
     });
 });

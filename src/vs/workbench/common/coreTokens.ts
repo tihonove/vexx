@@ -5,6 +5,7 @@ import type { ITokenStyleResolver } from "../../editor/common/languages/iTokenSt
 import type { TokenizationRegistry } from "../../editor/common/languages/tokenizationRegistry.ts";
 import type { IClipboard } from "../../platform/clipboard/common/iClipboard.ts";
 import type { IFileClipboard } from "../../platform/clipboard/common/iFileClipboard.ts";
+import type { IFileSystemProviderRegistry } from "../../platform/files/common/iFileSystemProviderRegistry.ts";
 import type { ServiceAccessor } from "../../platform/instantiation/common/diContainer.ts";
 import { token } from "../../platform/instantiation/common/diContainer.ts";
 import type { MarkerService } from "../../platform/markers/common/markerService.ts";
@@ -25,3 +26,9 @@ export const StateServiceDIToken = token<IStateService>("StateService");
 export const SettingsResourceDIToken = token<string | null>("SettingsResource");
 /** Absolute path of the active-profile Vexx keybindings.json, or null when unknown (tests/demo). */
 export const KeybindingsResourceDIToken = token<string | null>("KeybindingsResource");
+/**
+ * Реестр поставщиков содержимого по схеме URI ({@link IFileSystemProviderRegistry}).
+ * Наполняется адаптером extension host'а: расширения регистрируют провайдеров
+ * (встроенный git — схему `git:`), потребители читают недисковые ресурсы.
+ */
+export const FileSystemProviderRegistryDIToken = token<IFileSystemProviderRegistry>("FileSystemProviderRegistry");

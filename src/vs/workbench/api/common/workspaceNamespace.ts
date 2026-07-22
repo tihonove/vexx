@@ -6,7 +6,7 @@ import { detectEndOfLine, EndOfLine as CoreEndOfLine } from "../../../editor/com
 import { decodeBuffer } from "../../../editor/common/model/encoding.ts";
 
 import { ExtHostTextDocument } from "./extHostDocuments.ts";
-import { createFileSystemNamespace } from "./fileSystemNamespace.ts";
+import { createFileSystemNamespace, SubprocessFileSystemProviders } from "./fileSystemNamespace.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
 import {
     DisposableImpl,
@@ -17,7 +17,7 @@ import {
     TextEdit,
     Uri,
 } from "./vscodeTypes.ts";
-import type { WireTextEdit } from "./wireTypes.ts";
+import type { IWireReadFileResult, WireTextEdit } from "./wireTypes.ts";
 
 /** Тайм-аут на один waitUntil-thenable участника will-save, мс. */
 const WILL_SAVE_LISTENER_TIMEOUT_MS = 1500;
@@ -90,6 +90,29 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
     const { rpc, registry, configStore } = ctx;
 
     let workspaceFolders: IWorkspaceFolder[] = [];
+
+    // ── Провайдеры ФС по схеме ──────────────────────────────────────────────
+    // Расширение регистрирует провайдера (`git:` у встроенного git), субпроцесс
+    // объявляет хосту список схем, а хост читает ресурс обратным запросом. Логика
+    // реестра — в fileSystemNamespace (тестируется без RPC), здесь только проводка.
+    const fsProviders = new SubprocessFileSystemProviders();
+
+    fsProviders.onDidChangeSchemes(() => {
+        rpc.notify("workspace.fileSystemProvidersChanged", { schemes: fsProviders.schemes() });
+    });
+    fsProviders.onDidChangeFile((uris) => {
+        rpc.notify("workspace.fs.didChangeFile", { uris: uris.map((u) => u.toString()) });
+    });
+
+    rpc.handleRequest("workspace.fs.readFile", async (params): Promise<IWireReadFileResult> => {
+        const p = params as { uri?: unknown };
+        if (typeof p.uri !== "string") throw new Error("workspace.fs.readFile: uri must be a string");
+        const uri = Uri.parse(p.uri);
+        const provider = fsProviders.get(uri.scheme);
+        if (provider === undefined) throw new Error(`no file system provider for scheme "${uri.scheme}"`);
+        const content = await provider.readFile(uri as unknown as vscode.Uri);
+        return { content: Buffer.from(content).toString("base64") };
+    });
 
     const onDidChangeConfigurationEmitter = new EventEmitter<vscode.ConfigurationChangeEvent>();
     const onDidOpenTextDocumentEmitter = new EventEmitter<vscode.TextDocument>();
@@ -275,7 +298,14 @@ export function createWorkspaceNamespace(ctx: IVscodeHostContext): typeof vscode
         },
 
         // workspace.fs — локальный доступ к диску через node:fs (без RPC).
-        fs: createFileSystemNamespace(),
+        fs: createFileSystemNamespace(fsProviders),
+
+        registerFileSystemProvider: (scheme: string, provider: vscode.FileSystemProvider): vscode.Disposable => {
+            const registration = fsProviders.register(scheme, provider);
+            return new DisposableImpl(() => {
+                registration.dispose();
+            }) as unknown as vscode.Disposable;
+        },
 
         getConfiguration,
         asRelativePath,

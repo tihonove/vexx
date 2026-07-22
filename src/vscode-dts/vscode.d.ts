@@ -1292,6 +1292,128 @@ declare module "vscode" {
 	}
 
 	/**
+	 * Enumeration of file change types.
+	 */
+	export enum FileChangeType {
+
+		/**
+		 * The contents or metadata of a file have changed.
+		 */
+		Changed = 1,
+
+		/**
+		 * A file has been created.
+		 */
+		Created = 2,
+
+		/**
+		 * A file has been deleted.
+		 */
+		Deleted = 3,
+	}
+
+	/**
+	 * The event filesystem providers must use to signal a file change.
+	 */
+	export interface FileChangeEvent {
+
+		/**
+		 * The type of change.
+		 */
+		readonly type: FileChangeType;
+
+		/**
+		 * The uri of the file that has changed.
+		 */
+		readonly uri: Uri;
+	}
+
+	/**
+	 * The filesystem provider defines what the editor needs to read, write, discover,
+	 * and to manage files and folders. It allows extensions to serve files from remote places,
+	 * like ftp-servers, and to seamlessly integrate those into the editor.
+	 *
+	 * * *Note 1:* The filesystem provider API works with {@link Uri uris} and assumes hierarchical
+	 * paths, e.g. `foo:/my/path` is a child of `foo:/my/` and a parent of `foo:/my/path/deeper`.
+	 * * *Note 2:* There is an activation event `onFileSystem:<scheme>` that fires when a file
+	 * or folder is being accessed.
+	 * * *Note 3:* The word 'file' is often used to denote all {@link FileType kinds} of files, e.g.
+	 * folders, symbolic links, and regular files.
+	 */
+	export interface FileSystemProvider {
+
+		/**
+		 * An event to signal that a resource has been created, changed, or deleted. This
+		 * event should fire for resources that are being {@link FileSystemProvider.watch watched}
+		 * by clients of this provider.
+		 *
+		 * *Note:* It is important that the metadata of the file that changed provides an
+		 * updated `mtime` that advanced from the previous value in the {@link FileStat stat} and a
+		 * correct `size` value. Otherwise there may be optimizations in place that will not show
+		 * the change in an editor for example.
+		 */
+		readonly onDidChangeFile: Event<FileChangeEvent[]>;
+
+		/**
+		 * Subscribes to file change events in the file or folder denoted by `uri`. For folders,
+		 * the option `recursive` indicates whether subfolders, sub-subfolders, etc. should
+		 * be watched for file changes as well. With `recursive: false`, only changes to the
+		 * files that are direct children of the folder should trigger an event.
+		 *
+		 * The `excludes` array is used to indicate paths that should be excluded from file
+		 * watching. It is typically derived from the `files.watcherExclude` setting that
+		 * is configurable by the user. Each entry can be be:
+		 * - the absolute path to exclude
+		 * - a relative path to exclude (for example `build/output`)
+		 * - a simple glob pattern (for example `**​/build`, `output/**`)
+		 *
+		 * *Note* that case-sensitivity of the {@link excludes} patterns for built-in file system providers
+		 * will depend on the underlying file system: on Windows and macOS the matching will be case-insensitive and
+		 * on Linux it will be case-sensitive.
+		 *
+		 * It is the file system provider's job to call {@linkcode FileSystemProvider.onDidChangeFile onDidChangeFile}
+		 * for every change given these rules. No event should be emitted for files that match any of the provided
+		 * excludes.
+		 *
+		 * @param uri The uri of the file or folder to be watched.
+		 * @param options Configures the watch.
+		 * @returns A disposable that tells the provider to stop watching the `uri`.
+		 */
+		watch(uri: Uri, options: {
+			/**
+			 * When enabled also watch subfolders.
+			 */
+			readonly recursive: boolean;
+			/**
+			 * A list of paths and pattern to exclude from watching.
+			 */
+			readonly excludes: readonly string[];
+		}): Disposable;
+
+		/**
+		 * Retrieve metadata about a file.
+		 *
+		 * Note that the metadata for symbolic links should be the metadata of the file they refer to.
+		 * Still, the {@link FileType.SymbolicLink SymbolicLink}-type must be used in addition to the actual type, e.g.
+		 * `FileType.SymbolicLink | FileType.Directory`.
+		 *
+		 * @param uri The uri of the file to retrieve metadata about.
+		 * @returns The file metadata about the file.
+		 * @throws {@linkcode FileSystemError.FileNotFound FileNotFound} when `uri` doesn't exist.
+		 */
+		stat(uri: Uri): FileStat | Thenable<FileStat>;
+
+		/**
+		 * Read the entire contents of a file.
+		 *
+		 * @param uri The uri of the file.
+		 * @returns An array of bytes or a thenable that resolves to such.
+		 * @throws {@linkcode FileSystemError.FileNotFound FileNotFound} when `uri` doesn't exist.
+		 */
+		readFile(uri: Uri): Uint8Array | Thenable<Uint8Array>;
+	}
+
+	/**
 	 * The file system interface exposes the editor's built-in and contributed
 	 * {@link FileSystemProvider file system providers}. It allows extensions to work
 	 * with files from the local disk as well as files from remote places, like the
@@ -2023,6 +2145,29 @@ declare module "vscode" {
 		 * file.
 		 */
 		export const fs: FileSystem;
+
+		/**
+		 * Register a filesystem provider for a given scheme, e.g. `ftp`.
+		 *
+		 * There can only be one provider per scheme and an error is being thrown when a scheme
+		 * has been claimed by another provider or when it is reserved.
+		 *
+		 * @param scheme The uri-{@link Uri.scheme scheme} the provider registers for.
+		 * @param provider The filesystem provider.
+		 * @param options Immutable metadata about the provider.
+		 * @returns A {@link Disposable} that unregisters this provider when being disposed.
+		 */
+		export function registerFileSystemProvider(scheme: string, provider: FileSystemProvider, options?: {
+			/**
+			 * Whether the file system provider use case sensitive compare for {@link Uri.path paths}
+			 */
+			readonly isCaseSensitive?: boolean;
+			/**
+			 * Whether the file system provider is readonly, no modifications like write, delete, create are possible.
+			 * If a {@link MarkdownString} is given, it will be shown as the reason why the file system is readonly.
+			 */
+			readonly isReadonly?: boolean | MarkdownString;
+		}): Disposable;
 
 		/**
 		 * Get a workspace configuration object.
