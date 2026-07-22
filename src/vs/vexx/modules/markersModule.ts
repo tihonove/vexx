@@ -1,6 +1,8 @@
+import { FileSystemProviderRegistry } from "../../platform/files/common/fileSystemProviderRegistry.ts";
 import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import { MarkerService } from "../../platform/markers/common/markerService.ts";
 import {
+    FileSystemProviderRegistryDIToken,
     KeybindingsResourceDIToken,
     MarkerServiceDIToken,
     SettingsResourceDIToken,
@@ -27,6 +29,9 @@ export const markersModule: ContainerModule<MarkersModuleContext> = (
     { settingsResource, keybindingsResource },
 ) => {
     container.bind(MarkerServiceDIToken, () => new MarkerService());
+    // Реестр поставщиков содержимого по схеме: пустой до тех пор, пока адаптер
+    // extension host'а не зарегистрирует в нём схемы расширений (`git:`).
+    container.bind(FileSystemProviderRegistryDIToken, () => new FileSystemProviderRegistry());
     container.bind(SettingsResourceDIToken, () => settingsResource);
     container.bind(KeybindingsResourceDIToken, () => keybindingsResource);
 };

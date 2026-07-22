@@ -4,6 +4,8 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 
 import { parseUnifiedDiffHunks } from "./lib/diff.ts";
+import { showFileAtRevision } from "./lib/gitShow.ts";
+import { fromGitUri, GIT_SCHEME } from "./lib/gitUri.ts";
 import type { IStatusDecoration } from "./lib/map.ts";
 import { hunksToGutter } from "./lib/map.ts";
 import { statusToDecoration } from "./lib/map.ts";
@@ -56,6 +58,10 @@ class GitDecorations {
     // provider and untracked-detection for the gutter.
     private status = new Map<string, IStatusEntry>();
     private readonly fileDecoEmitter = new vscode.EventEmitter<vscode.Uri[]>();
+    /** Сообщает ядру, что версии в `git:`-ресурсах изменились (сдвинулся HEAD/индекс). */
+    private readonly fileChangeEmitter = new vscode.EventEmitter<vscode.FileChangeEvent[]>();
+    /** Ставится при регистрации провайдера; зовётся из watcher'а `.git`. */
+    private onGitDirChanged: (() => void) | undefined;
 
     private refreshTimer: ReturnType<typeof setTimeout> | undefined;
     private gitDirWatcher: fs.FSWatcher | undefined;
@@ -83,9 +89,51 @@ class GitDecorations {
         }
     }
 
+    /**
+     * Read-only FileSystemProvider для схемы `git:` — так ядро получает версию
+     * файла из ревизии, не зная про git (как `GitFileSystemProvider` в VS Code).
+     *
+     * `onDidChangeFile` фаерится по изменению `.git` только для ресурсов, которые
+     * у нас уже спрашивали: их немного (открытые редакторы), а рассылать событие
+     * на весь репозиторий бессмысленно — потребитель кэширует ровно эти.
+     */
+    private registerFileSystemProvider(): void {
+        const served = new Map<string, vscode.Uri>();
+        this.disposables.push(this.fileChangeEmitter);
+        this.disposables.push(
+            vscode.workspace.registerFileSystemProvider(
+                GIT_SCHEME,
+                {
+                    onDidChangeFile: this.fileChangeEmitter.event,
+                    watch: () => new vscode.Disposable(() => undefined),
+                    stat: () => ({ type: vscode.FileType.File, ctime: 0, mtime: 0, size: 0 }),
+                    readFile: async (uri) => {
+                        const params = fromGitUri(uri);
+                        if (params === null) throw vscode.FileSystemError.FileNotFound(uri);
+                        served.set(uri.toString(), uri);
+                        try {
+                            return await showFileAtRevision(this.repoRoot, params.path, params.ref, this.gitEnv);
+                        } catch {
+                            // Untracked/новый/удалённый — штатная ситуация, не сбой.
+                            throw vscode.FileSystemError.FileNotFound(uri);
+                        }
+                    },
+                },
+                { isReadonly: true },
+            ),
+        );
+        this.onGitDirChanged = () => {
+            if (served.size === 0) return;
+            this.fileChangeEmitter.fire(
+                [...served.values()].map((uri) => ({ type: vscode.FileChangeType.Changed, uri })),
+            );
+        };
+    }
+
     /** Wire providers, events and the initial refresh. Registers into `context.subscriptions`. */
     public start(context: vscode.ExtensionContext): void {
         this.disposables.push(this.fileDecoEmitter);
+        this.registerFileSystemProvider();
 
         this.disposables.push(
             vscode.window.registerFileDecorationProvider({
@@ -268,6 +316,8 @@ class GitDecorations {
                 if (filename === "HEAD" || filename === "index" || filename === null) {
                     this.guard("gitDirWatcher", () => {
                         this.scheduleRefresh();
+                        // Версии в git: устарели — ядру надо перечитать оригиналы.
+                        this.onGitDirChanged?.();
                     });
                 }
             });
