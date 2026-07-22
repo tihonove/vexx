@@ -100,7 +100,17 @@ describe("VscodeNamespace — стабильная идентичность acti
     it("value-типы экспортированы как runtime-поля", () => {
         const { rpc } = makeStubRpc();
         const vscode = buildVscodeNamespace(rpc).namespace as unknown as Record<string, unknown>;
-        for (const name of ["Position", "Range", "TextEdit", "Uri", "EventEmitter", "EndOfLine"]) {
+        for (const name of [
+            "Position",
+            "Range",
+            "Selection",
+            "TextEdit",
+            "Uri",
+            "EventEmitter",
+            "EndOfLine",
+            "FoldingRange",
+            "FoldingRangeKind",
+        ]) {
             expect(vscode[name], name).toBeDefined();
         }
     });

@@ -391,8 +391,13 @@ export class EditorComponent extends ThemedComponent {
      * Collapsed state is carried across by start line on every apply.
      */
     private recomputeFoldingRegions(): void {
+        // Snapshot which start lines are collapsed BEFORE we touch the regions.
+        // The indentation apply below may momentarily be empty (a file with no
+        // indentation folds), which would wipe the collapsed set before the async
+        // provider result restores it — so both applies reuse this one snapshot.
+        const collapsedStarts = this.collapsedStartLines();
         const indentation = computeIndentationFolds(this.model.document, this.editorViewState.tabSize);
-        this.applyFoldingRegions(indentation);
+        this.applyFoldingRegions(indentation, collapsedStarts);
 
         const source = this.foldingRangeSourceValue;
         if (source === undefined) return;
@@ -409,22 +414,33 @@ export class EditorComponent extends ThemedComponent {
             .then((providerRegions) => {
                 if (requestSeq !== this.foldingRequestSeq || this.componentDisposed) return;
                 if (providerRegions.length === 0) return; // nothing to merge, indentation stays
-                this.applyFoldingRegions(mergeFoldingRegions(indentation, providerRegions));
+                this.applyFoldingRegions(mergeFoldingRegions(indentation, providerRegions), collapsedStarts);
             })
             .catch(() => {
                 // Provider failed/timed out: indentation folds already applied stand.
             });
     }
 
+    /** Start lines of regions currently collapsed in the view state. */
+    private collapsedStartLines(): Set<number> {
+        const starts = new Set<number>();
+        for (const region of this.editorViewState.foldedRegions) {
+            if (region.isCollapsed) starts.add(region.startLine);
+        }
+        return starts;
+    }
+
     /**
      * Applies a fresh set of folding regions, carrying the collapsed state of any
      * region that still starts on the same line (so a recompute or a provider
-     * merge doesn't visibly re-expand what the user folded).
+     * merge doesn't visibly re-expand what the user folded). `priorCollapsed` is
+     * unioned with the currently-collapsed lines so a collapse made before the
+     * recompute survives an intermediate empty apply.
      */
-    private applyFoldingRegions(regions: IFoldingRegion[]): void {
-        const collapsedStarts = new Set<number>();
-        for (const region of this.editorViewState.foldedRegions) {
-            if (region.isCollapsed) collapsedStarts.add(region.startLine);
+    private applyFoldingRegions(regions: IFoldingRegion[], priorCollapsed?: ReadonlySet<number>): void {
+        const collapsedStarts = this.collapsedStartLines();
+        if (priorCollapsed !== undefined) {
+            for (const start of priorCollapsed) collapsedStarts.add(start);
         }
         for (const region of regions) {
             if (collapsedStarts.has(region.startLine)) region.isCollapsed = true;

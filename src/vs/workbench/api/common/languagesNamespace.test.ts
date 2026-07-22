@@ -220,4 +220,64 @@ describe("LanguagesNamespace", () => {
         } as never);
         expect(await bad.stub.callRequest("languages.provideCompletionItems", COMPLETION_PARAMS)).toEqual([]);
     });
+
+    it("registerFoldingRangeProvider сохраняет регистрацию и сигналит subscription", () => {
+        const { ctx, stub } = makeCtx();
+        const { languages, foldingRegistrations } = createLanguagesNamespace(ctx);
+        const provider = { provideFoldingRanges: () => [] } as never;
+        const disposable = languages.registerFoldingRangeProvider(["csharp"], provider);
+        expect(foldingRegistrations).toHaveLength(1);
+        const subs = stub.notifies.filter((n) => n.method === "languages.updateSubscriptions");
+        expect(subs).toHaveLength(1);
+        expect(subs[0].params).toEqual({ hasCompletionProviders: false, hasFoldingProviders: true });
+
+        disposable.dispose();
+        expect(foldingRegistrations).toHaveLength(0);
+        const after = stub.notifies.filter((n) => n.method === "languages.updateSubscriptions");
+        expect(after[1].params).toEqual({ hasCompletionProviders: false, hasFoldingProviders: false });
+    });
+
+    it("provideFoldingRanges вызывает только матчащие провайдеры и сериализует области", async () => {
+        const { ctx, stub } = makeCtx();
+        const { languages } = createLanguagesNamespace(ctx);
+        languages.registerFoldingRangeProvider(["csharp"], {
+            provideFoldingRanges: () => [
+                { start: 0, end: 3, kind: 3 },
+                { start: 5, end: 9 },
+            ],
+        } as never);
+        // Провайдер другого языка не должен сработать.
+        languages.registerFoldingRangeProvider(["typescript"], {
+            provideFoldingRanges: () => [{ start: 100, end: 200 }],
+        } as never);
+
+        const result = await stub.callRequest("languages.provideFoldingRanges", {
+            uri: Uri.file("/proj/Program.cs").toString(),
+            languageId: "csharp",
+            text: "/* #region */\n\n\n/* #endregion */\n\n\n\n\n\n\n",
+        });
+        expect(result).toEqual([
+            { start: 0, end: 3, kind: 3 },
+            { start: 5, end: 9 },
+        ]);
+    });
+
+    it("provideFoldingRanges: сбойный провайдер не роняет остальные", async () => {
+        const { ctx, stub } = makeCtx();
+        const { languages } = createLanguagesNamespace(ctx);
+        languages.registerFoldingRangeProvider(["csharp"], {
+            provideFoldingRanges: () => {
+                throw new Error("boom");
+            },
+        } as never);
+        languages.registerFoldingRangeProvider(["csharp"], {
+            provideFoldingRanges: () => [{ start: 1, end: 2 }],
+        } as never);
+        const result = await stub.callRequest("languages.provideFoldingRanges", {
+            uri: Uri.file("/proj/Program.cs").toString(),
+            languageId: "csharp",
+            text: "a\nb\nc\n",
+        });
+        expect(result).toEqual([{ start: 1, end: 2 }]);
+    });
 });

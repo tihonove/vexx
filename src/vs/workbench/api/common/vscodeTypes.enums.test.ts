@@ -7,6 +7,7 @@ import {
     EndOfLine,
     FileDecoration,
     FileType,
+    FoldingRangeKind,
     OverviewRulerLane,
     TextDocumentSaveReason,
     ThemeColor,
@@ -35,6 +36,12 @@ describe("VscodeTypes — enums", () => {
         expect(CompletionItemKind.Text).toBe(0);
         expect(CompletionItemKind.Property).toBe(9);
         expect(CompletionItemKind.Issue).toBe(26);
+    });
+
+    it("FoldingRangeKind", () => {
+        expect(FoldingRangeKind.Comment).toBe(1);
+        expect(FoldingRangeKind.Imports).toBe(2);
+        expect(FoldingRangeKind.Region).toBe(3);
     });
 });
 

@@ -8,10 +8,13 @@ import { RpcEndpoint } from "./rpcEndpoint.ts";
 import type { WireCompletionItem, WireTextEdit } from "./wireTypes.ts";
 import {
     parseWireCompletionItems,
+    parseWireFoldingRanges,
     parseWireTextEdits,
     requestCompletionItems,
+    requestFoldingRanges,
     requestWillSaveEdits,
     wireToCoreCompletionItems,
+    wireToCoreFoldingRegions,
     wireToSaveEdits,
 } from "./wireTypes.ts";
 
@@ -290,6 +293,95 @@ describe("WireTypes — requestCompletionItems (InProcessChannelPair)", () => {
             });
             const items = await requestCompletionItems((m, p) => host.request(m, p), COMPLETION_PARAMS, 1000);
             expect(items).toEqual([]);
+        } finally {
+            dispose();
+        }
+    });
+});
+
+describe("WireTypes — parseWireFoldingRanges", () => {
+    it("оставляет валидные, отбрасывает битые (drop+skip)", () => {
+        const raw = [
+            { start: 0, end: 3, kind: 3 },
+            { start: 5, end: 9 }, // без kind — ок
+            { start: "x", end: 2 }, // битый start
+            { end: 4 }, // нет start
+            null,
+            42,
+        ];
+        expect(parseWireFoldingRanges(raw)).toEqual([
+            { start: 0, end: 3, kind: 3 },
+            { start: 5, end: 9 },
+        ]);
+    });
+
+    it("не-массив → []", () => {
+        expect(parseWireFoldingRanges(null)).toEqual([]);
+        expect(parseWireFoldingRanges({ start: 0, end: 1 })).toEqual([]);
+    });
+});
+
+describe("WireTypes — wireToCoreFoldingRegions", () => {
+    it("маппит в IFoldingRegion (несвёрнутые), kind отбрасывается", () => {
+        expect(wireToCoreFoldingRegions([{ start: 0, end: 3, kind: 3 }])).toEqual([
+            { startLine: 0, endLine: 3, isCollapsed: false },
+        ]);
+    });
+
+    it("отбрасывает вырожденные (end <= start) и клампит start к нулю", () => {
+        expect(
+            wireToCoreFoldingRegions([
+                { start: 2, end: 2 }, // прятать нечего
+                { start: 4, end: 1 }, // end < start
+                { start: -3, end: 2 }, // start клампится к 0
+            ]),
+        ).toEqual([{ startLine: 0, endLine: 2, isCollapsed: false }]);
+    });
+});
+
+describe("WireTypes — requestFoldingRanges (InProcessChannelPair)", () => {
+    function connectPair(): { host: RpcEndpoint; sub: RpcEndpoint; dispose: () => void } {
+        const [a, b] = createInProcessChannelPair();
+        const host = new RpcEndpoint(a);
+        const sub = new RpcEndpoint(b);
+        return {
+            host,
+            sub,
+            dispose: () => {
+                host.dispose();
+                sub.dispose();
+            },
+        };
+    }
+
+    it("возвращает core-регионы ответа провайдера", async () => {
+        const { host, sub, dispose } = connectPair();
+        try {
+            sub.handleRequest("languages.provideFoldingRanges", () => [
+                { start: 1, end: 4, kind: 3 },
+                { start: 6, end: 6 }, // вырожденный — отсеется
+            ]);
+            const regions = await requestFoldingRanges(
+                (m, p) => host.request(m, p),
+                { uri: Uri.file("/x.cs").toString(), languageId: "csharp", text: "" },
+                1000,
+            );
+            expect(regions).toEqual([{ startLine: 1, endLine: 4, isCollapsed: false }]);
+        } finally {
+            dispose();
+        }
+    });
+
+    it("таймаут → []", async () => {
+        const { host, sub, dispose } = connectPair();
+        try {
+            sub.handleRequest("languages.provideFoldingRanges", () => new Promise(() => {})); // никогда не резолвится
+            const regions = await requestFoldingRanges(
+                (m, p) => host.request(m, p),
+                { uri: Uri.file("/x.cs").toString(), languageId: "csharp", text: "" },
+                20,
+            );
+            expect(regions).toEqual([]);
         } finally {
             dispose();
         }
