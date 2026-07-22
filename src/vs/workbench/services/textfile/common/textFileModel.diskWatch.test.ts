@@ -41,6 +41,21 @@ describe("TextFileModel — external change detection", () => {
         return ws.writeFile(name, content);
     }
 
+    /**
+     * Правка файла «другим процессом». Внешнее изменение детектится по паре
+     * (mtime, size), а mtime на этой ФС имеет грубую гранулярность: две записи
+     * подряд одинакового размера сплошь и рядом получают ОДИН И ТОТ ЖЕ mtimeMs
+     * (замерено: ~80% пар). Тогда тест зависел бы от того, попали ли записи по
+     * разные стороны тика таймера — то есть от загрузки машины. Двигаем mtime
+     * явно: намерение теста — «файл изменился снаружи», а не «нам повезло с
+     * часами».
+     */
+    function writeFileExternally(filePath: string, content: string): void {
+        fs.writeFileSync(filePath, content, "utf-8");
+        const bumped = new Date(fs.statSync(filePath).mtimeMs + 1000);
+        fs.utimesSync(filePath, bumped, bumped);
+    }
+
     describe("save conflict guard", () => {
         it("blocks the write when the file changed on disk and reports a conflict", async () => {
             const controller = createEditorPane();
@@ -49,7 +64,7 @@ describe("TextFileModel — external change detection", () => {
             controller.viewState.type("X"); // buffer now dirty
 
             // Another process rewrites the file behind our back.
-            fs.writeFileSync(fp, "external change from elsewhere\n", "utf-8");
+            writeFileExternally(fp, "external change from elsewhere\n");
 
             const outcome = await controller.save();
 
@@ -65,7 +80,7 @@ describe("TextFileModel — external change detection", () => {
             const fp = writeFile("b.txt", "original\n");
             controller.openFile(Uri.file(fp));
             controller.viewState.type("X");
-            fs.writeFileSync(fp, "external\n", "utf-8");
+            writeFileExternally(fp, "external\n");
 
             expect(await controller.save()).toBe("conflict");
             const outcome = await controller.save({ overwrite: true });
@@ -130,7 +145,7 @@ describe("TextFileModel — external change detection", () => {
             controller.onDidChangeContent(() => contentEvents++);
             controller.onDidChangeDiskState(() => diskStateEvents++);
 
-            fs.writeFileSync(fp, "v2 from disk\n", "utf-8");
+            writeFileExternally(fp, "v2 from disk\n");
             watcher.fire(fp);
 
             expect(controller.getText()).toBe("v2 from disk\n");
@@ -157,7 +172,7 @@ describe("TextFileModel — external change detection", () => {
             let diskStateEvents = 0;
             controller.onDidChangeDiskState(() => diskStateEvents++);
 
-            fs.writeFileSync(fp, "v2 from disk\n", "utf-8");
+            writeFileExternally(fp, "v2 from disk\n");
             watcher.fire(fp);
 
             expect(controller.hasDiskConflict).toBe(true);
@@ -213,7 +228,7 @@ describe("TextFileModel — external change detection", () => {
             subscription.dispose();
             subscription.dispose(); // no-op
 
-            fs.writeFileSync(fp, "v2 longer\n", "utf-8");
+            writeFileExternally(fp, "v2 longer\n");
             watcher.fire(fp);
             expect(events).toBe(0);
             controller.dispose();

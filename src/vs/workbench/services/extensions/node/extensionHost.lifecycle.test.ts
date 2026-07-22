@@ -9,6 +9,7 @@ import type { ICommandService } from "../../../api/common/iCommandService.ts";
 import { NULL_COMMAND_SERVICE } from "../../../api/common/iCommandService.ts";
 import type {
     IActiveEditorMeta,
+    IActiveEditorSelections,
     IEditorOptionsPatch,
     IEditorOptionsService,
     IEditorOptionsState,
@@ -90,6 +91,7 @@ class FakeEditorOptions implements IEditorOptionsService {
     public lastPatch: IEditorOptionsPatch | null = null;
     public filePath: string | null = "/active.ts";
     private cb: ((meta: IActiveEditorMeta) => void) | null = null;
+    private selectionCb: ((selections: IActiveEditorSelections) => void) | null = null;
 
     public getActiveEditorOptions(): IEditorOptionsState | null {
         return this.options;
@@ -118,9 +120,20 @@ class FakeEditorOptions implements IEditorOptionsService {
             },
         };
     }
+    public onActiveEditorSelectionChanged(cb: (selections: IActiveEditorSelections) => void): IDisposable {
+        this.selectionCb = cb;
+        return {
+            dispose: (): void => {
+                this.selectionCb = null;
+            },
+        };
+    }
     public setActiveEditorSelections(): void {}
     public applyActiveEditorEdits(): boolean {
         return false;
+    }
+    public fireSelectionChanged(selections: IActiveEditorSelections): void {
+        this.selectionCb?.(selections);
     }
     public fireActiveEditorChanged(p: string | null): void {
         this.cb?.({

@@ -26,6 +26,7 @@ const NOOP_EDITOR_OPTIONS = {
     getActiveEditorFilePath: () => null,
     getActiveEditorMeta: () => ({ uri: null, languageId: null, isDirty: false }),
     onActiveEditorChanged: () => ({ dispose: () => undefined }),
+    onActiveEditorSelectionChanged: () => ({ dispose: () => undefined }),
     setActiveEditorSelections: (uri: string, selections: unknown) =>
         editorWriteCalls.push({ method: "setSelection", uri, payload: selections }),
     applyActiveEditorEdits: (uri: string, edits: unknown) => {

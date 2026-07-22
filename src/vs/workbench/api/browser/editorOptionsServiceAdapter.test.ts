@@ -242,6 +242,135 @@ describe("EditorOptionsServiceAdapter", () => {
         ]);
     });
 
+    // ── onActiveEditorSelectionChanged (#194) ────────────────────────────────
+    // Продюсер `editor.selectionChanged`. Тест именно на «кто и когда шлёт»: без
+    // него `activeTextEditor.selection` в расширении навсегда залипает на моменте
+    // открытия файла, и любая команда, читающая выделение, молча ничего не делает.
+
+    /**
+     * Группа с одним редактором, у которого присваивание `viewState.selections`
+     * реально фаерит `onDidChangeActiveEditorSelection` — как в живом
+     * EditorService. Нужно, чтобы проверить эхо-гард на настоящем пути.
+     */
+    function groupWithLiveSelections(): { group: EditorService; selections: () => unknown[] } {
+        const listeners: (() => void)[] = [];
+        let current: unknown[] = [{ anchor: { line: 0, character: 0 }, active: { line: 0, character: 0 } }];
+        const editor = {
+            uri: Uri.file("/a/b.ts"),
+            model: { document: { lineCount: 10, getLineLength: () => 20 } },
+            focusEditor: vi.fn(),
+            viewState: {
+                get selections(): unknown[] {
+                    return current;
+                },
+                set selections(v: unknown[]) {
+                    current = v;
+                    for (const cb of [...listeners]) cb();
+                },
+            },
+        };
+        const group = {
+            getActiveEditor: () => editor,
+            onDidChangeActiveEditorSelection: (cb: (e: unknown) => void) => {
+                const wrapped = (): void => {
+                    cb(editor);
+                };
+                listeners.push(wrapped);
+                return {
+                    dispose: () => {
+                        listeners.splice(listeners.indexOf(wrapped), 1);
+                    },
+                };
+            },
+        } as unknown as EditorService;
+        return { group, selections: () => current };
+    }
+
+    it("onActiveEditorSelectionChanged() шлёт выделения активного редактора", async () => {
+        const { group } = groupWithLiveSelections();
+        const adapter = new EditorOptionsServiceAdapter(group);
+        const seen: unknown[] = [];
+        adapter.onActiveEditorSelectionChanged((s) => seen.push(s));
+
+        group.getActiveEditor()!.viewState.selections = [
+            { anchor: { line: 3, character: 1 }, active: { line: 3, character: 5 } },
+        ] as never;
+        await Promise.resolve();
+
+        expect(seen).toEqual([
+            {
+                uri: Uri.file("/a/b.ts").toString(),
+                selections: [{ anchorLine: 3, anchorCharacter: 1, activeLine: 3, activeCharacter: 5 }],
+            },
+        ]);
+    });
+
+    it("onActiveEditorSelectionChanged() коалесит несколько смен в одну нотификацию", async () => {
+        const { group } = groupWithLiveSelections();
+        const adapter = new EditorOptionsServiceAdapter(group);
+        const seen: unknown[] = [];
+        adapter.onActiveEditorSelectionChanged((s) => seen.push(s));
+
+        const viewState = group.getActiveEditor()!.viewState;
+        viewState.selections = [{ anchor: { line: 1, character: 0 }, active: { line: 1, character: 0 } }] as never;
+        viewState.selections = [{ anchor: { line: 2, character: 0 }, active: { line: 2, character: 0 } }] as never;
+        viewState.selections = [{ anchor: { line: 4, character: 0 }, active: { line: 4, character: 2 } }] as never;
+        await Promise.resolve();
+
+        // Одна нотификация — и в ней последнее состояние, а не первое.
+        expect(seen).toHaveLength(1);
+        expect((seen[0] as { selections: { activeLine: number }[] }).selections[0].activeLine).toBe(4);
+    });
+
+    it("не гоняет обратно выделение, которое поставил сам субпроцесс (эхо-гард)", async () => {
+        const { group, selections } = groupWithLiveSelections();
+        const adapter = new EditorOptionsServiceAdapter(group);
+        const seen: unknown[] = [];
+        adapter.onActiveEditorSelectionChanged((s) => seen.push(s));
+
+        adapter.setActiveEditorSelections(Uri.file("/a/b.ts").toString(), [
+            { anchorLine: 1, anchorCharacter: 0, activeLine: 1, activeCharacter: 3 },
+        ]);
+        await Promise.resolve();
+
+        // Выделение применено, но обратной нотификации нет — иначе расширение
+        // получало бы эхо на каждое собственное `TextEditor.selection =`.
+        expect(selections()).toHaveLength(1);
+        expect(seen).toHaveLength(0);
+    });
+
+    it("если активный редактор исчез за тик — шлёт выделения того, кто событие поднял", async () => {
+        const { group } = groupWithLiveSelections();
+        const editor = group.getActiveEditor()!;
+        const adapter = new EditorOptionsServiceAdapter(group);
+        const seen: { uri: string }[] = [];
+        adapter.onActiveEditorSelectionChanged((s) => seen.push(s));
+
+        editor.viewState.selections = [
+            { anchor: { line: 2, character: 0 }, active: { line: 2, character: 1 } },
+        ] as never;
+        // Вкладку закрыли внутри того же тика, пока нотификация ждала flush.
+        (group as unknown as { getActiveEditor: () => null }).getActiveEditor = () => null;
+        await Promise.resolve();
+
+        expect(seen).toHaveLength(1);
+        expect(seen[0].uri).toBe(Uri.file("/a/b.ts").toString());
+    });
+
+    it("onActiveEditorSelectionChanged() снимается по dispose", async () => {
+        const { group } = groupWithLiveSelections();
+        const adapter = new EditorOptionsServiceAdapter(group);
+        const seen: unknown[] = [];
+        adapter.onActiveEditorSelectionChanged((s) => seen.push(s)).dispose();
+
+        group.getActiveEditor()!.viewState.selections = [
+            { anchor: { line: 3, character: 1 }, active: { line: 3, character: 5 } },
+        ] as never;
+        await Promise.resolve();
+
+        expect(seen).toHaveLength(0);
+    });
+
     it("getActiveEditorMeta() — selection null, когда выделений нет", () => {
         const group = {
             getActiveEditor: () => ({

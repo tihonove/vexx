@@ -56,7 +56,8 @@
 
 - [~] `activationEvents` triggers — вызов `activate(context)` в нужный момент. Сделаны `*`/`onStartupFinished`/`onLanguage:*` (см. Phase 7); остаётся `onCommand:*`.
 - [~] Расширение всего vscode-API: `commands`, `workspace`, `languages`, `window` за пределами `activeTextEditor.options`. Сделано: active-editor API (`window.activeTextEditor` / `onDidChangeActiveTextEditor` / `visibleTextEditors`); `languages.registerFoldingRangeProvider` (#194); **editor-write API** (`TextEditor.edit`/`selection(s)`, value-тип `Selection`, #194). Осталось: `revealRange`, snippets, ESM.
-- [ ] Изоляция исключений: упавшее расширение не валит host (сейчас уже не валит благодаря RPC + try/catch, но diagnostics ещё нет).
+- [~] Изоляция исключений: упавшее расширение не валит host (RPC + try/catch; с #194 ещё и `unhandledRejection`-гард в субпроцессе — fire-and-forget вызов несуществующей команды больше не убивает host). Остаётся diagnostics.
+- [ ] **Свежесть текста документа в субпроцессе.** `editor.activeEditorChanged` / `editor.selectionChanged` несут только метаданные; полный текст (`upsertFull`) заезжает попутно — на запросах `languages.provideFoldingRanges` / `provideCompletionItems` и в снапшоте will-save. Без зарегистрированных провайдеров `document.getText()` в расширении отстаёт от буфера. Нужен настоящий `workspace.onDidChangeTextDocument` с инкрементальной синхронизацией.
 - [ ] Маршрутизация ошибок RPC обратно в `editor.options =`, чтобы fire-and-forget не глотал.
 - [ ] ESM-расширения (`import * as vscode from "vscode"` через ESM loader hooks).
 - [ ] Restart subprocess'а при крэше (сейчас при exit'е extension host'а все RPC падают).

@@ -4,7 +4,13 @@ import type { ExtHostTextDocument } from "./extHostDocuments.ts";
 import type { RpcEndpoint } from "./rpcEndpoint.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
 import { DisposableImpl, Position, Selection, Uri } from "./vscodeTypes.ts";
-import { type IWireEditorEdit, type IWireFileDecoration, type IWireSelection, serializeDecorationRenderOptions } from "./wireTypes.ts";
+import {
+    type IWireEditorEdit,
+    type IWireFileDecoration,
+    type IWireSelection,
+    parseWireSelections,
+    serializeDecorationRenderOptions,
+} from "./wireTypes.ts";
 
 /** Wire-форма диапазона декорации (nested `start`/`end`, совпадает с `IRange`). */
 interface IWireRange {
@@ -53,10 +59,11 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
     const { rpc, registry } = ctx;
 
     let activeEditorUri: string | null = null;
-    // Первичное выделение активного редактора (последнее из meta или выставленное
-    // расширением). Vexx показывает один активный редактор — visibleTextEditors и
-    // activeTextEditor всегда указывают на него, так что состояние глобальное.
-    let activeSelection: IWireSelection | null = null;
+    // Выделения активного редактора: последние из meta / `editor.selectionChanged`
+    // либо выставленные самим расширением. Vexx показывает один активный редактор —
+    // visibleTextEditors и activeTextEditor всегда указывают на него, так что
+    // состояние глобальное. Первое выделение — первичное (`TextEditor.selection`).
+    let activeSelections: readonly IWireSelection[] = [];
     // Ключ — сам ExtHostTextDocument (стабилен по ресурсу), поэтому
     // editor.document === registry.getOrCreate(uri) по построению.
     const editorCache = new WeakMap<ExtHostTextDocument, vscode.TextEditor>();
@@ -77,7 +84,7 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
             selection?: IWireSelection | null;
         };
         activeEditorUri = meta.uri;
-        activeSelection = meta.selection ?? null;
+        activeSelections = meta.selection == null ? [] : [meta.selection];
         let editor: vscode.TextEditor | undefined;
         if (meta.uri != null) {
             const doc = registry.upsertMeta({
@@ -94,6 +101,15 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         }
     });
 
+    // Каретка/выделение поехали в редакторе — обновляем только кэш выделений.
+    // Слушателей активного редактора не трогаем: активный редактор не сменился
+    // (иначе пришёл бы `editor.activeEditorChanged`).
+    rpc.handleNotification("editor.selectionChanged", (params) => {
+        const p = params as { uri?: unknown; selections?: unknown };
+        if (typeof p.uri !== "string" || p.uri !== activeEditorUri) return;
+        activeSelections = parseWireSelections(p.selections);
+    });
+
     function getEditorFor(doc: ExtHostTextDocument): vscode.TextEditor {
         const cached = editorCache.get(doc);
         if (cached !== undefined) return cached;
@@ -102,22 +118,33 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         return editor;
     }
 
-    function currentSelection(): vscode.Selection {
-        const s = activeSelection;
-        if (s === null) {
-            return new Selection(new Position(0, 0), new Position(0, 0)) as unknown as vscode.Selection;
-        }
+    function toSelection(s: IWireSelection): vscode.Selection {
         return new Selection(
             new Position(s.anchorLine, s.anchorCharacter),
             new Position(s.activeLine, s.activeCharacter),
         ) as unknown as vscode.Selection;
     }
 
-    /** Отправляет хосту новые выделения и кэширует первичное локально. */
+    /** Первичное выделение; до первой синхронизации — пустое в начале документа. */
+    function currentSelection(): vscode.Selection {
+        const primary = activeSelections[0];
+        if (primary === undefined) {
+            return new Selection(new Position(0, 0), new Position(0, 0)) as unknown as vscode.Selection;
+        }
+        return toSelection(primary);
+    }
+
+    /** Все выделения; пустой кэш даёт одно вырожденное — как у VS Code. */
+    function currentSelections(): readonly vscode.Selection[] {
+        if (activeSelections.length === 0) return [currentSelection()];
+        return activeSelections.map(toSelection);
+    }
+
+    /** Отправляет хосту новые выделения и кэширует их локально. */
     function pushSelections(document: ExtHostTextDocument, selections: readonly vscode.Selection[]): void {
         const wire = selections.map(toWireSelection);
         if (wire.length === 0) return;
-        activeSelection = wire[0];
+        activeSelections = wire;
         rpc.notify("editor.setSelection", { uri: document.uri.toString(), selections: wire });
     }
 
@@ -132,7 +159,7 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
                 pushSelections(document, [value]);
             },
             get selections(): readonly vscode.Selection[] {
-                return [currentSelection()];
+                return currentSelections();
             },
             set selections(value: readonly vscode.Selection[]) {
                 pushSelections(document, value);

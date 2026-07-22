@@ -8,6 +8,7 @@ import { registerAndActivate } from "../../../../../TestUtils/ExtensionTestHarne
 import { NULL_COMMAND_SERVICE } from "../../../api/common/iCommandService.ts";
 import type {
     IActiveEditorMeta,
+    IActiveEditorSelections,
     IEditorOptionsPatch,
     IEditorOptionsService,
     IEditorOptionsState,
@@ -99,6 +100,9 @@ class FakeEditorOptions implements IEditorOptionsService {
         return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null, selection: null };
     }
     public onActiveEditorChanged(_cb: (meta: IActiveEditorMeta) => void): IDisposable {
+        return { dispose: (): void => undefined };
+    }
+    public onActiveEditorSelectionChanged(_cb: (selections: IActiveEditorSelections) => void): IDisposable {
         return { dispose: (): void => undefined };
     }
     public setActiveEditorSelections(): void {}

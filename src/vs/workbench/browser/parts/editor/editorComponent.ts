@@ -71,6 +71,14 @@ export class EditorComponent extends ThemedComponent {
      */
     private foldingRequestSeq = 0;
     private componentDisposed = false;
+    /**
+     * Подписчики на смену курсора/выделения. Держим их здесь, а не на view-state:
+     * при перечитке файла с диска view-state пересоздаётся, а подписчик (extension
+     * host, который проецирует выделение в субпроцесс) должен это пережить.
+     */
+    private readonly selectionListeners: (() => void)[] = [];
+    /** Текущая подписка на view-state; перевешивается при его пересоздании. */
+    private viewStateCursorSubscription?: IDisposable;
     private contextMenuProviderValue?: () => MenuEntry[];
     /**
      * Кэш стилей редактора из последнего updateStyles: EditorElement пересоздаётся
@@ -97,6 +105,28 @@ export class EditorComponent extends ThemedComponent {
         this.recomputeFoldingRegions();
     }
 
+    /**
+     * Подписка на смену курсора/выделения (движение каретки, набор, мышь,
+     * undo/redo). Переживает пересоздание view-state при перечитке файла с диска.
+     */
+    public onDidChangeSelection(cb: () => void): IDisposable {
+        this.selectionListeners.push(cb);
+        return {
+            dispose: (): void => {
+                const idx = this.selectionListeners.indexOf(cb);
+                if (idx >= 0) this.selectionListeners.splice(idx, 1);
+            },
+        };
+    }
+
+    /** Перевешивает форвардинг cursor-change на текущий view-state. */
+    private attachSelectionForwarding(): void {
+        this.viewStateCursorSubscription?.dispose();
+        this.viewStateCursorSubscription = this.editorViewState.onDidChangeCursorPosition(() => {
+            for (const cb of [...this.selectionListeners]) cb();
+        });
+    }
+
     public constructor(
         themeService: ThemeService,
         tokenizationRegistry: TokenizationRegistry,
@@ -116,6 +146,7 @@ export class EditorComponent extends ThemedComponent {
         this.editor.tokenStyleResolver = tokenStyleResolver;
         this.editor.tabIndex = 0;
         this.attachUndoRouting();
+        this.attachSelectionForwarding();
         this.view = new ScrollBarDecorator(this.editor);
 
         // Шов модели к редактирующей поверхности: правки, которые модель применяет
@@ -161,6 +192,7 @@ export class EditorComponent extends ThemedComponent {
         this.register({
             dispose: () => {
                 this.componentDisposed = true;
+                this.viewStateCursorSubscription?.dispose();
             },
         });
         this.recomputeFoldingRegions();
@@ -189,6 +221,10 @@ export class EditorComponent extends ThemedComponent {
         }
         this.editor.setStyles(this.currentEditorStyles);
         this.attachUndoRouting();
+        // Курсор сброшен на (0,0) вместе с view-state — перевешиваем форвардинг и
+        // сообщаем подписчикам, иначе extension host остался бы со старым выделением.
+        this.attachSelectionForwarding();
+        for (const cb of [...this.selectionListeners]) cb();
         this.view.setChild(this.editor);
         this.recomputeFoldingRegions();
     }

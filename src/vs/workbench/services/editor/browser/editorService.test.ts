@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
+import { createCursorSelection } from "../../../../editor/common/core/iSelection.ts";
 import { PlainTextTokenizer } from "../../../../editor/common/languages/builtin/plainTextTokenizer.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
@@ -710,6 +711,32 @@ describe("EditorService", () => {
             ctrl.newUntitled(); // без пути на диске — в снимок не попадает
             ctrl.openFile(b);
             expect(ctrl.getOpenFilePaths()).toEqual([a, b]);
+        });
+    });
+
+    describe("onDidChangeActiveEditorSelection (#194)", () => {
+        it("следует за активной вкладкой и снимается по dispose", () => {
+            const ctrl = createEditorService();
+            const a = writeFile("a.ts", "one\ntwo");
+            const b = writeFile("b.ts", "three\nfour");
+            ctrl.openFile(a);
+
+            const seen: string[] = [];
+            const sub = ctrl.onDidChangeActiveEditorSelection((editor) => seen.push(editor.uri.toString()));
+
+            ctrl.getActiveEditor()!.viewState.selections = [createCursorSelection(1, 0)];
+            expect(seen).toEqual([Uri.file(a).toString()]);
+
+            // Открыли вторую вкладку — подписка обязана переехать на неё сама,
+            // иначе host проецировал бы выделение прошлого редактора.
+            ctrl.openFile(b);
+            ctrl.getActiveEditor()!.viewState.selections = [createCursorSelection(1, 1)];
+            expect(seen).toEqual([Uri.file(a).toString(), Uri.file(b).toString()]);
+
+            sub.dispose();
+            sub.dispose(); // повторный dispose — no-op (idx === -1)
+            ctrl.getActiveEditor()!.viewState.selections = [createCursorSelection(0, 0)];
+            expect(seen).toHaveLength(2);
         });
     });
 });

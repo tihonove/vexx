@@ -10,6 +10,7 @@ import { EditorOptionsServiceAdapter } from "../../../api/browser/editorOptionsS
 import { NULL_COMMAND_SERVICE } from "../../../api/common/iCommandService.ts";
 import type {
     IActiveEditorMeta,
+    IActiveEditorSelections,
     IEditorOptionsPatch,
     IEditorOptionsService,
     IEditorOptionsState,
@@ -34,6 +35,9 @@ class FakeOptionsService implements IEditorOptionsService {
         return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null, selection: null };
     }
     public onActiveEditorChanged(_cb: (meta: IActiveEditorMeta) => void): { dispose(): void } {
+        return { dispose: () => {} };
+    }
+    public onActiveEditorSelectionChanged(_cb: (selections: IActiveEditorSelections) => void): { dispose(): void } {
         return { dispose: () => {} };
     }
     public setActiveEditorSelections(): void {}

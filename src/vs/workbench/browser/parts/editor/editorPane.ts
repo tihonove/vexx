@@ -98,6 +98,11 @@ export class EditorPane extends Disposable {
         this.component.foldingRangeSource = source;
     }
 
+    /** Смена курсора/выделения в этом редакторе (см. `EditorComponent.onDidChangeSelection`). */
+    public onDidChangeSelection(cb: () => void): IDisposable {
+        return this.component.onDidChangeSelection(cb);
+    }
+
     public setUntitled(untitledNumber: number): void {
         this.model.setUntitled(untitledNumber);
     }

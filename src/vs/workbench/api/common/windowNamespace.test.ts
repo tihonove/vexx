@@ -378,6 +378,10 @@ describe("WindowNamespace — editor write (#194)", () => {
         const { editor } = activeEditor({ selection: null });
         expect(editor.selection.anchor).toEqual({ line: 0, character: 0 });
         expect(editor.selection.active).toEqual({ line: 0, character: 0 });
+        // `selections` при пустом кэше — одно вырожденное, а не пустой массив
+        // (контракт vscode: активный редактор всегда имеет хотя бы одну каретку).
+        expect(editor.selections).toHaveLength(1);
+        expect(editor.selections[0].active).toEqual({ line: 0, character: 0 });
     });
 
     it("editor.selection сеттер шлёт editor.setSelection и обновляет кэш", () => {
@@ -390,6 +394,54 @@ describe("WindowNamespace — editor write (#194)", () => {
         });
         // Кэш обновлён — последующее чтение отражает установленное.
         expect(editor.selection.active).toEqual({ line: 1, character: 4 });
+    });
+
+    it("editor.selectionChanged освежает выделение без смены активного редактора", () => {
+        const { stub, window, editor } = activeEditor();
+        let activeEditorEvents = 0;
+        window.onDidChangeActiveTextEditor(() => {
+            activeEditorEvents++;
+        });
+
+        stub.fire("editor.selectionChanged", {
+            uri: URI,
+            selections: [{ anchorLine: 5, anchorCharacter: 0, activeLine: 5, activeCharacter: 7 }],
+        });
+
+        // Расширение видит свежую каретку — именно от этого зависит любая команда,
+        // читающая `activeTextEditor.selection` (maptz wrapWithRegion и т.п.).
+        expect(editor.selection.anchor).toEqual({ line: 5, character: 0 });
+        expect(editor.selection.active).toEqual({ line: 5, character: 7 });
+        // И при этом активный редактор не «сменился»: слушателей не дёргаем.
+        expect(activeEditorEvents).toBe(0);
+    });
+
+    it("editor.selectionChanged переносит все выделения (multi-cursor)", () => {
+        const { stub, editor } = activeEditor();
+        stub.fire("editor.selectionChanged", {
+            uri: URI,
+            selections: [
+                { anchorLine: 1, anchorCharacter: 0, activeLine: 1, activeCharacter: 2 },
+                { anchorLine: 3, anchorCharacter: 0, activeLine: 3, activeCharacter: 4 },
+            ],
+        });
+        expect(editor.selections).toHaveLength(2);
+        expect(editor.selections[1].active).toEqual({ line: 3, character: 4 });
+    });
+
+    it("editor.selectionChanged для другого ресурса игнорируется", () => {
+        const { stub, editor } = activeEditor();
+        stub.fire("editor.selectionChanged", {
+            uri: Uri.file("/other.ts").toString(),
+            selections: [{ anchorLine: 9, anchorCharacter: 0, activeLine: 9, activeCharacter: 1 }],
+        });
+        expect(editor.selection.active).toEqual({ line: 2, character: 3 });
+    });
+
+    it("editor.selectionChanged без uri игнорируется", () => {
+        const { stub, editor } = activeEditor();
+        stub.fire("editor.selectionChanged", { selections: [] });
+        expect(editor.selection.active).toEqual({ line: 2, character: 3 });
     });
 
     it("editor.selections сеттер шлёт все выделения", () => {

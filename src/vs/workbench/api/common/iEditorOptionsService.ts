@@ -14,6 +14,19 @@ export interface IEditorOptionsPatch {
 }
 
 /**
+ * Выделения активного редактора, проецируемые в subprocess на каждое движение
+ * каретки (`editor.selectionChanged`). Отдельно от {@link IActiveEditorMeta},
+ * потому что смена выделения — не смена активного редактора: слушатели
+ * `onDidChangeActiveTextEditor` на неё дёргаться не должны.
+ */
+export interface IActiveEditorSelections {
+    /** Ресурс редактора, которому принадлежат выделения (`uri.toString()`). */
+    readonly uri: string;
+    /** Все выделения, первое — первичное. */
+    readonly selections: readonly IWireSelection[];
+}
+
+/**
  * Метаданные активного редактора, проецируемые в subprocess на смене фокуса
  * (`editor.activeEditorChanged`). Только метаданные — без текста (полный снапшот
  * приходит лишь на пути will-save, WP6).
@@ -49,6 +62,11 @@ export interface IEditorOptionsService {
     /** Метаданные активного редактора для проекции в subprocess. */
     getActiveEditorMeta(): IActiveEditorMeta;
     onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable;
+    /**
+     * Смена курсора/выделения в активном редакторе. События коалесятся в пределах
+     * тика — многошаговая операция редактора даёт одну нотификацию, а не пачку.
+     */
+    onActiveEditorSelectionChanged(cb: (selections: IActiveEditorSelections) => void): IDisposable;
     /**
      * Устанавливает выделения активного редактора (`TextEditor.selection(s) =`).
      * No-op, если активного редактора нет либо его uri не совпадает с `uri`

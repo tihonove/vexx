@@ -84,6 +84,9 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     private activeEditorListeners: ((editor: EditorPane | null) => void)[] = [];
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
     private editorsChangedListeners: (() => void)[] = [];
+    private activeSelectionListeners: ((editor: EditorPane) => void)[] = [];
+    /** Подписка на выделение активного редактора; перевешивается при его смене. */
+    private activeSelectionSubscription?: IDisposable;
     private saveParticipantValue?: SaveParticipant;
     private foldingRangeSourceValue?: FoldingRangeSource;
     /**
@@ -134,6 +137,26 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         for (const editor of this.editors) {
             editor.foldingRangeSource = source;
         }
+    }
+
+    /**
+     * Смена курсора/выделения в **активном** редакторе группы. Подписка живёт на
+     * уровне группы и сама переезжает на новый активный редактор, так что
+     * потребителю (extension host, проецирующий выделение в субпроцесс) не нужно
+     * следить за вкладками.
+     */
+    public onDidChangeActiveEditorSelection(cb: (editor: EditorPane) => void): IDisposable {
+        this.activeSelectionListeners.push(cb);
+        // Первый подписчик приходит уже после openFile — подцепляем текущий редактор.
+        if (this.activeSelectionSubscription === undefined) {
+            this.rebindActiveSelectionForwarding(this.getActiveEditor());
+        }
+        return {
+            dispose: () => {
+                const idx = this.activeSelectionListeners.indexOf(cb);
+                if (idx >= 0) this.activeSelectionListeners.splice(idx, 1);
+            },
+        };
     }
 
     public onActiveEditorChanged(cb: (editor: EditorPane | null) => void): IDisposable {
@@ -554,9 +577,25 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     }
 
     private fireActiveEditorChanged(editor: EditorPane | null): void {
+        this.rebindActiveSelectionForwarding(editor);
         for (const cb of this.activeEditorListeners) {
             cb(editor);
         }
+    }
+
+    /**
+     * Перевешивает подписку на выделение с прошлого активного редактора на новый.
+     * Слушателей группы ({@link onDidChangeActiveEditorSelection}) при этом не
+     * дёргаем: смену активного редактора потребитель и так видит через
+     * {@link onActiveEditorChanged}, которое несёт выделение в своей meta.
+     */
+    private rebindActiveSelectionForwarding(editor: EditorPane | null): void {
+        this.activeSelectionSubscription?.dispose();
+        this.activeSelectionSubscription = undefined;
+        if (editor === null) return;
+        this.activeSelectionSubscription = editor.onDidChangeSelection(() => {
+            for (const cb of [...this.activeSelectionListeners]) cb(editor);
+        });
     }
 
     private fireEditorSaved(editor: EditorPane): void {

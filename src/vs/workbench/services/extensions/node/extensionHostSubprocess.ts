@@ -51,6 +51,16 @@ export function runExtensionHostSubprocess(): void {
         process.exit(2);
     }
 
+    // Расширение, забывшее поймать свой промис, не должно убивать extension host.
+    // Реальный кейс (#194): maptz.regionfolder после wrapWithRegion делает
+    // fire-and-forget `executeCommand("editor.action.formatDocument")`; такой
+    // команды у нас нет, RPC отклоняется — и без этого гарда Node роняет
+    // субпроцесс, унося с собой ВСЕ расширения (в т.ч. только что отработавший
+    // folding-провайдер). Логируем в stderr — host зеркалит его в свой лог-канал.
+    process.on("unhandledRejection", (reason: unknown) => {
+        console.error(`[ext-host] unhandled rejection in extension code: ${String(reason)}`);
+    });
+
     const channel = new IpcMessageChannel(process as unknown as IIpcEndpoint);
     const rpc = new RpcEndpoint(channel);
 

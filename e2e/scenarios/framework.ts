@@ -1,9 +1,11 @@
+import { spawn } from "node:child_process";
 import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { GridSnapshot } from "../../tuidom/rendering/gridSnapshot.ts";
+import { getBinaryPath } from "../helpers/buildOnce.ts";
 import { HeadlessSession } from "../helpers/headlessSession.ts";
 import { saveScreenshot } from "../helpers/renderScreenshot.ts";
 
@@ -55,6 +57,13 @@ export interface ScenarioSpec {
      * на Linux (как `editorconfig-stock`/`sea-git`).
      */
     skipOn?: readonly NodeJS.Platform[];
+    /**
+     * `.vsix`, которые ставятся в hermetic user-data-dir сценария перед запуском
+     * (тот же путь, что `--install-extension` у пользователя). Нужно демонстрировать
+     * фичи, которые видны только со стоковым расширением — например
+     * folding-провайдер (#194).
+     */
+    installVsix?: readonly string[];
     run(driver: ScenarioDriver): Promise<void>;
 }
 
@@ -72,6 +81,28 @@ export function defineScenario(spec: ScenarioSpec): ScenarioSpec {
 }
 
 /**
+ * Installs a `.vsix` into the scenario's user-data dir through the real CLI —
+ * the same `--install-extension` path a user takes. Rejects on a non-zero exit
+ * so a broken fixture fails the scenario instead of silently producing a
+ * screenshot without the extension.
+ */
+async function installExtension(userDataDir: string, vsix: string): Promise<void> {
+    const binary = await getBinaryPath();
+    await new Promise<void>((resolveInstall, reject) => {
+        const child = spawn(binary, [`--user-data-dir=${userDataDir}`, "--install-extension", vsix], {
+            stdio: ["ignore", "ignore", "pipe"],
+        });
+        let stderr = "";
+        child.stderr?.on("data", (chunk: Buffer) => (stderr += chunk.toString()));
+        child.on("error", reject);
+        child.on("close", (code) => {
+            if (code === 0) resolveInstall();
+            else reject(new Error(`--install-extension ${vsix} exited ${String(code)}: ${stderr}`));
+        });
+    });
+}
+
+/**
  * Launch the real binary headless, run the scenario, capture its screenshots,
  * and tear the session down. Returns the shots it produced.
  */
@@ -82,6 +113,9 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
     // scenario's restored editors into the next (see docs/arch/State.md). A
     // fresh temp dir keeps each scenario hermetic and off the real `~/.vexx`.
     const userDataDir = mkdtempSync(join(tmpdir(), "vexx-e2e-"));
+    for (const vsix of spec.installVsix ?? []) {
+        await installExtension(userDataDir, vsix);
+    }
     const session = await HeadlessSession.start({
         args: [`--user-data-dir=${userDataDir}`, ...(spec.open ?? [])],
         cwd: repoRoot,

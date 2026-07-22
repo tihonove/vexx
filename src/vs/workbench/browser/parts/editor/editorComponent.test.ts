@@ -357,4 +357,34 @@ describe("EditorComponent + TextFileModel (пара)", () => {
             expect(firstScope(ctrl)).toBe("source.ts.lazy");
         });
     });
+
+    describe("onDidChangeSelection (#194)", () => {
+        it("фаерит на движение каретки и переживает перечитку файла с диска", () => {
+            const ctrl = createEditorPane();
+            const fp = writeFile("a.txt", "one\ntwo\nthree");
+            ctrl.openFile(Uri.file(fp));
+
+            let fired = 0;
+            const sub = ctrl.onDidChangeSelection(() => {
+                fired++;
+            });
+
+            ctrl.viewState.selections = [createCursorSelection(1, 0)];
+            expect(fired).toBe(1);
+
+            // Перечитка пересоздаёт view-state — подписчик (extension host,
+            // проецирующий выделение в субпроцесс) обязан её пережить.
+            fs.writeFileSync(fp, "changed\ncontent", "utf-8");
+            ctrl.revertToDisk();
+            const afterReload = fired;
+            ctrl.viewState.selections = [createCursorSelection(1, 2)];
+            expect(fired).toBeGreaterThan(afterReload);
+
+            sub.dispose();
+            sub.dispose(); // повторный dispose безопасен
+            const afterDispose = fired;
+            ctrl.viewState.selections = [createCursorSelection(0, 0)];
+            expect(fired).toBe(afterDispose);
+        });
+    });
 });

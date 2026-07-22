@@ -7,6 +7,7 @@ import { createCursorSelection } from "../common/core/iSelection.ts";
 import { TextDocument } from "../common/model/textDocument.ts";
 import { EditorViewState } from "../common/viewModel/editorViewState.ts";
 import { computeIndentationFolds } from "../contrib/folding/foldingRangeProvider.ts";
+import { createFoldingRegion } from "../contrib/folding/iFoldingRegion.ts";
 
 import { EditorElement, unthemedEditorStyles } from "./editorElement.ts";
 
@@ -180,5 +181,65 @@ describe("EditorElement – indentation guides", () => {
         const gw = editor.gutterWidth;
         // Whole viewport is blank; the guide pass returns early (no visible lines).
         expect(app.backend.getTextAt(new Point(gw, 0), 1)).toBe(" ");
+    });
+});
+
+// Regions contributed by an extension provider (`languages.provideFoldingRanges`,
+// e.g. maptz.regionfolder's `#region` markers) break the assumption indentation
+// folds satisfy for free: the header sits at the SAME indent as its body, so the
+// guide column lands on real code instead of leading whitespace (#194).
+describe("EditorElement – indentation guides, provider regions", () => {
+    // 0: function foo() {   ← indentation region (0..4), indent 0
+    // 1:   /* #region */    ← provider region (1..4), indent 2 — same as its body
+    // 2:   const a = 1;
+    // 3:                    ← blank
+    // 4:   /* #endregion */
+    // 5: }
+    const REGION_SAMPLE = [
+        "function foo() {",
+        "  /* #region */",
+        "  const a = 1;",
+        "",
+        "  /* #endregion */",
+        "}",
+    ].join("\n");
+
+    function createWithProviderRegion(cursorLine = 0): { app: TestApp; editor: EditorElement } {
+        const doc = new TextDocument(REGION_SAMPLE);
+        const viewState = new EditorViewState(doc);
+        viewState.setFoldingRegions([
+            ...computeIndentationFolds(doc, viewState.tabSize),
+            createFoldingRegion(1, 4, false),
+        ]);
+        viewState.selections = [createCursorSelection(cursorLine, 0)];
+        const editor = new EditorElement(viewState);
+        const app = TestApp.createWithContent(editor, new Size(34, 6));
+        return { app, editor };
+    }
+
+    it("never paints a guide over a body line's code", () => {
+        const { app, editor } = createWithProviderRegion();
+        app.render();
+        const gw = editor.gutterWidth;
+        // The provider region's column (2) is exactly where "const a = 1;" starts —
+        // the guide must yield to the code, not eat its first character.
+        expect(app.backend.getTextAt(new Point(gw + 2, 2), 1)).toBe("c");
+        expect(app.backend.getTextAt(new Point(gw + 2, 4), 1)).toBe("/");
+    });
+
+    it("still carries the guide through a blank body line", () => {
+        const { app, editor } = createWithProviderRegion();
+        app.render();
+        const gw = editor.gutterWidth;
+        // Line 3 is empty: nothing to hide, so the guide is drawn (as in VS Code).
+        expect(app.backend.getTextAt(new Point(gw + 2, 3), 1)).toBe(GUIDE);
+    });
+
+    it("keeps the enclosing indentation region's guide, which does land on whitespace", () => {
+        const { app, editor } = createWithProviderRegion();
+        app.render();
+        const gw = editor.gutterWidth;
+        // The outer region's column (0) is inside the body's leading whitespace.
+        expect(app.backend.getTextAt(new Point(gw, 2), 1)).toBe(GUIDE);
     });
 });

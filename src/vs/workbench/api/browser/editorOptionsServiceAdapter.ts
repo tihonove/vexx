@@ -7,6 +7,7 @@ import type { EditorPane } from "../../browser/parts/editor/editorPane.ts";
 import type { EditorService } from "../../services/editor/browser/editorService.ts";
 import type {
     IActiveEditorMeta,
+    IActiveEditorSelections,
     IEditorOptionsPatch,
     IEditorOptionsService,
     IEditorOptionsState,
@@ -19,6 +20,14 @@ import type { IWireEditorEdit, IWireSelection } from "../common/wireTypes.ts";
  */
 export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     private readonly group: EditorService;
+    /**
+     * Выделение, которое прямо сейчас ставит сам субпроцесс
+     * (`TextEditor.selection =`). Присваивание фаерит cursor-change, и без этого
+     * флага мы бы отправили расширению обратно то, что оно только что прислало.
+     */
+    private applyingRemoteSelection = false;
+    /** Коалесинг: за тик отправляем одну нотификацию, а не по одной на шаг операции. */
+    private selectionFlushScheduled = false;
 
     public constructor(group: EditorService) {
         this.group = group;
@@ -55,6 +64,21 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
         });
     }
 
+    public onActiveEditorSelectionChanged(cb: (selections: IActiveEditorSelections) => void): IDisposable {
+        return this.group.onDidChangeActiveEditorSelection((editor) => {
+            if (this.applyingRemoteSelection) return;
+            if (this.selectionFlushScheduled) return;
+            this.selectionFlushScheduled = true;
+            queueMicrotask(() => {
+                this.selectionFlushScheduled = false;
+                // Активный редактор мог смениться, пока мы ждали тик: шлём выделения
+                // того, кто активен сейчас (его uri и едет в payload).
+                const current = this.group.getActiveEditor() ?? editor;
+                cb({ uri: current.uri.toString(), selections: wireSelectionsOf(current) });
+            });
+        });
+    }
+
     public setActiveEditorSelections(uri: string, selections: readonly IWireSelection[]): void {
         const editor = this.activeEditorFor(uri);
         if (editor === null || selections.length === 0) return;
@@ -64,7 +88,12 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
             const active = clampPosition(doc, sel.activeLine, sel.activeCharacter);
             return createSelection(anchor.line, anchor.character, active.line, active.character);
         });
-        editor.viewState.selections = mapped;
+        this.applyingRemoteSelection = true;
+        try {
+            editor.viewState.selections = mapped;
+        } finally {
+            this.applyingRemoteSelection = false;
+        }
         editor.focusEditor();
     }
 
@@ -101,20 +130,21 @@ function clampPosition(
     return { line: clampedLine, character: clampedChar };
 }
 
+/** Все выделения редактора в wire-форме (первое — первичное). */
+function wireSelectionsOf(editor: EditorPane): IWireSelection[] {
+    return (editor.viewState?.selections ?? []).map((sel) => ({
+        anchorLine: sel.anchor.line,
+        anchorCharacter: sel.anchor.character,
+        activeLine: sel.active.line,
+        activeCharacter: sel.active.character,
+    }));
+}
+
 function metaOf(editor: EditorPane | null): IActiveEditorMeta {
     if (editor === null) {
         return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null, selection: null };
     }
-    const primary = editor.viewState?.selections[0];
-    const selection: IWireSelection | null =
-        primary === undefined
-            ? null
-            : {
-                  anchorLine: primary.anchor.line,
-                  anchorCharacter: primary.anchor.character,
-                  activeLine: primary.active.line,
-                  activeCharacter: primary.active.character,
-              };
+    const selection: IWireSelection | null = wireSelectionsOf(editor)[0] ?? null;
     return {
         uri: editor.uri.toString(),
         languageId: editor.languageId,

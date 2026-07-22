@@ -600,6 +600,16 @@ export class ExtensionHost extends Disposable {
                 rpc.notify("editor.activeEditorChanged", meta);
             }),
         );
+        // Движение каретки/смена выделения — отдельным сообщением, чтобы
+        // `activeTextEditor.selection` в расширении не залипал на состоянии момента
+        // открытия файла. Именно `activeEditorChanged` слать нельзя: он дёргает
+        // `onDidChangeActiveTextEditor`, и, например, встроенный git пересчитывал бы
+        // статус на каждое нажатие стрелки.
+        this.register(
+            this.editorOptions.onActiveEditorSelectionChanged((selections) => {
+                rpc.notify("editor.selectionChanged", selections);
+            }),
+        );
         // Субпроцесс сообщает, есть ли подписчики на will/did-save. Без них хост
         // не гоняет RPC на сохранении (save остаётся синхронным).
         rpc.handleNotification("workspace.updateSubscriptions", (params) => {

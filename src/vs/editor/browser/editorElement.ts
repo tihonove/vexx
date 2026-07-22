@@ -530,9 +530,12 @@ export class EditorElement extends TUIElement implements IScrollable {
      * region's leading whitespace, at the header's indent column, spanning the
      * region's body lines. The innermost region enclosing the cursor line is the
      * "active" guide and uses the brighter colour (VS Code's
-     * `highlightActiveIndentation`). Body lines are always indented deeper than
-     * their header, so the guide column falls inside whitespace and never hides
-     * code. Collapsed regions contribute nothing (their body is hidden).
+     * `highlightActiveIndentation`). The guide only ever lands on a body line's
+     * leading whitespace — indentation folds satisfy that by construction, but
+     * extension-provided regions do not (a `#region` marker sits at the same
+     * indent as the code it wraps), so every cell is checked against the body
+     * line's own indent. Collapsed regions contribute nothing (their body is
+     * hidden).
      */
     private paintIndentGuides(
         context: RenderContext,
@@ -589,6 +592,11 @@ export class EditorElement extends TUIElement implements IScrollable {
             for (let logLine = firstBody; logLine <= lastBody; logLine++) {
                 const screenY = screenYByLogical.get(logLine);
                 if (screenY === undefined) continue;
+                // Never paint over code: the header's column is only whitespace on
+                // this body line if the line is indented deeper. Blank lines (-1)
+                // carry the guide through, as in VS Code.
+                const bodyIndent = computeIndentLevel(doc.getLineContent(logLine), tabSize);
+                if (bodyIndent !== -1 && bodyIndent <= col) continue;
                 context.setCell(screenX, screenY, { char: INDENT_GUIDE, fg, bg: editorBg });
             }
         }
