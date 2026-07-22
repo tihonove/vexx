@@ -44,7 +44,9 @@ import { WorkbenchComponentDIToken } from "../workbench/browser/workbenchCompone
 import { CONFIGURATION_CONTRIBUTIONS } from "../workbench/common/configuration/configurationContributions.ts";
 import { TuiApplicationDIToken } from "../workbench/common/coreTokens.ts";
 import { EditorServiceDIToken } from "../workbench/services/editor/browser/editorService.ts";
+import { registerExtensionKeybindings } from "../workbench/services/extensions/common/extensionKeybindingContributor.ts";
 import { ExtensionTokenizationContributor } from "../workbench/services/extensions/common/extensionTokenizationContributor.ts";
+import { KeybindingRegistryDIToken } from "../platform/keybinding/common/keybindingRegistry.ts";
 import { ExtensionHostDIToken } from "../workbench/services/extensions/node/extensionHost.ts";
 import { runExtensionHostSubprocess } from "../workbench/services/extensions/node/extensionHostSubprocess.ts";
 import type { IExtensionRegistration } from "../workbench/services/extensions/node/iExtensionEntry.ts";
@@ -261,6 +263,16 @@ async function runEditor(): Promise<void> {
     // user) — ниже, ПОСЛЕ setWorkspaceFolder + openFile (чтобы workspaceFolders и
     // activeTextEditor были доступны на момент `activate()`).
     const extensionHost = container.get(ExtensionHostDIToken);
+
+    // `contributes.keybindings` расширений — регистрируем ПОСЛЕ builtin-биндингов
+    // (они заведены при построении WorkbenchComponent), чтобы расширение могло
+    // переопределить встроенный аккорд. Декларативно, без extension host'а.
+    registerExtensionKeybindings(
+        allExtensions,
+        container.get(KeybindingRegistryDIToken),
+        process.platform,
+        extensionsLogger,
+    );
 
     // If the first argument is a directory, use it as the workspace folder
     const firstResolved = resolvedPaths[0];
