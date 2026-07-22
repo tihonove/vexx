@@ -13,6 +13,19 @@ export default tseslint.config(
             "src/vscode-dts/vscode.d.ts",
             "src/vs/workbench/services/extensions/node/__fixtures__/*.cjs",
             "extensions/*/out/",
+            // Дословный перенос upstream vscode (scripts/import-vscode-diff.mjs):
+            // правится только сменой пина, поэтому замечания strictTypeChecked
+            // по нему нечем закрыть — их нельзя исправлять по определению.
+            // Пути перечислены точечно: наши тесты лежат в тех же каталогах и
+            // линтуются на общих основаниях.
+            "src/vs/editor/common/diff/linesDiffComputer.ts",
+            "src/vs/editor/common/diff/rangeMapping.ts",
+            "src/vs/editor/common/diff/defaultLinesDiffComputer/**",
+            "src/vs/editor/common/core/{position,range,editOperation}.ts",
+            "src/vs/editor/common/core/{ranges,text,edits}/**",
+            "src/vs/base/common/charCode.ts",
+            // Тестовые ДАННЫЕ корпуса: чужие исходники, а не наш код.
+            "**/__fixtures__/**",
         ],
     },
 

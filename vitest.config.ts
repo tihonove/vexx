@@ -34,6 +34,23 @@ export default defineConfig({
         "src/StoryRunner/**",
         "src/vs/workbench/services/extensions/node/__fixtures__/**",
 
+        // --- Дословный перенос upstream vscode: не наш код ---
+        // Переносится машинно (scripts/import-vscode-diff.mjs), правится только
+        // сменой пина, ручные правки запрещены — покрывать нечего и незачем.
+        // Настоящий гейт этого кода — фикстурный корпус upstream на 58 кейсов
+        // (src/vs/editor/common/diff/diffFixtures.test.ts): он ловит поехавший
+        // перенос точнее, чем построчное покрытие. Прецедент — vscode.d.ts ниже.
+        // ВАЖНО: шимы в src/vs/base/common/{arrays,arraysFind,assert,errors,map,
+        // strings}.ts сюда НЕ входят — они написаны руками, значит покрываются
+        // храповиком на общих основаниях (тесты рядом с ними).
+        "src/vs/editor/common/diff/linesDiffComputer.ts",
+        "src/vs/editor/common/diff/rangeMapping.ts",
+        "src/vs/editor/common/diff/defaultLinesDiffComputer/**",
+        "src/vs/editor/common/core/{position,range,editOperation}.ts",
+        "src/vs/editor/common/core/{ranges,text,edits}/**",
+        "src/vs/base/common/charCode.ts",
+        "**/__fixtures__/**", // тестовые ДАННЫЕ (чужие исходники), не исполняемый код
+
         // --- Чистые типы: нечего исполнять ---
         "src/**/*.d.ts", // vscode.d.ts
         // Чистые типы, выпавшие из рантайм-графа после перевода импортов в
@@ -82,6 +99,7 @@ export default defineConfig({
         "src/vs/platform/theme/common/iThemeFile.ts",
         "src/vs/platform/theme/common/ivsCodeThemeFile.ts",
         "src/Theme/IWorkbenchColors.ts",
+        "src/vs/base/common/equals.ts", // шим из одного интерфейса IEquatable
 
         // --- Непокрываемо юнит-тестами (есть e2e) ---
         "tuidom/backend/nodeTerminalBackend.ts", // реальный tty/stdin/stdout
