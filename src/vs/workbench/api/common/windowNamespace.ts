@@ -3,8 +3,8 @@ import type * as vscode from "vscode";
 import type { ExtHostTextDocument } from "./extHostDocuments.ts";
 import type { RpcEndpoint } from "./rpcEndpoint.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
-import { DisposableImpl, Uri } from "./vscodeTypes.ts";
-import { type IWireFileDecoration, serializeDecorationRenderOptions } from "./wireTypes.ts";
+import { DisposableImpl, Position, Selection, Uri } from "./vscodeTypes.ts";
+import { type IWireEditorEdit, type IWireFileDecoration, type IWireSelection, serializeDecorationRenderOptions } from "./wireTypes.ts";
 
 /** Wire-форма диапазона декорации (nested `start`/`end`, совпадает с `IRange`). */
 interface IWireRange {
@@ -53,6 +53,10 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
     const { rpc, registry } = ctx;
 
     let activeEditorUri: string | null = null;
+    // Первичное выделение активного редактора (последнее из meta или выставленное
+    // расширением). Vexx показывает один активный редактор — visibleTextEditors и
+    // activeTextEditor всегда указывают на него, так что состояние глобальное.
+    let activeSelection: IWireSelection | null = null;
     // Ключ — сам ExtHostTextDocument (стабилен по ресурсу), поэтому
     // editor.document === registry.getOrCreate(uri) по построению.
     const editorCache = new WeakMap<ExtHostTextDocument, vscode.TextEditor>();
@@ -70,8 +74,10 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
             isDirty?: boolean;
             encoding?: string | null;
             eol?: number | null;
+            selection?: IWireSelection | null;
         };
         activeEditorUri = meta.uri;
+        activeSelection = meta.selection ?? null;
         let editor: vscode.TextEditor | undefined;
         if (meta.uri != null) {
             const doc = registry.upsertMeta({
@@ -96,10 +102,69 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         return editor;
     }
 
+    function currentSelection(): vscode.Selection {
+        const s = activeSelection;
+        if (s === null) {
+            return new Selection(new Position(0, 0), new Position(0, 0)) as unknown as vscode.Selection;
+        }
+        return new Selection(
+            new Position(s.anchorLine, s.anchorCharacter),
+            new Position(s.activeLine, s.activeCharacter),
+        ) as unknown as vscode.Selection;
+    }
+
+    /** Отправляет хосту новые выделения и кэширует первичное локально. */
+    function pushSelections(document: ExtHostTextDocument, selections: readonly vscode.Selection[]): void {
+        const wire = selections.map(toWireSelection);
+        if (wire.length === 0) return;
+        activeSelection = wire[0];
+        rpc.notify("editor.setSelection", { uri: document.uri.toString(), selections: wire });
+    }
+
     function makeEditorProxy(document: ExtHostTextDocument): vscode.TextEditor {
         const editorData = {
             options: {} as vscode.TextEditorOptions,
             document,
+            get selection(): vscode.Selection {
+                return currentSelection();
+            },
+            set selection(value: vscode.Selection) {
+                pushSelections(document, [value]);
+            },
+            get selections(): readonly vscode.Selection[] {
+                return [currentSelection()];
+            },
+            set selections(value: readonly vscode.Selection[]) {
+                pushSelections(document, value);
+            },
+            // `TextEditor.edit`: собирает правки из callback'а в TextEditorEdit и
+            // отправляет их хосту одним undoable-батчем. Возвращает Thenable<boolean>.
+            edit: (
+                callback: (editBuilder: vscode.TextEditorEdit) => void,
+                _options?: { undoStopBefore: boolean; undoStopAfter: boolean },
+            ): Thenable<boolean> => {
+                const edits: IWireEditorEdit[] = [];
+                const builder: vscode.TextEditorEdit = {
+                    replace: (location: vscode.Position | vscode.Range | vscode.Selection, value: string) => {
+                        edits.push({ range: toWireEditRange(location), text: value });
+                    },
+                    insert: (position: vscode.Position, value: string) => {
+                        edits.push({ range: toWireEditRange(position), text: value });
+                    },
+                    delete: (location: vscode.Range | vscode.Selection) => {
+                        edits.push({ range: toWireEditRange(location), text: "" });
+                    },
+                    setEndOfLine: () => {
+                        /* смена EOL из edit() пока не поддержана (MVP #194) */
+                    },
+                } as unknown as vscode.TextEditorEdit;
+                callback(builder);
+                if (edits.length === 0) return Promise.resolve(true);
+                return rpc.request("editor.applyEdit", {
+                    uri: document.uri.toString(),
+                    edits,
+                }) as Promise<boolean>;
+            },
             // Применение набора декораций (`vscode.TextEditor.setDecorations`):
             // резолвим числовой ключ типа и шлём диапазоны хосту. Пустой набор
             // (`[]`) снимает декорации этого типа в этом файле.
@@ -138,6 +203,14 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
                     }
                     return true;
                 }
+                if (prop === "selection") {
+                    target.selection = value as vscode.Selection;
+                    return true;
+                }
+                if (prop === "selections") {
+                    target.selections = value as readonly vscode.Selection[];
+                    return true;
+                }
                 return false;
             },
         }) as unknown as vscode.TextEditor;
@@ -171,6 +244,14 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
         get activeTextEditor(): vscode.TextEditor | undefined {
             if (activeEditorUri === null) return undefined;
             return getEditorFor(registry.getOrCreate(Uri.parse(activeEditorUri)));
+        },
+
+        // Vexx показывает один активный редактор за раз — видимые редакторы это
+        // ровно активный (либо пусто). Достаточно для расширений, которые ищут
+        // редактор документа среди visibleTextEditors (напр. maptz.regionfolder).
+        get visibleTextEditors(): readonly vscode.TextEditor[] {
+            if (activeEditorUri === null) return [];
+            return [getEditorFor(registry.getOrCreate(Uri.parse(activeEditorUri)))];
         },
 
         // Оконное состояние. В TUI мы всегда «сфокусированы»; событие
@@ -274,6 +355,34 @@ export function createWindowNamespace(ctx: IVscodeHostContext): typeof vscode.wi
     };
 
     return windowNs as unknown as typeof vscode.window;
+}
+
+/** `vscode.Selection` → wire (anchor/active, 0-based). */
+function toWireSelection(selection: vscode.Selection): IWireSelection {
+    return {
+        anchorLine: selection.anchor.line,
+        anchorCharacter: selection.anchor.character,
+        activeLine: selection.active.line,
+        activeCharacter: selection.active.character,
+    };
+}
+
+/**
+ * Диапазон правки из `Range`/`Selection` (есть `start`/`end`) либо `Position`
+ * (вставка в точку → пустой диапазон `pos..pos`).
+ */
+function toWireEditRange(location: vscode.Range | vscode.Position): IWireEditorEdit["range"] {
+    const asRange = location as { start?: vscode.Position; end?: vscode.Position };
+    if (asRange.start !== undefined && asRange.end !== undefined) {
+        return {
+            startLine: asRange.start.line,
+            startCharacter: asRange.start.character,
+            endLine: asRange.end.line,
+            endCharacter: asRange.end.character,
+        };
+    }
+    const pos = location as vscode.Position;
+    return { startLine: pos.line, startCharacter: pos.character, endLine: pos.line, endCharacter: pos.character };
 }
 
 function showMessage(

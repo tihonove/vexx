@@ -99,13 +99,19 @@ export interface IExtensionContributions {
      */
     readonly commands?: readonly ICommandContribution[];
 
+    /**
+     * Клавиатурные привязки расширения. Регистрируются в `KeybindingRegistry`
+     * (см. `main.ts`): `key` парсится как аккорд, `when` — как typed-контекст.
+     * Платформенные оверрайды (`mac`/`linux`/`win`) и `args` пока не применяются.
+     */
+    readonly keybindings?: readonly IKeybindingContribution[];
+
     // ── TODO(extensions phase 2+): раскомментировать по мере реализации ──
     //
     // readonly themes?: readonly IThemeContribution[];
     // readonly iconThemes?: readonly IIconThemeContribution[];
     // readonly productIconThemes?: readonly IProductIconThemeContribution[];
     //
-    // readonly keybindings?: readonly IKeybindingContribution[];
     // readonly menus?: Readonly<Record<string, readonly IMenuItemContribution[]>>;
     // readonly submenus?: readonly ISubmenuContribution[];
     //
@@ -156,6 +162,24 @@ export interface ICommandContribution {
     readonly command: string;
     readonly title: string;
     readonly category?: string;
+    readonly [key: string]: unknown;
+}
+
+/**
+ * Элемент `contributes.keybindings`. `key` — кросс-платформенный аккорд
+ * (`"ctrl+m ctrl+r"`); `command` — id команды (extension- или builtin-команды);
+ * `when` — when-выражение доступности. Ведущий `-` в `command` (`"-cmd"`)
+ * снимает привязку, как в VS Code. Платформенные `mac`/`linux`/`win` и `args`
+ * пока не применяются.
+ */
+export interface IKeybindingContribution {
+    readonly command: string;
+    readonly key: string;
+    readonly mac?: string;
+    readonly linux?: string;
+    readonly win?: string;
+    readonly when?: string;
+    readonly args?: unknown;
     readonly [key: string]: unknown;
 }
 

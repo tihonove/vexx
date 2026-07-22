@@ -5,6 +5,8 @@ import { Disposable, type IDisposable } from "../../../../../../tuidom/common/di
 import { Uri } from "../../../../base/common/uri.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import type { ICompletionRequest, ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
+import type { IFoldingRequest } from "../../../../editor/common/languages/iFoldingSource.ts";
+import type { IFoldingRegion } from "../../../../editor/contrib/folding/iFoldingRegion.ts";
 import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
@@ -24,8 +26,11 @@ import { type IThemeColorResolver, NULL_THEME_COLOR_RESOLVER } from "../../../ap
 import { RpcEndpoint } from "../../../api/common/rpcEndpoint.ts";
 import {
     parseDecorationRanges,
+    parseWireEditorEdits,
     parseWireFileDecorations,
+    parseWireSelections,
     requestCompletionItems,
+    requestFoldingRanges,
     requestWillSaveEdits,
     type SerializedDecorationRenderOptions,
     themeColorIdOf,
@@ -89,6 +94,12 @@ export interface IExtensionHostOptions {
      * показывает пустой список. Default: 1500.
      */
     readonly completionTimeoutMs?: number;
+    /**
+     * Тайм-аут на ответ провайдеров областей сворачивания
+     * (`languages.provideFoldingRanges`), мс. По истечении ядро откатывается на
+     * indentation-фолды. Default: 1500.
+     */
+    readonly foldingTimeoutMs?: number;
     /**
      * Логгер для lifecycle-событий host'а (канал `extensions.host`). Подканалы
      * `extensions.host.rpc` / `.stdout` / `.stderr` берутся из {@link logService}, если передан.
@@ -161,7 +172,12 @@ export class ExtensionHost extends Disposable {
     private readonly options: Required<
         Pick<
             IExtensionHostOptions,
-            "spawnArgs" | "readyTimeoutMs" | "shutdownTimeoutMs" | "willSaveTimeoutMs" | "completionTimeoutMs"
+            | "spawnArgs"
+            | "readyTimeoutMs"
+            | "shutdownTimeoutMs"
+            | "willSaveTimeoutMs"
+            | "completionTimeoutMs"
+            | "foldingTimeoutMs"
         >
     >;
     private readonly logger: ILogger | undefined;
@@ -196,6 +212,10 @@ export class ExtensionHost extends Disposable {
     private didSaveSubscribed = false;
     /** Есть ли в субпроцессе зарегистрированные completion-провайдеры (см. `languages.updateSubscriptions`). */
     private completionSubscribed = false;
+    /** Есть ли в субпроцессе зарегистрированные folding-провайдеры (см. `languages.updateSubscriptions`). */
+    private foldingSubscribed = false;
+    /** Слушатели смены наличия folding-провайдеров (для пере-пересчёта фолдов открытых редакторов). */
+    private readonly foldingProvidersChangedListeners: (() => void)[] = [];
 
     public constructor(
         editorOptions: IEditorOptionsService,
@@ -211,6 +231,7 @@ export class ExtensionHost extends Disposable {
             shutdownTimeoutMs: options.shutdownTimeoutMs ?? 1500,
             willSaveTimeoutMs: options.willSaveTimeoutMs ?? 1500,
             completionTimeoutMs: options.completionTimeoutMs ?? 1500,
+            foldingTimeoutMs: options.foldingTimeoutMs ?? 1500,
         };
         this.logger = options.logger;
         this.rpcLogger = options.rpcLogger;
@@ -396,6 +417,57 @@ export class ExtensionHost extends Disposable {
         );
     }
 
+    /**
+     * Отдаёт области сворачивания от folding-провайдеров субпроцесса для
+     * документа. Возвращает пустой массив, если host не поднят, провайдеров нет,
+     * документ слишком большой или расширение не ответило за `foldingTimeoutMs`
+     * — ядро в этом случае откатывается на indentation-фолды. Подключается в
+     * `EditorService.foldingRangeSource` (wiring в module/харнессе).
+     */
+    public async provideFoldingRanges(req: IFoldingRequest): Promise<readonly IFoldingRegion[]> {
+        const rpc = this.rpc;
+        if (rpc === null || !this.foldingSubscribed) return [];
+        /* v8 ignore start -- защитный лимит на снапшот 8 МБ; открытие такого файла в редакторе неподъёмно для unit-теста */
+        if (req.text.length > MAX_WILL_SAVE_TEXT_BYTES) {
+            this.logger?.warn("skipping folding: document too large", {
+                uri: req.uri,
+                length: req.text.length,
+            });
+            return [];
+        }
+        /* v8 ignore stop */
+        return requestFoldingRanges(
+            (method, params) => rpc.request(method, params),
+            {
+                uri: req.uri,
+                languageId: req.languageId,
+                text: req.text,
+            },
+            this.options.foldingTimeoutMs,
+        );
+    }
+
+    /**
+     * Событие смены наличия folding-провайдеров в субпроцессе. Потребитель
+     * (ExtensionHostModule / харнесс) на него пере-подключает
+     * `EditorService.foldingRangeSource`, что триггерит пересчёт фолдов уже
+     * открытых редакторов — нужно, когда расширение активировалось после
+     * открытия файла.
+     */
+    public onFoldingProvidersChanged(cb: () => void): { dispose(): void } {
+        this.foldingProvidersChangedListeners.push(cb);
+        return {
+            dispose: (): void => {
+                const idx = this.foldingProvidersChangedListeners.indexOf(cb);
+                if (idx >= 0) this.foldingProvidersChangedListeners.splice(idx, 1);
+            },
+        };
+    }
+
+    private fireFoldingProvidersChanged(): void {
+        for (const cb of [...this.foldingProvidersChangedListeners]) cb();
+    }
+
     public hasExtension(id: string): boolean {
         return this.extensions.has(id);
     }
@@ -481,6 +553,20 @@ export class ExtensionHost extends Disposable {
         rpc.handleRequest("editor.getOptions", (): unknown => {
             return this.editorOptions.getActiveEditorOptions();
         });
+        // Сабпроцесс просит выставить выделения активного редактора
+        // (`TextEditor.selection(s) =`). Fire-and-forget со стороны расширения,
+        // но обрабатывается в порядке прихода (до последующего executeCommand).
+        rpc.handleNotification("editor.setSelection", (params): void => {
+            const p = params as { uri?: unknown; selections?: unknown };
+            if (typeof p.uri !== "string") return;
+            this.editorOptions.setActiveEditorSelections(p.uri, parseWireSelections(p.selections));
+        });
+        // Сабпроцесс просит применить правки `TextEditor.edit` одним undoable-батчем.
+        rpc.handleRequest("editor.applyEdit", (params): unknown => {
+            const p = params as { uri?: unknown; edits?: unknown };
+            if (typeof p.uri !== "string") return false;
+            return this.editorOptions.applyActiveEditorEdits(p.uri, parseWireEditorEdits(p.edits));
+        });
         // Сабпроцесс просит исполнить команду ядра (напр. встроенную
         // editor.action.trimTrailingWhitespace). Нормализуем через Promise —
         // handler ядра может вернуть значение или thenable.
@@ -524,8 +610,14 @@ export class ExtensionHost extends Disposable {
         // Субпроцесс сообщает, есть ли зарегистрированные completion-провайдеры.
         // Без них хост не гоняет RPC на Ctrl+Space.
         rpc.handleNotification("languages.updateSubscriptions", (params) => {
-            const p = params as { hasCompletionProviders?: unknown };
+            const p = params as { hasCompletionProviders?: unknown; hasFoldingProviders?: unknown };
             this.completionSubscribed = p.hasCompletionProviders === true;
+            const foldingBefore = this.foldingSubscribed;
+            this.foldingSubscribed = p.hasFoldingProviders === true;
+            // Провайдер folding появился/исчез (обычно — расширение активировалось
+            // уже после открытия файла): просим пере-пересчитать фолды открытых
+            // редакторов, иначе провайдерские области не подъедут до первой правки.
+            if (foldingBefore !== this.foldingSubscribed) this.fireFoldingProvidersChanged();
         });
         rpc.handleNotification("window.showMessage", (params) => {
             const { severity, message } = params as { severity?: unknown; message?: unknown };
@@ -672,6 +764,7 @@ export class ExtensionHost extends Disposable {
         this.willSaveSubscribed = false;
         this.didSaveSubscribed = false;
         this.completionSubscribed = false;
+        this.foldingSubscribed = false;
         // Декорации принадлежали умирающему сабпроцессу — сбрасываем реестр, чтобы
         // респавн начинал с чистого листа (сами поверхности перерисует расширение).
         this.decorationTypes.clear();

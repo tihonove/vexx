@@ -6,7 +6,16 @@ import { flushMicrotasks } from "../../../../TestUtils/timing.ts";
 import { DocumentRegistry } from "./extHostDocuments.ts";
 import { makeStubRpc } from "./testStubRpc.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
-import { EventEmitter, FileDecoration, OverviewRulerLane, Range, ThemeColor, Uri } from "./vscodeTypes.ts";
+import {
+    EventEmitter,
+    FileDecoration,
+    OverviewRulerLane,
+    Position,
+    Range,
+    Selection,
+    ThemeColor,
+    Uri,
+} from "./vscodeTypes.ts";
 import { createWindowNamespace } from "./windowNamespace.ts";
 import { WorkspaceConfigStore } from "./workspaceConfigStore.ts";
 
@@ -340,5 +349,94 @@ describe("WindowNamespace", () => {
         expect(() => {
             disposable.dispose();
         }).not.toThrow();
+    });
+});
+
+describe("WindowNamespace — editor write (#194)", () => {
+    const URI = Uri.file("/a.ts").toString();
+
+    function activeEditor(overrides: Record<string, unknown> = {}) {
+        const { stub, window } = makeCtx();
+        stub.fire("editor.activeEditorChanged", {
+            uri: URI,
+            languageId: "typescript",
+            isDirty: false,
+            selection: { anchorLine: 0, anchorCharacter: 1, activeLine: 2, activeCharacter: 3 },
+            ...overrides,
+        });
+        return { stub, window, editor: window.activeTextEditor! };
+    }
+
+    it("editor.selection геттер отдаёт выделение из meta", () => {
+        const { editor } = activeEditor();
+        expect(editor.selection.anchor).toEqual({ line: 0, character: 1 });
+        expect(editor.selection.active).toEqual({ line: 2, character: 3 });
+        expect(editor.selections).toHaveLength(1);
+    });
+
+    it("без selection в meta геттер отдаёт (0,0)", () => {
+        const { editor } = activeEditor({ selection: null });
+        expect(editor.selection.anchor).toEqual({ line: 0, character: 0 });
+        expect(editor.selection.active).toEqual({ line: 0, character: 0 });
+    });
+
+    it("editor.selection сеттер шлёт editor.setSelection и обновляет кэш", () => {
+        const { stub, editor } = activeEditor();
+        editor.selection = new Selection(new Position(1, 0), new Position(1, 4));
+        const notif = stub.notifies.find((n) => n.method === "editor.setSelection");
+        expect(notif?.params).toEqual({
+            uri: URI,
+            selections: [{ anchorLine: 1, anchorCharacter: 0, activeLine: 1, activeCharacter: 4 }],
+        });
+        // Кэш обновлён — последующее чтение отражает установленное.
+        expect(editor.selection.active).toEqual({ line: 1, character: 4 });
+    });
+
+    it("editor.selections сеттер шлёт все выделения", () => {
+        const { stub, editor } = activeEditor();
+        editor.selections = [new Selection(0, 0, 0, 1), new Selection(1, 0, 1, 2)];
+        const notif = stub.notifies.find((n) => n.method === "editor.setSelection");
+        expect((notif?.params as { selections: unknown[] }).selections).toHaveLength(2);
+    });
+
+    it("editor.selections сеттер с пустым массивом — no-op", () => {
+        const { stub, editor } = activeEditor();
+        editor.selections = [];
+        expect(stub.notifies.find((n) => n.method === "editor.setSelection")).toBeUndefined();
+    });
+
+    it("editor.edit собирает insert/replace/delete и шлёт editor.applyEdit", () => {
+        const { stub, editor } = activeEditor();
+        void editor.edit((builder) => {
+            builder.insert(new Position(0, 0), "X");
+            builder.replace(new Range(1, 0, 1, 2), "Y");
+            builder.delete(new Range(2, 0, 3, 0));
+            builder.setEndOfLine(1); // no-op в MVP
+        });
+        const req = stub.requests.find((r) => r.method === "editor.applyEdit");
+        expect(req?.params).toEqual({
+            uri: URI,
+            edits: [
+                { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 0 }, text: "X" },
+                { range: { startLine: 1, startCharacter: 0, endLine: 1, endCharacter: 2 }, text: "Y" },
+                { range: { startLine: 2, startCharacter: 0, endLine: 3, endCharacter: 0 }, text: "" },
+            ],
+        });
+    });
+
+    it("editor.edit без правок резолвится true без RPC", async () => {
+        const { stub, editor } = activeEditor();
+        const ok = await editor.edit(() => {
+            /* ничего не пишем */
+        });
+        expect(ok).toBe(true);
+        expect(stub.requests.find((r) => r.method === "editor.applyEdit")).toBeUndefined();
+    });
+
+    it("visibleTextEditors — активный редактор, либо пусто", () => {
+        const { stub, window } = activeEditor();
+        expect(window.visibleTextEditors).toHaveLength(1);
+        stub.fire("editor.activeEditorChanged", { uri: null });
+        expect(window.visibleTextEditors).toHaveLength(0);
     });
 });

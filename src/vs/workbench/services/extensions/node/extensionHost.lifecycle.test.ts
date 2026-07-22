@@ -107,6 +107,7 @@ class FakeEditorOptions implements IEditorOptionsService {
             isDirty: false,
             encoding: null,
             eol: null,
+            selection: null,
         };
     }
     public onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable {
@@ -117,6 +118,10 @@ class FakeEditorOptions implements IEditorOptionsService {
             },
         };
     }
+    public setActiveEditorSelections(): void {}
+    public applyActiveEditorEdits(): boolean {
+        return false;
+    }
     public fireActiveEditorChanged(p: string | null): void {
         this.cb?.({
             uri: p === null ? null : Uri.file(p).toString(),
@@ -124,6 +129,7 @@ class FakeEditorOptions implements IEditorOptionsService {
             isDirty: false,
             encoding: null,
             eol: null,
+            selection: null,
         });
     }
 }

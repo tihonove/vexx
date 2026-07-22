@@ -28,7 +28,9 @@
 ## Phase 5 — Commands и keybindings
 
 - [ ] `contributes.commands` — регистрация в `CommandRegistry` без runtime callback (заглушка пока нет extension host).
-- [ ] `contributes.keybindings` — регистрация в `KeybindingRegistry` с `when`-клаузами.
+- [x] `contributes.keybindings` — регистрация в `KeybindingRegistry` с `when`-клаузами (#194,
+  `extensionKeybindingContributor.ts`; `key`/`mac`/`linux`/`win`, `-command` для снятия;
+  регистрируются после builtin, так что расширение переопределяет встроенный аккорд).
 - [ ] `contributes.menus` / `submenus` — пункты в menu bar / context menus.
 
 ## Phase 6 — Configuration
@@ -53,7 +55,7 @@
 Ядро (RPC поверх IPC, self-spawn, vscode-стаб, completion WP8, стоковый editorconfig) — сделано, см. [docs/arch/Extensions.md](../arch/Extensions.md). Остаётся:
 
 - [~] `activationEvents` triggers — вызов `activate(context)` в нужный момент. Сделаны `*`/`onStartupFinished`/`onLanguage:*` (см. Phase 7); остаётся `onCommand:*`.
-- [~] Расширение всего vscode-API: `commands`, `workspace`, `languages`, `window` за пределами `activeTextEditor.options`. В работе — active-editor API (`window.activeTextEditor` / `onDidChangeActiveTextEditor`).
+- [~] Расширение всего vscode-API: `commands`, `workspace`, `languages`, `window` за пределами `activeTextEditor.options`. Сделано: active-editor API (`window.activeTextEditor` / `onDidChangeActiveTextEditor` / `visibleTextEditors`); `languages.registerFoldingRangeProvider` (#194); **editor-write API** (`TextEditor.edit`/`selection(s)`, value-тип `Selection`, #194). Осталось: `revealRange`, snippets, ESM.
 - [ ] Изоляция исключений: упавшее расширение не валит host (сейчас уже не валит благодаря RPC + try/catch, но diagnostics ещё нет).
 - [ ] Маршрутизация ошибок RPC обратно в `editor.options =`, чтобы fire-and-forget не глотал.
 - [ ] ESM-расширения (`import * as vscode from "vscode"` через ESM loader hooks).

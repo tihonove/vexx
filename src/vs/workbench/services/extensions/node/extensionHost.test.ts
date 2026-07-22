@@ -31,10 +31,14 @@ class FakeOptionsService implements IEditorOptionsService {
         return null;
     }
     public getActiveEditorMeta(): IActiveEditorMeta {
-        return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null };
+        return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null, selection: null };
     }
     public onActiveEditorChanged(_cb: (meta: IActiveEditorMeta) => void): { dispose(): void } {
         return { dispose: () => {} };
+    }
+    public setActiveEditorSelections(): void {}
+    public applyActiveEditorEdits(): boolean {
+        return false;
     }
 }
 
@@ -68,6 +72,18 @@ describe("ExtensionHost (subprocess)", () => {
         const host = createHost(svc);
         host.dispose();
         expect(() => host.registerExtension(extensionFixture("late", "noopExtension.cjs"))).toThrow(/disposed/);
+    });
+
+    it("onFoldingProvidersChanged: подписка снимается по dispose (идемпотентно)", () => {
+        const host = createHost(new FakeOptionsService());
+        let fired = 0;
+        const sub = host.onFoldingProvidersChanged(() => {
+            fired++;
+        });
+        sub.dispose();
+        sub.dispose(); // повторный dispose безопасен (idx < 0)
+        expect(fired).toBe(0);
+        host.dispose();
     });
 
     it("unregisterExtension убирает конкретное расширение", async () => {

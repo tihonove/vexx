@@ -187,6 +187,45 @@ export class Range {
     }
 }
 
+/**
+ * Выделение в редакторе (`vscode.Selection`). Наследует {@link Range}
+ * (`start`/`end` упорядочены), но дополнительно помнит направление: `anchor` —
+ * неподвижный конец, `active` — конец с курсором. `isReversed` истинно, когда
+ * курсор стоит перед якорем.
+ */
+export class Selection extends Range {
+    public readonly anchor: Position;
+    public readonly active: Position;
+
+    public constructor(anchor: Position, active: Position);
+    public constructor(anchorLine: number, anchorCharacter: number, activeLine: number, activeCharacter: number);
+    public constructor(
+        anchorOrAnchorLine: Position | number,
+        activeOrAnchorCharacter?: Position | number,
+        activeLine?: number,
+        activeCharacter?: number,
+    ) {
+        let anchor: Position;
+        let active: Position;
+        if (typeof anchorOrAnchorLine === "number") {
+            anchor = new Position(anchorOrAnchorLine, activeOrAnchorCharacter as number);
+            /* v8 ignore start -- defensive: the numeric overload always supplies activeLine/activeCharacter */
+            active = new Position(activeLine ?? 0, activeCharacter ?? 0);
+            /* v8 ignore stop */
+        } else {
+            anchor = anchorOrAnchorLine;
+            active = activeOrAnchorCharacter as Position;
+        }
+        super(anchor, active);
+        this.anchor = anchor;
+        this.active = active;
+    }
+
+    public get isReversed(): boolean {
+        return this.active.isBefore(this.anchor);
+    }
+}
+
 /** Направление перевода строки. */
 export enum EndOfLine {
     LF = 1,
@@ -235,6 +274,33 @@ export class TextEdit {
         const edit = new TextEdit(new Range(new Position(0, 0), new Position(0, 0)), "");
         edit.newEol = eol;
         return edit;
+    }
+}
+
+/**
+ * Разновидность области сворачивания (`vscode.FoldingRangeKind`). Значения
+ * совпадают с VS Code; `Region` — маркеры `#region`/`#endregion`.
+ */
+export enum FoldingRangeKind {
+    Comment = 1,
+    Imports = 2,
+    Region = 3,
+}
+
+/**
+ * Область сворачивания (`vscode.FoldingRange`): строки `start..end` (0-based).
+ * Провайдеры расширений возвращают её из `provideFoldingRanges`; хост
+ * сериализует в `WireFoldingRange` (kind — числом).
+ */
+export class FoldingRange {
+    public start: number;
+    public end: number;
+    public kind?: FoldingRangeKind;
+
+    public constructor(start: number, end: number, kind?: FoldingRangeKind) {
+        this.start = start;
+        this.end = end;
+        this.kind = kind;
     }
 }
 
