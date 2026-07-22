@@ -98,6 +98,12 @@ export const extensionHostModule: ContainerModule = (container) => {
         // подключаются как источник областей сворачивания группы (читает
         // EditorComponent при пересчёте, мержит поверх indentation-фолдов).
         group.foldingRangeSource = (req) => host.provideFoldingRanges(req);
+        // Когда folding-провайдер появляется (расширение активировалось после
+        // открытия файла) — пере-подключаем источник, что триггерит пересчёт
+        // фолдов уже открытых редакторов (иначе области не подъедут до правки).
+        host.onFoldingProvidersChanged(() => {
+            group.foldingRangeSource = (req) => host.provideFoldingRanges(req);
+        });
 
         // Ленивая активация по `onLanguage:*`: при смене активного редактора
         // фаерим событие языка — host поднимает расширения, чьи activationEvents

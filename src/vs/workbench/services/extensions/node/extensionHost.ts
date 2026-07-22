@@ -214,6 +214,8 @@ export class ExtensionHost extends Disposable {
     private completionSubscribed = false;
     /** Есть ли в субпроцессе зарегистрированные folding-провайдеры (см. `languages.updateSubscriptions`). */
     private foldingSubscribed = false;
+    /** Слушатели смены наличия folding-провайдеров (для пере-пересчёта фолдов открытых редакторов). */
+    private readonly foldingProvidersChangedListeners: (() => void)[] = [];
 
     public constructor(
         editorOptions: IEditorOptionsService,
@@ -445,6 +447,27 @@ export class ExtensionHost extends Disposable {
         );
     }
 
+    /**
+     * Событие смены наличия folding-провайдеров в субпроцессе. Потребитель
+     * (ExtensionHostModule / харнесс) на него пере-подключает
+     * `EditorService.foldingRangeSource`, что триггерит пересчёт фолдов уже
+     * открытых редакторов — нужно, когда расширение активировалось после
+     * открытия файла.
+     */
+    public onFoldingProvidersChanged(cb: () => void): { dispose(): void } {
+        this.foldingProvidersChangedListeners.push(cb);
+        return {
+            dispose: (): void => {
+                const idx = this.foldingProvidersChangedListeners.indexOf(cb);
+                if (idx >= 0) this.foldingProvidersChangedListeners.splice(idx, 1);
+            },
+        };
+    }
+
+    private fireFoldingProvidersChanged(): void {
+        for (const cb of [...this.foldingProvidersChangedListeners]) cb();
+    }
+
     public hasExtension(id: string): boolean {
         return this.extensions.has(id);
     }
@@ -589,7 +612,12 @@ export class ExtensionHost extends Disposable {
         rpc.handleNotification("languages.updateSubscriptions", (params) => {
             const p = params as { hasCompletionProviders?: unknown; hasFoldingProviders?: unknown };
             this.completionSubscribed = p.hasCompletionProviders === true;
+            const foldingBefore = this.foldingSubscribed;
             this.foldingSubscribed = p.hasFoldingProviders === true;
+            // Провайдер folding появился/исчез (обычно — расширение активировалось
+            // уже после открытия файла): просим пере-пересчитать фолды открытых
+            // редакторов, иначе провайдерские области не подъедут до первой правки.
+            if (foldingBefore !== this.foldingSubscribed) this.fireFoldingProvidersChanged();
         });
         rpc.handleNotification("window.showMessage", (params) => {
             const { severity, message } = params as { severity?: unknown; message?: unknown };

@@ -187,6 +187,9 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
     group.completionSource = (req) => host.provideCompletionItems(req);
     // Folding (#87): источник областей сворачивания — провайдеры расширений через host.
     group.foldingRangeSource = (req) => host.provideFoldingRanges(req);
+    host.onFoldingProvidersChanged(() => {
+        group.foldingRangeSource = (req) => host.provideFoldingRanges(req);
+    });
 
     const writeFile = (name: string, content: string): string => {
         const fp = path.join(tmpDir, name);
