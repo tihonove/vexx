@@ -94,6 +94,11 @@ export const extensionHostModule: ContainerModule = (container) => {
         // подключаются как источник автодополнений группы (читает CompletionService).
         group.completionSource = (req) => host.provideCompletionItems(req);
 
+        // Folding: провайдеры расширений (languages.provideFoldingRanges)
+        // подключаются как источник областей сворачивания группы (читает
+        // EditorComponent при пересчёте, мержит поверх indentation-фолдов).
+        group.foldingRangeSource = (req) => host.provideFoldingRanges(req);
+
         // Ленивая активация по `onLanguage:*`: при смене активного редактора
         // фаерим событие языка — host поднимает расширения, чьи activationEvents
         // содержат `onLanguage:<langId>` (напр. vexx-settings на JSON). Стартовое

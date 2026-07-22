@@ -185,6 +185,8 @@ export async function createExtensionTestHarness(options: IExtensionHarnessOptio
     });
     // Completion (WP8): источник автодополнений — провайдеры расширений через host.
     group.completionSource = (req) => host.provideCompletionItems(req);
+    // Folding (#87): источник областей сворачивания — провайдеры расширений через host.
+    group.foldingRangeSource = (req) => host.provideFoldingRanges(req);
 
     const writeFile = (name: string, content: string): string => {
         const fp = path.join(tmpDir, name);

@@ -1,6 +1,7 @@
 import { EndOfLine } from "../../../editor/common/core/endOfLine.ts";
 import { createRange, type IRange } from "../../../editor/common/core/iRange.ts";
 import type { ICoreCompletionItem } from "../../../editor/common/languages/iCompletionSource.ts";
+import { createFoldingRegion, type IFoldingRegion } from "../../../editor/contrib/folding/iFoldingRegion.ts";
 import type { ISaveEdit } from "../../services/textfile/common/iSaveParticipant.ts";
 
 /**
@@ -291,6 +292,100 @@ export async function requestCompletionItems(
         ]);
         if (outcome === TIMEOUT) return [];
         return wireToCoreCompletionItems(parseWireCompletionItems(outcome));
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// ─── Folding (#87) ───────────────────────────────────────────────────────────
+
+/**
+ * Wire-форма области сворачивания (subprocess → host). `start`/`end` — 0-based
+ * номера строк; `kind` — числовой `FoldingRangeKind` (для MVP ядро его
+ * игнорирует, модель хранит только `startLine/endLine/isCollapsed`).
+ */
+export interface WireFoldingRange {
+    readonly start: number;
+    readonly end: number;
+    readonly kind?: number;
+}
+
+/** Параметры запроса folding (host → subprocess). */
+export interface IWireFoldingParams {
+    /** Ресурс как `uri.toString()`. */
+    readonly uri: string;
+    readonly languageId: string;
+    readonly text: string;
+}
+
+/** Валидирует одну wire-область folding; `null`, если форма не распознана. */
+function parseWireFoldingRange(raw: unknown): WireFoldingRange | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const obj = raw as Record<string, unknown>;
+    if (!isFiniteNumber(obj.start) || !isFiniteNumber(obj.end)) return null;
+    return {
+        start: obj.start,
+        end: obj.end,
+        ...(isFiniteNumber(obj.kind) ? { kind: obj.kind } : {}),
+    };
+}
+
+/**
+ * Разбирает сырой ответ folding в массив валидных {@link WireFoldingRange}.
+ * Невалидные элементы отбрасываются (drop+skip), а не роняют весь ответ.
+ */
+export function parseWireFoldingRanges(raw: unknown): WireFoldingRange[] {
+    if (!Array.isArray(raw)) return [];
+    const result: WireFoldingRange[] = [];
+    for (const item of raw) {
+        const parsed = parseWireFoldingRange(item);
+        if (parsed !== null) result.push(parsed);
+    }
+    return result;
+}
+
+/**
+ * Переводит wire-области в core-регионы ({@link IFoldingRegion}). Отбрасывает
+ * вырожденные (`end <= start` — прятать нечего) и клампит `start` к нулю. `kind`
+ * не переносится (модель ядра его не хранит). Регионы приходят несвёрнутыми —
+ * состояние `isCollapsed` восстанавливает мерж по `startLine` в редакторе.
+ */
+export function wireToCoreFoldingRegions(wire: readonly WireFoldingRange[]): IFoldingRegion[] {
+    const regions: IFoldingRegion[] = [];
+    for (const range of wire) {
+        const start = Math.max(0, Math.floor(range.start));
+        const end = Math.floor(range.end);
+        if (end <= start) continue;
+        regions.push(createFoldingRegion(start, end, false));
+    }
+    return regions;
+}
+
+/**
+ * Запрашивает у subprocess'а области сворачивания с таймаутом. Возвращает пустой
+ * массив на таймаут, ошибку RPC или невалидный ответ (folding — best-effort:
+ * ядро откатится на indentation-фолды). `request` — голая функция для юнит-тестов
+ * через {@link InProcessChannelPair} без форка subprocess'а.
+ */
+export async function requestFoldingRanges(
+    request: (method: string, params: unknown) => Promise<unknown>,
+    params: IWireFoldingParams,
+    timeoutMs: number,
+): Promise<IFoldingRegion[]> {
+    const TIMEOUT = Symbol("timeout");
+    let timer!: ReturnType<typeof setTimeout>;
+    const timeout = new Promise<typeof TIMEOUT>((resolve) => {
+        timer = setTimeout(() => {
+            resolve(TIMEOUT);
+        }, timeoutMs);
+    });
+    try {
+        const outcome = await Promise.race([
+            request("languages.provideFoldingRanges", params).catch(() => TIMEOUT),
+            timeout,
+        ]);
+        if (outcome === TIMEOUT) return [];
+        return wireToCoreFoldingRegions(parseWireFoldingRanges(outcome));
     } finally {
         clearTimeout(timer);
     }

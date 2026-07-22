@@ -4,13 +4,19 @@ import { matchDocumentSelector } from "./documentSelector.ts";
 import type { ExtHostTextDocument } from "./extHostDocuments.ts";
 import type { IVscodeHostContext } from "./vscodeHostContext.ts";
 import { DisposableImpl, EventEmitter, Position, Range } from "./vscodeTypes.ts";
-import type { WireCompletionItem } from "./wireTypes.ts";
+import type { WireCompletionItem, WireFoldingRange } from "./wireTypes.ts";
 
 /** Зарегистрированный провайдер автодополнения. */
 export interface ICompletionRegistration {
     readonly selector: vscode.DocumentSelector;
     readonly provider: vscode.CompletionItemProvider;
     readonly triggerCharacters: readonly string[];
+}
+
+/** Зарегистрированный провайдер областей сворачивания. */
+export interface IFoldingRegistration {
+    readonly selector: vscode.DocumentSelector;
+    readonly provider: vscode.FoldingRangeProvider;
 }
 
 /** Wire-параметры запроса completion (host → subprocess). */
@@ -21,6 +27,14 @@ interface IWireCompletionParams {
     readonly text?: string;
     readonly line?: number;
     readonly character?: number;
+}
+
+/** Wire-параметры запроса folding (host → subprocess). */
+interface IWireFoldingParams {
+    /** Ресурс как `uri.toString()`. */
+    readonly uri: string;
+    readonly languageId?: string;
+    readonly text?: string;
 }
 
 /** Токен отмены-заглушка (запросы completion короткоживущие, отмена не нужна). */
@@ -119,6 +133,20 @@ function normalizeResult(result: unknown): readonly vscode.CompletionItem[] {
     return Array.isArray(items) ? (items as vscode.CompletionItem[]) : [];
 }
 
+/** Сериализует `vscode.FoldingRange` в wire-форму; `null`, если форма битая. */
+function serializeFoldingRange(range: vscode.FoldingRange): WireFoldingRange | null {
+    const start = (range as { start?: unknown }).start;
+    const end = (range as { end?: unknown }).end;
+    if (typeof start !== "number" || !Number.isFinite(start)) return null;
+    if (typeof end !== "number" || !Number.isFinite(end)) return null;
+    const kind = (range as { kind?: unknown }).kind;
+    return {
+        start,
+        end,
+        ...(typeof kind === "number" ? { kind } : {}),
+    };
+}
+
 /**
  * `vscode.languages` на стороне subprocess.
  *
@@ -131,13 +159,16 @@ function normalizeResult(result: unknown): readonly vscode.CompletionItem[] {
 export function createLanguagesNamespace(ctx: IVscodeHostContext): {
     languages: typeof vscode.languages;
     registrations: readonly ICompletionRegistration[];
+    foldingRegistrations: readonly IFoldingRegistration[];
 } {
     const { rpc, registry } = ctx;
     const registrations: ICompletionRegistration[] = [];
+    const foldingRegistrations: IFoldingRegistration[] = [];
 
     function pushSubscriptions(): void {
         rpc.notify("languages.updateSubscriptions", {
             hasCompletionProviders: registrations.length > 0,
+            hasFoldingProviders: foldingRegistrations.length > 0,
         });
     }
 
@@ -176,6 +207,36 @@ export function createLanguagesNamespace(ctx: IVscodeHostContext): {
         return items;
     });
 
+    rpc.handleRequest("languages.provideFoldingRanges", async (params): Promise<WireFoldingRange[]> => {
+        const p = params as IWireFoldingParams;
+        const doc: ExtHostTextDocument = registry.upsertFull({
+            uri: p.uri,
+            ...(typeof p.languageId === "string" ? { languageId: p.languageId } : {}),
+            text: p.text ?? "",
+        });
+        const token = neverCancelledToken();
+        const context = {} as vscode.FoldingContext;
+
+        const ranges: WireFoldingRange[] = [];
+        for (const reg of foldingRegistrations) {
+            if (!matchDocumentSelector(reg.selector, doc)) continue;
+            let result: unknown;
+            try {
+                result = await Promise.resolve(
+                    reg.provider.provideFoldingRanges(doc as unknown as vscode.TextDocument, context, token),
+                );
+            } catch {
+                continue; // сбойный провайдер не роняет остальные
+            }
+            if (!Array.isArray(result)) continue;
+            for (const range of result as vscode.FoldingRange[]) {
+                const wire = serializeFoldingRange(range);
+                if (wire !== null) ranges.push(wire);
+            }
+        }
+        return ranges;
+    });
+
     const languagesNs = {
         registerCompletionItemProvider: (
             selector: vscode.DocumentSelector,
@@ -193,10 +254,26 @@ export function createLanguagesNamespace(ctx: IVscodeHostContext): {
                 }
             }) as unknown as vscode.Disposable;
         },
+        registerFoldingRangeProvider: (
+            selector: vscode.DocumentSelector,
+            provider: vscode.FoldingRangeProvider,
+        ): vscode.Disposable => {
+            const registration: IFoldingRegistration = { selector, provider };
+            foldingRegistrations.push(registration);
+            if (foldingRegistrations.length === 1) pushSubscriptions();
+            return new DisposableImpl(() => {
+                const idx = foldingRegistrations.indexOf(registration);
+                if (idx >= 0) {
+                    foldingRegistrations.splice(idx, 1);
+                    if (foldingRegistrations.length === 0) pushSubscriptions();
+                }
+            }) as unknown as vscode.Disposable;
+        },
     };
 
     return {
         languages: languagesNs as unknown as typeof vscode.languages,
         registrations,
+        foldingRegistrations,
     };
 }

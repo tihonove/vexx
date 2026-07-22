@@ -6,6 +6,7 @@ import type { Uri } from "../../../../base/common/uri.ts";
 import type { EndOfLine } from "../../../../editor/common/core/endOfLine.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import type { ITextEdit } from "../../../../editor/common/core/iTextEdit.ts";
+import type { FoldingRangeSource } from "../../../../editor/common/languages/iFoldingSource.ts";
 import type { IDocumentLanguageChange } from "../../../../editor/common/model/iDocumentLanguageChange.ts";
 import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
 import type { IUndoElement } from "../../../../editor/common/model/iUndoElement.ts";
@@ -87,6 +88,14 @@ export class EditorPane extends Disposable {
 
     public set saveParticipant(participant: SaveParticipant | undefined) {
         this.model.saveParticipant = participant;
+    }
+
+    public get foldingRangeSource(): FoldingRangeSource | undefined {
+        return this.component.foldingRangeSource;
+    }
+
+    public set foldingRangeSource(source: FoldingRangeSource | undefined) {
+        this.component.foldingRangeSource = source;
     }
 
     public setUntitled(untitledNumber: number): void {

@@ -59,14 +59,14 @@ describe("LanguagesNamespace", () => {
         const subs = stub.notifies.filter((n) => n.method === "languages.updateSubscriptions");
         // Только переход 0→1 шлёт notif (второй провайдер не шлёт).
         expect(subs).toHaveLength(1);
-        expect(subs[0].params).toEqual({ hasCompletionProviders: true });
+        expect(subs[0].params).toEqual({ hasCompletionProviders: true, hasFoldingProviders: false });
 
         d1.dispose(); // ещё остаётся d2 — notif нет
         expect(stub.notifies.filter((n) => n.method === "languages.updateSubscriptions")).toHaveLength(1);
         d2.dispose(); // 1→0 — notif {false}
         const after = stub.notifies.filter((n) => n.method === "languages.updateSubscriptions");
         expect(after).toHaveLength(2);
-        expect(after[1].params).toEqual({ hasCompletionProviders: false });
+        expect(after[1].params).toEqual({ hasCompletionProviders: false, hasFoldingProviders: false });
     });
 
     it("provideCompletionItems вызывает только матчащие провайдеры и сериализует items", async () => {

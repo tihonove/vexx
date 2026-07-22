@@ -7,6 +7,7 @@ import { EditorElement, unthemedEditorStyles } from "../../../../editor/browser/
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import { PlainTextTokenizer } from "../../../../editor/common/languages/builtin/plainTextTokenizer.ts";
 import type { ITokenizationSupport } from "../../../../editor/common/languages/iTokenizationSupport.ts";
+import type { FoldingRangeSource } from "../../../../editor/common/languages/iFoldingSource.ts";
 import type { ITokenStyleResolver } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
 import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
@@ -14,6 +15,7 @@ import type { IUndoElement } from "../../../../editor/common/model/iUndoElement.
 import { DocumentTokenStore } from "../../../../editor/common/tokens/documentTokenStore.ts";
 import { EditorViewState } from "../../../../editor/common/viewModel/editorViewState.ts";
 import { computeIndentationFolds } from "../../../../editor/contrib/folding/foldingRangeProvider.ts";
+import type { IFoldingRegion } from "../../../../editor/contrib/folding/iFoldingRegion.ts";
 import type { IMarkerDecoration } from "../../../../platform/markers/common/iMarker.ts";
 import { getEditorStyles, getScrollBarStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import type { TextFileModel } from "../../../services/textfile/common/textFileModel.ts";
@@ -30,6 +32,19 @@ import { ThemedComponent } from "../../component.ts";
  * живёт в `EditorElement`; его роутинг в общую историю компонент перепривязывает к
  * модели при каждом пересоздании редактора (`TextFileModel.attachUndoRouting`).
  */
+/**
+ * Union of indentation folds and extension-provider folds. At most one region
+ * per start line survives — the provider's wins on a shared start line (it's the
+ * more specific, marker-driven range). Result is sorted by start line, the order
+ * the fold model and gutter expect.
+ */
+function mergeFoldingRegions(indentation: IFoldingRegion[], provider: readonly IFoldingRegion[]): IFoldingRegion[] {
+    const byStart = new Map<number, IFoldingRegion>();
+    for (const region of indentation) byStart.set(region.startLine, region);
+    for (const region of provider) byStart.set(region.startLine, { ...region });
+    return [...byStart.values()].sort((a, b) => a.startLine - b.startLine);
+}
+
 export class EditorComponent extends ThemedComponent {
     public readonly view: ScrollBarDecorator;
 
@@ -44,6 +59,17 @@ export class EditorComponent extends ThemedComponent {
     private editor: EditorElement;
     private tokenStore: DocumentTokenStore;
     private foldingRecomputeScheduled = false;
+    /**
+     * Источник провайдерских областей сворачивания (host/харнесс подключает сюда
+     * `languages.provideFoldingRanges`). Undefined ⇒ только indentation-фолды.
+     */
+    private foldingRangeSourceValue?: FoldingRangeSource;
+    /**
+     * Монотонный номер folding-запроса: асинхронный ответ провайдера применяется
+     * только если запрос ещё актуален (не устарел из-за нового пересчёта после
+     * правки). Отсекает гонку sync-indentation ↔ async-provider.
+     */
+    private foldingRequestSeq = 0;
     private componentDisposed = false;
     private contextMenuProviderValue?: () => MenuEntry[];
     /**
@@ -56,6 +82,19 @@ export class EditorComponent extends ThemedComponent {
     public set contextMenuProvider(provider: () => MenuEntry[]) {
         this.contextMenuProviderValue = provider;
         this.editor.contextMenuProvider = provider;
+    }
+
+    public get foldingRangeSource(): FoldingRangeSource | undefined {
+        return this.foldingRangeSourceValue;
+    }
+
+    /**
+     * Подключает провайдерский folding-источник. Переустановка пере-считывает
+     * области (extension host мог активироваться уже после открытия файла).
+     */
+    public set foldingRangeSource(source: FoldingRangeSource | undefined) {
+        this.foldingRangeSourceValue = source;
+        this.recomputeFoldingRegions();
     }
 
     public constructor(
@@ -343,22 +382,54 @@ export class EditorComponent extends ThemedComponent {
     }
 
     /**
-     * Recomputes indentation-based folding regions for the current document,
-     * preserving the collapsed state of regions that still start on the same
-     * line. This is the built-in default provider (VS Code recomputes ranges on
-     * every content change the same way); a language/extension-contributed
-     * provider is a future seam.
+     * Recomputes folding regions for the current document. Indentation folds are
+     * the always-present baseline (VS Code recomputes ranges on every content
+     * change the same way); if an extension folding provider is wired, its ranges
+     * are fetched asynchronously and **merged on top** (union — provider ∪
+     * indentation, provider winning on a shared start line) so the user never
+     * loses indentation folding for languages the provider only partially covers.
+     * Collapsed state is carried across by start line on every apply.
      */
     private recomputeFoldingRegions(): void {
+        const indentation = computeIndentationFolds(this.model.document, this.editorViewState.tabSize);
+        this.applyFoldingRegions(indentation);
+
+        const source = this.foldingRangeSourceValue;
+        if (source === undefined) return;
+
+        // Snapshot request identity: a later recompute (after an edit or a
+        // provider re-registration) bumps the sequence and invalidates this
+        // in-flight request, so a stale async answer never clobbers fresh state.
+        const requestSeq = ++this.foldingRequestSeq;
+        void source({
+            uri: this.model.uri.toString(),
+            languageId: this.model.languageId,
+            text: this.model.document.getText(),
+        })
+            .then((providerRegions) => {
+                if (requestSeq !== this.foldingRequestSeq || this.componentDisposed) return;
+                if (providerRegions.length === 0) return; // nothing to merge, indentation stays
+                this.applyFoldingRegions(mergeFoldingRegions(indentation, providerRegions));
+            })
+            .catch(() => {
+                // Provider failed/timed out: indentation folds already applied stand.
+            });
+    }
+
+    /**
+     * Applies a fresh set of folding regions, carrying the collapsed state of any
+     * region that still starts on the same line (so a recompute or a provider
+     * merge doesn't visibly re-expand what the user folded).
+     */
+    private applyFoldingRegions(regions: IFoldingRegion[]): void {
         const collapsedStarts = new Set<number>();
         for (const region of this.editorViewState.foldedRegions) {
             if (region.isCollapsed) collapsedStarts.add(region.startLine);
         }
-        const computed = computeIndentationFolds(this.model.document, this.editorViewState.tabSize);
-        for (const region of computed) {
+        for (const region of regions) {
             if (collapsedStarts.has(region.startLine)) region.isCollapsed = true;
         }
-        this.editorViewState.setFoldingRegions(computed);
+        this.editorViewState.setFoldingRegions(regions);
         // If the recompute re-collapsed a region around the just-edited line (e.g.
         // Tab indented the line below a collapsed block into it), keep the caret —
         // and the text under it — visible, matching VS Code.

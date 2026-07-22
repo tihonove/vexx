@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { Disposable, type IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import type { CompletionSource } from "../../../../editor/common/languages/iCompletionSource.ts";
+import type { FoldingRangeSource } from "../../../../editor/common/languages/iFoldingSource.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import type { ITokenStyleResolver } from "../../../../editor/common/languages/iTokenStyleResolver.ts";
 import type { TokenizationRegistry } from "../../../../editor/common/languages/tokenizationRegistry.ts";
@@ -84,6 +85,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
     private editorsChangedListeners: (() => void)[] = [];
     private saveParticipantValue?: SaveParticipant;
+    private foldingRangeSourceValue?: FoldingRangeSource;
     /**
      * Монотонный счётчик номеров безымянных буферов (`Untitled-1`, `Untitled-2`, …).
      * Не переиспользуется при закрытии вкладок — как в VS Code, номер стабилен за
@@ -114,6 +116,23 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         this.saveParticipantValue = participant;
         for (const editor of this.editors) {
             editor.saveParticipant = participant;
+        }
+    }
+
+    /**
+     * Folding-источник, прокидываемый в каждый редактор группы (host/харнесс
+     * подключает сюда `languages.provideFoldingRanges`). Присваивание раздаёт
+     * источник уже открытым редакторам и всем последующим (в openFile) — extension
+     * host мог активироваться уже после открытия первого файла.
+     */
+    public get foldingRangeSource(): FoldingRangeSource | undefined {
+        return this.foldingRangeSourceValue;
+    }
+
+    public set foldingRangeSource(source: FoldingRangeSource | undefined) {
+        this.foldingRangeSourceValue = source;
+        for (const editor of this.editors) {
+            editor.foldingRangeSource = source;
         }
     }
 
@@ -294,6 +313,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         // первой загрузки.
         editor.fileWatcher = this.fileWatcher;
         editor.saveParticipant = this.saveParticipantValue;
+        editor.foldingRangeSource = this.foldingRangeSourceValue;
         // Внешнее изменение файла (авто-перечитка чистого буфера / флаг конфликта
         // для «грязного») отражаем в табах: перечитка меняет контент, конфликт —
         // маркер модифицированности.
