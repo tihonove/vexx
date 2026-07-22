@@ -11,6 +11,7 @@ import {
     registerAndActivate,
 } from "../../src/TestUtils/ExtensionTestHarness.ts";
 import { settle } from "../../src/TestUtils/timing.ts";
+import { Uri } from "../../src/vs/base/common/uri.ts";
 import type { IGutterChangeDecoration } from "../../src/vs/editor/common/model/iGutterChangeDecoration.ts";
 import type { IEditorDecorationsService } from "../../src/vs/workbench/api/common/iEditorDecorationsService.ts";
 import type { IFileDecorationsService } from "../../src/vs/workbench/api/common/iFileDecorationsService.ts";
@@ -60,12 +61,15 @@ function git(cwd: string, ...args: string[]): void {
     execFileSync("git", args, { cwd, stdio: "ignore" });
 }
 
+/** Содержимое tracked.txt в HEAD — до правки второй строки. */
+const TRACKED_AT_HEAD = "a\nb\nc\n";
+
 function makeRepo(dir: string): void {
     git(dir, "init", "-q");
     git(dir, "config", "user.email", "t@example.com");
     git(dir, "config", "user.name", "Test");
     git(dir, "config", "commit.gpgsign", "false");
-    fs.writeFileSync(path.join(dir, "tracked.txt"), "a\nb\nc\n");
+    fs.writeFileSync(path.join(dir, "tracked.txt"), TRACKED_AT_HEAD);
     git(dir, "add", "-A");
     git(dir, "commit", "-qm", "init");
     // Modify line 2 of the tracked file and add an untracked file.
@@ -104,7 +108,7 @@ describe("builtin git plugin (integration)", () => {
         harness = undefined;
     });
 
-    it("colours changed files in the tree and paints gutter bars for the active file", async () => {
+    it("colours changed files in the tree and serves the HEAD version over git:", async () => {
         const editorSpy = makeEditorSpy();
         const fileSpy = makeFileSpy();
         harness = await createExtensionTestHarness({
@@ -129,18 +133,53 @@ describe("builtin git plugin (integration)", () => {
         expect(tracked).toMatchObject({ badge: "M", color: COLORS["gitDecoration.modifiedResourceForeground"] });
         expect(untracked).toMatchObject({ badge: "U", color: COLORS["gitDecoration.untrackedResourceForeground"] });
 
-        // Gutter: the modified line (2, i.e. 0-based line 1) gets a modified-colour
-        // bar, painted dashed (VS Code dirty-diff style for modified lines).
-        const gotGutter = await waitFor(() => {
-            const decos = editorSpy.latestFor("tracked.txt");
-            return decos !== undefined && decos.length > 0;
+        // Гуттер расширение больше НЕ считает: оно отдаёт версию из HEAD по схеме
+        // git:, а дифф против живого буфера делает ядро (QuickDiffService).
+        const trackedPath = path.join(harness.tmpDir, "tracked.txt");
+        const originalUri = (await harness.commandRegistry.execute(
+            "vexx.scm.originalResource",
+            Uri.file(trackedPath).toString(),
+        )) as string | null;
+        expect(originalUri).toMatch(/^git:/);
+
+        const bytes = await harness.host.readProvidedFile(Uri.parse(originalUri!));
+        // В HEAD лежит исходная версия — до правки второй строки.
+        expect(new TextDecoder().decode(bytes)).toBe(TRACKED_AT_HEAD);
+
+        expect(editorSpy.latestFor("tracked.txt")).toBeUndefined();
+    });
+
+    it("не отдаёт оригинал для untracked-файла и для файла вне репозитория", async () => {
+        harness = await createExtensionTestHarness({
+            editorDecorations: makeEditorSpy().service,
+            fileDecorations: makeFileSpy().service,
+            themeColorResolver: makeThemeResolver(),
         });
-        expect(gotGutter).toBe(true);
-        const decos = editorSpy.latestFor("tracked.txt")!;
-        expect(decos).toHaveLength(1);
-        expect(decos[0].range.start.line).toBe(1);
-        expect(decos[0].color).toBe(COLORS["editorGutter.modifiedBackground"]);
-        expect(decos[0].dashed).toBe(true);
+        makeRepo(harness.tmpDir);
+        harness.group.openFile(path.join(harness.tmpDir, "tracked.txt"));
+        await registerAndActivate(harness.host, gitRegistration());
+
+        // Ждём первого refreshStatus: untracked распознаётся по porcelain-статусу.
+        const untrackedUri = Uri.file(path.join(harness.tmpDir, "untracked.txt")).toString();
+        let untrackedOriginal: string | null | undefined;
+        await waitFor(() => {
+            void (
+                harness!.commandRegistry.execute("vexx.scm.originalResource", untrackedUri) as Promise<string | null>
+            ).then((value) => {
+                untrackedOriginal = value;
+            });
+            return untrackedOriginal === null;
+        });
+        expect(untrackedOriginal).toBeNull();
+
+        expect(
+            await harness.commandRegistry.execute(
+                "vexx.scm.originalResource",
+                Uri.file("/definitely/outside/repo.txt").toString(),
+            ),
+        ).toBeNull();
+        expect(await harness.commandRegistry.execute("vexx.scm.originalResource", "untitled:Untitled-1")).toBeNull();
+        expect(await harness.commandRegistry.execute("vexx.scm.originalResource", 42)).toBeNull();
     });
 
     it("stays inert (no throw, no decorations) outside a git repository", async () => {

@@ -50,3 +50,12 @@ export function fromGitUri(uri: { scheme: string; query: string }): IGitUriParam
     if (typeof path !== "string" || path === "" || typeof ref !== "string") return null;
     return { path, ref };
 }
+
+/**
+ * Команда, которой ядро спрашивает ресурс оригинала (аналог
+ * `QuickDiffProvider.provideOriginalResource`). Идентификатор дублируется в
+ * ядре (`contrib/scm/browser/commandOriginalResourceProvider.ts`) — это
+ * контракт между расширением и ядром, и он временный: канонический путь —
+ * `scm`-неймспейс, см. docs/TODO/Diff.md.
+ */
+export const ORIGINAL_RESOURCE_COMMAND = "vexx.scm.originalResource";

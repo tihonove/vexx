@@ -1,20 +1,6 @@
-import type { DiffHunkKind, IDiffHunk } from "./diff.ts";
-
 /** A resource decoration: a single-letter badge plus a theme color id. */
 export interface IStatusDecoration {
     badge: string;
-    colorId: string;
-}
-
-/** An inclusive 1-based line range in the new file, for a gutter marker. */
-export interface IGutterRange {
-    startLine: number;
-    endLine: number;
-}
-
-/** A gutter marker: the line range it spans and the theme color id to paint. */
-export interface IGutterDecoration {
-    range: IGutterRange;
     colorId: string;
 }
 
@@ -32,12 +18,6 @@ const DECORATION_BY_STATUS: Record<string, IStatusDecoration> = {
 
 // Porcelain `XY` codes that denote an unmerged (conflicting) path.
 const UNMERGED_CODES = new Set(["DD", "AU", "UD", "UA", "DU", "AA", "UU"]);
-
-const GUTTER_COLOR_BY_KIND: Record<DiffHunkKind, string> = {
-    added: "editorGutter.addedBackground",
-    modified: "editorGutter.modifiedBackground",
-    deleted: "editorGutter.deletedBackground",
-};
 
 /**
  * Map a porcelain `XY` status to a resource decoration. Untracked (`??`),
@@ -57,12 +37,4 @@ function primaryStatusChar(xy: string): string {
     if (UNMERGED_CODES.has(xy)) return "U";
     const x = xy[0];
     return x !== " " ? x : xy[1];
-}
-
-/** Map parsed diff hunks to gutter decorations, one per hunk. */
-export function hunksToGutter(hunks: IDiffHunk[]): IGutterDecoration[] {
-    return hunks.map((hunk) => ({
-        range: { startLine: hunk.start, endLine: hunk.start + hunk.count - 1 },
-        colorId: GUTTER_COLOR_BY_KIND[hunk.kind],
-    }));
 }
