@@ -209,7 +209,9 @@ export class Selection extends Range {
         let active: Position;
         if (typeof anchorOrAnchorLine === "number") {
             anchor = new Position(anchorOrAnchorLine, activeOrAnchorCharacter as number);
+            /* v8 ignore start -- defensive: the numeric overload always supplies activeLine/activeCharacter */
             active = new Position(activeLine ?? 0, activeCharacter ?? 0);
+            /* v8 ignore stop */
         } else {
             anchor = anchorOrAnchorLine;
             active = activeOrAnchorCharacter as Position;

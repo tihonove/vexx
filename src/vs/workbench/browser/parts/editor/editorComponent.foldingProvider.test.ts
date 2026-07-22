@@ -42,7 +42,9 @@ describe("EditorComponent – extension folding provider merge", () => {
         const ctrl = open("a\nb\nc\nd\ne");
         expect(starts(ctrl)).toEqual([]);
 
-        ctrl.foldingRangeSource = sourceOf([{ startLine: 0, endLine: 3, isCollapsed: false }]);
+        const source = sourceOf([{ startLine: 0, endLine: 3, isCollapsed: false }]);
+        ctrl.foldingRangeSource = source;
+        expect(ctrl.foldingRangeSource).toBe(source); // геттер отдаёт установленный источник
         await flush();
 
         expect(starts(ctrl)).toEqual([0]);
@@ -83,6 +85,18 @@ describe("EditorComponent – extension folding provider merge", () => {
         ctrl.foldingRangeSource = sourceOf([{ startLine: 0, endLine: 3, isCollapsed: false }]);
         await flush();
         expect(ctrl.viewState.foldedRegions.find((r) => r.startLine === 0)?.isCollapsed).toBe(true);
+    });
+
+    it("провайдер упал/таймаут → остаются indentation-фолды (без throw)", async () => {
+        const ctrl = open("header\n  x\n  y\nfooter");
+        expect(starts(ctrl)).toEqual([0]);
+
+        ctrl.foldingRangeSource = async () => {
+            throw new Error("provider boom");
+        };
+        await flush();
+
+        expect(starts(ctrl)).toEqual([0]); // indentation-фолды уцелели
     });
 
     it("пустой ответ провайдера → остаются только indentation-фолды", async () => {

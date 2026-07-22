@@ -437,11 +437,9 @@ export class EditorComponent extends ThemedComponent {
      * unioned with the currently-collapsed lines so a collapse made before the
      * recompute survives an intermediate empty apply.
      */
-    private applyFoldingRegions(regions: IFoldingRegion[], priorCollapsed?: ReadonlySet<number>): void {
+    private applyFoldingRegions(regions: IFoldingRegion[], priorCollapsed: ReadonlySet<number>): void {
         const collapsedStarts = this.collapsedStartLines();
-        if (priorCollapsed !== undefined) {
-            for (const start of priorCollapsed) collapsedStarts.add(start);
-        }
+        for (const start of priorCollapsed) collapsedStarts.add(start);
         for (const region of regions) {
             if (collapsedStarts.has(region.startLine)) region.isCollapsed = true;
         }

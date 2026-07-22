@@ -410,6 +410,8 @@ describe("WireTypes — parseWireSelections", () => {
 describe("WireTypes — parseWireEditorEdits", () => {
     it("парсит правку с range+text; отбрасывает без range или без text", () => {
         const raw = [
+            null,
+            42,
             { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 }, text: "hi" },
             { text: "no range" },
             { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 } }, // нет text

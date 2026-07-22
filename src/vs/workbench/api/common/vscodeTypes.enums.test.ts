@@ -7,6 +7,7 @@ import {
     EndOfLine,
     FileDecoration,
     FileType,
+    FoldingRange,
     FoldingRangeKind,
     OverviewRulerLane,
     TextDocumentSaveReason,
@@ -42,6 +43,14 @@ describe("VscodeTypes — enums", () => {
         expect(FoldingRangeKind.Comment).toBe(1);
         expect(FoldingRangeKind.Imports).toBe(2);
         expect(FoldingRangeKind.Region).toBe(3);
+    });
+
+    it("FoldingRange хранит start/end/kind", () => {
+        const withKind = new FoldingRange(0, 3, FoldingRangeKind.Region);
+        expect(withKind.start).toBe(0);
+        expect(withKind.end).toBe(3);
+        expect(withKind.kind).toBe(FoldingRangeKind.Region);
+        expect(new FoldingRange(5, 9).kind).toBeUndefined();
     });
 });
 

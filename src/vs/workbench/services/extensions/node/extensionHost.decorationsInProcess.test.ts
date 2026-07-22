@@ -19,12 +19,19 @@ import { ExtensionHost } from "./extensionHost.ts";
 // нотификации сами. Так покрытие хендлеров стабильно (один воркер, без гонок
 // subprocess-RPC), и легко пробить guard-ветки/пути очистки.
 
+const editorWriteCalls: { method: string; uri: string; payload: unknown }[] = [];
 const NOOP_EDITOR_OPTIONS = {
     getActiveEditorOptions: () => null,
     setActiveEditorOptions: () => undefined,
     getActiveEditorFilePath: () => null,
     getActiveEditorMeta: () => ({ uri: null, languageId: null, isDirty: false }),
     onActiveEditorChanged: () => ({ dispose: () => undefined }),
+    setActiveEditorSelections: (uri: string, selections: unknown) =>
+        editorWriteCalls.push({ method: "setSelection", uri, payload: selections }),
+    applyActiveEditorEdits: (uri: string, edits: unknown) => {
+        editorWriteCalls.push({ method: "applyEdit", uri, payload: edits });
+        return true;
+    },
 } as unknown as IEditorOptionsService;
 
 const NOOP_COMMANDS = {
@@ -237,5 +244,30 @@ describe("ExtensionHost decoration handlers (in-process, deterministic)", () => 
         h.fireConfig(["git.enabled"]);
         await flushMicrotasks(10);
         expect(h.configChanges.at(-1)).toEqual({ configuration: { some: "config" }, affectedKeys: ["git.enabled"] });
+    });
+
+    it("editor.setSelection / editor.applyEdit: guard на uri + проброс в порт", async () => {
+        editorWriteCalls.length = 0;
+        const h = makeHost({ "editorGutter.modifiedBackground": 0xff, "editor.background": 0 });
+
+        // Нет uri (не строка) — ранний выход, порт не дёргается.
+        h.peer.notify("editor.setSelection", { selections: [] });
+        const guarded = await h.peer.request("editor.applyEdit", { edits: [] });
+        expect(guarded).toBe(false);
+        expect(editorWriteCalls).toHaveLength(0);
+
+        // С uri — проброс в порт.
+        const uri = Uri.file("/a.ts").toString();
+        h.peer.notify("editor.setSelection", {
+            uri,
+            selections: [{ anchorLine: 0, anchorCharacter: 0, activeLine: 0, activeCharacter: 1 }],
+        });
+        const applied = await h.peer.request("editor.applyEdit", {
+            uri,
+            edits: [{ range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 1 }, text: "x" }],
+        });
+        await flushMicrotasks(5);
+        expect(applied).toBe(true);
+        expect(editorWriteCalls.map((c) => c.method)).toEqual(["setSelection", "applyEdit"]);
     });
 });

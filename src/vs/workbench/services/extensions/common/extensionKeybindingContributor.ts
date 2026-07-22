@@ -42,9 +42,9 @@ function resolveKey(kb: IKeybindingContribution, platform: NodeJS.Platform): str
 
 function applyKeybinding(kb: IKeybindingContribution, registry: KeybindingRegistry, platform: NodeJS.Platform): void {
     const key = resolveKey(kb, platform);
+    // resolveKey уже отсеял пустой/пробельный key, поэтому parseChord даёт ≥1 аккорд.
     if (key === undefined) return;
     const chord = parseChord(key);
-    if (chord.length === 0) return;
 
     // Ведущий `-` в command — снятие привязки (VS Code `-command`).
     if (kb.command.startsWith("-")) {

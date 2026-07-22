@@ -225,16 +225,54 @@ describe("LanguagesNamespace", () => {
         const { ctx, stub } = makeCtx();
         const { languages, foldingRegistrations } = createLanguagesNamespace(ctx);
         const provider = { provideFoldingRanges: () => [] } as never;
-        const disposable = languages.registerFoldingRangeProvider(["csharp"], provider);
-        expect(foldingRegistrations).toHaveLength(1);
+        const d1 = languages.registerFoldingRangeProvider(["csharp"], provider);
+        const d2 = languages.registerFoldingRangeProvider(["typescript"], provider);
+        expect(foldingRegistrations).toHaveLength(2);
+        // Только переход 0→1 шлёт notif (второй провайдер не шлёт).
         const subs = stub.notifies.filter((n) => n.method === "languages.updateSubscriptions");
         expect(subs).toHaveLength(1);
         expect(subs[0].params).toEqual({ hasCompletionProviders: false, hasFoldingProviders: true });
 
-        disposable.dispose();
+        d1.dispose(); // ещё остаётся d2 — notif нет
+        expect(stub.notifies.filter((n) => n.method === "languages.updateSubscriptions")).toHaveLength(1);
+        d1.dispose(); // повторный dispose безопасен (idx < 0)
+        d2.dispose(); // 1→0 — notif {false}
         expect(foldingRegistrations).toHaveLength(0);
         const after = stub.notifies.filter((n) => n.method === "languages.updateSubscriptions");
         expect(after[1].params).toEqual({ hasCompletionProviders: false, hasFoldingProviders: false });
+    });
+
+    it("provideFoldingRanges: провайдер вернул не массив → пропускается", async () => {
+        const { ctx, stub } = makeCtx();
+        const { languages } = createLanguagesNamespace(ctx);
+        languages.registerFoldingRangeProvider(["csharp"], {
+            provideFoldingRanges: () => null,
+        } as never);
+        languages.registerFoldingRangeProvider(["csharp"], {
+            // Валидный + битый start + битый end — оба битых отсеются сериализатором.
+            provideFoldingRanges: () => [{ start: 1, end: 2 }, { start: "x", end: 2 }, { start: 3, end: "x" }],
+        } as never);
+        // Запрос без languageId/text — ветки дефолтов (languageId скипается, text → "").
+        // ExtHostTextDocument без languageId остаётся csharp по предыдущему upsert? Нет —
+        // тут первый upsert, поэтому явно даём languageId для матча селектора.
+        const result = await stub.callRequest("languages.provideFoldingRanges", {
+            uri: Uri.file("/proj/Program.cs").toString(),
+            languageId: "csharp",
+        });
+        expect(result).toEqual([{ start: 1, end: 2 }]);
+    });
+
+    it("provideFoldingRanges: без languageId/text — дефолты, без матча селектора", async () => {
+        const { ctx, stub } = makeCtx();
+        const { languages } = createLanguagesNamespace(ctx);
+        languages.registerFoldingRangeProvider(["csharp"], {
+            provideFoldingRanges: () => [{ start: 0, end: 3 }],
+        } as never);
+        // uri без languageId → документ plaintext → селектор csharp не матчит → [].
+        const result = await stub.callRequest("languages.provideFoldingRanges", {
+            uri: Uri.file("/proj/Program.txt").toString(),
+        });
+        expect(result).toEqual([]);
     });
 
     it("provideFoldingRanges вызывает только матчащие провайдеры и сериализует области", async () => {

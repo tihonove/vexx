@@ -189,4 +189,70 @@ describe("EditorOptionsServiceAdapter", () => {
         expect(adapter.applyActiveEditorEdits(Uri.file("/a/b.ts").toString(), [edit])).toBe(true);
         expect(applyExternalEdits).toHaveBeenCalledOnce();
     });
+
+    it("applyActiveEditorEdits() — false, если нет активного редактора или пустой список", () => {
+        const editor = {
+            uri: Uri.file("/a/b.ts"),
+            model: { document: { lineCount: 3, getLineLength: () => 10 } },
+            applyExternalEdits: vi.fn(),
+        };
+        const group = { getActiveEditor: () => editor } as unknown as EditorService;
+        const adapter = new EditorOptionsServiceAdapter(group);
+        expect(adapter.applyActiveEditorEdits(Uri.file("/a/b.ts").toString(), [])).toBe(false);
+        expect(new EditorOptionsServiceAdapter(groupWithNoActiveEditor()).setActiveEditorSelections("x", [])).toBeUndefined();
+    });
+
+    it("клампит выделения и правки к границам документа", () => {
+        let setSel: unknown;
+        const applyExternalEdits = vi.fn();
+        const editor = {
+            uri: Uri.file("/a/b.ts"),
+            model: { document: { lineCount: 3, getLineLength: () => 10 } },
+            get viewState() {
+                return {
+                    get selections() {
+                        return [];
+                    },
+                    set selections(v: unknown) {
+                        setSel = v;
+                    },
+                };
+            },
+            focusEditor: vi.fn(),
+            applyExternalEdits,
+        };
+        const group = { getActiveEditor: () => editor } as unknown as EditorService;
+        const adapter = new EditorOptionsServiceAdapter(group);
+        const uri = Uri.file("/a/b.ts").toString();
+
+        // anchor вне границ снизу/слева, active вне границ сверху/справа.
+        adapter.setActiveEditorSelections(uri, [
+            { anchorLine: -5, anchorCharacter: -3, activeLine: 99, activeCharacter: 999 },
+        ]);
+        expect(setSel).toEqual([
+            { anchor: { line: 0, character: 0 }, active: { line: 2, character: 10 }, idealColumn: undefined },
+        ]);
+
+        adapter.applyActiveEditorEdits(uri, [
+            { range: { startLine: -1, startCharacter: -1, endLine: 50, endCharacter: 50 }, text: "z" },
+        ]);
+        const applied = applyExternalEdits.mock.calls[0][0];
+        expect(applied).toEqual([
+            { range: { start: { line: 0, character: 0 }, end: { line: 2, character: 10 } }, text: "z" },
+        ]);
+    });
+
+    it("getActiveEditorMeta() — selection null, когда выделений нет", () => {
+        const group = {
+            getActiveEditor: () => ({
+                uri: Uri.file("/a/b.ts"),
+                languageId: "typescript",
+                isModified: false,
+                encoding: "utf8",
+                eol: 1,
+                viewState: { selections: [] },
+            }),
+        } as unknown as EditorService;
+        expect(new EditorOptionsServiceAdapter(group).getActiveEditorMeta().selection).toBeNull();
+    });
 });

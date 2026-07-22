@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { IExtension } from "../../../../platform/extensions/common/iExtension.ts";
 import type { IKeybindingContribution } from "../../../../platform/extensions/common/iExtensionManifest.ts";
@@ -47,6 +47,10 @@ describe("registerExtensionKeybindings", () => {
         const linux = new KeybindingRegistry();
         registerExtensionKeybindings([ext([contrib])], linux, "linux");
         expect(formatKeybinding(linux.getKeybindingForCommand("cmd")!)).toBe("Ctrl+A");
+
+        const win = new KeybindingRegistry();
+        registerExtensionKeybindings([ext([{ command: "cmd", key: "ctrl+a", win: "alt+a" }])], win, "win32");
+        expect(formatKeybinding(win.getKeybindingForCommand("cmd")!)).toBe("Alt+A");
     });
 
     it("ведущий - в command снимает существующую привязку", () => {
@@ -68,6 +72,35 @@ describe("registerExtensionKeybindings", () => {
         const registry = new KeybindingRegistry();
         registerExtensionKeybindings([ext([{ command: "cmd", key: "" }])], registry, "linux");
         expect(registry.getKeybindingForCommand("cmd")).toBeUndefined();
+    });
+
+    it("сбой применения одного биндинга не роняет остальные (изоляция + лог)", () => {
+        const warn = vi.fn();
+        const registry = new KeybindingRegistry();
+        let calls = 0;
+        // Первый register бросает, второй — нормальный.
+        const throwingRegistry = {
+            register: (...args: Parameters<KeybindingRegistry["register"]>) => {
+                calls++;
+                if (calls === 1) throw new Error("boom");
+                return registry.register(...args);
+            },
+            removeBindings: registry.removeBindings.bind(registry),
+        } as unknown as KeybindingRegistry;
+
+        registerExtensionKeybindings(
+            [
+                ext([
+                    { command: "a", key: "ctrl+a" },
+                    { command: "b", key: "ctrl+b" },
+                ]),
+            ],
+            throwingRegistry,
+            "linux",
+            { warn } as never,
+        );
+        expect(warn).toHaveBeenCalledOnce();
+        expect(registry.getKeybindingForCommand("b")).toBeDefined();
     });
 
     it("расширение без contributes.keybindings игнорируется", () => {
