@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -64,6 +64,14 @@ export interface ScenarioSpec {
      * folding-провайдер (#194).
      */
     installVsix?: readonly string[];
+    /**
+     * Пользовательские кейбинды (`keybindings.json`) в hermetic user-data-dir
+     * сценария. Нужны, когда команду важно исполнить, НЕ уводя фокус: палитра
+     * возвращает фокус тому, у кого он был на момент открытия, а маршрут к ней
+     * через меню-бар оставляет фокус в меню — и последующий ввод не доходит до
+     * редактора. Привязка команды к клавише убирает этот шум из сценария.
+     */
+    userKeybindings?: readonly { key: string; command: string }[];
     run(driver: ScenarioDriver): Promise<void>;
 }
 
@@ -115,6 +123,12 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
     const userDataDir = mkdtempSync(join(tmpdir(), "vexx-e2e-"));
     for (const vsix of spec.installVsix ?? []) {
         await installExtension(userDataDir, vsix);
+    }
+    if (spec.userKeybindings !== undefined) {
+        // Раскладка user data — см. resolveUserDataPaths: <root>/user-data/User.
+        const userDir = join(userDataDir, "user-data", "User");
+        mkdirSync(userDir, { recursive: true });
+        writeFileSync(join(userDir, "keybindings.json"), JSON.stringify(spec.userKeybindings, null, 2));
     }
     const session = await HeadlessSession.start({
         args: [`--user-data-dir=${userDataDir}`, ...(spec.open ?? [])],

@@ -113,7 +113,7 @@ describe("EditorGroupElement", () => {
             const group = new EditorGroupElement();
             const tsIcon = getFileIcon("file.ts");
             group.tabStrip.setTabs([
-                { label: "file.ts", icon: tsIcon.icon, iconColor: tsIcon.color, isModified: false },
+                { label: "file.ts", icon: tsIcon.icon, iconColor: tsIcon.color, isModified: false, isReadOnly: false },
             ]);
             group.tabStrip.activeIndex = 0;
 

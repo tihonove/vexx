@@ -99,7 +99,10 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
 
     public applyActiveEditorEdits(uri: string, edits: readonly IWireEditorEdit[]): boolean {
         const editor = this.activeEditorFor(uri);
-        if (editor === null || edits.length === 0) return false;
+        // Read-only: правка не состоится (её отобьёт `EditorViewState`), поэтому
+        // честно отвечаем `false` — у расширения `TextEditor.edit()` резолвится
+        // этим значением, и врать ему об успехе нельзя. Так же ведёт себя VS Code.
+        if (editor === null || editor.readOnly || edits.length === 0) return false;
         const doc = editor.model.document;
         const textEdits: ITextEdit[] = edits.map((edit) => {
             const start = clampPosition(doc, edit.range.startLine, edit.range.startCharacter);

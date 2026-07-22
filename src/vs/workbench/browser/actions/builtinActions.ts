@@ -5,6 +5,7 @@ import {
     fileSaveAction,
     fileSaveAsAction,
     newUntitledFileAction,
+    toggleActiveEditorReadonlyInSessionAction,
 } from "../../contrib/files/browser/fileActions.ts";
 import {
     fileDeleteAction,
@@ -158,6 +159,7 @@ export const builtinActions: readonly CommandAction[] = [
     newUntitledFileAction,
     fileOpenAction,
     fileOpenFolderAction,
+    toggleActiveEditorReadonlyInSessionAction,
     openSettingsAction,
     openKeybindingsAction,
     showAboutDialogAction,

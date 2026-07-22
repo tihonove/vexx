@@ -71,7 +71,7 @@ describe("UndoManager EOL changes", () => {
 
         // 2) text edit
         const typeElement = viewState.type(" world");
-        undoManager.pushUndoElement(typeElement);
+        undoManager.pushUndoElement(typeElement!);
         expect(doc.getText()).toBe("hello world");
         expect(doc.eol).toBe(EndOfLine.CRLF);
 

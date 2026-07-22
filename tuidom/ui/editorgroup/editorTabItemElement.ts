@@ -5,12 +5,17 @@ import { RenderContext, TUIElement } from "../../dom/tuiElement.ts";
 
 const CLOSE_CHAR = "×";
 const MODIFIED_CHAR = "●";
+// Codicon-замок — тот же глиф, которым VS Code метит read-only вкладку.
+// Пишется escape'ом, а не литералом: глиф из Private Use Area не переживает
+// копирование через инструменты и тихо превращается в пустую строку.
+const READONLY_CHAR = "\uea75"; // nf-cod-lock
 
 export class EditorTabItemElement extends TUIElement {
     private label: string;
     private icon: string;
     private iconColor: number;
     private modified: boolean;
+    private readOnly: boolean;
     private paddingLeft: number;
     private paddingRight: number;
     private hovered = false;
@@ -22,13 +27,14 @@ export class EditorTabItemElement extends TUIElement {
         label: string,
         icon: string,
         iconColor: number,
-        options?: { modified?: boolean; paddingLeft?: number; paddingRight?: number },
+        options?: { modified?: boolean; readOnly?: boolean; paddingLeft?: number; paddingRight?: number },
     ) {
         super();
         this.label = label;
         this.icon = icon;
         this.iconColor = iconColor;
         this.modified = options?.modified ?? false;
+        this.readOnly = options?.readOnly ?? false;
         this.paddingLeft = options?.paddingLeft ?? 1;
         this.paddingRight = options?.paddingRight ?? 1;
 
@@ -89,6 +95,17 @@ export class EditorTabItemElement extends TUIElement {
         this.markDirty();
     }
 
+    public getReadOnly(): boolean {
+        return this.readOnly;
+    }
+
+    /** Показывает/прячет метку-замок перед именем файла (VS Code read-only tab). */
+    public setReadOnly(readOnly: boolean): void {
+        if (this.readOnly === readOnly) return;
+        this.readOnly = readOnly;
+        this.markDirty();
+    }
+
     public getPaddingLeft(): number {
         return this.paddingLeft;
     }
@@ -110,12 +127,15 @@ export class EditorTabItemElement extends TUIElement {
     // ─── Content Layout ───
 
     private getContentWidth(): number {
-        // [paddingLeft][icon " "][label][" ●/×"][paddingRight]
+        // [paddingLeft][icon " "][lock " "][label][" ●/×"][paddingRight]
         // The trailing slot shows the modified dot OR the close cross — never both —
-        // so the tab width stays stable regardless of modified/hover state.
+        // so the tab width stays stable regardless of modified/hover state. The lock
+        // is the one part that does change the width: read-only is a rare, sticky
+        // state, and squeezing it into an existing slot would hide the file icon.
         const iconPart = this.icon.length > 0 ? this.icon.length + 1 : 0; // icon + space
+        const lockPart = this.readOnly ? READONLY_CHAR.length + 1 : 0; // lock + space
         const trailingPart = 2; // " ●" or " ×"
-        return this.paddingLeft + iconPart + this.label.length + trailingPart + this.paddingRight;
+        return this.paddingLeft + iconPart + lockPart + this.label.length + trailingPart + this.paddingRight;
     }
 
     private getCloseButtonStart(): number {
@@ -164,6 +184,16 @@ export class EditorTabItemElement extends TUIElement {
         if (this.icon.length > 0 && x < width) {
             context.setCell(x, 0, { char: this.icon, fg: this.iconColor, bg: resolved.bg });
             x += this.icon.length;
+            if (x < width) {
+                context.setCell(x, 0, { char: " ", fg: resolved.fg, bg: resolved.bg });
+                x += 1;
+            }
+        }
+
+        // Read-only lock, between the file icon and the label.
+        if (this.readOnly && x < width) {
+            context.setCell(x, 0, { char: READONLY_CHAR, fg: resolved.fg, bg: resolved.bg });
+            x += READONLY_CHAR.length;
             if (x < width) {
                 context.setCell(x, 0, { char: " ", fg: resolved.fg, bg: resolved.bg });
                 x += 1;

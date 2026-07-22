@@ -14,7 +14,7 @@ import { EditorServiceDIToken } from "../../services/editor/browser/editorServic
 export const trimTrailingWhitespaceAction: CommandAction = {
     id: "editor.action.trimTrailingWhitespace",
     title: "Trim Trailing Whitespace",
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;
@@ -39,7 +39,7 @@ export const trimTrailingWhitespaceAction: CommandAction = {
 export const insertFinalNewLineAction: CommandAction = {
     id: "editor.action.insertFinalNewLine",
     title: "Insert Final Newline",
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (!editor) return;

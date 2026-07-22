@@ -275,6 +275,16 @@ export class EditorElement extends TUIElement implements IScrollable {
         });
     }
 
+    /**
+     * Режим «только чтение» (VS Code `EditorOption.readOnly`). Истина живёт на
+     * `EditorViewState` — через него проходят все правки; здесь только чтение,
+     * чтобы `WorkbenchContextKeys` мог спросить сфокусированный виджет напрямую.
+     * Выставляют флаг через `EditorPane.readOnly` — он ещё и файрит событие.
+     */
+    public get readOnly(): boolean {
+        return this.viewState.readOnly;
+    }
+
     /** Единственный канал обновления цветов редактора (маппинг темы делает Workbench-мост). */
     public setStyles(styles: IEditorStyles): void {
         this.styles = styles;
@@ -931,11 +941,11 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 
     private pushUndo(element: IUndoElement | undefined): void {
-        /* v8 ignore start -- defensive: every caller passes the result of type(), which always returns an element; the undefined guard is never taken */
+        // `undefined` — правка не состоялась: в read-only мутаторы `EditorViewState`
+        // сразу возвращают его, и записывать в undo-стек нечего.
         if (element) {
             this.undoManager.pushUndoElement(element);
         }
-        /* v8 ignore stop */
     }
 }
 

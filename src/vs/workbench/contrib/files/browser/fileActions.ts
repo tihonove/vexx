@@ -244,3 +244,24 @@ export const fileOpenFolderAction: CommandAction = {
         void runOpenFolder(accessor);
     },
 };
+
+/**
+ * Переключает режим «только чтение» у активной вкладки на время сессии
+ * (VS Code `workbench.action.files.toggleActiveEditorReadonlyInSession`).
+ * Session-скоуп: флаг живёт на редакторе, на диск и в настройки не попадает —
+ * конфигурационный слой (`files.readonlyInclude`/`readonlyExclude`) отдельно.
+ * Без дефолтного шортката, как и в VS Code: только палитра команд.
+ */
+export const toggleActiveEditorReadonlyInSessionAction: CommandAction = {
+    id: "workbench.action.files.toggleActiveEditorReadonlyInSession",
+    title: "File: Toggle Active Editor Read-only in Session",
+    run(accessor) {
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
+        if (editor === null) return;
+        editor.readOnly = !editor.readOnly;
+        // Ключ `editorReadonly` — производная от состояния редактора, а не от
+        // фокуса, поэтому сам он не пересчитается: гоним обновление руками, как
+        // это делает newUntitledFileAction после смены состава вкладок.
+        accessor.get(WorkbenchContextKeysDIToken).update();
+    },
+};

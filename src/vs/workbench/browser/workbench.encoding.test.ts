@@ -63,6 +63,35 @@ describe("Workbench — Change File Encoding", () => {
         h.testApp.sendKey("Escape");
     });
 
+    it("в read-only остаётся только Reopen — писать нельзя", async () => {
+        h.commands.execute("workbench.openFile", ws.path("plain.txt"));
+        h.testApp.render();
+        h.commands.execute("workbench.action.files.toggleActiveEditorReadonlyInSession");
+
+        h.commands.execute("workbench.action.editor.changeEncoding");
+        await flushMicrotasks();
+        h.testApp.render();
+
+        const labels = visiblePicker(h).items.map((item) => item.label);
+        expect(labels).toEqual(["Reopen with Encoding"]);
+        h.testApp.sendKey("Escape");
+    });
+
+    it("read-only безымянный буфер не открывает пикер вовсе", async () => {
+        // Перечитывать нечего (файла на диске нет), писать нельзя — режимов не
+        // остаётся, и показывать пустой список было бы тупиком.
+        h.commands.execute("workbench.action.files.newUntitledFile");
+        h.testApp.render();
+        h.commands.execute("workbench.action.files.toggleActiveEditorReadonlyInSession");
+
+        h.commands.execute("workbench.action.editor.changeEncoding");
+        await flushMicrotasks();
+        h.testApp.render();
+
+        const pickers = h.testApp.querySelectorAll("QuickPickElement") as QuickPickElement[];
+        expect(pickers.every((picker) => picker.items.length === 0)).toBe(true);
+    });
+
     it("для безымянного буфера Reopen скрыт", async () => {
         h.commands.execute("workbench.action.files.newUntitledFile");
         h.testApp.render();

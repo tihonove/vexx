@@ -81,6 +81,7 @@ export class EditorGroupComponent extends ThemedComponent {
                 icon: fi.icon,
                 iconColor: fi.color,
                 isModified: editor.isModified,
+                isReadOnly: editor.readOnly,
             };
         });
 

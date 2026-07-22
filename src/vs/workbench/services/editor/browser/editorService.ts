@@ -359,6 +359,13 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
                 this.fireEditorsChanged();
             }),
         );
+        // Тот же мотив, что у EOL: read-only не меняет контент, но меняет вид
+        // таба (метка-замок) — обновляем его сразу.
+        this.register(
+            editor.onDidChangeReadOnly(() => {
+                this.fireEditorsChanged();
+            }),
+        );
         editor.onDidSave = () => {
             this.fireEditorsChanged();
             this.fireEditorSaved(editor);

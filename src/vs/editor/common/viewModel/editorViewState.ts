@@ -44,6 +44,18 @@ export class EditorViewState {
     public tabSize = 4;
     public insertSpaces = false;
     public detectIndentation = true;
+    /**
+     * Запрещает правку документа через этот view-state (VS Code
+     * `EditorOption.readOnly`). Живёт здесь, а не на `EditorElement`, потому что
+     * все мутации идут через эту точку — клавиатура и paste, accept completion,
+     * rename/bulkEdit и `editor.applyEdit` из расширений. Мутаторы становятся
+     * no-op и возвращают `undefined`, как `CodeEditorWidget.executeEdits`
+     * возвращает `false` в VS Code.
+     *
+     * Не трогает view-состояние: курсор, выделение, скролл и фолдинг в read-only
+     * работают — как и в VS Code.
+     */
+    public readOnly = false;
     private selectionsValue!: ISelection[];
     private cursorChangeListeners: (() => void)[] = [];
     /** Ranges of all current search matches to highlight (set by the find controller). */
@@ -433,7 +445,7 @@ export class EditorViewState {
      * Inserts text at every cursor/selection, replacing any selected content.
      * Delegates to type() which already handles selection replacement.
      */
-    public insertText(text: string): IUndoElement {
+    public insertText(text: string): IUndoElement | undefined {
         return this.type(text);
     }
 
@@ -441,7 +453,8 @@ export class EditorViewState {
      * Types text at every cursor/selection.
      * If a selection is non-collapsed, the selected text is replaced.
      */
-    public type(text: string): IUndoElement {
+    public type(text: string): IUndoElement | undefined {
+        if (this.readOnly) return undefined;
         const beforeSelections = this.cloneSelections();
         const versionBefore = this.document.versionId;
         const edits = this.buildEditsFromSelections(text);
@@ -470,7 +483,7 @@ export class EditorViewState {
      * there is nothing to apply.
      */
     public applyEdits(edits: readonly ITextEdit[], label: string): IUndoElement | undefined {
-        if (edits.length === 0) return undefined;
+        if (this.readOnly || edits.length === 0) return undefined;
         const beforeSelections = this.cloneSelections();
         const versionBefore = this.document.versionId;
         const { appliedVersion, inverseEdits } = this.document.applyEdits(edits);
@@ -492,7 +505,8 @@ export class EditorViewState {
      * Inserts a newline at every cursor, carrying over the current line's
      * indentation (and expanding bracket pairs). See {@link computeNewLinePlan}.
      */
-    public insertNewLine(): IUndoElement {
+    public insertNewLine(): IUndoElement | undefined {
+        if (this.readOnly) return undefined;
         const beforeSelections = this.cloneSelections();
         const versionBefore = this.document.versionId;
         const sorted = this.sortedSelections();
@@ -530,6 +544,7 @@ export class EditorViewState {
      * Deletes one character to the left of each cursor, or deletes the selection.
      */
     public deleteLeft(): IUndoElement | undefined {
+        if (this.readOnly) return undefined;
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -889,6 +904,7 @@ export class EditorViewState {
      * Deletes one character to the right of each cursor, or deletes the selection.
      */
     public deleteRight(): IUndoElement | undefined {
+        if (this.readOnly) return undefined;
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -944,6 +960,7 @@ export class EditorViewState {
      * Deletes one word to the left of each cursor, or deletes the selection.
      */
     public deleteWordLeft(): IUndoElement | undefined {
+        if (this.readOnly) return undefined;
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -988,6 +1005,7 @@ export class EditorViewState {
      * Deletes one word to the right of each cursor, or deletes the selection.
      */
     public deleteWordRight(): IUndoElement | undefined {
+        if (this.readOnly) return undefined;
         const edits: ITextEdit[] = [];
 
         for (const sel of this.sortedSelections()) {
@@ -1069,6 +1087,7 @@ export class EditorViewState {
      * operation and remapping the selections to follow the shifted text.
      */
     private shiftIndent(direction: 1 | -1): IUndoElement | undefined {
+        if (this.readOnly) return undefined;
         const unit = this.indentUnit();
         const perLine = new Map<number, number>();
         const edits: ITextEdit[] = [];

@@ -19,7 +19,7 @@ describe("UndoManager redo guard and version bookkeeping", () => {
         viewState.selections = [createCursorSelection(0, 5)];
 
         const element = viewState.type(" world");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
         undoManager.undo();
         expect(undoManager.canRedo).toBe(true);
 
@@ -36,9 +36,9 @@ describe("UndoManager redo guard and version bookkeeping", () => {
         const { doc, viewState, undoManager } = setup("");
 
         const e1 = viewState.type("A");
-        undoManager.pushUndoElement(e1);
+        undoManager.pushUndoElement(e1!);
         const e2 = viewState.type("B");
-        undoManager.pushUndoElement(e2);
+        undoManager.pushUndoElement(e2!);
         expect(doc.getText()).toBe("AB");
 
         // Undo both → redo stack now holds two elements.
@@ -62,9 +62,9 @@ describe("UndoManager redo guard and version bookkeeping", () => {
         viewState.selections = [createCursorSelection(0, 1)];
 
         const e1 = viewState.type("1");
-        undoManager.pushUndoElement(e1);
+        undoManager.pushUndoElement(e1!);
         const e2 = viewState.type("2");
-        undoManager.pushUndoElement(e2);
+        undoManager.pushUndoElement(e2!);
         expect(doc.getText()).toBe("x12");
 
         undoManager.undo();
