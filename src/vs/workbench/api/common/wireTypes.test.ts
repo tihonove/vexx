@@ -8,7 +8,9 @@ import { RpcEndpoint } from "./rpcEndpoint.ts";
 import type { WireCompletionItem, WireTextEdit } from "./wireTypes.ts";
 import {
     parseWireCompletionItems,
+    parseWireEditorEdits,
     parseWireFoldingRanges,
+    parseWireSelections,
     parseWireTextEdits,
     requestCompletionItems,
     requestFoldingRanges,
@@ -385,5 +387,45 @@ describe("WireTypes — requestFoldingRanges (InProcessChannelPair)", () => {
         } finally {
             dispose();
         }
+    });
+});
+
+describe("WireTypes — parseWireSelections", () => {
+    it("оставляет валидные, отбрасывает битые", () => {
+        const raw = [
+            { anchorLine: 0, anchorCharacter: 1, activeLine: 2, activeCharacter: 3 },
+            { anchorLine: 0, anchorCharacter: 1, activeLine: 2 }, // неполный
+            null,
+        ];
+        expect(parseWireSelections(raw)).toEqual([
+            { anchorLine: 0, anchorCharacter: 1, activeLine: 2, activeCharacter: 3 },
+        ]);
+    });
+
+    it("не-массив → []", () => {
+        expect(parseWireSelections(undefined)).toEqual([]);
+    });
+});
+
+describe("WireTypes — parseWireEditorEdits", () => {
+    it("парсит правку с range+text; отбрасывает без range или без text", () => {
+        const raw = [
+            { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 }, text: "hi" },
+            { text: "no range" },
+            { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 } }, // нет text
+            { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 }, text: 5 }, // text не строка
+        ];
+        expect(parseWireEditorEdits(raw)).toEqual([
+            { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 }, text: "hi" },
+        ]);
+    });
+
+    it("пустой text (delete) валиден", () => {
+        const raw = [{ range: { startLine: 1, startCharacter: 0, endLine: 2, endCharacter: 0 }, text: "" }];
+        expect(parseWireEditorEdits(raw)).toHaveLength(1);
+    });
+
+    it("не-массив → []", () => {
+        expect(parseWireEditorEdits(null)).toEqual([]);
     });
 });

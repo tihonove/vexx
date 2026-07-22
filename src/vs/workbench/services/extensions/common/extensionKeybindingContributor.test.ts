@@ -9,7 +9,13 @@ import { registerExtensionKeybindings } from "./extensionKeybindingContributor.t
 function ext(keybindings: readonly IKeybindingContribution[]): IExtension {
     return {
         id: "test.kb",
-        manifest: { name: "kb", publisher: "test", version: "0.0.1", contributes: { keybindings } },
+        manifest: {
+            name: "kb",
+            publisher: "test",
+            version: "0.0.1",
+            engines: { vscode: "^1.0.0" },
+            contributes: { keybindings },
+        },
         location: "UserExtensions/test.kb-0.0.1/",
         isBuiltin: false,
     };
@@ -68,7 +74,7 @@ describe("registerExtensionKeybindings", () => {
         const registry = new KeybindingRegistry();
         const noKb: IExtension = {
             id: "x",
-            manifest: { name: "x", publisher: "t", version: "0.0.1" },
+            manifest: { name: "x", publisher: "t", version: "0.0.1", engines: { vscode: "^1.0.0" } },
             location: "UserExtensions/x/",
             isBuiltin: false,
         };

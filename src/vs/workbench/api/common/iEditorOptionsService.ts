@@ -27,15 +27,20 @@ export interface IActiveEditorMeta {
     readonly encoding: string | null;
     /** Текущий EOL (`vscode.EndOfLine`: 1=LF, 2=CRLF); `null` — нет редактора. */
     readonly eol: 1 | 2 | null;
+    /** Первичное выделение активного редактора; `null` — нет редактора. */
+    readonly selection: IWireSelection | null;
 }
 
 import type { IDisposable } from "../../../../../tuidom/common/disposable.ts";
+
+import type { IWireEditorEdit, IWireSelection } from "./wireTypes.ts";
 
 /**
  * Тонкий «port» поверх {@link EditorService}, нужный
  * {@link ExtensionHost} для применения изменений `TextEditor.options`
  * к активному редактору без прямого знания о слоях Workbench/Editor
- * внутри runtime'а расширения.
+ * внутри runtime'а расширения. С #194 — также чтение/запись выделения и
+ * применение правок `TextEditor.edit`.
  */
 export interface IEditorOptionsService {
     getActiveEditorOptions(): IEditorOptionsState | null;
@@ -44,4 +49,16 @@ export interface IEditorOptionsService {
     /** Метаданные активного редактора для проекции в subprocess. */
     getActiveEditorMeta(): IActiveEditorMeta;
     onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable;
+    /**
+     * Устанавливает выделения активного редактора (`TextEditor.selection(s) =`).
+     * No-op, если активного редактора нет либо его uri не совпадает с `uri`
+     * (редактор сменился, пока RPC ехал).
+     */
+    setActiveEditorSelections(uri: string, selections: readonly IWireSelection[]): void;
+    /**
+     * Применяет правки к активному редактору одним undoable-батчем
+     * (`TextEditor.edit`). Возвращает `false`, если активного редактора нет,
+     * его uri не совпадает с `uri`, либо применять нечего.
+     */
+    applyActiveEditorEdits(uri: string, edits: readonly IWireEditorEdit[]): boolean;
 }

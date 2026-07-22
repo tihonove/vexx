@@ -128,9 +128,41 @@ declare module "vscode" {
 		readonly document: TextDocument;
 
 		/**
+		 * The primary selection on this text editor. Shorthand for `TextEditor.selections[0]`.
+		 */
+		selection: Selection;
+
+		/**
+		 * The selections in this text editor. The primary selection is always at index 0.
+		 */
+		selections: readonly Selection[];
+
+		/**
 		 * Text editor options.
 		 */
 		options: TextEditorOptions;
+
+		/**
+		 * Perform an edit on the document associated with this text editor.
+		 *
+		 * The given callback-function is invoked with an {@link TextEditorEdit edit-builder} which must
+		 * be used to make edits. Note that the edit-builder is only valid while the
+		 * callback executes.
+		 *
+		 * @param callback A function which can create edits using an {@link TextEditorEdit edit-builder}.
+		 * @param options The undo/redo behavior around this edit. By default, undo stops will be created before and after this edit.
+		 * @returns A promise that resolves with a value indicating if the edits could be applied.
+		 */
+		edit(callback: (editBuilder: TextEditorEdit) => void, options?: {
+			/**
+			 * Add undo stop before making the edits.
+			 */
+			readonly undoStopBefore: boolean;
+			/**
+			 * Add undo stop after making the edits.
+			 */
+			readonly undoStopAfter: boolean;
+		}): Thenable<boolean>;
 
 		/**
 		 * Adds a set of decorations to the text editor. If a set of decorations already exists with
@@ -144,6 +176,46 @@ declare module "vscode" {
 		 * @param rangesOrOptions Either {@link Range ranges} or more detailed {@link DecorationOptions options}.
 		 */
 		setDecorations(decorationType: TextEditorDecorationType, rangesOrOptions: readonly Range[] | readonly DecorationOptions[]): void;
+	}
+
+	/**
+	 * A complex edit that will be applied in one transaction on a TextEditor.
+	 * This holds a description of the edits and if the edits are valid (i.e. no overlapping regions, document was not changed in the meantime, etc.)
+	 * they can be applied on a {@link TextDocument document} associated with a {@link TextEditor text editor}.
+	 */
+	export interface TextEditorEdit {
+		/**
+		 * Replace a certain text region with a new value.
+		 * You can use `\r\n` or `\n` in `value` and they will be normalized to the current {@link TextDocument document}.
+		 *
+		 * @param location The range this operation should remove.
+		 * @param value The new text this operation should insert after removing `location`.
+		 */
+		replace(location: Position | Range | Selection, value: string): void;
+
+		/**
+		 * Insert text at a location.
+		 * You can use `\r\n` or `\n` in `value` and they will be normalized to the current {@link TextDocument document}.
+		 * Although the equivalent text edit can be made with {@link TextEditorEdit.replace replace}, `insert` will produce a different resulting selection (it will get moved).
+		 *
+		 * @param location The position where the new text should be inserted.
+		 * @param value The new text this operation should insert.
+		 */
+		insert(location: Position, value: string): void;
+
+		/**
+		 * Delete a certain text region.
+		 *
+		 * @param location The range this operation should remove.
+		 */
+		delete(location: Range | Selection): void;
+
+		/**
+		 * Set the end of line sequence.
+		 *
+		 * @param endOfLine The new end of line for the {@link TextDocument document}.
+		 */
+		setEndOfLine(endOfLine: EndOfLine): void;
 	}
 
 	/**
@@ -217,6 +289,11 @@ declare module "vscode" {
 		 * input most recently.
 		 */
 		export let activeTextEditor: TextEditor | undefined;
+
+		/**
+		 * The currently visible editors or an empty array.
+		 */
+		export let visibleTextEditors: readonly TextEditor[];
 
 		/**
 		 * An {@link Event} which fires when the {@link window.activeTextEditor active editor}
@@ -688,6 +765,47 @@ declare module "vscode" {
 			 */
 			end?: Position;
 		}): Range;
+	}
+
+	/**
+	 * Represents a text selection in an editor.
+	 */
+	export class Selection extends Range {
+
+		/**
+		 * The position at which the selection starts.
+		 * This position might be before or after {@link Selection.active active}.
+		 */
+		readonly anchor: Position;
+
+		/**
+		 * The position of the cursor.
+		 * This position might be before or after {@link Selection.anchor anchor}.
+		 */
+		readonly active: Position;
+
+		/**
+		 * Create a selection from two positions.
+		 *
+		 * @param anchor A position.
+		 * @param active A position.
+		 */
+		constructor(anchor: Position, active: Position);
+
+		/**
+		 * Create a selection from four coordinates.
+		 *
+		 * @param anchorLine A zero-based line value.
+		 * @param anchorCharacter A zero-based character value.
+		 * @param activeLine A zero-based line value.
+		 * @param activeCharacter A zero-based character value.
+		 */
+		constructor(anchorLine: number, anchorCharacter: number, activeLine: number, activeCharacter: number);
+
+		/**
+		 * A selection is reversed if its {@link Selection.anchor anchor} is the {@link Selection.end end} position.
+		 */
+		readonly isReversed: boolean;
 	}
 
 	/**

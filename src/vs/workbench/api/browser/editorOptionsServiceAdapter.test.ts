@@ -90,6 +90,7 @@ describe("EditorOptionsServiceAdapter", () => {
             isDirty: true,
             encoding: "windows1251",
             eol: 2,
+            selection: null,
         });
         expect(new EditorOptionsServiceAdapter(groupWithNoActiveEditor()).getActiveEditorMeta()).toEqual({
             uri: null,
@@ -97,6 +98,7 @@ describe("EditorOptionsServiceAdapter", () => {
             isDirty: false,
             encoding: null,
             eol: null,
+            selection: null,
         });
     });
 
@@ -125,13 +127,66 @@ describe("EditorOptionsServiceAdapter", () => {
             isModified: false,
             encoding: "utf8",
             eol: 1,
+            viewState: {
+                selections: [{ anchor: { line: 0, character: 2 }, active: { line: 1, character: 4 } }],
+            },
         });
         // No active editor → nulls are forwarded.
         registered!(null);
 
         expect(received).toEqual([
-            { uri: Uri.file("/a/b.ts").toString(), languageId: "typescript", isDirty: false, encoding: "utf8", eol: 1 },
-            { uri: null, languageId: null, isDirty: false, encoding: null, eol: null },
+            {
+                uri: Uri.file("/a/b.ts").toString(),
+                languageId: "typescript",
+                isDirty: false,
+                encoding: "utf8",
+                eol: 1,
+                selection: { anchorLine: 0, anchorCharacter: 2, activeLine: 1, activeCharacter: 4 },
+            },
+            { uri: null, languageId: null, isDirty: false, encoding: null, eol: null, selection: null },
         ]);
+    });
+
+    it("setActiveEditorSelections() — no-op при несовпадении uri", () => {
+        const setSelections = vi.fn();
+        const group = {
+            getActiveEditor: () => ({
+                uri: Uri.file("/a/b.ts"),
+                get viewState() {
+                    return {
+                        get selections() {
+                            return [];
+                        },
+                        set selections(v: unknown) {
+                            setSelections(v);
+                        },
+                    };
+                },
+                focusEditor: vi.fn(),
+            }),
+        } as unknown as EditorService;
+        const adapter = new EditorOptionsServiceAdapter(group);
+        adapter.setActiveEditorSelections(Uri.file("/other.ts").toString(), [
+            { anchorLine: 0, anchorCharacter: 0, activeLine: 0, activeCharacter: 1 },
+        ]);
+        expect(setSelections).not.toHaveBeenCalled();
+    });
+
+    it("applyActiveEditorEdits() — false при несовпадении uri, true при применении", () => {
+        const applyExternalEdits = vi.fn();
+        const editor = {
+            uri: Uri.file("/a/b.ts"),
+            model: { document: { lineCount: 3, getLineLength: () => 10 } },
+            applyExternalEdits,
+        };
+        const group = { getActiveEditor: () => editor } as unknown as EditorService;
+        const adapter = new EditorOptionsServiceAdapter(group);
+
+        const edit = { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 }, text: "hi" };
+        expect(adapter.applyActiveEditorEdits(Uri.file("/other.ts").toString(), [edit])).toBe(false);
+        expect(applyExternalEdits).not.toHaveBeenCalled();
+
+        expect(adapter.applyActiveEditorEdits(Uri.file("/a/b.ts").toString(), [edit])).toBe(true);
+        expect(applyExternalEdits).toHaveBeenCalledOnce();
     });
 });

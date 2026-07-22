@@ -391,6 +391,82 @@ export async function requestFoldingRanges(
     }
 }
 
+// ─── Editor write (selection + edit, #194) ───────────────────────────────────
+
+/** Wire-форма выделения (0-based; anchor — якорь, active — курсор). */
+export interface IWireSelection {
+    readonly anchorLine: number;
+    readonly anchorCharacter: number;
+    readonly activeLine: number;
+    readonly activeCharacter: number;
+}
+
+/** Wire-форма одной правки `TextEditor.edit` (замена текста в диапазоне). */
+export interface IWireEditorEdit {
+    readonly range: IWireRange;
+    readonly text: string;
+}
+
+/** Параметры `editor.applyEdit` (subprocess → host): правки активного редактора. */
+export interface IWireApplyEditParams {
+    readonly uri: string;
+    readonly edits: readonly IWireEditorEdit[];
+}
+
+/** Параметры `editor.setSelection` (subprocess → host): новые выделения активного редактора. */
+export interface IWireSetSelectionParams {
+    readonly uri: string;
+    readonly selections: readonly IWireSelection[];
+}
+
+export function parseWireSelection(raw: unknown): IWireSelection | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const r = raw as Record<string, unknown>;
+    if (
+        !isFiniteNumber(r.anchorLine) ||
+        !isFiniteNumber(r.anchorCharacter) ||
+        !isFiniteNumber(r.activeLine) ||
+        !isFiniteNumber(r.activeCharacter)
+    ) {
+        return null;
+    }
+    return {
+        anchorLine: r.anchorLine,
+        anchorCharacter: r.anchorCharacter,
+        activeLine: r.activeLine,
+        activeCharacter: r.activeCharacter,
+    };
+}
+
+export function parseWireSelections(raw: unknown): IWireSelection[] {
+    if (!Array.isArray(raw)) return [];
+    const result: IWireSelection[] = [];
+    for (const item of raw) {
+        const parsed = parseWireSelection(item);
+        if (parsed !== null) result.push(parsed);
+    }
+    return result;
+}
+
+function parseWireEditorEdit(raw: unknown): IWireEditorEdit | null {
+    if (typeof raw !== "object" || raw === null) return null;
+    const obj = raw as Record<string, unknown>;
+    const range = parseWireRange(obj.range);
+    if (range === undefined) return null;
+    if (typeof obj.text !== "string") return null;
+    return { range, text: obj.text };
+}
+
+export function parseWireEditorEdits(raw: unknown): IWireEditorEdit[] {
+    if (!Array.isArray(raw)) return [];
+    const result: IWireEditorEdit[] = [];
+    for (const item of raw) {
+        const parsed = parseWireEditorEdit(item);
+        if (parsed !== null) result.push(parsed);
+    }
+    return result;
+}
+
 // ─── Decorations (Chunk 4 — host-bridge) ─────────────────────────────────────
 
 /**

@@ -26,7 +26,9 @@ import { type IThemeColorResolver, NULL_THEME_COLOR_RESOLVER } from "../../../ap
 import { RpcEndpoint } from "../../../api/common/rpcEndpoint.ts";
 import {
     parseDecorationRanges,
+    parseWireEditorEdits,
     parseWireFileDecorations,
+    parseWireSelections,
     requestCompletionItems,
     requestFoldingRanges,
     requestWillSaveEdits,
@@ -527,6 +529,20 @@ export class ExtensionHost extends Disposable {
         });
         rpc.handleRequest("editor.getOptions", (): unknown => {
             return this.editorOptions.getActiveEditorOptions();
+        });
+        // Сабпроцесс просит выставить выделения активного редактора
+        // (`TextEditor.selection(s) =`). Fire-and-forget со стороны расширения,
+        // но обрабатывается в порядке прихода (до последующего executeCommand).
+        rpc.handleNotification("editor.setSelection", (params): void => {
+            const p = params as { uri?: unknown; selections?: unknown };
+            if (typeof p.uri !== "string") return;
+            this.editorOptions.setActiveEditorSelections(p.uri, parseWireSelections(p.selections));
+        });
+        // Сабпроцесс просит применить правки `TextEditor.edit` одним undoable-батчем.
+        rpc.handleRequest("editor.applyEdit", (params): unknown => {
+            const p = params as { uri?: unknown; edits?: unknown };
+            if (typeof p.uri !== "string") return false;
+            return this.editorOptions.applyActiveEditorEdits(p.uri, parseWireEditorEdits(p.edits));
         });
         // Сабпроцесс просит исполнить команду ядра (напр. встроенную
         // editor.action.trimTrailingWhitespace). Нормализуем через Promise —
