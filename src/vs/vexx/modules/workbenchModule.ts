@@ -1,6 +1,7 @@
 import { MenuContributionsDIToken } from "../../platform/actions/common/iMenuContribution.ts";
 import { MenuRegistry, MenuRegistryDIToken } from "../../platform/actions/common/menuRegistry.ts";
 import { MenuService, MenuServiceDIToken } from "../../platform/actions/common/menuService.ts";
+import { CommandRegistryDIToken } from "../../platform/commands/common/commandRegistry.ts";
 import type { ContainerModule } from "../../platform/instantiation/common/diContainer.ts";
 import { QuitHandlerDIToken } from "../../workbench/browser/actions/appActions.ts";
 import { MENU_CONTRIBUTIONS } from "../../workbench/browser/actions/menuContributions.ts";
@@ -102,6 +103,13 @@ import {
     QuickAccessRegistry,
     QuickAccessRegistryDIToken,
 } from "../../workbench/contrib/quickaccess/common/quickAccessRegistry.ts";
+import { CommandOriginalResourceProvider } from "../../workbench/contrib/scm/browser/commandOriginalResourceProvider.ts";
+import {
+    OriginalResourceProviderDIToken,
+    QuickDiffEditorSourceDIToken,
+    QuickDiffService,
+    QuickDiffServiceDIToken,
+} from "../../workbench/contrib/scm/browser/quickDiffService.ts";
 import {
     CompletionService,
     CompletionServiceDIToken,
@@ -239,6 +247,14 @@ export const workbenchModule: ContainerModule = (container) => {
     container.bind(DiagnosticsEditorSourceDIToken, () => container.get(EditorServiceDIToken));
     container.bind(MarkerRevealTargetDIToken, () => container.get(EditorServiceDIToken));
     container.bind(DiagnosticsServiceDIToken, DiagnosticsService);
+    // Quick diff: живые change-bars в гуттере. Оригинал спрашиваем у SCM-расширения
+    // командой, читаем через реестр провайдеров ФС, диффаем против живого буфера.
+    container.bind(QuickDiffEditorSourceDIToken, () => container.get(EditorServiceDIToken));
+    container.bind(
+        OriginalResourceProviderDIToken,
+        () => new CommandOriginalResourceProvider(container.get(CommandRegistryDIToken)),
+    );
+    container.bind(QuickDiffServiceDIToken, QuickDiffService);
     // Этап 11: layout-логика (сайдбар/панель + персист layout'а; сам
     // WorkbenchLayoutElement приходит от владельца view через attachLayout),
     // персист открытых редакторов, контекст-ключи workbench'а (замыкают

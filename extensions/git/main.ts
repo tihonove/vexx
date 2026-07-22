@@ -3,11 +3,9 @@ import * as path from "node:path";
 
 import * as vscode from "vscode";
 
-import { parseUnifiedDiffHunks } from "./lib/diff.ts";
-import { showFileAtRevision } from "./lib/gitShow.ts";
-import { fromGitUri, GIT_SCHEME } from "./lib/gitUri.ts";
+import { showFileAtRevision, toRepoRelativePath } from "./lib/gitShow.ts";
+import { fromGitUri, GIT_SCHEME, ORIGINAL_RESOURCE_COMMAND, toGitUri } from "./lib/gitUri.ts";
 import type { IStatusDecoration } from "./lib/map.ts";
-import { hunksToGutter } from "./lib/map.ts";
 import { statusToDecoration } from "./lib/map.ts";
 import { parsePorcelainStatus } from "./lib/porcelain.ts";
 import type { IRunGitOptions, IRunGitResult } from "./lib/runGit.ts";
@@ -16,23 +14,18 @@ import { runGit } from "./lib/runGit.ts";
 /**
  * Built-in Git plugin (subprocess extension, plugin-API only).
  *
- * Two features, both driven through stock `vscode` decoration APIs:
+ * Two features:
  *  - explorer: changed files are coloured + badged via a `FileDecorationProvider`;
- *  - editor: dirty-diff bars are painted via `TextEditorDecorationType`s whose
- *    `overviewRulerColor` the engine re-projects onto the gutter.
+ *  - editor: the HEAD version of a file is served over the `git:` scheme through a
+ *    read-only `FileSystemProvider`, so the core can diff it against the live
+ *    buffer itself (gutter change-bars). Раньше ханки считало само расширение по
+ *    файлу на диске — из-за этого бары залипали до сохранения.
  *
  * Reliability is the point: every `git` call goes through {@link runGit} (which
  * never rejects), every event handler is wrapped, refreshes are debounced, and
  * any bad environment (no workspace, no repo, missing binary, non-zero exit)
  * degrades to "no decorations" plus a single log line — nothing escapes to the host.
  */
-
-/** The three gutter colour ids, one decoration type each. */
-const GUTTER_COLOR_IDS = [
-    "editorGutter.addedBackground",
-    "editorGutter.modifiedBackground",
-    "editorGutter.deletedBackground",
-] as const;
 
 function log(message: string): void {
     // stdout of the subprocess is piped into the `extensions.host.stdout` log
@@ -51,11 +44,8 @@ class GitDecorations {
     private readonly gitEnv: NodeJS.ProcessEnv | undefined;
     private readonly disposables: vscode.Disposable[] = [];
 
-    // Gutter decoration types, keyed by their `editorGutter.*` colour id.
-    private readonly gutterTypes = new Map<string, vscode.TextEditorDecorationType>();
-
     // Tree status, keyed by absolute path. Drives both the file-decoration
-    // provider and untracked-detection for the gutter.
+    // provider.
     private status = new Map<string, IStatusEntry>();
     private readonly fileDecoEmitter = new vscode.EventEmitter<vscode.Uri[]>();
     /** Сообщает ядру, что версии в `git:`-ресурсах изменились (сдвинулся HEAD/индекс). */
@@ -78,15 +68,6 @@ class GitDecorations {
     public constructor(repoRoot: string, gitEnv: NodeJS.ProcessEnv | undefined) {
         this.repoRoot = repoRoot;
         this.gitEnv = gitEnv;
-        for (const colorId of GUTTER_COLOR_IDS) {
-            const type = vscode.window.createTextEditorDecorationType({
-                isWholeLine: true,
-                overviewRulerLane: vscode.OverviewRulerLane.Left,
-                overviewRulerColor: new vscode.ThemeColor(colorId),
-            });
-            this.gutterTypes.set(colorId, type);
-            this.disposables.push(type);
-        }
     }
 
     /**
@@ -100,6 +81,25 @@ class GitDecorations {
     private registerFileSystemProvider(): void {
         const served = new Map<string, vscode.Uri>();
         this.disposables.push(this.fileChangeEmitter);
+        // Команду регистрируем ДО провайдера схемы: нотификации идут по каналу
+        // в порядке отправки, а ядро пересчитывает бары именно по появлению
+        // поставщика — к этому моменту команда обязана уже существовать, иначе
+        // стартовый кадр останется без баров до первой правки.
+        // Аналог `QuickDiffProvider.provideOriginalResource`: решение «есть ли
+        // оригинал» принимает расширение — только оно знает про untracked и репо.
+        this.disposables.push(
+            vscode.commands.registerCommand(ORIGINAL_RESOURCE_COMMAND, (rawUri: unknown) => {
+                if (typeof rawUri !== "string") return null;
+                const uri = vscode.Uri.parse(rawUri);
+                if (uri.scheme !== "file") return null;
+                const absPath = uri.fsPath;
+                if (toRepoRelativePath(this.repoRoot, absPath) === null) return null;
+                // Untracked: в HEAD версии нет, сравнивать не с чем.
+                if (this.status.get(absPath)?.xy.startsWith("?") === true) return null;
+                return vscode.Uri.parse(rawUri).with(toGitUri(uri, "HEAD")).toString();
+            }),
+        );
+
         this.disposables.push(
             vscode.workspace.registerFileSystemProvider(
                 GIT_SCHEME,
@@ -188,13 +188,12 @@ class GitDecorations {
         }
     }
 
-    private config(): { master: boolean; decorations: boolean; gutter: boolean; debounce: number } {
+    private config(): { master: boolean; decorations: boolean; debounce: number } {
         const cfg = vscode.workspace.getConfiguration("git");
         const master = cfg.get<boolean>("enabled", true);
         return {
             master,
             decorations: master && cfg.get<boolean>("decorations.enabled", true),
-            gutter: master && cfg.get<boolean>("gutter.enabled", true),
             debounce: normalizeDebounce(cfg.get<number>("refreshDebounce", 200)),
         };
     }
@@ -210,7 +209,6 @@ class GitDecorations {
 
     private async refreshAll(): Promise<void> {
         await this.refreshStatus();
-        await this.refreshActiveGutter();
     }
 
     /** Recompute `git status` → tree decorations. Clears everything when disabled/degraded. */
@@ -236,48 +234,6 @@ class GitDecorations {
         if (affected.size > 0 && !this.isDisposed()) {
             this.fileDecoEmitter.fire([...affected].map((p) => vscode.Uri.file(p)));
         }
-    }
-
-    /** Recompute the active file's diff → gutter bars. Clears when disabled/degraded. */
-    private async refreshActiveGutter(): Promise<void> {
-        if (this.isDisposed()) return;
-        const editor = vscode.window.activeTextEditor;
-        if (editor === undefined) return;
-
-        const rangesByColor = new Map<string, vscode.Range[]>();
-        for (const colorId of GUTTER_COLOR_IDS) rangesByColor.set(colorId, []);
-
-        if (this.config().gutter) {
-            const absPath = editor.document.fileName;
-            if (this.isUnderRepo(absPath)) {
-                const hunks = await this.computeHunks(absPath);
-                for (const g of hunksToGutter(hunks)) {
-                    const bucket = rangesByColor.get(g.colorId);
-                    if (bucket === undefined) continue;
-                    // lib ranges are inclusive 1-based; vscode.Range is 0-based.
-                    bucket.push(new vscode.Range(g.range.startLine - 1, 0, g.range.endLine - 1, 0));
-                }
-            }
-        }
-
-        if (this.isDisposed()) return;
-        for (const [colorId, ranges] of rangesByColor) {
-            const type = this.gutterTypes.get(colorId);
-            if (type !== undefined) editor.setDecorations(type, ranges);
-        }
-    }
-
-    /** Hunks for one file: untracked → whole file added; otherwise `git diff -U0 HEAD`. */
-    private async computeHunks(absPath: string): Promise<ReturnType<typeof parseUnifiedDiffHunks>> {
-        const entry = this.status.get(absPath);
-        if (entry?.xy.startsWith("?")) {
-            const lineCount = countLines(absPath);
-            return lineCount > 0 ? [{ start: 1, count: lineCount, kind: "added" as const }] : [];
-        }
-        const rel = path.relative(this.repoRoot, absPath);
-        const result = await this.git(["diff", "--no-color", "-U0", "HEAD", "--", rel]);
-        if (result === null) return [];
-        return parseUnifiedDiffHunks(result.stdout);
     }
 
     /** Run git in the repo; returns a successful result or `null` (degraded — logged once). */
@@ -356,20 +312,6 @@ function normalizeDebounce(value: unknown): number {
     const n = typeof value === "number" ? value : Number(value);
     if (!Number.isFinite(n) || n < 0) return 200;
     return Math.min(n, 5000);
-}
-
-/** Count lines in a file (for the whole-file "added" gutter of untracked files). */
-function countLines(absPath: string): number {
-    try {
-        const text = fs.readFileSync(absPath, "utf8");
-        if (text === "") return 0;
-        const lines = text.split("\n");
-        // A trailing newline yields a spurious empty final element.
-        if (lines[lines.length - 1] === "") lines.pop();
-        return lines.length;
-    } catch {
-        return 0;
-    }
 }
 
 /** Build the child-process env that prefers `git.path`'s directory, if configured. */

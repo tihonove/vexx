@@ -43,6 +43,14 @@ export interface IFileSystemProviderRegistry {
 
     /** Агрегированное «содержимое изменилось» по всем зарегистрированным схемам. */
     onDidChangeFile(cb: (uris: readonly Uri[]) => void): IDisposable;
+
+    /**
+     * Набор поставщиков изменился. Ключевое для потребителей: расширение,
+     * поставляющее схему, активируется АСИНХРОННО и обычно уже после того, как
+     * открылся первый файл. Без этого события потребитель, однажды получивший
+     * «поставщика нет», так и остался бы с этим ответом.
+     */
+    onDidChangeProviders(cb: () => void): IDisposable;
 }
 
 /** No-op реестр: поставщиков нет (тесты, профили без extension host). */
@@ -51,4 +59,5 @@ export const NULL_FILE_SYSTEM_PROVIDER_REGISTRY: IFileSystemProviderRegistry = {
     hasProvider: () => false,
     readFile: (uri) => Promise.reject(new Error(`no file system provider for scheme "${uri.scheme}"`)),
     onDidChangeFile: () => ({ dispose: () => undefined }),
+    onDidChangeProviders: () => ({ dispose: () => undefined }),
 };

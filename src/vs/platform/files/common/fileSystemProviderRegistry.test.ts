@@ -125,6 +125,42 @@ describe("FileSystemProviderRegistry", () => {
     });
 });
 
+describe("FileSystemProviderRegistry — событие смены поставщиков", () => {
+    it("регистрация и снятие будят подписчиков", () => {
+        const registry = new FileSystemProviderRegistry();
+        const seen = vi.fn();
+        registry.onDidChangeProviders(seen);
+
+        const registration = registry.registerProvider("git", fakeProvider());
+        expect(seen).toHaveBeenCalledTimes(1);
+
+        registration.dispose();
+        expect(seen).toHaveBeenCalledTimes(2);
+    });
+
+    it("повторный dispose не фаерит второй раз", () => {
+        const registry = new FileSystemProviderRegistry();
+        const registration = registry.registerProvider("git", fakeProvider());
+        const seen = vi.fn();
+        registry.onDidChangeProviders(seen);
+
+        registration.dispose();
+        registration.dispose();
+
+        expect(seen).toHaveBeenCalledTimes(1);
+    });
+
+    it("отписка работает", () => {
+        const registry = new FileSystemProviderRegistry();
+        const seen = vi.fn();
+        registry.onDidChangeProviders(seen).dispose();
+
+        registry.registerProvider("git", fakeProvider());
+
+        expect(seen).not.toHaveBeenCalled();
+    });
+});
+
 describe("NULL_FILE_SYSTEM_PROVIDER_REGISTRY", () => {
     it("поставщиков нет, чтение отклоняется, подписки — no-op", async () => {
         const registry = NULL_FILE_SYSTEM_PROVIDER_REGISTRY;
@@ -135,6 +171,9 @@ describe("NULL_FILE_SYSTEM_PROVIDER_REGISTRY", () => {
         }).not.toThrow();
         expect(() => {
             registry.onDidChangeFile(() => undefined).dispose();
+        }).not.toThrow();
+        expect(() => {
+            registry.onDidChangeProviders(() => undefined).dispose();
         }).not.toThrow();
         await expect(registry.readFile(gitUri)).rejects.toThrow(/no file system provider/);
     });

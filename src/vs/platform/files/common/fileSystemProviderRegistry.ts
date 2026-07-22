@@ -14,6 +14,7 @@ import type { IFileSystemProviderRegistry, IReadOnlyFileSystemProvider } from ".
 export class FileSystemProviderRegistry extends Disposable implements IFileSystemProviderRegistry {
     private readonly providers = new Map<string, IReadOnlyFileSystemProvider>();
     private readonly changeListeners = new Set<(uris: readonly Uri[]) => void>();
+    private readonly providerListeners = new Set<() => void>();
 
     public registerProvider(scheme: string, provider: IReadOnlyFileSystemProvider): IDisposable {
         if (this.providers.has(scheme)) {
@@ -23,12 +24,15 @@ export class FileSystemProviderRegistry extends Disposable implements IFileSyste
         const subscription = provider.onDidChangeFile((uris) => {
             this.fireDidChangeFile(uris);
         });
+        this.fireDidChangeProviders();
         return {
             dispose: () => {
                 subscription.dispose();
                 // Гейт по идентичности: если схему успели перерегистрировать,
                 // снятие старой регистрации не должно убивать нового поставщика.
-                if (this.providers.get(scheme) === provider) this.providers.delete(scheme);
+                if (this.providers.get(scheme) !== provider) return;
+                this.providers.delete(scheme);
+                this.fireDidChangeProviders();
             },
         };
     }
@@ -52,6 +56,19 @@ export class FileSystemProviderRegistry extends Disposable implements IFileSyste
                 this.changeListeners.delete(cb);
             },
         };
+    }
+
+    public onDidChangeProviders(cb: () => void): IDisposable {
+        this.providerListeners.add(cb);
+        return {
+            dispose: () => {
+                this.providerListeners.delete(cb);
+            },
+        };
+    }
+
+    private fireDidChangeProviders(): void {
+        for (const cb of [...this.providerListeners]) cb();
     }
 
     private fireDidChangeFile(uris: readonly Uri[]): void {

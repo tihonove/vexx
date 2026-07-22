@@ -1,6 +1,7 @@
 import type { IWorkbenchContributionRegistration } from "../common/iWorkbenchContribution.ts";
 import { AutoRevealContributionDIToken } from "../contrib/files/browser/autoRevealContribution.ts";
 import { OpenFileCommandContributionDIToken } from "../contrib/files/browser/openFileCommandContribution.ts";
+import { QuickDiffServiceDIToken } from "../contrib/scm/browser/quickDiffService.ts";
 import { ThemeConfigContributionDIToken } from "../contrib/themes/browser/themeConfigContribution.ts";
 import { TerminalEnvStatusContributionDIToken } from "../services/terminalEnvironment/node/terminalEnvStatusContribution.ts";
 
@@ -22,4 +23,6 @@ export const WORKBENCH_CONTRIBUTIONS: readonly IWorkbenchContributionRegistratio
     { token: EditorContextMenuContributionDIToken, phase: "restored" },
     { token: OpenFileCommandContributionDIToken, phase: "restored" },
     { token: PanelFocusContributionDIToken, phase: "restored" },
+    // Живые change-bars: считать дифф можно только после того, как есть редакторы.
+    { token: QuickDiffServiceDIToken, phase: "restored" },
 ];
