@@ -22,6 +22,9 @@
         // только он знает, что реально взялся и что реально довёл работу до конца.
         { "name": "Implementing", "color": "YELLOW", "description": "Агент в работе: пишет код, гоняет CI" },
         { "name": "Ready for review", "color": "BLUE", "description": "PR открыт и зелёный, ждёт человека" },
+        // Testing ставит человек, отправляя задачу на проверку. Тестировщик берёт задачу
+        // отсюда: нашёл баги — пишет в тикет и возвращает в Implementing, чисто — в Ready for review.
+        { "name": "Testing", "color": "PINK", "description": "На проверке тестировщиком: баги → Implementing, чисто → Ready for review" },
         { "name": "Done", "color": "PURPLE", "description": "Смёржено" }
       ]
     }

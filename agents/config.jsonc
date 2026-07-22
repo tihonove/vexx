@@ -77,6 +77,23 @@
       "worktree": true,
       "tools": "default",
       "permissionMode": "bypassPermissions"
+    },
+
+    // Тестировщик. Проверяет задачу из колонки Testing: в своём дереве выкатывает код PR
+    // (detached, чтобы не спорить за ветку с деревом реализатора), собирает, гоняет, ищет
+    // баги. Нашёл — пишет в тикет и возвращает задачу в Implementing; чисто — в Ready for
+    // review. session — чтобы запуск был фоновым и не блокировал тик оркестратора; своя
+    // память ему не важна, каждый заход самодостаточен.
+    //
+    // Кода НЕ правит: в наборе нет Edit/Write. Bash нужен под сборку и gh, поэтому он есть,
+    // но без Edit тестировщик физически не изменит исходники — только читает и гоняет.
+    "tester": {
+      "skill": "tester",
+      "mode": "session",
+      "worktree": true,
+      "tools": "Bash Read Glob Grep",
+      "allow": ["Bash(gh *)", "Bash(npm *)", "Bash(git *)", "Read", "Glob", "Grep"],
+      "permissionMode": "bypassPermissions"
     }
   }
 }
