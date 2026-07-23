@@ -3,6 +3,7 @@ import { deriveDefaultColors } from "../colorRegistry.ts";
 
 import { baseColors } from "./baseColors.ts";
 import { controlColors } from "./controlColors.ts";
+import { diffColors } from "./diffColors.ts";
 import { editorColors } from "./editorColors.ts";
 import { gitColors } from "./gitColors.ts";
 import { workbenchColors } from "./workbenchColors.ts";
@@ -32,6 +33,7 @@ export const COLOR_CONTRIBUTIONS = {
     ...editorColors,
     ...workbenchColors,
     ...gitColors,
+    ...diffColors,
 } as const satisfies ColorContribution;
 
 /** Все зарегистрированные ключи цветов (типизация `theme.getColor`). */

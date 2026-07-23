@@ -34,6 +34,7 @@ import {
     quickOpenAction,
     showCommandsAction,
 } from "../../contrib/quickaccess/browser/quickOpenActions.ts";
+import { compareWithHeadAction } from "../../contrib/scm/browser/compareWithHeadAction.ts";
 import {
     acceptSelectedSuggestionAction,
     hideSuggestWidgetAction,
@@ -319,4 +320,7 @@ export const builtinActions: readonly CommandAction[] = [
     toggleProblemsAction,
     toggleTerminalAction,
     newTerminalAction,
+
+    // SCM
+    compareWithHeadAction,
 ];

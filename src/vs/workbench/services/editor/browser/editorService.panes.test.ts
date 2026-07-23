@@ -41,8 +41,11 @@ class FakePane implements IEditorPane {
     public disposed = false;
     private readonly listeners: (() => void)[] = [];
 
+    public readonly label: string;
+
     public constructor(public readonly uri: Uri) {
         this.view.id = `fake-${uri.path}`;
+        this.label = uri.path;
     }
 
     public onDidChangeState(cb: () => void): { dispose: () => void } {

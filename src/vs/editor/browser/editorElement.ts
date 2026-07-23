@@ -939,7 +939,8 @@ export class EditorElement extends TUIElement implements IScrollable {
     }
 }
 
-function packStyleFlags(style: ResolvedTokenStyle): number {
+/** Экспортирован для переиспользования в `diffViewElement` — подсветка там та же. */
+export function packStyleFlags(style: ResolvedTokenStyle): number {
     let flags = 0;
     if (style.bold) flags |= StyleFlags.Bold;
     if (style.italic) flags |= StyleFlags.Italic;
