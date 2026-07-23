@@ -48,6 +48,13 @@ export const unthemedDiffViewStyles: IDiffViewStyles = {
 /** Символ-плейсхолдер свёрнутого куска — он же метка в обеих колонках номеров. */
 const ELLIPSIS = "⋯";
 
+// Отступы гуттера повторяют редактор (`editorElement.ts`: GUTTER_LEFT_PADDING и
+// FOLD_GAP_LEFT/RIGHT вокруг колонки чевронов), чтобы дифф читался как та же
+// компонента, а не как отдельный виджет: номера не липнут к левому краю, а текст
+// не липнет к маркеру.
+const GUTTER_LEFT_PADDING = 2;
+const GUTTER_RIGHT_PADDING = 2;
+
 /**
  * Отрисовка inline-диффа: список {@link IDiffViewRow} с гуттером на два номера
  * строки (оригинал / изменённый) и маркером `-`/`+`.
@@ -94,9 +101,11 @@ export class DiffViewElement extends TUIElement implements IScrollable {
         this.markDirty();
     }
 
-    /** Ширина гуттера: два номера строки, маркер и разделители. */
+    /** Ширина гуттера: `отступ + номер + зазор + номер + зазор + маркер + отступ`. */
     public get gutterWidth(): number {
-        return this.numberWidth * 2 + 4;
+        const separators = 2;
+        const marker = 1;
+        return GUTTER_LEFT_PADDING + this.numberWidth * 2 + separators + marker + GUTTER_RIGHT_PADDING;
     }
 
     public get contentHeight(): number {
@@ -184,9 +193,10 @@ export class DiffViewElement extends TUIElement implements IScrollable {
 
         const numberFg = styles.lineNumberForeground;
         const collapsed = row.kind === "collapsed";
-        context.drawText(0, screenY, (collapsed ? ELLIPSIS : original).padStart(w), { fg: numberFg, bg });
-        context.drawText(w + 1, screenY, (collapsed ? ELLIPSIS : modified).padStart(w), { fg: numberFg, bg });
-        context.drawText(w * 2 + 2, screenY, marker, { fg: styles.foreground, bg });
+        const left = GUTTER_LEFT_PADDING;
+        context.drawText(left, screenY, (collapsed ? ELLIPSIS : original).padStart(w), { fg: numberFg, bg });
+        context.drawText(left + w + 1, screenY, (collapsed ? ELLIPSIS : modified).padStart(w), { fg: numberFg, bg });
+        context.drawText(left + w * 2 + 2, screenY, marker, { fg: styles.foreground, bg });
     }
 
     private renderContent(

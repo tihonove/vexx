@@ -83,8 +83,8 @@ describe("Workbench — вкладка diff", () => {
         // Вкладка появилась под своей меткой.
         expect(screen).toContain("a.txt ↔ HEAD");
         // Обе стороны правки видны: старая строка и новая.
-        expect(screen).toContain("- bravo");
-        expect(screen).toContain("+ XXbravo");
+        expect(screen).toContain("-  bravo");
+        expect(screen).toContain("+  XXbravo");
     });
 
     it("вкладка диффа закрывается без диалога сохранения", async () => {
@@ -126,7 +126,7 @@ describe("Workbench — вкладка diff", () => {
 
         const screen = testApp.backend.screenToString();
         expect(screen).toContain("XXbravo");
-        expect(screen).not.toContain("- bravo");
+        expect(screen).not.toContain("-  bravo");
     });
 
     it("без версии в git вкладка не открывается, а в статус-баре появляется сообщение", async () => {
