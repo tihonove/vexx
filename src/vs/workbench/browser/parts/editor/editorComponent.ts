@@ -206,7 +206,12 @@ export class EditorComponent extends ThemedComponent {
      * undo-роутинг перепривязывается к новому `UndoManager`.
      */
     private rebuildForReloadedDocument(): void {
+        // Read-only — свойство редактора, а не документа: перечитка не должна его
+        // снимать. Без переноса «Reopen with Encoding» на read-only вкладке молча
+        // возвращал её в редактируемое состояние.
+        const wasReadOnly = this.editorViewState.readOnly;
         this.editorViewState = new EditorViewState(this.model.document);
+        this.editorViewState.readOnly = wasReadOnly;
         this.tokenStore.dispose();
         this.tokenStore = new DocumentTokenStore(
             this.model.document,

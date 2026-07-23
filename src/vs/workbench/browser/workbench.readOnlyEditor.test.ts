@@ -265,6 +265,25 @@ describe("Workbench — read-only editor", () => {
             expect(fired).toBe(1);
         });
 
+        it("перечитка документа не снимает read-only", () => {
+            // rebuildForReloadedDocument пересоздаёт EditorViewState, и вместе с ним
+            // терялся флаг. Путь достижим пользователем: «Reopen with Encoding» в
+            // read-only разрешён (писать нельзя, перечитывать можно) — после него
+            // вкладка молча становилась редактируемой.
+            const editor = h.activeEditor();
+            h.commands.execute(TOGGLE_READONLY);
+
+            editor.reopenWithEncoding("windows1251");
+
+            expect(editor.readOnly).toBe(true);
+            // Фокус перечитку переживает (виджет пересоздан, но фокус переносится),
+            // так что ключ обязан остаться поднятым — иначе мутирующие команды
+            // разблокировались бы на всё ещё read-only вкладке.
+            expect(contextKeys().get("textInputFocus")).toBe(true);
+            expect(contextKeys().get("editorReadonly")).toBe(true);
+            expect(editor.viewState.type("X")).toBeUndefined();
+        });
+
         it("смена EOL заблокирована", () => {
             const before = h.activeEditor().eol;
             h.commands.execute(TOGGLE_READONLY);

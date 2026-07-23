@@ -356,6 +356,57 @@ export class TextFileModel extends Disposable {
     }
 
     /**
+     * Открывает буфер, которого нет на диске: содержимое даёт владелец, а не
+     * файловая система (Output-канал — `output:<channel>`, как в VS Code). Ни
+     * чтения, ни watcher'а, ни `diskStat` — значит `save()` вернёт `"no-file"`,
+     * а внешних изменений у такого ресурса не бывает по построению.
+     *
+     * Язык задаётся явно: выводить его из «пути» вида `output:extensions` нечем.
+     */
+    public openSynthetic(uri: Uri, languageId: string): void {
+        this.uriValue = uri;
+        this.doc = new TextDocument("", languageId);
+        this.savedVersionId = this.doc.versionId;
+        this.savedEol = this.doc.eol;
+        this.diskConflictValue = false;
+        this.bindDocumentListeners();
+        for (const listener of [...this.reloadListeners]) listener();
+    }
+
+    /**
+     * Дописывает текст в конец буфера от имени **владельца** документа.
+     *
+     * Идёт мимо `EditorViewState`, в отличие от {@link applyExternalEdits}, и это
+     * намеренно: там стоит read-only-гард, а владелец писать обязан. Это ровно
+     * разделение VS Code — `OutputChannelModel` пишет в `ITextModel`, а `readOnly`
+     * живёт на виджете редактора и правки владельца не касается.
+     *
+     * API специально **только append**: правка в самом конце документа не сдвигает
+     * ни выделения, ни фолды выше неё, поэтому пропуск ремапа во view-state
+     * безопасен. Произвольные правки так проводить нельзя — для них
+     * {@link applyExternalEdits}.
+     */
+    public appendOwnedContent(text: string): void {
+        if (text.length === 0) return;
+        const line = this.doc.lineCount - 1;
+        const column = this.doc.getLineLength(line);
+        this.doc.applyEdits([createTextEdit(createRange(line, column, line, column), text)]);
+        // Правка владельца не должна пачкать буфер: у синтетического ресурса нет
+        // диска, и «несохранённых изменений» у него быть не может.
+        this.savedVersionId = this.doc.versionId;
+        this.editTarget.markDirty();
+    }
+
+    /** Заменяет содержимое буфера целиком (смена активного Output-канала). */
+    public replaceOwnedContent(text: string): void {
+        this.doc = new TextDocument(text, this.doc.languageId);
+        this.savedVersionId = this.doc.versionId;
+        this.savedEol = this.doc.eol;
+        this.bindDocumentListeners();
+        for (const listener of [...this.reloadListeners]) listener();
+    }
+
+    /**
      * Читает файл с диска в свежий документ (сбрасывает undo, курсор, токен-кеш —
      * view пересобирается по {@link onDidReloadDocument}). Общий путь для
      * {@link openFile}, {@link revertToDisk} и {@link reopenWithEncoding}. Обновляет

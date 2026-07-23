@@ -57,6 +57,14 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     ] as const;
 
     private editors: EditorPane[] = [];
+    /**
+     * Редакторы вне таб-строки (нижняя Panel: Output). Держим отдельным списком
+     * именно затем, чтобы весь код вкладок — `getEditors`, `editorCount`,
+     * `getOpenFilePaths`, `collectDirty` — продолжал ходить по `this.editors` и
+     * не знал о них вовсе. Виден detached-редактор ровно в одном месте:
+     * {@link getActiveEditor}, когда фокус внутри него.
+     */
+    private detachedPanes: EditorPane[] = [];
     private activeIndexValue = -1;
 
     /**
@@ -239,8 +247,41 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     }
 
     public getActiveEditor(): EditorPane | null {
+        // Detached-панель (Output) вкладкой не является, но когда фокус внутри неё,
+        // «активный редактор» — именно она: иначе стрелки и Ctrl+F исполнялись бы
+        // по файлу за панелью. Аналог `ICodeEditorService.getFocusedCodeEditor()`
+        // в VS Code. Все ~75 потребителей `getActiveEditor()` получают это даром.
+        const focused = this.focusedDetachedPane();
+        if (focused !== null) return focused;
         if (this.activeIndexValue < 0 || this.activeIndexValue >= this.editors.length) return null;
         return this.editors[this.activeIndexValue];
+    }
+
+    /**
+     * Detached-панель, внутри которой сейчас фокус (или `null`). Проверка — по
+     * пути от активного элемента вверх, как `holdsFocus` у виджета терминала.
+     */
+    private focusedDetachedPane(): EditorPane | null {
+        if (this.detachedPanes.length === 0) return null;
+        for (const pane of this.detachedPanes) {
+            const active = pane.view.getRoot()?.focusManager?.activeElement ?? null;
+            if (active !== null && active.getAncestorPath().includes(pane.view)) return pane;
+        }
+        return null;
+    }
+
+    /**
+     * Создаёт редактор ВНЕ таб-строки: он не попадает ни в `getEditors`, ни в
+     * персист сессии, ни в shutdown-протокол — те ходят по `this.editors`.
+     * Ресурс синтетический (`output:<channel>`), содержимое даёт владелец через
+     * `EditorPane.model`. Владелец же и решает, куда вставить `pane.view`.
+     */
+    public openDetached(uri: Uri, languageId: string): EditorPane {
+        const editor = this.createAndWireEditor();
+        editor.model.openSynthetic(uri, languageId);
+        this.applyConfigurationToEditor(editor);
+        this.detachedPanes.push(editor);
+        return editor;
     }
 
     public getEditor(index: number): EditorPane | null {
