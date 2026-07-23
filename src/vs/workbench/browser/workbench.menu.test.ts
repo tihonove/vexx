@@ -251,6 +251,7 @@ describe("Workbench — menu bar wiring", () => {
             "Color Theme",
             "Explorer",
             "Problems",
+            "Output",
             "Terminal",
             "Toggle Primary Side Bar",
             "Toggle Panel",

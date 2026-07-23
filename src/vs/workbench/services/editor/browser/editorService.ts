@@ -253,6 +253,17 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         // в VS Code. Все ~75 потребителей `getActiveEditor()` получают это даром.
         const focused = this.focusedDetachedPane();
         if (focused !== null) return focused;
+        return this.activeTabEditor();
+    }
+
+    /**
+     * Активная **вкладка** — без учёта detached-панелей. Отдельно от
+     * {@link getActiveEditor} затем, что «редактор, по которому работают команды»
+     * и «редактор, куда возвращают фокус» — разные вещи: те, кто уводит фокус ИЗ
+     * панели (`PanelFocusContribution`, умерший терминал), обязаны попасть во
+     * вкладку, иначе фокус отскакивал бы обратно в панель.
+     */
+    private activeTabEditor(): EditorPane | null {
         if (this.activeIndexValue < 0 || this.activeIndexValue >= this.editors.length) return null;
         return this.editors[this.activeIndexValue];
     }
@@ -569,8 +580,9 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         });
     }
 
+    /** Ставит фокус в редактор-вкладку (см. {@link activeTabEditor} — не в панель). */
     public focusEditor(): void {
-        this.getActiveEditor()?.focusEditor();
+        this.activeTabEditor()?.focusEditor();
     }
 
     /**

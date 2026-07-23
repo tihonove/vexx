@@ -21,6 +21,7 @@ import { FindComponentDIToken } from "../contrib/find/browser/findComponent.ts";
 import { FindServiceDIToken } from "../contrib/find/browser/findService.ts";
 import { DiagnosticsServiceDIToken } from "../contrib/markers/browser/diagnosticsService.ts";
 import { ProblemsComponentDIToken } from "../contrib/markers/browser/problemsComponent.ts";
+import { OutputComponentDIToken } from "../contrib/output/browser/outputComponent.ts";
 import { QuickOpenServiceDIToken } from "../contrib/quickaccess/browser/quickOpenService.ts";
 import { CompletionServiceDIToken } from "../contrib/suggest/browser/completionService.ts";
 import { SuggestComponentDIToken } from "../contrib/suggest/browser/suggestComponent.ts";
@@ -165,6 +166,9 @@ export class WorkbenchComponent extends ThemedComponent {
         // ProblemsComponent, TERMINAL — TerminalService.
         this.register(accessor.get(DiagnosticsServiceDIToken));
         this.register(accessor.get(ProblemsComponentDIToken));
+        // Между Problems и Terminal — порядок резолва и есть порядок табов:
+        // PROBLEMS · OUTPUT · TERMINAL, как в VS Code.
+        this.register(accessor.get(OutputComponentDIToken));
         this.terminalService = this.register(accessor.get(TerminalServiceDIToken));
         const panelComponent = this.register(accessor.get(PanelComponentDIToken));
         this.register(accessor.get(TerminalPanelComponentDIToken));

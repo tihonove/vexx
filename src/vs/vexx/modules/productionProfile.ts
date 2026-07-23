@@ -9,6 +9,7 @@ import type { IConfigurationService } from "../../platform/configuration/common/
 import { Container } from "../../platform/instantiation/common/diContainer.ts";
 import type { IUserKeybindingRule } from "../../platform/keybinding/node/keybindingsService.ts";
 import type { ILogService } from "../../platform/log/common/iLogService.ts";
+import type { ILogHistory } from "../../workbench/services/output/common/output.ts";
 import type { IStateService } from "../../platform/state/common/iStateService.ts";
 import type { WorkbenchTheme } from "../../platform/theme/common/workbenchTheme.ts";
 import { terminalEnvironmentModule } from "../../workbench/services/terminalEnvironment/node/terminalEnvironmentModule.ts";
@@ -43,6 +44,8 @@ export interface ProductionProfileContext {
     stateService: IStateService;
     userKeybindings: readonly IUserKeybindingRule[];
     logService: ILogService;
+    /** Кольцевой буфер логов — источник содержимого Output-панели. */
+    logHistory: ILogHistory;
     /** Absolute path of the active-profile Vexx settings.json (for diagnostics scoping). */
     settingsResource: string;
     /** Absolute path of the active-profile Vexx keybindings.json (for the open-keybindings command). */
@@ -56,7 +59,7 @@ export interface ProductionProfileContext {
 export function createProductionContainer(ctx: ProductionProfileContext): Container {
     return new Container()
         .use(coreModule, { app: ctx.app })
-        .use(loggingModule, { logService: ctx.logService })
+        .use(loggingModule, { logService: ctx.logService, logHistory: ctx.logHistory })
         .use(commandsModule)
         .use(themeModule, { theme: ctx.theme, themeRegistry: ctx.themeRegistry })
         .use(backendModule, { clipboard: ctx.clipboard })

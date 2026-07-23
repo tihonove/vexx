@@ -120,7 +120,10 @@ async function runEditor(): Promise<void> {
     // debug-tool; в упакованных сборках файл вообще не создаётся — гейт идёт по
     // isPackagedRuntime(), а не isSeaBinary(): self-extract тоже прод, но не SEA.
     const logService = new LogService();
-    logService.addSink(new RingBufferSink());
+    // Буфер держим в переменной: он же — источник содержимого Output-панели,
+    // и подключён до подъёма UI, иначе ранние каналы были бы потеряны.
+    const logHistory = new RingBufferSink();
+    logService.addSink(logHistory);
     if (!isPackagedRuntime()) {
         logService.addSink(new FileSink(path.resolve(process.cwd(), "vexx.log")));
     }
@@ -233,6 +236,7 @@ async function runEditor(): Promise<void> {
         stateService,
         userKeybindings,
         logService,
+        logHistory,
         settingsResource: userDataPaths.settingsFile,
         keybindingsResource: userDataPaths.keybindingsFile,
     });
