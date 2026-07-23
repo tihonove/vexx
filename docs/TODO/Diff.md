@@ -157,11 +157,26 @@ host↔subprocess по образцу folding-провайдера); (2) `QuickD
 «видимые + скрытые = длина файла» держится в обоих режимах, набор добавленных строк
 совпадает с `git diff`.
 
-### [ ] Этап 3. Абстракция editor input / pane
+### [x] Этап 3. Абстракция editor pane
 
-Самый крупный кусок и настоящий гейт смотрелки. Подробности — в пункте **A** ниже.
-Отдельный PR без новой функциональности: чистый рефакторинг, который держат существующие
-тесты. Всё равно нужен для сплитов (открытый пункт в [Uri.md](Uri.md)).
+**Сделано.** `IEditorPane` (`browser/parts/editor/iEditorPane.ts`) — что группе нужно от
+любой вкладки: `uri`, `view`, `isModified`, `onDidChangeState`, `focusEditor`. Бывший
+`EditorPane` переименован в `TextEditorPane` и реализует контракт.
+
+Дизайн определило измерение: `getActiveEditor()` зовут из **98 мест** (26 — команды курсора
+в `editorActions.ts`), и почти всем нужен именно текст. Поэтому текстовая поверхность не
+менялась, а сузилась: `getActiveEditor()`/`getEditor()` отдают текстовую панель либо `null`,
+когда активна панель другого вида. Ни одно из 98 мест не тронуто, и побочно получилось
+правильное поведение — команды правки текста молча ничего не делают на диффе. Рядом
+появилась generic-поверхность: `getActivePane()`/`getPane()`/`getPanes()` и `openPane()`.
+
+`onDidChangeState` заменил три текстовые подписки, которые группа навешивала сама
+(`onDidChangeContent`/`onDidChangeEol`/`onDidChangeDiskState`) — знать про EOL и состояние
+файла на диске ей незачем.
+
+Тест на шов нашёл настоящий баг: `focusEditor()` ходил через текстовый геттер, поэтому
+не-текстовая панель фокус не получала. Проверено и в живом приложении: временно открытая
+панель не-текстового вида даёт вкладку рядом с файлом и рисует свой контент.
 
 ### [ ] Этап 4. Read-only буфер поверх текста из памяти
 
@@ -195,7 +210,7 @@ folding'а (`editorViewState.ts`: `logicalToVisualLine`/`visualToLogicalLine`/`g
 
 ## Инвентарь (детали пунктов, на которые ссылаются этапы)
 
-- [ ] **A. Абстракция editor input / pane.** `EditorPane`
+- [x] **A. Абстракция editor pane — сделано на этапе 3.** Было: `EditorPane`
       (`src/vs/workbench/browser/parts/editor/editorPane.ts`) — жёстко зашитая пара
       `TextFileModel` + `EditorComponent`; `EditorService.editors: EditorPane[]`;
       `EditorGroupComponent.syncFromService()` берёт `getActiveEditor()?.view`. Против
