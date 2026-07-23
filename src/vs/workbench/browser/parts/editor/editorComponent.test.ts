@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
 import { Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { createEditorPane, type TextEditorPane } from "../../../../../TestUtils/TextEditorPaneFactory.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { createCursorSelection } from "../../../../editor/common/core/iSelection.ts";
 import { PlainTextTokenizer } from "../../../../editor/common/languages/builtin/plainTextTokenizer.ts";
@@ -21,7 +21,7 @@ import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.t
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
 
 /** Скоуп первого токена первой строки — чем токенизирован документ прямо сейчас. */
-function firstScope(ctrl: EditorPane): string | undefined {
+function firstScope(ctrl: TextEditorPane): string | undefined {
     const tokenStore = ctrl.viewState.tokenStore;
     tokenStore?.tokenizeUpTo(0);
     return tokenStore?.getLineTokens(0)?.tokens[0]?.scopes[0];
@@ -262,7 +262,7 @@ describe("EditorComponent + TextFileModel (пара)", () => {
         // Occurrence-highlight background from darkPlus (#474747).
         const OCCURRENCE_BG = packRgb(71, 71, 71);
 
-        function renderRow0Bg(ctrl: EditorPane, col: number): number {
+        function renderRow0Bg(ctrl: TextEditorPane, col: number): number {
             const app = TestApp.createWithContent(ctrl.view, new Size(20, 3));
             app.render();
             return app.backend.getBgAt(new Point(col, 0));

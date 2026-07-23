@@ -198,7 +198,7 @@ export const workbenchModule: ContainerModule = (container) => {
     // Выход из приложения (Ctrl+Q / меню / палитра → quitAction) — структурно
     // выполняет WorkbenchComponent (confirm-save + teardown + exit).
     container.bind(QuitHandlerDIToken, () => container.get(WorkbenchComponentDIToken));
-    // Editor-кластер (этап 9b): логика группы редакторов (открытые EditorPane-пары,
+    // Editor-кластер (этап 9b): логика группы редакторов (открытые TextEditorPane-пары,
     // активная вкладка, MRU) + компонент группового контрола (tab strip + контент).
     container.bind(EditorServiceDIToken, EditorService);
     container.bind(EditorGroupComponentDIToken, EditorGroupComponent);

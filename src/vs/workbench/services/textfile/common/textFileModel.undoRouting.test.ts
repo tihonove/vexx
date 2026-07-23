@@ -3,8 +3,8 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { createEditorPane, type TextEditorPane } from "../../../../../TestUtils/TextEditorPaneFactory.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { UndoRedoService, WORKSPACE_UNDO_CONTEXT } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 
@@ -20,7 +20,7 @@ afterEach(() => {
     ws.dispose();
 });
 
-function make(): { controller: EditorPane; undoRedo: UndoRedoService; file: string } {
+function make(): { controller: TextEditorPane; undoRedo: UndoRedoService; file: string } {
     const undoRedo = new UndoRedoService();
     const controller = createEditorPane({ undoRedoService: undoRedo });
     const file = path.join(tmpDir, "a.txt");

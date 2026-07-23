@@ -32,7 +32,7 @@ import type { IEditorPane } from "./iEditorPane.ts";
  * EOL, кодировка, folding, автодополнение), доступно только тем, кто явно
  * спросил текстовую панель.
  */
-export class EditorPane extends Disposable implements IEditorPane {
+export class TextEditorPane extends Disposable implements IEditorPane {
     public constructor(
         public readonly model: TextFileModel,
         public readonly component: EditorComponent,

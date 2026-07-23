@@ -5,14 +5,14 @@ import type { TestApp } from "../../../TestUtils/TestApp.ts";
 import type { ContextKeyService } from "../../platform/contextkey/common/contextKeyService.ts";
 import { ContextKeyServiceDIToken } from "../../platform/contextkey/common/contextKeyService.ts";
 
-import type { EditorPane } from "./parts/editor/editorPane.ts";
+import type { TextEditorPane } from "./parts/editor/textEditorPane.ts";
 import type { WorkbenchComponent } from "./workbenchComponent.ts";
 
 export interface FindContext {
     testApp: TestApp;
     workbench: WorkbenchComponent;
     contextKeys: ContextKeyService;
-    activeEditor: () => EditorPane;
+    activeEditor: () => TextEditorPane;
     tmpDir: string;
     harness: IAppHarness;
     workspace: ITempWorkspace;

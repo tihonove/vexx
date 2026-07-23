@@ -15,8 +15,8 @@ import { token } from "../../../../platform/instantiation/common/diContainer.ts"
 import { UndoRedoService, UndoRedoServiceDIToken } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 import type { IActivatable } from "../../../browser/iActivatable.ts";
 import { EditorComponent } from "../../../browser/parts/editor/editorComponent.ts";
-import { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
 import type { IEditorPane } from "../../../browser/parts/editor/iEditorPane.ts";
+import { TextEditorPane } from "../../../browser/parts/editor/textEditorPane.ts";
 import {
     LanguageServiceDIToken,
     TokenizationRegistryDIToken,
@@ -39,7 +39,7 @@ export interface IEditorSavedMeta {
 
 /**
  * Логика группы редакторов без view (этап 9b Workbench-рефакторинга, аналог
- * `IEditorService`): владеет списком открытых пар {@link EditorPane}
+ * `IEditorService`): владеет списком открытых пар {@link TextEditorPane}
  * (`TextFileModel` + `EditorComponent`), активной вкладкой и MRU-порядком
  * (Ctrl+Tab), открывает/закрывает ресурсы и применяет `editor.*`-настройки.
  * Про групповой контрол (`EditorGroupComponent`) не знает — тот подписан
@@ -82,10 +82,10 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     private configurationService: IConfigurationService;
     private undoRedoService: UndoRedoService;
     private fileWatcher: IFileWatcher;
-    private activeEditorListeners: ((editor: EditorPane | null) => void)[] = [];
+    private activeEditorListeners: ((editor: TextEditorPane | null) => void)[] = [];
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
     private editorsChangedListeners: (() => void)[] = [];
-    private activeSelectionListeners: ((editor: EditorPane) => void)[] = [];
+    private activeSelectionListeners: ((editor: TextEditorPane) => void)[] = [];
     /** Подписка на выделение активного редактора; перевешивается при его смене. */
     private activeSelectionSubscription?: IDisposable;
     private saveParticipantValue?: SaveParticipant;
@@ -98,7 +98,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     private untitledCounter = 0;
 
     public onRequestConfirmClose?: (index: number) => void;
-    public onEditorCreate?: (pane: EditorPane) => void;
+    public onEditorCreate?: (pane: TextEditorPane) => void;
 
     /**
      * Источник автодополнений (host/харнесс подключает сюда провайдеры
@@ -146,7 +146,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * потребителю (extension host, проецирующий выделение в субпроцесс) не нужно
      * следить за вкладками.
      */
-    public onDidChangeActiveEditorSelection(cb: (editor: EditorPane) => void): IDisposable {
+    public onDidChangeActiveEditorSelection(cb: (editor: TextEditorPane) => void): IDisposable {
         this.activeSelectionListeners.push(cb);
         // Первый подписчик приходит уже после openFile — подцепляем текущий редактор.
         if (this.activeSelectionSubscription === undefined) {
@@ -160,7 +160,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         };
     }
 
-    public onActiveEditorChanged(cb: (editor: EditorPane | null) => void): IDisposable {
+    public onActiveEditorChanged(cb: (editor: TextEditorPane | null) => void): IDisposable {
         this.activeEditorListeners.push(cb);
         return {
             dispose: () => {
@@ -282,24 +282,24 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * автодополнение, статус-бар, host-адаптеры) молча ничего не делают на
      * диффе, вместо того чтобы падать или требовать проверок на каждом вызове.
      */
-    public getActiveEditor(): EditorPane | null {
+    public getActiveEditor(): TextEditorPane | null {
         const pane = this.getActivePane();
-        return pane instanceof EditorPane ? pane : null;
+        return pane instanceof TextEditorPane ? pane : null;
     }
 
     /** Текстовый редактор по позиции вкладки; `null`, если там панель другого вида. */
-    public getEditor(index: number): EditorPane | null {
+    public getEditor(index: number): TextEditorPane | null {
         const pane = this.getPane(index);
-        return pane instanceof EditorPane ? pane : null;
+        return pane instanceof TextEditorPane ? pane : null;
     }
 
     /** Открытые текстовые редакторы — без панелей других видов. */
-    public getEditors(): readonly EditorPane[] {
+    public getEditors(): readonly TextEditorPane[] {
         return this.textPanes();
     }
 
-    private textPanes(): EditorPane[] {
-        return this.panes.filter((pane): pane is EditorPane => pane instanceof EditorPane);
+    private textPanes(): TextEditorPane[] {
+        return this.panes.filter((pane): pane is TextEditorPane => pane instanceof TextEditorPane);
     }
 
     /**
@@ -366,13 +366,13 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
 
     /**
      * Создаёт пару {@link TextFileModel} + {@link EditorComponent} (обёрнутую в
-     * транзитный {@link EditorPane}) и навешивает общую обвязку группы (watcher,
+     * транзитный {@link TextEditorPane}) и навешивает общую обвязку группы (watcher,
      * save-участник, подписки на изменения → {@link onDidChangeEditors},
      * `onDidSave`, `onEditorCreate`) — всё, кроме загрузки файла и применения
      * конфига (их порядок относительно openFile важен, поэтому они на стороне
      * вызывающего). Общая часть {@link openFile} и {@link newUntitled}.
      */
-    private createAndWireEditor(): EditorPane {
+    private createAndWireEditor(): TextEditorPane {
         const model = new TextFileModel(this.languageService, this.undoRedoService);
         const component = new EditorComponent(
             this.themeService,
@@ -380,7 +380,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
             this.tokenStyleResolver,
             model,
         );
-        const editor = new EditorPane(model, component);
+        const editor = new TextEditorPane(model, component);
         this.wirePane(editor);
         // Наблюдатель ставим до возможного openFile, чтобы слежение началось с
         // первой загрузки.
@@ -548,7 +548,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * Если ключ не задан, соответствующая настройка редактора не трогается
      * (`setIndentOptions` оставит существующее значение — auto-detect и т.п.).
      */
-    private applyConfigurationToEditor(editor: EditorPane): void {
+    private applyConfigurationToEditor(editor: TextEditorPane): void {
         // `editor.occurrencesHighlight`: "off" disables; "singleFile"/"multiFile"
         // (and unset → VS Code default) enable. We only support single-file scope.
         const occurrencesHighlight = this.configurationService.get<string>("editor.occurrencesHighlight");
@@ -612,7 +612,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * ({@link TextFileModel.setLanguage}) — и предложение поедет следом само.
      * Язык без расширений (или незарегистрированный) → имя без расширения.
      */
-    public suggestedSaveName(editor: EditorPane): string {
+    public suggestedSaveName(editor: TextEditorPane): string {
         const name = this.displayName(editor);
         const extension = this.languageService.getExtensionForLanguage(editor.languageId);
         return extension === undefined ? name : `${name}${extension}`;
@@ -631,7 +631,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * активного редактора», что и есть правда с их точки зрения.
      */
     private fireActiveEditorChanged(pane: IEditorPane | null): void {
-        const editor = pane instanceof EditorPane ? pane : null;
+        const editor = pane instanceof TextEditorPane ? pane : null;
         this.rebindActiveSelectionForwarding(editor);
         for (const cb of this.activeEditorListeners) {
             cb(editor);
@@ -644,7 +644,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * дёргаем: смену активного редактора потребитель и так видит через
      * {@link onActiveEditorChanged}, которое несёт выделение в своей meta.
      */
-    private rebindActiveSelectionForwarding(editor: EditorPane | null): void {
+    private rebindActiveSelectionForwarding(editor: TextEditorPane | null): void {
         this.activeSelectionSubscription?.dispose();
         this.activeSelectionSubscription = undefined;
         if (editor === null) return;
@@ -653,7 +653,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         });
     }
 
-    private fireEditorSaved(editor: EditorPane): void {
+    private fireEditorSaved(editor: TextEditorPane): void {
         // Ресурс есть у любого редактора — гейт на "путь не задан" больше не нужен.
         const meta: IEditorSavedMeta = { uri: editor.uri.toString(), languageId: editor.languageId };
         for (const cb of [...this.editorSavedListeners]) {

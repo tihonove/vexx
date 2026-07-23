@@ -5,12 +5,12 @@ import { TokenizationRegistry } from "../vs/editor/common/languages/tokenization
 import { WorkbenchTheme } from "../vs/platform/theme/common/workbenchTheme.ts";
 import { UndoRedoService } from "../vs/platform/undoRedo/common/undoRedoService.ts";
 import { EditorComponent } from "../vs/workbench/browser/parts/editor/editorComponent.ts";
-import { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
+import { TextEditorPane } from "../vs/workbench/browser/parts/editor/textEditorPane.ts";
 import { TextFileModel } from "../vs/workbench/services/textfile/common/textFileModel.ts";
 import { darkPlusTheme } from "../vs/workbench/services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../vs/workbench/services/themes/common/themeService.ts";
 
-export type { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
+export type { TextEditorPane } from "../vs/workbench/browser/parts/editor/textEditorPane.ts";
 
 export interface IEditorPaneOverrides {
     readonly registry?: TokenizationRegistry;
@@ -22,9 +22,9 @@ export interface IEditorPaneOverrides {
 /**
  * Обвязка юнит-тестов пары `TextFileModel` + `EditorComponent`: собирает пару так
  * же, как `EditorService.createAndWireEditor`, и отдаёт
- * {@link EditorPane} — сценарии работают с единой поверхностью пары.
+ * {@link TextEditorPane} — сценарии работают с единой поверхностью пары.
  */
-export function createEditorPane(overrides: IEditorPaneOverrides = {}): EditorPane {
+export function createEditorPane(overrides: IEditorPaneOverrides = {}): TextEditorPane {
     const themeService = overrides.themeService ?? new ThemeService(WorkbenchTheme.fromThemeFile(darkPlusTheme));
     const model = new TextFileModel(
         overrides.languageService ?? NULL_LANGUAGE_SERVICE,
@@ -36,5 +36,5 @@ export function createEditorPane(overrides: IEditorPaneOverrides = {}): EditorPa
         NULL_TOKEN_STYLE_RESOLVER,
         model,
     );
-    return new EditorPane(model, component);
+    return new TextEditorPane(model, component);
 }

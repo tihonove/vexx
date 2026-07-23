@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { createEditorPane, type TextEditorPane } from "../../../../../TestUtils/TextEditorPaneFactory.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import type { ILanguageService } from "../../../../editor/common/languages/iLanguageService.ts";
 import { NULL_LANGUAGE_SERVICE } from "../../../../editor/common/languages/iLanguageService.ts";
@@ -30,7 +30,7 @@ const TS_ONLY_LANGUAGE_SERVICE: ILanguageService = {
     getLanguageDisplayName: () => undefined,
 };
 
-function firstScope(ctrl: EditorPane): string | undefined {
+function firstScope(ctrl: TextEditorPane): string | undefined {
     const tokenStore = ctrl.viewState.tokenStore;
     tokenStore?.tokenizeUpTo(0);
     return tokenStore?.getLineTokens(0)?.tokens[0]?.scopes[0];
@@ -39,7 +39,7 @@ function firstScope(ctrl: EditorPane): string | undefined {
 describe("TextFileModel — language", () => {
     let ws: ITempWorkspace;
     let registry: TokenizationRegistry;
-    let ctrl: EditorPane;
+    let ctrl: TextEditorPane;
 
     beforeEach(() => {
         ws = createTempWorkspace({ prefix: "vexx-editorctrl-lang-" });

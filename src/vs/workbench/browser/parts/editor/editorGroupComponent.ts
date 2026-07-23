@@ -19,7 +19,7 @@ export const EditorGroupComponentDIToken = token<EditorGroupComponent>("EditorGr
  * Компонент группы редакторов: владеет {@link EditorGroupElement} (tab strip +
  * контент-хост + локальный OverlayLayer для find-виджета) и отражает в нём
  * состояние {@link EditorService} — по {@link EditorService.onDidChangeEditors}
- * вставляет view активного {@link EditorPane} и перерисовывает табы (метки с
+ * вставляет view активного {@link TextEditorPane} и перерисовывает табы (метки с
  * разводкой тёзок, иконки, маркер изменённости, активная вкладка). Клики по
  * табам возвращаются в сервис (`activateTab`/`closeTab`; закрытие «грязной»
  * вкладки — через `onRequestConfirmClose`).

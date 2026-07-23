@@ -9,7 +9,7 @@ import type { ICoreCompletionItem } from "../../../../editor/common/languages/iC
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
+import type { TextEditorPane } from "../../../browser/parts/editor/textEditorPane.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
 
@@ -45,7 +45,7 @@ export class CompletionService extends Disposable {
     private readonly component: SuggestComponent;
     private readonly group: EditorService;
     private readonly commands: CommandRegistry;
-    private activeEditor: EditorPane | null = null;
+    private activeEditor: TextEditorPane | null = null;
     private prefixRange: IRange | null = null;
     // Каретка на момент запроса провайдеров. Провайдерский `range` — снапшот той же
     // позиции, поэтому по нему мы отслеживаем, сколько символов добрали с триггера.
@@ -194,7 +194,7 @@ export class CompletionService extends Disposable {
      * должна гасить и отложенный авто-suggest — раньше это делал отдельный
      * обработчик корневого контроллера, теперь сложено сюда.
      */
-    private bindEditor(editor: EditorPane | null): void {
+    private bindEditor(editor: TextEditorPane | null): void {
         this.unbindEditor();
         this.close();
         this.resetCaretCache(editor);
@@ -249,7 +249,7 @@ export class CompletionService extends Disposable {
     }
 
     /** Re-filter при открытом попапе (закрывает при уходе каретки из слова). */
-    private refilterOpen(editor: EditorPane, active: IPosition | null, line: string): void {
+    private refilterOpen(editor: TextEditorPane, active: IPosition | null, line: string): void {
         const prefixRange = this.prefixRange;
         if (active === null || prefixRange === null) {
             this.close();
@@ -292,7 +292,7 @@ export class CompletionService extends Disposable {
         this.lastLine = line;
     }
 
-    private resetCaretCache(editor: EditorPane | null): void {
+    private resetCaretCache(editor: TextEditorPane | null): void {
         if (editor === null) {
             this.updateCaretCache(null, "");
             return;

@@ -6,7 +6,7 @@ import { IConfigurationServiceDIToken } from "../vs/platform/configuration/commo
 import type { Container } from "../vs/platform/instantiation/common/diContainer.ts";
 import type { IStateService } from "../vs/platform/state/common/iStateService.ts";
 import { createTestContainer } from "../vs/vexx/modules/testProfile.ts";
-import type { EditorPane } from "../vs/workbench/browser/parts/editor/editorPane.ts";
+import type { TextEditorPane } from "../vs/workbench/browser/parts/editor/textEditorPane.ts";
 import type { WorkbenchComponent } from "../vs/workbench/browser/workbenchComponent.ts";
 import { WorkbenchComponentDIToken } from "../vs/workbench/browser/workbenchComponent.ts";
 import {
@@ -49,7 +49,7 @@ export interface IAppHarness {
     /** Полный контейнер — для suite-specific сервисов: `h.container.get(ThemeServiceDIToken)`. */
     readonly container: Container;
     /** Активный редактор группы; бросает, если его нет. */
-    activeEditor(): EditorPane;
+    activeEditor(): TextEditorPane;
     /** `workbench.dispose()`. Воркспейсом НЕ владеет — композиция с {@link createTempWorkspace}. */
     dispose(): void;
 }

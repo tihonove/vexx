@@ -21,7 +21,7 @@ const DEFAULT_DEBOUNCE_MS = 200;
 
 /**
  * Минимальный срез открытого редактора, нужный quick diff: ресурс, текст,
- * событие правки и канал gutter-декораций. `EditorPane` соответствует ему
+ * событие правки и канал gutter-декораций. `TextEditorPane` соответствует ему
  * структурно, связывание делает DI-модуль (образец — `DiagnosticsService`).
  */
 export interface IQuickDiffEditor {
@@ -131,7 +131,11 @@ export class QuickDiffService extends Disposable {
                 void this.refresh(this.editorSource.getActiveEditor());
             }),
         );
-        this.register({ dispose: () => this.teardown() });
+        this.register({
+            dispose: () => {
+                this.teardown();
+            },
+        });
 
         // Редактор мог стать активным до создания сервиса.
         const active = this.editorSource.getActiveEditor();
