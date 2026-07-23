@@ -290,17 +290,18 @@ export class TUIElement<S extends TUIStyle = TUIStyle> {
     /**
      * Returns focusable descendants (tabIndex >= 0) in depth-first order.
      */
+    /**
+     * Порядок Tab-обхода поддерева. Рекурсия идёт через этот же метод у детей, а
+     * не через плоский обход `getChildren()`: контейнеры, у которых часть детей
+     * не участвует в навигации (скрытые сессии `OverlayLayer`), переопределяют
+     * его и обязаны быть услышанными.
+     */
     public getDepthFirstFocusableOrder(): TUIElement[] {
         const result: TUIElement[] = [];
-        const visit = (el: TUIElement) => {
-            if (el.tabIndex >= 0) {
-                result.push(el);
-            }
-            for (const child of el.getChildren()) {
-                visit(child);
-            }
-        };
-        visit(this);
+        if (this.tabIndex >= 0) result.push(this);
+        for (const child of this.getChildren()) {
+            result.push(...child.getDepthFirstFocusableOrder());
+        }
         return result;
     }
 

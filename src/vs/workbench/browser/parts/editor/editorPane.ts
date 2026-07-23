@@ -28,6 +28,14 @@ import type { EditorComponent } from "./editorComponent.ts";
  */
 export class EditorPane extends Disposable {
     private readOnlyListeners = new Set<() => void>();
+    /**
+     * Редактор вне таб-строки (нижняя Panel: Output). Такой редактор попадает в
+     * `getActiveEditor()`, когда фокус внутри него, — и потребители, работающие
+     * с ВКЛАДКОЙ (переключение read-only, `activeTextEditor` для расширений),
+     * обязаны его пропускать: содержимым владеет фича, а не пользователь.
+     * Ставит `EditorService.openDetached`.
+     */
+    public detached = false;
 
     public constructor(
         public readonly model: TextFileModel,

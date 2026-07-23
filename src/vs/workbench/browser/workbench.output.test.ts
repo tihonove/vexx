@@ -9,6 +9,14 @@ import { LogService } from "../../platform/log/common/logService.ts";
 import { RingBufferSink } from "../../platform/log/common/ringBufferSink.ts";
 import { PROBLEMS_VIEW_ID } from "../contrib/markers/browser/problemsComponent.ts";
 import { PanelServiceDIToken } from "./parts/panel/panelService.ts";
+import { createSelection } from "../../editor/common/core/iSelection.ts";
+import { Uri } from "../../base/common/uri.ts";
+import { loadState, StateService } from "../../platform/state/node/stateService.ts";
+import { resolveUserDataPaths } from "../../platform/environment/node/userDataPaths.ts";
+import { EditorOptionsServiceAdapter } from "../api/browser/editorOptionsServiceAdapter.ts";
+import { FindComponentDIToken } from "../contrib/find/browser/findComponent.ts";
+import type { EditorPane } from "./parts/editor/editorPane.ts";
+
 import { EditorServiceDIToken } from "../services/editor/browser/editorService.ts";
 import { LogHistoryDIToken, OUTPUT_VIEW_ID, OutputChannelRegistryDIToken } from "../services/output/common/output.ts";
 import { OutputChannelRegistry } from "../services/output/common/outputChannelRegistry.ts";
@@ -265,6 +273,172 @@ describe("Workbench — Output: селектор канала", () => {
         const labels = menu.getEntries().map((e) => (e.type === "separator" ? "" : e.label));
         expect(labels.filter((l) => l === "brand.new")).toHaveLength(1);
         menu.dispose();
+    });
+});
+
+/**
+ * Регрессии из чёрноящичного прогона PR #197. Каждый кейс — воспроизведение
+ * репорта, а не пересказ реализации.
+ */
+describe("Workbench — Output: регрессии", () => {
+    let ws: ITempWorkspace;
+    let userData: ITempWorkspace;
+    let h: IAppHarness;
+    let logService: LogService;
+    let history: RingBufferSink;
+
+    function newState(): StateService {
+        return loadState(resolveUserDataPaths({ homedir: "/never", userDataDir: userData.dir }));
+    }
+
+    function boot(stateService: StateService): IAppHarness {
+        const harness = createAppTestHarness({
+            workspaceFolder: ws.dir,
+            size: new Size(120, 32),
+            stateService,
+            containerOverrides: (container) => {
+                container.bind(ILogServiceDIToken, () => logService);
+                container.bind(LogHistoryDIToken, () => history);
+            },
+        });
+        harness.workbench.openFile(ws.path("alpha.txt"));
+        return harness;
+    }
+
+    beforeEach(() => {
+        ws = createTempWorkspace({ prefix: "vexx-output-reg-", files: { "alpha.txt": "Alpha" } });
+        userData = createTempWorkspace({ prefix: "vexx-output-reg-ud-" });
+        logService = new LogService();
+        history = new RingBufferSink();
+        logService.addSink(history);
+        logService.createLogger("bootstrap").info("vexx starting");
+        logService.createLogger("configuration").warn("empty settings");
+        h = boot(newState());
+    });
+
+    afterEach(() => {
+        h.dispose();
+        ws.dispose();
+        userData.dispose();
+    });
+
+    /** Открывает Output и возвращает его detached-редактор. */
+    function outputPane(): EditorPane {
+        h.commands.execute(TOGGLE_OUTPUT);
+        const pane = h.container.get(EditorServiceDIToken).getActiveEditor();
+        expect(pane?.uri.scheme).toBe("output");
+        return pane!;
+    }
+
+    it("BUG-1: смена канала не теряет фокус", () => {
+        // `replaceOwnedContent` пересобирает `EditorElement`; старый уходил с
+        // дерева вместе с фокусом, и клавиатура переставала доходить куда-либо.
+        outputPane();
+
+        h.container.get(OutputServiceDIToken).showChannel("configuration");
+
+        // Ассерт на ЖИВОЙ виджет, а не на путь предков: снятый с дерева редактор
+        // ссылки на родителя сохраняет, и проверка «фокус где-то под панелью»
+        // проходила бы и со сломанным фокусом.
+        const pane = h.container.get(EditorServiceDIToken).getActiveEditor();
+        expect(pane?.uri.scheme).toBe("output");
+        expect(h.testApp.focusedElement).toBe(pane!.view.getChild());
+
+        // И следствие, которое видит пользователь: клавиатура доходит до панели.
+        const before = pane!.viewState.selections[0].active.line;
+        h.testApp.sendKey("ArrowUp");
+        expect(pane!.viewState.selections[0].active.line).not.toBe(before);
+    });
+
+    it("BUG-2: read-only с панели Output снять нельзя", () => {
+        const pane = outputPane();
+        const before = pane.getText();
+
+        h.commands.execute("workbench.action.files.toggleActiveEditorReadonlyInSession");
+        h.testApp.sendKey("X");
+
+        expect(pane.readOnly).toBe(true);
+        expect(pane.getText()).toBe(before);
+    });
+
+    it("BUG-2: у обычной вкладки read-only по-прежнему переключается", () => {
+        // Контроль: гард не должен зарубить команду там, где она и нужна.
+        h.workbench.focusEditor();
+
+        h.commands.execute("workbench.action.files.toggleActiveEditorReadonlyInSession");
+
+        expect(h.container.get(EditorServiceDIToken).getEditors()[0].readOnly).toBe(true);
+    });
+
+    it("BUG-2: расширение видит вкладку, а не панель Output", () => {
+        outputPane();
+
+        const adapter = new EditorOptionsServiceAdapter(h.container.get(EditorServiceDIToken));
+
+        expect(adapter.getActiveEditorMeta().uri).toBe(Uri.file(ws.path("alpha.txt")).toString());
+    });
+
+    it("BUG-3: живой хвост не схлопывает выделение", () => {
+        const pane = outputPane();
+        pane.viewState.selections = [createSelection(0, 0, 0, 5)];
+        const selected = pane.viewState.getSelectedText();
+        expect(selected).toHaveLength(5);
+
+        logService.createLogger("bootstrap").info("tail arrives");
+
+        expect(pane.viewState.getSelectedText()).toBe(selected);
+    });
+
+    it("BUG-3: хвост не утаскивает вьюпорт, пока читают старые строки", () => {
+        const pane = outputPane();
+        for (let i = 0; i < 50; i++) logService.createLogger("bootstrap").info(`line ${String(i)}`);
+        pane.goToPosition(0, 0);
+
+        logService.createLogger("bootstrap").info("newest");
+
+        expect(pane.viewState.selections[0].active.line).toBe(0);
+    });
+
+    it("BUG-3: у конца документа автоскролл продолжает работать", () => {
+        // Контроль: гард не должен убить сам автоскролл.
+        const pane = outputPane();
+        const before = pane.viewState.selections[0].active.line;
+
+        logService.createLogger("bootstrap").info("newest");
+
+        expect(pane.viewState.selections[0].active.line).toBeGreaterThan(before);
+    });
+
+    it("BUG-4: Ctrl+F при фокусе в Output ищет по логу, а не по файлу за панелью", () => {
+        // `vexx starting` есть только в логе, `Alpha` — только в файле.
+        outputPane();
+        const find = h.container.get(FindComponentDIToken);
+
+        h.commands.execute("actions.find");
+        find.setQuery("vexx starting");
+        find.onQueryChange?.("vexx starting");
+
+        // Смотрим на кадр, как и репортёр: счётчик виджета — наблюдаемый результат.
+        h.testApp.render();
+        expect(h.testApp.backend.screenToString()).not.toContain("No results");
+    });
+
+    it("BUG-6: после восстановления сессии вкладка сразу наполнена", () => {
+        // Панель осталась открытой на OUTPUT — на следующем запуске события
+        // активации уже не будет, и контент обязан подтянуться сам.
+        const state1 = newState();
+        const first = boot(state1);
+        first.commands.execute(TOGGLE_OUTPUT);
+        state1.flushSync();
+        first.dispose();
+
+        const second = boot(newState());
+
+        second.testApp.render();
+        const text = second.testApp.backend.screenToString();
+        expect(text).toContain("vexx starting");
+        expect(text).not.toContain("No output yet.");
+        second.dispose();
     });
 });
 

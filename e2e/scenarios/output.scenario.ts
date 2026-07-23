@@ -46,5 +46,12 @@ export default defineScenario({
         await editor.sendKey("Alt+J");
         await editor.waitForText((t) => t.includes("Extensions") && !t.includes("vexx starting"));
         await editor.capture("channel-switched");
+
+        // BUG-1 из ревью: после смены канала фокус оставался ни на чём и
+        // клавиатура переставала доходить куда-либо. Проверяем следствием —
+        // курсор обязан двигаться по логу.
+        await editor.sendKey("ArrowUp");
+        await editor.sendKey("ArrowUp");
+        await editor.waitForText((t) => t.includes("Ln 1, Col 1"));
     },
 });

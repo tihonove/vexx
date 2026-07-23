@@ -34,7 +34,7 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     }
 
     public getActiveEditorOptions(): IEditorOptionsState | null {
-        const editor = this.group.getActiveEditor();
+        const editor = this.group.getActiveTabEditor();
         if (editor === null) return null;
         return {
             tabSize: editor.viewState.tabSize,
@@ -43,19 +43,19 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     }
 
     public setActiveEditorOptions(patch: IEditorOptionsPatch): void {
-        const editor = this.group.getActiveEditor();
+        const editor = this.group.getActiveTabEditor();
         if (editor === null) return;
         editor.setIndentOptions(patch);
     }
 
     public getActiveEditorFilePath(): string | null {
-        const uri = this.group.getActiveEditor()?.uri;
+        const uri = this.group.getActiveTabEditor()?.uri;
         // Потребитель (editorconfig) ждёт путь на диске; у безымянного буфера его нет.
         return uri?.scheme === "file" ? uri.fsPath : null;
     }
 
     public getActiveEditorMeta(): IActiveEditorMeta {
-        return metaOf(this.group.getActiveEditor());
+        return metaOf(this.group.getActiveTabEditor());
     }
 
     public onActiveEditorChanged(cb: (meta: IActiveEditorMeta) => void): IDisposable {
@@ -73,7 +73,7 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
                 this.selectionFlushScheduled = false;
                 // Активный редактор мог смениться, пока мы ждали тик: шлём выделения
                 // того, кто активен сейчас (его uri и едет в payload).
-                const current = this.group.getActiveEditor() ?? editor;
+                const current = this.group.getActiveTabEditor() ?? editor;
                 cb({ uri: current.uri.toString(), selections: wireSelectionsOf(current) });
             });
         });
@@ -115,7 +115,7 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
 
     /** Активный редактор, если его uri совпадает с ожидаемым (иначе `null`). */
     private activeEditorFor(uri: string): EditorPane | null {
-        const editor = this.group.getActiveEditor();
+        const editor = this.group.getActiveTabEditor();
         if (editor === null || editor.uri.toString() !== uri) return null;
         return editor;
     }

@@ -2,6 +2,7 @@ import { Disposable } from "../../../../../../tuidom/common/disposable.ts";
 import type { MenuItemEntry } from "../../../../../../tuidom/ui/menu/popupMenuElement.ts";
 import { SelectBoxElement } from "../../../../../../tuidom/ui/selectbox/selectBoxElement.ts";
 import { Uri } from "../../../../base/common/uri.ts";
+import { isSelectionCollapsed } from "../../../../editor/common/core/iSelection.ts";
 import { CHECKED_ICON } from "../../../../platform/actions/common/menuRegistry.ts";
 import type { IMenu, MenuService } from "../../../../platform/actions/common/menuService.ts";
 import { MenuServiceDIToken } from "../../../../platform/actions/common/menuService.ts";
@@ -93,13 +94,19 @@ export class OutputComponent extends Disposable {
         this.register(
             this.outputService.onDidAppendToActiveChannel((entry) => {
                 if (this.pane === null) return;
+                // Решаем ДО дописывания: после него «конец документа» уже другой.
+                const follow = this.shouldFollowTail(this.pane);
                 this.pane.model.appendOwnedContent(`${formatOutputLine(entry)}\n`);
-                this.revealLastLine(this.pane);
+                if (follow) this.revealLastLine(this.pane);
             }),
         );
-        // Ленивая инициализация: вкладку открыли — только тогда поднимаем редактор.
+        // Ленивая инициализация: вкладка стала активной — только тогда поднимаем
+        // редактор. Слушаем именно смену активной вкладки, а не пользовательскую
+        // активацию: при восстановлении сессии вкладку делает активной
+        // `LayoutService.restoreLayout()`, клика не будет вовсе — и панель
+        // показывалась бы с плейсхолдером до первого ручного переключения.
         this.register(
-            this.panelService.onDidActivateView((id) => {
+            this.panelService.onDidChangeActiveView((id) => {
                 if (id === OUTPUT_VIEW_ID) this.syncActiveChannel();
             }),
         );
@@ -158,6 +165,24 @@ export class OutputComponent extends Disposable {
         this.pane = pane;
         this.panelService.setViewContent(OUTPUT_VIEW_ID, pane.view);
         return pane;
+    }
+
+    /**
+     * Тянуться ли за хвостом лога. Автоскролл переставляет курсор, а значит
+     * схлопывает выделение и утаскивает вьюпорт вниз — в активно пишущем канале
+     * (например `input.keybindings`, куда строка идёт на каждое нажатие) из-за
+     * этого нельзя было ни выделить текст, ни дочитать старые строки.
+     *
+     * Поэтому следуем за хвостом только пока пользователь у конца и ничего не
+     * выделяет — тот же смысл, что у `scrollLock` в `OutputEditor` VS Code,
+     * только выведенный из состояния, а не из отдельного тумблера.
+     */
+    private shouldFollowTail(pane: EditorPane): boolean {
+        const viewState = pane.viewState;
+        const hasSelection = viewState.selections.some((selection) => !isSelectionCollapsed(selection));
+        if (hasSelection) return false;
+        const lastLine = Math.max(0, viewState.document.lineCount - 1);
+        return viewState.selections.every((selection) => selection.active.line >= lastLine - 1);
     }
 
     /**

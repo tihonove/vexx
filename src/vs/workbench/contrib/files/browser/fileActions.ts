@@ -257,7 +257,10 @@ export const toggleActiveEditorReadonlyInSessionAction: CommandAction = {
     title: "File: Toggle Active Editor Read-only in Session",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
-        if (editor === null) return;
+        // Detached-панель (Output) — не вкладка: её read-only принадлежит фиче,
+        // а не пользователю. Аналог `ActiveEditorCanToggleReadonlyContext` в VS
+        // Code, где inherently-readonly вход session-тумблеру не поддаётся.
+        if (editor === null || editor.detached) return;
         editor.readOnly = !editor.readOnly;
         // Ключ `editorReadonly` — производная от состояния редактора, а не от
         // фокуса, поэтому сам он не пересчитается: гоним обновление руками, как

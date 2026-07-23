@@ -6,6 +6,7 @@ import { createSelection } from "../../../../editor/common/core/iSelection.ts";
 import { findMatches } from "../../../../editor/contrib/find/findMatches.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
+import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
 import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
 
 import type { FindComponent } from "./findComponent.ts";
@@ -28,6 +29,13 @@ export class FindService extends Disposable {
 
     private matches: IRange[] = [];
     private currentIndex = -1;
+    /**
+     * Редактор, по которому идёт текущая сессия поиска. Пиним его на открытии и
+     * НЕ перерешаем: виджет забирает фокус себе, а `getActiveEditor()` следует за
+     * фокусом — со второго же вызова поиск уезжал бы на другой редактор. Именно
+     * так `Ctrl+F` из панели Output искал по файлу за ней.
+     */
+    private target: EditorPane | null = null;
 
     public constructor(component: FindComponent, editorService: EditorService) {
         super();
@@ -67,8 +75,11 @@ export class FindService extends Disposable {
             return;
         }
 
+        // Цель сессии фиксируем ДО показа виджета: показ уводит фокус в его инпут.
+        this.target = this.editorService.getActiveEditor();
+
         // Seed the query from a single-line, non-empty selection (VS Code behaviour).
-        const editor = this.editorService.getActiveEditor();
+        const editor = this.target;
         if (editor) {
             const selected = editor.viewState.getSelectedText();
             if (selected.length > 0 && !selected.includes("\n")) {
@@ -86,7 +97,10 @@ export class FindService extends Disposable {
     public close(): void {
         if (!this.component.isOpen()) return;
 
-        const editor = this.editorService.getActiveEditor();
+        // Закрываем сессию по её же цели: активный редактор к этому моменту —
+        // уже другой (фокус в инпуте виджета), и подсветку сняли бы не с того.
+        const editor = this.target;
+        this.target = null;
         if (editor) {
             // Leave the cursor on the current match (VS Code behaviour), then clear highlights.
             if (this.currentIndex >= 0 && this.currentIndex < this.matches.length) {
@@ -120,7 +134,7 @@ export class FindService extends Disposable {
      * cursor, and refreshes the editor highlights + counter.
      */
     private recompute(): void {
-        const editor = this.editorService.getActiveEditor();
+        const editor = this.target;
         if (!editor) {
             this.matches = [];
             this.currentIndex = -1;
@@ -145,11 +159,11 @@ export class FindService extends Disposable {
 
     private setCurrent(index: number): void {
         this.currentIndex = index;
-        const editor = this.editorService.getActiveEditor();
-        if (editor) {
-            editor.setSearchDecorations(this.matches, index);
-            editor.revealRange(this.matches[index]);
-        }
+        // `matches` и `target` живут и умирают вместе (см. recompute/close), а
+        // сюда попадают только при непустом списке совпадений — значит цель есть.
+        const editor = this.target!;
+        editor.setSearchDecorations(this.matches, index);
+        editor.revealRange(this.matches[index]);
         this.component.setCounter(index + 1, this.matches.length);
     }
 
