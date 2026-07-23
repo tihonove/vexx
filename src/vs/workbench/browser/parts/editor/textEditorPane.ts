@@ -1,3 +1,5 @@
+import * as path from "node:path";
+
 import { Disposable, type IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import type { OverlayAnchorPosition } from "../../../../../../tuidom/ui/contextview/overlayLayer.ts";
 import type { MenuEntry } from "../../../../../../tuidom/ui/menu/popupMenuElement.ts";
@@ -76,6 +78,15 @@ export class TextEditorPane extends Disposable implements IEditorPane {
 
     public get uri(): Uri {
         return this.model.uri;
+    }
+
+    /**
+     * Имя файла, либо `Untitled-N` для безымянного буфера: у `untitled:`-ресурса
+     * метка уже лежит в самом пути, отдельного поля-счётчика для неё не нужно.
+     */
+    public get label(): string {
+        const uri = this.model.uri;
+        return uri.scheme === "file" ? path.basename(uri.fsPath) : uri.path;
     }
 
     public get fileName(): string | null {

@@ -29,6 +29,8 @@ class TextOnlyPane implements IEditorPane {
     public readonly isModified = false;
     public readonly readOnly = false;
 
+    public readonly label = "diff-stub";
+
     public constructor(public readonly uri: Uri) {}
 
     public onDidChangeState(): { dispose: () => void } {
@@ -92,7 +94,7 @@ describe("Workbench — панель не-текстового вида во в�
 
         const screen = testApp.backend.screenToString();
         expect(screen).toContain("a.txt");
-        expect(screen).toContain("/changes");
+        expect(screen).toContain("diff-stub");
     });
 
     it("возврат на текстовую вкладку возвращает и её контент", () => {

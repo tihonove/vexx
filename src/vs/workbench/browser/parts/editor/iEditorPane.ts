@@ -20,6 +20,13 @@ export interface IEditorPane extends IDisposable {
      */
     readonly uri: Uri;
 
+    /**
+     * Метка вкладки. Отдельно от {@link uri}, потому что из ресурса её выводит
+     * не всякая панель: у файла это basename, а у диффа — что-то вроде
+     * `a.ts ↔ HEAD`, чего в пути просто нет.
+     */
+    readonly label: string;
+
     /** Контент вкладки — вставляется в `EditorGroupElement.setContent`. */
     readonly view: TUIElement;
 

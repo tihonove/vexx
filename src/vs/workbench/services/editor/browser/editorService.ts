@@ -666,10 +666,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * Имя буфера для вкладки/иконки: имя файла, либо `Untitled-N` для безымянного.
      */
     public displayName(editor: IEditorPane): string {
-        // `untitled:Untitled-3`.path === "Untitled-3" — метка безымянного буфера уже
-        // лежит в самом ресурсе, отдельный счётчик-поле для неё не нужен.
-        const uri = editor.uri;
-        return uri.scheme === "file" ? path.basename(uri.fsPath) : uri.path;
+        return editor.label;
     }
 
     /**
