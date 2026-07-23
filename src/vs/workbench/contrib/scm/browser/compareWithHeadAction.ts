@@ -52,19 +52,33 @@ async function compareWithHead(accessor: ServiceAccessor): Promise<void> {
         return;
     }
 
-    const pane = new DiffEditorPane(
-        accessor.get(ThemeServiceDIToken),
-        accessor.get(TokenizationRegistryDIToken),
-        accessor.get(TokenStyleResolverDIToken),
-        {
-            uri: Uri.from({ scheme: DIFF_SCHEME, path: editor.uri.path, query: "HEAD" }),
-            label: `${editors.displayName(editor)} ↔ HEAD`,
-            originalText,
-            modifiedText: editor.getText(),
-            languageId: editor.languageId,
-        },
+    const input = {
+        uri: Uri.from({ scheme: DIFF_SCHEME, path: editor.uri.path, query: "HEAD" }),
+        label: `${editors.displayName(editor)} ↔ HEAD`,
+        originalText,
+        modifiedText: editor.getText(),
+        languageId: editor.languageId,
+    };
+
+    // Дифф — снимок, а идентичность вкладки (`vexx-diff:<path>?HEAD`) от содержимого
+    // не зависит: группа дедупит её по `uri`. Поэтому если вкладка того же ресурса
+    // уже открыта, обновляем её свежим снимком на месте — иначе повторный вызов
+    // (единственный способ «обновить» дифф) вернул бы устаревший результат.
+    const existing = editors.getPanes().find((p) => p.uri.toString() === input.uri.toString());
+    if (existing instanceof DiffEditorPane) {
+        existing.setInput(input);
+        editors.activateTab(editors.getPanes().indexOf(existing));
+        return;
+    }
+
+    editors.openPane(
+        new DiffEditorPane(
+            accessor.get(ThemeServiceDIToken),
+            accessor.get(TokenizationRegistryDIToken),
+            accessor.get(TokenStyleResolverDIToken),
+            input,
+        ),
     );
-    editors.openPane(pane);
 }
 
 /** Текст версии из git, либо `null`, если сравнивать не с чем. */

@@ -114,6 +114,30 @@ describe("Workbench — вкладка diff", () => {
         expect(editors.editorCount).toBe(countAfterFirst);
     });
 
+    it("повторный вызов после новой правки показывает свежий снимок, а не устаревший", async () => {
+        editBuffer(); // первая правка: XX
+        commands.execute(COMPARE);
+        await settle(10);
+        testApp.render();
+        expect(testApp.backend.screenToString()).toContain("+  XXbravo");
+
+        // Возврат в редактор и вторая правка.
+        editors.activateTab(0);
+        const editor = editors.getActiveEditor();
+        editor?.goToPosition(1, 0);
+        editor?.viewState.type("YY");
+
+        commands.execute(COMPARE);
+        await settle(10);
+        testApp.render();
+
+        const screen = testApp.backend.screenToString();
+        // Снимок отражает обе правки, а не только первую.
+        expect(screen).toContain("+  YYXXbravo");
+        // И по-прежнему ровно одна дифф-вкладка — обновили на месте, не завели вторую.
+        expect(editors.getPanes().filter((p) => p.uri.scheme === "vexx-diff")).toHaveLength(1);
+    });
+
     it("возврат на файл возвращает обычный редактор", async () => {
         editBuffer();
         commands.execute(COMPARE);

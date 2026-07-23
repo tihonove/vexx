@@ -52,9 +52,10 @@ export class DiffEditorPane extends ThemedComponent implements IEditorPane, IDif
     public readonly readOnly = true;
 
     private readonly element: DiffViewElement;
-    private readonly documents: Record<DiffSide, TextDocument>;
-    private readonly tokenStores: Record<DiffSide, DocumentTokenStore>;
+    private documents!: Record<DiffSide, TextDocument>;
+    private tokenStores!: Record<DiffSide, DocumentTokenStore>;
     private readonly tokenStyleResolver: ITokenStyleResolver;
+    private readonly tokenizationRegistry: TokenizationRegistry;
 
     public constructor(
         themeService: ThemeService,
@@ -66,7 +67,38 @@ export class DiffEditorPane extends ThemedComponent implements IEditorPane, IDif
         this.uri = input.uri;
         this.label = input.label;
         this.tokenStyleResolver = tokenStyleResolver;
+        this.tokenizationRegistry = tokenizationRegistry;
 
+        this.element = new DiffViewElement();
+        this.view = new ScrollBarDecorator(this.element);
+        this.view.id = "diffEditor";
+        this.buildFrom(input);
+
+        this.register({
+            dispose: () => {
+                this.tokenStores.original.dispose();
+                this.tokenStores.modified.dispose();
+                this.view.setParent(null);
+            },
+        });
+        this.initStyles();
+    }
+
+    /**
+     * Пересобирает дифф из свежего снимка, оставляя ту же вкладку (тот же `uri` и
+     * позицию в группе). Нужно потому, что дифф — снимок, а повторный «Compare
+     * with HEAD» по тому же ресурсу — единственный доступный пользователю способ
+     * его обновить: без этого группа дедупит вкладку по `uri` и он бы смотрел на
+     * устаревший результат. Токен-сторы старого снимка утилизируем здесь же.
+     */
+    public setInput(input: IDiffEditorPaneInput): void {
+        this.tokenStores.original.dispose();
+        this.tokenStores.modified.dispose();
+        this.buildFrom(input);
+    }
+
+    /** Документы, токенизация, дифф и строки вью из одного снимка. */
+    private buildFrom(input: IDiffEditorPaneInput): void {
         const originalLines = input.originalText.split("\n");
         const modifiedLines = input.modifiedText.split("\n");
 
@@ -76,8 +108,8 @@ export class DiffEditorPane extends ThemedComponent implements IEditorPane, IDif
         };
         // fire-and-forget: load() не реджектится, до подгрузки грамматики
         // рисуем plaintext'ом — как это делает и обычный редактор.
-        void tokenizationRegistry.load(input.languageId);
-        const support = tokenizationRegistry.get(input.languageId) ?? new PlainTextTokenizer();
+        void this.tokenizationRegistry.load(input.languageId);
+        const support = this.tokenizationRegistry.get(input.languageId) ?? new PlainTextTokenizer();
         this.tokenStores = {
             original: new DocumentTokenStore(this.documents.original, support),
             modified: new DocumentTokenStore(this.documents.modified, support),
@@ -93,20 +125,7 @@ export class DiffEditorPane extends ThemedComponent implements IEditorPane, IDif
         const model = new DiffViewModel(diff.changes, originalLines.length, modifiedLines.length, {
             hideUnchangedRegions: true,
         });
-
-        this.element = new DiffViewElement();
         this.element.setRows(model.rows, this);
-        this.view = new ScrollBarDecorator(this.element);
-        this.view.id = "diffEditor";
-
-        this.register({
-            dispose: () => {
-                this.tokenStores.original.dispose();
-                this.tokenStores.modified.dispose();
-                this.view.setParent(null);
-            },
-        });
-        this.initStyles();
     }
 
     // ─── IEditorPane ──────────────────────────────────────────────────────────
