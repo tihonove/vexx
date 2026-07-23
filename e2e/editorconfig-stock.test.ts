@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { homeIsolationEnv } from "./helpers/appSession.ts";
 import { getBinaryPath } from "./helpers/buildOnce.ts";
 import { findNode } from "./helpers/inspectorClient.ts";
 import { VexxSession } from "./helpers/runVexx.ts";
@@ -104,9 +105,12 @@ describe.skipIf(process.platform === "win32")("SEA binary — stock editorconfig
     }
 
     async function startEditor(files: string[], opts: { cwd?: string } = {}): Promise<VexxSession> {
+        // user-data уже в tempRoot; добавляем изоляцию HOME/XDG (корзина, кеши),
+        // чтобы прогон не трогал реальный дом разработчика.
         const s = await VexxSession.start({
             args: ["--user-data-dir", userDataDir, ...files],
             inspect: true,
+            env: homeIsolationEnv(path.join(tempRoot, "home")),
             ...(opts.cwd !== undefined ? { cwd: opts.cwd } : {}),
         });
         return s;

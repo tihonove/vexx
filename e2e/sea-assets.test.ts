@@ -3,12 +3,12 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { packRgb } from "../tuidom/common/colorUtils.ts";
 
 import { getBinaryPath } from "./helpers/buildOnce.ts";
-import { VexxSession } from "./helpers/runVexx.ts";
+import { usePtyApp } from "./helpers/useApp.ts";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const fixturePath = resolve(here, "fixtures", "sample.ts");
@@ -20,18 +20,10 @@ const itLinuxOnly = process.platform === "linux" ? it : it.skip;
 
 describe("SEA binary — bundled assets", () => {
     let binary = "";
-    let session: VexxSession | null = null;
 
     beforeAll(async () => {
         binary = await getBinaryPath();
     }, 180_000);
-
-    afterEach(async () => {
-        if (session) {
-            await session.dispose();
-            session = null;
-        }
-    });
 
     it("dist/ не содержит каталога Extensions/ после сборки (всё внутри vexx.bundle)", () => {
         const distDir = dirname(binary);
@@ -41,12 +33,14 @@ describe("SEA binary — bundled assets", () => {
     });
 
     itLinuxOnly("работает из произвольного cwd без файлов рядом с бинарём — подсветка из bundle", async () => {
-        // Скопируем бинарь в пустой временный каталог. Никаких vexx.bundle, никаких Extensions/ рядом.
+        // Копируем бинарь в пустой каталог (никаких vexx.bundle/Extensions рядом)
+        // и запускаем ИМЕННО его из этого cwd: SEA несёт ассеты внутри себя, а не в
+        // sidecar-файлах. `usePtyApp` изолирует user-data/HOME, `binary`+`cwd`
+        // указывают на копию.
         const tmp = mkdtempSync(join(tmpdir(), "vexx-sea-isolated-"));
         try {
             const isolatedBinary = join(tmp, "vexx");
             copyFileSync(binary, isolatedBinary);
-            // Скопируем фикстуру тоже — без оригинального e2e/fixtures.
             const isolatedFixture = join(tmp, "sample.ts");
             copyFileSync(fixturePath, isolatedFixture);
 
@@ -54,15 +48,8 @@ describe("SEA binary — bundled assets", () => {
             expect(existsSync(join(tmp, "vexx.bundle"))).toBe(false);
             expect(existsSync(join(tmp, "Extensions"))).toBe(false);
 
-            // Запускаем от того же cwd.
-            session = await VexxSession.start({
-                args: [isolatedFixture],
-                env: { CWD_OVERRIDE: tmp },
-            });
-
-            const screen = await session.waitFor(
-                (s) => s.findText("const greeting") !== null,
-            );
+            const { session } = await usePtyApp({ binary: isolatedBinary, cwd: tmp, open: [isolatedFixture] });
+            const screen = await session.waitFor((s) => s.findText("const greeting") !== null);
 
             // Минимальная проверка подсветки — `const` должен быть keyword-цветом,
             // что доказывает что грамматика реально загрузилась из bundle.

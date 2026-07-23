@@ -3,11 +3,11 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { AnsiScreen } from "./helpers/AnsiScreen.ts";
 import { getBinaryPath } from "./helpers/buildOnce.ts";
-import { VexxSession } from "./helpers/runVexx.ts";
+import { usePtyApp } from "./helpers/useApp.ts";
 
 // Глифы git-гуттер-бара (см. EditorElement gutter paint): U+2503 сплошной
 // (added/deleted) и U+250B штриховой (modified). Оба уникальны для бара —
@@ -53,35 +53,25 @@ function hasGutterBar(screen: AnsiScreen): boolean {
 }
 
 describe("SEA binary — built-in git plugin", () => {
-    let session: VexxSession | null = null;
     let repoDir = "";
-    let userDataDir = "";
     let trackedFile = "";
 
     beforeAll(async () => {
         await getBinaryPath();
         ({ repoDir, trackedFile } = makeRepo());
-        userDataDir = mkdtempSync(join(tmpdir(), "vexx-sea-git-ud-"));
     }, 180_000);
 
-    afterEach(async () => {
-        if (session) {
-            await session.dispose();
-            session = null;
-        }
-    });
-
     afterAll(() => {
-        for (const dir of [repoDir, userDataDir]) {
-            if (dir) rmSync(dir, { recursive: true, force: true });
-        }
+        if (repoDir) rmSync(repoDir, { recursive: true, force: true });
     });
 
     itLinuxOnly("активируется под SEA и рисует dirty-diff бар в гуттере изменённого файла", async () => {
         // Открываем репо как workspace + сам изменённый файл. Плагин (скомпилированный
         // out/extension.cjs, упакованный в vexx.bundle, загруженный в память через
-        // Module._compile) должен spawn'ить git и проставить гуттер-бар.
-        session = await VexxSession.start({ args: ["--user-data-dir", userDataDir, repoDir, trackedFile] });
+        // Module._compile) должен spawn'ить git и проставить гуттер-бар. cwd —
+        // сам репо (git-плагин работает от workspace folder); user-data/HOME
+        // изолированы через usePtyApp.
+        const { session } = await usePtyApp({ open: [repoDir, trackedFile], cwd: repoDir });
         const screen = await session.waitFor((s) => s.findText("BRAVO") !== null && hasGutterBar(s), {
             timeoutMs: 20_000,
         });
