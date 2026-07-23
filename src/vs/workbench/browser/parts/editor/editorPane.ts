@@ -17,16 +17,22 @@ import type { SaveParticipant } from "../../../services/textfile/common/iSavePar
 import type { SaveOutcome, TextFileModel } from "../../../services/textfile/common/textFileModel.ts";
 
 import type { EditorComponent } from "./editorComponent.ts";
+import type { IEditorPane } from "./iEditorPane.ts";
 
 /**
- * Пара «модель + view-компонент» одного открытого редактора (аналог editor
- * input + pane). Владеет временем жизни обоих и делегирует единый публичный
- * API по принадлежности: файлово-модельное — в {@link TextFileModel},
+ * Пара «модель + view-компонент» одного открытого **текстового** редактора.
+ * Владеет временем жизни обоих и делегирует единый публичный API по
+ * принадлежности: файлово-модельное — в {@link TextFileModel},
  * view-обвязочное — в {@link EditorComponent}. Это поверхность, которую видят
  * потребители «активного редактора» (экшены, Find/Completion, швы Workbench,
  * host-адаптеры); создаёт и хранит пары `EditorService`.
+ *
+ * Реализует {@link IEditorPane} — общий контракт вкладки, по которому группа
+ * работает с панелями любого вида. Всё, чего в этом контракте нет (сохранение,
+ * EOL, кодировка, folding, автодополнение), доступно только тем, кто явно
+ * спросил текстовую панель.
  */
-export class EditorPane extends Disposable {
+export class EditorPane extends Disposable implements IEditorPane {
     private readOnlyListeners = new Set<() => void>();
     /**
      * Редактор вне таб-строки (нижняя Panel: Output). Такой редактор попадает в
@@ -44,6 +50,26 @@ export class EditorPane extends Disposable {
         super();
         this.register(component);
         this.register(model);
+    }
+
+    /**
+     * Сводит текстовые события, влияющие на вид вкладки, в одно: правка контента
+     * даёт/снимает маркер изменённости, смена EOL меняет `isModified` не трогая
+     * текст, а внешнее изменение файла на диске перечитывает буфер или поднимает
+     * флаг конфликта. Группе достаточно знать, что «что-то во вкладке поменялось».
+     */
+    public onDidChangeState(cb: () => void): IDisposable {
+        const subscriptions = [
+            this.onDidChangeContent(cb),
+            this.onDidChangeEol(cb),
+            this.onDidChangeDiskState(cb),
+            this.onDidChangeReadOnly(cb),
+        ];
+        return {
+            dispose: () => {
+                for (const subscription of subscriptions) subscription.dispose();
+            },
+        };
     }
 
     // ─── Модель: ресурс, dirty, save, оси encoding/EOL/language ────────────────
