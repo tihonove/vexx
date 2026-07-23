@@ -41,6 +41,13 @@ export const unthemedPanelContainerStyles: IPanelContainerStyles = {
 const TAB_PAD = 1;
 /** Indent of the tab strip from the left edge. */
 const TAB_INDENT = 1;
+/**
+ * Narrowest the title-row controls (the Output channel selector) may shrink to
+ * on a cramped panel: one column keeps the `⌄` chevron visible and clickable, so
+ * the channel list stays reachable even when the tabs eat the row (#204). A
+ * selector squeezed to zero width was invisible and impossible to open.
+ */
+const MIN_ACTIONS_WIDTH = 1;
 /** Row the tab header sits on (below the top border strip). */
 const TAB_ROW = 1;
 /** First content row (below the top border strip + tab header). */
@@ -192,11 +199,20 @@ export class PanelContainerElement extends TUIElement {
         // VS Code. Ширину берём интринсиковую и не даём заехать на сами табы.
         const actions = this.activeView()?.actions;
         if (actions != null) {
-            const actionsWidth = Math.min(actions.getMaxIntrinsicWidth(1), containerSize.width);
-            const x = Math.max(this.tabsEnd(), containerSize.width - actionsWidth - TAB_INDENT);
+            // The selector is right-aligned with a one-column margin. It keeps its
+            // full width while the panel can host both the tab strip and the
+            // selector; once they no longer both fit it shrinks (down to the
+            // chevron) rather than sliding off the right edge — a zero-width
+            // selector was unclickable and invisible (#204). Actions render after
+            // the tabs, so a shrunk selector never has to overlap a readable tab.
+            const intrinsic = actions.getMaxIntrinsicWidth(1);
+            const available = Math.max(0, containerSize.width - TAB_INDENT);
+            const idealX = available - intrinsic;
+            const x = Math.max(0, Math.min(Math.max(idealX, this.tabsEnd()), available - MIN_ACTIONS_WIDTH));
+            const width = Math.max(MIN_ACTIONS_WIDTH, available - x);
             actions.localPosition = new Offset(x, TAB_ROW);
             actions.globalPosition = new Point(this.globalPosition.x + x, this.globalPosition.y + TAB_ROW);
-            actions.performLayout(BoxConstraints.tight(new Size(Math.max(0, containerSize.width - x), 1)));
+            actions.performLayout(BoxConstraints.tight(new Size(width, 1)));
         }
         const content = this.activeView()?.content;
         if (content != null) {

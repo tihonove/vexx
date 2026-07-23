@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { renderElement } from "../../../src/TestUtils/renderElement.ts";
 import { TestApp } from "../../../src/TestUtils/TestApp.ts";
 import { packRgb } from "../../common/colorUtils.ts";
-import { Size } from "../../common/geometryPromitives.ts";
+import { BoxConstraints, Size } from "../../common/geometryPromitives.ts";
 import { TUIKeyboardEvent } from "../../dom/events/tuiKeyboardEvent.ts";
 import { TUIMouseEvent } from "../../dom/events/tuiMouseEvent.ts";
+import { TUIElement } from "../../dom/tuiElement.ts";
+import { BodyElement } from "../body/bodyElement.ts";
 
 import type { ISelectData } from "./selectBoxElement.ts";
 import { SelectBoxElement, unthemedSelectBoxStyles } from "./selectBoxElement.ts";
@@ -132,6 +134,47 @@ describe("SelectBoxElement: раскрытие", () => {
         select.focus();
 
         app.sendKey("Enter");
+
+        expect(select.isOpen()).toBe(false);
+    });
+
+    it("раскрывается даже с устаревшим кэшем root — overlay ищется по цепочке родителей (#204)", () => {
+        // Воспроизводим состояние после restore сессии: контрол уже в дереве
+        // (цепочка родителей до BodyElement цела, hit-test его находит), но
+        // нисходящая пропагация root его не достигла — `getRoot()` вернул бы null.
+        // Плейн-TUIElement как промежуточный контейнер: его `getChildren()` пуст,
+        // поэтому пропагация root минует ребёнка — тот же эффект, что фильтр
+        // активной вкладки в PanelContainerElement, из-за которого селектор канала
+        // Output после restore не открывался.
+        const body = new BodyElement();
+        body.performLayout(BoxConstraints.tight(new Size(40, 10)));
+        const container = new TUIElement();
+        const select = new SelectBoxElement();
+        select.setOptions([{ text: "a" }, { text: "b" }], 0);
+
+        select.setParent(container); // container.root == null → select.root == null
+        container.setParent(body); // root доходит до container, но не до select
+
+        expect(select.getRoot(), "как в #204: кэш root устарел (null)").toBeNull();
+
+        select.dispatchEvent(
+            new TUIMouseEvent("mousedown", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }),
+        );
+
+        // Нашёл overlay по живой цепочке родителей и раскрылся, несмотря на null root.
+        expect(select.isOpen()).toBe(true);
+        expect(body.overlayLayer.getItems().length).toBeGreaterThan(0);
+    });
+
+    it("без BodyElement в предках не раскрывается — overlay-слоя нет", () => {
+        // Контрол вне дерева BodyElement: раскрывать некуда, но и падать нельзя.
+        const select = new SelectBoxElement();
+        select.setOptions([{ text: "a" }, { text: "b" }], 0);
+        select.setParent(new TUIElement()); // предок есть, но это не BodyElement
+
+        select.dispatchEvent(
+            new TUIMouseEvent("mousedown", { button: "left", screenX: 0, screenY: 0, localX: 0, localY: 0 }),
+        );
 
         expect(select.isOpen()).toBe(false);
     });

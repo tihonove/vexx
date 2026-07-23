@@ -6,6 +6,8 @@ import { TUIMouseEvent } from "../../dom/events/tuiMouseEvent.ts";
 import { TUIElement } from "../../dom/tuiElement.ts";
 import type { RenderContext } from "../../dom/tuiElement.ts";
 
+import { SelectBoxElement } from "../selectbox/selectBoxElement.ts";
+
 import { PanelContainerElement } from "./panelContainerElement.ts";
 
 /** Простейший контрол-заглушка вместо селектора: рисует свою метку. */
@@ -91,6 +93,41 @@ describe("PanelContainerElement: контролы вкладки в шапке",
         const row = backend.getTextAt(new Point(0, 1), 30);
         expect(row).toContain("PROBLEMS");
         expect(row).toContain("OUTPUT");
+    });
+
+    it("на тесной панели селектор ужимается, но не схлопывается в ноль и не уезжает за край (#204)", () => {
+        // Три таба заведомо шире панели — раньше селектор прижимался за конец
+        // табов и получал нулевую ширину за правым краем: невидим и некликабелен.
+        const actions = new LabelStub("Extension Host (stdout)"); // самый длинный канал
+        const panel = new PanelContainerElement();
+        panel.addView({ id: "problems", title: "PROBLEMS", content: null });
+        panel.addView({ id: "output", title: "OUTPUT", content: null, actions });
+        panel.addView({ id: "terminal", title: "TERMINAL", content: null });
+        panel.setActiveView("output");
+
+        const width = 24;
+        renderElement(panel, width, 8);
+
+        // Остался в габаритах панели и с ненулевой (кликабельной) шириной.
+        expect(actions.layoutSize.width).toBeGreaterThanOrEqual(1);
+        expect(actions.localPosition.dx).toBeGreaterThanOrEqual(0);
+        expect(actions.localPosition.dx + actions.layoutSize.width).toBeLessThanOrEqual(width);
+    });
+
+    it("ужатый селектор всё равно показывает шеврон — за него и открывают список (#204)", () => {
+        const selector = new SelectBoxElement();
+        selector.setOptions([{ text: "Extension Host (stdout)" }, { text: "Bootstrap" }], 0);
+        const panel = new PanelContainerElement();
+        panel.addView({ id: "problems", title: "PROBLEMS", content: null });
+        panel.addView({ id: "output", title: "OUTPUT", content: null, actions: selector });
+        panel.addView({ id: "terminal", title: "TERMINAL", content: null });
+        panel.setActiveView("output");
+
+        const backend = renderElement(panel, 24, 8);
+
+        // Шеврон ⌄ — единственная гарантированная часть ужатого контрола, и именно
+        // он остаётся кликабельной мишенью.
+        expect(backend.screenToString()).toContain("⌄");
     });
 
     it("контролы рисуются и когда вкладок ещё нет", () => {

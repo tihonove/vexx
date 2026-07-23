@@ -3,8 +3,8 @@ import { BoxConstraints, Size } from "../../common/geometryPromitives.ts";
 import type { TUIEventBase } from "../../dom/events/tuiEventBase.ts";
 import type { TUIKeyboardEvent } from "../../dom/events/tuiKeyboardEvent.ts";
 import { RenderContext, TUIElement } from "../../dom/tuiElement.ts";
-import type { BodyElement } from "../body/bodyElement.ts";
-import type { OverlaySessionHandle } from "../contextview/overlayLayer.ts";
+import { BodyElement } from "../body/bodyElement.ts";
+import type { OverlayLayer, OverlaySessionHandle } from "../contextview/overlayLayer.ts";
 import type { MenuEntry } from "../menu/popupMenuElement.ts";
 import { PopupMenuElement } from "../menu/popupMenuElement.ts";
 import type { IMenuStyles } from "../menu/popupMenuItemElement.tsx";
@@ -176,8 +176,24 @@ export class SelectBoxElement extends TUIElement {
         this.open();
     }
 
+    /**
+     * Overlay layer of the owning {@link BodyElement}, found by walking the live
+     * parent chain rather than the cached `root`. A control restored active on
+     * startup (e.g. the Output channel selector after session restore) can carry
+     * a stale `null` root even though its parent chain is intact — `getRoot()`
+     * would then miss the overlay layer and the dropdown silently never opened
+     * (#204). The parent chain is always current, so hit-testing already reaches
+     * this control; resolve the layer the same way.
+     */
+    private overlayLayer(): OverlayLayer | undefined {
+        for (let node: TUIElement | null = this; node !== null; node = node.getParent()) {
+            if (node instanceof BodyElement) return node.overlayLayer;
+        }
+        return undefined;
+    }
+
     private open(): void {
-        const layer = (this.getRoot() as BodyElement | null)?.overlayLayer;
+        const layer = this.overlayLayer();
         if (layer === undefined || this.options.length === 0) return;
 
         const entries: MenuEntry[] = this.options.map((option, index) => {
