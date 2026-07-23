@@ -10,13 +10,31 @@ import type {
     InspectorSuccessResponse,
     NodeSnapshot,
     SendMouseParams,
+    WaitForIdleParams,
+    WaitForIdleResult,
 } from "../../tuidom/inspector/protocol.ts";
 
 import { getBinaryPath } from "./buildOnce.ts";
+import { dumpFrame, frameToText } from "./frame.ts";
 import { connectWithRetry, freePort } from "./inspectorClient.ts";
+import { $, $$, focusedLeaf } from "./query.ts";
+import { waitUntil } from "./waitFor.ts";
 
 /** Modifier flags shared by the mouse convenience verbs. */
 export type MouseModifiers = Pick<SendMouseParams, "shiftKey" | "altKey" | "ctrlKey">;
+
+/**
+ * Опции settle-глаголов (`key`/`text`/`click`/`wheel`/`resize`). `settle: false`
+ * отключает авто-ожидание покоя (нужно тестам на гонки); объект — параметры
+ * `waitForIdle`.
+ */
+export type SettleOption = { settle?: boolean | WaitForIdleParams };
+
+/** Общие опции предикатных ожиданий (тайминги). */
+export type WaitOpts = { timeoutMs?: number; intervalMs?: number };
+
+/** Смещение точки клика от левого-верхнего угла box'а узла (вместо центра). */
+export type NodeClickOffset = { dx?: number; dy?: number };
 
 export interface HeadlessSessionOptions {
     /** Positional args (files/dirs to open) and any flags except headless/inspect-tui. */
@@ -91,35 +109,74 @@ export class HeadlessSession {
         });
     }
 
+    // ─── Raw injection (no settling; for race tests) ───
+
+    /** Inject a key by DSL name without waiting for the render to settle. */
     public async sendKey(name: string): Promise<void> {
         await this.rpc("TUIDom.sendKey", { name });
     }
 
+    /** Inject literal text without waiting for the render to settle. */
     public async sendText(text: string): Promise<void> {
         await this.rpc("TUIDom.sendText", { text });
     }
 
     /**
      * Inject a mouse event at 0-based screen coordinates — the same frame of
-     * reference as a node's `box` in `TUIDom.getDocument`.
+     * reference as a node's `box` in `TUIDom.getDocument`. No settling.
      */
     public async sendMouse(params: SendMouseParams): Promise<void> {
         await this.rpc("TUIDom.sendMouse", params);
     }
 
-    /** Press and release the left button on a cell — the usual `press`+`release` pair. */
-    public async click(x: number, y: number, opts: MouseModifiers = {}): Promise<void> {
-        await this.sendMouse({ action: "press", button: "left", x, y, ...opts });
-        await this.sendMouse({ action: "release", button: "left", x, y, ...opts });
+    // ─── Settling verbs (inject, then wait for the render to settle) ───
+
+    /**
+     * Block until the app stops repainting (frame counter stable + no scheduled
+     * render). The server-side counterpart of a `sleep`, but deterministic.
+     * Note: settles the *render*, not async tails (ext-host, StateService
+     * debounce) — for those poll a predicate ({@link waitForDocument} etc.).
+     */
+    public async waitForIdle(opts: WaitForIdleParams = {}): Promise<WaitForIdleResult> {
+        return this.rpc<WaitForIdleResult>("TUIDom.waitForIdle", opts);
     }
 
-    /** Spin the wheel over a cell; `direction` matches the DOM `wheelDirection`. */
-    public async wheel(x: number, y: number, direction: "up" | "down" | "left" | "right"): Promise<void> {
+    /** Resolve the {@link SettleOption} into an actual settle (or skip it). */
+    private async settle(opt: SettleOption): Promise<void> {
+        if (opt.settle === false) return;
+        await this.waitForIdle(typeof opt.settle === "object" ? opt.settle : {});
+    }
+
+    /** Inject a key by DSL name, then wait for the render to settle. */
+    public async key(name: string, opts: SettleOption = {}): Promise<void> {
+        await this.sendKey(name);
+        await this.settle(opts);
+    }
+
+    /** Inject literal text as a paste, then wait for the render to settle. */
+    public async text(value: string, opts: SettleOption = {}): Promise<void> {
+        await this.sendText(value);
+        await this.settle(opts);
+    }
+
+    /** Press and release the left button on a cell, then settle. */
+    public async click(x: number, y: number, opts: MouseModifiers & SettleOption = {}): Promise<void> {
+        const { settle, ...mods } = opts;
+        await this.sendMouse({ action: "press", button: "left", x, y, ...mods });
+        await this.sendMouse({ action: "release", button: "left", x, y, ...mods });
+        await this.settle({ settle });
+    }
+
+    /** Spin the wheel over a cell (`direction` matches DOM `wheelDirection`), then settle. */
+    public async wheel(x: number, y: number, direction: "up" | "down" | "left" | "right", opts: SettleOption = {}): Promise<void> {
         await this.sendMouse({ action: `scroll-${direction}`, x, y });
+        await this.settle(opts);
     }
 
-    public async resize(cols: number, rows: number): Promise<void> {
+    /** Resize the virtual terminal, then settle. */
+    public async resize(cols: number, rows: number, opts: SettleOption = {}): Promise<void> {
         await this.rpc("TUIDom.resize", { cols, rows });
+        await this.settle(opts);
     }
 
     public async captureFrame(): Promise<GridSnapshot> {
@@ -136,19 +193,16 @@ export class HeadlessSession {
         predicate: (root: NodeSnapshot) => boolean,
         opts: { timeoutMs?: number; intervalMs?: number } = {},
     ): Promise<NodeSnapshot> {
-        const timeoutMs = opts.timeoutMs ?? 10_000;
-        const intervalMs = opts.intervalMs ?? 100;
-        const deadline = Date.now() + timeoutMs;
-        let lastRootType = "<null>";
-        while (Date.now() < deadline) {
-            const { root } = await this.getDocument();
-            if (root !== null) {
-                lastRootType = root.type;
-                if (predicate(root)) return root;
-            }
-            await sleep(intervalMs);
-        }
-        throw new Error(`waitForDocument timed out after ${String(timeoutMs)}ms (last root: ${lastRootType})`);
+        const root = await waitUntil(
+            async () => (await this.getDocument()).root,
+            (r): r is NodeSnapshot => r !== null && predicate(r),
+            {
+                ...opts,
+                describe: "document predicate",
+                diagnose: (last) => `last root: ${last === null ? "<null>" : (last as NodeSnapshot).type}`,
+            },
+        );
+        return root as NodeSnapshot;
     }
 
     /** Poll `captureFrame` until `predicate(text)` holds on the rendered screen. */
@@ -156,18 +210,93 @@ export class HeadlessSession {
         predicate: (text: string) => boolean,
         opts: { timeoutMs?: number; intervalMs?: number } = {},
     ): Promise<GridSnapshot> {
-        const timeoutMs = opts.timeoutMs ?? 10_000;
-        const intervalMs = opts.intervalMs ?? 150;
-        const deadline = Date.now() + timeoutMs;
-        let last: GridSnapshot | null = null;
-        while (Date.now() < deadline) {
-            last = await this.captureFrame();
-            if (predicate(frameToText(last))) return last;
-            await sleep(intervalMs);
+        return waitUntil(() => this.captureFrame(), (frame) => predicate(frameToText(frame)), {
+            intervalMs: 150,
+            ...opts,
+            describe: "screen text predicate",
+            diagnose: (last) => `--- last frame ---\n${dumpFrame(last as GridSnapshot)}`,
+        });
+    }
+
+    // ─── Locators (selector-as-address over the document tree) ───
+
+    /** First node matching `selector` in the current document, or `null`. */
+    public async node(selector: string): Promise<NodeSnapshot | null> {
+        return $((await this.getDocument()).root, selector);
+    }
+
+    /** Every node matching `selector` in the current document (pre-order). */
+    public async nodes(selector: string): Promise<NodeSnapshot[]> {
+        return $$((await this.getDocument()).root, selector);
+    }
+
+    /** Type of the currently focused leaf element, or `undefined` if none. */
+    public async focusedType(): Promise<string | undefined> {
+        return focusedLeaf((await this.getDocument()).root)?.type;
+    }
+
+    /** Poll until a node matches `selector`; returns it. */
+    public async waitForNode(selector: string, opts: WaitOpts = {}): Promise<NodeSnapshot> {
+        const root = await this.waitForDocument((r) => $(r, selector) !== null, opts);
+        return $(root, selector) as NodeSnapshot;
+    }
+
+    /** Poll until NO node matches `selector` (e.g. a popup closed). */
+    public async waitForNoNode(selector: string, opts: WaitOpts = {}): Promise<void> {
+        await this.waitForDocument((r) => $(r, selector) === null, opts);
+    }
+
+    /** Poll until the focused leaf is of type `type`; returns it. */
+    public async waitForFocus(type: string, opts: WaitOpts = {}): Promise<NodeSnapshot> {
+        const root = await this.waitForDocument((r) => focusedLeaf(r)?.type === type, opts);
+        return focusedLeaf(root) as NodeSnapshot;
+    }
+
+    /** Poll until the first `selector` match has `state` satisfying `predicate`. */
+    public async waitForState(
+        selector: string,
+        predicate: (state: Record<string, unknown> | undefined) => boolean,
+        opts: WaitOpts = {},
+    ): Promise<NodeSnapshot> {
+        const root = await this.waitForDocument((r) => {
+            const node = $(r, selector);
+            return node !== null && predicate(node.state);
+        }, opts);
+        return $(root, selector) as NodeSnapshot;
+    }
+
+    // ─── Node-relative mouse (locate, then act; then settle) ───
+
+    /**
+     * Click the centre of the first `selector` match. `dx`/`dy` offset from the
+     * box top-left instead of centring (e.g. a specific menu row). Settles after.
+     */
+    public async clickNode(selector: string, opts: MouseModifiers & SettleOption & NodeClickOffset = {}): Promise<void> {
+        const { x, y } = await this.pointIn(selector, opts);
+        const { dx: _dx, dy: _dy, ...rest } = opts;
+        await this.click(x, y, rest);
+    }
+
+    /** Spin the wheel over the centre (or offset) of a `selector` match. */
+    public async wheelNode(
+        selector: string,
+        direction: "up" | "down" | "left" | "right",
+        opts: SettleOption & NodeClickOffset = {},
+    ): Promise<void> {
+        const { x, y } = await this.pointIn(selector, opts);
+        const { settle } = opts;
+        await this.wheel(x, y, direction, { settle });
+    }
+
+    /** Resolve a click point inside a node: box top-left + `dx`/`dy`, else centre. */
+    private async pointIn(selector: string, offset: NodeClickOffset): Promise<{ x: number; y: number }> {
+        const node = await this.node(selector);
+        if (node === null) throw new Error(`clickNode: locator not found: ${selector}`);
+        const { x, y, width, height } = node.box;
+        if (offset.dx !== undefined || offset.dy !== undefined) {
+            return { x: x + (offset.dx ?? 0), y: y + (offset.dy ?? 0) };
         }
-        throw new Error(
-            `waitForText timed out after ${String(timeoutMs)}ms\n--- last frame ---\n${last === null ? "<none>" : frameToText(last)}`,
-        );
+        return { x: x + Math.floor(width / 2), y: y + Math.floor(height / 2) };
     }
 
     public async dispose(): Promise<void> {
@@ -190,17 +319,5 @@ export class HeadlessSession {
     }
 }
 
-/** Flatten a captured frame into newline-joined text (trailing blanks trimmed). */
-export function frameToText(frame: GridSnapshot): string {
-    const lines: string[] = [];
-    for (let y = 0; y < frame.rows; y++) {
-        let line = "";
-        for (let x = 0; x < frame.cols; x++) line += frame.cells[y * frame.cols + x].char;
-        lines.push(line.replace(/\s+$/u, ""));
-    }
-    return lines.join("\n");
-}
-
-function sleep(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-}
+// Реэкспорт для существующих потребителей текста кадра.
+export { dumpFrame, frameToText };

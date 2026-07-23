@@ -1,13 +1,13 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { packRgb } from "../tuidom/common/colorUtils.ts";
 
 import type { AnsiScreen } from "./helpers/AnsiScreen.ts";
 import { getBinaryPath } from "./helpers/buildOnce.ts";
-import { VexxSession } from "./helpers/runVexx.ts";
+import { usePtyApp } from "./helpers/useApp.ts";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const fixturePath = resolve(here, "fixtures", "sample.ts");
@@ -24,21 +24,12 @@ const NUMBER_FG = packRgb(0xb5, 0xce, 0xa8); // "constant.numeric"
 const itLinuxOnly = process.platform === "linux" ? it : it.skip;
 
 describe("SEA binary — startup", () => {
-    let session: VexxSession | null = null;
-
     beforeAll(async () => {
         await getBinaryPath();
     }, 180_000);
 
-    afterEach(async () => {
-        if (session) {
-            await session.dispose();
-            session = null;
-        }
-    });
-
     it("boots, draws a non-empty frame and exits on Ctrl+C", async () => {
-        session = await VexxSession.start({ args: [fixturePath] });
+        const { session } = await usePtyApp({ open: [fixturePath] });
         // Wait for the menu bar which is stable on all platforms. The tab bar
         // ("sample.ts") is on a lower row that ConPTY clears after resize on
         // Windows — see docs/TODO/E2E.md.
@@ -50,7 +41,7 @@ describe("SEA binary — startup", () => {
     });
 
     itLinuxOnly("renders fixture text on screen", async () => {
-        session = await VexxSession.start({ args: [fixturePath] });
+        const { session } = await usePtyApp({ open: [fixturePath] });
         const screen = await session.waitFor(
             (s) => s.findText("greeting") !== null && s.findText("fixture used") !== null,
         );
@@ -61,7 +52,7 @@ describe("SEA binary — startup", () => {
     });
 
     itLinuxOnly("applies syntax highlighting from the Dark+ theme", async () => {
-        session = await VexxSession.start({ args: [fixturePath] });
+        const { session } = await usePtyApp({ open: [fixturePath] });
         const screen = await session.waitFor(
             (s) => s.findText("const greeting") !== null && rowHasFg(s, locateRow(s, "fixture used"), COMMENT_FG),
         );

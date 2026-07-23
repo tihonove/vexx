@@ -78,6 +78,30 @@ describe("TuiApplication scheduleRender", () => {
         expect(renderSpy.mock.calls.length).toBe(0);
     });
 
+    it("exposes frameCount and isRenderScheduled for the inspector's idle wait", async () => {
+        const backend = new MockTerminalBackend(new Size(10, 3));
+        const app = new TuiApplication(backend);
+
+        const body = new BodyElement();
+        app.root = body;
+        app.run(); // initial render
+
+        expect(app.frameCount).toBeGreaterThanOrEqual(1);
+        expect(app.isRenderScheduled).toBe(false);
+
+        const afterRun = app.frameCount;
+
+        // markDirty schedules a deferred render — observable as isRenderScheduled.
+        body.markDirty();
+        expect(app.isRenderScheduled).toBe(true);
+
+        await nextImmediate();
+
+        // The scheduled render ran: counter advanced, flag cleared.
+        expect(app.frameCount).toBe(afterRun + 1);
+        expect(app.isRenderScheduled).toBe(false);
+    });
+
     it("synchronous render from handleInput skips scheduled async render", async () => {
         const backend = new MockTerminalBackend(new Size(10, 3));
         const app = new TuiApplication(backend);

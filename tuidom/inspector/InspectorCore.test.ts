@@ -32,6 +32,7 @@ function makeDriver(overrides: Partial<InspectorDriver> = {}): InspectorDriver {
         sendMouse: vi.fn(),
         resize: vi.fn(),
         captureFrame: vi.fn().mockResolvedValue(emptyGridSnapshot(4, 2)),
+        waitForIdle: vi.fn().mockResolvedValue({ idle: true, frames: 0 }),
         shutdown: vi.fn(),
         ...overrides,
     };
@@ -296,6 +297,66 @@ describe("InspectorCore", () => {
             await core.dispatch({ id: 1, method: InspectorMethod.shutdown });
 
             expect(driver.shutdown).toHaveBeenCalledTimes(1);
+        });
+
+        it("routes waitForIdle with parsed params and returns its result", async () => {
+            const driver = makeDriver({ waitForIdle: vi.fn().mockResolvedValue({ idle: false, frames: 12 }) });
+            const core = new InspectorCore(makeTarget(), driver);
+
+            const res = await core.dispatch({
+                id: 1,
+                method: InspectorMethod.waitForIdle,
+                params: { quietMs: 20, timeoutMs: 500 },
+            });
+
+            expect(driver.waitForIdle).toHaveBeenCalledWith({ quietMs: 20, timeoutMs: 500 });
+            expect((res as InspectorSuccessResponse).result).toEqual({ idle: false, frames: 12 });
+        });
+
+        it("waitForIdle accepts quietMs alone (no timeoutMs)", async () => {
+            const driver = makeDriver();
+            const core = new InspectorCore(makeTarget(), driver);
+
+            await core.dispatch({ id: 1, method: InspectorMethod.waitForIdle, params: { quietMs: 15 } });
+
+            expect(driver.waitForIdle).toHaveBeenCalledWith({ quietMs: 15 });
+        });
+
+        it("waitForIdle with no params (undefined or null) passes an empty object", async () => {
+            const driver = makeDriver();
+            const core = new InspectorCore(makeTarget(), driver);
+
+            await core.dispatch({ id: 1, method: InspectorMethod.waitForIdle });
+            await core.dispatch({ id: 2, method: InspectorMethod.waitForIdle, params: null });
+
+            expect(driver.waitForIdle).toHaveBeenNthCalledWith(1, {});
+            expect(driver.waitForIdle).toHaveBeenNthCalledWith(2, {});
+        });
+
+        it("rejects waitForIdle with a negative quietMs", async () => {
+            const core = new InspectorCore(makeTarget(), makeDriver());
+
+            const res = await core.dispatch({ id: 1, method: InspectorMethod.waitForIdle, params: { quietMs: -1 } });
+
+            expect(res).toEqual({
+                id: 1,
+                error: { message: "waitForIdle 'quietMs' must be a non-negative number" },
+            });
+        });
+
+        it("rejects waitForIdle with a non-finite timeoutMs", async () => {
+            const core = new InspectorCore(makeTarget(), makeDriver());
+
+            const res = await core.dispatch({
+                id: 1,
+                method: InspectorMethod.waitForIdle,
+                params: { timeoutMs: Number.POSITIVE_INFINITY },
+            });
+
+            expect(res).toEqual({
+                id: 1,
+                error: { message: "waitForIdle 'timeoutMs' must be a non-negative number" },
+            });
         });
     });
 });

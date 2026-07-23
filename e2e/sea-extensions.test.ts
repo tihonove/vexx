@@ -1,13 +1,14 @@
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 import { packRgb } from "../tuidom/common/colorUtils.ts";
 
 import type { AnsiScreen } from "./helpers/AnsiScreen.ts";
 import { getBinaryPath } from "./helpers/buildOnce.ts";
-import { VexxSession } from "./helpers/runVexx.ts";
+import { findNode } from "./helpers/inspectorClient.ts";
+import { usePtyApp } from "./helpers/useApp.ts";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const fixturePath = resolve(here, "fixtures", "sample.hello");
@@ -25,23 +26,12 @@ const NUMBER_FG = packRgb(0xb5, 0xce, 0xa8); // constant.numeric — Dark+ light
 const itLinuxOnly = process.platform === "linux" ? it : it.skip;
 
 describe("SEA binary — user extensions", () => {
-    let session: VexxSession | null = null;
-
     beforeAll(async () => {
         await getBinaryPath();
     }, 180_000);
 
-    afterEach(async () => {
-        if (session) {
-            await session.dispose();
-            session = null;
-        }
-    });
-
     it("boots with --user-data-dir and renders hello-lang fixture", async () => {
-        session = await VexxSession.start({
-            args: ["--user-data-dir", userDataPath, fixturePath],
-        });
+        const { session } = await usePtyApp({ seedUserData: userDataPath, open: [fixturePath] });
         const screen = await session.waitFor((s) => s.findText("hello") !== null);
         expect(screen.findText("hello")).not.toBeNull();
     });
@@ -49,9 +39,7 @@ describe("SEA binary — user extensions", () => {
     itLinuxOnly(
         "user extension grammar applies syntax highlighting with --user-data-dir",
         async () => {
-            session = await VexxSession.start({
-                args: ["--user-data-dir", userDataPath, fixturePath],
-            });
+            const { session } = await usePtyApp({ seedUserData: userDataPath, open: [fixturePath] });
             const screen = await session.waitFor(
                 (s) =>
                     s.findText("hello world") !== null &&
@@ -84,9 +72,7 @@ describe("SEA binary — user extensions", () => {
     itLinuxOnly(
         "without --user-data-dir hello-lang grammar is not applied",
         async () => {
-            session = await VexxSession.start({
-                args: [fixturePath],
-            });
+            const { session } = await usePtyApp({ open: [fixturePath] });
             const screen = await session.waitFor((s) => s.findText("hello") !== null);
 
             // Без расширения .hello — plain text, ни одна ячейка не должна быть покрашена
@@ -108,9 +94,14 @@ describe("SEA binary — user extensions", () => {
             // Открываем файл с tab-символом в строке "\tindented". При
             // tabSize=7 видимая позиция "indented" — столбец 7 (после
             // gutter'а с line numbers).
-            session = await VexxSession.start({
-                args: ["--user-data-dir", tabSetterUserDataPath, tabbedFixturePath],
-            });
+            const { session } = await usePtyApp({ seedUserData: tabSetterUserDataPath, open: [tabbedFixturePath], inspect: true });
+            // Ждём, пока RPC субпроцесса реально проставит tabSize=7 на редактор —
+            // предикатом по inspectState, а не по факту появления текста (иначе под
+            // нагрузкой кадр снимается раньше, чем RPC долетит: pre-existing гонка).
+            await session.waitForDocument(
+                (root) => findNode(root, (n) => n.type === "EditorElement")?.state?.tabSize === 7,
+                { timeoutMs: 20_000 },
+            );
             const screen = await session.waitFor((s) => s.findText("indented") !== null);
             const indentedRow = locateRow(screen, "indented");
             const indentedPos = screen.findText("indented")!;

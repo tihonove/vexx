@@ -14,50 +14,41 @@
 
 Вынесено в отдельный документ: [Inspector.md](Inspector.md) — там же подготовительный рефакторинг TUIElement-иерархии и выделение основы приложения, на которой поднимается порт инспектора.
 
-## Phase 3 — [ ] Инфраструктура функциональных e2e
+## Phase 3 — [x] Инфраструктура функциональных e2e
 
 Phase 1 давала «запустился и что-то нарисовал», Phase 2 — инспектор. Между ними
-зияет дыра: **функциональные** e2e, которые водят приложение как пользователь и
+зияла дыра: **функциональные** e2e, которые водят приложение как пользователь и
 проверяют поведение. Дыру видно по тестированию PR #197 (панель Output): шесть
 дефектов прошли мимо 5882 зелёных юнит-тестов и 100% покрытия, потому что
 смотреть туда, куда смотрит пользователь, было нечем и неудобно.
 
-Инструмент есть — `HeadlessSession` умеет клавиши, мышь, resize, кадр и дерево.
-Не хватает обвязки вокруг него.
+Закрыто — итог в [docs/TESTING.md](../TESTING.md) (раздел «E2E»). Что сделано:
 
-- [ ] **Изолированный запуск доступен только сценариям.** «Временный user-data-dir
-  + `keybindings.json`» живёт внутри `runScenario` и наружу не торчит. Поэтому
-  `mouse.test.ts`, `inspector-real-app.test.ts` и `sea-startup.test.ts`
-  запускаются **без `--user-data-dir`** — против реального `~/.vexx`, с
-  восстановлением чужой сессии. Нужен `e2e/helpers/appSession.ts` с одной
-  реализацией на обоих потребителей; `runScenario` переводим на него.
-- [ ] **Нет словаря для фокуса.** `NodeSnapshot.focused` в протоколе есть, но им
-  никто не пользуется, а фокусные баги — самый частый класс (4 из 6 в #197).
-  Нужны `focusedElement(root)` / `focusPath(root, node)` и `waitForFocus(type)`
-  в `inspectorClient`/`HeadlessSession`.
-- [ ] **Нет локаторов — только координаты.** `sendMouse` принимает ячейки, и каждый
-  мышиный тест сам выводит их из `box`. Нужны `boxOf(root, predicate)` и
-  `clickNode(session, predicate)`.
-- [ ] **Кадр нечитаем в диффе.** При падении vitest печатает `frameToText` одной
-  простынёй. Нужен нумерованный дамп (`dumpFrame`) и/или сериализатор, чтобы
-  падение сразу показывало кадр со строками.
-- [ ] **Мышь недоступна сценариям.** В `ScenarioDriver` не проброшены
-  `click`/`sendMouse`/`wheel` — из-за этого мышиные пути закрывают юнит-тестами
-  виджетов, хотя `HeadlessSession` мышь умеет (см. `mouse.test.ts`). Правка
-  небольшая, а закрывает целый класс демо и проверок.
-- [ ] **Долг по первым функциональным тестам.** `e2e/outputPanel.probe.test.ts`,
-  `e2e/outputPanelRegression.probe.test.ts` и `e2e/probeHarness.ts` закоммичены
-  как есть — они ловят реальные дефекты и полезны прямо сейчас, но написаны как
-  инструмент расследования: ~50 `sleep()` вместо предикатов (флейк под нагрузкой
-  CI), клики по литеральным координатам, свои `findAll`/`frameText`/`sleep`
-  вместо существующих `findNodes`/`frameToText`, «выделено ли что-то» считается
-  эвристикой по фону ячеек. После пунктов выше — переписать на общие хелперы,
-  убрать `sleep`, целиться в `box`, и слить `probeHarness.ts` в `helpers/`.
-  Первый взнос уже сделан вынужденно: клики по вкладкам панели считает
-  `panelTabPoint()` из `box` контейнера — сканирование текста кадра падало на
-  медленном Windows-раннере (панель не успевала отрисоваться, координата уезжала
-  в произвольное место, клик попадал в файловое дерево). Остальные координаты —
-  тем же путём.
+- [x] **Изолированный запуск для всех потребителей** — `e2e/helpers/appSession.ts`
+  (`prepareAppEnv` + `startHeadlessApp`/`startPtyApp`) и vitest-обёртки
+  `e2e/helpers/useApp.ts` (`useHeadlessApp`/`usePtyApp`). Один временный корень
+  изолирует `--user-data-dir` + HOME/XDG + cwd. `runScenario` и все сьюты
+  (`mouse`, `inspector-real-app`, `sea-*`, `selfextract`, `editorconfig-stock`)
+  переведены; прогон больше не трогает реальный `~/.vexx` и корзину.
+- [x] **Словарь фокуса** — `focusedLeaf`/`focusPath` (`e2e/helpers/query.ts`),
+  `session.focusedType()` и `waitForFocus(type)`.
+- [x] **Локаторы вместо координат** — селектор-адрес (`$`/`$$`/`boxOf`/`centerOf`
+  в `query.ts`), `session.node`/`nodes`/`clickNode`/`wheelNode`; контентный
+  `clickText`. `panelTabPoint`-костыль заменён геометрией из
+  `PanelContainerElement.inspectState().tabs`.
+- [x] **Читаемый дамп кадра при падении** — `dumpFrame` (`e2e/helpers/frame.ts`) +
+  `dumpSession` (кадр + путь фокуса + скелет дерева + stderr), печатается из
+  `onTestFailed`.
+- [x] **Мышь в сценариях** — `ScenarioDriver` получил
+  `getDocument`/`waitForNode`/`sendMouse`/`click`/`clickNode`/`wheel`.
+- [x] **Пробы переписаны** — `e2e/outputPanel.test.ts` и
+  `e2e/outputPanelRegression.test.ts` на общих хелперах: 0 `sleep`, выделение
+  из `editor.state.selections`, координаты из `inspectState`/`clickText`.
+  `probeHarness.ts` удалён.
+- [x] **Механика ожиданий (Phase 2)** — серверный `TUIDom.waitForIdle` +
+  settle-глаголы + `waitUntil`; `inspectState()` виджетов в `NodeSnapshot.state`.
+- [x] **Параллельный прогон** — сборка в `globalSetup`, `fileParallelism` с
+  дефолтом «половина ядер», ручка `VEXX_E2E_WORKERS`.
 
 ### Найденные дефекты
 
@@ -68,7 +59,7 @@ Phase 1 давала «запустился и что-то нарисовал»,
   Без открытого find тот же сценарий отрабатывает нормально. Пре-существующий:
   воспроизводится одинаково на `main` (c3fa124), на head PR #197 до фикса
   (cda7424) и после (255d596). Тест-документ — `it.fails` в
-  `e2e/outputPanelRegression.probe.test.ts`; когда починим, он покраснеет.
+  `e2e/outputPanelRegression.test.ts`; когда починим, он покраснеет.
 
 ## Команды
 ```bash

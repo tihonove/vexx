@@ -132,6 +132,31 @@ export class PanelContainerElement extends TUIElement {
         return this.views.map((v) => v.id);
     }
 
+    /**
+     * Observable panel state for the inspector: which tabs exist, which is
+     * active, and each tab's absolute hit geometry. Replaces the e2e helper that
+     * re-derived tab coordinates from TAB_INDENT/TAB_PAD by hand — a test clicks
+     * `tabs[i].centerX` on `tabRow` instead.
+     */
+    public override inspectState(): Record<string, unknown> {
+        const originX = this.globalPosition.x;
+        let x = TAB_INDENT;
+        const tabs = this.views.map((view) => {
+            const width = view.title.length + TAB_PAD * 2;
+            const start = x;
+            x += width;
+            return {
+                id: view.id,
+                title: view.title,
+                active: view.id === this.activeId,
+                x: originX + start,
+                width,
+                centerX: originX + start + Math.floor(width / 2),
+            };
+        });
+        return { activeId: this.activeId, tabRow: this.globalPosition.y + TAB_ROW, tabs };
+    }
+
     /** Правая граница таб-строки — за неё контролы вкладки заезжать не должны. */
     private tabsEnd(): number {
         return this.views.reduce((x, view) => x + view.title.length + TAB_PAD * 2, TAB_INDENT);

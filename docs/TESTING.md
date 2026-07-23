@@ -229,15 +229,62 @@ expectScreen(backend, screen`
 
 ## E2E
 
-`npm run test:e2e` (отдельный конфиг `vitest.e2e.config.ts`) собирает SEA-бинарь и гоняет его через `node-pty` + ANSI-парсер. Сьюты и helpers — в `e2e/`. Детали и roadmap — [TODO/E2E.md](TODO/E2E.md).
+`npm run test:e2e` (отдельный конфиг `vitest.e2e.config.ts`) собирает SEA-бинарь один раз (`e2e/globalSetup.ts`) и гоняет его как чёрный ящик. Два транспорта: **инспектор** (`--headless` + WebSocket → структурный кадр/дерево) и **PTY** (`node-pty` + ANSI-парсер, для проверок реального вывода). Сьюты и helpers — в `e2e/`. Детали и статус — [TODO/E2E.md](TODO/E2E.md).
 
-Мышь в e2e — через инспектор (`HeadlessSession`): `click(x, y)`, `wheel(x, y, direction)` и низкоуровневый `sendMouse({ action, button, x, y, … })`. Координаты — 0-based экранные ячейки, тот же фрейм, что у `box` узла в `getDocument()`/`waitForDocument()`, поэтому целиться в элемент можно прямо по его box (пример — `e2e/mouse.test.ts`).
+### Изолированный запуск
+
+Любой e2e поднимает бинарь через **`e2e/helpers/appSession.ts`** — единственную реализацию hermetic-запуска. Один временный корень на сессию изолирует всё, чтобы прогон не трогал реальный `~/.vexx` разработчика:
+
+```
+<root>/
+  user-data-dir/   → --user-data-dir (settings, keybindings, globalState, extensions)
+  home/            → HOME/USERPROFILE + XDG_{DATA,CACHE,CONFIG}_HOME (корзина, кеши)
+  workspace/       → cwd процесса (vexx.log, ext-host folders) + сид-воркспейс
+```
+
+В тестах — vitest-обёртки из **`e2e/helpers/useApp.ts`**: `useHeadlessApp(opts)` / `usePtyApp(opts)`. Сессия сама убирается по `onTestFinished`, при падении печатает пост-мортем (кадр, фокус, дерево) — ни `afterEach`, ни ручного `dispose` не нужно. Опции: `files` (сид-воркспейс), `settings`, `keybindings`, `installVsix`, `seedUserData` (копия фикстуры user-data-dir), `open`, `root`/`keepRoot` (рестарт-тесты), `isolateHome: false` (опт-аут).
+
+```ts
+const { session } = await useHeadlessApp({
+    files: { "sample.ts": SAMPLE },
+    keybindings: [{ key: "alt+u", command: "workbench.action.output.toggleOutput" }],
+    open: ["sample.ts"],
+});
+```
+
+### Ожидания вместо `sleep`
+
+Гоняем приложение settle-глаголами и предикатами, **не** `sleep`. После инъекции ввода `key`/`text`/`click`/`clickNode`/`wheel`/`resize` сами ждут, пока рендер устоялся (серверный `TUIDom.waitForIdle`: счётчик кадров стабилен + нет отложенного рендера). Сырые `sendKey`/`sendText`/`sendMouse` (без settle) — для тестов на гонки; `settle: false` — точечный опт-аут.
+
+Предикатные ожидания (`e2e/helpers/waitFor.ts`, единый примитив `waitUntil`): `waitForNode(sel)`, `waitForNoNode(sel)`, `waitForFocus(type)`, `waitForState(sel, pred)`, `waitForText(pred)`, `waitForDocument(pred)`.
+
+⚠️ **idle ≠ «все эффекты завершились».** Асинхронные хвосты — ответ ext-host'а, debounce `StateService` на диск — idle не ловит. Под них — предикат по дереву/кадру/файлу, а НЕ увеличенный `quietMs` (пример: `waitForPanelPersisted` в `e2e/outputPanel.shared.ts` ждёт запись состояния файлом перед рестартом).
+
+### Локаторы и состояние виджетов
+
+Целимся **селектором-адресом** (`e2e/helpers/query.ts`), а не координатой: `Tag`, `#id`, `@role`, потомок через пробел. `session.node(sel)`/`nodes(sel)`, `clickNode(sel, {dx,dy})`, `wheelNode`. `nodeId` эфемерен (`rebuild` его протухает) — поэтому селектор вычисляется каждый раз.
+
+Ассертим **состояние виджета**, а не пиксели: у ключевых виджетов есть `inspectState()` (см. ниже), результат приходит в `NodeSnapshot.state`. Курсор/выделение/readonly редактора, активная вкладка панели, элементы quick-pick — читаются как данные:
+
+```ts
+const ed = await session.node("EditorElement");
+expect(ed?.state?.readOnly).toBe(true);
+expect(ed?.state?.hasSelection).toBe(true);
+```
+
+Контентный локатор для клика по тексту — `clickText(session, needle, {dx, maxX})` (см. `e2e/outputPanel.shared.ts`).
+
+### `inspectState()` — контракт виджета
+
+Виджет, чьё наблюдаемое состояние нужно тестам, переопределяет `TUIElement.inspectState(): Record<string, unknown> | undefined` (база — `undefined`). Правило: отдаём **наблюдаемое** состояние (то, что видит пользователь), а не внутренности; результат JSON-сериализуемый, пересекает провод инспектора и является **публичным контрактом** — покрывается юнит-тестом рядом с виджетом (`*.inspectState.test.ts`). Реализовано у `EditorElement`, `PanelContainerElement`, `QuickPickElement`, `SelectBoxElement`, `PopupMenuElement`, `EditorTabStripElement`.
+
+### Параллельный прогон
+
+Изоляция позволяет гонять файлы параллельно. По умолчанию — **половина ядер** (тяжёлый SEA-бинарь + PTY + ext-host subprocess на файл; на 4-ядерной машине четыре бинаря насыщают CPU и тайминг-чувствительные тесты флейкают). Переопределяется `VEXX_E2E_WORKERS`; `=1` — полностью последовательный прогон (для медленного/загруженного раннера).
 
 ### Функциональные e2e
 
-Помимо smoke-сьютов и скриншот-сценариев в `e2e/` живут **функциональные** тесты: водят приложение как пользователь (клавиши, мышь, рестарт) и проверяют поведение — где фокус, что видно в кадре, дошёл ли ввод. Первый набор — `e2e/outputPanel.probe.test.ts` и `e2e/outputPanelRegression.probe.test.ts` поверх `e2e/probeHarness.ts` (изолированный user-data-dir, user-кейбинды, дамп кадра, аксессоры фокуса).
-
-Суффикс `.probe.` означает «написано как инструмент расследования, ждёт переработки»: обвязка переезжает в `e2e/helpers/`, `sleep` — в предикаты, координаты — в локаторы по `box`. План — [TODO/E2E.md](TODO/E2E.md), Phase 3. Новые функциональные тесты пишем сразу на общих хелперах, а не копируя `probeHarness`.
+Помимо smoke-сьютов и скриншот-сценариев в `e2e/` живут **функциональные** тесты: водят приложение как пользователь (клавиши, мышь, рестарт) и проверяют поведение — где фокус, что видно, дошёл ли ввод. Эталон — `e2e/outputPanel.test.ts` и `e2e/outputPanelRegression.test.ts` (панель Output, PR #197): ни одного `sleep`, координаты — из `inspectState`/контентных локаторов, выделение — из `editor.state.selections`. Новые функциональные тесты пишем на общих хелперах (`useApp` + `query` + settle-глаголы + `waitFor*`).
 
 ### Скриншот-демо (screenshots)
 

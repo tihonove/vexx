@@ -9,7 +9,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { packRgb } from "../tuidom/common/colorUtils.ts";
 
 import { getSelfExtractPath } from "./helpers/buildOnce.ts";
-import { VexxSession } from "./helpers/runVexx.ts";
+import { usePtyApp } from "./helpers/useApp.ts";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
 const fixturePath = resolve(here, "fixtures", "sample.ts");
@@ -30,7 +30,6 @@ const itLinuxOnly = process.platform === "linux" ? it : it.skip;
 describe.skipIf(process.platform === "win32")("self-extract binary", () => {
     let binary = "";
     let cacheHome = "";
-    let session: VexxSession | null = null;
 
     beforeAll(async () => {
         binary = await getSelfExtractPath();
@@ -41,13 +40,6 @@ describe.skipIf(process.platform === "win32")("self-extract binary", () => {
 
     afterAll(() => {
         rmSync(cacheHome, { recursive: true, force: true });
-    });
-
-    afterEach(async () => {
-        if (session) {
-            await session.dispose();
-            session = null;
-        }
     });
 
     /** Запускает бинарь синхронно с изолированным кэшем. */
@@ -117,11 +109,10 @@ describe.skipIf(process.platform === "win32")("self-extract binary", () => {
     });
 
     itLinuxOnly("поднимает редактор и читает vexx.bundle с диска — подсветка работает", async () => {
-        session = await VexxSession.start({
-            binary,
-            args: [fixturePath],
-            env: { XDG_CACHE_HOME: cacheHome },
-        });
+        // user-data/HOME изолируем через usePtyApp, но XDG_CACHE_HOME оставляем
+        // общим (прогретым распаковкой в предыдущих `run()`), поэтому передаём его
+        // явно — extra-env перекрывает изолированный кэш.
+        const { session } = await usePtyApp({ binary, open: [fixturePath], env: { XDG_CACHE_HOME: cacheHome } });
 
         const screen = await session.waitFor((s) => s.findText("const greeting") !== null);
 

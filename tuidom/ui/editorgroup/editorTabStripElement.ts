@@ -106,6 +106,19 @@ export class EditorTabStripElement extends TUIElement {
         this.markDirty();
     }
 
+    /** Observable state: tab labels with active/modified/readonly flags. */
+    public override inspectState(): Record<string, unknown> {
+        return {
+            activeIndex: this.activeIndexValue,
+            tabs: this.itemElements.map((item, i) => ({
+                label: item.getLabel(),
+                active: i === this.activeIndexValue,
+                modified: item.getModified(),
+                readOnly: item.getReadOnly(),
+            })),
+        };
+    }
+
     public getItemElements(): readonly EditorTabItemElement[] {
         return this.itemElements;
     }

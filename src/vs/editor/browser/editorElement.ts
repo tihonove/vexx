@@ -192,6 +192,32 @@ export class EditorElement extends TUIElement implements IScrollable {
         return this.viewState.scrollLeft;
     }
 
+    /**
+     * Observable editor state for the inspector — cursor, selections, readonly,
+     * scroll, folded regions, language. Lets e2e assert on data (e.g. «selection
+     * survived a live channel», «readonly gated the edit») instead of guessing
+     * from painted cells. Plain JSON, read from `viewState`.
+     */
+    public override inspectState(): Record<string, unknown> {
+        const vs = this.viewState;
+        const selections = vs.selections.map((s) => ({
+            anchor: { line: s.anchor.line, character: s.anchor.character },
+            active: { line: s.active.line, character: s.active.character },
+            collapsed: s.anchor.line === s.active.line && s.anchor.character === s.active.character,
+        }));
+        return {
+            readOnly: vs.readOnly,
+            languageId: vs.document.languageId,
+            lineCount: vs.document.lineCount,
+            tabSize: vs.tabSize,
+            scrollTop: vs.scrollTop,
+            scrollLeft: vs.scrollLeft,
+            selections,
+            hasSelection: selections.some((s) => !s.collapsed),
+            foldedRegions: vs.foldedRegions.map((r) => ({ startLine: r.startLine, endLine: r.endLine })),
+        };
+    }
+
     public get gutterWidth(): number {
         const viewLineCount = this.viewState.getViewLineCount();
         const digitCount = Math.max(1, Math.floor(Math.log10(viewLineCount)) + 1);

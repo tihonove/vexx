@@ -6,6 +6,7 @@ import { HeadlessCaptureBackend } from "../../../tuidom/backend/headlessCaptureB
 import { NodeTerminalBackend } from "../../../tuidom/backend/nodeTerminalBackend.ts";
 import { Size } from "../../../tuidom/common/geometryPromitives.ts";
 import { TuiApplication } from "../../../tuidom/dom/tuiApplication.ts";
+import { waitForIdle } from "../../../tuidom/inspector/idleWaiter.ts";
 import { attachInspector } from "../../../tuidom/inspector/index.ts";
 import type { InspectorDriver } from "../../../tuidom/inspector/InspectorDriver.ts";
 import { joinVirtualPath } from "../base/common/assets/assetBundleFormat.ts";
@@ -320,6 +321,12 @@ async function runEditor(): Promise<void> {
                           await new Promise<void>((resolve) => setImmediate(resolve));
                           return headlessBackend.captureFrame();
                       },
+                      waitForIdle: (params) =>
+                          // «Рендер устоялся»: считаем кадры приложения, а не гадаем sleep.
+                          waitForIdle(
+                              { frameCount: () => app.frameCount, isRenderScheduled: () => app.isRenderScheduled },
+                              params,
+                          ),
                       shutdown: () => {
                           // Отложенно, чтобы RPC-ответ успел уйти до выхода.
                           setImmediate(() => {

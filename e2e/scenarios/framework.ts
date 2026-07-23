@@ -1,12 +1,11 @@
-import { spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { GridSnapshot } from "../../tuidom/rendering/gridSnapshot.ts";
-import { getBinaryPath } from "../helpers/buildOnce.ts";
-import { HeadlessSession } from "../helpers/headlessSession.ts";
+import type { GetDocumentResult, NodeSnapshot, SendMouseParams } from "../../tuidom/inspector/protocol.ts";
+import { startHeadlessApp } from "../helpers/appSession.ts";
+import type { MouseModifiers, NodeClickOffset, SettleOption } from "../helpers/headlessSession.ts";
 import { saveScreenshot } from "../helpers/renderScreenshot.ts";
 
 // ── Screenshot scenarios ────────────────────────────────────────────────────
@@ -36,6 +35,18 @@ export interface ScenarioDriver {
     ): Promise<GridSnapshot>;
     /** Capture the current screen. */
     captureFrame(): Promise<GridSnapshot>;
+    /** Snapshot of the element tree (node boxes are the {@link click} coordinates). */
+    getDocument(): Promise<GetDocumentResult>;
+    /** Poll the tree until a node matches `selector`; returns it. */
+    waitForNode(selector: string, opts?: { timeoutMs?: number; intervalMs?: number }): Promise<NodeSnapshot>;
+    /** Inject a raw mouse event at 0-based screen cells. */
+    sendMouse(params: SendMouseParams): Promise<void>;
+    /** Click a cell (0-based), then settle. */
+    click(x: number, y: number, opts?: MouseModifiers & SettleOption): Promise<void>;
+    /** Click the centre (or `dx`/`dy` offset) of the first `selector` match, then settle. */
+    clickNode(selector: string, opts?: MouseModifiers & SettleOption & NodeClickOffset): Promise<void>;
+    /** Spin the wheel over a cell, then settle. */
+    wheel(x: number, y: number, direction: "up" | "down" | "left" | "right"): Promise<void>;
     /** Capture and save `screenshots/<scenario>-<shot>.png`; returns the path. */
     capture(shot: string): Promise<string>;
 }
@@ -89,54 +100,26 @@ export function defineScenario(spec: ScenarioSpec): ScenarioSpec {
 }
 
 /**
- * Installs a `.vsix` into the scenario's user-data dir through the real CLI —
- * the same `--install-extension` path a user takes. Rejects on a non-zero exit
- * so a broken fixture fails the scenario instead of silently producing a
- * screenshot without the extension.
- */
-async function installExtension(userDataDir: string, vsix: string): Promise<void> {
-    const binary = await getBinaryPath();
-    await new Promise<void>((resolveInstall, reject) => {
-        const child = spawn(binary, [`--user-data-dir=${userDataDir}`, "--install-extension", vsix], {
-            stdio: ["ignore", "ignore", "pipe"],
-        });
-        let stderr = "";
-        child.stderr?.on("data", (chunk: Buffer) => (stderr += chunk.toString()));
-        child.on("error", reject);
-        child.on("close", (code) => {
-            if (code === 0) resolveInstall();
-            else reject(new Error(`--install-extension ${vsix} exited ${String(code)}: ${stderr}`));
-        });
-    });
-}
-
-/**
  * Launch the real binary headless, run the scenario, capture its screenshots,
  * and tear the session down. Returns the shots it produced.
+ *
+ * Изоляция (временный user-data-dir + HOME, keybindings, установка `.vsix`) —
+ * общая с e2e-сьютами через {@link startHeadlessApp}. Сценарии открывают
+ * `repoRoot` абсолютными путями и должны стартовать из него (bundle/расширения
+ * рядом), поэтому `cwd` фиксируем на repoRoot, а изолированный воркспейс не
+ * используется.
  */
 export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
-    // Isolate user data per scenario: the editor persists UI/session state
-    // (open files, panel layout) under its user-data dir, and every scenario
-    // opens `repoRoot` as the workspace — so a shared dir would leak one
-    // scenario's restored editors into the next (see docs/arch/State.md). A
-    // fresh temp dir keeps each scenario hermetic and off the real `~/.vexx`.
-    const userDataDir = mkdtempSync(join(tmpdir(), "vexx-e2e-"));
-    for (const vsix of spec.installVsix ?? []) {
-        await installExtension(userDataDir, vsix);
-    }
-    if (spec.userKeybindings !== undefined) {
-        // Раскладка user data — см. resolveUserDataPaths: <root>/user-data/User.
-        const userDir = join(userDataDir, "user-data", "User");
-        mkdirSync(userDir, { recursive: true });
-        writeFileSync(join(userDir, "keybindings.json"), JSON.stringify(spec.userKeybindings, null, 2));
-    }
-    const session = await HeadlessSession.start({
-        args: [`--user-data-dir=${userDataDir}`, ...(spec.open ?? [])],
+    const app = await startHeadlessApp({
+        open: spec.open ?? [],
         cwd: repoRoot,
+        ...(spec.installVsix !== undefined ? { installVsix: spec.installVsix } : {}),
+        ...(spec.userKeybindings !== undefined ? { keybindings: spec.userKeybindings } : {}),
         ...(spec.cols !== undefined ? { cols: spec.cols } : {}),
         ...(spec.rows !== undefined ? { rows: spec.rows } : {}),
         ...(spec.env !== undefined ? { env: spec.env } : {}),
     });
+    const { session } = app;
     const shots: CapturedShot[] = [];
     const driver: ScenarioDriver = {
         sendKey: (name) => session.sendKey(name),
@@ -144,6 +127,12 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
         resize: (cols, rows) => session.resize(cols, rows),
         waitForText: (predicate, opts) => session.waitForText(predicate, opts),
         captureFrame: () => session.captureFrame(),
+        getDocument: () => session.getDocument(),
+        waitForNode: (selector, opts) => session.waitForNode(selector, opts),
+        sendMouse: (params) => session.sendMouse(params),
+        click: (x, y, opts) => session.click(x, y, opts),
+        clickNode: (selector, opts) => session.clickNode(selector, opts),
+        wheel: (x, y, direction) => session.wheel(x, y, direction),
         capture: async (shot) => {
             const frame = await session.captureFrame();
             const path = saveScreenshot(`${spec.name}-${shot}`, frame);
@@ -154,8 +143,7 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
     try {
         await spec.run(driver);
     } finally {
-        await session.dispose();
-        rmSync(userDataDir, { recursive: true, force: true });
+        await app.dispose();
     }
     return shots;
 }

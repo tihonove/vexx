@@ -273,6 +273,18 @@ export class TUIElement<S extends TUIStyle = TUIStyle> {
     }
 
     /**
+     * Observable state for the inspector, self-described by the widget. The base
+     * returns `undefined` (no state to report); interactive widgets override to
+     * expose what a test would otherwise have to infer from rendered cells — an
+     * editor's cursor/selection/readonly, a panel's active tab, a quick-pick's
+     * items. Must be a plain JSON-serialisable snapshot, not live internals:
+     * it crosses the inspector wire and is a public contract (test it).
+     */
+    public inspectState(): Record<string, unknown> | undefined {
+        return undefined;
+    }
+
+    /**
      * Builds the path from root to this element (inclusive on both ends).
      */
     public getAncestorPath(): TUIElement[] {

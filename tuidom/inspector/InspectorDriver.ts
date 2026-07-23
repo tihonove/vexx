@@ -1,6 +1,6 @@
 import type { GridSnapshot } from "../rendering/gridSnapshot.ts";
 
-import type { SendMouseParams } from "./protocol.ts";
+import type { SendMouseParams, WaitForIdleParams, WaitForIdleResult } from "./protocol.ts";
 
 /**
  * Write/capture side of the inspector — the counterpart to the read-only
@@ -26,6 +26,12 @@ export interface InspectorDriver {
      * deferred render (the app schedules some renders on `setImmediate`).
      */
     captureFrame(): Promise<GridSnapshot>;
+    /**
+     * Wait until the app stops repainting (frame counter stable + no scheduled
+     * render). Lets a client settle after injecting input without guessing a
+     * `sleep`. Resolves `idle: false` on timeout rather than rejecting.
+     */
+    waitForIdle(params: WaitForIdleParams): Promise<WaitForIdleResult>;
     /** Tear down the session and exit the process. */
     shutdown(): void;
 }
