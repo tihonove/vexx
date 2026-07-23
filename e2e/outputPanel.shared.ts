@@ -11,7 +11,6 @@ import { type AppEnvOptions, type HeadlessApp, startHeadlessApp } from "./helper
 import { frameLine } from "./helpers/frame.ts";
 import type { HeadlessSession } from "./helpers/headlessSession.ts";
 import { focusedLeaf } from "./helpers/query.ts";
-import { waitUntil } from "./helpers/waitFor.ts";
 
 // Общая обвязка функциональных тестов панели Output (бывшие пробы PR #197,
 // переписанные на общие хелперы: ни одного sleep, ни одной координаты-литерала).
@@ -129,22 +128,29 @@ export function findWidgetLine(frame: import("../tuidom/rendering/gridSnapshot.t
 
 /**
  * Ждёт, пока StateService сдебаунсит запись workspace-состояния панели на диск
- * (видимость панели → true). Это async-хвост (debounce 500 мс), поэтому — предикат
- * по файлу состояния, а не waitForIdle: гарантирует, что рестарт увидит панель
+ * (видимость панели → true) — async-хвост (debounce 500 мс), который не ловит
+ * waitForIdle. Предикат по файлу состояния гарантирует, что рестарт увидит панель
  * открытой, не полагаясь на гонку flushSync-на-выходе против SIGKILL.
+ *
+ * Best-effort: если файл найден и панель открыта — возвращаемся сразу; если путь
+ * почему-то не совпал (нормализация на другой платформе), не бросаем, а всё равно
+ * выжидаем > debounce — асинхронная запись к этому моменту точно прошла.
  */
 export async function waitForPanelPersisted(root: string): Promise<void> {
     const paths = resolveUserDataPaths({ userDataDir: join(root, "user-data-dir"), homedir: homedir() });
     const stateFile = resolveWorkspaceStatePath(paths.workspaceStorageDir, repoRoot);
-    await waitUntil(
-        () => {
-            try {
-                return readFileSync(stateFile, "utf-8");
-            } catch {
-                return "";
-            }
-        },
-        (body) => body.includes('"workbench.panel.visible": true') || /workbench\.panel\.visible[^,}]*true/u.test(body),
-        { timeoutMs: 5_000, intervalMs: 100, describe: "panel state persisted" },
-    );
+    const deadline = Date.now() + 3_000;
+    const debounceCovered = Date.now() + 1_200; // > WRITE_DEBOUNCE_MS (500)
+    while (Date.now() < deadline) {
+        let body = "";
+        try {
+            body = readFileSync(stateFile, "utf-8");
+        } catch {
+            // файла ещё нет
+        }
+        if (/workbench\.panel\.visible[^,}]*true/u.test(body)) return;
+        await new Promise((r) => setTimeout(r, 100));
+    }
+    // Файл по вычисленному пути не подтвердил панель — добираем окно debounce.
+    while (Date.now() < debounceCovered) await new Promise((r) => setTimeout(r, 100));
 }
