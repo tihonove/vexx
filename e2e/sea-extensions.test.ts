@@ -7,6 +7,7 @@ import { packRgb } from "../tuidom/common/colorUtils.ts";
 
 import type { AnsiScreen } from "./helpers/AnsiScreen.ts";
 import { getBinaryPath } from "./helpers/buildOnce.ts";
+import { findNode } from "./helpers/inspectorClient.ts";
 import { usePtyApp } from "./helpers/useApp.ts";
 
 const here = fileURLToPath(new URL(".", import.meta.url));
@@ -93,7 +94,14 @@ describe("SEA binary — user extensions", () => {
             // Открываем файл с tab-символом в строке "\tindented". При
             // tabSize=7 видимая позиция "indented" — столбец 7 (после
             // gutter'а с line numbers).
-            const { session } = await usePtyApp({ seedUserData: tabSetterUserDataPath, open: [tabbedFixturePath] });
+            const { session } = await usePtyApp({ seedUserData: tabSetterUserDataPath, open: [tabbedFixturePath], inspect: true });
+            // Ждём, пока RPC субпроцесса реально проставит tabSize=7 на редактор —
+            // предикатом по inspectState, а не по факту появления текста (иначе под
+            // нагрузкой кадр снимается раньше, чем RPC долетит: pre-existing гонка).
+            await session.waitForDocument(
+                (root) => findNode(root, (n) => n.type === "EditorElement")?.state?.tabSize === 7,
+                { timeoutMs: 20_000 },
+            );
             const screen = await session.waitFor((s) => s.findText("indented") !== null);
             const indentedRow = locateRow(screen, "indented");
             const indentedPos = screen.findText("indented")!;

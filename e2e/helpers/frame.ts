@@ -24,3 +24,15 @@ export function dumpFrame(frame: GridSnapshot): string {
     for (let y = 0; y < frame.rows; y++) lines.push(`${String(y).padStart(2, " ")}|${frameLine(frame, y)}`);
     return lines.join("\n");
 }
+
+/**
+ * Ячейка первого вхождения `needle` в кадр (0-based x/y начала подстроки), или
+ * `null`. Контентный локатор: кликаем по тексту, а не по магической координате.
+ */
+export function findTextCell(frame: GridSnapshot, needle: string): { x: number; y: number } | null {
+    for (let y = 0; y < frame.rows; y++) {
+        const x = frameLine(frame, y).indexOf(needle);
+        if (x >= 0) return { x, y };
+    }
+    return null;
+}
