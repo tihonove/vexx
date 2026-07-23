@@ -3,7 +3,9 @@ import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import type { GridSnapshot } from "../../tuidom/rendering/gridSnapshot.ts";
+import type { GetDocumentResult, NodeSnapshot, SendMouseParams } from "../../tuidom/inspector/protocol.ts";
 import { startHeadlessApp } from "../helpers/appSession.ts";
+import type { MouseModifiers, NodeClickOffset, SettleOption } from "../helpers/headlessSession.ts";
 import { saveScreenshot } from "../helpers/renderScreenshot.ts";
 
 // ── Screenshot scenarios ────────────────────────────────────────────────────
@@ -33,6 +35,18 @@ export interface ScenarioDriver {
     ): Promise<GridSnapshot>;
     /** Capture the current screen. */
     captureFrame(): Promise<GridSnapshot>;
+    /** Snapshot of the element tree (node boxes are the {@link click} coordinates). */
+    getDocument(): Promise<GetDocumentResult>;
+    /** Poll the tree until a node matches `selector`; returns it. */
+    waitForNode(selector: string, opts?: { timeoutMs?: number; intervalMs?: number }): Promise<NodeSnapshot>;
+    /** Inject a raw mouse event at 0-based screen cells. */
+    sendMouse(params: SendMouseParams): Promise<void>;
+    /** Click a cell (0-based), then settle. */
+    click(x: number, y: number, opts?: MouseModifiers & SettleOption): Promise<void>;
+    /** Click the centre (or `dx`/`dy` offset) of the first `selector` match, then settle. */
+    clickNode(selector: string, opts?: MouseModifiers & SettleOption & NodeClickOffset): Promise<void>;
+    /** Spin the wheel over a cell, then settle. */
+    wheel(x: number, y: number, direction: "up" | "down" | "left" | "right"): Promise<void>;
     /** Capture and save `screenshots/<scenario>-<shot>.png`; returns the path. */
     capture(shot: string): Promise<string>;
 }
@@ -113,6 +127,12 @@ export async function runScenario(spec: ScenarioSpec): Promise<CapturedShot[]> {
         resize: (cols, rows) => session.resize(cols, rows),
         waitForText: (predicate, opts) => session.waitForText(predicate, opts),
         captureFrame: () => session.captureFrame(),
+        getDocument: () => session.getDocument(),
+        waitForNode: (selector, opts) => session.waitForNode(selector, opts),
+        sendMouse: (params) => session.sendMouse(params),
+        click: (x, y, opts) => session.click(x, y, opts),
+        clickNode: (selector, opts) => session.clickNode(selector, opts),
+        wheel: (x, y, direction) => session.wheel(x, y, direction),
         capture: async (shot) => {
             const frame = await session.captureFrame();
             const path = saveScreenshot(`${spec.name}-${shot}`, frame);

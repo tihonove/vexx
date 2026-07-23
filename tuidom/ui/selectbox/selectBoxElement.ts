@@ -88,6 +88,16 @@ export class SelectBoxElement extends TUIElement {
         return this.selectedIndex;
     }
 
+    /** Observable state: option texts, selected index/text, and open/closed. */
+    public override inspectState(): Record<string, unknown> {
+        return {
+            open: this.isOpen(),
+            selectedIndex: this.selectedIndex,
+            selectedText: this.selectedText(),
+            options: this.options.map((o) => o.text),
+        };
+    }
+
     public setStyles(styles: ISelectBoxStyles): void {
         this.styles = styles;
         this.markDirty();

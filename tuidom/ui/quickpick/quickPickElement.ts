@@ -248,6 +248,16 @@ export class QuickPickElement extends TUIElement {
         return this.itemsValue;
     }
 
+    /** Observable state: current query, item labels and the active index. */
+    public override inspectState(): Record<string, unknown> {
+        return {
+            query: this.getQuery(),
+            activeIndex: this.selectedIndexValue,
+            title: this.title,
+            items: this.itemsValue.map((i) => i.label),
+        };
+    }
+
     public set items(value: readonly QuickPickItem[]) {
         this.itemsValue = value;
         this.selectedIndexValue = 0;

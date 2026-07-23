@@ -17,6 +17,7 @@ import type {
 import { getBinaryPath } from "./buildOnce.ts";
 import { dumpFrame, frameToText } from "./frame.ts";
 import { connectWithRetry, freePort } from "./inspectorClient.ts";
+import { $, $$, focusedLeaf } from "./query.ts";
 import { waitUntil } from "./waitFor.ts";
 
 /** Modifier flags shared by the mouse convenience verbs. */
@@ -28,6 +29,12 @@ export type MouseModifiers = Pick<SendMouseParams, "shiftKey" | "altKey" | "ctrl
  * `waitForIdle`.
  */
 export type SettleOption = { settle?: boolean | WaitForIdleParams };
+
+/** Общие опции предикатных ожиданий (тайминги). */
+export type WaitOpts = { timeoutMs?: number; intervalMs?: number };
+
+/** Смещение точки клика от левого-верхнего угла box'а узла (вместо центра). */
+export type NodeClickOffset = { dx?: number; dy?: number };
 
 export interface HeadlessSessionOptions {
     /** Positional args (files/dirs to open) and any flags except headless/inspect-tui. */
@@ -209,6 +216,87 @@ export class HeadlessSession {
             describe: "screen text predicate",
             diagnose: (last) => `--- last frame ---\n${dumpFrame(last as GridSnapshot)}`,
         });
+    }
+
+    // ─── Locators (selector-as-address over the document tree) ───
+
+    /** First node matching `selector` in the current document, or `null`. */
+    public async node(selector: string): Promise<NodeSnapshot | null> {
+        return $((await this.getDocument()).root, selector);
+    }
+
+    /** Every node matching `selector` in the current document (pre-order). */
+    public async nodes(selector: string): Promise<NodeSnapshot[]> {
+        return $$((await this.getDocument()).root, selector);
+    }
+
+    /** Type of the currently focused leaf element, or `undefined` if none. */
+    public async focusedType(): Promise<string | undefined> {
+        return focusedLeaf((await this.getDocument()).root)?.type;
+    }
+
+    /** Poll until a node matches `selector`; returns it. */
+    public async waitForNode(selector: string, opts: WaitOpts = {}): Promise<NodeSnapshot> {
+        const root = await this.waitForDocument((r) => $(r, selector) !== null, opts);
+        return $(root, selector) as NodeSnapshot;
+    }
+
+    /** Poll until NO node matches `selector` (e.g. a popup closed). */
+    public async waitForNoNode(selector: string, opts: WaitOpts = {}): Promise<void> {
+        await this.waitForDocument((r) => $(r, selector) === null, opts);
+    }
+
+    /** Poll until the focused leaf is of type `type`; returns it. */
+    public async waitForFocus(type: string, opts: WaitOpts = {}): Promise<NodeSnapshot> {
+        const root = await this.waitForDocument((r) => focusedLeaf(r)?.type === type, opts);
+        return focusedLeaf(root) as NodeSnapshot;
+    }
+
+    /** Poll until the first `selector` match has `state` satisfying `predicate`. */
+    public async waitForState(
+        selector: string,
+        predicate: (state: Record<string, unknown> | undefined) => boolean,
+        opts: WaitOpts = {},
+    ): Promise<NodeSnapshot> {
+        const root = await this.waitForDocument((r) => {
+            const node = $(r, selector);
+            return node !== null && predicate(node.state);
+        }, opts);
+        return $(root, selector) as NodeSnapshot;
+    }
+
+    // ─── Node-relative mouse (locate, then act; then settle) ───
+
+    /**
+     * Click the centre of the first `selector` match. `dx`/`dy` offset from the
+     * box top-left instead of centring (e.g. a specific menu row). Settles after.
+     */
+    public async clickNode(selector: string, opts: MouseModifiers & SettleOption & NodeClickOffset = {}): Promise<void> {
+        const { x, y } = await this.pointIn(selector, opts);
+        const { dx: _dx, dy: _dy, ...rest } = opts;
+        await this.click(x, y, rest);
+    }
+
+    /** Spin the wheel over the centre (or offset) of a `selector` match. */
+    public async wheelNode(
+        selector: string,
+        direction: "up" | "down" | "left" | "right",
+        opts: SettleOption & NodeClickOffset = {},
+    ): Promise<void> {
+        const { x, y } = await this.pointIn(selector, opts);
+        const { settle } = opts;
+        await this.wheel(x, y, direction, { settle });
+    }
+
+    /** Resolve a click point inside a node: box top-left + `dx`/`dy`, else centre. */
+    private async pointIn(selector: string, offset: NodeClickOffset): Promise<{ x: number; y: number }> {
+        const node = await this.node(selector);
+        if (node === null) throw new Error(`clickNode: locator not found: ${selector}`);
+        const { x, y, width, height } = node.box;
+        if (offset.dx !== undefined || offset.dy !== undefined) {
+            return { x: x + (offset.dx ?? 0), y: y + (offset.dy ?? 0) };
+        }
+        return { x: x + Math.floor(width / 2), y: y + Math.floor(height / 2) };
     }
 
     public async dispose(): Promise<void> {

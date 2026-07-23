@@ -2,34 +2,11 @@ import type { NodeSnapshot } from "../../tuidom/inspector/protocol.ts";
 
 import { dumpFrame } from "./frame.ts";
 import type { HeadlessSession } from "./headlessSession.ts";
+import { focusPath } from "./query.ts";
 
 // Пост-мортем для упавшего функционального e2e. Раньше при падении vitest печатал
 // кадр одной простынёй; здесь — нумерованный кадр, путь фокуса и скелет дерева,
 // чтобы падение сразу показывало, что было на экране и куда ушёл фокус.
-
-/** Самый глубокий узел с `focused` (в снимке их несколько по пути к листу). */
-export function focusedLeaf(root: NodeSnapshot | null): NodeSnapshot | null {
-    let leaf: NodeSnapshot | null = null;
-    const visit = (n: NodeSnapshot): void => {
-        if (n.focused) leaf = n;
-        for (const c of n.children) visit(c);
-    };
-    if (root !== null) visit(root);
-    return leaf;
-}
-
-/** Путь типов от корня до сфокусированного листа (для «где живёт фокус»). */
-export function focusPath(root: NodeSnapshot | null): string[] {
-    const path: string[] = [];
-    let node = root;
-    while (node !== null) {
-        path.push(node.type);
-        const next: NodeSnapshot | undefined = node.children.find((c) => c.focused);
-        if (next === undefined) break;
-        node = next;
-    }
-    return path;
-}
 
 /** Отступами — дерево типов с box и (если есть) state; обрезано по глубине. */
 export function treeSkeleton(root: NodeSnapshot | null, maxDepth = 40): string {

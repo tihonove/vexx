@@ -68,6 +68,14 @@ export class PopupMenuElement extends TUIElement {
     }
 
     /** Раздаёт стили меню (свои + всем пунктам и сепараторам). */
+    /** Observable state: item labels (separators as null) and the selected index. */
+    public override inspectState(): Record<string, unknown> {
+        return {
+            selectedIndex: this.selectedIndex,
+            items: this.entries.map((e) => (isSeparator(e) ? null : e.label)),
+        };
+    }
+
     public setStyles(styles: IMenuStyles): void {
         this.styles = styles;
         for (const item of this.itemElements) {
