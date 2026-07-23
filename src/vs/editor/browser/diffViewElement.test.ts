@@ -78,10 +78,10 @@ describe("DiffViewElement — гуттер и маркеры", () => {
         const app = render(makeElement(["a", "b", "c"], ["a", "B", "c"]));
 
         expect(screenLines(app).slice(0, 4)).toEqual([
-            "1 1   a", //
-            "2   - b",
-            "  2 + B",
-            "3 3   c",
+            "  1 1    a", //
+            "  2   -  b",
+            "    2 +  B",
+            "  3 3    c",
         ]);
     });
 
@@ -89,9 +89,9 @@ describe("DiffViewElement — гуттер и маркеры", () => {
         const app = render(makeElement(["a", "c"], ["a", "b", "c"]));
 
         expect(screenLines(app).slice(0, 3)).toEqual([
-            "1 1   a", //
-            "  2 + b",
-            "2 3   c",
+            "  1 1    a", //
+            "    2 +  b",
+            "  2 3    c",
         ]);
     });
 
@@ -99,9 +99,9 @@ describe("DiffViewElement — гуттер и маркеры", () => {
         const app = render(makeElement(["a", "b", "c"], ["a", "c"]));
 
         expect(screenLines(app).slice(0, 3)).toEqual([
-            "1 1   a", //
-            "2   - b",
-            "3 2   c",
+            "  1 1    a", //
+            "  2   -  b",
+            "  3 2    c",
         ]);
     });
 
@@ -110,7 +110,7 @@ describe("DiffViewElement — гуттер и маркеры", () => {
         const app = render(makeElement(lines, lines), new Size(46, 14));
 
         // Двузначные номера — колонка шириной 2, текст сдвинут вправо.
-        expect(screenLines(app)[11]).toBe("12 12   l11");
+        expect(screenLines(app)[11]).toBe("  12 12    l11");
     });
 });
 
@@ -136,7 +136,7 @@ describe("DiffViewElement — цвета", () => {
     it("номера строк красятся своим цветом", () => {
         const app = render(makeElement(["a"], ["a"]));
 
-        expect(app.backend.getFgAt(new Point(0, 0))).toBe(LINE_NO);
+        expect(app.backend.getFgAt(new Point(2, 0))).toBe(LINE_NO);
     });
 });
 
@@ -149,8 +149,9 @@ describe("DiffViewElement — свёрнутые куски", () => {
         const app = render(makeElement(original, modified, { collapsed: true }), new Size(46, 10));
 
         const lines = screenLines(app);
-        expect(lines[0]).toBe(" ⋯  ⋯   ⋯ 6 unchanged lines");
-        expect(app.backend.getFgAt(new Point(8, 0))).toBe(COLLAPSED_FG);
+        expect(lines[0]).toBe("   ⋯  ⋯    ⋯ 6 unchanged lines");
+        // Гуттер при двузначных номерах — 11 колонок; текст плейсхолдера сразу за ним.
+        expect(app.backend.getFgAt(new Point(11, 0))).toBe(COLLAPSED_FG);
     });
 
     it("единственная скрытая строка склоняется в единственном числе", () => {
@@ -171,7 +172,7 @@ describe("DiffViewElement — свёрнутые куски", () => {
         element.setStyles(STYLES);
         element.setRows(model.rows, plainSource(original, modified));
 
-        expect(screenLines(render(element))).toContain("⋯ ⋯   ⋯ 1 unchanged line");
+        expect(screenLines(render(element))).toContain("  ⋯ ⋯    ⋯ 1 unchanged line");
     });
 });
 
@@ -191,10 +192,10 @@ describe("DiffViewElement — подсветка синтаксиса", () => {
         const app = render(makeElement(original, modified, { source }));
 
         // Строка 0 — удалённая; текст начинается сразу за гуттером (ширина 6).
-        expect(app.backend.getTextAt(new Point(6, 0), 5)).toBe("const");
-        expect(app.backend.getFgAt(new Point(6, 0))).toBe(KEYWORD);
+        expect(app.backend.getTextAt(new Point(9, 0), 5)).toBe("const");
+        expect(app.backend.getFgAt(new Point(9, 0))).toBe(KEYWORD);
         // Символ за ключевым словом уже без подсветки.
-        expect(app.backend.getFgAt(new Point(12, 0))).toBe(FG);
+        expect(app.backend.getFgAt(new Point(15, 0))).toBe(FG);
     });
 });
 
@@ -204,12 +205,12 @@ describe("DiffViewElement — скролл", () => {
     it("прокрутка сдвигает содержимое", () => {
         const element = makeElement(many(30), many(30));
         const app = render(element, new Size(46, 5));
-        expect(screenLines(app)[0]).toBe(" 1  1   line0");
+        expect(screenLines(app)[0]).toBe("   1  1    line0");
 
         element.scrollBy(4);
         app.render();
 
-        expect(screenLines(app)[0]).toBe(" 5  5   line4");
+        expect(screenLines(app)[0]).toBe("   5  5    line4");
         expect(element.scrollTop).toBe(4);
     });
 
@@ -339,24 +340,24 @@ describe("DiffViewElement — размеры и сложные символы", 
     it("табы разворачиваются в пробелы", () => {
         const app = render(makeElement(["\tx"], ["\ty"]), new Size(46, 4));
 
-        // Гуттер 6 колонок, дальше таб на 4 позиции, затем символ.
-        expect(app.backend.getTextAt(new Point(6, 0), 4)).toBe("    ");
-        expect(app.backend.getTextAt(new Point(10, 0), 1)).toBe("x");
+        // Гуттер 9 колонок, дальше таб на 4 позиции, затем символ.
+        expect(app.backend.getTextAt(new Point(9, 0), 4)).toBe("    ");
+        expect(app.backend.getTextAt(new Point(13, 0), 1)).toBe("x");
     });
 
     it("широкие символы занимают две колонки", () => {
         const app = render(makeElement(["日本"], ["日本語"]), new Size(46, 4));
 
-        expect(app.backend.getTextAt(new Point(6, 0), 2)).toBe("日");
-        expect(app.backend.getTextAt(new Point(8, 0), 2)).toBe("本");
+        expect(app.backend.getTextAt(new Point(9, 0), 2)).toBe("日");
+        expect(app.backend.getTextAt(new Point(11, 0), 2)).toBe("本");
     });
 
     it("широкий символ у правого края заменяется пробелом, а не рвётся", () => {
         // Ширина подобрана так, что вторая половина символа не помещается.
-        const app = render(makeElement(["日本"], ["日本"]), new Size(9, 3));
+        const app = render(makeElement(["日本"], ["日本"]), new Size(12, 3));
 
-        expect(app.backend.getTextAt(new Point(6, 0), 2)).toBe("日");
-        expect(app.backend.getTextAt(new Point(8, 0), 1)).toBe(" ");
+        expect(app.backend.getTextAt(new Point(9, 0), 2)).toBe("日");
+        expect(app.backend.getTextAt(new Point(11, 0), 1)).toBe(" ");
     });
 });
 
@@ -368,7 +369,7 @@ describe("DiffViewElement — горизонтальная прокрутка", 
 
         expect(element.scrollLeft).toBe(0);
         // Виден только влезающий кусок — обрезка по правому краю, без переноса.
-        expect(app.backend.getTextAt(new Point(6, 0), 14)).toBe("x".repeat(14));
+        expect(app.backend.getTextAt(new Point(9, 0), 11)).toBe("x".repeat(11));
     });
 });
 
@@ -384,6 +385,6 @@ describe("DiffViewElement — токены без покрытия строки"
         };
         const app = render(makeElement(original, modified, { source }));
 
-        expect(app.backend.getFgAt(new Point(6, 0))).toBe(FG);
+        expect(app.backend.getFgAt(new Point(9, 0))).toBe(FG);
     });
 });
