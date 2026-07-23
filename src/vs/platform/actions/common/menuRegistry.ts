@@ -17,7 +17,12 @@ export interface ISubmenuEntry {
     readonly title: string;
     readonly mnemonic?: string;
     readonly submenu: MenuId;
+    /** Submenu-выбор: рендерится выпадающим списком, а не вложенным попапом. */
+    readonly isSelection?: boolean;
 }
+
+/** Отметка включённого пункта (VS Code рисует галочку у `toggled`-экшена). */
+export const CHECKED_ICON = "\u2713"; // ✓
 
 export const MenuRegistryDIToken = token<MenuRegistry>("MenuRegistry");
 
@@ -144,7 +149,12 @@ export class MenuRegistry {
         });
         return collectSorted(visible)
             .flat()
-            .map((item) => ({ title: item.title, mnemonic: item.mnemonic, submenu: item.submenu }));
+            .map((item) => ({
+                title: item.title,
+                mnemonic: item.mnemonic,
+                submenu: item.submenu,
+                isSelection: item.isSelection,
+            }));
     }
 
     private toEntry(item: IMenuContribution, context: unknown): MenuEntry {
@@ -153,7 +163,9 @@ export class MenuRegistry {
         return {
             label,
             shortcut: this.resolveShortcut(item),
-            icon: item.icon,
+            // `toggled` рисуется отметкой в колонке иконки — так VS Code помечает
+            // включённый пункт (например текущий канал Output).
+            icon: item.toggled !== undefined && this.contextKeys.evaluate(item.toggled) ? CHECKED_ICON : item.icon,
             onSelect: () => {
                 this.commands.execute(item.command, ...resolvedArgs);
             },

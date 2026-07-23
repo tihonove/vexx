@@ -24,6 +24,7 @@ import {
     PanelFocusContributionDIToken,
 } from "../../workbench/browser/parts/panel/panelFocusContribution.ts";
 import { PanelService, PanelServiceDIToken } from "../../workbench/browser/parts/panel/panelService.ts";
+import { OutputChannelActions, OutputChannelActionsDIToken } from "../../workbench/contrib/output/browser/outputChannelActions.ts";
 import { OutputComponent, OutputComponentDIToken } from "../../workbench/contrib/output/browser/outputComponent.ts";
 import { OutputChannelRegistryDIToken } from "../../workbench/services/output/common/output.ts";
 import { OutputChannelRegistry } from "../../workbench/services/output/common/outputChannelRegistry.ts";
@@ -261,6 +262,7 @@ export const workbenchModule: ContainerModule = (container) => {
     });
     container.bind(OutputServiceDIToken, OutputService);
     container.bind(OutputComponentDIToken, OutputComponent);
+    container.bind(OutputChannelActionsDIToken, OutputChannelActions);
     // Прод-фабрика сессий терминала: реальная связка node-pty + @xterm/headless.
     // Тестовый профиль перебивает биндинг на FakeTerminalSurface (см. TestProfile).
     container.bind(TerminalSessionFactoryDIToken, () => (options) => new EmbeddedTerminalSession(options));

@@ -141,7 +141,10 @@ export interface ContextKeyTypes {
     // replaceActive: boolean;
 
     // -- View contexts --
-    // view: string;
+    /** Id вкладки, чьи контролы сейчас показывает шапка (`view == 'workbench.panel.output'`). */
+    view: string;
+    /** Id активного канала Output (VS Code `activeOutputChannel`). */
+    activeOutputChannel: string;
     // viewItem: string;
     // activeViewlet: string;
     // activePanel: string;
@@ -278,7 +281,8 @@ export const allContextKeys: ContextKey[] = [
     // "replaceActive",
 
     // -- View contexts --
-    // "view",
+    "view",
+    "activeOutputChannel",
     // "viewItem",
     // "activeViewlet",
     // "activePanel",

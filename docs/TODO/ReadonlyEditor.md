@@ -35,17 +35,9 @@
 
 ## Открытые фазы
 
-- [ ] **Этап 2 — detached pane.** Нужен, чтобы поселить редактор вне таб-строки
-  (в нижней Panel). Уезжает в задачу про Output — у него нет другого потребителя,
-  а гейт «что считать готово» требует живого демо.
-  - Все ~75 вызовов `getActiveEditor()` идут через одну точку
-    (`editorService.ts`, `this.editors[activeIndexValue]`): достаточно завести
-    список detached-панелей и отдавать сфокусированную из него — **call-sites не
-    меняются**.
-  - `getEditors`/`editorCount`/`getOpenFilePaths`/`collectDirty` продолжают ходить
-    по `this.editors` → detached pane автоматом вне табов, персиста и shutdown.
-  - `EditorPane` склеен с `TextFileModel`; синтетический ресурс уже поддержан
-    (`untitled:`), Output получит `output:<channel>`-URI, как в VS Code.
+Этап 2 (detached pane — редактор вне таб-строки) сделан вместе с Output-панелью:
+`EditorService.openDetached` + `TextFileModel.openSynthetic/appendOwnedContent`.
+Осталось:
 
 - [ ] **Конфигурационный слой** — `files.readonlyInclude`/`readonlyExclude`/
   `readonlyFromPermissions` и команды `setActiveEditorReadonlyInSession`/

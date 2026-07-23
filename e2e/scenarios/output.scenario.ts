@@ -7,10 +7,15 @@ import { defineScenario, repoRoot } from "./framework.ts";
 // непустой с первого кадра. Содержимое — обычный read-only редактор с языком
 // `log`, как в VS Code: гуттер, подсветка уровней, выделение и Ctrl+F.
 //
-// Команду вешаем на Alt+U через user-кейбинды: палитра возвращает фокус меню-бару,
-// через который её открыли. Именно U, а не O: `Alt+O` кодируется как `ESC O` —
-// префикс SS3-последовательностей (`ESC O P` = F1), и терминал разбирает его как
-// начало спецклавиши, а не как Alt+буква.
+// Канал переключаем командой `workbench.action.output.show.<id>` — это тот же
+// путь, которым ходит выбор в селекторе: пункты его списка и есть эти команды
+// (submenu `switchOutput`, помеченное `isSelection`). Драйвер сценариев не умеет
+// мышь, а Tab в read-only редакторе фокус на шапку не уводит, поэтому раскрытие
+// списка проверяется юнит-тестами `selectBoxElement.test.ts`.
+//
+// Клавиши — через user-кейбинды: палитра возвращает фокус меню-бару, через
+// который её открыли. Букву O не берём: `ESC O` — префикс SS3-последовательностей
+// (`ESC O P` = F1), терминал разбирает его как спецклавишу.
 
 const sampleFile = resolve(repoRoot, "e2e", "fixtures", "sample.ts");
 
@@ -20,16 +25,26 @@ export default defineScenario({
     open: [repoRoot, sampleFile],
     cols: 120,
     rows: 32,
-    userKeybindings: [{ key: "alt+u", command: "workbench.action.output.toggleOutput" }],
+    userKeybindings: [
+        { key: "alt+u", command: "workbench.action.output.toggleOutput" },
+        { key: "alt+j", command: "workbench.action.output.show.extensions" },
+    ],
     async run(editor) {
         await editor.waitForText((t) => t.includes("greeting"));
 
         await editor.sendKey("Alt+U");
 
-        // Вкладка OUTPUT встала между PROBLEMS и TERMINAL, в ней — живой лог
-        // bootstrap с уровнем в скобках (форма, которую подсвечивает грамматика).
+        // Вкладка OUTPUT встала между PROBLEMS и TERMINAL, в шапке — селектор с
+        // активным каналом, в теле — живой лог с уровнем в скобках (форма, под
+        // которую заточена стоковая грамматика log).
         await editor.waitForText((t) => t.includes("OUTPUT"));
         await editor.waitForText((t) => t.includes("[info] vexx starting"));
+        await editor.waitForText((t) => t.includes("Bootstrap"));
         await editor.capture("panel");
+
+        // Переключение подсистемы: и содержимое, и подпись селектора идут за ним.
+        await editor.sendKey("Alt+J");
+        await editor.waitForText((t) => t.includes("Extensions") && !t.includes("vexx starting"));
+        await editor.capture("channel-switched");
     },
 });

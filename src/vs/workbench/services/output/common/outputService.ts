@@ -1,5 +1,7 @@
 import type { IDisposable } from "../../../../../../tuidom/common/disposable.ts";
 import { Disposable } from "../../../../../../tuidom/common/disposable.ts";
+import type { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
+import { ContextKeyServiceDIToken } from "../../../../platform/contextkey/common/contextKeyService.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { ILogService, LogEntry } from "../../../../platform/log/common/iLogService.ts";
 import { ILogServiceDIToken } from "../../../../platform/log/common/iLogServiceDIToken.ts";
@@ -50,7 +52,12 @@ export function formatOutputLine(entry: LogEntry): string {
  * незаявленные каналы у нас норма, `LogService.createLogger` заводится ad hoc.
  */
 export class OutputService extends Disposable {
-    public static dependencies = [LogHistoryDIToken, ILogServiceDIToken, OutputChannelRegistryDIToken] as const;
+    public static dependencies = [
+        LogHistoryDIToken,
+        ILogServiceDIToken,
+        OutputChannelRegistryDIToken,
+        ContextKeyServiceDIToken,
+    ] as const;
 
     private activeChannelId: string | null = null;
     private readonly activeChannelListeners = new Set<(id: string) => void>();
@@ -60,11 +67,12 @@ export class OutputService extends Disposable {
         private readonly history: ILogHistory,
         logService: ILogService,
         private readonly registry: IOutputChannelRegistry,
+        private readonly contextKeys: ContextKeyService,
     ) {
         super();
         // Каналы, уже успевшие написать до подъёма UI (bootstrap, configuration).
         for (const channel of this.history.getChannels()) this.ensureChannel(channel);
-        this.activeChannelId = this.registry.getChannels()[0]?.id ?? null;
+        this.setActiveChannel(this.registry.getChannels()[0]?.id ?? null);
         this.register(
             logService.onDidAppend((entry) => {
                 this.ensureChannel(entry.channel);
@@ -76,7 +84,7 @@ export class OutputService extends Disposable {
         // он становится активным, если активного ещё не было.
         this.register(
             this.registry.onDidRegisterChannel((descriptor) => {
-                this.activeChannelId ??= descriptor.id;
+                if (this.activeChannelId === null) this.setActiveChannel(descriptor.id);
             }),
         );
     }
@@ -90,6 +98,11 @@ export class OutputService extends Disposable {
         return this.registry.getChannels();
     }
 
+    /** Появился новый канал (объявленный или добранный автоматически). */
+    public onDidRegisterChannel(listener: (descriptor: IOutputChannelDescriptor) => void): IDisposable {
+        return this.registry.onDidRegisterChannel(listener);
+    }
+
     public getActiveChannelId(): string | null {
         return this.activeChannelId;
     }
@@ -97,8 +110,19 @@ export class OutputService extends Disposable {
     /** Делает канал активным (VS Code `showChannel`). Неизвестный id — no-op. */
     public showChannel(id: string): void {
         if (this.registry.getChannel(id) === undefined || this.activeChannelId === id) return;
-        this.activeChannelId = id;
+        this.setActiveChannel(id);
         for (const listener of [...this.activeChannelListeners]) listener(id);
+    }
+
+    /**
+     * Активный канал + парный контекст-ключ (VS Code `ACTIVE_OUTPUT_CHANNEL_CONTEXT`).
+     * Ключ ставится ЗДЕСЬ, а не в подписчике: на нём висит `toggled` пунктов
+     * селектора, и подписчик, обновляющий его, мог бы отработать позже того, кто
+     * пункты перечитывает — селектор показывал бы прошлый канал.
+     */
+    private setActiveChannel(id: string | null): void {
+        this.activeChannelId = id;
+        this.contextKeys.set("activeOutputChannel", id ?? "");
     }
 
     /** Всё содержимое канала одной строкой — контент редактора при его показе. */

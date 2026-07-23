@@ -4,6 +4,7 @@ import type { ILogService, ILogSink, LogEntry } from "../../../../platform/log/c
 import { LogService } from "../../../../platform/log/common/logService.ts";
 import { LogLevel } from "../../../../platform/log/common/logLevel.ts";
 import { RingBufferSink } from "../../../../platform/log/common/ringBufferSink.ts";
+import { ContextKeyService } from "../../../../platform/contextkey/common/contextKeyService.ts";
 
 import { OutputChannelRegistry } from "./outputChannelRegistry.ts";
 import { formatOutputLine, OutputService } from "./outputService.ts";
@@ -14,11 +15,12 @@ function createStack() {
     const history = new RingBufferSink();
     logService.addSink(history as ILogSink);
     const registry = new OutputChannelRegistry();
-    return { logService, history, registry };
+    const contextKeys = new ContextKeyService();
+    return { logService, history, registry, contextKeys };
 }
 
 function createService(stack: ReturnType<typeof createStack>): OutputService {
-    return new OutputService(stack.history, stack.logService as ILogService, stack.registry);
+    return new OutputService(stack.history, stack.logService as ILogService, stack.registry, stack.contextKeys);
 }
 
 function entry(overrides: Partial<LogEntry> = {}): LogEntry {
@@ -154,6 +156,35 @@ describe("OutputService: активный канал", () => {
         service.showChannel("bootstrap");
 
         expect(fired).toBe(0);
+        service.dispose();
+    });
+
+    it("контекст-ключ activeOutputChannel обновлён ДО рассылки события", () => {
+        // На этом ключе висит `toggled` пунктов селектора. Пока ключ ставил
+        // подписчик, он успевал отработать позже того, кто пункты перечитывает, —
+        // и селектор показывал прошлый канал при уже переключённом содержимом.
+        const { stack, service } = serviceWithTwoChannels();
+        let keyAtNotify: unknown;
+        service.onDidChangeActiveChannel(() => {
+            keyAtNotify = stack.contextKeys.get("activeOutputChannel");
+        });
+
+        service.showChannel("configuration");
+
+        expect(keyAtNotify).toBe("configuration");
+        service.dispose();
+    });
+
+    it("ключ выставлен уже при старте — по первому каналу", () => {
+        const { stack, service } = serviceWithTwoChannels();
+        expect(stack.contextKeys.get("activeOutputChannel")).toBe("bootstrap");
+        service.dispose();
+    });
+
+    it("без каналов ключ пустой, а не undefined", () => {
+        const stack = createStack();
+        const service = createService(stack);
+        expect(stack.contextKeys.get("activeOutputChannel")).toBe("");
         service.dispose();
     });
 

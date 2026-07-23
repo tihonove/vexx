@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { Size } from "../../../../tuidom/common/geometryPromitives.ts";
+import type { SelectBoxElement } from "../../../../tuidom/ui/selectbox/selectBoxElement.ts";
 import { createAppTestHarness, type IAppHarness } from "../../../TestUtils/AppTestHarness.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../TestUtils/TempWorkspace.ts";
 import { ILogServiceDIToken } from "../../platform/log/common/iLogServiceDIToken.ts";
@@ -12,6 +13,9 @@ import { EditorServiceDIToken } from "../services/editor/browser/editorService.t
 import { LogHistoryDIToken, OUTPUT_VIEW_ID, OutputChannelRegistryDIToken } from "../services/output/common/output.ts";
 import { OutputChannelRegistry } from "../services/output/common/outputChannelRegistry.ts";
 import { OutputServiceDIToken } from "../services/output/common/outputService.ts";
+import { CHECKED_ICON } from "../../platform/actions/common/menuRegistry.ts";
+import { MenuServiceDIToken } from "../../platform/actions/common/menuService.ts";
+import { SwitchOutputMenu } from "../contrib/output/browser/outputChannelActions.ts";
 
 const TOGGLE_OUTPUT = "workbench.action.output.toggleOutput";
 
@@ -143,6 +147,124 @@ describe("Workbench — Output panel", () => {
         panelService.activateView(PROBLEMS_VIEW_ID);
 
         expect(outputService().getActiveChannelId()).toBe("bootstrap");
+    });
+});
+
+describe("Workbench — Output: селектор канала", () => {
+    let ws: ITempWorkspace;
+    let h: IAppHarness;
+
+    beforeEach(() => {
+        ws = createTempWorkspace({ prefix: "vexx-output-sel-", files: { "alpha.txt": "Alpha" } });
+        const logService = new LogService();
+        const history = new RingBufferSink();
+        logService.addSink(history);
+        logService.createLogger("bootstrap").info("vexx starting");
+        logService.createLogger("configuration").warn("empty settings");
+        h = createAppTestHarness({
+            workspaceFolder: ws.dir,
+            size: new Size(120, 32),
+            containerOverrides: (container) => {
+                container.bind(ILogServiceDIToken, () => logService);
+                container.bind(LogHistoryDIToken, () => history);
+            },
+        });
+        h.workbench.openFile(ws.path("alpha.txt"));
+        h.commands.execute(TOGGLE_OUTPUT);
+    });
+
+    afterEach(() => {
+        h.dispose();
+        ws.dispose();
+    });
+
+    function frame(): string {
+        h.testApp.render();
+        return h.testApp.backend.screenToString();
+    }
+
+    it("подпись селектора — label активного канала, а не сырой id", () => {
+        // Ради этого и заведён реестр: `bootstrap` пользователю не показываем.
+        expect(frame()).toContain("Bootstrap");
+        expect(frame()).not.toContain("PROBLEMS  OUTPUT  TERMINAL   bootstrap");
+    });
+
+    it("подпись идёт за сменой канала", () => {
+        h.container.get(OutputServiceDIToken).showChannel("configuration");
+
+        const text = frame();
+        expect(text).toContain("Configuration");
+        expect(text).toContain("empty settings");
+    });
+
+    it("канал зарегистрирован как команда — её видно и в палитре", () => {
+        // Пункты селектора — это команды `workbench.action.output.show.<id>`,
+        // как в VS Code; поэтому канал доступен и с клавиатуры.
+        const titles = h.commands.listCommands().map((c) => c.title);
+        expect(titles).toContain("Output: Show Extension Host");
+    });
+
+    it("команда канала переключает активный канал", () => {
+        h.commands.execute("workbench.action.output.show.configuration");
+
+        expect(h.container.get(OutputServiceDIToken).getActiveChannelId()).toBe("configuration");
+        expect(frame()).toContain("Configuration");
+    });
+
+    it("активный канал помечен в submenu — на нём держится подпись селектора", () => {
+        // `toggled: activeOutputChannel == '<id>'` — тот же механизм, что в VS Code.
+        const menu = h.container.get(MenuServiceDIToken).createMenu(SwitchOutputMenu);
+        const marked = () =>
+            menu
+                .getEntries()
+                .filter((e) => e.type !== "separator" && e.icon === CHECKED_ICON)
+                .map((e) => (e.type === "separator" ? "" : e.label));
+
+        expect(marked()).toEqual(["Bootstrap"]);
+
+        h.commands.execute("workbench.action.output.show.configuration");
+
+        expect(marked()).toEqual(["Configuration"]);
+        menu.dispose();
+    });
+
+    it("выбор в селекторе переключает канал — через ту же команду", () => {
+        // Полный пользовательский путь: раскрыть список в шапке, выбрать пункт.
+        // Он исполняет `workbench.action.output.show.<id>`, а не дёргает сервис
+        // напрямую — иначе у выбора мышью и палитры были бы разные маршруты.
+        const selector = h.testApp.querySelector("SelectBoxElement") as SelectBoxElement | null;
+        expect(selector).not.toBeNull();
+        selector!.focus();
+
+        h.testApp.sendKey("Enter");
+        h.testApp.sendKey("ArrowDown");
+        h.testApp.sendKey("Enter");
+
+        expect(h.container.get(OutputServiceDIToken).getActiveChannelId()).toBe("configuration");
+        expect(frame()).toContain("empty settings");
+    });
+
+    it("канал, появившийся в рантайме, доезжает до селектора", () => {
+        const logService = h.container.get(ILogServiceDIToken);
+        logService.createLogger("brand.new").info("hi");
+
+        const menu = h.container.get(MenuServiceDIToken).createMenu(SwitchOutputMenu);
+        const labels = menu.getEntries().map((e) => (e.type === "separator" ? "" : e.label));
+        expect(labels).toContain("brand.new");
+        menu.dispose();
+    });
+
+    it("повторное появление канала не двоит пункт селектора", () => {
+        // Канал приходит и из реестра, и из живого потока — регистрация обязана
+        // быть идемпотентной, иначе список пух бы на каждую запись.
+        const logService = h.container.get(ILogServiceDIToken);
+        logService.createLogger("brand.new").info("one");
+        logService.createLogger("brand.new").info("two");
+
+        const menu = h.container.get(MenuServiceDIToken).createMenu(SwitchOutputMenu);
+        const labels = menu.getEntries().map((e) => (e.type === "separator" ? "" : e.label));
+        expect(labels.filter((l) => l === "brand.new")).toHaveLength(1);
+        menu.dispose();
     });
 });
 

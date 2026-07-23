@@ -29,6 +29,12 @@ export interface IMenuContribution {
     readonly args?: (context: unknown) => readonly unknown[];
     /** `false` — не показывать шорткат; строка — литерал; иначе — резолв из `KeybindingRegistry`. */
     readonly shortcut?: string | false;
+    /**
+     * When-выражение «пункт сейчас включён» (аналог `toggled` у `registerAction2`).
+     * Истина рисует отметку — так помечается активный элемент в submenu-выборе
+     * (например текущий канал Output).
+     */
+    readonly toggled?: string;
 }
 
 /**
@@ -47,6 +53,12 @@ export interface ISubmenuContribution {
     readonly when?: string;
     readonly group?: string;
     readonly order?: number;
+    /**
+     * Submenu — это выбор одного из вариантов (аналог `isSelection` у VS Code).
+     * Такое submenu рендерится не вложенным попапом, а выпадающим списком:
+     * `SubmenuEntrySelectActionViewItem` в VS Code, `SelectBoxElement` у нас.
+     */
+    readonly isSelection?: boolean;
 }
 
 export type MenuContribution = IMenuContribution | ISubmenuContribution;
