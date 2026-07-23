@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { getBinaryPath } from "./helpers/buildOnce.ts";
 import type { ProbeSession } from "./probeHarness.ts";
-import { findAll, focusedLeaf, frameLine, frameText, sleep, startProbe } from "./probeHarness.ts";
+import { findAll, focusedLeaf, frameLine, frameText, panelTabPoint, sleep, startProbe } from "./probeHarness.ts";
 
 // Пробы тестировщика по PR #197 («панель Output с выбором подсистемы»).
 // Всё — чёрным ящиком через инспектор настоящего SEA-бинаря: клавиши, мышь,
@@ -75,19 +75,20 @@ describe("PR #197 — Output panel (probe)", () => {
         await sleep(300);
         expect(frameText(await session.captureFrame())).toContain("OUTPUT");
         await session.sendKey("Escape");
-        await sleep(300);
+        // Ждём предикатом, а не паузой: на медленном раннере список мог ещё жить,
+        // а координаты вкладок мы берём из дерева и они должны быть уже валидны.
+        const closed = await session.waitForDocument(
+            (r) => findAll(r, (n) => n.type === "PopupMenuElement").length === 0,
+        );
 
-        const f = await session.captureFrame();
-        let hy = -1;
-        for (let y = 0; y < f.rows; y++) if (frameLine(f, y).includes("PROBLEMS")) hy = y;
-        const header = frameLine(f, hy);
-        await session.click(header.indexOf("TERMINAL") + 2, hy);
-        await sleep(800);
+        const terminalTab = panelTabPoint(closed, "TERMINAL");
+        await session.click(terminalTab.x, terminalTab.y);
         // На TERMINAL селектор канала должен исчезнуть.
-        expect(findAll((await session.getDocument()).root, (n) => n.type === "SelectBoxElement")).toHaveLength(0);
-        await session.click(header.indexOf("OUTPUT") + 2, hy);
-        await sleep(800);
-        expect(findAll((await session.getDocument()).root, (n) => n.type === "SelectBoxElement")).toHaveLength(1);
+        await session.waitForDocument((r) => findAll(r, (n) => n.type === "SelectBoxElement").length === 0);
+
+        const outputTab = panelTabPoint(closed, "OUTPUT");
+        await session.click(outputTab.x, outputTab.y);
+        await session.waitForDocument((r) => findAll(r, (n) => n.type === "SelectBoxElement").length === 1);
     }, 120_000);
 
     // ── Дефекты ─────────────────────────────────────────────────────────────

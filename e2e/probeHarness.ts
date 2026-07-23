@@ -133,3 +133,26 @@ export function pathToNode(root: NodeSnapshot | null, target: NodeSnapshot): str
 export function sleep(ms: number): Promise<void> {
     return new Promise((r) => setTimeout(r, ms));
 }
+
+/** Заголовки вкладок нижней панели в порядке регистрации. */
+export const PANEL_TABS = ["PROBLEMS", "OUTPUT", "TERMINAL"] as const;
+
+/**
+ * Точка для клика по вкладке нижней панели. Считается из `box` самого
+ * `PanelContainerElement`, а не сканированием кадра: вкладки рисуются прямо в
+ * контейнере (своих элементов у них нет), но геометрия детерминированная —
+ * отступ 1, паддинг 1 с каждой стороны, строка табов вторая сверху (см.
+ * `TAB_INDENT` / `TAB_PAD` / `TAB_ROW` в `tuidom/ui/panel/panelContainerElement.ts`).
+ *
+ * Именно ради этого хелпера: сканирование текста кадра ломалось на медленном
+ * Windows-раннере — если панель не успевала отрисоваться, координата уезжала в
+ * произвольное место экрана и клик попадал в файловое дерево.
+ */
+export function panelTabPoint(root: NodeSnapshot | null, title: (typeof PANEL_TABS)[number]): { x: number; y: number } {
+    const panel = nodeOfType(root, "PanelContainerElement");
+    if (panel === null) throw new Error("PanelContainerElement не найден — панель не открыта?");
+    const index = PANEL_TABS.indexOf(title);
+    let x = panel.box.x + 1; // TAB_INDENT
+    for (let i = 0; i < index; i++) x += PANEL_TABS[i].length + 2; // TAB_PAD * 2
+    return { x: x + 1 + Math.floor(title.length / 2), y: panel.box.y + 1 }; // TAB_ROW
+}
