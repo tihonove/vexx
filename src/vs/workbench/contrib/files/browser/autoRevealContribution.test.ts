@@ -19,7 +19,7 @@ class FakeEditorService {
         };
     }
 
-    public getActiveEditor(): { absoluteFilePath: string | null } | null {
+    public getActiveTabEditor(): { absoluteFilePath: string | null } | null {
         return this.activePath === null ? null : { absoluteFilePath: this.activePath };
     }
 

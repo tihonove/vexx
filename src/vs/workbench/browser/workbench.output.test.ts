@@ -16,6 +16,7 @@ import { resolveUserDataPaths } from "../../platform/environment/node/userDataPa
 import { EditorOptionsServiceAdapter } from "../api/browser/editorOptionsServiceAdapter.ts";
 import { FindComponentDIToken } from "../contrib/find/browser/findComponent.ts";
 import type { EditorPane } from "./parts/editor/editorPane.ts";
+import { WorkbenchStateServiceDIToken } from "./workbenchStateService.ts";
 
 import { EditorServiceDIToken } from "../services/editor/browser/editorService.ts";
 import { LogHistoryDIToken, OUTPUT_VIEW_ID, OutputChannelRegistryDIToken } from "../services/output/common/output.ts";
@@ -439,6 +440,95 @@ describe("Workbench — Output: регрессии", () => {
         expect(text).toContain("vexx starting");
         expect(text).not.toContain("No output yet.");
         second.dispose();
+    });
+});
+
+/**
+ * Focus-aware `getActiveEditor()` отдаёт detached-панель всем подряд, и
+ * потребители с «вкладочной» семантикой ломаются об это по-разному. Класс багов
+ * общий, поэтому и тесты рядом.
+ */
+describe("Workbench — Output: потребители, которым нужна вкладка", () => {
+    let ws: ITempWorkspace;
+    let h: IAppHarness;
+    let logService: LogService;
+
+    beforeEach(() => {
+        ws = createTempWorkspace({
+            prefix: "vexx-output-tab-",
+            files: { "alpha.txt": "AAAA\nBBBB\nCCCC" },
+        });
+        logService = new LogService();
+        const history = new RingBufferSink();
+        logService.addSink(history);
+        logService.createLogger("bootstrap").info("seed");
+        h = createAppTestHarness({
+            workspaceFolder: ws.dir,
+            size: new Size(120, 32),
+            containerOverrides: (container) => {
+                container.bind(ILogServiceDIToken, () => logService);
+                container.bind(LogHistoryDIToken, () => history);
+            },
+        });
+        h.workbench.openFile(ws.path("alpha.txt"));
+        h.commands.execute(TOGGLE_OUTPUT);
+    });
+
+    afterEach(() => {
+        h.dispose();
+        ws.dispose();
+    });
+
+    it("живая запись в Output не гасит область редактора", () => {
+        // Хвост дёргает onDidChangeEditors → группа пере-вставляла контент по
+        // focus-aware активному редактору и подсовывала себе Output вместо файла:
+        // весь центр экрана оказывался пустым.
+        h.testApp.render();
+        expect(h.testApp.backend.screenToString()).toContain("AAAA");
+
+        logService.createLogger("bootstrap").info("tail");
+
+        h.testApp.render();
+        expect(h.testApp.backend.screenToString()).toContain("AAAA");
+    });
+
+    it("Ctrl+W при фокусе в Output спрашивает про несохранённую вкладку", () => {
+        // dirty спрашивали у focus-aware активного редактора — Output никогда не
+        // modified, и изменённая вкладка закрывалась бы молча.
+        const editorService = h.container.get(EditorServiceDIToken);
+        const tab = editorService.getEditors()[0];
+        tab.viewState.type("X");
+        expect(tab.isModified).toBe(true);
+        let asked = -1;
+        editorService.onRequestConfirmClose = (index) => {
+            asked = index;
+        };
+
+        h.commands.execute("workbench.action.closeActiveEditor");
+
+        expect(asked).toBe(0);
+        expect(editorService.editorCount).toBe(1);
+    });
+
+    it("Ctrl+S при фокусе в Output сохраняет вкладку, а не уводит в Save As", () => {
+        const tab = h.container.get(EditorServiceDIToken).getEditors()[0];
+        tab.viewState.type("X");
+
+        h.commands.execute("workbench.action.files.save");
+
+        expect(tab.isModified).toBe(false);
+    });
+
+    it("персист активной вкладки переживает фокус в панели", () => {
+        const stateService = h.container.get(WorkbenchStateServiceDIToken);
+
+        stateService.captureOpenEditors();
+
+        // Активная вкладка — открытый файл; Output пути на диске не имеет, и
+        // индекс схлопывался бы в -1.
+        expect(h.container.get(EditorServiceDIToken).getActiveTabEditor()?.absoluteFilePath).toBe(
+            ws.path("alpha.txt"),
+        );
     });
 });
 

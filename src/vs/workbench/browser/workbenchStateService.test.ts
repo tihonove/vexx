@@ -32,7 +32,7 @@ class FakeGroup {
     public getOpenFilePaths(): string[] {
         return this.paths;
     }
-    public getActiveEditor(): { absoluteFilePath: string | null } | null {
+    public getActiveTabEditor(): { absoluteFilePath: string | null } | null {
         return this.active >= 0 ? { absoluteFilePath: this.paths[this.active] } : null;
     }
     public onActiveEditorChanged(listener: () => void): { dispose(): void } {

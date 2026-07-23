@@ -19,7 +19,8 @@ interface GroupStub {
     cycleMru?: (direction: 1 | -1) => void;
     endMruCycle?: () => void;
     closeTab: (index: number) => void;
-    getActiveEditor?: () => { isModified: boolean } | null;
+    /** Закрываемую вкладку экшен берёт по индексу, а не через focus-aware активный редактор. */
+    getEditor?: (index: number) => { isModified: boolean } | null;
     onRequestConfirmClose?: (index: number) => void;
 }
 
@@ -121,7 +122,7 @@ describe("TabActions", () => {
             editorCount: 3,
             activateTab: vi.fn(),
             closeTab,
-            getActiveEditor: () => ({ isModified: false }),
+            getEditor: () => ({ isModified: false }),
         };
 
         const { commands, keybindings, accessor } = setupActionTest(group);
@@ -140,7 +141,7 @@ describe("TabActions", () => {
             editorCount: 3,
             activateTab: vi.fn(),
             closeTab,
-            getActiveEditor: () => ({ isModified: true }),
+            getEditor: () => ({ isModified: true }),
             onRequestConfirmClose,
         };
 
@@ -160,7 +161,7 @@ describe("TabActions", () => {
             editorCount: 1,
             activateTab: vi.fn(),
             closeTab,
-            getActiveEditor: () => ({ isModified: true }),
+            getEditor: () => ({ isModified: true }),
             // onRequestConfirmClose intentionally absent → else branch.
         };
 
@@ -179,7 +180,7 @@ describe("TabActions", () => {
             editorCount: 0,
             activateTab: vi.fn(),
             closeTab,
-            getActiveEditor: () => null,
+            getEditor: () => null,
         };
 
         const { commands, keybindings, accessor } = setupActionTest(group);

@@ -91,7 +91,9 @@ async function runOpenFolder(accessor: ServiceAccessor): Promise<void> {
  */
 async function runSave(accessor: ServiceAccessor): Promise<void> {
     const editorService = accessor.get(EditorServiceDIToken);
-    const editor = editorService.getActiveEditor();
+    // Сохраняем вкладку: у detached-панели (Output) файла нет, и `save()` увёл бы
+    // в диалог Save As при обычном Ctrl+S из панели.
+    const editor = editorService.getActiveTabEditor();
     if (editor === null) return;
     const outcome = await editor.save();
     if (outcome === "no-file") {
@@ -128,7 +130,7 @@ async function runSave(accessor: ServiceAccessor): Promise<void> {
  */
 async function runSaveAs(accessor: ServiceAccessor): Promise<void> {
     const editorService = accessor.get(EditorServiceDIToken);
-    const editor = editorService.getActiveEditor();
+    const editor = editorService.getActiveTabEditor();
     if (!editor) return;
 
     // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd и предложенного

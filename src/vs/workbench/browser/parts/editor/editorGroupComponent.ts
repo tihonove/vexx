@@ -62,7 +62,10 @@ export class EditorGroupComponent extends ThemedComponent {
 
     /** Приводит контрол к состоянию сервиса: контент активного редактора + табы. */
     private syncFromService(): void {
-        const activeView = this.editorService.getActiveEditor()?.view ?? null;
+        // Именно ВКЛАДКА: `getActiveEditor()` следует за фокусом и при работе в
+        // нижней панели вернул бы её detached-редактор — группа вставила бы его
+        // вместо файла, и область редактора оказывалась пустой.
+        const activeView = this.editorService.getActiveTabEditor()?.view ?? null;
         // Guard от повторной вставки того же view: setContent перевешивает parent,
         // а активный редактор меняется реже, чем файрится onDidChangeEditors.
         if (this.view.getContent() !== activeView) {
