@@ -273,7 +273,7 @@ describe("EditorService", () => {
         }
 
         function mruNames(ctrl: EditorService): (string | null)[] {
-            return ctrl.getMruOrder().map((e) => e.fileName);
+            return ctrl.getMruOrder().map((e) => ctrl.displayName(e));
         }
 
         it("Ctrl+Tab activates the previously used editor, not the next tab by position", () => {

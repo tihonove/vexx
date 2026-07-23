@@ -57,7 +57,7 @@ describe("Workbench — modifier-release routing (Ctrl release commits MRU cycle
 
         keyup("Control"); // release Ctrl → armory fires → commit
 
-        expect(group.getMruOrder().map((e) => e.fileName)).toEqual(["a.ts", "b.ts"]);
+        expect(group.getMruOrder().map((e) => group.displayName(e))).toEqual(["a.ts", "b.ts"]);
     });
 
     it("routes non-modifier keyups too, but they match no armed modifier", () => {
@@ -86,7 +86,7 @@ describe("Workbench — modifier-release routing (Ctrl release commits MRU cycle
         // Release Ctrl → armory commits the selection to the MRU front.
         h.testApp.backend.sendRaw(CONTROL_RELEASE);
         h.testApp.backend.flushInput();
-        expect(group.getMruOrder().map((e) => e.fileName)).toEqual(["a.ts", "b.ts"]);
+        expect(group.getMruOrder().map((e) => group.displayName(e))).toEqual(["a.ts", "b.ts"]);
 
         // A second press-release toggles back to b (two-newest toggle, not deeper).
         h.testApp.sendKey("Ctrl+Tab");
