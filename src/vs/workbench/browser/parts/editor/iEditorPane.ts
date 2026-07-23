@@ -10,7 +10,7 @@ import type { Uri } from "../../../../base/common/uri.ts";
  * Группа не должна знать, текст внутри или дифф: ей нужны идентичность вкладки,
  * контент для вставки в дерево, маркер правки и фокус. Всё текстовое —
  * сохранение, EOL, кодировка, folding, автодополнение — живёт на
- * {@link EditorPane} и доступно только тем, кто явно спросил текстовую панель
+ * {@link TextEditorPane} и доступно только тем, кто явно спросил текстовую панель
  * (`EditorService.getActiveEditor`).
  */
 export interface IEditorPane extends IDisposable {

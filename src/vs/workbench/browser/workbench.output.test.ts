@@ -15,7 +15,7 @@ import { loadState, StateService } from "../../platform/state/node/stateService.
 import { resolveUserDataPaths } from "../../platform/environment/node/userDataPaths.ts";
 import { EditorOptionsServiceAdapter } from "../api/browser/editorOptionsServiceAdapter.ts";
 import { FindComponentDIToken } from "../contrib/find/browser/findComponent.ts";
-import type { EditorPane } from "./parts/editor/editorPane.ts";
+import type { TextEditorPane } from "./parts/editor/textEditorPane.ts";
 import { WorkbenchStateServiceDIToken } from "./workbenchStateService.ts";
 
 import { EditorServiceDIToken } from "../services/editor/browser/editorService.ts";
@@ -324,7 +324,7 @@ describe("Workbench — Output: регрессии", () => {
     });
 
     /** Открывает Output и возвращает его detached-редактор. */
-    function outputPane(): EditorPane {
+    function outputPane(): TextEditorPane {
         h.commands.execute(TOGGLE_OUTPUT);
         const pane = h.container.get(EditorServiceDIToken).getActiveEditor();
         expect(pane?.uri.scheme).toBe("output");

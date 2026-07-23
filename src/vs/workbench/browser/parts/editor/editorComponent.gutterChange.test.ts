@@ -2,9 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { packRgb } from "../../../../../../tuidom/common/colorUtils.ts";
 import { Point, Size } from "../../../../../../tuidom/common/geometryPromitives.ts";
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
 import { TestApp } from "../../../../../TestUtils/TestApp.ts";
+import { createEditorPane, type TextEditorPane } from "../../../../../TestUtils/TextEditorPaneFactory.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { createRange } from "../../../../editor/common/core/iRange.ts";
 

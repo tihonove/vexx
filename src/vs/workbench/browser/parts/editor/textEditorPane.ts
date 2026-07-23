@@ -32,11 +32,11 @@ import type { IEditorPane } from "./iEditorPane.ts";
  * EOL, кодировка, folding, автодополнение), доступно только тем, кто явно
  * спросил текстовую панель.
  */
-export class EditorPane extends Disposable implements IEditorPane {
+export class TextEditorPane extends Disposable implements IEditorPane {
     private readOnlyListeners = new Set<() => void>();
     /**
      * Редактор вне таб-строки (нижняя Panel: Output). Такой редактор попадает в
-     * `getActiveEditor()`, когда фокус внутри него, — и потребители, работающие
+     * `getActivePane()`, когда фокус внутри него, — и потребители, работающие
      * с ВКЛАДКОЙ (переключение read-only, `activeTextEditor` для расширений),
      * обязаны его пропускать: содержимым владеет фича, а не пользователь.
      * Ставит `EditorService.openDetached`.

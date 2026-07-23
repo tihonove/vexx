@@ -12,7 +12,7 @@ import { token } from "../../../../platform/instantiation/common/diContainer.ts"
 import { getSelectBoxStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
-import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
+import type { TextEditorPane } from "../../../browser/parts/editor/textEditorPane.ts";
 import type { PanelService } from "../../../browser/parts/panel/panelService.ts";
 import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
@@ -45,7 +45,7 @@ export class OutputComponent extends Disposable {
     ] as const;
 
     /** Редактор канала; создаётся лениво — до открытия вкладки он не нужен. */
-    private pane: EditorPane | null = null;
+    private pane: TextEditorPane | null = null;
     /** Канал, содержимое которого сейчас залито в редактор. */
     private loadedChannelId: string | null = null;
     /** Селектор канала в шапке панели; наполняется из submenu `switchOutput`. */
@@ -153,7 +153,7 @@ export class OutputComponent extends Disposable {
         this.panelService.setViewActions(OUTPUT_VIEW_ID, options.length > 0 ? this.selector : null);
     }
 
-    private ensurePane(): EditorPane {
+    private ensurePane(): TextEditorPane {
         if (this.pane !== null) return this.pane;
         // Ресурс канала синтетический (`output:<id>`), как в VS Code: файла нет,
         // содержимое даёт сервис.
@@ -177,7 +177,7 @@ export class OutputComponent extends Disposable {
      * выделяет — тот же смысл, что у `scrollLock` в `OutputEditor` VS Code,
      * только выведенный из состояния, а не из отдельного тумблера.
      */
-    private shouldFollowTail(pane: EditorPane): boolean {
+    private shouldFollowTail(pane: TextEditorPane): boolean {
         const viewState = pane.viewState;
         const hasSelection = viewState.selections.some((selection) => !isSelectionCollapsed(selection));
         if (hasSelection) return false;
@@ -190,7 +190,7 @@ export class OutputComponent extends Disposable {
      * документа — скролл подтягивается за ним. Read-only движению курсора не
      * мешает: он запрещает правки, а не навигацию.
      */
-    private revealLastLine(pane: EditorPane): void {
+    private revealLastLine(pane: TextEditorPane): void {
         const lastLine = Math.max(0, pane.viewState.document.lineCount - 1);
         pane.goToPosition(lastLine, 0);
     }

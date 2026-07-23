@@ -6,7 +6,7 @@ import { createSelection } from "../../../../editor/common/core/iSelection.ts";
 import { findMatches } from "../../../../editor/contrib/find/findMatches.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
-import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
+import type { TextEditorPane } from "../../../browser/parts/editor/textEditorPane.ts";
 import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
 
 import type { FindComponent } from "./findComponent.ts";
@@ -35,7 +35,7 @@ export class FindService extends Disposable {
      * фокусом — со второго же вызова поиск уезжал бы на другой редактор. Именно
      * так `Ctrl+F` из панели Output искал по файлу за ней.
      */
-    private target: EditorPane | null = null;
+    private target: TextEditorPane | null = null;
 
     public constructor(component: FindComponent, editorService: EditorService) {
         super();

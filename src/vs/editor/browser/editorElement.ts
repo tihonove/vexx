@@ -305,7 +305,7 @@ export class EditorElement extends TUIElement implements IScrollable {
      * Режим «только чтение» (VS Code `EditorOption.readOnly`). Истина живёт на
      * `EditorViewState` — через него проходят все правки; здесь только чтение,
      * чтобы `WorkbenchContextKeys` мог спросить сфокусированный виджет напрямую.
-     * Выставляют флаг через `EditorPane.readOnly` — он ещё и файрит событие.
+     * Выставляют флаг через `TextEditorPane.readOnly` — он ещё и файрит событие.
      */
     public get readOnly(): boolean {
         return this.viewState.readOnly;

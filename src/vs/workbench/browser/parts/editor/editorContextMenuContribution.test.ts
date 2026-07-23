@@ -11,12 +11,12 @@ import type { EditorService } from "../../../services/editor/browser/editorServi
 import { MENU_CONTRIBUTIONS } from "../../actions/menuContributions.ts";
 
 import { EditorContextMenuContribution } from "./editorContextMenuContribution.ts";
-import type { EditorPane } from "./editorPane.ts";
+import type { TextEditorPane } from "./textEditorPane.ts";
 
 class FakeEditorService {
-    public onEditorCreate?: (pane: EditorPane) => void;
+    public onEditorCreate?: (pane: TextEditorPane) => void;
     public createEditor(pane: FakePane): void {
-        this.onEditorCreate?.(pane as unknown as EditorPane);
+        this.onEditorCreate?.(pane as unknown as TextEditorPane);
     }
 }
 

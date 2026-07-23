@@ -16,7 +16,7 @@ const SETTINGS_OWNER = "settings";
 /**
  * Минимальный срез открытого редактора, нужный диагностикам: ресурс, текст,
  * событие изменения контента и канал squiggle-декораций. Пара `TextFileModel` +
- * `EditorPane` (`TextFileModel` + `EditorComponent`) соответствует ему структурно,
+ * `TextEditorPane` (`TextFileModel` + `EditorComponent`) соответствует ему структурно,
  * связывание делает DI-модуль ({@link DiagnosticsEditorSourceDIToken}).
  */
 export interface IDiagnosticsEditor {

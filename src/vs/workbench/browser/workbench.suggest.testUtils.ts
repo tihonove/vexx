@@ -7,7 +7,7 @@ import { ContextKeyServiceDIToken } from "../../platform/contextkey/common/conte
 import { CompletionServiceDIToken } from "../contrib/suggest/browser/completionService.ts";
 import { SuggestComponentDIToken } from "../contrib/suggest/browser/suggestComponent.ts";
 
-import type { EditorPane } from "./parts/editor/editorPane.ts";
+import type { TextEditorPane } from "./parts/editor/textEditorPane.ts";
 import type { WorkbenchComponent } from "./workbenchComponent.ts";
 
 /** Срез пары CompletionService+SuggestComponent для интеграционных тестов. */
@@ -21,7 +21,7 @@ export interface SuggestContext {
     testApp: TestApp;
     workbench: WorkbenchComponent;
     contextKeys: ContextKeyService;
-    activeEditor: () => EditorPane;
+    activeEditor: () => TextEditorPane;
     completion: SuggestHandle;
     harness: IAppHarness;
     workspace: ITempWorkspace;

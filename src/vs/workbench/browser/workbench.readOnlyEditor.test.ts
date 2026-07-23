@@ -157,7 +157,7 @@ describe("Workbench — read-only editor", () => {
     });
 
     describe("гейт when-клауз (слой кейбиндов)", () => {
-        // Гарды в EditorViewState/EditorPane держат оборону сами по себе, поэтому
+        // Гарды в EditorViewState/TextEditorPane держат оборону сами по себе, поэтому
         // по документу разницу не увидеть — when-клаузы наблюдаемы ровно там, где
         // и применяются (`commandAction.ts` вешает их на регистрацию кейбинда).
         // Без этих кейсов слой when остаётся непокрытым: проверено — тесты выше
@@ -215,7 +215,7 @@ describe("Workbench — read-only editor", () => {
         });
 
         it("applyExternalEdits не проходит — общий вход suggest, rename/bulkEdit и extension host", () => {
-            // Все три сходятся в EditorPane.applyExternalEdits → TextFileModel →
+            // Все три сходятся в TextEditorPane.applyExternalEdits → TextFileModel →
             // EditorViewState.applyEdits, поэтому закрыты одним гардом. When-клаузы
             // сюда не достают вовсе: это программные пути, а не команды.
             h.commands.execute(TOGGLE_READONLY);
@@ -229,7 +229,7 @@ describe("Workbench — read-only editor", () => {
             expect(h.activeEditor().isModified).toBe(false);
         });
 
-        it("EditorPane сам отбивает setEol/setEncoding/redo", () => {
+        it("TextEditorPane сам отбивает setEol/setEncoding/redo", () => {
             // Второй эшелон под командами: сюда приходят программные вызовы,
             // которым не мешает ни when-клауза, ни ранний выход в самой команде.
             const editor = h.activeEditor();
