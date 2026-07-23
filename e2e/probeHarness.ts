@@ -64,9 +64,28 @@ export async function startProbe(options: StartProbeOptions = {}): Promise<Probe
         userDataDir,
         dispose: async () => {
             await session.dispose();
-            if (options.keepUserData !== true) rmSync(userDataDir, { recursive: true, force: true });
+            if (options.keepUserData !== true) removeTempDir(userDataDir);
         },
     };
+}
+
+/**
+ * Удаляет временный каталог, переживая Windows.
+ *
+ * `dispose()` завершает процесс редактора, но Windows отдаёт хендлы не мгновенно
+ * — и `rmSync` падает с `EPERM`, роняя тест на ровном месте (`force: true` тут не
+ * помогает, он про «не ругаться на отсутствующий путь»). `maxRetries`/`retryDelay`
+ * — штатный ответ Node ровно на этот класс ошибок.
+ *
+ * Если не вышло и после ретраев — не падаем: это `tmpdir()`, его подчистит
+ * система, а тест про уборку ничего не утверждает.
+ */
+export function removeTempDir(dir: string): void {
+    try {
+        rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
+    } catch {
+        // best-effort: временный каталог не стоит упавшего теста
+    }
 }
 
 /** Плоский текст кадра (как `frameToText`, но с сохранением trailing-пробелов не нужно). */

@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -6,7 +6,7 @@ import { afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { getBinaryPath } from "./helpers/buildOnce.ts";
 import type { ProbeSession } from "./probeHarness.ts";
-import { findAll, focusedLeaf, frameLine, frameText, sleep, startProbe } from "./probeHarness.ts";
+import { findAll, focusedLeaf, frameLine, frameText, removeTempDir, sleep, startProbe } from "./probeHarness.ts";
 
 // Регрессионные пробы вокруг фикса шести дефектов (`255d596`). Фиксы трогают
 // общую машинерию — Tab-обход всего дерева, пересборку любого редактора при
@@ -26,7 +26,9 @@ describe("PR #197 fix — регрессии соседних механизмо
             await probe.dispose();
             probe = null;
         }
-        while (temps.length > 0) rmSync(temps.pop()!, { recursive: true, force: true });
+        // Тот же ретрай, что и у user-data-dir: каталог смотрит watcher редактора,
+        // и на Windows он освобождается не мгновенно.
+        while (temps.length > 0) removeTempDir(temps.pop()!);
     });
 
     const findRow = async (): Promise<string> => {
