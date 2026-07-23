@@ -233,6 +233,12 @@ expectScreen(backend, screen`
 
 Мышь в e2e — через инспектор (`HeadlessSession`): `click(x, y)`, `wheel(x, y, direction)` и низкоуровневый `sendMouse({ action, button, x, y, … })`. Координаты — 0-based экранные ячейки, тот же фрейм, что у `box` узла в `getDocument()`/`waitForDocument()`, поэтому целиться в элемент можно прямо по его box (пример — `e2e/mouse.test.ts`).
 
+### Функциональные e2e
+
+Помимо smoke-сьютов и скриншот-сценариев в `e2e/` живут **функциональные** тесты: водят приложение как пользователь (клавиши, мышь, рестарт) и проверяют поведение — где фокус, что видно в кадре, дошёл ли ввод. Первый набор — `e2e/outputPanel.probe.test.ts` и `e2e/outputPanelRegression.probe.test.ts` поверх `e2e/probeHarness.ts` (изолированный user-data-dir, user-кейбинды, дамп кадра, аксессоры фокуса).
+
+Суффикс `.probe.` означает «написано как инструмент расследования, ждёт переработки»: обвязка переезжает в `e2e/helpers/`, `sleep` — в предикаты, координаты — в локаторы по `box`. План — [TODO/E2E.md](TODO/E2E.md), Phase 3. Новые функциональные тесты пишем сразу на общих хелперах, а не копируя `probeHarness`.
+
 ### Скриншот-демо (screenshots)
 
 Визуальные фичи демонстрируются **сценариями** в `e2e/scenarios/` (`*.scenario.ts`). Сценарий — это `defineScenario({ name, open, run })`: `run(editor)` получает драйвер над настоящим бинарём (headless) и шлёт команды (`sendKey`, `sendText`, `waitForText`) + снимает кадры (`capture("shot")`). Механика захвата: `HeadlessSession` (реальный SEA-бинарь с `--headless` + инспектор по WebSocket) → `GridSnapshot` → `gridToSvg` → PNG через resvg (всё в `e2e/helpers/`; растеризатор — только тулинг, не в редакторе).
