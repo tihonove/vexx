@@ -20,6 +20,9 @@ import { connectWithRetry, freePort } from "./inspectorClient.ts";
 import { $, $$, focusedLeaf } from "./query.ts";
 import { waitUntil } from "./waitFor.ts";
 
+/** Сколько ждём ответа на `TUIDom.shutdown`, прежде чем перейти к SIGKILL. */
+const SHUTDOWN_REPLY_TIMEOUT_MS = 5000;
+
 /** Modifier flags shared by the mouse convenience verbs. */
 export type MouseModifiers = Pick<SendMouseParams, "shiftKey" | "altKey" | "ctrlKey">;
 
@@ -98,6 +101,23 @@ export class HeadlessSession {
             this.pending.delete(res.id);
             if ("error" in res) waiter.reject(new Error(res.error.message));
             else waiter.resolve((res as InspectorSuccessResponse).result);
+        });
+        // Мёртвый сокет ответа уже не принесёт: ждать его — значит висеть вечно.
+        // Именно так и происходило на `TUIDom.shutdown` — он обрабатывается
+        // синхронным `driver.shutdown()`, то есть процесс уходит в exit, и если
+        // ответ не успел уйти в сокет, `dispose()` не возвращался никогда. Тест
+        // умирал по общему таймауту, без кадра и без указания на место.
+        const failPending = (reason: string): void => {
+            for (const [id, waiter] of this.pending) {
+                this.pending.delete(id);
+                waiter.reject(new Error(reason));
+            }
+        };
+        this.ws.on("close", () => {
+            failPending("inspector socket closed with requests in flight");
+        });
+        this.ws.on("error", (error: Error) => {
+            failPending(`inspector socket failed: ${error.message}`);
         });
     }
 
@@ -301,7 +321,10 @@ export class HeadlessSession {
 
     public async dispose(): Promise<void> {
         try {
-            await this.rpc("TUIDom.shutdown");
+            // Просьба выйти по-хорошему — но именно просьба: ответа может не быть
+            // ни от сокета (закрылся), ни от процесса (завис). Дальше всё равно
+            // SIGKILL, поэтому ждём ограниченно, а не «сколько потребуется».
+            await Promise.race([this.rpc("TUIDom.shutdown"), sleep(SHUTDOWN_REPLY_TIMEOUT_MS)]);
         } catch {
             // socket may drop as the process exits — ignore
         }
@@ -317,6 +340,15 @@ export class HeadlessSession {
     public getStderr(): string {
         return this.stderr;
     }
+}
+
+/**
+ * Ограниченная по времени задержка для teardown. В отличие от предикатных
+ * ожиданий в {@link waitFor} тут нужен именно голый таймаут: гонимся с ответом
+ * на shutdown, которого может и не быть.
+ */
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Реэкспорт для существующих потребителей текста кадра.
