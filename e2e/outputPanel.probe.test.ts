@@ -81,9 +81,14 @@ describe("PR #197 — Output panel (probe)", () => {
             (r) => findAll(r, (n) => n.type === "PopupMenuElement").length === 0,
         );
 
-        const terminalTab = panelTabPoint(closed, "TERMINAL");
-        await session.click(terminalTab.x, terminalTab.y);
-        // На TERMINAL селектор канала должен исчезнуть.
+        // Уходим на PROBLEMS, а НЕ на TERMINAL: активация терминала спавнит
+        // настоящий PTY, а node-pty у нас пока Unix-only (по этой же причине
+        // `terminal.scenario.ts` объявляет `skipOn: ["win32", "darwin"]`). На
+        // Windows-раннере клик по TERMINAL валил спавн, и ошибка прилетала наружу
+        // через RPC инспектора — тест краснел не по делу.
+        const problemsTab = panelTabPoint(closed, "PROBLEMS");
+        await session.click(problemsTab.x, problemsTab.y);
+        // Вне OUTPUT селектор канала должен исчезнуть.
         await session.waitForDocument((r) => findAll(r, (n) => n.type === "SelectBoxElement").length === 0);
 
         const outputTab = panelTabPoint(closed, "OUTPUT");
