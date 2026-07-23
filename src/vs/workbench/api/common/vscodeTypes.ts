@@ -247,6 +247,13 @@ export enum FileType {
     SymbolicLink = 64,
 }
 
+/** Вид изменения ресурса, о котором сообщает `FileSystemProvider.onDidChangeFile`. */
+export enum FileChangeType {
+    Changed = 1,
+    Created = 2,
+    Deleted = 3,
+}
+
 /** Одиночная текстовая правка либо смена EOL всего документа. */
 export class TextEdit {
     public range: Range;

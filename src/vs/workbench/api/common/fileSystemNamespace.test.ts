@@ -4,7 +4,12 @@ import * as path from "node:path";
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createFileSystemNamespace, fileTypeFromStats, toFileSystemError } from "./fileSystemNamespace.ts";
+import {
+    createFileSystemNamespace,
+    fileTypeFromStats,
+    SubprocessFileSystemProviders,
+    toFileSystemError,
+} from "./fileSystemNamespace.ts";
 import { FileSystemError, FileType, Uri } from "./vscodeTypes.ts";
 
 const wfs = createFileSystemNamespace();
@@ -146,5 +151,119 @@ describe("FileSystemNamespace — роутинг по схеме", () => {
         const target = path.join(tmpDir, "ok.txt");
         await wfs.writeFile(uri(target), Buffer.from("hi"));
         expect(fs.readFileSync(target, "utf-8")).toBe("hi");
+    });
+});
+
+describe("SubprocessFileSystemProviders", () => {
+    const gitUri = Uri.parse("git:/repo/a.ts") as never;
+
+    /** Минимальный read-only провайдер: отдаёт текст и умеет вручную фаерить изменения. */
+    function provider(content: string) {
+        const listeners: ((events: { uri: unknown }[]) => void)[] = [];
+        return {
+            readFile: () => new TextEncoder().encode(content),
+            onDidChangeFile: (cb: (events: never) => void) => {
+                listeners.push(cb as never);
+                return { dispose: () => listeners.splice(listeners.indexOf(cb as never), 1) };
+            },
+            stat: () => ({ type: FileType.File, ctime: 0, mtime: 0, size: content.length }),
+            watch: () => ({ dispose: () => undefined }),
+            fire: (events: { uri: unknown }[]) => {
+                for (const cb of [...listeners]) cb(events as never);
+            },
+        };
+    }
+
+    it("readFile уходит провайдеру зарегистрированной схемы", async () => {
+        const providers = new SubprocessFileSystemProviders();
+        providers.register("git", provider("оригинал") as never);
+        const ns = createFileSystemNamespace(providers);
+
+        expect(new TextDecoder().decode(await ns.readFile(gitUri))).toBe("оригинал");
+    });
+
+    it("незарегистрированная схема по-прежнему получает Unavailable", async () => {
+        const ns = createFileSystemNamespace(new SubprocessFileSystemProviders());
+        await expect(ns.readFile(gitUri)).rejects.toMatchObject({ code: "Unavailable" });
+    });
+
+    it("схема file идёт на диск даже при наличии провайдеров", async () => {
+        const providers = new SubprocessFileSystemProviders();
+        providers.register("git", provider("не отсюда") as never);
+        const ns = createFileSystemNamespace(providers);
+
+        const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "vexx-fsns-")), "real.txt");
+        fs.writeFileSync(file, "с диска");
+
+        expect(new TextDecoder().decode(await ns.readFile(Uri.file(file) as never))).toBe("с диска");
+    });
+
+    it("занятая схема — ошибка регистрации", () => {
+        const providers = new SubprocessFileSystemProviders();
+        providers.register("git", provider("a") as never);
+        expect(() => providers.register("git", provider("b") as never)).toThrow(/already registered/);
+    });
+
+    it("снятие регистрации освобождает схему", async () => {
+        const providers = new SubprocessFileSystemProviders();
+        providers.register("git", provider("a") as never).dispose();
+        const ns = createFileSystemNamespace(providers);
+
+        expect(providers.get("git")).toBeUndefined();
+        await expect(ns.readFile(gitUri)).rejects.toMatchObject({ code: "Unavailable" });
+    });
+
+    it("список схем и его изменения видны наружу", () => {
+        const providers = new SubprocessFileSystemProviders();
+        const seen: string[][] = [];
+        providers.onDidChangeSchemes(() => seen.push(providers.schemes()));
+
+        const registration = providers.register("git", provider("a") as never);
+        registration.dispose();
+        registration.dispose(); // повторный dispose не должен фаерить снова
+
+        expect(seen).toEqual([["git"], []]);
+    });
+
+    it("изменения провайдера пересылаются подписчикам, пустые — нет", () => {
+        const providers = new SubprocessFileSystemProviders();
+        const p = provider("a");
+        providers.register("git", p as never);
+        const seen: unknown[][] = [];
+        providers.onDidChangeFile((uris) => seen.push(uris));
+
+        p.fire([]);
+        p.fire([{ uri: gitUri }]);
+
+        expect(seen).toEqual([[gitUri]]);
+    });
+
+    it("после снятия регистрации события провайдера больше не пересылаются", () => {
+        const providers = new SubprocessFileSystemProviders();
+        const p = provider("a");
+        const registration = providers.register("git", p as never);
+        const seen: unknown[][] = [];
+        providers.onDidChangeFile((uris) => seen.push(uris));
+
+        registration.dispose();
+        p.fire([{ uri: gitUri }]);
+
+        expect(seen).toEqual([]);
+    });
+
+    it("отписка от событий и от смены схем работает", () => {
+        const providers = new SubprocessFileSystemProviders();
+        const p = provider("a");
+        providers.register("git", p as never);
+        const files: unknown[] = [];
+        const schemes: unknown[] = [];
+        providers.onDidChangeFile((u) => files.push(u)).dispose();
+        providers.onDidChangeSchemes(() => schemes.push(1)).dispose();
+
+        p.fire([{ uri: gitUri }]);
+        providers.register("output", p as never);
+
+        expect(files).toEqual([]);
+        expect(schemes).toEqual([]);
     });
 });

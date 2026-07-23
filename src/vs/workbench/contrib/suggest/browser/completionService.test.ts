@@ -8,14 +8,14 @@ import { Uri } from "../../../../base/common/uri.ts";
 import type { ITextEdit } from "../../../../editor/common/core/iTextEdit.ts";
 import type { ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
-import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
+import type { TextEditorPane } from "../../../browser/parts/editor/textEditorPane.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 
 import { CompletionService } from "./completionService.ts";
 import { SuggestComponent } from "./suggestComponent.ts";
 
 interface FakeEditor {
-    editor: EditorPane;
+    editor: TextEditorPane;
     applyExternalEdits: ReturnType<typeof vi.fn<(edits: ITextEdit[], label: string) => void>>;
     /** Печать: обновляет строку/каретку и шлёт content+cursor (как typing/удаление). */
     type: (line: string, character: number, lineNo?: number) => void;
@@ -58,7 +58,7 @@ function makeEditor(lineContent: string, character: number, docText = lineConten
             cursorListeners.push(l);
             return { dispose: () => cursorListeners.splice(cursorListeners.indexOf(l), 1) };
         },
-    } as unknown as EditorPane;
+    } as unknown as TextEditorPane;
 
     const fireContent = (): void => {
         for (const l of [...contentListeners]) l();
@@ -96,9 +96,9 @@ function makeEditor(lineContent: string, character: number, docText = lineConten
 }
 
 function makeGroup(
-    editor: EditorPane,
+    editor: TextEditorPane,
     source: EditorService["completionSource"],
-    extraEditors: EditorPane[] = [],
+    extraEditors: TextEditorPane[] = [],
 ): EditorService {
     const all = [editor, ...extraEditors];
     return {
@@ -525,10 +525,10 @@ describe("CompletionService", () => {
 
     it("смена активного редактора закрывает открытый попап", async () => {
         const fake = makeEditor("ind", 3, "ind");
-        let activeCb: (e: EditorPane | null) => void = () => {};
+        let activeCb: (e: TextEditorPane | null) => void = () => {};
         const group = {
             getActiveEditor: () => fake.editor,
-            onActiveEditorChanged: (cb: (e: EditorPane | null) => void) => {
+            onActiveEditorChanged: (cb: (e: TextEditorPane | null) => void) => {
                 activeCb = cb;
                 return { dispose: () => {} };
             },
@@ -548,7 +548,7 @@ describe("CompletionService", () => {
 
     it("изменение каретки при отсутствии активного редактора — no-op", () => {
         const fake = makeEditor("ind", 3, "ind");
-        let ref: EditorPane | null = fake.editor;
+        let ref: TextEditorPane | null = fake.editor;
         const group = {
             getActiveEditor: () => ref,
             onActiveEditorChanged: () => ({ dispose: () => {} }),
@@ -599,7 +599,7 @@ describe("CompletionService", () => {
 
     it("активный редактор пропал при открытом попапе — закрывает", async () => {
         const fake = makeEditor("ind", 3, "ind");
-        let ref: EditorPane | null = fake.editor;
+        let ref: TextEditorPane | null = fake.editor;
         const group = {
             getActiveEditor: () => ref,
             onActiveEditorChanged: () => ({ dispose: () => {} }),

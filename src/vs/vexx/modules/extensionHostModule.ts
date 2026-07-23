@@ -10,7 +10,9 @@ import { CommandServiceAdapter } from "../../workbench/api/browser/commandServic
 import { EditorDecorationsServiceAdapter } from "../../workbench/api/browser/editorDecorationsServiceAdapter.ts";
 import { EditorOptionsServiceAdapter } from "../../workbench/api/browser/editorOptionsServiceAdapter.ts";
 import { FileDecorationsServiceAdapter } from "../../workbench/api/browser/fileDecorationsServiceAdapter.ts";
+import { FileSystemProviderAdapter } from "../../workbench/api/browser/fileSystemProviderAdapter.ts";
 import { ThemeColorResolverAdapter } from "../../workbench/api/browser/themeColorResolverAdapter.ts";
+import { FileSystemProviderRegistryDIToken } from "../../workbench/common/coreTokens.ts";
 import { ExplorerServiceDIToken } from "../../workbench/contrib/files/browser/explorerService.ts";
 import { EditorServiceDIToken } from "../../workbench/services/editor/browser/editorService.ts";
 import {
@@ -81,6 +83,12 @@ export const extensionHostModule: ContainerModule = (container) => {
             fileDecorations,
             themeColorResolver,
         });
+
+        // Провайдеры ФС расширений: схемы, объявленные субпроцессом (`git:` у
+        // встроенного git), становятся читаемыми через реестр ядра. Адаптер сам
+        // следит за появлением/исчезновением схем — расширение может
+        // активироваться позже создания хоста.
+        new FileSystemProviderAdapter(host, container.get(FileSystemProviderRegistryDIToken));
 
         // Save-pipeline: редакторы группы прогоняют will-save через host
         // (onWillSaveTextDocument), а состоявшееся сохранение уходит обратно

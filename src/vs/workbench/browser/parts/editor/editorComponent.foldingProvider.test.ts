@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { createEditorPane, type TextEditorPane } from "../../../../../TestUtils/TextEditorPaneFactory.ts";
 import { Uri } from "../../../../base/common/uri.ts";
-import type { IFoldingRegion } from "../../../../editor/contrib/folding/iFoldingRegion.ts";
 import type { FoldingRangeSource } from "../../../../editor/common/languages/iFoldingSource.ts";
+import type { IFoldingRegion } from "../../../../editor/contrib/folding/iFoldingRegion.ts";
 
 /** The provider merge resolves on a microtask; a macrotask tick flushes it. */
 function flush(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function starts(ctrl: EditorPane): number[] {
+function starts(ctrl: TextEditorPane): number[] {
     return ctrl.viewState.foldedRegions.map((r) => r.startLine).sort((a, b) => a - b);
 }
 
@@ -30,7 +30,7 @@ describe("EditorComponent – extension folding provider merge", () => {
         ws.dispose();
     });
 
-    function open(content: string): EditorPane {
+    function open(content: string): TextEditorPane {
         const filePath = ws.writeFile("doc.txt", content);
         const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(filePath));

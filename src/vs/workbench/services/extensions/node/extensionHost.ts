@@ -6,8 +6,8 @@ import { Uri } from "../../../../base/common/uri.ts";
 import type { IRange } from "../../../../editor/common/core/iRange.ts";
 import type { ICompletionRequest, ICoreCompletionItem } from "../../../../editor/common/languages/iCompletionSource.ts";
 import type { IFoldingRequest } from "../../../../editor/common/languages/iFoldingSource.ts";
-import type { IFoldingRegion } from "../../../../editor/contrib/folding/iFoldingRegion.ts";
 import type { IGutterChangeDecoration } from "../../../../editor/common/model/iGutterChangeDecoration.ts";
+import type { IFoldingRegion } from "../../../../editor/contrib/folding/iFoldingRegion.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 import type { ILogger } from "../../../../platform/log/common/iLogger.ts";
 import type { ICommandService } from "../../../api/common/iCommandService.ts";
@@ -28,6 +28,7 @@ import {
     parseDecorationRanges,
     parseWireEditorEdits,
     parseWireFileDecorations,
+    parseWireReadFileResult,
     parseWireSelections,
     requestCompletionItems,
     requestFoldingRanges,
@@ -214,6 +215,10 @@ export class ExtensionHost extends Disposable {
     private completionSubscribed = false;
     /** Есть ли в субпроцессе зарегистрированные folding-провайдеры (см. `languages.updateSubscriptions`). */
     private foldingSubscribed = false;
+    /** Схемы, для которых субпроцесс держит FileSystemProvider'ы. */
+    private fileSystemSchemesValue: readonly string[] = [];
+    private readonly fileSystemSchemesListeners: (() => void)[] = [];
+    private readonly fileSystemChangeListeners: ((uris: readonly Uri[]) => void)[] = [];
     /** Слушатели смены наличия folding-провайдеров (для пере-пересчёта фолдов открытых редакторов). */
     private readonly foldingProvidersChangedListeners: (() => void)[] = [];
 
@@ -468,6 +473,49 @@ export class ExtensionHost extends Disposable {
         for (const cb of [...this.foldingProvidersChangedListeners]) cb();
     }
 
+    // ─── Провайдеры ФС расширений (мост под IFileSystemProviderRegistry) ──────
+
+    /**
+     * Схемы, для которых субпроцесс держит `FileSystemProvider`. Потребитель —
+     * адаптер, регистрирующий хост поставщиком этих схем в реестре ядра.
+     */
+    public getFileSystemSchemes(): readonly string[] {
+        return this.fileSystemSchemesValue;
+    }
+
+    /** Набор схем изменился (расширение зарегистрировало/сняло провайдера). */
+    public onFileSystemProvidersChanged(cb: () => void): { dispose(): void } {
+        this.fileSystemSchemesListeners.push(cb);
+        return {
+            dispose: (): void => {
+                const idx = this.fileSystemSchemesListeners.indexOf(cb);
+                if (idx >= 0) this.fileSystemSchemesListeners.splice(idx, 1);
+            },
+        };
+    }
+
+    /**
+     * Читает недисковый ресурс провайдером субпроцесса. Отклоняется, если host
+     * не поднят или провайдер схемы не зарегистрирован — потребитель обязан
+     * это пережить (для гуттера «git-расширения нет» — штатная ситуация).
+     */
+    public async readProvidedFile(uri: Uri): Promise<Uint8Array> {
+        const rpc = this.rpc;
+        if (rpc === null) throw new Error("extension host is not running");
+        return parseWireReadFileResult(await rpc.request("workspace.fs.readFile", { uri: uri.toString() }));
+    }
+
+    /** Содержимое ресурсов провайдера изменилось снаружи. */
+    public onDidChangeProvidedFile(cb: (uris: readonly Uri[]) => void): { dispose(): void } {
+        this.fileSystemChangeListeners.push(cb);
+        return {
+            dispose: (): void => {
+                const idx = this.fileSystemChangeListeners.indexOf(cb);
+                if (idx >= 0) this.fileSystemChangeListeners.splice(idx, 1);
+            },
+        };
+    }
+
     public hasExtension(id: string): boolean {
         return this.extensions.has(id);
     }
@@ -628,6 +676,24 @@ export class ExtensionHost extends Disposable {
             // уже после открытия файла): просим пере-пересчитать фолды открытых
             // редакторов, иначе провайдерские области не подъедут до первой правки.
             if (foldingBefore !== this.foldingSubscribed) this.fireFoldingProvidersChanged();
+        });
+        // Субпроцесс объявляет схемы, для которых расширения зарегистрировали
+        // FileSystemProvider (у встроенного git — `git:`). Ядро по ним читает
+        // недисковые ресурсы через IFileSystemProviderRegistry.
+        rpc.handleNotification("workspace.fileSystemProvidersChanged", (params) => {
+            const p = params as { schemes?: unknown };
+            const schemes = Array.isArray(p.schemes) ? p.schemes.filter((s): s is string => typeof s === "string") : [];
+            this.fileSystemSchemesValue = schemes;
+            for (const cb of [...this.fileSystemSchemesListeners]) cb();
+        });
+        // Провайдер расширения сообщил, что содержимое ресурсов изменилось
+        // (для git: — сдвинулся HEAD/индекс): потребители сбрасывают кэш.
+        rpc.handleNotification("workspace.fs.didChangeFile", (params) => {
+            const p = params as { uris?: unknown };
+            const raw = Array.isArray(p.uris) ? p.uris.filter((u): u is string => typeof u === "string") : [];
+            if (raw.length === 0) return;
+            const uris = raw.map((u) => Uri.parse(u));
+            for (const cb of [...this.fileSystemChangeListeners]) cb(uris);
         });
         rpc.handleNotification("window.showMessage", (params) => {
             const { severity, message } = params as { severity?: unknown; message?: unknown };

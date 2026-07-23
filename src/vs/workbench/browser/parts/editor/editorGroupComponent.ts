@@ -11,7 +11,7 @@ import type { ThemeService } from "../../../services/themes/common/themeService.
 import { ThemeServiceDIToken } from "../../../services/themes/common/themeTokens.ts";
 import { ThemedComponent } from "../../component.ts";
 
-import type { EditorPane } from "./editorPane.ts";
+import type { IEditorPane } from "./iEditorPane.ts";
 
 export const EditorGroupComponentDIToken = token<EditorGroupComponent>("EditorGroupComponent");
 
@@ -19,7 +19,7 @@ export const EditorGroupComponentDIToken = token<EditorGroupComponent>("EditorGr
  * Компонент группы редакторов: владеет {@link EditorGroupElement} (tab strip +
  * контент-хост + локальный OverlayLayer для find-виджета) и отражает в нём
  * состояние {@link EditorService} — по {@link EditorService.onDidChangeEditors}
- * вставляет view активного {@link EditorPane} и перерисовывает табы (метки с
+ * вставляет view активного {@link TextEditorPane} и перерисовывает табы (метки с
  * разводкой тёзок, иконки, маркер изменённости, активная вкладка). Клики по
  * табам возвращаются в сервис (`activateTab`/`closeTab`; закрытие «грязной»
  * вкладки — через `onRequestConfirmClose`).
@@ -41,7 +41,9 @@ export class EditorGroupComponent extends ThemedComponent {
         };
         this.view.tabStrip.onTabClose = (index) => {
             // Индекс приходит из tab strip и всегда указывает на существующую вкладку.
-            const editor = this.editorService.getEditor(index);
+            // Именно getPane, а не getEditor: закрывать надо вкладку любого вида,
+            // иначе не-текстовую панель (дифф) нельзя было бы закрыть крестиком.
+            const editor = this.editorService.getPane(index);
             /* v8 ignore start -- индекс из tab strip всегда указывает на существующую вкладку; null — недостижимый инвариант-гард */
             if (editor === null) return;
             /* v8 ignore stop */
@@ -62,10 +64,10 @@ export class EditorGroupComponent extends ThemedComponent {
 
     /** Приводит контрол к состоянию сервиса: контент активного редактора + табы. */
     private syncFromService(): void {
-        // Именно ВКЛАДКА: `getActiveEditor()` следует за фокусом и при работе в
+        // Именно ВКЛАДКА: `getActivePane()` следует за фокусом и при работе в
         // нижней панели вернул бы её detached-редактор — группа вставила бы его
         // вместо файла, и область редактора оказывалась пустой.
-        const activeView = this.editorService.getActiveTabEditor()?.view ?? null;
+        const activeView = this.editorService.getActiveTabPane()?.view ?? null;
         // Guard от повторной вставки того же view: setContent перевешивает parent,
         // а активный редактор меняется реже, чем файрится onDidChangeEditors.
         if (this.view.getContent() !== activeView) {
@@ -75,7 +77,7 @@ export class EditorGroupComponent extends ThemedComponent {
     }
 
     private syncTabs(): void {
-        const editors = this.editorService.getEditors();
+        const editors = this.editorService.getPanes();
         const labels = this.computeTabLabels();
         const tabs: TabInfo[] = editors.map((editor, i) => {
             const fi = getFileIcon(this.editorService.displayName(editor));
@@ -98,7 +100,7 @@ export class EditorGroupComponent extends ThemedComponent {
      * родительского пути (как в VS Code), чтобы вкладки нельзя было спутать.
      */
     private computeTabLabels(): string[] {
-        const editors = this.editorService.getEditors();
+        const editors = this.editorService.getPanes();
         const names = editors.map((editor) => this.editorService.displayName(editor));
         const groups = new Map<string, number[]>();
         names.forEach((name, i) => {

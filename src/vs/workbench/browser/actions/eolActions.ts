@@ -11,7 +11,7 @@ import { QuickInputServiceDIToken } from "../parts/quickinput/quickInputService.
  * (`editorStatusContribution.ts`), который зовёт команду напрямую через
  * `commands.execute` мимо `when`. Поэтому read-only проверяем ещё и здесь: иначе
  * в read-only пикер открывался бы и молча ничего не делал (правку всё равно
- * отбил бы `EditorPane.setEol`).
+ * отбил бы `TextEditorPane.setEol`).
  */
 function setActiveEditorEol(accessor: Parameters<CommandAction["run"]>[0], eol: EndOfLine): void {
     const editor = accessor.get(EditorServiceDIToken).getActiveEditor();

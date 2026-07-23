@@ -1,9 +1,9 @@
 import type { IDisposable } from "../../../../../tuidom/common/disposable.ts";
 import { Uri } from "../../../base/common/uri.ts";
-import { createSelection, type ISelection } from "../../../editor/common/core/iSelection.ts";
 import { createRange } from "../../../editor/common/core/iRange.ts";
+import { createSelection, type ISelection } from "../../../editor/common/core/iSelection.ts";
 import { createTextEdit, type ITextEdit } from "../../../editor/common/core/iTextEdit.ts";
-import type { EditorPane } from "../../browser/parts/editor/editorPane.ts";
+import type { TextEditorPane } from "../../browser/parts/editor/textEditorPane.ts";
 import type { EditorService } from "../../services/editor/browser/editorService.ts";
 import type {
     IActiveEditorMeta,
@@ -114,7 +114,7 @@ export class EditorOptionsServiceAdapter implements IEditorOptionsService {
     }
 
     /** Активный редактор, если его uri совпадает с ожидаемым (иначе `null`). */
-    private activeEditorFor(uri: string): EditorPane | null {
+    private activeEditorFor(uri: string): TextEditorPane | null {
         const editor = this.group.getActiveTabEditor();
         if (editor === null || editor.uri.toString() !== uri) return null;
         return editor;
@@ -134,7 +134,7 @@ function clampPosition(
 }
 
 /** Все выделения редактора в wire-форме (первое — первичное). */
-function wireSelectionsOf(editor: EditorPane): IWireSelection[] {
+function wireSelectionsOf(editor: TextEditorPane): IWireSelection[] {
     return (editor.viewState?.selections ?? []).map((sel) => ({
         anchorLine: sel.anchor.line,
         anchorCharacter: sel.anchor.character,
@@ -143,7 +143,7 @@ function wireSelectionsOf(editor: EditorPane): IWireSelection[] {
     }));
 }
 
-function metaOf(editor: EditorPane | null): IActiveEditorMeta {
+function metaOf(editor: TextEditorPane | null): IActiveEditorMeta {
     if (editor === null) {
         return { uri: null, languageId: null, isDirty: false, encoding: null, eol: null, selection: null };
     }

@@ -15,7 +15,8 @@ import { token } from "../../../../platform/instantiation/common/diContainer.ts"
 import { UndoRedoService, UndoRedoServiceDIToken } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 import type { IActivatable } from "../../../browser/iActivatable.ts";
 import { EditorComponent } from "../../../browser/parts/editor/editorComponent.ts";
-import { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
+import type { IEditorPane } from "../../../browser/parts/editor/iEditorPane.ts";
+import { TextEditorPane } from "../../../browser/parts/editor/textEditorPane.ts";
 import {
     LanguageServiceDIToken,
     TokenizationRegistryDIToken,
@@ -38,7 +39,7 @@ export interface IEditorSavedMeta {
 
 /**
  * Логика группы редакторов без view (этап 9b Workbench-рефакторинга, аналог
- * `IEditorService`): владеет списком открытых пар {@link EditorPane}
+ * `IEditorService`): владеет списком открытых пар {@link TextEditorPane}
  * (`TextFileModel` + `EditorComponent`), активной вкладкой и MRU-порядком
  * (Ctrl+Tab), открывает/закрывает ресурсы и применяет `editor.*`-настройки.
  * Про групповой контрол (`EditorGroupComponent`) не знает — тот подписан
@@ -56,15 +57,15 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         IFileWatcherDIToken,
     ] as const;
 
-    private editors: EditorPane[] = [];
+    private panes: IEditorPane[] = [];
     /**
      * Редакторы вне таб-строки (нижняя Panel: Output). Держим отдельным списком
      * именно затем, чтобы весь код вкладок — `getEditors`, `editorCount`,
-     * `getOpenFilePaths`, `collectDirty` — продолжал ходить по `this.editors` и
+     * `getOpenFilePaths`, `collectDirty` — продолжал ходить по `this.panes` и
      * не знал о них вовсе. Виден detached-редактор ровно в одном месте:
-     * {@link getActiveEditor}, когда фокус внутри него.
+     * {@link getActivePane}, когда фокус внутри него.
      */
-    private detachedPanes: EditorPane[] = [];
+    private detachedPanes: TextEditorPane[] = [];
     private activeIndexValue = -1;
 
     /**
@@ -72,7 +73,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * (mru[0] — активный/последний). Отдельно от `editors`, который хранит
      * позиционный порядок вкладок в strip'е. Питает MRU-переключение Ctrl+Tab.
      */
-    private mruOrder: EditorPane[] = [];
+    private mruOrder: IEditorPane[] = [];
     /**
      * Идёт ли сейчас серия Ctrl+Tab. Пока серия активна, список MRU заморожен
      * (`mruCycleList`), а выбор не коммитится в начало `mruOrder` — иначе нельзя
@@ -80,7 +81,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * структурное изменение завершает серию.
      */
     private cyclingActive = false;
-    private mruCycleList: EditorPane[] = [];
+    private mruCycleList: IEditorPane[] = [];
     private mruCyclePointer = 0;
     private themeService: ThemeService;
     private tokenizationRegistry: TokenizationRegistry;
@@ -89,10 +90,10 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     private configurationService: IConfigurationService;
     private undoRedoService: UndoRedoService;
     private fileWatcher: IFileWatcher;
-    private activeEditorListeners: ((editor: EditorPane | null) => void)[] = [];
+    private activeEditorListeners: ((editor: TextEditorPane | null) => void)[] = [];
     private editorSavedListeners: ((meta: IEditorSavedMeta) => void)[] = [];
     private editorsChangedListeners: (() => void)[] = [];
-    private activeSelectionListeners: ((editor: EditorPane) => void)[] = [];
+    private activeSelectionListeners: ((editor: TextEditorPane) => void)[] = [];
     /** Подписка на выделение активного редактора; перевешивается при его смене. */
     private activeSelectionSubscription?: IDisposable;
     private saveParticipantValue?: SaveParticipant;
@@ -105,7 +106,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     private untitledCounter = 0;
 
     public onRequestConfirmClose?: (index: number) => void;
-    public onEditorCreate?: (pane: EditorPane) => void;
+    public onEditorCreate?: (pane: TextEditorPane) => void;
 
     /**
      * Источник автодополнений (host/харнесс подключает сюда провайдеры
@@ -125,7 +126,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
 
     public set saveParticipant(participant: SaveParticipant | undefined) {
         this.saveParticipantValue = participant;
-        for (const editor of this.editors) {
+        for (const editor of this.textPanes()) {
             editor.saveParticipant = participant;
         }
     }
@@ -142,7 +143,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
 
     public set foldingRangeSource(source: FoldingRangeSource | undefined) {
         this.foldingRangeSourceValue = source;
-        for (const editor of this.editors) {
+        for (const editor of this.textPanes()) {
             editor.foldingRangeSource = source;
         }
     }
@@ -153,7 +154,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * потребителю (extension host, проецирующий выделение в субпроцесс) не нужно
      * следить за вкладками.
      */
-    public onDidChangeActiveEditorSelection(cb: (editor: EditorPane) => void): IDisposable {
+    public onDidChangeActiveEditorSelection(cb: (editor: TextEditorPane) => void): IDisposable {
         this.activeSelectionListeners.push(cb);
         // Первый подписчик приходит уже после openFile — подцепляем текущий редактор.
         if (this.activeSelectionSubscription === undefined) {
@@ -167,7 +168,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         };
     }
 
-    public onActiveEditorChanged(cb: (editor: EditorPane | null) => void): IDisposable {
+    public onActiveEditorChanged(cb: (editor: TextEditorPane | null) => void): IDisposable {
         this.activeEditorListeners.push(cb);
         return {
             dispose: () => {
@@ -231,7 +232,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         this.register(
             this.configurationService.onDidChangeConfiguration((event) => {
                 if (!event.affectsConfiguration("editor")) return;
-                for (const editor of this.editors) {
+                for (const editor of this.textPanes()) {
                     this.applyConfigurationToEditor(editor);
                 }
             }),
@@ -243,38 +244,46 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     }
 
     public get editorCount(): number {
-        return this.editors.length;
+        return this.panes.length;
     }
 
-    public getActiveEditor(): EditorPane | null {
-        // Detached-панель (Output) вкладкой не является, но когда фокус внутри неё,
-        // «активный редактор» — именно она: иначе стрелки и Ctrl+F исполнялись бы
-        // по файлу за панелью. Аналог `ICodeEditorService.getFocusedCodeEditor()`
-        // в VS Code. Все ~75 потребителей `getActiveEditor()` получают это даром.
+    // ─── Панели: generic-поверхность для группы и вкладок ─────────────────────
+
+    /**
+     * Активная панель любого вида (текст, дифф, …) — та, по которой работают
+     * команды.
+     *
+     * Detached-панель (Output) вкладкой не является, но когда фокус внутри неё,
+     * активна именно она: иначе стрелки и Ctrl+F исполнялись бы по файлу за
+     * панелью. Аналог `ICodeEditorService.getFocusedCodeEditor()` в VS Code.
+     */
+    public getActivePane(): IEditorPane | null {
         const focused = this.focusedDetachedPane();
         if (focused !== null) return focused;
-        return this.getActiveTabEditor();
+        return this.getActiveTabPane();
     }
 
     /**
      * Активная **вкладка** — без учёта detached-панелей. Отдельно от
-     * {@link getActiveEditor} затем, что «редактор, по которому работают команды»
-     * и «редактор-вкладка» — разные вещи. Вкладка нужна тем, кто:
+     * {@link getActivePane} затем, что «панель, по которой работают команды» и
+     * «панель-вкладка» — разные вещи. Вкладка нужна тем, кто:
+     * - вставляет контент в область редактора (`EditorGroupComponent`) — иначе
+     *   на экран попал бы редактор нижней панели;
      * - уводит фокус ИЗ панели (`PanelFocusContribution`, умерший терминал) —
      *   иначе фокус отскакивал бы обратно в панель;
      * - показывает расширениям `activeTextEditor` — как и в VS Code, фокус в
      *   панели не должен подменять расширению активный текстовый редактор.
      */
-    public getActiveTabEditor(): EditorPane | null {
-        if (this.activeIndexValue < 0 || this.activeIndexValue >= this.editors.length) return null;
-        return this.editors[this.activeIndexValue];
+    public getActiveTabPane(): IEditorPane | null {
+        if (this.activeIndexValue < 0 || this.activeIndexValue >= this.panes.length) return null;
+        return this.panes[this.activeIndexValue];
     }
 
     /**
      * Detached-панель, внутри которой сейчас фокус (или `null`). Проверка — по
      * пути от активного элемента вверх, как `holdsFocus` у виджета терминала.
      */
-    private focusedDetachedPane(): EditorPane | null {
+    private focusedDetachedPane(): TextEditorPane | null {
         if (this.detachedPanes.length === 0) return null;
         for (const pane of this.detachedPanes) {
             const active = pane.view.getRoot()?.focusManager?.activeElement ?? null;
@@ -283,13 +292,59 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         return null;
     }
 
+    public getPane(index: number): IEditorPane | null {
+        if (index < 0 || index >= this.panes.length) return null;
+        return this.panes[index];
+    }
+
+    /** Открытые панели в позиционном порядке вкладок (живой снимок для view-синхронизации). */
+    public getPanes(): readonly IEditorPane[] {
+        return this.panes;
+    }
+
     /**
-     * Создаёт редактор ВНЕ таб-строки: он не попадает ни в `getEditors`, ни в
-     * персист сессии, ни в shutdown-протокол — те ходят по `this.editors`.
-     * Ресурс синтетический (`output:<channel>`), содержимое даёт владелец через
-     * `EditorPane.model`. Владелец же и решает, куда вставить `pane.view`.
+     * Открывает готовую панель не-текстового вида (дифф и т.п.). Идентичность —
+     * по ресурсу, как и у файлов: повторный вызов переключает на существующую
+     * вкладку, а не заводит вторую.
      */
-    public openDetached(uri: Uri, languageId: string): EditorPane {
+    public openPane(pane: IEditorPane, { focus = true }: { focus?: boolean } = {}): void {
+        const existingIndex = this.panes.findIndex((p) => p.uri.toString() === pane.uri.toString());
+        if (existingIndex >= 0) {
+            pane.dispose();
+            this.activateTab(existingIndex, { focus });
+            return;
+        }
+        this.wirePane(pane);
+        this.panes.push(pane);
+        this.activateTab(this.panes.length - 1, { focus });
+    }
+
+    // ─── Текстовая поверхность: сужение generic-списка ────────────────────────
+
+    /**
+     * Активный **текстовый** редактор, либо `null` — в том числе когда активна
+     * панель другого вида. Так все потребители текста (команды правки, find,
+     * автодополнение, статус-бар, host-адаптеры) молча ничего не делают на
+     * диффе, вместо того чтобы падать или требовать проверок на каждом вызове.
+     */
+    public getActiveEditor(): TextEditorPane | null {
+        const pane = this.getActivePane();
+        return pane instanceof TextEditorPane ? pane : null;
+    }
+
+    /** Текстовая вкладка без учёта detached-панелей (см. {@link getActiveTabPane}). */
+    public getActiveTabEditor(): TextEditorPane | null {
+        const pane = this.getActiveTabPane();
+        return pane instanceof TextEditorPane ? pane : null;
+    }
+
+    /**
+     * Создаёт редактор ВНЕ таб-строки: он не попадает ни в `getPanes`, ни в
+     * персист сессии, ни в shutdown-протокол — те ходят по `this.panes`.
+     * Ресурс синтетический (`output:<channel>`), содержимое даёт владелец через
+     * `TextEditorPane.model`. Владелец же и решает, куда вставить `pane.view`.
+     */
+    public openDetached(uri: Uri, languageId: string): TextEditorPane {
         const editor = this.createAndWireEditor();
         editor.detached = true;
         editor.model.openSynthetic(uri, languageId);
@@ -298,14 +353,19 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         return editor;
     }
 
-    public getEditor(index: number): EditorPane | null {
-        if (index < 0 || index >= this.editors.length) return null;
-        return this.editors[index];
+    /** Текстовый редактор по позиции вкладки; `null`, если там панель другого вида. */
+    public getEditor(index: number): TextEditorPane | null {
+        const pane = this.getPane(index);
+        return pane instanceof TextEditorPane ? pane : null;
     }
 
-    /** Открытые редакторы в позиционном порядке вкладок (живой снимок для view-синхронизации). */
-    public getEditors(): readonly EditorPane[] {
-        return this.editors;
+    /** Открытые текстовые редакторы — без панелей других видов. */
+    public getEditors(): readonly TextEditorPane[] {
+        return this.textPanes();
+    }
+
+    private textPanes(): TextEditorPane[] {
+        return this.panes.filter((pane): pane is TextEditorPane => pane instanceof TextEditorPane);
     }
 
     /**
@@ -315,7 +375,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      */
     public getOpenFilePaths(): string[] {
         const paths: string[] = [];
-        for (const editor of this.editors) {
+        for (const editor of this.textPanes()) {
             if (editor.absoluteFilePath !== null) paths.push(editor.absoluteFilePath);
         }
         return paths;
@@ -337,7 +397,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         // Идентичность вкладки — по ресурсу целиком, а не по имени файла: два разных
         // файла с одинаковым basename (например, два index.ts из разных папок)
         // должны открываться в отдельных вкладках, а не переключать на первую.
-        const existingIndex = this.editors.findIndex((e) => e.uri.toString() === uri.toString());
+        const existingIndex = this.panes.findIndex((e) => e.uri.toString() === uri.toString());
         if (existingIndex >= 0) {
             this.activateTab(existingIndex, { focus });
             return;
@@ -350,8 +410,8 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         // Конфиг применяем после openFile: загрузка пересоздаёт view-state, и
         // настройки отступов надо писать уже в новое состояние.
         this.applyConfigurationToEditor(editor);
-        this.editors.push(editor);
-        this.activateTab(this.editors.length - 1, { focus });
+        this.panes.push(editor);
+        this.activateTab(this.panes.length - 1, { focus });
     }
 
     /**
@@ -366,19 +426,19 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         this.applyConfigurationToEditor(editor);
         // Номер выдаём до push: пока редактора нет в списке вкладок, его никто не видит.
         editor.setUntitled(++this.untitledCounter);
-        this.editors.push(editor);
-        this.activateTab(this.editors.length - 1, { focus });
+        this.panes.push(editor);
+        this.activateTab(this.panes.length - 1, { focus });
     }
 
     /**
      * Создаёт пару {@link TextFileModel} + {@link EditorComponent} (обёрнутую в
-     * транзитный {@link EditorPane}) и навешивает общую обвязку группы (watcher,
+     * транзитный {@link TextEditorPane}) и навешивает общую обвязку группы (watcher,
      * save-участник, подписки на изменения → {@link onDidChangeEditors},
      * `onDidSave`, `onEditorCreate`) — всё, кроме загрузки файла и применения
      * конфига (их порядок относительно openFile важен, поэтому они на стороне
      * вызывающего). Общая часть {@link openFile} и {@link newUntitled}.
      */
-    private createAndWireEditor(): EditorPane {
+    private createAndWireEditor(): TextEditorPane {
         const model = new TextFileModel(this.languageService, this.undoRedoService);
         const component = new EditorComponent(
             this.themeService,
@@ -386,41 +446,14 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
             this.tokenStyleResolver,
             model,
         );
-        const editor = this.register(new EditorPane(model, component));
+        const editor = new TextEditorPane(model, component);
+        this.wirePane(editor);
         // Наблюдатель ставим до возможного openFile, чтобы слежение началось с
         // первой загрузки.
         editor.fileWatcher = this.fileWatcher;
         editor.saveParticipant = this.saveParticipantValue;
         editor.foldingRangeSource = this.foldingRangeSourceValue;
-        // Внешнее изменение файла (авто-перечитка чистого буфера / флаг конфликта
-        // для «грязного») отражаем в табах: перечитка меняет контент, конфликт —
-        // маркер модифицированности.
-        this.register(
-            editor.onDidChangeDiskState(() => {
-                this.fireEditorsChanged();
-            }),
-        );
         this.onEditorCreate?.(editor);
-        this.register(
-            editor.onDidChangeContent(() => {
-                this.fireEditorsChanged();
-            }),
-        );
-        // Смена EOL не меняет контент, но меняет isModified — таб должен
-        // получить/потерять маркер изменённости сразу, не дожидаясь
-        // переключения вкладки.
-        this.register(
-            editor.onDidChangeEol(() => {
-                this.fireEditorsChanged();
-            }),
-        );
-        // Тот же мотив, что у EOL: read-only не меняет контент, но меняет вид
-        // таба (метка-замок) — обновляем его сразу.
-        this.register(
-            editor.onDidChangeReadOnly(() => {
-                this.fireEditorsChanged();
-            }),
-        );
         editor.onDidSave = () => {
             this.fireEditorsChanged();
             this.fireEditorSaved(editor);
@@ -428,8 +461,26 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         return editor;
     }
 
+    /**
+     * Общая для панелей любого вида обвязка: владение временем жизни и
+     * перерисовка таб-стрипа по изменению видимого во вкладке.
+     *
+     * Раньше группа подписывалась на три текстовых события по отдельности
+     * (контент, EOL, состояние файла на диске). Теперь панель сводит их в
+     * {@link IEditorPane.onDidChangeState} сама — группе незачем знать, что такое
+     * EOL и бывает ли у вкладки файл на диске.
+     */
+    private wirePane(pane: IEditorPane): void {
+        this.register(pane);
+        this.register(
+            pane.onDidChangeState(() => {
+                this.fireEditorsChanged();
+            }),
+        );
+    }
+
     public activateTab(index: number, { focus = true, mru = false }: { focus?: boolean; mru?: boolean } = {}): void {
-        if (index < 0 || index >= this.editors.length) return;
+        if (index < 0 || index >= this.panes.length) return;
 
         // Обычное переключение завершает серию Ctrl+Tab и коммитит в MRU:
         // сперва — недавно выбранную в серии вкладку, затем целевую.
@@ -438,12 +489,12 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
                 this.commitActiveToMru();
                 this.cyclingActive = false;
             }
-            this.moveToMruFront(this.editors[index]);
+            this.moveToMruFront(this.panes[index]);
         }
 
         this.activeIndexValue = index;
 
-        const editor = this.editors[index];
+        const editor = this.panes[index];
         // Компонент вставляет view активного редактора и перерисовывает табы —
         // до фокуса: фокусировать можно только элемент, стоящий в дереве.
         this.fireEditorsChanged();
@@ -458,11 +509,11 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * проходить по стеку глубже двух вкладок.
      */
     public cycleMru(direction: 1 | -1): void {
-        if (this.editors.length < 2) return;
+        if (this.panes.length < 2) return;
 
         if (!this.cyclingActive) {
             this.commitActiveToMru();
-            this.mruCycleList = this.mruOrder.filter((e) => this.editors.includes(e));
+            this.mruCycleList = this.mruOrder.filter((e) => this.panes.includes(e));
             this.mruCyclePointer = 0;
             this.cyclingActive = true;
         }
@@ -477,7 +528,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
 
         this.mruCyclePointer = (this.mruCyclePointer + direction + length) % length;
         const target = this.mruCycleList[this.mruCyclePointer];
-        const targetIndex = this.editors.indexOf(target);
+        const targetIndex = this.panes.indexOf(target);
         /* v8 ignore start -- defensive: closing a tab clears cyclingActive, so the frozen target is always still open */
         if (targetIndex < 0) {
             this.cyclingActive = false;
@@ -501,11 +552,11 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     }
 
     /** Снимок MRU-порядка (mru[0] — самый недавний). Для тестов и диагностики. */
-    public getMruOrder(): EditorPane[] {
+    public getMruOrder(): IEditorPane[] {
         return [...this.mruOrder];
     }
 
-    private moveToMruFront(editor: EditorPane): void {
+    private moveToMruFront(editor: IEditorPane): void {
         const index = this.mruOrder.indexOf(editor);
         if (index >= 0) this.mruOrder.splice(index, 1);
         this.mruOrder.unshift(editor);
@@ -513,34 +564,34 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
 
     /** Продвигает активный редактор в начало MRU-стека (фиксирует выбор серии). */
     private commitActiveToMru(): void {
-        const current = this.getActiveEditor();
+        const current = this.getActivePane();
         /* v8 ignore start -- defensive: коммит вызывается только когда есть активный редактор */
         if (current) this.moveToMruFront(current);
         /* v8 ignore stop */
     }
 
     public closeTab(index: number): void {
-        if (index < 0 || index >= this.editors.length) return;
+        if (index < 0 || index >= this.panes.length) return;
 
         // Структурное изменение делает замороженный список серии невалидным.
         this.cyclingActive = false;
 
-        const editor = this.editors[index];
-        this.editors.splice(index, 1);
+        const editor = this.panes[index];
+        this.panes.splice(index, 1);
         const mruIndex = this.mruOrder.indexOf(editor);
         /* v8 ignore start -- defensive: каждый открытый редактор присутствует в mruOrder */
         if (mruIndex >= 0) this.mruOrder.splice(mruIndex, 1);
         /* v8 ignore stop */
         editor.dispose();
 
-        if (this.editors.length === 0) {
+        if (this.panes.length === 0) {
             this.activeIndexValue = -1;
             // Компонент снимает view закрытого редактора (фокус гаснет вместе с ним).
             this.fireEditorsChanged();
             this.fireActiveEditorChanged(null);
         } else if (index <= this.activeIndexValue) {
             this.activeIndexValue = Math.max(0, this.activeIndexValue - 1);
-            const activeEditor = this.editors[this.activeIndexValue];
+            const activeEditor = this.panes[this.activeIndexValue];
             this.moveToMruFront(activeEditor);
             this.fireEditorsChanged();
             this.focusEditor();
@@ -563,7 +614,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * Если ключ не задан, соответствующая настройка редактора не трогается
      * (`setIndentOptions` оставит существующее значение — auto-detect и т.п.).
      */
-    private applyConfigurationToEditor(editor: EditorPane): void {
+    private applyConfigurationToEditor(editor: TextEditorPane): void {
         // `editor.occurrencesHighlight`: "off" disables; "singleFile"/"multiFile"
         // (and unset → VS Code default) enable. We only support single-file scope.
         const occurrencesHighlight = this.configurationService.get<string>("editor.occurrencesHighlight");
@@ -583,9 +634,12 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         });
     }
 
-    /** Ставит фокус в редактор-вкладку (см. {@link activeTabEditor} — не в панель). */
+    /**
+     * Фокус активной **вкладки** (см. {@link getActiveTabPane} — не в панель),
+     * причём любого вида: дифф тоже должен получать ввод.
+     */
     public focusEditor(): void {
-        this.getActiveTabEditor()?.focusEditor();
+        this.getActiveTabPane()?.focusEditor();
     }
 
     /**
@@ -597,11 +651,11 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      */
     public collectDirty(): readonly IShutdownDirtyItem[] {
         const items: IShutdownDirtyItem[] = [];
-        for (const editor of this.editors) {
+        for (const editor of this.textPanes()) {
             if (!editor.isModified) continue;
             items.push({
                 name: this.displayName(editor),
-                isStillDirty: () => this.editors.includes(editor),
+                isStillDirty: () => this.panes.includes(editor),
                 save: () => editor.save({ overwrite: true }),
             });
         }
@@ -611,11 +665,8 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
     /**
      * Имя буфера для вкладки/иконки: имя файла, либо `Untitled-N` для безымянного.
      */
-    public displayName(editor: EditorPane): string {
-        // `untitled:Untitled-3`.path === "Untitled-3" — метка безымянного буфера уже
-        // лежит в самом ресурсе, отдельный счётчик-поле для неё не нужен.
-        const uri = editor.uri;
-        return uri.scheme === "file" ? path.basename(uri.fsPath) : uri.path;
+    public displayName(editor: IEditorPane): string {
+        return editor.label;
     }
 
     /**
@@ -627,7 +678,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * ({@link TextFileModel.setLanguage}) — и предложение поедет следом само.
      * Язык без расширений (или незарегистрированный) → имя без расширения.
      */
-    public suggestedSaveName(editor: EditorPane): string {
+    public suggestedSaveName(editor: TextEditorPane): string {
         const name = this.displayName(editor);
         const extension = this.languageService.getExtensionForLanguage(editor.languageId);
         return extension === undefined ? name : `${name}${extension}`;
@@ -639,7 +690,14 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         }
     }
 
-    private fireActiveEditorChanged(editor: EditorPane | null): void {
+    /**
+     * Наружу отдаём только текстовую панель: подписчики
+     * ({@link onActiveEditorChanged}) — это статус-бар, host-адаптеры, find и
+     * прочие потребители текста. Переключение на дифф для них выглядит как «нет
+     * активного редактора», что и есть правда с их точки зрения.
+     */
+    private fireActiveEditorChanged(pane: IEditorPane | null): void {
+        const editor = pane instanceof TextEditorPane ? pane : null;
         this.rebindActiveSelectionForwarding(editor);
         for (const cb of this.activeEditorListeners) {
             cb(editor);
@@ -652,7 +710,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
      * дёргаем: смену активного редактора потребитель и так видит через
      * {@link onActiveEditorChanged}, которое несёт выделение в своей meta.
      */
-    private rebindActiveSelectionForwarding(editor: EditorPane | null): void {
+    private rebindActiveSelectionForwarding(editor: TextEditorPane | null): void {
         this.activeSelectionSubscription?.dispose();
         this.activeSelectionSubscription = undefined;
         if (editor === null) return;
@@ -661,7 +719,7 @@ export class EditorService extends Disposable implements IShutdownParticipant, I
         });
     }
 
-    private fireEditorSaved(editor: EditorPane): void {
+    private fireEditorSaved(editor: TextEditorPane): void {
         // Ресурс есть у любого редактора — гейт на "путь не задан" больше не нужен.
         const meta: IEditorSavedMeta = { uri: editor.uri.toString(), languageId: editor.languageId };
         for (const cb of [...this.editorSavedListeners]) {

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { createEditorPane, type EditorPane } from "../../../../../TestUtils/EditorPaneFactory.ts";
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
+import { createEditorPane, type TextEditorPane } from "../../../../../TestUtils/TextEditorPaneFactory.ts";
 import { Uri } from "../../../../base/common/uri.ts";
 import { createCursorSelection } from "../../../../editor/common/core/iSelection.ts";
 
@@ -10,7 +10,7 @@ function flush(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, 0));
 }
 
-function regionAt(ctrl: EditorPane, startLine: number) {
+function regionAt(ctrl: TextEditorPane, startLine: number) {
     return ctrl.viewState.foldedRegions.find((r) => r.startLine === startLine);
 }
 
@@ -24,7 +24,7 @@ describe("EditorComponent – folding recompute keeps the caret visible", () => 
         ws.dispose();
     });
 
-    function open(content: string): EditorPane {
+    function open(content: string): TextEditorPane {
         const filePath = ws.writeFile("doc.txt", content);
         const ctrl = createEditorPane();
         ctrl.openFile(Uri.file(filePath));

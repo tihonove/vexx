@@ -13,7 +13,7 @@ import { StatusBarServiceDIToken } from "../../../services/statusbar/common/stat
 
 /**
  * Минимальный срез активного редактора, нужный сегментам статус-бара.
- * `EditorPane` (`TextFileModel` + `EditorComponent`) соответствует ему структурно;
+ * `TextEditorPane` (`TextFileModel` + `EditorComponent`) соответствует ему структурно;
  * связывание делает DI-модуль (`ActiveEditorStatusSourceDIToken`).
  */
 export interface IActiveEditorStatus {

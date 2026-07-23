@@ -241,6 +241,9 @@ export class WorkbenchComponent extends ThemedComponent {
         this.view.addEventListener("focus", this.workbenchContextKeys.handleFocusChange, { capture: true });
         this.view.addEventListener("blur", this.workbenchContextKeys.handleFocusChange, { capture: true });
         this.editorService.onRequestConfirmClose = (index) => {
+            // Здесь именно текстовая панель: диалог предлагает СОХРАНИТЬ, а
+            // сохраняться умеет только она. Не-текстовая вкладка сюда не попадает —
+            // у неё isModified === false, и группа закрывает её напрямую.
             const editor = this.editorService.getEditor(index);
             /* v8 ignore start -- defensive: the callback is only invoked synchronously with a valid tab index, so the editor always exists */
             if (!editor) return;

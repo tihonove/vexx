@@ -41,9 +41,7 @@ export function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
 }
 
 /**
- * Гейт схемы: `workspace.fs` в VS Code — роутер по `uri.scheme`, а у нас есть только
- * локальный диск. Для не-`file` ресурса честно отказываем, а не читаем/пишем
- * `uri.fsPath` как локальный путь.
+ * Гейт схемы для операций, которые умеет только локальный диск (`stat`, `writeFile`).
  *
  * Без этого гейта промах тихий и разрушительный: `fsPath` у не-file схемы не бросает,
  * а отдаёт путь как есть (`untitled:Untitled-1` → `"Untitled-1"`), поэтому `writeFile`
@@ -51,6 +49,72 @@ export function toFileSystemError(err: unknown, uri: vscode.Uri): unknown {
  */
 function assertFileScheme(uri: vscode.Uri): void {
     if (uri.scheme !== "file") throw FileSystemError.Unavailable(uri);
+}
+
+/**
+ * Реестр `FileSystemProvider`'ов, зарегистрированных расширениями субпроцесса
+ * (`workspace.registerFileSystemProvider`).
+ *
+ * Живёт здесь, а не в `workspaceNamespace`, чтобы роутинг `workspace.fs` по схеме
+ * тестировался без RPC: сам реестр — чистая логика, а проводка событий на хост
+ * остаётся у namespace'а, у которого есть `rpc`.
+ */
+export class SubprocessFileSystemProviders {
+    private readonly providers = new Map<string, vscode.FileSystemProvider>();
+    private readonly schemeListeners = new Set<() => void>();
+    private readonly changeListeners = new Set<(uris: vscode.Uri[]) => void>();
+    private readonly changeSubscriptions = new Map<string, vscode.Disposable>();
+
+    /** Регистрирует провайдера схемы. Занятая схема — ошибка, как в VS Code. */
+    public register(scheme: string, provider: vscode.FileSystemProvider): { dispose: () => void } {
+        if (this.providers.has(scheme)) {
+            throw new Error(`A filesystem provider for the scheme '${scheme}' is already registered.`);
+        }
+        this.providers.set(scheme, provider);
+        // Провайдер сообщает об изменениях сам (для git: — сдвинулся HEAD/индекс);
+        // пересылаем это наружу, чтобы ядро сбросило кэш оригиналов.
+        this.changeSubscriptions.set(
+            scheme,
+            provider.onDidChangeFile((events) => {
+                const uris = events.map((e) => e.uri);
+                if (uris.length === 0) return;
+                for (const cb of [...this.changeListeners]) cb(uris);
+            }),
+        );
+        this.fireSchemesChanged();
+        return {
+            dispose: () => {
+                if (this.providers.get(scheme) !== provider) return;
+                this.providers.delete(scheme);
+                this.changeSubscriptions.get(scheme)?.dispose();
+                this.changeSubscriptions.delete(scheme);
+                this.fireSchemesChanged();
+            },
+        };
+    }
+
+    public get(scheme: string): vscode.FileSystemProvider | undefined {
+        return this.providers.get(scheme);
+    }
+
+    /** Схемы, которые субпроцесс готов обслуживать (снимок для хоста). */
+    public schemes(): string[] {
+        return [...this.providers.keys()];
+    }
+
+    public onDidChangeSchemes(cb: () => void): { dispose: () => void } {
+        this.schemeListeners.add(cb);
+        return { dispose: () => this.schemeListeners.delete(cb) };
+    }
+
+    public onDidChangeFile(cb: (uris: vscode.Uri[]) => void): { dispose: () => void } {
+        this.changeListeners.add(cb);
+        return { dispose: () => this.changeListeners.delete(cb) };
+    }
+
+    private fireSchemesChanged(): void {
+        for (const cb of [...this.schemeListeners]) cb();
+    }
 }
 
 /** Минимум `fs.Stats`, нужный для определения {@link FileType}. */
@@ -68,7 +132,7 @@ export function fileTypeFromStats(s: IStatKind): FileType {
     return FileType.Unknown;
 }
 
-export function createFileSystemNamespace(): IFileSystemNamespace {
+export function createFileSystemNamespace(providers?: SubprocessFileSystemProviders): IFileSystemNamespace {
     async function stat(uri: vscode.Uri): Promise<vscode.FileStat> {
         assertFileScheme(uri);
         try {
@@ -84,8 +148,17 @@ export function createFileSystemNamespace(): IFileSystemNamespace {
         }
     }
 
+    /**
+     * Роутер по схеме — та же роль, что у `workspace.fs` в VS Code. `file` идёт
+     * на локальный диск, прочие схемы — зарегистрированному провайдеру
+     * расширения; схема без провайдера получает честный `Unavailable`.
+     */
     async function readFile(uri: vscode.Uri): Promise<Uint8Array> {
-        assertFileScheme(uri);
+        if (uri.scheme !== "file") {
+            const provider = providers?.get(uri.scheme);
+            if (provider === undefined) throw FileSystemError.Unavailable(uri);
+            return await provider.readFile(uri);
+        }
         try {
             return await fs.readFile(uri.fsPath);
         } catch (err) {

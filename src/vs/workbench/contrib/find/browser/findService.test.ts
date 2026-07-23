@@ -18,7 +18,7 @@ import { NULL_FILE_WATCHER } from "../../../../platform/files/common/iFileWatche
 import { WorkbenchTheme } from "../../../../platform/theme/common/workbenchTheme.ts";
 import { UndoRedoService } from "../../../../platform/undoRedo/common/undoRedoService.ts";
 import { EditorGroupComponent } from "../../../browser/parts/editor/editorGroupComponent.ts";
-import type { EditorPane } from "../../../browser/parts/editor/editorPane.ts";
+import type { TextEditorPane } from "../../../browser/parts/editor/textEditorPane.ts";
 import { EditorService } from "../../../services/editor/browser/editorService.ts";
 import { darkPlusTheme } from "../../../services/themes/common/themes/darkPlus.ts";
 import { ThemeService } from "../../../services/themes/common/themeService.ts";
@@ -70,7 +70,7 @@ describe("FindService", () => {
         component: FindComponent;
         group: EditorService;
         groupComponent: EditorGroupComponent;
-        editor: EditorPane;
+        editor: TextEditorPane;
         testApp: TestApp;
     } {
         const filePath = path.join(tmpDir, "file.txt");
