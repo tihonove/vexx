@@ -19,6 +19,10 @@ export class TuiApplication {
     public focusManager: FocusManager | null = null;
     public mouseDispatcher: MouseEventDispatcher = new MouseEventDispatcher();
     private renderScheduled = false;
+    // Монотонный счётчик отрисованных кадров. Инкремент на каждый renderFrame —
+    // инспектор ждёт «рендер устоялся» (frameCount не менялся + нет
+    // запланированного рендера), не завися от sleep. См. inspector/idleWaiter.
+    private frameCounter = 0;
     // Цель keydown, закреплённая за парным keypress того же физического нажатия
     // (см. handleInput).
     private pinnedKeypressTarget: TUIElement | null = null;
@@ -28,8 +32,19 @@ export class TuiApplication {
         this.screen = new TerminalScreen(backend.getSize());
     }
 
+    /** Сколько кадров отрисовано с запуска. Растёт при каждой перерисовке. */
+    public get frameCount(): number {
+        return this.frameCounter;
+    }
+
+    /** Есть ли отложенный (setImmediate) рендер, ещё не выполненный. */
+    public get isRenderScheduled(): boolean {
+        return this.renderScheduled;
+    }
+
     private renderFrame(): void {
         if (this.root) {
+            this.frameCounter++;
             this.screen.clear();
 
             // Set root global position to (0, 0) — top-left of screen

@@ -9,6 +9,7 @@ import { BodyElement } from "../ui/body/bodyElement.ts";
 import { ButtonElement } from "../ui/button/buttonElement.ts";
 import { InputElement } from "../ui/inputbox/inputElement.ts";
 
+import { waitForIdle } from "./idleWaiter.ts";
 import { InspectorCore, type InspectorTarget } from "./InspectorCore.ts";
 import type { InspectorDriver } from "./InspectorDriver.ts";
 import {
@@ -65,6 +66,8 @@ function setup(content: TUIElement = new InputElement()) {
             await new Promise<void>((resolve) => setImmediate(resolve));
             return backend.captureFrame();
         },
+        waitForIdle: () =>
+            waitForIdle({ frameCount: () => app.frameCount, isRenderScheduled: () => app.isRenderScheduled }),
         shutdown: () => undefined,
     };
     const core = new InspectorCore(target, driver);

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { TestApp } from "../../src/TestUtils/TestApp.ts";
 import { Size } from "../common/geometryPromitives.ts";
 import { BodyElement } from "../ui/body/bodyElement.ts";
+import { BoxElement } from "../ui/layout/boxElement.ts";
 import { InputElement } from "../ui/inputbox/inputElement.ts";
 import { TextLabelElement } from "../ui/text/textLabelElement.ts";
 
@@ -55,6 +56,20 @@ describe("serializeTree", () => {
         const snap = serializeTree(app.root, app.focusManager?.activeElement ?? null);
         const inputNode = findByType(snap!, "InputElement");
         expect(inputNode?.focused).toBe(true);
+    });
+
+    it("includes inspectState() output as `state`, omits it when undefined", () => {
+        const body = new BodyElement();
+        // Элемент с самоописанием состояния.
+        const stated = new BoxElement();
+        (stated as unknown as { inspectState(): Record<string, unknown> }).inspectState = () => ({ answer: 42 });
+        body.setContent(stated);
+        const app = TestApp.create(body, new Size(10, 3)).app;
+
+        const snap = serializeTree(app.root, null);
+        // Дефолтный BodyElement состояния не отдаёт — поля нет.
+        expect(snap?.state).toBeUndefined();
+        expect(findByType(snap!, "BoxElement")?.state).toEqual({ answer: 42 });
     });
 
     it("assigns pre-order nodeIds (root is 0)", () => {

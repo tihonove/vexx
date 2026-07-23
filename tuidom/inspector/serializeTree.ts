@@ -31,6 +31,8 @@ function serializeNode(element: TUIElement, focused: TUIElement | null, counter:
     if (element.role !== undefined) snapshot.role = element.role;
     if (element.tabIndex !== -1) snapshot.tabIndex = element.tabIndex;
     if (element instanceof TextLabelElement) snapshot.text = element.getText();
+    const state = element.inspectState();
+    if (state !== undefined) snapshot.state = state;
 
     snapshot.children = element.getChildren().map((child) => serializeNode(child, focused, counter));
 

@@ -11,6 +11,8 @@ import {
     type SendKeyParams,
     type SendMouseParams,
     type SendTextParams,
+    type WaitForIdleParams,
+    type WaitForIdleResult,
 } from "./protocol.ts";
 import { serializeTree } from "./serializeTree.ts";
 
@@ -87,6 +89,9 @@ export class InspectorCore {
         this.register(InspectorMethod.captureFrame, async (): Promise<CaptureFrameResult> => {
             return { frame: await driver.captureFrame() };
         });
+        this.register(InspectorMethod.waitForIdle, (params): Promise<WaitForIdleResult> => {
+            return driver.waitForIdle(asWaitForIdleParams(params));
+        });
         this.register(InspectorMethod.shutdown, () => {
             driver.shutdown();
             return {};
@@ -148,6 +153,21 @@ function asSendMouseParams(params: unknown): SendMouseParams {
         altKey: altKey === true,
         ctrlKey: ctrlKey === true,
     };
+}
+
+function asWaitForIdleParams(params: unknown): WaitForIdleParams {
+    if (params === undefined || params === null) return {};
+    const { quietMs, timeoutMs } = asRecord(params);
+    const out: WaitForIdleParams = {};
+    if (quietMs !== undefined) {
+        if (!Number.isFinite(quietMs) || (quietMs as number) < 0) throw new Error("waitForIdle 'quietMs' must be a non-negative number");
+        out.quietMs = quietMs as number;
+    }
+    if (timeoutMs !== undefined) {
+        if (!Number.isFinite(timeoutMs) || (timeoutMs as number) < 0) throw new Error("waitForIdle 'timeoutMs' must be a non-negative number");
+        out.timeoutMs = timeoutMs as number;
+    }
+    return out;
 }
 
 function asResizeParams(params: unknown): ResizeParams {

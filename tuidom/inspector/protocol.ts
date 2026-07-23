@@ -21,6 +21,8 @@ export const InspectorMethod = {
     resize: "TUIDom.resize",
     /** Capture the current screen as a {@link GridSnapshot}. Requires a driver. */
     captureFrame: "TUIDom.captureFrame",
+    /** Wait until the app stops repainting (render settles). Requires a driver. */
+    waitForIdle: "TUIDom.waitForIdle",
     /** Tear down the session and exit. Requires a driver. */
     shutdown: "TUIDom.shutdown",
 } as const;
@@ -69,6 +71,22 @@ export interface CaptureFrameResult {
     frame: GridSnapshot;
 }
 
+/** Params for `TUIDom.waitForIdle`. */
+export interface WaitForIdleParams {
+    /** How long a frame must stay unchanged to count as settled (ms). */
+    quietMs?: number;
+    /** Give up after this long and report `idle: false` (ms). */
+    timeoutMs?: number;
+}
+
+/** Result of `TUIDom.waitForIdle`. */
+export interface WaitForIdleResult {
+    /** `true` — render settled; `false` — timed out while still repainting. */
+    idle: boolean;
+    /** Frame counter at return. */
+    frames: number;
+}
+
 /** Serialized tree node. */
 export interface NodeSnapshot {
     /** Sequential id within a single snapshot (pre-order). Not stable across snapshots yet. */
@@ -82,6 +100,13 @@ export interface NodeSnapshot {
     style: { fg: number; bg: number };
     focused: boolean;
     text?: string;
+    /**
+     * Observable widget state, self-described by the element's `inspectState()`
+     * (cursor/selection/readonly for an editor, active tab for a panel, …).
+     * Absent when the element exposes none. Lets e2e assert on data instead of
+     * guessing from rendered cells.
+     */
+    state?: Record<string, unknown>;
     children: NodeSnapshot[];
 }
 
