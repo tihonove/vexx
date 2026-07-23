@@ -9,7 +9,7 @@ export const deleteLeftAction: CommandAction = {
     id: "deleteLeft",
     title: "Delete Left",
     keybinding: parseKeybinding("backspace"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
@@ -22,7 +22,7 @@ export const deleteRightAction: CommandAction = {
     id: "deleteRight",
     title: "Delete Right",
     keybinding: parseKeybinding("delete"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
@@ -35,7 +35,7 @@ export const deleteWordLeftAction: CommandAction = {
     id: "deleteWordLeft",
     title: "Delete Word Left",
     keybinding: parseKeybinding("ctrl+backspace"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
@@ -48,7 +48,7 @@ export const deleteWordRightAction: CommandAction = {
     id: "deleteWordRight",
     title: "Delete Word Right",
     keybinding: parseKeybinding("ctrl+delete"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
@@ -63,7 +63,7 @@ export const undoAction: CommandAction = {
     id: "undo",
     title: "Undo",
     keybinding: parseKeybinding("ctrl+z"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     menus: [
         { menuId: MenuId.EditorContext, group: "2_undo", order: 10 },
         { menuId: MenuId.MenubarEditMenu, group: "1_undo", order: 10 },
@@ -77,7 +77,7 @@ export const redoAction: CommandAction = {
     id: "redo",
     title: "Redo",
     keybinding: parseKeybinding("ctrl+shift+z"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     menus: [{ menuId: MenuId.MenubarEditMenu, group: "1_undo", order: 20 }],
     run(accessor) {
         accessor.get(EditorServiceDIToken).getActiveEditor()?.redo();
@@ -90,7 +90,7 @@ export const indentLinesAction: CommandAction = {
     id: "editor.action.indentLines",
     title: "Indent Line(s)",
     keybinding: parseKeybinding("tab"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {
@@ -103,7 +103,7 @@ export const outdentLinesAction: CommandAction = {
     id: "editor.action.outdentLines",
     title: "Outdent Line(s)",
     keybinding: parseKeybinding("shift+tab"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     run(accessor) {
         const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
         if (editor) {

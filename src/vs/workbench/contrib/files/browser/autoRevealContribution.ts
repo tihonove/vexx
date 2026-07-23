@@ -24,7 +24,7 @@ export class AutoRevealContribution extends Disposable implements IWorkbenchCont
         this.register(
             this.editorService.onActiveEditorChanged(() => {
                 this.explorerService.autoRevealActiveFile(
-                    this.editorService.getActiveEditor()?.absoluteFilePath ?? null,
+                    this.editorService.getActiveTabEditor()?.absoluteFilePath ?? null,
                 );
             }),
         );

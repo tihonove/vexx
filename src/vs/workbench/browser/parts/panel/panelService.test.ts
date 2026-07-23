@@ -110,4 +110,15 @@ describe("PanelService — view registry", () => {
         service.addView({ id: "problems", title: "PROBLEMS" });
         expect(onViews).not.toHaveBeenCalled();
     });
+
+    it("setViewActions по неизвестной вкладке — no-op", () => {
+        const service = new PanelService();
+        service.addView({ id: "a", title: "A" });
+        let fired = 0;
+        service.onDidChangeViews(() => fired++);
+
+        service.setViewActions("nope", null);
+
+        expect(fired).toBe(0);
+    });
 });

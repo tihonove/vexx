@@ -31,6 +31,8 @@ export interface TabInfo {
     icon: string;
     iconColor: number;
     isModified: boolean;
+    /** Read-only буфер — вкладка получает метку-замок. */
+    isReadOnly: boolean;
 }
 
 // ─── Filler Element ───
@@ -120,9 +122,11 @@ export class EditorTabStripElement extends TUIElement {
                 item.setLabel(tab.label);
                 item.setIcon(tab.icon, tab.iconColor);
                 item.setModified(tab.isModified);
+                item.setReadOnly(tab.isReadOnly);
             } else {
                 item = new EditorTabItemElement(tab.label, tab.icon, tab.iconColor, {
                     modified: tab.isModified,
+                    readOnly: tab.isReadOnly,
                     paddingLeft: 2,
                     paddingRight: 2,
                 });

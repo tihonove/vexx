@@ -5,6 +5,7 @@ import {
     fileSaveAction,
     fileSaveAsAction,
     newUntitledFileAction,
+    toggleActiveEditorReadonlyInSessionAction,
 } from "../../contrib/files/browser/fileActions.ts";
 import {
     fileDeleteAction,
@@ -28,6 +29,7 @@ import {
     nextMatchAction,
     previousMatchAction,
 } from "../../contrib/find/browser/findActions.ts";
+import { toggleOutputAction } from "../../contrib/output/browser/outputActions.ts";
 import { openKeybindingsAction, openSettingsAction } from "../../contrib/preferences/browser/preferencesActions.ts";
 import {
     gotoLineAction,
@@ -158,6 +160,7 @@ export const builtinActions: readonly CommandAction[] = [
     newUntitledFileAction,
     fileOpenAction,
     fileOpenFolderAction,
+    toggleActiveEditorReadonlyInSessionAction,
     openSettingsAction,
     openKeybindingsAction,
     showAboutDialogAction,
@@ -317,6 +320,7 @@ export const builtinActions: readonly CommandAction[] = [
     resetSidebarWidthAction,
     togglePanelAction,
     toggleProblemsAction,
+    toggleOutputAction,
     toggleTerminalAction,
     newTerminalAction,
 ];

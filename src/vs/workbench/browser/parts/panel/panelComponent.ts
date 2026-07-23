@@ -25,6 +25,8 @@ export class PanelComponent extends ThemedComponent {
 
     /** Контент, отданный контролу для каждой вкладки, — чтобы не перевешивать без нужды. */
     private contents = new Map<string, TUIElement | null>();
+    /** То же для контролов шапки — чтобы не перевешивать их на каждый чих. */
+    private actions = new Map<string, TUIElement | null>();
 
     public constructor(
         private readonly panelService: PanelService,
@@ -57,15 +59,21 @@ export class PanelComponent extends ThemedComponent {
         for (const view of this.panelService.getViews()) {
             if (!this.contents.has(view.id)) {
                 this.contents.set(view.id, view.content);
+                this.actions.set(view.id, view.actions);
                 this.view.addView({
                     id: view.id,
                     title: view.title,
                     content: view.content,
+                    actions: view.actions,
                     placeholder: view.placeholder,
                 });
             } else if (this.contents.get(view.id) !== view.content) {
                 this.contents.set(view.id, view.content);
                 this.view.setViewContent(view.id, view.content);
+            }
+            if (this.actions.get(view.id) !== view.actions) {
+                this.actions.set(view.id, view.actions);
+                this.view.setViewActions(view.id, view.actions);
             }
         }
         const activeId = this.panelService.getActiveViewId();

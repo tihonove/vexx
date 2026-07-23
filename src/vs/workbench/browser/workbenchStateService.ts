@@ -72,7 +72,9 @@ export class WorkbenchStateService extends Disposable {
     /** Снимает открытые файлы + активную вкладку в стор (индекс — относительно `files`). */
     public captureOpenEditors(): void {
         const files = this.editorGroup.getOpenFilePaths();
-        const activePath = this.editorGroup.getActiveEditor()?.absoluteFilePath ?? null;
+        // Вкладка, а не focus-aware активный редактор: при фокусе в нижней панели
+        // путь был бы null, и восстановление теряло бы активную вкладку.
+        const activePath = this.editorGroup.getActiveTabEditor()?.absoluteFilePath ?? null;
         const activeIndex = activePath !== null ? files.indexOf(activePath) : -1;
         this.state.store(OPEN_EDITORS_STATE, { files, activeIndex });
     }

@@ -103,6 +103,11 @@ export class WorkbenchContextKeys extends Disposable {
         const editorCount = this.editorService.editorCount;
 
         this.contextKeys.set("textInputFocus", active instanceof EditorElement);
+        // Парный к textInputFocus: мутирующие команды висят на
+        // `textInputFocus && !editorReadonly` — наш аналог `EditorContextKeys.writable`
+        // (в VS Code это `readOnly.toNegated()`). Без фокуса в редакторе ключ
+        // сбрасывается в false, иначе он залипал бы от прошлого редактора.
+        this.contextKeys.set("editorReadonly", active instanceof EditorElement && active.readOnly);
         this.contextKeys.set("inputWidgetFocus", active instanceof InputElement);
         this.contextKeys.set("listFocus", active instanceof TreeViewElement);
         this.inputWidgetService.setActive(active instanceof InputElement ? active : null);

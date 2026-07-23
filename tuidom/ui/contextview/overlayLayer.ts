@@ -246,6 +246,24 @@ export class OverlayLayer extends TUIElement {
         return this.items.map((item) => item.element);
     }
 
+    /**
+     * Tab-обход не должен заходить в скрытые сессии. Оверлей-элементы остаются в
+     * дереве и после закрытия (сессию переиспользуют), а `tabIndex` у них
+     * положительный — поэтому Tab уводил фокус в невидимый инпут find-виджета или
+     * в закрытый QuickPick, и дальнейший ввод уходил в никуда. Layout, отрисовка
+     * и hit-test невидимые элементы уже пропускают — приводим обход к ним.
+     */
+    public override getDepthFirstFocusableOrder(): TUIElement[] {
+        // Сам слой в обход не входит: это невидимый контейнер, фокус берут только
+        // элементы открытых сессий.
+        const result: TUIElement[] = [];
+        for (const item of this.items) {
+            if (!item.visible) continue;
+            result.push(...item.element.getDepthFirstFocusableOrder());
+        }
+        return result;
+    }
+
     public override elementFromPoint(point: Point): TUIElement | null {
         for (let i = this.items.length - 1; i >= 0; i--) {
             const item = this.items[i];

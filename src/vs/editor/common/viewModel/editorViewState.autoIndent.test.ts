@@ -78,7 +78,7 @@ describe("EditorViewState.insertNewLine — auto-indent", () => {
         state.detectIndentation = false;
         const undo = state.insertNewLine();
         expect(doc.getText()).toBe("    foo\n    ");
-        doc.applyEdits(undo.backwardEdits);
+        doc.applyEdits(undo!.backwardEdits);
         expect(doc.getText()).toBe("    foo");
     });
 });

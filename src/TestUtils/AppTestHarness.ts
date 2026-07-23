@@ -40,6 +40,12 @@ export interface IAppHarnessOptions {
     readonly settingsResource?: string;
     /** Переопределить путь keybindings.json (по умолчанию `null` из TestProfile). */
     readonly keybindingsResource?: string;
+    /**
+     * Произвольная перебивка биндингов ДО резолва `WorkbenchComponent` — для
+     * сервисов, у которых нет своей именованной опции (например настоящий
+     * `ILogService` + `LogHistory` вместо null-сервисов профиля тестов).
+     */
+    readonly containerOverrides?: (container: Container) => void;
 }
 
 export interface IAppHarness {
@@ -88,6 +94,7 @@ export function createAppTestHarness(options: IAppHarnessOptions = {}): IAppHarn
         const resource = options.keybindingsResource;
         container.bind(KeybindingsResourceDIToken, () => resource);
     }
+    options.containerOverrides?.(container);
     const workbench = container.get(WorkbenchComponentDIToken);
     if (options.workspaceFolder !== undefined) {
         workbench.setWorkspaceFolder(options.workspaceFolder);

@@ -107,7 +107,7 @@ describe("ExtensionHost (subprocess)", () => {
 describe("EditorOptionsServiceAdapter", () => {
     it("возвращает null когда нет активного редактора", () => {
         const adapter = new EditorOptionsServiceAdapter({
-            getActiveEditor: () => null,
+            getActiveTabEditor: () => null,
         } as never);
         expect(adapter.getActiveEditorOptions()).toBeNull();
         adapter.setActiveEditorOptions({ tabSize: 2 }); // не должно бросать

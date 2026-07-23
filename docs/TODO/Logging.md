@@ -7,9 +7,14 @@
 
 ## Открытые фазы
 
-- [ ] **Phase 4 — Output UI**
-  TUI-виджет (вкладка/панель) поверх `RingBufferSink`: список каналов, live-tail через `onDidAppend`, фильтры по уровню/каналу,
-  clear/scroll. Пара `OutputService` + `OutputComponent` (Workbench), читает sink через DI.
+- [x] **Phase 4 — Output UI**
+  Вкладка OUTPUT в нижней Panel с выбором подсистемы. Обвязка повторяет VS Code:
+  реестр каналов с человекочитаемыми именами (аналог `IOutputChannelRegistry`),
+  содержимое — read-only редактор с языком `log` поверх detached-панели, селектор —
+  submenu `switchOutput` в `MenuId.ViewTitle` с `isSelection`, активный канал
+  помечен `toggled` по ключу `activeOutputChannel`.
+  Осталось за рамками: фильтр по уровню, Clear Output, scroll-lock как команда,
+  персист выбранного канала.
 
 - [ ] **Phase 5 — Extension Host inner tracing**
   Внутри subprocess: пробросить `ILogger` в его `RpcEndpoint` (например, через стартовый `host.setLogLevel`-handshake), чтобы видеть исполнение handler'ов с той стороны.

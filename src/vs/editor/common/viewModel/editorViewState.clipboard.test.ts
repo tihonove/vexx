@@ -85,8 +85,8 @@ describe("EditorViewState.insertText", () => {
         const state = new EditorViewState(doc, [createCursorSelection(0, 5)]);
         const undo = state.insertText(" world");
         expect(undo).toBeDefined();
-        expect(undo.label).toBe("type");
-        doc.applyEdits(undo.backwardEdits);
+        expect(undo!.label).toBe("type");
+        doc.applyEdits(undo!.backwardEdits);
         expect(doc.getText()).toBe("hello");
     });
 });

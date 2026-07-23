@@ -6,13 +6,14 @@ import type { EditorService } from "../../services/editor/browser/editorService.
 import { EditorOptionsServiceAdapter } from "./editorOptionsServiceAdapter.ts";
 
 /**
- * Минимальный стаб EditorService — адаптер использует только
- * `getActiveEditor()` (и в других методах — больше). Здесь нам нужен случай
- * «нет активного редактора».
+ * Минимальный стаб EditorService — адаптер спрашивает у него **вкладку**
+ * (`getActiveTabEditor()`), а не focus-aware активный редактор: фокус в нижней
+ * панели не должен подменять расширению `activeTextEditor`. Здесь нам нужен
+ * случай «нет активного редактора».
  */
 function groupWithNoActiveEditor(): EditorService {
     return {
-        getActiveEditor: () => null,
+        getActiveTabEditor: () => null,
     } as unknown as EditorService;
 }
 
@@ -24,7 +25,7 @@ describe("EditorOptionsServiceAdapter", () => {
 
     it("getActiveEditorOptions() reads tabSize/insertSpaces from the active editor", () => {
         const group = {
-            getActiveEditor: () => ({
+            getActiveTabEditor: () => ({
                 viewState: { tabSize: 4, insertSpaces: true },
             }),
         } as unknown as EditorService;
@@ -42,7 +43,7 @@ describe("EditorOptionsServiceAdapter", () => {
     it("setActiveEditorOptions() forwards the patch to the active editor", () => {
         const setIndentOptions = vi.fn();
         const group = {
-            getActiveEditor: () => ({ setIndentOptions }),
+            getActiveTabEditor: () => ({ setIndentOptions }),
         } as unknown as EditorService;
         const adapter = new EditorOptionsServiceAdapter(group);
         adapter.setActiveEditorOptions({ tabSize: 8 });
@@ -56,7 +57,7 @@ describe("EditorOptionsServiceAdapter", () => {
 
     it("getActiveEditorFilePath() отдаёт путь для file:-ресурса", () => {
         const group = {
-            getActiveEditor: () => ({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false }),
+            getActiveTabEditor: () => ({ uri: Uri.file("/a/b.ts"), languageId: "typescript", isModified: false }),
         } as unknown as EditorService;
         expect(new EditorOptionsServiceAdapter(group).getActiveEditorFilePath()).toBe("/a/b.ts");
     });
@@ -65,7 +66,7 @@ describe("EditorOptionsServiceAdapter", () => {
         // fsPath у untitled: вернул бы относительный "Untitled-1" — потребителю
         // (editorconfig) такой «путь» скармливать нельзя.
         const group = {
-            getActiveEditor: () => ({
+            getActiveTabEditor: () => ({
                 uri: Uri.parse("untitled:Untitled-1"),
                 languageId: "plaintext",
                 isModified: false,
@@ -76,7 +77,7 @@ describe("EditorOptionsServiceAdapter", () => {
 
     it("getActiveEditorMeta() reports uri/languageId/isDirty (nulls when no editor)", () => {
         const withEditor = {
-            getActiveEditor: () => ({
+            getActiveTabEditor: () => ({
                 uri: Uri.file("/a/b.ts"),
                 languageId: "typescript",
                 isModified: true,
@@ -150,7 +151,7 @@ describe("EditorOptionsServiceAdapter", () => {
     it("setActiveEditorSelections() — no-op при несовпадении uri", () => {
         const setSelections = vi.fn();
         const group = {
-            getActiveEditor: () => ({
+            getActiveTabEditor: () => ({
                 uri: Uri.file("/a/b.ts"),
                 get viewState() {
                     return {
@@ -179,7 +180,7 @@ describe("EditorOptionsServiceAdapter", () => {
             model: { document: { lineCount: 3, getLineLength: () => 10 } },
             applyExternalEdits,
         };
-        const group = { getActiveEditor: () => editor } as unknown as EditorService;
+        const group = { getActiveTabEditor: () => editor } as unknown as EditorService;
         const adapter = new EditorOptionsServiceAdapter(group);
 
         const edit = { range: { startLine: 0, startCharacter: 0, endLine: 0, endCharacter: 2 }, text: "hi" };
@@ -196,7 +197,7 @@ describe("EditorOptionsServiceAdapter", () => {
             model: { document: { lineCount: 3, getLineLength: () => 10 } },
             applyExternalEdits: vi.fn(),
         };
-        const group = { getActiveEditor: () => editor } as unknown as EditorService;
+        const group = { getActiveTabEditor: () => editor } as unknown as EditorService;
         const adapter = new EditorOptionsServiceAdapter(group);
         expect(adapter.applyActiveEditorEdits(Uri.file("/a/b.ts").toString(), [])).toBe(false);
         expect(new EditorOptionsServiceAdapter(groupWithNoActiveEditor()).setActiveEditorSelections("x", [])).toBeUndefined();
@@ -221,7 +222,7 @@ describe("EditorOptionsServiceAdapter", () => {
             focusEditor: vi.fn(),
             applyExternalEdits,
         };
-        const group = { getActiveEditor: () => editor } as unknown as EditorService;
+        const group = { getActiveTabEditor: () => editor } as unknown as EditorService;
         const adapter = new EditorOptionsServiceAdapter(group);
         const uri = Uri.file("/a/b.ts").toString();
 
@@ -270,7 +271,7 @@ describe("EditorOptionsServiceAdapter", () => {
             },
         };
         const group = {
-            getActiveEditor: () => editor,
+            getActiveTabEditor: () => editor,
             onDidChangeActiveEditorSelection: (cb: (e: unknown) => void) => {
                 const wrapped = (): void => {
                     cb(editor);
@@ -292,7 +293,7 @@ describe("EditorOptionsServiceAdapter", () => {
         const seen: unknown[] = [];
         adapter.onActiveEditorSelectionChanged((s) => seen.push(s));
 
-        group.getActiveEditor()!.viewState.selections = [
+        group.getActiveTabEditor()!.viewState.selections = [
             { anchor: { line: 3, character: 1 }, active: { line: 3, character: 5 } },
         ] as never;
         await Promise.resolve();
@@ -311,7 +312,7 @@ describe("EditorOptionsServiceAdapter", () => {
         const seen: unknown[] = [];
         adapter.onActiveEditorSelectionChanged((s) => seen.push(s));
 
-        const viewState = group.getActiveEditor()!.viewState;
+        const viewState = group.getActiveTabEditor()!.viewState;
         viewState.selections = [{ anchor: { line: 1, character: 0 }, active: { line: 1, character: 0 } }] as never;
         viewState.selections = [{ anchor: { line: 2, character: 0 }, active: { line: 2, character: 0 } }] as never;
         viewState.selections = [{ anchor: { line: 4, character: 0 }, active: { line: 4, character: 2 } }] as never;
@@ -341,7 +342,7 @@ describe("EditorOptionsServiceAdapter", () => {
 
     it("если активный редактор исчез за тик — шлёт выделения того, кто событие поднял", async () => {
         const { group } = groupWithLiveSelections();
-        const editor = group.getActiveEditor()!;
+        const editor = group.getActiveTabEditor()!;
         const adapter = new EditorOptionsServiceAdapter(group);
         const seen: { uri: string }[] = [];
         adapter.onActiveEditorSelectionChanged((s) => seen.push(s));
@@ -350,7 +351,7 @@ describe("EditorOptionsServiceAdapter", () => {
             { anchor: { line: 2, character: 0 }, active: { line: 2, character: 1 } },
         ] as never;
         // Вкладку закрыли внутри того же тика, пока нотификация ждала flush.
-        (group as unknown as { getActiveEditor: () => null }).getActiveEditor = () => null;
+        (group as unknown as { getActiveTabEditor: () => null }).getActiveTabEditor = () => null;
         await Promise.resolve();
 
         expect(seen).toHaveLength(1);
@@ -363,7 +364,7 @@ describe("EditorOptionsServiceAdapter", () => {
         const seen: unknown[] = [];
         adapter.onActiveEditorSelectionChanged((s) => seen.push(s)).dispose();
 
-        group.getActiveEditor()!.viewState.selections = [
+        group.getActiveTabEditor()!.viewState.selections = [
             { anchor: { line: 3, character: 1 }, active: { line: 3, character: 5 } },
         ] as never;
         await Promise.resolve();
@@ -373,7 +374,7 @@ describe("EditorOptionsServiceAdapter", () => {
 
     it("getActiveEditorMeta() — selection null, когда выделений нет", () => {
         const group = {
-            getActiveEditor: () => ({
+            getActiveTabEditor: () => ({
                 uri: Uri.file("/a/b.ts"),
                 languageId: "typescript",
                 isModified: false,

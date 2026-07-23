@@ -58,7 +58,10 @@ export const closeActiveEditorAction: CommandAction = {
         const group = accessor.get(EditorServiceDIToken);
         if (group.editorCount === 0 || group.activeIndex < 0) return;
 
-        const editor = group.getActiveEditor();
+        // Закрываем вкладку по `activeIndex`, поэтому и dirty спрашиваем у НЕЁ:
+        // focus-aware `getActiveEditor()` при фокусе в панели вернул бы Output
+        // (он никогда не modified) — и изменённая вкладка закрылась бы молча.
+        const editor = group.getEditor(group.activeIndex);
         if (editor?.isModified && group.onRequestConfirmClose) {
             group.onRequestConfirmClose(group.activeIndex);
         } else {

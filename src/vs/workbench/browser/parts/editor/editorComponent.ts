@@ -206,7 +206,17 @@ export class EditorComponent extends ThemedComponent {
      * undo-роутинг перепривязывается к новому `UndoManager`.
      */
     private rebuildForReloadedDocument(): void {
+        // Read-only — свойство редактора, а не документа: перечитка не должна его
+        // снимать. Без переноса «Reopen with Encoding» на read-only вкладке молча
+        // возвращал её в редактируемое состояние.
+        const wasReadOnly = this.editorViewState.readOnly;
+        // Фокус переносим на новый виджет: старый уходит с дерева, и `FocusManager`
+        // остаётся указывать в никуда — клавиатура переставала доходить куда-либо
+        // вовсе. Заметнее всего это было на смене канала Output, где пересборка
+        // происходит на каждое переключение.
+        const hadFocus = holdsFocus(this.editor);
         this.editorViewState = new EditorViewState(this.model.document);
+        this.editorViewState.readOnly = wasReadOnly;
         this.tokenStore.dispose();
         this.tokenStore = new DocumentTokenStore(
             this.model.document,
@@ -227,6 +237,7 @@ export class EditorComponent extends ThemedComponent {
         for (const cb of [...this.selectionListeners]) cb();
         this.view.setChild(this.editor);
         this.recomputeFoldingRegions();
+        if (hadFocus) this.editor.focus();
     }
 
     /** Подключает undo-движок текущего `EditorElement` к общей истории модели. */
@@ -546,4 +557,10 @@ export class EditorComponent extends ThemedComponent {
         this.editorViewState.gotoPreviousFold(this.editorViewState.selections[0].active.line);
         this.editor.markDirty();
     }
+}
+
+/** Держит ли фокус сам виджет или что-то в его поддереве. */
+function holdsFocus(editor: EditorElement): boolean {
+    const active = editor.getRoot()?.focusManager?.activeElement ?? null;
+    return active !== null && active.getAncestorPath().includes(editor);
 }

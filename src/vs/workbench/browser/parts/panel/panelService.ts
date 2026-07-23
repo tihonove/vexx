@@ -19,6 +19,8 @@ export interface IPanelView {
     readonly id: string;
     readonly title: string;
     readonly content: TUIElement | null;
+    /** Контролы вкладки в шапке панели (VS Code `MenuId.ViewTitle`). */
+    readonly actions: TUIElement | null;
     readonly placeholder?: string;
 }
 
@@ -26,6 +28,7 @@ interface PanelViewRecord {
     readonly id: string;
     readonly title: string;
     content: TUIElement | null;
+    actions: TUIElement | null;
     readonly placeholder?: string;
 }
 
@@ -56,6 +59,7 @@ export class PanelService {
             id: view.id,
             title: view.title,
             content: view.content ?? null,
+            actions: null,
             placeholder: view.placeholder,
         });
         this.activeId ??= view.id;
@@ -67,6 +71,18 @@ export class PanelService {
         const view = this.viewList.find((v) => v.id === id);
         if (view === undefined) return;
         view.content = content;
+        this.fire(this.viewsListeners);
+    }
+
+    /**
+     * Подменяет контролы вкладки в шапке панели (null — убрать). Их владелец —
+     * фича вкладки, поэтому в контрол они попадают не напрямую, а через реестр,
+     * как и контент.
+     */
+    public setViewActions(id: string, actions: TUIElement | null): void {
+        const view = this.viewList.find((v) => v.id === id);
+        if (view === undefined) return;
+        view.actions = actions;
         this.fire(this.viewsListeners);
     }
 

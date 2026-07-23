@@ -91,7 +91,9 @@ async function runOpenFolder(accessor: ServiceAccessor): Promise<void> {
  */
 async function runSave(accessor: ServiceAccessor): Promise<void> {
     const editorService = accessor.get(EditorServiceDIToken);
-    const editor = editorService.getActiveEditor();
+    // Сохраняем вкладку: у detached-панели (Output) файла нет, и `save()` увёл бы
+    // в диалог Save As при обычном Ctrl+S из панели.
+    const editor = editorService.getActiveTabEditor();
     if (editor === null) return;
     const outcome = await editor.save();
     if (outcome === "no-file") {
@@ -128,7 +130,7 @@ async function runSave(accessor: ServiceAccessor): Promise<void> {
  */
 async function runSaveAs(accessor: ServiceAccessor): Promise<void> {
     const editorService = accessor.get(EditorServiceDIToken);
-    const editor = editorService.getActiveEditor();
+    const editor = editorService.getActiveTabEditor();
     if (!editor) return;
 
     // Безымянный буфер (Ctrl+N) не имеет пути — стартуем от cwd и предложенного
@@ -242,5 +244,29 @@ export const fileOpenFolderAction: CommandAction = {
     keybinding: parseChord("ctrl+k ctrl+o"),
     run(accessor) {
         void runOpenFolder(accessor);
+    },
+};
+
+/**
+ * Переключает режим «только чтение» у активной вкладки на время сессии
+ * (VS Code `workbench.action.files.toggleActiveEditorReadonlyInSession`).
+ * Session-скоуп: флаг живёт на редакторе, на диск и в настройки не попадает —
+ * конфигурационный слой (`files.readonlyInclude`/`readonlyExclude`) отдельно.
+ * Без дефолтного шортката, как и в VS Code: только палитра команд.
+ */
+export const toggleActiveEditorReadonlyInSessionAction: CommandAction = {
+    id: "workbench.action.files.toggleActiveEditorReadonlyInSession",
+    title: "File: Toggle Active Editor Read-only in Session",
+    run(accessor) {
+        const editor = accessor.get(EditorServiceDIToken).getActiveEditor();
+        // Detached-панель (Output) — не вкладка: её read-only принадлежит фиче,
+        // а не пользователю. Аналог `ActiveEditorCanToggleReadonlyContext` в VS
+        // Code, где inherently-readonly вход session-тумблеру не поддаётся.
+        if (editor === null || editor.detached) return;
+        editor.readOnly = !editor.readOnly;
+        // Ключ `editorReadonly` — производная от состояния редактора, а не от
+        // фокуса, поэтому сам он не пересчитается: гоним обновление руками, как
+        // это делает newUntitledFileAction после смены состава вкладок.
+        accessor.get(WorkbenchContextKeysDIToken).update();
     },
 };

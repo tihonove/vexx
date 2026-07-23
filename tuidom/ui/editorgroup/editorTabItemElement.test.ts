@@ -9,6 +9,7 @@ import { TUIMouseEvent } from "../../dom/events/tuiMouseEvent.ts";
 
 import { EditorTabItemElement } from "./editorTabItemElement.ts";
 
+const LOCK_CHAR = "\uea75"; // nf-cod-lock, см. editorTabItemElement.ts
 const tsIcon = getFileIcon("file.ts");
 const jsIcon = getFileIcon("app.js");
 
@@ -182,6 +183,37 @@ describe("EditorTabItemElement", () => {
             expect(tab.isLayoutDirty).toBe(false);
             tab.setModified(false);
             expect(tab.isLayoutDirty).toBe(false);
+        });
+
+        it("setReadOnly показывает замок и меняет ширину вкладки", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            expect(tab.getReadOnly()).toBe(false);
+            const widthBefore = tab.getMaxIntrinsicWidth(1);
+
+            tab.setReadOnly(true);
+
+            expect(tab.getReadOnly()).toBe(true);
+            // Замок занимает свою колонку + пробел, поэтому вкладка шире на 2.
+            expect(tab.getMaxIntrinsicWidth(1)).toBe(widthBefore + 2);
+            expect(renderTab(tab).text).toContain(LOCK_CHAR);
+        });
+
+        it("setReadOnly с тем же значением не помечает вкладку грязной", () => {
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color);
+            tab.globalPosition = new Point(0, 0);
+            tab.performLayout(BoxConstraints.tight(new Size(20, 1)));
+            expect(tab.isLayoutDirty).toBe(false);
+            tab.setReadOnly(false);
+            expect(tab.isLayoutDirty).toBe(false);
+        });
+
+        it("замок обрезается вместе с меткой, когда ширины не хватает", () => {
+            // Узкая вкладка: пробел после замка уже не влезает — рисуем что успели,
+            // а не выходим за границы.
+            const tab = new EditorTabItemElement("file.ts", tsIcon.icon, tsIcon.color, { readOnly: true });
+            const { text } = renderTab(tab, 4);
+            expect(text).toContain(LOCK_CHAR);
+            expect(text).not.toContain("file.ts");
         });
 
         it("getIcon returns the current icon and setIcon replaces it", () => {

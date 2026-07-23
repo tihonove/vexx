@@ -9,6 +9,11 @@ export interface PanelView {
     readonly title: string;
     /** The view's content element; null renders {@link placeholder} instead. */
     content: TUIElement | null;
+    /**
+     * View-specific controls pinned to the right of the tab row (VS Code's
+     * `MenuId.ViewTitle` area) — e.g. the Output channel selector.
+     */
+    actions?: TUIElement | null;
     /** Empty-state message shown when `content` is null (à la VS Code view welcome). */
     readonly placeholder?: string;
 }
@@ -72,6 +77,9 @@ export class PanelContainerElement extends TUIElement {
         super();
         this.addEventListener("mousedown", (event) => {
             if (event.button !== "left") return;
+            // Событие, всплывшее из дочернего контрола (селектор в шапке), не наше:
+            // без этой проверки клик по нему ещё и переключал бы вкладку.
+            if (event.target !== this) return;
             const localY = event.screenY - this.globalPosition.y;
             if (localY !== TAB_ROW) return; // only the tab header row switches tabs
             const localX = event.screenX - this.globalPosition.x;
@@ -85,7 +93,18 @@ export class PanelContainerElement extends TUIElement {
     public addView(view: PanelView): void {
         this.views.push(view);
         if (view.content !== null) view.content.setParent(this);
+        if (view.actions != null) view.actions.setParent(this);
         this.activeId ??= view.id;
+        this.markDirty();
+    }
+
+    /** Replaces a registered view's title-row controls (null removes them). */
+    public setViewActions(id: string, actions: TUIElement | null): void {
+        const view = this.views.find((v) => v.id === id);
+        if (view === undefined) return;
+        if (view.actions != null) view.actions.setParent(null);
+        view.actions = actions;
+        if (actions !== null) actions.setParent(this);
         this.markDirty();
     }
 
@@ -113,6 +132,11 @@ export class PanelContainerElement extends TUIElement {
         return this.views.map((v) => v.id);
     }
 
+    /** Правая граница таб-строки — за неё контролы вкладки заезжать не должны. */
+    private tabsEnd(): number {
+        return this.views.reduce((x, view) => x + view.title.length + TAB_PAD * 2, TAB_INDENT);
+    }
+
     private activeView(): PanelView | undefined {
         return this.views.find((v) => v.id === this.activeId);
     }
@@ -130,12 +154,25 @@ export class PanelContainerElement extends TUIElement {
     }
 
     public override getChildren(): readonly TUIElement[] {
-        const content = this.activeView()?.content;
-        return content != null ? [content] : [];
+        const active = this.activeView();
+        const children: TUIElement[] = [];
+        if (active?.actions != null) children.push(active.actions);
+        if (active?.content != null) children.push(active.content);
+        return children;
     }
 
     public override performLayout(constraints: BoxConstraints): Size {
         const containerSize = super.performLayout(constraints);
+        // Контролы вкладки прижаты вправо на строке табов — как в шапке Panel у
+        // VS Code. Ширину берём интринсиковую и не даём заехать на сами табы.
+        const actions = this.activeView()?.actions;
+        if (actions != null) {
+            const actionsWidth = Math.min(actions.getMaxIntrinsicWidth(1), containerSize.width);
+            const x = Math.max(this.tabsEnd(), containerSize.width - actionsWidth - TAB_INDENT);
+            actions.localPosition = new Offset(x, TAB_ROW);
+            actions.globalPosition = new Point(this.globalPosition.x + x, this.globalPosition.y + TAB_ROW);
+            actions.performLayout(BoxConstraints.tight(new Size(Math.max(0, containerSize.width - x), 1)));
+        }
         const content = this.activeView()?.content;
         if (content != null) {
             const contentWidth = Math.max(0, containerSize.width - CONTENT_LEFT);
@@ -186,8 +223,17 @@ export class PanelContainerElement extends TUIElement {
             }
         }
 
-        // Active view's content element, or its placeholder empty-state message.
+        // View-specific controls in the title row (drawn after the tabs so they win
+        // the shared row), then the content below.
         const active = this.activeView();
+        const actions = active?.actions;
+        if (actions != null) {
+            const offset = new Offset(actions.localPosition.dx, actions.localPosition.dy);
+            const clip = new Rect(actions.globalPosition, actions.layoutSize);
+            actions.render(context.withOffset(offset).withClip(clip));
+        }
+
+        // Active view's content element, or its placeholder empty-state message.
         if (active?.content != null) {
             const offset = new Offset(active.content.localPosition.dx, active.content.localPosition.dy);
             const clip = new Rect(active.content.globalPosition, active.content.layoutSize);

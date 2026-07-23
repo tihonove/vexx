@@ -30,7 +30,7 @@ describe("UndoManager", () => {
         expect(undoManager.canRedo).toBe(false);
 
         const element = viewState.type(" world");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
         expect(undoManager.canUndo).toBe(true);
         expect(undoManager.canRedo).toBe(false);
     });
@@ -41,7 +41,7 @@ describe("UndoManager", () => {
         viewState.selections = [createCursorSelection(0, 5)];
 
         const element = viewState.type(" world");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
         expect(doc.getText()).toBe("hello world");
 
         expect(undoManager.undo()).toBe(true);
@@ -66,7 +66,7 @@ describe("UndoManager", () => {
         const selectionsBefore = [...viewState.selections];
 
         const element = viewState.type("X");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
 
         undoManager.undo();
         expect(viewState.selections).toEqual(selectionsBefore);
@@ -76,7 +76,7 @@ describe("UndoManager", () => {
         const { doc, viewState, undoManager } = setup("hello");
 
         const element = viewState.type(" world");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
         const afterText = doc.getText();
 
         undoManager.undo();
@@ -90,12 +90,12 @@ describe("UndoManager", () => {
         const { doc, viewState, undoManager } = setup("hello");
 
         const e1 = viewState.type("A");
-        undoManager.pushUndoElement(e1);
+        undoManager.pushUndoElement(e1!);
         undoManager.undo();
         expect(undoManager.canRedo).toBe(true);
 
         const e2 = viewState.type("B");
-        undoManager.pushUndoElement(e2);
+        undoManager.pushUndoElement(e2!);
         expect(undoManager.canRedo).toBe(false);
     });
 
@@ -104,11 +104,11 @@ describe("UndoManager", () => {
         const original = doc.getText();
 
         const e1 = viewState.type("A");
-        undoManager.pushUndoElement(e1);
+        undoManager.pushUndoElement(e1!);
         const afterA = doc.getText();
 
         const e2 = viewState.type("B");
-        undoManager.pushUndoElement(e2);
+        undoManager.pushUndoElement(e2!);
 
         expect(doc.getText()).toBe("AB");
 
@@ -123,7 +123,7 @@ describe("UndoManager", () => {
         const { doc, viewState, undoManager } = setup("hello");
 
         const element = viewState.type(" world");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
 
         // External edit that changes versionId
         doc.applyEdits([{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, text: "!" }]);
@@ -136,7 +136,7 @@ describe("UndoManager", () => {
         expect(doc.versionId).toBe(0);
 
         const element = viewState.type("X");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
         expect(doc.versionId).toBe(1);
 
         undoManager.undo();
@@ -153,7 +153,7 @@ describe("UndoManager", () => {
 
         viewState.selections = [createCursorSelection(1, 2)];
         const element = viewState.type("INSERTED");
-        undoManager.pushUndoElement(element);
+        undoManager.pushUndoElement(element!);
 
         expect(doc.getText()).not.toBe(originalText);
 

@@ -64,6 +64,25 @@ export const controlColors = {
         defaults: { dark: "#808080", light: "#8E8E90" },
         description: "List/Tree foreground color for items that are deemphasized (e.g. cut in explorer).",
     },
+    // Значения — из реестра VS Code (`colorRegistry.ts`); `dropdown.listBackground`
+    // там `null` (наследует editorWidget.background), поэтому берём то, что и так
+    // везут наши импортированные темы.
+    "dropdown.background": {
+        defaults: { dark: "#3C3C3C", light: "#FFFFFF" },
+        description: "Dropdown background.",
+    },
+    "dropdown.foreground": {
+        defaults: { dark: "#F0F0F0", light: "#3B3B3B" },
+        description: "Dropdown foreground.",
+    },
+    "dropdown.border": {
+        defaults: { dark: "#3C3C3C", light: "#CECECE" },
+        description: "Dropdown border.",
+    },
+    "dropdown.listBackground": {
+        defaults: { dark: "#1F1F1F", light: "#FFFFFF" },
+        description: "Dropdown list background.",
+    },
     "menu.foreground": {
         defaults: { dark: "#CCCCCC", light: "#616161" },
         description: "Foreground color of menu items.",

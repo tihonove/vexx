@@ -27,7 +27,7 @@ export const clipboardCutAction: CommandAction = {
     id: "editor.action.clipboardCutAction",
     title: "Cut",
     keybinding: parseKeybinding("ctrl+x"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     menus: [
         { menuId: MenuId.EditorContext, group: "1_clipboard", order: 20 },
         { menuId: MenuId.MenubarEditMenu, group: "2_clipboard", order: 10 },
@@ -49,7 +49,7 @@ export const clipboardPasteAction: CommandAction = {
     id: "editor.action.clipboardPasteAction",
     title: "Paste",
     keybinding: parseKeybinding("ctrl+v"),
-    when: "textInputFocus",
+    when: "textInputFocus && !editorReadonly",
     menus: [
         { menuId: MenuId.EditorContext, group: "1_clipboard", order: 30 },
         { menuId: MenuId.MenubarEditMenu, group: "2_clipboard", order: 30 },

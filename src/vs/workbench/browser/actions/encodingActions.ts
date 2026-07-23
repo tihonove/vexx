@@ -27,10 +27,15 @@ async function changeFileEncoding(accessor: ServiceAccessor): Promise<void> {
     if (editor === null) return;
 
     const canReopen = editor.absoluteFilePath !== null && fs.existsSync(editor.absoluteFilePath);
+    // Read-only запрещает запись, но не перечитывание файла с диска — поэтому
+    // команда остаётся доступной, а из режимов убирается только «Save with
+    // Encoding» (VS Code ведёт себя так же). Если перечитывать нечего (буфер без
+    // файла на диске), делать в read-only нечего вовсе.
     const modeItems = [
         ...(canReopen ? [{ label: "Reopen with Encoding", description: "Reinterpret the file on disk" }] : []),
-        { label: "Save with Encoding", description: "Write the file in a different encoding" },
+        ...(editor.readOnly ? [] : [{ label: "Save with Encoding", description: "Write the file in a different encoding" }]),
     ];
+    if (modeItems.length === 0) return;
     const mode = await quickInput.quickPick({
         title: "Change File Encoding",
         placeholder: "Select Action",

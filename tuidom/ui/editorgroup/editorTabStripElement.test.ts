@@ -15,7 +15,7 @@ const jsIcon = getFileIcon("app.js");
 function makeTabs(...names: string[]): TabInfo[] {
     return names.map((name) => {
         const fi = getFileIcon(name);
-        return { label: name, icon: fi.icon, iconColor: fi.color, isModified: false };
+        return { label: name, icon: fi.icon, iconColor: fi.color, isModified: false, isReadOnly: false };
     });
 }
 

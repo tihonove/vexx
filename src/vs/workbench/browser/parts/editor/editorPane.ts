@@ -27,6 +27,16 @@ import type { EditorComponent } from "./editorComponent.ts";
  * host-адаптеры); создаёт и хранит пары `EditorService`.
  */
 export class EditorPane extends Disposable {
+    private readOnlyListeners = new Set<() => void>();
+    /**
+     * Редактор вне таб-строки (нижняя Panel: Output). Такой редактор попадает в
+     * `getActiveEditor()`, когда фокус внутри него, — и потребители, работающие
+     * с ВКЛАДКОЙ (переключение read-only, `activeTextEditor` для расширений),
+     * обязаны его пропускать: содержимым владеет фича, а не пользователь.
+     * Ставит `EditorService.openDetached`.
+     */
+    public detached = false;
+
     public constructor(
         public readonly model: TextFileModel,
         public readonly component: EditorComponent,
@@ -132,10 +142,12 @@ export class EditorPane extends Disposable {
     }
 
     public setEncoding(encoding: string): void {
+        if (this.readOnly) return;
         this.model.setEncoding(encoding);
     }
 
     public setEol(eol: EndOfLine): void {
+        if (this.readOnly) return;
         this.model.setEol(eol);
     }
 
@@ -152,10 +164,12 @@ export class EditorPane extends Disposable {
     }
 
     public undo(): void {
+        if (this.readOnly) return;
         this.model.undo();
     }
 
     public redo(): void {
+        if (this.readOnly) return;
         this.model.redo();
     }
 
@@ -187,6 +201,31 @@ export class EditorPane extends Disposable {
 
     public get viewState(): EditorViewState {
         return this.component.viewState;
+    }
+
+    /**
+     * Режим «только чтение» вкладки (VS Code `EditorOption.readOnly`). Правки
+     * документа блокирует сам `EditorViewState`; здесь флаг нужен ещё и для
+     * путей мимо него — undo/redo, смена EOL и кодировки идут в `TextFileModel`
+     * напрямую, как `pushUndoStop`/`popUndoStop` в `CodeEditorWidget`.
+     */
+    public get readOnly(): boolean {
+        return this.component.viewState.readOnly;
+    }
+
+    public set readOnly(value: boolean) {
+        if (this.component.viewState.readOnly === value) return;
+        this.component.viewState.readOnly = value;
+        for (const listener of [...this.readOnlyListeners]) listener();
+    }
+
+    /**
+     * Смена режима read-only. На неё подписан `EditorService` — таб должен
+     * получить/потерять замок сразу, как это уже сделано для EOL и dirty.
+     */
+    public onDidChangeReadOnly(listener: () => void): IDisposable {
+        this.readOnlyListeners.add(listener);
+        return { dispose: () => this.readOnlyListeners.delete(listener) };
     }
 
     public set contextMenuProvider(provider: () => MenuEntry[]) {

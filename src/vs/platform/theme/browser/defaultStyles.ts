@@ -4,6 +4,7 @@ import type { IMenuStyles } from "../../../../../tuidom/ui/menu/popupMenuItemEle
 import { unthemedMenuStyles } from "../../../../../tuidom/ui/menu/popupMenuItemElement.tsx";
 import type { IPanelContainerStyles } from "../../../../../tuidom/ui/panel/panelContainerElement.ts";
 import type { IScrollBarStyles } from "../../../../../tuidom/ui/scrollbar/scrollContainerElement.ts";
+import type { ISelectBoxStyles } from "../../../../../tuidom/ui/selectbox/selectBoxElement.ts";
 import type { ITerminalViewStyles } from "../../../../../tuidom/ui/terminal/terminalViewElement.ts";
 import type { ITreeViewStyles } from "../../../../../tuidom/ui/tree/treeViewElement.ts";
 import { unthemedTreeViewStyles } from "../../../../../tuidom/ui/tree/treeViewElement.ts";
@@ -98,6 +99,20 @@ export function getMenuStyles(theme: WorkbenchTheme): IMenuStyles {
  * фоллбэком: гуттер падает на фон редактора (как в VS Code), остальные — на
  * unthemed-baseline. Контекстное меню редактора едет тем же каналом (`menu`).
  */
+/**
+ * Стили выпадающего списка (`dropdown.*`). Раскрытый список красим теми же
+ * `menu.*`, что и остальные попапы, — так же поступает VS Code, у которого
+ * `dropdown.listBackground` по умолчанию наследует фон виджета.
+ */
+export function getSelectBoxStyles(theme: WorkbenchTheme): ISelectBoxStyles {
+    return {
+        selectForeground: theme.getRequiredColor("dropdown.foreground"),
+        selectBackground: theme.getRequiredColor("dropdown.background"),
+        selectBorder: theme.getRequiredColor("dropdown.border"),
+        list: { ...getMenuStyles(theme), bg: theme.getRequiredColor("dropdown.listBackground") },
+    };
+}
+
 export function getEditorStyles(theme: WorkbenchTheme): IEditorStyles {
     return {
         gutterBackground: theme.getColor("editorGutter.background") ?? theme.getRequiredColor("editor.background"),

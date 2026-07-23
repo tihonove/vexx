@@ -19,7 +19,8 @@ export interface ContextKeyTypes {
     // editorTabMovesFocus: boolean;
     // editorHasSelection: boolean;
     // editorHasMultipleSelections: boolean;
-    // editorReadonly: boolean;
+    /** True while the focused editor is read-only (VS Code `editorReadonly`). */
+    editorReadonly: boolean;
     // editorLangId: string;
     // isInDiffEditor: boolean;
     // isInEmbeddedEditor: boolean;
@@ -140,7 +141,10 @@ export interface ContextKeyTypes {
     // replaceActive: boolean;
 
     // -- View contexts --
-    // view: string;
+    /** Id вкладки, чьи контролы сейчас показывает шапка (`view == 'workbench.panel.output'`). */
+    view: string;
+    /** Id активного канала Output (VS Code `activeOutputChannel`). */
+    activeOutputChannel: string;
     // viewItem: string;
     // activeViewlet: string;
     // activePanel: string;
@@ -162,7 +166,7 @@ export const allContextKeys: ContextKey[] = [
     // "editorTabMovesFocus",
     // "editorHasSelection",
     // "editorHasMultipleSelections",
-    // "editorReadonly",
+    "editorReadonly",
     // "editorLangId",
     // "isInDiffEditor",
     // "isInEmbeddedEditor",
@@ -277,7 +281,8 @@ export const allContextKeys: ContextKey[] = [
     // "replaceActive",
 
     // -- View contexts --
-    // "view",
+    "view",
+    "activeOutputChannel",
     // "viewItem",
     // "activeViewlet",
     // "activePanel",
