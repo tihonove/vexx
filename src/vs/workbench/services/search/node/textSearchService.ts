@@ -1,33 +1,20 @@
 import { type ChildProcessWithoutNullStreams, spawn } from "node:child_process";
 
 import { Disposable } from "../../../../../../tuidom/common/disposable.ts";
-import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { buildRgArgs, type IFileMatch, parseRgMatchLine, type ITextSearchQuery } from "../common/textSearch.ts";
+import {
+    buildRgArgs,
+    type IFileMatch,
+    type ISearchHandle,
+    type ITextSearchComplete,
+    type ITextSearchQuery,
+    type ITextSearchService,
+    parseRgMatchLine,
+} from "../common/textSearch.ts";
 
 import { loadRipgrepPath } from "./loadRipgrep.ts";
 
-export const TextSearchServiceDIToken = token<TextSearchService>("TextSearchService");
-
 /** Cap on total matches per search — a huge result set is killed early (VS Code caps too). */
 const MAX_RESULTS = 10000;
-
-/** Summary of a finished (or cancelled) search. */
-export interface ITextSearchComplete {
-    /** Total matched spans reported. */
-    matchCount: number;
-    /** Distinct files that had at least one match. */
-    fileCount: number;
-    /** True when the search was stopped at {@link MAX_RESULTS}. */
-    limitHit: boolean;
-    /** Human-readable ripgrep/spawn error, when the search failed. */
-    error?: string;
-}
-
-/** A running search: awaitable completion + a way to stop it early. */
-export interface ISearchHandle {
-    readonly complete: Promise<ITextSearchComplete>;
-    cancel(): void;
-}
 
 /**
  * Content search across the workspace, backed by ripgrep. Spawns `rg --json`,
@@ -35,7 +22,7 @@ export interface ISearchHandle {
  * summary when done. Each call is an independent process — the UI cancels the
  * previous {@link ISearchHandle} before starting the next (debounced) query.
  */
-export class TextSearchService extends Disposable {
+export class TextSearchService extends Disposable implements ITextSearchService {
     public static dependencies = [] as const;
 
     /** Live child processes, killed on dispose so a search never outlives the app. */

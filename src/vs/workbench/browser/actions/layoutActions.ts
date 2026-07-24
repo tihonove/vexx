@@ -6,6 +6,7 @@ import { PROBLEMS_VIEW_ID, ProblemsComponentDIToken } from "../../contrib/marker
 import { EditorServiceDIToken } from "../../services/editor/browser/editorService.ts";
 import { LayoutServiceDIToken } from "../../services/layout/browser/layoutService.ts";
 import { PanelServiceDIToken } from "../parts/panel/panelService.ts";
+import { EXPLORER_VIEW_ID, SidebarServiceDIToken } from "../parts/sidebar/sidebarService.ts";
 
 // Columns added/removed per increase/decrease Side Bar Width command.
 const SIDEBAR_WIDTH_STEP = 3;
@@ -28,6 +29,7 @@ export const showExplorerAction: CommandAction = {
     menus: [{ menuId: MenuId.MenubarViewMenu, group: "3_views", order: 10 }],
     keybinding: parseKeybinding("ctrl+shift+e"),
     run(accessor) {
+        accessor.get(SidebarServiceDIToken).setActiveView(EXPLORER_VIEW_ID);
         accessor.get(LayoutServiceDIToken).setSidebarVisible(true);
         accessor.get(ExplorerServiceDIToken).focus();
     },

@@ -15,6 +15,13 @@ import {
     WorkbenchContributionsRegistryDIToken,
 } from "../common/workbenchContributionsRegistry.ts";
 import { ExplorerComponent, ExplorerComponentDIToken } from "../contrib/files/browser/explorerComponent.ts";
+import { SearchComponent, SearchComponentDIToken } from "../contrib/search/browser/searchComponent.ts";
+import {
+    EXPLORER_VIEW_ID,
+    SEARCH_VIEW_ID,
+    SidebarService,
+    SidebarServiceDIToken,
+} from "./parts/sidebar/sidebarService.ts";
 import { ExplorerService, ExplorerServiceDIToken } from "../contrib/files/browser/explorerService.ts";
 import { FileOperationsService, FileOperationsServiceDIToken } from "../contrib/files/browser/fileOperationsService.ts";
 import { FindComponentDIToken } from "../contrib/find/browser/findComponent.ts";
@@ -100,6 +107,8 @@ export class WorkbenchComponent extends ThemedComponent {
     private lifecycleService: LifecycleService;
     private explorerService: ExplorerService;
     private explorerComponent: ExplorerComponent;
+    private searchComponent: SearchComponent;
+    private sidebarService: SidebarService;
     private fileOperations: FileOperationsService;
     private fileSearchService: FileSearchService;
     private quickInput: QuickInputService;
@@ -138,6 +147,10 @@ export class WorkbenchComponent extends ThemedComponent {
         // (дерево + контекст-меню). WorkbenchComponent владеет их жизнью.
         this.explorerService = this.register(accessor.get(ExplorerServiceDIToken));
         this.explorerComponent = this.register(accessor.get(ExplorerComponentDIToken));
+        // Search-кластер: сервис поиска (spawn rg) внутри компонента; сам компонент —
+        // ещё один вид сайдбара. SidebarService переключает Explorer↔Search.
+        this.searchComponent = this.register(accessor.get(SearchComponentDIToken));
+        this.sidebarService = accessor.get(SidebarServiceDIToken);
         // Клавиатурный диспатчер: WorkbenchComponent владеет его жизнью и подключает
         // view-хук модальных оверлеев (хук контекст-ключей замыкает на себя
         // WorkbenchContextKeys) — сам сервис про view ничего не знает.
@@ -187,6 +200,8 @@ export class WorkbenchComponent extends ThemedComponent {
         this.workbenchLayout.setCenterContent(this.editorGroupComponent.view);
         this.workbenchLayout.setBottomPanel(panelComponent.view);
         this.layoutService.attachLayout(this.workbenchLayout);
+        // Сайдбар держит один вид; SidebarService следует за активным (Explorer/Search).
+        this.sidebarService.attachLayout(this.workbenchLayout);
         // Персист открытых редакторов (write-through подписан на EditorService
         // внутри сервиса; layout персистит LayoutService через onDidChangeLayout).
         this.workbenchState = this.register(accessor.get(WorkbenchStateServiceDIToken));
@@ -317,7 +332,10 @@ export class WorkbenchComponent extends ThemedComponent {
         this.explorerService.setRootPath(dirPath);
         // Новые терминалы спавнятся в папке воркспейса.
         this.terminalService.setWorkingDirectory(dirPath);
-        this.workbenchLayout.setLeftPanel(this.explorerComponent.view);
+        // Explorer регистрируется первым — он вид сайдбара по умолчанию; Search — рядом,
+        // переключение между ними идёт через SidebarService (меню View / команды).
+        this.sidebarService.setView(EXPLORER_VIEW_ID, this.explorerComponent.view);
+        this.sidebarService.setView(SEARCH_VIEW_ID, this.searchComponent.view);
         // Открыть per-project стор состояния для этой папки (переключение флашит
         // предыдущий). Дальше layout/открытые файлы читаются/пишутся в него.
         this.workbenchState.openWorkspace(dirPath);

@@ -3,10 +3,17 @@
  * from query → `rg` arguments, and the parser for `rg --json` output. No I/O and
  * no `node:` imports — the spawning lives in `../node/textSearchService.ts`.
  *
+ * This module is the browser-importable **port**: it also declares the
+ * {@link ITextSearchService} interface + DI token that the node service
+ * implements, so the (browser) Search view depends on the interface, not the
+ * node process code (env-axis boundary).
+ *
  * Mirrors VS Code's `IPatternInfo` / `IFileMatch` conceptually (see
  * `/workspaces/vscode` `services/search/common/search.ts`), trimmed to the
  * minimal surface this slice needs.
  */
+
+import { token } from "../../../../platform/instantiation/common/diContainer.ts";
 
 /** A single content-search request, one per query/toggle change. */
 export interface ITextSearchQuery {
@@ -41,6 +48,40 @@ export interface IFileMatch {
     absolutePath: string;
     matches: ITextMatch[];
 }
+
+/** Summary of a finished (or cancelled) search. */
+export interface ITextSearchComplete {
+    /** Total matched spans reported. */
+    matchCount: number;
+    /** Distinct files that had at least one match. */
+    fileCount: number;
+    /** True when the search was stopped at the result cap. */
+    limitHit: boolean;
+    /** Human-readable ripgrep/spawn error, when the search failed. */
+    error?: string;
+}
+
+/** A running search: awaitable completion + a way to stop it early. */
+export interface ISearchHandle {
+    readonly complete: Promise<ITextSearchComplete>;
+    cancel(): void;
+}
+
+/**
+ * Content search across the workspace. Implemented by the node service (spawns
+ * ripgrep); the browser Search view depends on this interface via
+ * {@link TextSearchServiceDIToken}.
+ */
+export interface ITextSearchService {
+    /**
+     * Runs {@link query} under `folder`, streaming each file's matches to
+     * `onResult`. Returns immediately with a handle; awaiting `handle.complete`
+     * yields the summary.
+     */
+    search(query: ITextSearchQuery, folder: string, onResult: (match: IFileMatch) => void): ISearchHandle;
+}
+
+export const TextSearchServiceDIToken = token<ITextSearchService>("TextSearchService");
 
 /**
  * Validates a user-typed regular expression. Returns an error message when the

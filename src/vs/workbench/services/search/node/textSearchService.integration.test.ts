@@ -3,9 +3,9 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createTempWorkspace, type ITempWorkspace } from "../../../../../TestUtils/TempWorkspace.ts";
-import type { IFileMatch, ITextSearchQuery } from "../common/textSearch.ts";
+import type { IFileMatch, ISearchHandle, ITextSearchQuery } from "../common/textSearch.ts";
 
-import { type ISearchHandle, TextSearchService } from "./textSearchService.ts";
+import { TextSearchService } from "./textSearchService.ts";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
