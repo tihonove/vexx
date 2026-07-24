@@ -33,6 +33,14 @@ function log(message: string): void {
     console.log(`[git] ${message}`);
 }
 
+/**
+ * Команда ядра, которой мы публикуем полный набор изменённых файлов (вкладка
+ * Changes). Ядро её регистрирует (`ScmChangesService`); строка совпадает по
+ * значению, как и у `ORIGINAL_RESOURCE_COMMAND` — модули по разные стороны
+ * границы процесса общих импортов не имеют.
+ */
+const PUBLISH_CHANGES_COMMAND = "vexx.scm.publishChanges";
+
 /** A tracked resource: its porcelain code (for untracked detection) + tree decoration. */
 interface IStatusEntry {
     readonly xy: string;
@@ -234,6 +242,26 @@ class GitDecorations {
         if (affected.size > 0 && !this.isDisposed()) {
             this.fileDecoEmitter.fire([...affected].map((p) => vscode.Uri.file(p)));
         }
+        this.publishChanges(next);
+    }
+
+    /**
+     * Публикует ядру полный набор изменённых файлов рабочего дерева (для вкладки
+     * Changes) — тот же снимок `git status`, что красит дерево. Best-effort:
+     * пустой набор снимает список; повторную идентичную публикацию гасит уже
+     * ядро (`ScmChangesService`), поэтому здесь шлём безусловно. Ошибку канала
+     * (например, при завершении процесса) молча глотаем — это не сбой git.
+     */
+    private publishChanges(entries: Map<string, IStatusEntry>): void {
+        const resources = [...entries].map(([absPath, entry]) => ({
+            uri: vscode.Uri.file(absPath).toString(),
+            status: entry.deco.badge,
+            colorId: entry.deco.colorId,
+        }));
+        void Promise.resolve(vscode.commands.executeCommand(PUBLISH_CHANGES_COMMAND, resources)).catch(
+            /* v8 ignore next -- best-effort: канал отвалится только при завершении процесса */
+            () => undefined,
+        );
     }
 
     /** Run git in the repo; returns a successful result or `null` (degraded — logged once). */
