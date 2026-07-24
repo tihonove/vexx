@@ -250,6 +250,7 @@ describe("Workbench — menu bar wiring", () => {
             "Command Palette...",
             "Color Theme",
             "Explorer",
+            "Search",
             "Problems",
             "Output",
             "Terminal",
