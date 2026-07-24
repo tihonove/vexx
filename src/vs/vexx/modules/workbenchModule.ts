@@ -108,6 +108,8 @@ import {
     QuickAccessRegistry,
     QuickAccessRegistryDIToken,
 } from "../../workbench/contrib/quickaccess/common/quickAccessRegistry.ts";
+import { ChangesComponent, ChangesComponentDIToken } from "../../workbench/contrib/scm/browser/changesComponent.ts";
+import { ScmChangesService, ScmChangesServiceDIToken } from "../../workbench/contrib/scm/browser/changesService.ts";
 import { CommandOriginalResourceProvider } from "../../workbench/contrib/scm/browser/commandOriginalResourceProvider.ts";
 import {
     OriginalResourceProviderDIToken,
@@ -290,6 +292,11 @@ export const workbenchModule: ContainerModule = (container) => {
         () => new CommandOriginalResourceProvider(container.get(CommandRegistryDIToken)),
     );
     container.bind(QuickDiffServiceDIToken, QuickDiffService);
+    // Вкладка Changes: расширение пушит набор изменений в ScmChangesService
+    // (команда `vexx.scm.publishChanges`), ChangesComponent показывает его
+    // списком в нижней Panel и по клику открывает дифф этапа 5.
+    container.bind(ScmChangesServiceDIToken, ScmChangesService);
+    container.bind(ChangesComponentDIToken, ChangesComponent);
     // Этап 11: layout-логика (сайдбар/панель + персист layout'а; сам
     // WorkbenchLayoutElement приходит от владельца view через attachLayout),
     // персист открытых редакторов, контекст-ключи workbench'а (замыкают

@@ -23,6 +23,7 @@ import { DiagnosticsServiceDIToken } from "../contrib/markers/browser/diagnostic
 import { ProblemsComponentDIToken } from "../contrib/markers/browser/problemsComponent.ts";
 import { OutputComponentDIToken } from "../contrib/output/browser/outputComponent.ts";
 import { QuickOpenServiceDIToken } from "../contrib/quickaccess/browser/quickOpenService.ts";
+import { ChangesComponentDIToken } from "../contrib/scm/browser/changesComponent.ts";
 import { CompletionServiceDIToken } from "../contrib/suggest/browser/completionService.ts";
 import { SuggestComponentDIToken } from "../contrib/suggest/browser/suggestComponent.ts";
 import { TerminalPanelComponentDIToken } from "../contrib/terminal/browser/terminalPanelComponent.ts";
@@ -167,8 +168,11 @@ export class WorkbenchComponent extends ThemedComponent {
         this.register(accessor.get(DiagnosticsServiceDIToken));
         this.register(accessor.get(ProblemsComponentDIToken));
         // Между Problems и Terminal — порядок резолва и есть порядок табов:
-        // PROBLEMS · OUTPUT · TERMINAL, как в VS Code.
+        // PROBLEMS · OUTPUT · CHANGES · TERMINAL. Резолв ChangesComponent
+        // подтягивает ScmChangesService — его команда `vexx.scm.publishChanges`
+        // регистрируется до активации git-расширения, публикующего в неё набор.
         this.register(accessor.get(OutputComponentDIToken));
+        this.register(accessor.get(ChangesComponentDIToken));
         this.terminalService = this.register(accessor.get(TerminalServiceDIToken));
         const panelComponent = this.register(accessor.get(PanelComponentDIToken));
         this.register(accessor.get(TerminalPanelComponentDIToken));
