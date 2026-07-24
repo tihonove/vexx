@@ -1,13 +1,14 @@
+import type { TUIElement } from "../../../../../../tuidom/dom/tuiElement.ts";
+import { PaddingContainerElement } from "../../../../../../tuidom/ui/layout/paddingContainerElement.ts";
 import { ScrollBarDecorator } from "../../../../../../tuidom/ui/scrollbar/scrollContainerElement.ts";
+import { TitledPanelElement } from "../../../../../../tuidom/ui/titledpanel/titledPanelElement.ts";
 import { TreeViewElement } from "../../../../../../tuidom/ui/tree/treeViewElement.ts";
 import type { CommandRegistry } from "../../../../platform/commands/common/commandRegistry.ts";
 import { CommandRegistryDIToken } from "../../../../platform/commands/common/commandRegistry.ts";
 import { token } from "../../../../platform/instantiation/common/diContainer.ts";
-import { getProblemsTreeStyles, getScrollBarStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
+import { getFileTreeStyles, getScrollBarStyles } from "../../../../platform/theme/browser/defaultStyles.ts";
 import type { IWorkbenchColors } from "../../../../platform/theme/common/colors/colorContributions.ts";
 import { ThemedComponent } from "../../../browser/component.ts";
-import type { PanelService } from "../../../browser/parts/panel/panelService.ts";
-import { PanelServiceDIToken } from "../../../browser/parts/panel/panelService.ts";
 import type { EditorService } from "../../../services/editor/browser/editorService.ts";
 import { EditorServiceDIToken } from "../../../services/editor/browser/editorService.ts";
 import type { ThemeService } from "../../../services/themes/common/themeService.ts";
@@ -20,8 +21,8 @@ import { ScmChangesServiceDIToken } from "./changesService.ts";
 import { type ChangeNode, ChangesTreeDataProvider } from "./changesTreeDataProvider.ts";
 import { compareWithHeadAction } from "./compareWithHeadAction.ts";
 
-/** VS Code-подобный id вкладки Changes в нижней Panel. */
-export const CHANGES_VIEW_ID = "workbench.panel.scm.view";
+/** Id вьюлета Source Control в сайдбаре (см. {@link SidebarService}). */
+export const SCM_VIEWLET_ID = "scm";
 
 /** `gitDecoration.*`, которыми расширение помечает статусы — резолвим их в цвета букв. */
 const GIT_STATUS_COLOR_IDS = [
@@ -37,21 +38,20 @@ const GIT_STATUS_COLOR_IDS = [
 export const ChangesComponentDIToken = token<ChangesComponent>("ChangesComponent");
 
 /**
- * Компонент вкладки CHANGES нижней панели: плоский список изменённых файлов
- * ({@link TreeViewElement} поверх {@link ChangesTreeDataProvider}) — потребитель
- * {@link ScmChangesService}, набор в который пушит SCM-расширение. Пока изменений
- * нет, контент вкладки — null (панель рендерит placeholder). Активация файла
- * открывает его и запускает «Compare with HEAD» (вкладка-смотрелка этапа 5) —
- * так список переиспользует уже готовую команду, не зная про дифф.
+ * Вьюлет **Source Control** в сайдбаре: плоский список изменённых файлов
+ * ({@link TreeViewElement} поверх {@link ChangesTreeDataProvider}) под рамкой
+ * SOURCE CONTROL — параллель Explorer'у. Потребитель {@link ScmChangesService},
+ * набор в который пушит SCM-расширение. Активация файла открывает его и запускает
+ * «Compare with HEAD» (вкладку-смотрелку этапа 5) — список переиспользует готовую
+ * команду, не зная про дифф.
  *
- * Размещение в Panel (а не в сайдбаре) — осознанно самый дешёвый вариант для
- * первой версии (docs/TODO/Diff.md, пункт E): `PanelService.addView` уже есть, а
- * сайдбар захардкожен на Explorer.
+ * Место в сайдбаре (а не в нижней Panel) — как в VS Code: у нас нет activity bar,
+ * поэтому Explorer ↔ Source Control переключают команды (`workbench.view.*`),
+ * а сам показ — подмена контента сайдбара через {@link SidebarService}.
  */
 export class ChangesComponent extends ThemedComponent {
     public static dependencies = [
         ScmChangesServiceDIToken,
-        PanelServiceDIToken,
         EditorServiceDIToken,
         CommandRegistryDIToken,
         ExplorerServiceDIToken,
@@ -60,15 +60,14 @@ export class ChangesComponent extends ThemedComponent {
 
     /** Список изменений — доступен тестам и оркестрации (фокус, выделение). */
     public readonly tree: TreeViewElement<ChangeNode>;
-    /** Корневой контрол: список, обёрнутый скроллбаром; вкидывается в Panel через сервис. */
-    public readonly view: ScrollBarDecorator;
+    /** Корневой контрол вьюлета (рамка SOURCE CONTROL); вкидывается в сайдбар. */
+    public readonly view: TitledPanelElement;
 
-    private provider: ChangesTreeDataProvider;
-    private treeShown = false;
+    private readonly scrollBars: ScrollBarDecorator;
+    private readonly provider: ChangesTreeDataProvider;
 
     public constructor(
         private readonly changesService: ScmChangesService,
-        private readonly panelService: PanelService,
         private readonly editors: EditorService,
         private readonly commands: CommandRegistry,
         private readonly explorer: ExplorerService,
@@ -77,15 +76,12 @@ export class ChangesComponent extends ThemedComponent {
         super(themeService);
         this.provider = new ChangesTreeDataProvider();
         this.tree = new TreeViewElement(this.provider);
-        this.view = new ScrollBarDecorator(this.tree);
+        this.scrollBars = new ScrollBarDecorator(this.tree);
+        this.view = new TitledPanelElement(
+            "  SOURCE CONTROL",
+            new PaddingContainerElement(this.scrollBars, { left: 1 }),
+        );
         this.view.id = "changesView";
-
-        this.panelService.addView({
-            id: CHANGES_VIEW_ID,
-            title: "CHANGES",
-            content: null,
-            placeholder: "No source-control changes.",
-        });
 
         this.tree.onActivate = (node) => {
             this.openDiff(node);
@@ -105,7 +101,7 @@ export class ChangesComponent extends ThemedComponent {
         this.initStyles();
     }
 
-    /** Focuses the changes list (used by a future "Focus Changes" command). */
+    /** Focuses the changes list (used by the "Show Source Control" command). */
     public focus(): void {
         this.tree.focus();
     }
@@ -120,29 +116,23 @@ export class ChangesComponent extends ThemedComponent {
         this.commands.execute(compareWithHeadAction.id);
     }
 
-    /**
-     * Перечитывает снимок изменений в список. Меняет контент вкладки между
-     * списком (изменения есть) и placeholder'ом (изменений нет).
-     */
+    /** Перечитывает снимок изменений в список. Пустой набор — пустой список под рамкой. */
     private rebuild(): void {
-        const changes = this.changesService.changes;
-        this.provider.setChanges(changes);
-
-        const shouldShowTree = changes.length > 0;
-        if (shouldShowTree !== this.treeShown) {
-            this.panelService.setViewContent(CHANGES_VIEW_ID, shouldShowTree ? this.view : null);
-            this.treeShown = shouldShowTree;
-        }
-        if (shouldShowTree) void this.tree.refresh();
+        this.provider.setChanges(this.changesService.changes);
+        void this.tree.refresh();
     }
 
     protected updateStyles(): void {
-        this.tree.setStyles(getProblemsTreeStyles(this.theme));
+        this.tree.setStyles(getFileTreeStyles(this.theme));
         this.tree.style = {
-            fg: this.theme.getRequiredColor("editor.foreground"),
-            bg: this.theme.getRequiredColor("panel.background"),
+            fg: this.theme.getRequiredColor("sideBar.foreground"),
+            bg: this.theme.getRequiredColor("sideBar.background"),
         };
-        this.view.setStyles(getScrollBarStyles(this.theme, "panel.background"));
+        this.scrollBars.setStyles(getScrollBarStyles(this.theme, "sideBar.background"));
+        this.view.style = {
+            fg: this.theme.getRequiredColor("sideBar.foreground"),
+            bg: this.theme.getRequiredColor("sideBar.background"),
+        };
         const colors: Record<string, number> = {};
         for (const id of GIT_STATUS_COLOR_IDS) colors[id] = this.theme.getRequiredColor(id);
         this.provider.statusColors = colors;

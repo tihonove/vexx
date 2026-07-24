@@ -16,34 +16,35 @@ import { PUBLISH_CHANGES_COMMAND, ScmChangesServiceDIToken } from "../contrib/sc
 import { ORIGINAL_RESOURCE_COMMAND } from "../contrib/scm/browser/commandOriginalResourceProvider.ts";
 import type { EditorService } from "../services/editor/browser/editorService.ts";
 import { EditorServiceDIToken } from "../services/editor/browser/editorService.ts";
-import type { LayoutService } from "../services/layout/browser/layoutService.ts";
-import { LayoutServiceDIToken } from "../services/layout/browser/layoutService.ts";
 import { ThemeServiceDIToken } from "../services/themes/common/themeTokens.ts";
 
+import type { SidebarService } from "./parts/sidebar/sidebarService.ts";
+import { SidebarServiceDIToken } from "./parts/sidebar/sidebarService.ts";
 import { WorkbenchComponent, WorkbenchComponentDIToken } from "./workbenchComponent.ts";
 
 /**
  * Сквозной гейт этапа 6 «до кадра»: SCM-расширение (заглушка) публикует набор
- * изменённых файлов командой `vexx.scm.publishChanges` — вкладка CHANGES нижней
- * панели показывает их списком, а активация файла открывает дифф этапа 5. Роль
- * git играют заглушки (`git:`-провайдер + `originalResource`), путь ядра от
- * публикации до пикселей — настоящий.
+ * изменённых файлов командой `vexx.scm.publishChanges`, а вьюлет **Source
+ * Control** в сайдбаре (вместо Explorer, переключение командой `workbench.view.scm`)
+ * показывает их списком; активация файла открывает дифф этапа 5. Роль git играют
+ * заглушки (`git:`-провайдер + `originalResource`), путь ядра — настоящий.
  */
 
 const AT_HEAD = "alpha\nbravo\ncharlie\ndelta\n";
-const TOGGLE = "workbench.action.scm.toggleChanges";
+const SHOW_SCM = "workbench.view.scm";
+const SHOW_EXPLORER = "workbench.view.explorer";
 const MODIFIED = "gitDecoration.modifiedResourceForeground";
 const UNTRACKED = "gitDecoration.untrackedResourceForeground";
 
-describe("Workbench — вкладка Changes end-to-end", () => {
+describe("Workbench — Source Control в сайдбаре end-to-end", () => {
     let ws: ITempWorkspace;
     let workbench: WorkbenchComponent;
     let commands: CommandRegistry;
     let editors: EditorService;
     let changes: ChangesComponent;
     let scm: ScmChangesService;
-    let layout: LayoutService;
-    let panelBg: number;
+    let sidebar: SidebarService;
+    let sideBg: number;
     let testApp: TestApp;
 
     /** Публикует набор изменений так же, как это делает git-расширение. */
@@ -70,8 +71,8 @@ describe("Workbench — вкладка Changes end-to-end", () => {
         editors = container.get(EditorServiceDIToken);
         changes = container.get(ChangesComponentDIToken);
         scm = container.get(ScmChangesServiceDIToken);
-        layout = container.get(LayoutServiceDIToken);
-        panelBg = container.get(ThemeServiceDIToken).theme.getRequiredColor("panel.background");
+        sidebar = container.get(SidebarServiceDIToken);
+        sideBg = container.get(ThemeServiceDIToken).theme.getRequiredColor("sideBar.background");
         commands.register(ORIGINAL_RESOURCE_COMMAND, (raw) =>
             Uri.from({ scheme: "git", path: String(raw), query: '{"ref":"HEAD"}' }).toString(),
         );
@@ -90,46 +91,42 @@ describe("Workbench — вкладка Changes end-to-end", () => {
         ws.dispose();
     });
 
-    it("показывает список изменённых файлов относительными путями", async () => {
+    it("по умолчанию сайдбар показывает Explorer", () => {
+        testApp.render();
+        expect(sidebar.getActiveViewletId()).toBe("explorer");
+        expect(testApp.backend.screenToString()).toContain("EXPLORER");
+    });
+
+    it("workbench.view.scm показывает список изменённых файлов в сайдбаре", async () => {
         publish([
             { path: ws.path("a.txt"), status: "M", colorId: MODIFIED },
             { path: ws.path("nested/b.txt"), status: "U", colorId: UNTRACKED },
         ]);
-        commands.execute(TOGGLE);
+        commands.execute(SHOW_SCM);
         await settle(0);
         testApp.render();
 
         const screen = testApp.backend.screenToString();
-        expect(screen).toContain("CHANGES");
+        expect(sidebar.getActiveViewletId()).toBe("scm");
+        expect(screen).toContain("SOURCE CONTROL");
         expect(screen).toContain("nested/b.txt");
-        // Дерево панели покрашено темой (bg = panel bg), а не дефолтом — то есть отрисовано.
-        expect(changes.tree.resolvedStyle.bg).toBe(panelBg);
+        // Дерево покрашено темой сайдбара (bg = sideBar bg), а не дефолтом — отрисовано.
+        expect(changes.tree.resolvedStyle.bg).toBe(sideBg);
     });
 
-    it("без изменений показывает placeholder", () => {
-        commands.execute(TOGGLE);
+    it("переключение Explorer ↔ Source Control меняет содержимое сайдбара", () => {
+        commands.execute(SHOW_SCM);
         testApp.render();
-        expect(testApp.backend.screenToString()).toContain("No source-control changes.");
-    });
+        let screen = testApp.backend.screenToString();
+        expect(screen).toContain("SOURCE CONTROL");
+        expect(screen).not.toContain("EXPLORER");
 
-    it("исчезновение всех изменений возвращает placeholder на месте списка", () => {
-        publish([{ path: ws.path("a.txt"), status: "M", colorId: MODIFIED }]);
-        commands.execute(TOGGLE);
+        commands.execute(SHOW_EXPLORER);
         testApp.render();
-        expect(testApp.backend.screenToString()).not.toContain("No source-control changes.");
-
-        // Всё откатили (git status пуст) — список сменяется placeholder'ом.
-        publish([]);
-        testApp.render();
-        expect(testApp.backend.screenToString()).toContain("No source-control changes.");
-    });
-
-    it("повторный toggle сворачивает панель", () => {
-        commands.execute(TOGGLE);
-        expect(layout.isPanelVisible()).toBe(true);
-
-        commands.execute(TOGGLE);
-        expect(layout.isPanelVisible()).toBe(false);
+        screen = testApp.backend.screenToString();
+        expect(sidebar.getActiveViewletId()).toBe("explorer");
+        expect(screen).toContain("EXPLORER");
+        expect(screen).not.toContain("SOURCE CONTROL");
     });
 
     it("активация файла открывает дифф этапа 5 (файл ↔ HEAD)", async () => {
@@ -139,7 +136,7 @@ describe("Workbench — вкладка Changes end-to-end", () => {
         editor?.viewState.type("XX");
 
         publish([{ path: ws.path("a.txt"), status: "M", colorId: MODIFIED }]);
-        commands.execute(TOGGLE);
+        commands.execute(SHOW_SCM);
         await settle(0);
 
         // Активируем узел файла — тот же обработчик, что зовёт клик/Enter по списку.
